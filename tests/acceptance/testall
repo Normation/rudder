@@ -1,0 +1,431 @@
+#!/bin/sh
+#
+#  Copyright (C) CFEngine AS
+#
+#  This file is part of CFEngine 3 - written and maintained by CFEngine AS.
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU General Public License as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License  
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
+#
+# To the extent this program is licensed as part of the Enterprise
+# versions of CFEngine, the applicable Commerical Open Source License
+# (COSL) may apply to this file if you as a licensee so wish it. See
+# included file COSL.txt.
+#
+
+#
+# Detect and replace non-POSIX shell
+#
+try_exec() {
+  type "$1" > /dev/null 2>&1 && exec "$@"
+}
+
+unset foo
+(: ${foo%%bar}) 2> /dev/null
+T1="$?"
+
+if test "$T1" != 0; then
+  try_exec /usr/xpg4/bin/sh "$0" "$@"
+  echo "No compatible shell script interpreter found."
+  echo "Please find a POSIX shell for your system."
+  exit 42
+fi
+
+#
+# Explicitly use POSIX tools if needed
+#
+if [ -f /usr/xpg4/bin/grep ]; then
+  PATH=/usr/xpg4/bin:$PATH
+  export PATH
+fi
+
+#
+# Unset environment variables which might break runinng acceptance tests
+#
+GREP_OPTIONS=
+export GREP_OPTIONS
+
+#
+# Defaults (overriden by command-line arguments)
+#
+LOG=test.log
+SUMMARY=summary.log
+XML=test.xml
+XMLTMP=xml.tmp
+BASE_WORKDIR=$(pwd)/workdir
+QUIET=
+STAGING_TESTS=${STAGING_TESTS:-0}
+NETWORK_TESTS=${NETWORK_TESTS:-1}
+GAINROOT=fakeroot
+
+PASSED_TESTS=0
+FAILED_TESTS=0
+FAILED_TO_CRASH_TESTS=0
+SKIPPED_TESTS=0
+
+#
+# Many older platforms don't support date +%s, so check for compatibility
+# and find Perl for the unix_seconds() routine below. (Mantis #1254)
+#
+HAVE_DATE_PCT_S=
+date +%s >/dev/null 2>&1
+if [ $? -eq 0 ] ; then
+  HAVE_DATE_PCT_S=1
+fi
+PERL=`which perl 2>/dev/null`
+
+#
+# Obtain UNIX time(), using date +%s, Perl, or POSIX-compatible approach.
+#
+unix_seconds() {
+  if [ "$HAVE_DATE_PCT_S" ]; then
+    date +%s
+    return 0
+  fi
+
+  if [ "$PERL" ]; then
+    $PERL -e 'print time() . "\n"' 2>/dev/null
+    if [ $? -eq 0 ] ; then
+      return 0
+    fi
+  fi
+
+  # Last resort if Perl fails - the extended cpio interchange format has
+  # the file modification timestamp in columns 48-59, in octal.
+  : > $BASE_WORKDIR/x
+  echo "ibase=8;$(pax -wx cpio $BASE_WORKDIR/$$.seconds | cut -c 48-59)" | bc 2>/dev/null
+  rm $BASE_WORKDIR/x
+}
+
+# We assume we're running this script from $objdir or $objdir/tests/acceptance
+[ -x `pwd`/cf-agent/cf-agent ] && DEFAGENT=`pwd`/cf-agent/cf-agent
+[ -x `pwd`/../../cf-agent/cf-agent ] && DEFAGENT=`pwd`/../../cf-agent/cf-agent
+AGENT=${AGENT:-${DEFAGENT}}
+
+[ -x `pwd`/cf-promises/cf-promises ] && DEFCF_PROMISES=`pwd`/cf-promises/cf-promises
+[ -x `pwd`/../../cf-promises/cf-promises ] && DEFCF_PROMISES=`pwd`/../../cf-promises/cf-promises
+CF_PROMISES=${CF_PROMISES:-${DEFCF_PROMISES}}
+
+[ -x `pwd`/cf-serverd/cf-serverd ] && DEFCF_SERVERD=`pwd`/cf-serverd/cf-serverd
+[ -x `pwd`/../../cf-serverd/cf-serverd ] && DEFCF_SERVERD=`pwd`/../../cf-serverd/cf-serverd
+CF_SERVERD=${CF_SERVERD:-${DEFCF_SERVERD}}
+
+[ -x `pwd`/cf-key/cf-key ] && DEFCF_KEY=`pwd`/cf-key/cf-key
+[ -x `pwd`/../../cf-key/cf-key ] && DEFCF_KEY=`pwd`/../../cf-key/cf-key
+CF_KEY=${CF_KEY:-${DEFCF_KEY}}
+
+if [ ! -x $AGENT -o ! -x $CF_PROMISES -o ! -x $CF_SERVERD -o ! -x $CF_KEY ]
+then
+	echo "ERROR can't find cf-agent or other binary. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance?"
+	exit 1
+fi
+
+# echo
+# echo === Test environment: ===
+# echo AGENT=$AGENT
+# echo CF_PROMISES=$CF_PROMISES
+# echo CF_SERVERD=$CF_SERVERD
+# echo CF_KEY=$CF_KEY
+# echo =========================
+# echo
+
+usage() {
+  echo "testall [-q] [--gainroot=<command>] [--agent=<agent>] [--no-nova] [--staging] [--no-network] [<test> <test>...]"
+  echo
+  echo "If no test is given, all tests are run:"
+  echo "  Tests with names of form <file>.cf are expected to run succesfully"
+  echo "  Tests with names of form <file>.x.cf are expected to crash"
+  echo "  Tests inside directories called 'staging' are not run"
+  echo "    (unless --staging option is passed)"
+  echo "  Tests inside directories called 'network' are not run"
+  echo "    if --no-network option is passed"
+  echo
+  echo "If arguments are given, those are executed as tests"
+  echo
+  echo " -q makes script much quieter"
+  echo
+  echo " --gainroot=<command> forces use of command to gain root privileges,"
+  echo "                      otherwise fakeroot is used."
+  echo
+  echo " --agent provides a way to specify non-default cf-agent location,"
+  echo "         and defaults to $DEFAGENT."
+}
+
+runtest() {
+  AGENT="$1"
+  TEST="$2"
+  if [ -z "$QUIET" ]; then
+    printf "$TEST "
+  fi
+
+  if echo "$TEST" | grep -q -F -e .x.cf ; then
+    EXPECTED_CRASH=1
+  else
+    EXPECTED_CRASH=
+  fi
+
+  if [ "x$STAGING_TESTS" = "x0" ] && echo "$TEST" | grep -q -e 'staging'; then
+    SKIP=1
+    SKIPREASON="Staging tests are disabled"
+  elif [ "x$NETWORK_TESTS" = "x0" ] && echo "$TEST" | grep -q -e 'network'; then
+    SKIP=1
+    SKIPREASON="Network-dependent tests are disabled"
+  else
+    SKIP=
+    SKIPREASON=
+  fi
+
+  ( echo ----------------------------------------------------------------------
+    echo "$TEST"${EXPECTED_CRASH:+ \(expected to crash\)}${SKIPREASON:+ \($SKIPREASON\)}
+    echo ----------------------------------------------------------------------
+  ) >> $LOG
+
+  if [ -z "$SKIP" ]; then
+    TEST_START_TIME=$(unix_seconds)
+
+    FLATNAME=$(echo "$TEST" | sed 's,[./],_,g')
+
+    # Prepare workdir
+    WORKDIR=$BASE_WORKDIR/$FLATNAME
+    $GAINROOT rm -rf $WORKDIR
+    mkdir -p $WORKDIR/bin $WORKDIR/tmp
+    ln -sf $AGENT $WORKDIR/bin
+    ln -sf $CF_PROMISES $WORKDIR/bin
+    ln -sf $CF_SERVERD $WORKDIR/bin
+    ln -sf $CF_KEY $WORKDIR/bin
+
+    echo "#!/bin/sh
+CFENGINE_TEST_OVERRIDE_WORKDIR=$WORKDIR
+TEMP=$WORKDIR/tmp
+export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP
+
+$AGENT $VERBOSE -Kf \"$TEST\" -D AUTO,DEBUG 2>&1
+" > $WORKDIR/runtest
+    chmod +x $WORKDIR/runtest
+
+    OUT=$($GAINROOT $WORKDIR/runtest)
+    RETVAL=$?
+    echo "$OUT" >> $LOG
+    echo >> $LOG
+    echo "Return code is $RETVAL." >> $LOG
+
+    TEST_END_TIME=$(unix_seconds)
+    echo "              "time=\"$(($TEST_END_TIME - $TEST_START_TIME)) seconds\"\> >> $XMLTMP
+
+    if [ -z "$EXPECTED_CRASH" ]; then
+      if [ $RETVAL -eq 0 ] && echo "$OUT" | grep -q -F -e "R: $TEST Pass"; then
+        RESULT=Pass
+      else
+        RESULT=FAIL
+      fi
+    else
+      if [ $RETVAL -ne 0 ]; then
+        RESULT=Pass
+      else
+        RESULT="FAILed to crash"
+      fi
+    fi
+
+    if [ "$RESULT" = "Pass" ]; then
+      $GAINROOT rm -rf $WORKDIR
+    fi
+
+    if [ "$RESULT" != Pass ] && [ -e .succeeded/"$FLATNAME" ]; then
+      echo $RESULT $TEST '(UNEXPECTED FAILURE)' >> $SUMMARY
+      ( echo "        "\<failure type=\"UNEXPECTED FAILURE\"
+        echo "                 "message=\"$RESULT $TEST '(UNEXPECTED FAILURE)'\"\>
+        echo "        "\<\/failure\>
+      ) >> $XMLTMP
+    else
+      echo $RESULT $TEST >> $SUMMARY
+      if [ "$RESULT" = FAIL ]; then
+        ( echo "        "\<failure type=\"FAIL\"
+          echo "                 "message=\"$RESULT $TEST\"\>
+          echo "        "\<\/failure\>
+        ) >> $XMLTMP
+      elif [ "$RESULT" = "FAILed to crash" ]; then
+        ( echo "        "\<failure type=\"FAILed to crash\"
+          echo "                 "message=\"$RESULT $TEST\"\>
+          echo "        "\<\/failure\>
+        ) >> $XMLTMP
+      fi
+    fi
+
+    if [ -z "$QUIET" ]; then
+      if [ "$RESULT" != Pass ] && [ -e .succeeded/"$FLATNAME" ]; then
+        echo $RESULT '(UNEXPECTED FAILURE)'
+      else
+        echo $RESULT
+      fi
+    else
+      if [ "$RESULT" = Pass ]; then
+        printf '.'
+      else
+        if [ -n "$EXPECTED_CRASH" ]; then
+          printf '!'
+        else
+          printf 'x'
+        fi
+      fi
+    fi
+
+    (
+      echo
+      echo '  ==>' $RESULT
+      echo
+    ) >> $LOG
+
+    if [ "$RESULT" = Pass ]; then
+      PASSED_TESTS=$(($PASSED_TESTS + 1))
+
+      mkdir -p '.succeeded'
+      touch .succeeded/"$FLATNAME"
+    elif [ "$RESULT" = FAIL ]; then
+      FAILED_TESTS=$(($FAILED_TESTS + 1))
+    elif [ "$RESULT" = "FAILed to crash" ]; then
+      FAILED_TO_CRASH_TESTS=$(($FAILED_TO_CRASH_TESTS + 1))
+    fi
+  else
+    echo "              "time=\"NULL\"\> >> $XMLTMP
+    echo Skip $TEST >> $SUMMARY
+    ( echo "        "\<skipped type=\"$SKIPREASON\"\>
+      echo "        "\<\/skipped\>
+    ) >> $XMLTMP
+    if [ -z "$QUIET" ]; then
+      echo Skipped
+    else
+      printf '-'
+    fi
+    SKIPPED_TESTS=$(($SKIPPED_TESTS + 1))
+  fi
+}
+
+while true; do
+  case "$1" in
+    --help)
+      usage
+      exit;;
+    -q)
+      QUIET=1;;
+    --gainroot=*)
+      GAINROOT=${1#--gainroot=};;
+    --staging)
+      STAGING_TESTS=1;;
+    --no-network)
+      NETWORK_TESTS=0;;
+    --agent=*)
+      AGENT=${1#--agent=};;
+    -*)
+      echo "Unknown option: $1"
+      exit 1;;
+    *)
+      break;;
+  esac
+  shift
+done
+
+if [ $# -gt 0 ]; then
+  # We need to run all specified tests
+  STAGING_TESTS=1
+  NETWORK_TESTS=1
+  for test in "$@"; do
+    if ! expr "$test" : '[/.]' >/dev/null; then
+      test="./$test"
+    fi
+
+    if [ -f $test ]; then
+      TESTS="$TESTS $test"
+    elif [ -d $test ]; then
+      ADDTESTS=$(find $test -name '*.cf' | sort)
+      TESTS="$TESTS $ADDTESTS"
+    else
+      echo "Unable to open test file/directory: $test"
+    fi
+  done
+else
+  TESTS=$(find $(dirname $0) -name '*.cf' | sort)
+fi
+
+#
+# fd 7 is a /dev/null for quiet execution and stdout for default one
+#
+if [ -z "$QUIET" ]; then
+  exec 7>&1
+else
+  exec 7>/dev/null
+fi
+
+#
+# Now run the tests
+#
+
+TESTS_COUNT=$(echo $TESTS | wc -w)
+START_TIME=$(unix_seconds)
+
+( echo ======================================================================
+  echo Testsuite started at $(date "+%F %T")
+  echo ----------------------------------------------------------------------
+  echo Total tests: $TESTS_COUNT
+  echo
+) | tee $LOG | tee $SUMMARY >&7
+
+
+( echo \<\?xml version=\"1.0\" encoding=\"UTF-8\"\?\>
+  echo \<testsuite name=\"$(pwd)\"
+  echo "           "timestamp=\"$(date "+%F %T")\"
+  echo "           hostname=\"localhost\""
+  echo "           "tests=\"$TESTS_COUNT\"
+) > $XML
+
+  echo -n "" > $XMLTMP
+
+for test in $TESTS; do
+  echo "    "\<testcase name=\"$(basename $test)\" >> $XMLTMP
+  echo "              "classname=\"$test\" >> $XMLTMP
+  if [ -n "$USE_VALGRIND" ]; then
+    runtest "valgrind --leak-check=full --show-reachable=yes $AGENT" "$test"
+  else
+    runtest $AGENT "$test"
+  fi
+  echo "    "\<\/testcase\> >> $XMLTMP
+done
+
+END_TIME=$(unix_seconds)
+
+( echo
+  echo ======================================================================
+  echo Testsuite finished at $(date  "+%F %T") \($(($END_TIME - $START_TIME)) seconds\)
+) | tee -a $LOG | tee -a $SUMMARY >&7
+
+( echo
+  echo Passed tests: $PASSED_TESTS
+  echo Failed tests: $FAILED_TESTS
+  echo Failed to crash tests: $FAILED_TO_CRASH_TESTS
+  echo Skipped tests: $SKIPPED_TESTS
+) | tee -a $LOG | tee -a $SUMMARY
+
+(  echo "           "failures=\"$FAILED_TESTS\"
+   echo "           "skipped=\"$SKIPPED_TESTS\"
+   echo "           "time=\"$(($END_TIME - $START_TIME)) seconds\"\>
+) >> $XML
+
+  cat $XMLTMP >> $XML
+
+  echo \<\/testsuite\> >> $XML
+
+if [ "$FAILED_TESTS" -ne 0 ] || [ "$FAILED_TO_CRASH_TESTS" -ne 0 ]; then
+  exit 1
+else
+  exit 0
+fi
+
