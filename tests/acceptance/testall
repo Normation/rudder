@@ -108,18 +108,22 @@ unix_seconds() {
 }
 
 # We assume we're running this script from $objdir or $objdir/tests/acceptance
+if which cf-agent >/dev/null; then DEFAGENT=`which cf-agent`; fi
 [ -x `pwd`/cf-agent/cf-agent ] && DEFAGENT=`pwd`/cf-agent/cf-agent
 [ -x `pwd`/../../cf-agent/cf-agent ] && DEFAGENT=`pwd`/../../cf-agent/cf-agent
 AGENT=${AGENT:-${DEFAGENT}}
 
+if which cf-promises >/dev/null; then DEFCF_PROMISES=`which cf-promises`; fi
 [ -x `pwd`/cf-promises/cf-promises ] && DEFCF_PROMISES=`pwd`/cf-promises/cf-promises
 [ -x `pwd`/../../cf-promises/cf-promises ] && DEFCF_PROMISES=`pwd`/../../cf-promises/cf-promises
 CF_PROMISES=${CF_PROMISES:-${DEFCF_PROMISES}}
 
+if which cf-serverd >/dev/null; then DEFCF_SERVERD=`which cf-serverd`; fi
 [ -x `pwd`/cf-serverd/cf-serverd ] && DEFCF_SERVERD=`pwd`/cf-serverd/cf-serverd
 [ -x `pwd`/../../cf-serverd/cf-serverd ] && DEFCF_SERVERD=`pwd`/../../cf-serverd/cf-serverd
 CF_SERVERD=${CF_SERVERD:-${DEFCF_SERVERD}}
 
+if which cf-key >/dev/null; then DEFCF_KEY=`which cf-key`; fi
 [ -x `pwd`/cf-key/cf-key ] && DEFCF_KEY=`pwd`/cf-key/cf-key
 [ -x `pwd`/../../cf-key/cf-key ] && DEFCF_KEY=`pwd`/../../cf-key/cf-key
 CF_KEY=${CF_KEY:-${DEFCF_KEY}}

@@ -1,0 +1,44 @@
+#######################################################
+#
+# Test adding a package that doesn't exist
+#
+#######################################################
+
+body common control
+{
+      inputs => { "../default.cf.sub", "../default_ncf.cf.sub", "@{ncf_inputs.defaults}", "../../../30_generic_methods/ncf/install_package.cf" };
+      bundlesequence  => { default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "nonexistant" string => "nonexistantpackagename";
+}
+
+#######################################################
+
+bundle agent test
+{
+
+  methods:
+    "ph" usebundle => install_package("${init.nonexistant}");
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok" expression => "install_package_${init.nonexistant}_not_ok.install_package_${init.nonexistant}_reached.!install_package_${init.nonexistant}_ok.!install_package_${init.nonexistant}_kept";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}

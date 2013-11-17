@@ -1,0 +1,9 @@
+bundle common ncf_inputs
+{
+  vars:
+    "defaults" slist => {
+        "../../../20_cfe_basics/ncf/cfengine_stdlib.cf",
+        "../../../20_cfe_basics/ncf/ncf_lib.cf",
+        "../../../30_generic_methods/ncf/logger.cf",
+    };
+}
