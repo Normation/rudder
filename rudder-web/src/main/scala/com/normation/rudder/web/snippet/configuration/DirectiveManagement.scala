@@ -241,58 +241,75 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       }
 
       case Some((fullActiveTechnique,version)) =>
-        val technique = fullActiveTechnique.techniques(version)
-        /*
-         * We want to filter technique to only show the one
-         * with registered acceptation date time.
-         * Also sort by version, reverse
-         */
-        val validTechniqueVersions = fullActiveTechnique.techniques.map { case(v, t) =>
-          fullActiveTechnique.acceptationDatetimes.get(v) match {
-            case Some(timeStamp) => Some((v, t, timeStamp))
-            case None =>
-              logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(fullActiveTechnique.techniqueName, v.toString) +
-                      "that version was not correctly registered into Rudder and can not be use for now.")
-              logger.info("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
-                      "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
-                      "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
-                      "modification), and reload again the Technique Library.")
+        fullActiveTechnique.techniques.get(version) match {
+          case None =>
+            val m = s"There was an error when trying to read version ${version.toString} of the Technique." +
+                 "This is bad. Please check if that version exists on the filesystem and is correctly registered in the Technique Library."
 
-              None
-          }
-        }.toSeq.flatten.sortBy( _._1 )
+            logger.error(m)
 
-        "#directiveIntro " #> {
-          currentDirectiveSettingForm.is.map { piForm =>
-            (".directive *" #> piForm.directive.name)
-          }
-        } &
-        "#techniqueName" #> technique.name &
-        "#compatibility" #> technique.compatible.map { comp =>
-          { if(comp.os.isEmpty) {
-            NodeSeq.Empty
-          } else {
-            <p><b>Supported operating systems: </b>{comp.os.mkString(", ")}</p>
-          } } ++ {
-          if (comp.agents.isEmpty) {
-            NodeSeq.Empty
-          } else {
-            <p><b>Supported agents: </b>{comp.agents.mkString(", ")}</p>
-          } }
-        } &
-        "#techniqueDescription" #>  technique.description &
-        "#techniqueLongDescription" #>  technique.longDescription &
-        "#isSingle *" #> showIsSingle(technique) &
-        "#techniqueVersions" #> showVersions(fullActiveTechnique, validTechniqueVersions) &
-        "#migrate" #> showMigration(fullActiveTechnique) &
-        "#addButton" #> validTechniqueVersions.lastOption.map { case(v, t, time) =>
-          SHtml.ajaxButton(
-            { Text(s"Create Directive (latest version) - ${v}") },
-            { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
-                       newCreationPopup(t, fullActiveTechnique)) &
-                     JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
-              ("class", "autoWidthButton")
-            )
+            "*" #> {
+              <div id="techniqueDetails">
+              <div class="deca">
+              <p class="error">{m}</p>
+              </div>
+              </div>
+            }
+
+          case Some(technique) =>
+
+            /*
+             * We want to filter technique to only show the one
+             * with registered acceptation date time.
+             * Also sort by version, reverse
+             */
+            val validTechniqueVersions = fullActiveTechnique.techniques.map { case(v, t) =>
+              fullActiveTechnique.acceptationDatetimes.get(v) match {
+                case Some(timeStamp) => Some((v, t, timeStamp))
+                case None =>
+                  logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(fullActiveTechnique.techniqueName, v.toString) +
+                          "that version was not correctly registered into Rudder and can not be use for now.")
+                  logger.info("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
+                          "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
+                          "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
+                          "modification), and reload again the Technique Library.")
+
+                  None
+              }
+            }.toSeq.flatten.sortBy( _._1 )
+
+            "#directiveIntro " #> {
+              currentDirectiveSettingForm.is.map { piForm =>
+                (".directive *" #> piForm.directive.name)
+              }
+            } &
+            "#techniqueName" #> technique.name &
+            "#compatibility" #> technique.compatible.map { comp =>
+              { if(comp.os.isEmpty) {
+                NodeSeq.Empty
+              } else {
+                <p><b>Supported operating systems: </b>{comp.os.mkString(", ")}</p>
+              } } ++ {
+              if (comp.agents.isEmpty) {
+                NodeSeq.Empty
+              } else {
+                <p><b>Supported agents: </b>{comp.agents.mkString(", ")}</p>
+              } }
+            } &
+            "#techniqueDescription" #>  technique.description &
+            "#techniqueLongDescription" #>  technique.longDescription &
+            "#isSingle *" #> showIsSingle(technique) &
+            "#techniqueVersions" #> showVersions(fullActiveTechnique, validTechniqueVersions) &
+            "#migrate" #> showMigration(fullActiveTechnique) &
+            "#addButton" #> validTechniqueVersions.lastOption.map { case(v, t, time) =>
+              SHtml.ajaxButton(
+                { Text(s"Create Directive (latest version) - ${v}") },
+                { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
+                           newCreationPopup(t, fullActiveTechnique)) &
+                         JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
+                  ("class", "autoWidthButton")
+                )
+            }
         }
     })
   }
