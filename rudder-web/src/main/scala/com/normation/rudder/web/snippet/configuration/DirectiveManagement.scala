@@ -243,12 +243,15 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Some((fullActiveTechnique,version)) =>
         fullActiveTechnique.techniques.get(version) match {
           case None =>
+            val m = s"There was an error when trying to read version ${version.toString} of the Technique." +
+                 "This is bad. Please check if that version exists on the filesystem and is correctly registered in the Technique Library."
+
+            logger.error(m)
+
             "*" #> {
               <div id="techniqueDetails">
               <div class="deca">
-              <p class="error">There was an error when trying to read version {version.toString} of the Technique.
-                 This is bad. Please check if that version exists on the filesystem and is correctly registered in the Technique Library.
-              </p>
+              <p class="error">{m}</p>
               </div>
               </div>
             }
