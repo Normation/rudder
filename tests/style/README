@@ -1,3 +1,6 @@
 This directory contains a test suite to validate conventions and style guides in NCF.
 
-The test framework will look in all sub-directories for files named *.{sh,py,pl} and run them, and make sure they return error code 0, and output a line "${filename} Pass".
+The test framework will look in all sub-directories for files named *.{sh,py,pl} and run them, and make sure they return error code 0, and output a line "R: ${filename} Pass". The test will be considered FAILed if it returns Any other error code or if the output does not contain "R: ${filename} Pass".
+
+Each test will be run individually, and the environment will contain these variables:
+- NCF_TREE - The full path to the tree containing ncf's directories to test
