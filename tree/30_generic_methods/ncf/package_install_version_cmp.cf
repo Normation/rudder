@@ -15,95 +15,8 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
-
-#####################################################################################
-# Packages management
 ####################################################################################
-# This files contains utilities bundles to install package or check if they are
-# installed, optionnaly in a specific version.
-#
-# It contains four bundles:
-# - install_package:         install or update a package in the latest version available
-# - install_package_version: install or update a package in a specific version
-# - verify_package:          verify if a package in installed
-# - verify_package_version:  verify is a package in installed in a specific version
-#
-# Please take a look at the corresponding bundles for extended usage details
-####################################################################################
-
-
-####################################################################################
-# install_package: Install or update a package in its latest version available
-# Contract:
-#  - Args:
-#     -- "package_name", the name of the package to install
-#  - Returns: defines a class install_package_${package_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => install_package("nrpe");
-####################################################################################
-bundle agent install_package(package_name)
-{
-  methods:
-      "placeholder" usebundle => install_package_version("${package_name}", "latest");
-}
-
-####################################################################################
-# install_package_version: Install or update a package in a specific version
-# Contract:
-#  - Args:
-#     -- "package_name", the name of the package to install
-#     -- "package_version", version of the package to install (can be "latest" to install it
-#                           in its latest version)
-#  - Returns: defines a class install_package_${package_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => install_package("nrpe", "el6");
-####################################################################################
-bundle agent install_package_version(package_name, package_version)
-{
-  methods:
-      "placeholder" usebundle => install_package_version_cmp("${package_name}", "==", "${package_version}", "add");
-}
-
-
-####################################################################################
-# verify_package: Verify if a package is installed in its latest version available
-# Contract:
-#  - Args:
-#     -- "package_name", the name of the package to verify
-#  - Returns: defines a class install_package_${package_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => verify_package("nrpe");
-####################################################################################
-bundle agent verify_package(package_name)
-{
-  methods:
-      "placeholder" usebundle => verify_package_version("${package_name}", "latest");
-}
-
-####################################################################################
-# verify_package_version: Verify if a package is installed in a specific version
-# Contract:
-#  - Args:
-#     -- "package_name", the name of the package to verify
-#     -- "package_version", the version of the package to verify (can be "latest" for latest version)
-#  - Returns: defines a class install_package_${package_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => verify_package_version("nrpe", "el6");
-####################################################################################
-bundle agent verify_package_version(package_name, package_version)
-{
-  methods:
-    "placeholder" usebundle => install_package_version_cmp("${package_name}", "==", "${package_version}", "verify");
-}
-
-
-
-####################################################################################
-# install_package_version_cmp: Install a package or verify if it is installed in a specific version,
+# package_install_version_cmp: Install a package or verify if it is installed in a specific version,
 # or higher or lower version than a version specified
 # Contract:
 #  - Args:
@@ -120,21 +33,20 @@ bundle agent verify_package_version(package_name, package_version)
 #                  "add": to install or update the package
 #                  "verify": to check if it is installed 
 #                  default to "verify"
-#  - Returns: defines a class install_package_${package_name}_{kept,repaired,ok,not_ok,reached}
+#  - Returns: defines a class package_install_${package_name}_{kept,repaired,ok,not_ok,reached}
 # Usage example:
 # methods:
-#     "any" usebundle => install_package_version_cmp("postgresql", ">=", "9.1", "verify");
+#     "any" usebundle => package_install_version_cmp("postgresql", ">=", "9.1", "verify");
 ####################################################################################
-
-bundle agent install_package_version_cmp(package_name, version_comparator, package_version, action)
+bundle agent package_install_version_cmp(package_name, version_comparator, package_version, action)
 {
   vars:
-      "class_prefix" string => "install_package_${package_name}";
+      "class_prefix" string => "package_install_${package_name}";
 
   defaults:
       "action" string => "immediate", if_match_regex => "add";
       "action" string => "warn_only", if_match_regex => "verify|";
- 
+
   classes:
       "local_package" expression => regcmp("(http:|file:)?/.*", "${package_name}");
       "version_not_specified" expression => strcmp("latest", "${package_version}");
@@ -149,7 +61,6 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
                         package_method  => redhat_local_install,
                         classes         => classes_generic("${class_prefix}"),
                         action          => do_if_immediate;
-
 
     !version_not_specified.!local_package.redhat::
       "${package_name}"
@@ -175,8 +86,6 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
                         package_method => yum_rpm,
                         classes        => classes_generic("${class_prefix}"),
                         action         => do_if_immediate;
-
-
     !version_not_specified.local_package.debian::
       "${package_name}"
                         package_policy  => "addupdate",
@@ -203,7 +112,6 @@ bundle agent install_package_version_cmp(package_name, version_comparator, packa
                         package_method => debian_local_install,
                         classes        => classes_generic("${class_prefix}"),
                         action         => do_if_immediate;
-
 
     version_not_specified.!local_package.debian::
       "${package_name}"

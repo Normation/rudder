@@ -1,0 +1,39 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+#########################################################################################################
+# service_start: Make sure a service is running
+# Contract:
+#  - Args:
+#    -- "service_name", the name of the service 
+#    -- "service_path", the path of the service
+#  - Assumes
+#    -- The init script to start the service is /etc/init.d/${service_name}
+#    -- The path to the service is used to detect if the service is running in 
+#       ps command
+#  - Returns: defines a service_start_${service_name}_{kept,repaired,ok,not_ok,reached}
+# Usage example:
+# methods:
+#       "any" usebundle => service_start("nrpe", "nrpe");
+#########################################################################################################
+
+bundle agent service_start(service_name, service_path)
+{
+  methods:
+    "service_start" usebundle => service_start_command("${service_name}", "${service_path}", "/etc/init.d/${service_name} start");
+}

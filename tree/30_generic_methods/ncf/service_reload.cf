@@ -1,0 +1,36 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+#########################################################################################################
+# service_reload: Reload a service (for instance after a configuration modification)
+# Contract:
+#  - Args:
+#    -- "service_name", the name of the service 
+#  - Assumes
+#    -- The init script to start the service is /etc/init.d/${service_name}
+#  - Returns: defines a service_reload_${service_name}_{kept,repaired,ok,not_ok,reached}
+# Usage example:
+# methods:
+#       "any" usebundle => service_reload("nrpe", "nrpe");
+#########################################################################################################
+bundle agent service_reload(service_name)
+{
+  methods:
+    "service_reload" usebundle => service_reload_command("${service_name}", "/etc/init.d/${service_name} reload");
+}
+
