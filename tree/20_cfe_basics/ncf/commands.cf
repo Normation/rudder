@@ -1,0 +1,168 @@
+############################################################################
+#  Copyright (C) Cfengine AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of Cfengine, the applicable Commerical Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# Cfengine Community Open Promise-Body Library
+#
+# This initiative started by Cfengine promotes a
+# standardized set of names and promise specifications
+# for template functionality within Cfengine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by Cfengine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For Cfengine Core: 3.5.1 to 3.5.x
+# Commands bodies
+
+###################################################
+# If you find Cfengine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+
+##-------------------------------------------------------
+## contain
+##-------------------------------------------------------
+
+body contain silent
+{
+no_output => "true";
+}
+
+##
+
+body contain in_dir(s)
+{
+chdir => "$(s)";
+}
+
+##
+
+body contain in_dir_shell(s)
+{
+chdir => "$(s)";
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+}
+
+##
+
+body contain silent_in_dir(s)
+{
+chdir => "$(s)";
+no_output => "true";
+}
+
+##
+
+body contain in_shell
+{
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+}
+
+##
+
+body contain in_shell_bg
+{
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+}
+
+##
+
+body contain in_shell_and_silent
+{
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+no_output => "true";
+}
+
+##
+
+body contain in_dir_shell_and_silent(dir)
+{
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+no_output => "true";
+chdir => "$(dir)";
+}
+
+##
+
+body contain setuid(x)
+{
+exec_owner => "$(x)";
+useshell => "false"; # canonical "noshell" but this is backwards-compatible
+}
+
+##
+
+body contain setuid_sh(x)
+{
+exec_owner => "$(x)";
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+}
+
+##
+
+body contain setuidgid_sh(owner,group)
+{
+exec_owner => "$(owner)";
+exec_group => "$(group)";
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+}
+
+##
+
+body contain jail(owner,root,dir)
+{
+exec_owner => "$(owner)";
+useshell => "true"; # canonical "useshell" but this is backwards-compatible
+chdir => "$(dir)";
+chroot => "$(root)";
+}
+
+##
+
+body contain setuid_umask(uid, umask)
+###################################################
+#       | Files               | Directories       #
+###################################################
+# Umask | Octal   Symbolic    | Octal   Symbolic  #
+########+#####################+###################+
+# 000   | 666     (rw-rw-rw-) | 777     (rwxrwxrwx)
+# 002   | 664     (rw-rw-r--) | 775     (rwxrwxr-x)
+# 022   | 644     (rw-r--r--) | 755     (rwxr-xr-x)
+# 027   | 640     (rw-r-----) | 750     (rwxr-x---)
+# 077   | 600     (rw-------) | 700     (rwx------)
+# 277   | 400     (r--------) | 500     (r-x------)
+{
+exec_owner => "$(uid)";
+umask => "$(umask)";
+}
+
+

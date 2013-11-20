@@ -1,0 +1,272 @@
+############################################################################
+#  Copyright (C) Cfengine AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of Cfengine, the applicable Commerical Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# Cfengine Community Open Promise-Body Library
+#
+# This initiative started by Cfengine promotes a
+# standardized set of names and promise specifications
+# for template functionality within Cfengine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by Cfengine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For Cfengine Core: 3.5.1 to 3.5.x
+# Common bodies
+
+###################################################
+# If you find Cfengine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+####################################################
+## agent bodyparts
+####################################################
+
+##-------------------------------------------------------
+## action
+##-------------------------------------------------------
+
+body action if_elapsed(x)
+{
+ifelapsed => "$(x)";
+expireafter => "$(x)";
+}
+
+##
+
+body action if_elapsed_day
+{
+ifelapsed => "1440";    # 60 x 24
+expireafter => "1400";
+}
+
+##
+
+body action measure_performance(x)
+{
+measurement_class => "Detect changes in $(this.promiser)";
+ifelapsed => "$(x)";
+expireafter => "$(x)";
+}
+
+##
+
+body action warn_only
+{
+action_policy => "warn";
+ifelapsed => "60";
+}
+
+##
+
+body action bg(elapsed,expire)
+{
+ifelapsed   => "$(elapsed)";
+expireafter => "$(expire)";
+background  => "true";
+}
+
+##
+
+body action ifwin_bg
+{
+windows::
+background => "true";
+}
+
+##
+
+body action immediate
+{
+ifelapsed => "0";
+}
+
+##
+
+body action policy(p)
+{
+action_policy => "$(p)";
+}
+
+##
+
+# Log a message to log=[/file|stdout]
+
+body action log_repaired(log,message)
+{
+log_string => "$(sys.date), $(message)";
+log_repaired => "$(log)";
+}
+
+###
+
+body action log_verbose
+{
+log_level => "verbose";
+}
+
+##
+
+body action sample_rate(x)
+{
+ifelapsed => "$(x)";
+expireafter => "10";
+}
+
+##-------------------------------------------------------
+## classes
+##-------------------------------------------------------
+
+
+body classes if_repaired(x)
+{
+promise_repaired => { "$(x)" };
+}
+
+##
+
+body classes if_else(yes,no)
+
+{
+promise_kept     => { "$(yes)" };
+promise_repaired => { "$(yes)" };
+repair_failed    => { "$(no)" };
+repair_denied    => { "$(no)" };
+repair_timeout   => { "$(no)" };
+}
+
+##
+
+body classes cf2_if_else(yes,no)
+
+# meant to match cf2 semantics
+
+{
+promise_repaired => { "$(yes)" };
+repair_failed    => { "$(no)" };
+repair_denied    => { "$(no)" };
+repair_timeout   => { "$(no)" };
+}
+
+##
+
+body classes if_notkept(x)
+{
+repair_failed   => { "$(x)" };
+repair_denied   => { "$(x)" };
+repair_timeout  => { "$(x)" };
+}
+
+##
+
+body classes if_ok(x)
+{
+promise_repaired => { "$(x)" };
+promise_kept => { "$(x)" };
+}
+
+##
+
+body classes if_ok_cancel(x)
+{
+cancel_repaired => { "$(x)" };
+cancel_kept => { "$(x)" };
+}
+
+##
+
+body classes cmd_repair(code,cl)
+{
+repaired_returncodes => { "$(code)" };
+promise_repaired => { "$(cl)" };
+}
+
+body classes classes_generic(x)
+# Define x prefixed/suffixed with promise outcome
+{
+  promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+  repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+  repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+  repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+  promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+}
+
+body classes scoped_classes_generic(scope, x)
+# Define x prefixed/suffixed with promise outcome
+{
+  scope => "$(scope)";
+  promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+  repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+  repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+  repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+  promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+}
+
+##-------------------------------------------------------
+## Persistent classes
+##-------------------------------------------------------
+
+body classes state_repaired(x)
+{
+promise_repaired => { "$(x)" };
+persist_time => "10";
+}
+
+##
+
+body classes enumerate(x)
+
+#
+# This is used by commercial editions to count
+# instances of jobs in a cluster
+#
+
+{
+promise_repaired => { "mXC_$(x)" };
+promise_kept => { "mXC_$(x)" };
+persist_time => "15";
+}
+
+##
+
+body classes always(x)
+
+# Define a class no matter what the outcome of the promise is
+
+{
+  promise_repaired => { "$(x)" };
+  promise_kept => { "$(x)" };
+  repair_failed => { "$(x)" };
+  repair_denied => { "$(x)" };
+  repair_timeout => { "$(x)" };
+}
+

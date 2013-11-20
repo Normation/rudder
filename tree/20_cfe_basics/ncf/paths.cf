@@ -1,0 +1,279 @@
+############################################################################
+#  Copyright (C) Cfengine AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of Cfengine, the applicable Commerical Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# Cfengine Community Open Promise-Body Library
+#
+# This initiative started by Cfengine promotes a
+# standardized set of names and promise specifications
+# for template functionality within Cfengine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by Cfengine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For Cfengine Core: 3.5.1 to 3.5.x
+# Paths bundle (used by other bodies)
+
+###################################################
+# If you find Cfengine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+bundle common paths
+# In addition to defining common paths, this bundle also defines context
+# classes for paths that are defined (_stdlib_has_path_xxx) and paths that
+# exist (_stdlib_path_exists_xxx)
+{
+  vars:
+
+      #
+      # Common full pathname of commands for OS
+      #
+
+    any::
+      "path[getfacl]"  string => "/usr/bin/getfacl";
+
+    aix::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[crontabs]" string => "/var/spool/cron/crontabs";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[df]"       string => "/usr/bin/df";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/bin/dig";
+      "path[echo]"     string => "/usr/bin/echo";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/usr/bin/ls";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+
+    freebsd|netbsd::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[crontabs]" string => "/var/cron/tabs";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[df]"       string => "/bin/df";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/bin/dig";
+      "path[echo]"     string => "/bin/echo";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/bin/ls";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+
+    openbsd::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/bin/cat";
+      "path[cksum]"    string => "/bin/cksum";
+      "path[crontabs]" string => "/var/cron/tabs";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[df]"       string => "/bin/df";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/sbin/dig";
+      "path[echo]"     string => "/bin/echo";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/bin/ls";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+
+    solaris::
+
+      "path[awk]"      string => "/usr/bin/awk";
+      "path[bc]"       string => "/usr/bin/bc";
+      "path[cat]"      string => "/usr/bin/cat";
+      "path[cksum]"    string => "/usr/bin/cksum";
+      "path[crontabs]" string => "/var/spool/cron/crontabs";
+      "path[cut]"      string => "/usr/bin/cut";
+      "path[dc]"       string => "/usr/bin/dc";
+      "path[df]"       string => "/usr/bin/df";
+      "path[diff]"     string => "/usr/bin/diff";
+      "path[dig]"      string => "/usr/sbin/dig";
+      "path[echo]"     string => "/usr/bin/echo";
+      "path[egrep]"    string => "/usr/bin/egrep";
+      "path[find]"     string => "/usr/bin/find";
+      "path[grep]"     string => "/usr/bin/grep";
+      "path[ls]"       string => "/usr/bin/ls";
+      "path[netstat]"  string => "/usr/bin/netstat";
+      "path[ping]"     string => "/usr/bin/ping";
+      "path[perl]"     string => "/usr/bin/perl";
+      "path[printf]"   string => "/usr/bin/printf";
+      "path[sed]"      string => "/usr/bin/sed";
+      "path[sort]"     string => "/usr/bin/sort";
+      "path[tr]"       string => "/usr/bin/tr";
+      #
+      "path[svcs]"     string => "/usr/bin/svcs";
+      "path[svcadm]"   string => "/usr/sbin/svcadm";
+
+    redhat::
+
+      "path[awk]"           string => "/bin/awk";
+      "path[bc]"            string => "/usr/bin/bc";
+      "path[cat]"           string => "/bin/cat";
+      "path[cksum]"         string => "/usr/bin/cksum";
+      "path[createrepo]"    string => "/usr/bin/createrepo";
+      "path[crontab]"       string => "/usr/bin/crontab";
+      "path[crontabs]"      string => "/var/spool/cron";
+      "path[cut]"           string => "/bin/cut";
+      "path[dc]"            string => "/usr/bin/dc";
+      "path[df]"            string => "/bin/df";
+      "path[diff]"          string => "/usr/bin/diff";
+      "path[dig]"           string => "/usr/bin/dig";
+      "path[domainname]"    string => "/bin/domainname";
+      "path[echo]"          string => "/bin/echo";
+      "path[egrep]"         string => "/bin/egrep";
+      "path[find]"          string => "/usr/bin/find";
+      "path[grep]"          string => "/bin/grep";
+      "path[hostname]"      string => "/bin/hostname";
+      "path[init]"          string => "/sbin/init";
+      "path[iptables]"      string => "/sbin/iptables";
+      "path[iptables_save]" string => "/sbin/iptables-save";
+      "path[ls]"            string => "/bin/ls";
+      "path[netstat]"       string => "/bin/netstat";
+      "path[ping]"          string => "/usr/bin/ping";
+      "path[perl]"          string => "/usr/bin/perl";
+      "path[printf]"        string => "/usr/bin/printf";
+      "path[sed]"           string => "/bin/sed";
+      "path[sort]"          string => "/bin/sort";
+      "path[sysctl]"        string => "/sbin/sysctl";
+      "path[test]"          string => "/usr/bin/test";
+      "path[tr]"            string => "/usr/bin/tr";
+
+      #
+      "path[chkconfig]" string => "/sbin/chkconfig";
+      "path[groupadd]"  string => "/usr/sbin/groupadd";
+      "path[groupdel]"  string => "/usr/sbin/groupdel";
+      "path[ifconfig]"  string => "/sbin/ifconfig";
+      "path[ip]"        string => "/sbin/ip";
+      "path[rpm]"       string => "/bin/rpm";
+      "path[service]"   string => "/sbin/service";
+      "path[svc]"       string => "/sbin/service";
+      "path[useradd]"   string => "/usr/sbin/useradd";
+      "path[userdel]"   string => "/usr/sbin/userdel";
+      "path[yum]"       string => "/usr/bin/yum";
+
+    debian::
+
+      "path[awk]"           string => "/usr/bin/awk";
+      "path[bc]"            string => "/usr/bin/bc";
+      "path[cat]"           string => "/bin/cat";
+      "path[chkconfig]"     string => "/sbin/chkconfig";
+      "path[cksum]"         string => "/usr/bin/cksum";
+      "path[createrepo]"    string => "/usr/bin/createrepo";
+      "path[crontab]"       string => "/usr/bin/crontab";
+      "path[crontabs]"      string => "/var/spool/cron/crontabs";
+      "path[cut]"           string => "/usr/bin/cut";
+      "path[dc]"            string => "/usr/bin/dc";
+      "path[df]"            string => "/bin/df";
+      "path[diff]"          string => "/usr/bin/diff";
+      "path[dig]"           string => "/usr/bin/dig";
+      "path[dmidecode]"     string => "/usr/sbin/dmidecode";
+      "path[domainname]"    string => "/bin/domainname";
+      "path[echo]"          string => "/bin/echo";
+      "path[egrep]"         string => "/bin/egrep";
+      "path[find]"          string => "/usr/bin/find";
+      "path[grep]"          string => "/bin/grep";
+      "path[hostname]"      string => "/bin/hostname";
+      "path[ls]"            string => "/bin/ls";
+      "path[init]"          string => "/sbin/init";
+      "path[iptables]"      string => "/sbin/iptables";
+      "path[iptables_save]" string => "/sbin/iptables-save";
+      "path[netstat]"       string => "/bin/netstat";
+      "path[ping]"          string => "/bin/ping";
+      "path[perl]"          string => "/usr/bin/perl";
+      "path[printf]"        string => "/usr/bin/printf";
+      "path[sed]"           string => "/bin/sed";
+      "path[sort]"          string => "/usr/bin/sort";
+      "path[sysctl]"        string => "/sbin/sysctl";
+      "path[test]"          string => "/usr/bin/test";
+      "path[tr]"            string => "/usr/bin/tr";
+
+      #
+      "path[apt_cache]"           string => "/usr/bin/apt-cache";
+      "path[apt_config]"          string => "/usr/bin/apt-config";
+      "path[apt_get]"             string => "/usr/bin/apt-get";
+      "path[apt_key]"             string => "/usr/bin/apt-key";
+      "path[aptitude]"            string => "/usr/bin/aptitude";
+      "path[dpkg]"                string => "/usr/bin/dpkg";
+      "path[groupadd]"            string => "/usr/sbin/groupadd";
+      "path[ifconfig]"            string => "/sbin/ifconfig";
+      "path[ip]"                  string => "/sbin/ip";
+      "path[service]"             string => "/usr/sbin/service";
+      "path[svc]"                 string => "/usr/sbin/service";
+      "path[update_alternatives]" string => "/usr/bin/update-alternatives";
+      "path[update_rc_d]"         string => "/usr/sbin/update-rc.d";
+      "path[useradd]"             string => "/usr/sbin/useradd";
+
+
+    any::
+      "all_paths"     slist => getindices("path");
+      "$(all_paths)" string => "$(path[$(all_paths)])";
+
+  classes:
+    "_stdlib_has_path_$(all_paths)"
+      expression => isvariable("$(all_paths)"),
+      comment    => "It's useful to know if a given path is defined";
+
+    "_stdlib_path_exists_$(all_paths)"
+      expression => fileexists("$(path[$(all_paths)])"),
+      comment    => "It's useful to know if $(all_paths) exists on the filesystem as defined";
+}
