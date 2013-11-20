@@ -1,1 +1,6 @@
 local/*
+tests/acceptance/.succeeded/*
+tests/acceptance/summary.log
+tests/acceptance/test.log
+tests/acceptance/test.xml
+tests/acceptance/xml.tmp
