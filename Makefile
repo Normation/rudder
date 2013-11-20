@@ -1,4 +1,4 @@
-all: test
+all: clean test
 
 test:
 	cd tests/acceptance/ && ./testall

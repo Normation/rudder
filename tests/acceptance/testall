@@ -134,14 +134,14 @@ then
 	exit 1
 fi
 
-# echo
-# echo === Test environment: ===
-# echo AGENT=$AGENT
-# echo CF_PROMISES=$CF_PROMISES
-# echo CF_SERVERD=$CF_SERVERD
-# echo CF_KEY=$CF_KEY
-# echo =========================
-# echo
+echo
+echo === Test environment: ===
+echo AGENT=$AGENT
+echo CF_PROMISES=$CF_PROMISES
+echo CF_SERVERD=$CF_SERVERD
+echo CF_KEY=$CF_KEY
+echo =========================
+echo
 
 usage() {
   echo "testall [-q] [--gainroot=<command>] [--agent=<agent>] [--no-nova] [--staging] [--no-network] [<test> <test>...]"
