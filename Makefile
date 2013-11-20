@@ -1,11 +1,12 @@
 all: clean test
 
 test:
+	cd tests/style/ && ./testall
 	cd tests/acceptance/ && ./testall
 
 clean:
-	rm -rf tests/acceptance/.succeeded/*
-	rm -f tests/acceptance/summary.log
-	rm -f tests/acceptance/test.log
-	rm -f tests/acceptance/test.xml
-	rm -f tests/acceptance/xml.tmp
+	rm -rf tests/{style,acceptance}/.succeeded/*
+	rm -f tests/{style,acceptance}/summary.log
+	rm -f tests/{style,acceptance}/test.log
+	rm -f tests/{style,acceptance}/test.xml
+	rm -f tests/{style,acceptance}/xml.tmp

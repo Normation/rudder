@@ -4,3 +4,9 @@ tests/acceptance/summary.log
 tests/acceptance/test.log
 tests/acceptance/test.xml
 tests/acceptance/xml.tmp
+tests/style/.succeeded/*
+tests/style/summary.log
+tests/style/test.log
+tests/style/test.xml
+tests/style/xml.tmp
+tests/style/workdir/*
