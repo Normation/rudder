@@ -86,8 +86,8 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     
     <dependency>
       <groupId>net.liftmodules</groupId>
-      <artifactId>widgets_${scala-binary-version}</artifactId>
-      <version>${lift-version}-1.3</version>
+      <artifactId>widgets_2.5_${scala-binary-version}</artifactId>
+      <version>1.3</version>
     </dependency>
 
     <!-- it seems to not be resolved, don't know why -->
