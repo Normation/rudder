@@ -16,22 +16,6 @@
 #
 #####################################################################################
 
-#
-# "Copy" classes based on a prefix into another prefix
-# The goal is to bubble up classes from one bundle to another
-# by copying classes from one contract to another
-#
-bundle agent copy_classes(source_prefix, dest_prefix)
-{
-  vars:
-      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept" };
-
-      "local_dest_prefix_${suffix}"
-        string     => "${dest_prefix}_${suffix}",
-        ifvarclass => "${source_prefix}_${suffix}",
-        classes    => always("${dest_prefix}_${suffix}");
-}
-
 
 # Install packages using yum localinstall, disable package caching
 body package_method redhat_local_install

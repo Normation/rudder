@@ -42,5 +42,5 @@ bundle agent template_expand(tml_file, target_file, mode, owner, group)
 
   methods:
       "report"
-        usebundle  => logger("${this.promise_filename}", "Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${class_prefix}");
+        usebundle  => _logger("${this.promise_filename}", "Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${class_prefix}");
 }

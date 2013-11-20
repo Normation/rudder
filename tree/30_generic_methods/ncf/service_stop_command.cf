@@ -46,7 +46,7 @@ bundle agent service_stop_command(service_name, stop_command)
 
   methods:
       "report_reload"
-        usebundle  => logger("${this.promise_filename}", "Stoping service ${service_name} with command ${stop_command}", "${class_prefix}"),
+        usebundle  => _logger("${this.promise_filename}", "Stoping service ${service_name} with command ${stop_command}", "${class_prefix}"),
         ifvarclass => "${class_prefix}_reached";
 
 }
