@@ -10,3 +10,4 @@ tests/style/test.log
 tests/style/test.xml
 tests/style/xml.tmp
 tests/style/workdir/*
+doc/all_generic_methods.txt
