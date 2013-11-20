@@ -2,8 +2,20 @@ bundle common ncf_inputs
 {
   vars:
     "defaults" slist => {
-        "../../../20_cfe_basics/ncf/cfengine_stdlib.cf",
-        "../../../20_cfe_basics/ncf/ncf_lib.cf",
-        "../../../30_generic_methods/ncf/logger.cf",
+        "../../../tree/20_cfe_basics/cfengine/bundles.cf",
+        "../../../tree/20_cfe_basics/cfengine/commands.cf",
+        "../../../tree/20_cfe_basics/cfengine/common.cf",
+        "../../../tree/20_cfe_basics/cfengine/databases.cf",
+        "../../../tree/20_cfe_basics/cfengine/files.cf",
+        "../../../tree/20_cfe_basics/cfengine/guest_environments.cf",
+        "../../../tree/20_cfe_basics/cfengine/monitor.cf",
+        "../../../tree/20_cfe_basics/cfengine/packages.cf",
+        "../../../tree/20_cfe_basics/cfengine/paths.cf",
+        "../../../tree/20_cfe_basics/cfengine/processes.cf",
+        "../../../tree/20_cfe_basics/cfengine/services.cf",
+        "../../../tree/20_cfe_basics/cfengine/storage.cf",
+
+        "../../../tree/20_cfe_basics/ncf/ncf_lib.cf",
+        "../../../tree/30_generic_methods/ncf/logger.cf",
     };
 }
