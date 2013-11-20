@@ -25,12 +25,12 @@
 #     -- "mode", mode of destination file
 #     -- "owner", owner of destination file
 #     -- "group", group of destination file
-#  - Returns: defines a class expand_template_${target_file}_{kept,repaired,error,ok,reached}
+#  - Returns: defines a class template_expand_${target_file}_{kept,repaired,error,ok,reached}
 
-bundle agent expand_template(tml_file, target_file, mode, owner, group)
+bundle agent template_expand(tml_file, target_file, mode, owner, group)
 {
   vars:
-      "class_prefix" string => canonify("expand_template_${target_file}");
+      "class_prefix" string => canonify("template_expand_${target_file}");
 
   files:
       "${target_file}"
