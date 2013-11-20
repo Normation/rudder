@@ -16,6 +16,6 @@ bundle common ncf_inputs
         "../../../tree/20_cfe_basics/cfengine/storage.cf",
 
         "../../../tree/20_cfe_basics/ncf/ncf_lib.cf",
-        "../../../tree/30_generic_methods/ncf/logger.cf",
+        "../../../tree/30_generic_methods/ncf/_logger.cf",
     };
 }
