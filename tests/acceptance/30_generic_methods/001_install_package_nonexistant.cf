@@ -6,7 +6,7 @@
 
 body common control
 {
-      inputs => { "../default.cf.sub", "../default_ncf.cf.sub", "@{ncf_inputs.defaults}", "../../../tree/30_generic_methods/ncf/package_install.cf", "../../../tree/30_generic_methods/ncf/package_install_version.cf", "../../../tree/30_generic_methods/ncf/package_install_version_cmp.cf" };
+      inputs => { "../default.cf.sub", "../default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
       bundlesequence  => { default("$(this.promise_filename)") };
       version => "1.0";
 }

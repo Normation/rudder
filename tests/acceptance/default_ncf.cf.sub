@@ -1,21 +1,14 @@
+# Create the list of all the base file to load to test
+# It requires the NCF_TREE environment variable to be defined
 bundle common ncf_inputs
 {
   vars:
-    "defaults" slist => {
-        "../../../tree/20_cfe_basics/cfengine/bundles.cf",
-        "../../../tree/20_cfe_basics/cfengine/commands.cf",
-        "../../../tree/20_cfe_basics/cfengine/common.cf",
-        "../../../tree/20_cfe_basics/cfengine/databases.cf",
-        "../../../tree/20_cfe_basics/cfengine/files.cf",
-        "../../../tree/20_cfe_basics/cfengine/guest_environments.cf",
-        "../../../tree/20_cfe_basics/cfengine/monitor.cf",
-        "../../../tree/20_cfe_basics/cfengine/packages.cf",
-        "../../../tree/20_cfe_basics/cfengine/paths.cf",
-        "../../../tree/20_cfe_basics/cfengine/processes.cf",
-        "../../../tree/20_cfe_basics/cfengine/services.cf",
-        "../../../tree/20_cfe_basics/cfengine/storage.cf",
+     "ncf_tree" string => getenv("NCF_TREE", 1024);
 
-        "../../../tree/20_cfe_basics/ncf/ncf_lib.cf",
-        "../../../tree/30_generic_methods/ncf/_logger.cf",
-    };
+     "generic_ncf_files"
+        string => execresult("/bin/bash -c \"cd ${ncf_tree} && /usr/bin/find 20_cfe_basics 30_generic_methods 40_it_ops_knowledge -name '*.cf' -printf '${ncf_tree}/%p\n'\"", "noshell");
+
+     "default_files"
+        slist => splitstring("${generic_ncf_files}", "\n", 10000);
+
 }
