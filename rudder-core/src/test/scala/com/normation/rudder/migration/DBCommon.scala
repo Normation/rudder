@@ -92,6 +92,7 @@ trait DBCommon extends Specification with Loggable with Tags {
   //execute something on the connection before commiting and closing it
   def withConnection[A](f:Connection => A) : A = {
     val c = dataSource.getConnection
+    c.setAutoCommit(false)
     val res = f(c)
     c.commit
     c.close
