@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,37 +32,18 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.rule.category.RuleCategoryId
+package com.normation.rudder.rule.category
 
-case class RuleId(value:String) extends HashcodeCaching
+import net.liftweb.common.Box
 
-case class SerialedRuleId(ruleId : RuleId, serial : Int) extends HashcodeCaching
+class RuleCategoryService(
+  roRuleCategoryService : RoRuleCategoryRepository
+) {
 
-/**
- * A rule is a binding between a set of directives
- * and some target (group of node, etc) on which applying
- * these directives.
- *
- * A rule may be stored in a pending state, for
- * example if it is not fully initialized.
- * In that case, it *MUST* be considered desactivated, whatever
- * the isEnabledField say.
- */
-case class Rule(
-    id              : RuleId
-  , name            : String
-  , serial          : Int
-  , category        : RuleCategoryId
-    //is not mandatory, but if not present, rule is disabled
-  , targets         : Set[RuleTarget] = Set()
-    //is not mandatory, but if not present, rule is disabled
-  , directiveIds    : Set[DirectiveId] = Set()
-  , shortDescription: String = ""
-  , longDescription : String = ""
-  , isEnabledStatus : Boolean = false
-  , isSystem        : Boolean = false
-) extends HashcodeCaching {
-  def isEnabled = isEnabledStatus & !targets.isEmpty & !directiveIds.isEmpty
+
+    def fqdn(id:RuleCategoryId) : Box[String] = {
+     roRuleCategoryService.getParents(id).map(_.map(_.name).mkString(" >> "))
+    }
+
+
 }

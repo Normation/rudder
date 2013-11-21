@@ -57,6 +57,7 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.rule.category.RuleCategoryId
 
 
 class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionProvider)  extends HistorizationRepository with  Loggable {
@@ -458,14 +459,15 @@ object Directives extends Schema {
 }
 
 case class SerializedRules(
-    @Column("ruleid") ruleId: String,
-    @Column("serial") serial: Int,
-    @Column("name") name: String,
-    @Column("shortdescription") shortDescription: String,
-    @Column("longdescription") longDescription: String,
-    @Column("isenabled") isEnabledStatus: Boolean,
-    @Column("starttime") startTime: Timestamp,
-    @Column("endtime") endTime: Timestamp
+    @Column("ruleid")           ruleId           : String
+  , @Column("serial")           serial           : Int
+  , @Column("name")             name             : String
+ // , @Column("category")         category         : String
+  , @Column("shortdescription") shortDescription : String
+  , @Column("longdescription")  longDescription  : String
+  , @Column("isenabled")        isEnabledStatus  : Boolean
+  , @Column("starttime")        startTime        : Timestamp
+  , @Column("endtime")          endTime          : Timestamp
 ) extends KeyedEntity[Long]  {
   @Column("rulepkeyid")
   val id = 0L
@@ -488,31 +490,38 @@ case class SerializedRuleDirectives(
 }
 
 object SerializedRules {
-  def fromSerialized(rule : SerializedRules,
-                    crgr : Seq[SerializedRuleGroups],
-                    crpi : Seq[SerializedRuleDirectives] ) : Rule = {
-    Rule(
-        RuleId(rule.ruleId),
-        rule.name,
-        rule.serial,
-        crgr.map(x => new GroupTarget(new NodeGroupId(x.groupId))).toSet,
-        crpi.map(x => new DirectiveId(x.directiveId)).toSet,
-        rule.shortDescription,
-        rule.longDescription,
-        rule.isEnabledStatus,
-        false
+  def fromSerialized(
+      rule : SerializedRules
+    , ruleTargets : Seq[SerializedRuleGroups]
+    , directives : Seq[SerializedRuleDirectives]
+  ) : Rule = {
+    Rule (
+        RuleId(rule.ruleId)
+      , rule.name
+      , rule.serial
+      , RuleCategoryId("TODO")
+      , ruleTargets.map(x => new GroupTarget(new NodeGroupId(x.groupId))).toSet
+      , directives.map(x => new DirectiveId(x.directiveId)).toSet
+      , rule.shortDescription
+      , rule.longDescription
+      , rule.isEnabledStatus
+      , false
     )
 
   }
 
   def toSerialized(rule : Rule) : SerializedRules = {
-    new SerializedRules(rule.id.value,
-        rule.serial,
-        rule.name,
-        rule.shortDescription,
-        rule.longDescription,
-        rule.isEnabledStatus,
-        new Timestamp(DateTime.now().getMillis), null)
+    SerializedRules (
+        rule.id.value
+      , rule.serial
+      , rule.name
+   //   , rule.category.value
+      , rule.shortDescription
+      , rule.longDescription
+      , rule.isEnabledStatus
+      , new Timestamp(DateTime.now().getMillis)
+      , null
+    )
   }
 
 }

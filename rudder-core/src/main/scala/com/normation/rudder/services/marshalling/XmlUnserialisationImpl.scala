@@ -86,6 +86,7 @@ import scala.util.{Failure => Catch}
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
+import com.normation.rudder.rule.category.RuleCategoryId
 
 case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
@@ -253,6 +254,8 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
       fileFormatOk     <- TestFileFormat(rule)
       id               <- (rule \ "id").headOption.map( _.text ) ?~!
                           ("Missing attribute 'id' in entry type rule: " + entry)
+      category         <- (rule \ "category").headOption.map( n => RuleCategoryId(n.text) ) ?~!
+                          ("Missing attribute 'category' in entry type rule: " + entry)
       name             <- (rule \ "displayName").headOption.map( _.text ) ?~!
                           ("Missing attribute 'displayName' in entry type rule: " + entry)
       shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~!
@@ -268,17 +271,18 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
       directiveIds     = (rule \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
     } yield {
       Rule(
-          id = RuleId(id)
-        , name = name
+          RuleId(id)
+        , name
         // current serial should to be in Rule, we set it to 0
         // its value must be handled by the caller of the unserialisation
-        , serial = 0
-        , targets = targets.toSet
-        , directiveIds = directiveIds
-        , shortDescription = shortDescription
-        , longDescription = longDescription
-        , isEnabledStatus = isEnabled
-        , isSystem = isSystem
+        , 0
+        , category
+        , targets.toSet
+        , directiveIds
+        , shortDescription
+        , longDescription
+        , isEnabled
+        , isSystem
       )
     }
   }
