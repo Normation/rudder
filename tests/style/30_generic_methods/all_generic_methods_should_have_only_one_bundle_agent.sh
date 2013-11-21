@@ -19,9 +19,11 @@
 #####################################################################################
 set -e
 
-FILES=${NCF_TREE}/30_generic_methods/ncf/*.cf
+# Check that all generic_methods files contains one and only one bundle agent
+
+FILESi_TO_CHECK=`find "${NCF_TREE}/30_generic_methods/" -name "*.cf"`
 NB_ERROR=0
-for f in $FILES
+for f in $FILES_TO_CHECK
 do
   NB_BUNDLE=$(egrep "^\s*bundle\s+agent" $f | wc -l)
   if [ $NB_BUNDLE -ne 1 ]; then
