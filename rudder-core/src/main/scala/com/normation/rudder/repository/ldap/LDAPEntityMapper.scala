@@ -70,6 +70,8 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccountName
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.rule.category.RuleCategory
 
 
 /**
@@ -207,6 +209,16 @@ class LDAPEntityMapper(
     rudderDit.GROUP.getGroupId(dn) match {
       case Full(value) => NodeGroupId(value)
       case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Node Group ID. Error was: %s".format(dn,e.toString))
+    }
+  }
+
+  /**
+   * Build the Rule Category Id from the given DN
+   */
+  def dn2RuleCategoryId(dn:DN) : RuleCategoryId = {
+    rudderDit.RULECATEGORY.getCategoryIdValue(dn) match {
+      case Full(value) => RuleCategoryId(value)
+      case e:EmptyBox => throw new RuntimeException("The dn %s is not a valid Rule Category ID. Error was: %s".format(dn,e.toString))
     }
   }
 
@@ -454,6 +466,34 @@ class LDAPEntityMapper(
     entry
   }
 
+  //////////////////////////////    Rule Category    //////////////////////////////
+
+
+  /**
+   * children and items are left empty
+   */
+  def entry2RuleCategory(e:LDAPEntry) : Box[RuleCategory] = {
+    if(e.isA(OC_RULE_CATEGORY)) {
+      //OK, translate
+      for {
+        id <- e(A_RULE_CATEGORY_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_RULE_CATEGORY_UUID, e)
+        name <- e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
+        description = e(A_DESCRIPTION).getOrElse("")
+        isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+      } yield {
+         RuleCategory(RuleCategoryId(id), name, description, Nil, isSystem)
+      }
+    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_GROUP_CATEGORY, e))
+  }
+
+  /**
+   * children and items are ignored
+   */
+  def ruleCategory2ldap(category:RuleCategory, parentDN:DN) = {
+    rudderDit.RULECATEGORY.ruleCategoryModel(category.id.value, parentDN, category.name,category.description,category.isSystem)
+  }
+
+
   //////////////////////////////    Rule    //////////////////////////////
   def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
     (for {
@@ -472,10 +512,13 @@ class LDAPEntityMapper(
 
     if(e.isA(OC_RULE)) {
       for {
-        id     <- e(A_RULE_UUID) ?~!
-                  "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
-        serial <- e.getAsInt(A_SERIAL) ?~!
-                  "Missing required attribute %s in entry %s".format(A_SERIAL, e)
+        id       <- e(A_RULE_UUID) ?~!
+                    "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
+        serial   <- e.getAsInt(A_SERIAL) ?~!
+                    "Missing required attribute %s in entry %s".format(A_SERIAL, e)
+        category <- e(A_RULE_CATEGORY).map(
+                     cat => rudderDit.RULECATEGORY.getCategoryIdValue(new DN(cat))
+                    ).getOrElse(Full(rudderDit.RULECATEGORY.rootCategoryId.value))
       } yield {
         val targets = for {
           target <- e.valuesFor(A_RULE_TARGET)
@@ -491,10 +534,17 @@ class LDAPEntityMapper(
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
         val isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-
         Rule(
-            RuleId(id), name, serial, targets, directiveIds,
-            shortDescription, longDescription, isEnabled, isSystem
+            RuleId(id)
+          , name
+          , serial
+          , RuleCategoryId(category)
+          , targets
+          , directiveIds
+          , shortDescription
+          , longDescription
+          , isEnabled
+          , isSystem
         )
       }
     } else {
@@ -508,18 +558,20 @@ class LDAPEntityMapper(
    * Map a rule to an LDAP Entry.
    * WARN: serial is NEVER mapped.
    */
-  def rule2Entry(rule:Rule) : LDAPEntry = {
+  def rule2Entry(rule:Rule, categoryDN : DN) : LDAPEntry = {
     val entry = rudderDit.RULES.ruleModel(
-        rule.id.value,
-        rule.name,
-        rule.isEnabledStatus,
-        rule.isSystem
+        rule.id.value
+      , rule.name
+      , rule.isEnabledStatus
+      , rule.isSystem
+      , categoryDN.toString
     )
 
     entry +=! (A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
+    entry +=! (A_RULE_CATEGORY, categoryDN.toString)
     entry
   }
 

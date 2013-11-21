@@ -158,7 +158,8 @@ class WoLDAPRuleRepository(
                          }
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id)) Failure("Cannot create a rule with name %s : there is already a rule with the same name".format(rule.name))
                          else Full(Unit)
-      crEntry         =  mapper.rule2Entry(rule)
+      category        <- con.searchSub(rudderDit.RULECATEGORY.dn, EQ(A_RULE_CATEGORY_UUID,rule.category.value)).headOption.map(_.dn)
+      crEntry         =  mapper.rule2Entry(rule,category)
       result          <- {
                            crEntry +=! (A_SERIAL, "0") //serial must be set to 0
                            con.save(crEntry) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
@@ -191,7 +192,8 @@ class WoLDAPRuleRepository(
       nameIsAvailable <- if (nodeRuleNameExists(con, rule.name, rule.id))
                            Failure("Cannot update rule with name \"%s\" : this name is already in use.".format(rule.name))
                          else Full(Unit)
-      crEntry         =  mapper.rule2Entry(rule)
+      category        <- con.searchSub(rudderDit.RULECATEGORY.dn, EQ(A_RULE_CATEGORY_UUID,rule.category.value)).headOption.map(_.dn)
+      crEntry         =  mapper.rule2Entry(rule,category)
       result          <- con.save(crEntry, true, Seq(A_SERIAL)) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
       optDiff         <- diffMapper.modChangeRecords2RuleDiff(existingEntry,result) ?~! "Error when mapping rule '%s' update to an diff: %s".format(rule.id.value, result)
       loggedAction    <- optDiff match {
@@ -261,7 +263,9 @@ class WoLDAPRuleRepository(
     }
     //save rules, taking care of serial value
     def saveCR(con:RwLDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
-      val entry = mapper.rule2Entry(rule)
+
+      val category = con.searchSub(rudderDit.RULECATEGORY.dn, EQ(A_RULE_CATEGORY_UUID,rule.category.value)).headOption.map(_.dn).getOrElse(rudderDit.RULECATEGORY.dn)
+      val entry = mapper.rule2Entry(rule,category)
       entry +=! (A_SERIAL, rule.serial.toString)
       con.save(entry)
     }

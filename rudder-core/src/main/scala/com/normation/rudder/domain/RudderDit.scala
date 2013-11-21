@@ -60,6 +60,8 @@ import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.rule.category.RuleCategoryId
 
 class CATEGORY(
     val uuid: String,
@@ -135,6 +137,23 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     )
   }
 
+ /* def ruleCategory(
+      uuid       : String
+    , parentDN   : DN
+    , name       : String = ""
+    , description: String = ""
+  ) : CATEGORY = {
+    new CATEGORY(
+        uuid
+      , parentDN
+      , name
+      , description
+      , false
+      , OC_RULE_CATEGORY
+      , A_RULE_CATEGORY_UUID
+    )
+  }*/
+
 
   /*
    * Register object here, and force their loading
@@ -147,6 +166,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit.register(API_ACCOUNTS.model)
   dit.register(PARAMETERS.model)
   dit.register(APPCONFIG.model)
+  dit.register(RULECATEGORY.model)
 
 
   //here, we can't use activeTechniqueCategory because we want a subclass
@@ -227,18 +247,66 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       uuid:String,
       name:String,
       isEnabled : Boolean,
-      isSystem : Boolean
+      isSystem : Boolean,
+      category : String
     ) : LDAPEntry = {
       val mod = LDAPEntry(configRuleDN(uuid))
       mod +=! (A_OC,OC.objectClassNames(OC_RULE).toSeq:_*)
       mod +=! (A_NAME, name)
       mod +=! (A_IS_ENABLED, isEnabled.toLDAPString)
       mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+      mod +=! (A_RULE_CATEGORY, category)
       mod
     }
 
   }
 
+  object RULECATEGORY extends CATEGORY(
+      "rootRuleCategory"
+    , BASE_DN
+    , "Rules"
+    , ""
+    , true
+    , OC_RULE_CATEGORY
+    , A_RULE_CATEGORY_UUID
+  ) {
+    ruleCategory =>
+
+    val rootCategoryId = RuleCategoryId(this.uuid)
+
+    def isACategory(e:LDAPEntry) = e.isA(OC_RULE_CATEGORY)
+
+    /**
+     * From a DN of a category, return the value of the rdn (uuid)
+     */
+    def getCategoryIdValue(dn:DN) = singleRdnValue(dn,ruleCategory.rdnAttribute._1)
+
+    //def dnFromId(categoryId : RuleCategoryId) : DN = {
+
+    //}
+
+
+    def ruleCategoryDN(categoryId:String, parentDN:DN) : DN = new DN(new RDN(A_RULE_CATEGORY_UUID,categoryId),parentDN)
+
+    /**
+     * Create a new group entry
+     */
+    def ruleCategoryModel(
+        uuid:String
+      , parentDN:DN
+      , name:String
+      , description : String
+      , isSystem : Boolean = false
+    ) : LDAPEntry = {
+      val mod = LDAPEntry(ruleCategory.ruleCategoryDN(uuid, parentDN))
+      mod +=! (A_OC, OC.objectClassNames(OC_RULE_CATEGORY).toSeq:_*)
+      mod +=! (A_NAME, name)
+      mod +=! (A_DESCRIPTION, description)
+      mod +=! (A_IS_SYSTEM, isSystem.toLDAPString)
+
+      mod
+    }
+  }
 
   object GROUP extends CATEGORY(
       uuid = "GroupRoot",

@@ -53,6 +53,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.RuleCategoryId
 
 class CreateOrCloneRulePopup(
   clonedRule: Option[Rule],
@@ -177,15 +178,17 @@ class CreateOrCloneRulePopup(
       onFailure & onFailureCallback()
     } else {
 
-      val rule = Rule(
-          id = RuleId(uuidGen.newUuid),
-          name = ruleName.is,
-          serial = 0,
-          targets = clonedRule.map( _.targets).getOrElse(Set()),
-          directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set()),
-          shortDescription = ruleShortDescription.is,
-          longDescription = clonedRule.map( _.longDescription ).getOrElse(""),
-          isEnabledStatus = !clonedRule.isDefined
+      val rule =
+        Rule(
+            RuleId(uuidGen.newUuid)
+          , ruleName.is
+          , 0
+          , RuleCategoryId("root")
+          , targets = clonedRule.map( _.targets).getOrElse(Set())
+          , directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set())
+          , shortDescription = ruleShortDescription.is
+          , longDescription = clonedRule.map( _.longDescription ).getOrElse("")
+          , isEnabledStatus = !clonedRule.isDefined
       )
 
 

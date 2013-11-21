@@ -101,6 +101,11 @@ attributetype ( RudderAttributes:110
   DESC 'Unique identifier for an API Account'
   SUP uuid )
   
+attributetype ( RudderAttributes:111
+  NAME 'ruleCategoryId'
+  DESC 'Unique identifier for a Rule category'
+  SUP uuid )
+  
 #######################################################################
   
 attributetype ( RudderAttributes:201
@@ -298,6 +303,12 @@ attributetype ( RudderAttributes:228
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
+  
+attributetype ( RudderAttributes:229
+  NAME 'tag'
+  DESC 'DN of a tag'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
+  EQUALITY distinguishedNameMatch )
 
 ### API principal and tokens 
 
@@ -455,9 +466,15 @@ objectclass ( RudderObjectClasses:30
   MAY ( cn $ description $ longDescription $ 
         isEnabled $ isSystem $ 
         ruleTarget $ 
-        directiveId ) )
+        directiveId $ tag) )
 
-
+objectclass ( RudderObjectClasses:31
+  NAME 'ruleCategory'
+  DESC 'Rule categories'
+  SUP top
+  STRUCTURAL
+  MUST ( ruleCategoryId $ cn )
+  MAY ( description $ isSystem ) )
 #
 # Node configurations
 # (current and expected state of
