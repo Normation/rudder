@@ -93,7 +93,6 @@ trait DBCommon extends Specification with Loggable with Tags {
   def withConnection[A](f:Connection => A) : A = {
     val c = dataSource.getConnection
     val res = f(c)
-    c.commit
     c.close
     res
   }
