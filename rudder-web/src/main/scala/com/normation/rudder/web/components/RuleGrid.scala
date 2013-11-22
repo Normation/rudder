@@ -146,44 +146,11 @@ class RuleGrid(
 
 
       case Full(xml) =>
-
-    (
-        <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
-            <div id={htmlId_reportsPopup} ></div>
-          </div>
-          <table id={htmlId_rulesGridId} class="display" cellspacing="0">
-            <thead>
-              <tr class="head">
-                <th>Name</th>
-                <th>Status</th>
-                <th>Deployment status</th>
-                <th>Directives</th>
-                <th>Target node groups</th>
-                <th>Compliance</th>
-                { if (!popup) <th>Details</th><th>Parameters</th> else NodeSeq.Empty }
-                { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
-              </tr>
-            </thead>
-            <tbody>
-            {xml}
-            </tbody>
-          </table>
-          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
-            <div id={htmlId_rulesGridId +"_paginate_area"}></div>
-          </div>
-        </div>
-    ) ++ Script(
-      JsRaw("""
-        var #table_var#;
-      """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &
-      //pop-ups for multiple Directives
-      JsRaw( """var openMultiPiPopup = function(popupid) {
-          createPopup(popupid);
-     }""") &
-     OnLoad(JsRaw("""
+        val tableVar = jsVarNameForId(htmlId_rulesGridId)
+        val onLoad =
+          s"""
       /* Event handler function */
-      #table_var# = $('#%1$s').dataTable({
+       ${tableVar} = $$('#${htmlId_rulesGridId}').dataTable({
         "asStripeClasses": [ 'color1', 'color2' ],
         "bAutoWidth": false,
         "bFilter" : true,
@@ -196,26 +163,51 @@ class RuleGrid(
           "sSearch": ""
         },
         "aaSorting": [[ 0, "asc" ]],
-        "aoColumns": [
+        "aoColumns": [${ if(showCheckboxColumn) """
+          { "sWidth": "30px" },""" else "" }
           { "sWidth": "95px" },
           { "sWidth": "60px"  },
-          { "sWidth": "115px" },
-          { "sWidth": "100px" },
-          { "sWidth": "120px", "sType": "html" },
-          { "sWidth": "60px"  }
-         %2$s
-         %3$s
+          { "sWidth": "120px" },
+          { "sWidth": "60px"  }${ if(!popup) """,
+          { "sWidth": "20px", "bSortable" : false }""" else "" }
         ],
         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
       });
-      $('.dataTables_filter input').attr("placeholder", "Search");
+      $$('.dataTables_filter input').attr("placeholder", "Search");
+      """
 
-      createTooltip();""".format(
-          htmlId_rulesGridId
-        , { if(!popup) """, { "sWidth": "20px", "bSortable" : false }, { "sWidth": "20px", "bSortable" : false }""" else "" }
-        , { if(showCheckboxColumn) """, { "sWidth": "30px" }""" else "" }
-      ).replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))
-    )))
+
+    (
+        <div id={htmlId_rulesGridZone}>
+          <div id={htmlId_modalReportsPopup} class="nodisplay">
+            <div id={htmlId_reportsPopup} ></div>
+          </div>
+          <table id={htmlId_rulesGridId} class="display" cellspacing="0">
+            <thead>
+              <tr class="head">
+                { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
+                <th>Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Compliance</th>
+                { if (!popup) <th/> else NodeSeq.Empty }
+              </tr>
+            </thead>
+            <tbody>
+            {xml}
+            </tbody>
+          </table>
+          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
+            <div id={htmlId_rulesGridId +"_paginate_area"}></div>
+          </div>
+        </div>
+    ) ++
+     Script(JsRaw(s"var ${tableVar};") &     //pop-ups for multiple Directives
+      JsRaw( """var openMultiPiPopup = function(popupid) {
+          createPopup(popupid);
+     }""") &
+ OnLoad(JsRaw(onLoad)))
+
   }
   }
 
@@ -250,180 +242,6 @@ class RuleGrid(
     ) extends Line with HashcodeCaching
 
 
-
-    /*
-     * For the Directive:
-     * - if none defined => "None"
-     * - if one define => <a href="Directive">Directive name</a>
-     * - if more than one => <a href="Directive">Directive name</a>, ... + tooltip with the full list
-     */
-
-    def displayPis(popup:Boolean, seq:Seq[(Directive,ActiveTechnique,Technique)]) : NodeSeq = {
-      def piLink(directive:Directive) = if (popup) directive.name + (if (directive.isEnabled) "" else " (disabled)") else <a href={"""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value)}>{
-          directive.name + (if (directive.isEnabled) "" else " (disabled)")
-        }</a>
-
-      if(seq.size < 1) <i>None</i>
-      else {
-        val popupId = Helpers.nextFuncName
-        val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
-        <div id={popupId} class="nodisplay">
-          <div class="simplemodal-title">
-            <h1>List of Directives</h1>
-            <hr/>
-          </div>
-          <div class="simplemodal-content">
-            <br/>
-            <h2>Click on a Directive name to go to its configuration screen</h2>
-            <hr class="spacer"/>
-            <br/>
-            <br/>
-            <table id={tableId_listPI} cellspacing="0">
-              <thead>
-                <tr class="head">
-                 <th>Directive<span/></th>
-                 <th>Technique<span/></th>
-                </tr>
-              </thead>
-              <tbody>
-            {
-              (
-                "span" #> seq.map { case(directive,activeTechnique,technique) => "#link" #> <tr><td>{piLink(directive)}</td><td>{technique.name}</td></tr> }
-              ).apply(<span id="link"/>
-              )
-            }
-              </tbody>
-            </table>
-            <hr class="spacer" />
-          </div>
-          <div class="simplemodal-bottom">
-             <hr/>
-             <div class="popupButton">
-               <span>
-                 <button class="simplemodal-close" onClick="return false;">
-                   Close
-                 </button>
-               </span>
-           </div>
-         </div>
-        </div> ++
-        Script(OnLoad(JsRaw("""
-          %1$s_tableId = $('#%2$s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" : true,
-            "bPaginate" : true,
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-            "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "200px" },
-              { "sWidth": "300px" }
-            ]
-          });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
-      }
-    }
-
-    def displayTarget(target:Option[RuleTargetInfo]) = {
-       target match {
-            case None => <i>None</i>
-            case Some(targetInfo) => targetInfo.target match {
-              case GroupTarget(groupId) => <a href={ """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{
-                  targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)")
-                }</a>
-              case _ => Text({ targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)") })
-             }
-          }
-    }
-
-    def displayTargets(targets: Set[RuleTargetInfo]) = {
-      def groupLink(t:RuleTargetInfo) = if(popup) t.name + (if (t.isEnabled) "" else " (disabled)") else{
-        val content = {t.name + (if (t.isEnabled) "" else " (disabled)")}
-        t.target match {
-          case GroupTarget(groupId) =>
-            val link = """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)
-            <a href={link}>{content}</a>
-          case x => {content}
-        }
-      }
-
-      if(targets.size < 1) {
-        <i>None</i>
-      }
-      else {
-        val popupId = Helpers.nextFuncName
-        val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
-          {targets.head.name + (if (targets.size > 1) ", ..." else "")}
-        </span>
-        <div id={popupId} class="nodisplay">
-          <div class="simplemodal-title">
-            <h1>List of Groups</h1>
-            <hr/>
-          </div>
-          <div class="simplemodal-content">
-            <br/>
-            <h2>Click on a Group name to go to its configuration screen</h2>
-            <hr class="spacer"/>
-            <br/>
-            <br/>
-            <table id={tableId_listPI} cellspacing="0">
-              <thead>
-                <tr class="head">
-                 <th>Group<span/></th>
-                 <th>Description<span/></th>
-                </tr>
-              </thead>
-              <tbody>
-            {
-              (
-                "span" #> targets.map { target => "#link" #>
-                <tr><td>{groupLink(target)}</td><td>{target.description}</td></tr> }
-              ).apply(<span id="link"/>
-              )
-            }
-              </tbody>
-            </table>
-            <hr class="spacer" />
-          </div>
-          <div class="simplemodal-bottom">
-             <hr/>
-             <div class="popupButton">
-               <span>
-                 <button class="simplemodal-close" onClick="return false;">
-                   Close
-                 </button>
-               </span>
-           </div>
-         </div>
-        </div> ++
-        Script(OnLoad(JsRaw("""
-          %1$s_tableId = $('#%2$s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" : true,
-            "bPaginate" : true,
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-            "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "200px" },
-              { "sWidth": "300px" }
-            ]
-          });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
-      }
-    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////// actual start of the logic of the grid displaying /////////////////////
@@ -510,13 +328,20 @@ class RuleGrid(
       lines.map { l => l match {
       case line:OKLine =>
         <tr>
+          { // CHECKBOX
+            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty
+          }
           <td>{ // NAME
             if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
-          <td>{ // OWN STATUS
-            if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
+          <td>{ // Category
+            line.rule.category.value
           }</td>
+
           <td><b>{ // EFFECTIVE STATUS
+            /*          <td>{ // OWN STATUS
+            if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
+          }</td>*/
             line.applicationStatus match {
               case FullyApplied => Text("In application")
               case PartiallyApplied(seq) =>
@@ -543,29 +368,14 @@ class RuleGrid(
                  <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
             }
           }</b></td>
-          <td>{ //  Directive: <not defined> or PIName [(disabled)]
-            displayPis(popup,line.trackerVariables)
-           }</td>
-          <td>{ //  TARGET NODE GROUP
-            displayTargets(line.targets)
-          }</td>
           <td style="text-align:right;">{ //  COMPLIANCE
             buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
           }</td>
           { if (!popup)
-            <td class="complianceTd">{ //  DETAILLED COMPLIANCE
-              detailsCallbackLink match {
-                case None => Text("No details")
-                case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                  () =>  callback(line.rule,"showForm")
-                  }, ("class", "smallButton"))
-                }
-              }
-            </td>
             <td class="parametersTd">{ //  RULE PARAMETERS
               detailsCallbackLink match {
                 case None => Text("No parameters")
-                case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, {
+                case Some(callback) =>  SHtml.ajaxButton("Edit", {
                   () =>  callback(line.rule,"showEditForm")
                   }, ("class", "smallButton"))
                 }
@@ -573,27 +383,25 @@ class RuleGrid(
             </td>
             else NodeSeq.Empty
           }
-          { // CHECKBOX
-            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty
-          }
         </tr>
 
       case line:ErrorLine =>
         <tr class="error">
+
+            {// CHECKBOX
+              if(showCheckboxColumn) {
+              <td><input type="checkbox" name={line.rule.id.value} /></td>
+            } else {
+              NodeSeq.Empty
+            } }
           <td>{ // NAME
             if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
           }</td>
-          <td>{ // OWN STATUS
-            "N/A"
+          <td>{ // Category
+            line.rule.category.value
           }</td>
           <td>{ // DEPLOYMENT STATUS
             "N/A"
-          }</td>
-          <td>{ //  Directive: <not defined> or PIName [(disabled)]
-            line.trackerVariables.map(displayPis(popup,_)).getOrElse("ERROR")
-           }</td>
-          <td>{ //  TARGET NODE GROUP
-            line.targets.map(displayTargets(_)).getOrElse("ERROR")
           }</td>
           <td style="text-align:right;">{ //  COMPLIANCE
             "N/A"
@@ -602,13 +410,6 @@ class RuleGrid(
             val detailsAndParam = if(popup) {
               NodeSeq.Empty
             } else {
-          <td class="complianceTd">{ //  DETAIL
-              detailsCallbackLink match {
-      case None => Text("No details")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                      () =>  callback(line.rule,"showForm")
-                    }, ("class", "smallButton")) }
-          }</td>
           <td class="parametersTd">{
               detailsCallbackLink match {
       case None => Text("No parameters")
@@ -618,14 +419,7 @@ class RuleGrid(
           }</td>
             }
 
-            // CHECKBOX
-            val checkbox = if(showCheckboxColumn) {
-              <td><input type="checkbox" name={line.rule.id.value} /></td>
-            } else {
-              NodeSeq.Empty
-            }
 
-            detailsAndParam ++ checkbox
           }
         </tr>
       } }
