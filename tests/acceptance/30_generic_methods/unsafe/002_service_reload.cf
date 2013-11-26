@@ -1,8 +1,8 @@
 #######################################################
 #
-# Test adding a package that exists
+# Test reloading a service
 # In staging because:
-#   - Will install the "htop" package on the machine
+#   - Will reload the "cron" service on the machine
 #######################################################
 
 body common control
@@ -17,8 +17,10 @@ body common control
 bundle agent init
 {
   vars:
-    (debian|redhat)::
-      "package_name" string => "htop";
+    redhat::
+      "service_script" string => "crond";
+    !redhat::
+      "service_script" string => "cron";
 }
 
 #######################################################
@@ -27,8 +29,10 @@ bundle agent test
 {
 
   methods:
-    (debian|redhat)::
-      "ph" usebundle => package_install("${init.package_name}");
+    redhat::
+      "ph" usebundle => service_reload("${init.service_script}");
+    !redhat::
+      "ph" usebundle => service_reload("${init.service_script}");
 
 }
 
@@ -37,11 +41,11 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok" expression => "package_install_${init.package_name}_reached.(package_install_${init.package_name}_ok|package_install_${init.package_name}_kept).!package_install_${init.package_name}_error";
+      "ok" expression => "service_reload_${init.service_script}_reached.(service_reload_${init.service_script}_ok|service_reload_${init.service_script}_kept).!service_reload_${init.service_script}_error";
 
   reports:
     ok::
       "$(this.promise_filename) Pass";
     !ok::
-      "$(this.promise_filename) FAIL (Package installation failed or no OS support";
+      "$(this.promise_filename) FAIL (Service verification failed or no OS support)";
 }

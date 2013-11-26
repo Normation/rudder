@@ -1,0 +1,47 @@
+#######################################################
+#
+# Test adding a package that exists
+# In staging because:
+#   - Will install the "htop" package on the machine
+#######################################################
+
+body common control
+{
+      inputs => { "../../default.cf.sub", "../../default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    (debian|redhat)::
+      "package_name" string => "htop";
+}
+
+#######################################################
+
+bundle agent test
+{
+
+  methods:
+    (debian|redhat)::
+      "ph" usebundle => package_install("${init.package_name}");
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok" expression => "package_install_${init.package_name}_reached.(package_install_${init.package_name}_ok|package_install_${init.package_name}_kept).!package_install_${init.package_name}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL (Package installation failed or no OS support)";
+}
