@@ -17,11 +17,16 @@
       </div>
       </lift:authz>
     </div>
-    <hr class="spacer"/>
-    <div>
-      <div class="inner-portlet">
-        <div class="inner-portlet-header">List of rules</div>
-        <div class="inner-portlet-content">
+    <div >
+      <div class="inner-portlet" style="float:left; margin-top:10px; width: 20%;">
+        <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
+          <div class="inner-portlet-content" id="categoryTreeParent">
+            <lift:configuration.RuleManagement.viewCategories />
+          </div>
+      </div>
+      <div class="inner-portlet" style="float:left; width:75%; margin-top:10px;">
+        <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
+        <div class="inner-portlet-content" style="padding-left:0px;">
           <lift:configuration.RuleManagement.viewRules />
         </div>
       </div>

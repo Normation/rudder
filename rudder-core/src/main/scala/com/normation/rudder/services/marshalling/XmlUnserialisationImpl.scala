@@ -87,6 +87,8 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.rule.category.RuleCategoryId
+import scala.xml.XML
+import scala.xml.PrettyPrinter
 
 case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
@@ -494,6 +496,7 @@ class ChangeRequestChangesUnserialisationImpl (
       (for {
           rulesNode  <- (changeRequest \ "rules").headOption ?~! s"Missing child 'rules' in entry type changeRequest : ${xml}"
       } yield {
+
         (rulesNode\"rule").flatMap{ rule =>
           for {
             ruleId       <- rule.attribute("id").map(id => RuleId(id.text)) ?~!
@@ -584,6 +587,8 @@ class ChangeRequestChangesUnserialisationImpl (
       rules           <-  unserialiseRuleChange(changeRequest)
       params          <-  unserialiseGlobalParameterChange(changeRequest)
     } yield {
+      val pp = new PrettyPrinter(1000,2)
+      logger.info(pp.format(changeRequest))
       (directives,groups, rules, params)
     }
   }

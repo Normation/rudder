@@ -53,7 +53,8 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.domain.policies.RuleCategoryId
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.web.model.WBSelectField
 
 class CreateOrCloneRulePopup(
   clonedRule: Option[Rule],
@@ -75,6 +76,8 @@ class CreateOrCloneRulePopup(
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
   private[this] val userPropertyService = RudderConfig.userPropertyService
+  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
 
   def dispatch = {
     case "popupContent" => _ => popupContent()
@@ -89,6 +92,7 @@ class CreateOrCloneRulePopup(
     SHtml.ajaxForm(bind("item", popupTemplate,
       "title" -> { if(clonedRule.isDefined) "Clone a rule" else "Create a new rule" },
       "itemName" -> ruleName.toForm_!,
+      "category" -> category.toForm_!,
       "itemShortDescription" -> ruleShortDescription.toForm_!,
       "itemReason" -> { reason.map { f =>
         <div>
@@ -155,6 +159,15 @@ class CreateOrCloneRulePopup(
 
   }
 
+  private[this] val category =
+    new WBSelectField(
+        "Rule category"
+      , categoryHierarchyDisplayer.getRuleCategoryHierarchy(roCategoryRepository.getRootCategory.get, None).map { case (id, name) => (id.value -> name)}
+      , roCategoryRepository.getRootCategory.get.id.value
+    ) {
+    override def className = "rudderBaseFieldSelectClassName"
+  }
+
   private[this] val formTracker = new FormTracker(ruleName :: ruleShortDescription :: reason.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
@@ -183,7 +196,7 @@ class CreateOrCloneRulePopup(
             RuleId(uuidGen.newUuid)
           , ruleName.is
           , 0
-          , RuleCategoryId("root")
+          , RuleCategoryId(category.is)
           , targets = clonedRule.map( _.targets).getOrElse(Set())
           , directiveIds = clonedRule.map( _.directiveIds).getOrElse(Set())
           , shortDescription = ruleShortDescription.is

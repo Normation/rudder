@@ -169,6 +169,7 @@ class DirectiveEditForm(
         else xml ) andThen
       ClearClearable &
       //activation button: show disactivate if activated
+      "#directiveTitle *" #> s"Directive '${directive.name}'" &
       "#disactivateButtonLabel" #> {
         if (directive.isEnabled) "Disable" else "Enable"
        } &
@@ -213,7 +214,13 @@ class DirectiveEditForm(
           $("input").not("#treeSearch").keydown( function(event) {
             processKey(event , '%s');
           } );
-          """.format(htmlId_save)))
+          """.format(htmlId_save)))&
+          JsRaw(
+            s"""$$( "#editZone" ).tabs({
+   select: function(event, ui) {
+       scrollToElement("editZone");
+   }});"""
+          )
     )
   }
 

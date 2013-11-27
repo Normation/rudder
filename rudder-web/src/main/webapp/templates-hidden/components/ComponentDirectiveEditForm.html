@@ -57,6 +57,16 @@
       margin-top:5px;
       margin-bottom:0px;
     }
+    
+    .tabContent {
+      max-height: 450px;
+      overflow:auto;
+    }
+    
+    .tabblabla {
+      margin:10px;
+    }
+
   </style>
 </head>
 </component:staticInit>
@@ -106,8 +116,8 @@
         modifications done in the edit zone.
       </p>
 
-      <div class="inner-portlet-header">Actions</div>
-
+      <div id="directiveTitle" class="inner-portlet-header">Directive</div>
+      <br/>
       <div id="removeAction" class="twoColumns">
       </div>
       <div id="desactivateAction" class="twoColumns twoColumnsRight">
@@ -120,14 +130,112 @@
     </div>
 	</lift:authz>
 	<br/>
-    <div class="editZone">
-      <div class="inner-portlet-header">Directive information</div>
-
-      <div id="notifications">
+    <div id="notifications">
 <!--         <ul> -->
 <!--           <li>Here comes notifications</li> -->
 <!--         </ul> -->
       </div>
+	
+	<div id="editZone">
+		<ul id="directiveDetailsTabMenu">
+			<li><a href="#directiveInfoTab">Information</a></li>
+			<li><a href="#directiveParametersTab">Parameters</a></li>
+			<li><a href="#directiveRulesTab">Target Rules</a></li>
+		</ul>
+		<div class="tabContent" id="directiveInfoTab">
+		 <div class="tabblabla">
+		  <div class="inner-portlet-header">Directive information</div>
+		   <hr class="spacer" />
+      	   <div id="nameField">
+             Here comes the name field
+           </div>
+           <hr class="spacer" />
+           <div id="shortDescriptionField">
+             Here comes the shortDescription field
+           </div>
+           <hr class="spacer" />
+           <div id="longDescriptionField">
+             Here comes the longDescription field
+           </div>
+           <hr class="spacer" />
+           <div id="priority">
+             Here come the priority field
+           </div>
+           <hr class="spacer" />
+      	   <div class="directiveTechnicalInfo" id="showTechnical"></div>
+           <div id="technicalDetails" style="display:none">
+             <div class="directiveTechnicalInfo">
+               <b class="threeCol">Technique name: </b>
+               <span id="techniqueName">
+                 Technique name
+               </span>
+             </div>
+             <hr class="spacer"/>
+             <div class="directiveTechnicalInfo">
+               <b class="threeCol">Technique description: </b>
+               <span id="techniqueDescription">
+                 Technique description
+               </span>
+             </div>
+             <hr class="spacer"/>
+             <div class="directiveTechnicalInfo">
+               <b class="threeCol">Technique unicity: </b>
+               <span id="isSingle">
+                 isSingle
+               </span>
+             </div>
+             <hr class="spacer"/>
+             <div class="directiveTechnicalInfo">
+               <b class="threeCol">Directive Rudder ID: </b>
+               <span id="rudderID">
+                 Here comes the rudder ID
+               </span>
+             </div>
+             <hr class="spacer"/>
+           </div>
+         <br/>
+         </div>
+		</div>
+		<div class="tabContent" id="directiveParametersTab">
+		 <div class="tabblabla">
+	      <div><div class="inner-portlet-header">Parameters</div>
+    	    <span id="parameters">Here goes the list of parameters</span>
+      	  </div>
+      	  </div>
+		</div>
+		<div class="tabContent" id="directiveRulesTab">
+		 <div class="tabblabla" id="ruleDisplayer">
+     	 </div>
+		 </div>
+
+	</div>
+	<div id="confirmUpdateActionDialog" class="nodisplay"/>
+	<lift:authz role="directive_edit">
+      <div class="cpiefsave">
+        <button id="save">Save</button>
+      </div>
+    </lift:authz>
+    <br/>
+  </div>
+
+  <div id="createCloneDirectivePopup" class="nodisplay">
+	  <lift:ignore>
+	    This div gets the content of the createDirective injected within
+	  </lift:ignore>
+	</div>
+
+  <div id="confirmUpdateActionDialog" class="nodisplay">
+    <lift:ignore>
+      This div gets the content of action (save, delete,
+      enable/disable) confirmation pop-up
+    </lift:ignore>
+  </div>
+</component:form>
+
+<component:informationTab>
+<div class="inner-portlet-header">Directive information</div>
+
+
       <hr class="spacer" />
 
       <div id="nameField">
@@ -185,32 +293,24 @@
         <hr class="spacer"/>
       </div>
       <br/>
-      <div><div class="inner-portlet-header">Parameters</div>
-        <span id="parameters">Here goes the list of parameters</span>
-      </div>
-	<lift:authz role="directive_edit">
-      <div class="cpiefsave">
-        <button id="save">Save</button>
-      </div>
-      
+</component:informationTab>
 
-      </lift:authz>
+    <component:ruleTargetTab>
+    <div >
+      <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
+        <div class="inner-portlet-header" style="font-family:monospace; color: #999; border:0; letter-spacing:1px;'">Categories</div>
+          <div class="inner-portlet-content" id="categoryTreeParent">
+            <lift:configuration.RuleManagement.viewCategories />
+          </div>
+      </div>
+      <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
+        <div class="inner-portlet-header" style="font-family:monospace; color: #999; border:0; letter-spacing:1px;'" id="categoryDisplay">Rules</div>
+        <div class="inner-portlet-content">
+          <lift:configuration.RuleManagement.viewRules />
+        </div>
+      </div>
     </div>
-  </div>
-
-  <div id="createCloneDirectivePopup" class="nodisplay">
-	  <lift:ignore>
-	    This div gets the content of the createDirective injected within
-	  </lift:ignore>
-	</div>
-
-  <div id="confirmUpdateActionDialog" class="nodisplay">
-    <lift:ignore>
-      This div gets the content of action (save, delete,
-      enable/disable) confirmation pop-up
-    </lift:ignore>
-  </div>
-</component:form>
+    </component:ruleTargetTab>
 
 <component:popupRemoveForm>
    <div id="removeActionDialog" class="nodisplay">
@@ -253,6 +353,9 @@
      </div>
    </div>
 </component:popupRemoveForm>
+
+
+
 
 <component:popupDisactivateForm>
    <div id="disableActionDialog" class="nodisplay">
