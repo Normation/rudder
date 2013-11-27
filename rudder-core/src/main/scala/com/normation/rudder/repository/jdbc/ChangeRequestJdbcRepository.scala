@@ -348,6 +348,7 @@ class ChangeRequestsMapper(
     // unserialize the XML.
     // If it fails, produce a failure
     // directives map is boxed because some Exception could be launched
+    logger.info(XML.load(rs.getSQLXML("content").getBinaryStream()))
     changeRequestChangesUnserialisation.unserialise(XML.load(rs.getSQLXML("content").getBinaryStream() )) match {
       case Full((directivesMaps, nodesMaps, ruleMaps, paramMaps)) =>
         val id = ChangeRequestId(rs.getInt("id"))

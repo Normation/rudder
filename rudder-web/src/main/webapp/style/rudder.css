@@ -2013,6 +2013,8 @@ color: #FF0000 !important;
 .smallButton {
   width: 40px !important;
   height: 22px !important;
+  font-size : 11px !important;
+  font-weight:100 !important;
 }
 
 .smallButton span {
@@ -2530,6 +2532,11 @@ tr.unfoldable {
 /***********************************
  * Trees
 ************************************/
+
+#categoryTree.jstree-rudder a {
+  vertical-align: middle;
+}
+
 .treefilternodecursor{
   cursor:pointer;
   cursor:hand;
@@ -2539,7 +2546,7 @@ tr.unfoldable {
   font-size:0.95em; 
 }
 
-.treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName {
+.treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
   font-weight: bold;
 }
 

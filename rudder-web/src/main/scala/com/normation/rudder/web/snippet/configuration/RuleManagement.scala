@@ -60,6 +60,10 @@ import com.normation.rudder.repository._
 import com.normation.utils.StringUuidGenerator
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.components.RuleCategoryTree
+import com.normation.rudder.rule.category._
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.model.CurrentUser
 
 /**
  * Snippet for managing Rules.
@@ -70,8 +74,10 @@ import bootstrap.liftweb.RudderConfig
 class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement._
 
-  private[this] val ruleRepository    = RudderConfig.roRuleRepository
-  private[this] val uuidGen           = RudderConfig.stringUuidGenerator
+  private[this] val ruleRepository       = RudderConfig.roRuleRepository
+  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private[this] val woCategoryRepository = RudderConfig.woRuleCategoryRepository
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateOrCloneRulePopup]
@@ -88,6 +94,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
                 "head" -> { _:NodeSeq => head(workflowEnabled, changeMsgEnabled) }
               , "editRule" -> { _:NodeSeq => editRule(workflowEnabled, changeMsgEnabled) }
               , "viewRules" -> { _:NodeSeq => viewRules(workflowEnabled, changeMsgEnabled) }
+              , "viewCategories" -> { _:NodeSeq => viewCategories}
             )
           case  eb: EmptyBox =>
             val e = eb ?~! "Error when getting Rudder application configuration for change message activation"
@@ -138,6 +145,9 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
       <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
       {Script(
         JsRaw("""
+var include = true;
+var filter = "Rules";
+var column = 1;
 $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
         function updateTips( t ) {
           tips
@@ -164,6 +174,37 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     }
   }
 
+    def viewCategories : NodeSeq = {
+    val ruleGrid = new RuleCategoryTree(
+        "categoryTree"
+    )
+      def AddNewCategory() = {
+      val index = randomInt(1000)
+      val newCat = RuleCategory (
+          RuleCategoryId(uuidGen.newUuid)
+        , s"Category-$index"
+        , s"this is category $index"
+        , Nil
+      )
+      val root = roCategoryRepository.getRootCategory.get
+      woCategoryRepository.create(newCat, root.id,ModificationId(uuidGen.newUuid),CurrentUser.getActor,None)
+      SetHtml("categoryTreeParent",viewCategories)
+    }
+     <div>
+                <lift:authz role="rule_write">
+              <div id="actions_zone">
+                {SHtml.ajaxButton("New Category", () => AddNewCategory(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
+              </div>
+            </lift:authz>
+            <br/>
+            <div style="overflow:auto; margin-top:10px; max-height:300px;border: 1px #999 ridge">
+             <div id="categoryTree">
+             {ruleGrid.tree}
+             </div>
+             </div>
+     </div>
+  }
+
   def viewRules(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
     val ruleGrid = new RuleGrid(
         "rules_grid_zone",
@@ -171,13 +212,19 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
         Some(detailsCallbackLink(workflowEnabled, changeMsgEnabled)),
         showCheckboxColumn = false
     )
+    def includeSubCategory = {
+      SHtml.ajaxCheckbox(true, value => JsRaw(s"""include=${value};
+          filterTableInclude('#grid_rules_grid_zone',filter,include); """), ("id","includeCheckbox"), ("style", "float:left"))
+
+    }
 
             <div id={htmlId_viewAll}>
-            <lift:authz role="rule_write">
               <div id="actions_zone">
-                {SHtml.ajaxButton("Add a new rule", () => showPopup(None, workflowEnabled, changeMsgEnabled), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
+                <lift:authz role="rule_write">
+                {SHtml.ajaxButton("New Rule", () => showPopup(None, workflowEnabled, changeMsgEnabled), ("class" -> "newRule"), ("style", "float:left")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
+                </lift:authz>
+                <span style="float:left; margin:10px 50px;">{includeSubCategory} <span style="margin-left:10px;float:left;"> Display Rules from subcategories</span></span>
               </div>
-            </lift:authz>
              {ruleGrid.rulesGridWithUpdatedInfo() }
            </div>
 
