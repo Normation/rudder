@@ -109,6 +109,7 @@ class RuleDisplayer (
         ruleRepository.getAll().openOr(Seq()),
         Some(detailsCallbackLink),
         showCheckboxColumn = directive.isDefined
+        , directive
     )
     def includeSubCategory = {
       SHtml.ajaxCheckbox(true, value => JsRaw(s"""include=${value};

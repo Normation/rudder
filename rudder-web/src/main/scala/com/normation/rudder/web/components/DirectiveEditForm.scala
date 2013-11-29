@@ -144,6 +144,7 @@ class DirectiveEditForm(
   }
 
 
+  val directiveApp = new DirectiveApplicationManagement(directive)
   def dispatch = {
     case "showForm" => { _ => showForm }
   }
@@ -198,6 +199,7 @@ class DirectiveEditForm(
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
       "#parameters" #> parameterEditor.toFormNodeSeq &
+      "#ruleDisplayer *" #> new RuleDisplayer(Some(directiveApp),"view",(r:Rule,s:String) => Noop,Noop).display &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
@@ -374,11 +376,20 @@ class DirectiveEditForm(
         displayConfirmationPopup(
             "create"
           , newDirective
+          , Nil
+          , Nil
         )
       } else {
         //check if it's a migration - old directive present with a different technique version
         val isMigration = oldDirective.map( _.techniqueVersion != directive.techniqueVersion).getOrElse(false)
 
+        val (addRules,removeRules)= directiveApp.checkRulesToUpdate
+        val baseRules = (addRules ++ removeRules).sortBy(_.id.value)
+
+        val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.id ))
+        val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
+        val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.value)
+        logger.info(finalRem)
         val updatedDirective = directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
@@ -386,12 +397,14 @@ class DirectiveEditForm(
           priority = piPriority.is,
           longDescription = piLongDescription.is)
 
-        if (!isMigration && directive == updatedDirective) {
+        if ((!isMigration && directive == updatedDirective)) {
           onNothingToDo()
         } else {
           displayConfirmationPopup(
               "save"
             , updatedDirective
+            , baseRules
+            , updatedRules
           )
         }
       }
@@ -406,6 +419,8 @@ class DirectiveEditForm(
     displayConfirmationPopup(
         action
       , directive.copy(isEnabled = !directive.isEnabled)
+      , Nil
+      , Nil
     )
   }
 
@@ -413,6 +428,8 @@ class DirectiveEditForm(
     displayConfirmationPopup(
         "delete"
       , directive
+      , Nil
+      , Nil
     )
   }
 
@@ -420,8 +437,10 @@ class DirectiveEditForm(
    * Create the confirmation pop-up
    */
   private[this] def displayConfirmationPopup(
-      action      :String
-    , newDirective:Directive
+      action       : String
+    , newDirective : Directive
+    , baseRules    : List[Rule]
+    , updatedRules : List[Rule]
   ) : JsCmd = {
     val optOriginal = { if(isADirectiveCreation) None else if(oldDirective.isEmpty) Some(directive) else oldDirective }
     // Find old root section if there is an initial State
@@ -432,7 +451,7 @@ class DirectiveEditForm(
       if (!isADirectiveCreation) {
         if (workflowEnabled) {
           new ModificationValidationPopup(
-              Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
+              Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules,updatedRules)
             , action
             , isADirectiveCreation
             , workflowEnabled
@@ -451,7 +470,7 @@ class DirectiveEditForm(
               }
             }
           new ModificationValidationPopup(
-              Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
+              Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules,updatedRules)
             , action
             , isADirectiveCreation
             , workflowEnabled
@@ -462,7 +481,7 @@ class DirectiveEditForm(
         }
       } else {
         new ModificationValidationPopup(
-            Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal)
+            Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules,updatedRules)
           , action
           , isADirectiveCreation
           , workflowEnabled
