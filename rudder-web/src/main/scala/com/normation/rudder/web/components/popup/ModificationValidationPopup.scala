@@ -78,6 +78,7 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.utils.Control.boxSequence
 
 
 /**
@@ -185,7 +186,7 @@ object ModificationValidationPopup extends Loggable {
 class ModificationValidationPopup(
     //if we are creating a new item, then None, else Some(x)
     item              : Either[
-                            (TechniqueName, ActiveTechniqueId, SectionSpec ,Directive, Option[Directive])
+                            (TechniqueName, ActiveTechniqueId, SectionSpec ,Directive, Option[Directive], List[Rule],List[Rule])
 
                           , (NodeGroup, Option[NodeGroupCategoryId], Option[NodeGroup])
                         ]
@@ -210,6 +211,7 @@ class ModificationValidationPopup(
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
   private[this] val woNodeGroupRepository    = RudderConfig.woNodeGroupRepository
   private[this] val woDirectiveRepository    = RudderConfig.woDirectiveRepository
+  private[this] val woRuleRepository         = RudderConfig.woRuleRepository
   private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
 
   //fonction to read state of things
@@ -232,7 +234,7 @@ class ModificationValidationPopup(
   private[this] val rules = {
     if (!isANewItem) {
       item match {
-        case Left((_, _, _, directive, _)) =>
+        case Left((_, _, _, directive, _,_,_)) =>
           dependencyService.directiveDependencies(directive.id, groupLib).map(_.rules)
 
         case Right((nodeGroup, _, _)) =>
@@ -376,7 +378,7 @@ class ModificationValidationPopup(
     , "create"  -> "Create"
   )(action)
     item match {
-    case Left((t,a,r,d,opt)) => s"${defaultActionName} Directive ${d.name}"
+    case Left((t,a,r,d,opt,add,remove)) => s"${defaultActionName} Directive ${d.name}"
     case Right((g,_,_)) => s"${defaultActionName} Group ${g.name}"
   }
   }
@@ -481,10 +483,10 @@ class ModificationValidationPopup(
   private[this] def saveChangeRequest : Box[ChangeRequestId] = {
     // we only have quick change request now
     val cr = item match {
-      case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal)) =>
+      case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules,updatedRules)) =>
         val action = DirectiveDiffFromAction(techniqueName, directive, optOriginal)
         action.flatMap(
-          changeRequestService.createChangeRequestFromDirective(
+          changeRequestService.createChangeRequestFromDirectiveAndRules(
                 changeRequestName.get
               , crReasons.map( _.get ).getOrElse("")
               , techniqueName
@@ -494,6 +496,8 @@ class ModificationValidationPopup(
               , _
               , CurrentUser.getActor
               , crReasons.map( _.get )
+              , baseRules
+              , updatedRules
           ) )
 
       case Right((nodeGroup, optParentCategory, optOriginal)) =>
@@ -557,7 +561,7 @@ class ModificationValidationPopup(
       } else {
         // if creation or clone, we create everything immediately
         item match {
-          case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal)) =>
+          case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal,baseRules,remRules)) =>
             saveAndDeployDirective(directive, activeTechniqueId, crReasons.map( _.get ))
           case _ =>
             //no change request for group creation/clone
