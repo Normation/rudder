@@ -60,11 +60,13 @@ import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.rudder.domain.policies.ExpandedRuleVal
 import com.normation.utils.Control._
 import scala.collection.mutable.Buffer
+import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 
 class ReportingServiceImpl(
-    confExpectedRepo: RuleExpectedReportsRepository
-  , reportsRepository: ReportsRepository
-  , techniqueRepository: TechniqueRepository
+    confExpectedRepo    : RuleExpectedReportsRepository
+  , reportsRepository   : ReportsRepository
+  , techniqueRepository : TechniqueRepository
+  , computeCardinality  : ComputeCardinalityOfDirectiveVal
 ) extends ReportingService {
 
   val logger = LoggerFactory.getLogger(classOf[ReportingServiceImpl])
@@ -128,7 +130,7 @@ class ReportingServiceImpl(
       configs.toSeq.map { case (nodeId, directives) =>
         // each directive are converted into Seq[DirectiveExpectedReports]
         val directiveExpected = directives.map { directive =>
-	          val seq = getCardinality(directive)
+	          val seq = computeCardinality.getCardinality(directive)
 
 	          seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
 	                     DirectiveExpectedReports(
@@ -277,12 +279,21 @@ class ReportingServiceImpl(
           expectedConfigurationReports.endDate)
   }
 
+
+}
+
+/**
+ * From a directiveVal, compute all the necessary data to insert within database
+ * the correct expected reports
+ */
+class ComputeCardinalityOfDirectiveVal {
+  val logger = LoggerFactory.getLogger(classOf[ComputeCardinalityOfDirectiveVal])
   /**
    * Returns a seq of
    * Component, ComponentValues(expanded), ComponentValues (unexpanded))
    *
    */
-  private def getCardinality(container : DirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
+  def getCardinality(container : DirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
       val boundingVar = container.trackerVariable.spec.boundingVariable.getOrElse(container.trackerVariable.spec.name)
@@ -310,38 +321,61 @@ class ReportingServiceImpl(
       }
     }
 
-    /*
-     * We can have several components, one by section.
-     * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
+    /**
+     * We have two separate paths:
+     * - if the technique is standart, we keep the complex old path
+     * - if it is a meta technique, we take the easy paths
      */
-    val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
-      if(section.isComponent) {
-        section.componentKey match {
-          case None =>
-            //a section that is a component without componentKey variable: card=1, value="None"
-            Some((section.name, Seq(DEFAULT_COMPONENT_KEY), Seq(DEFAULT_COMPONENT_KEY)))
-          case Some(varName) =>
-            //a section with a componentKey variable: card=variable card
-            val values = container.variables.get(varName).map( _.values).getOrElse(Seq())
-            val unexpandedValues = container.originalVariables.get(varName).map( _.values).getOrElse(Seq())
-            if (values.size != unexpandedValues.size)
-              logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                  section.componentKey, container.directiveId.value, values, unexpandedValues ))
-            Some((section.name, values, unexpandedValues))
+    container.technique.providesExpectedReports match {
+      case false =>
+        // this is the old path
+            /*
+             * We can have several components, one by section.
+             * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
+             */
+            val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
+              if(section.isComponent) {
+                section.componentKey match {
+                  case None =>
+                    //a section that is a component without componentKey variable: card=1, value="None"
+                    Some((section.name, Seq(DEFAULT_COMPONENT_KEY), Seq(DEFAULT_COMPONENT_KEY)))
+                  case Some(varName) =>
+                    //a section with a componentKey variable: card=variable card
+                    val values = container.variables.get(varName).map( _.values).getOrElse(Seq())
+                    val unexpandedValues = container.originalVariables.get(varName).map( _.values).getOrElse(Seq())
+                    if (values.size != unexpandedValues.size)
+                      logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
+                          section.componentKey, container.directiveId.value, values, unexpandedValues ))
+                    Some((section.name, values, unexpandedValues))
+                }
+              } else {
+                None
+              }
+            }
+
+            if(allComponents.size < 1) {
+              logger.debug("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
+                container.technique.id, container.directiveId))
+                val trackingVarCard = getTrackingVariableCardinality
+              Seq((container.technique.id.name.value, trackingVarCard._1, trackingVarCard._2))
+            } else {
+              allComponents
+            }
+      case true =>
+        // this is easy, everything is in the DirectiveVal; the key of the variables are the components,
+        // and the values are the effective reporting values
+        val keys = container.variables.keys.toSeq
+        keys.map { key =>
+          (container.variables.get(key), container.originalVariables.get(key)) match {
+            case (Some(variable), Some(originalVariable)) =>
+              (key, variable.values, originalVariable.values)
+            case (_, _) =>
+              logger.error(s"Some variables were lost in the expansion of Technique ${container.technique.name} in Directive ${container.directiveId.value}, for Component ${key}")
+              (key, Seq(), Seq())
+          }
         }
-      } else {
-        None
-      }
     }
 
-    if(allComponents.size < 1) {
-      logger.debug("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
-        container.technique.id, container.directiveId))
-        val trackingVarCard = getTrackingVariableCardinality
-      Seq((container.technique.id.name.value, trackingVarCard._1, trackingVarCard._2))
-    } else {
-      allComponents
-    }
   }
 
 }

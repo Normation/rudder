@@ -59,6 +59,54 @@ class RuleValTest {
 
   def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), Set(), None)
 
+  /* create representation of meta techniques */
+  def makePredefinedSectionSpec(name: String, providedValues: (String, Seq[String])) =
+    PredefinedValuesVariableSpec(
+        name
+      , "description"
+      , providedValues
+    )
+  def makeComponentSectionSpec(name:String) =
+    SectionSpec(
+        name
+      , true
+      , true
+      , None
+      , HighDisplayPriority
+      , ""
+      , Seq(makePredefinedSectionSpec(name, ("variable", Seq(name+"one", name+"two"))))
+    )
+
+  def makeRootSectionSpec() =
+    SectionSpec(
+        "root section"
+      , false
+      , false
+      , None
+      , HighDisplayPriority
+      , ""
+      , Seq(
+            makeComponentSectionSpec("component1")
+          , makeComponentSectionSpec("component2")
+        )
+    )
+
+  def makeMetaTechnique(id: TechniqueId) =
+    Technique(
+        id
+      , "meta" + id
+      , ""
+      , Seq()
+      , Seq()
+      , TrackerVariableSpec(None)
+      , makeRootSectionSpec
+      , Set()
+      , None
+      , false
+      , ""
+      , false
+      , true
+    )
   @Test
   def testCRwithNoPI() {
     new RuleVal(
@@ -149,5 +197,55 @@ class RuleValTest {
     assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
     assertEquals(beans.head.cf3PolicyDraft.getVariables,
       Map("foo" -> InputVariableSpec("foo", "bar").toVariable()))
+  }
+
+
+  @Test
+  def testBasicRuleValBasedOnMetaTechnique() {
+    val container = new DirectiveVal(
+      makeMetaTechnique(new TechniqueId(TechniqueName("id"), TechniqueVersion("1.0"))),
+      new DirectiveId("id"),
+      0,
+      TrackerVariableSpec().toVariable(),
+      Map(),
+      Map())
+
+    new RuleVal(
+      new RuleId("id"),
+      Set(new GroupTarget(new NodeGroupId("target"))),
+      Seq(container),
+      0)
+
+    //TODO: what that test actually tests ?
+    //return Unit
+    ()
+  }
+
+  @Test
+  def testToRuleWithCf3PolicyDraftBasedOnMetaTechnique() {
+    val container = new DirectiveVal(
+      makeMetaTechnique(new TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0"))),
+    //  new ActiveTechniqueId("uactiveTechniqueId"),
+      new DirectiveId("directiveId"),
+      2,
+      TrackerVariableSpec().toVariable(),
+      Map(),
+      Map())
+
+    val crVal = new RuleVal(
+      new RuleId("ruleId"),
+      Set(new GroupTarget(new NodeGroupId("target"))),
+      Seq(container),
+      1)
+
+    val beans = crVal.toPolicyDrafts.map(_.toRuleWithCf3PolicyDraft)
+    assert(beans.length == 1)
+    assertEquals(beans.head.draftId.value, "ruleId@@directiveId")
+    assertEquals(beans.head.ruleId.value, "ruleId")
+    assertEquals(beans.head.cf3PolicyDraft.technique.id.name.value, "ppId")
+    assertEquals(beans.head.cf3PolicyDraft.technique.id.version.toString, "1.0")
+    assertEquals(beans.head.cf3PolicyDraft.getVariables.size.toLong, 0L)
+    assertEquals(beans.head.cf3PolicyDraft.priority.toLong, 2L)
+    assertEquals(beans.head.cf3PolicyDraft.serial.toLong, 1L)
   }
 }
