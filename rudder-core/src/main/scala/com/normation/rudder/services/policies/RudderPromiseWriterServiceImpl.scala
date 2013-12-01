@@ -175,13 +175,18 @@ class RudderCf3PromisesFileWriterServiceImpl(
         (baseNodePath, baseNodePath + newPostfix, backupNodePath, baseNodePath + newPostfix + "/rules" + agentType.toRulesPath()) // we'll want to move the root folders
       }
 
-      val tmls = prepareCf3PromisesFileTemplate(NodeConfiguration.toContainer(newNodeRulePath, node), systemVariables.toMap)
+      val container = NodeConfiguration.toContainer(newNodeRulePath, node)
+
+      val tmls = prepareCf3PromisesFileTemplate(container, systemVariables.toMap)
 
       logger.debug("Prepared the tml for the node %s".format(node.id))
 
+      logger.debug("Preparing reporting information from meta technique")
+      val csv = prepareReportingDataForMetaTechnique(container)
+      
       // write the promises of the current machine
       for { (activeTechniqueId, preparedTemplate) <- tmls } {
-        writePromisesFiles(preparedTemplate.templatesToCopy , preparedTemplate.environmentVariables , newNodeRulePath)
+        writePromisesFiles(preparedTemplate.templatesToCopy , preparedTemplate.environmentVariables , newNodeRulePath, csv)
       }
 
       agentType match {

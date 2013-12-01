@@ -79,7 +79,7 @@ class RuleValServiceTest extends Specification {
   /* create representation of meta techniques */
   def makePredefinedSectionSpec(name: String, providedValues: (String, Seq[String])) =
     PredefinedValuesVariableSpec(
-        name
+        reportKeysVariableName(name)
       , "description"
       , providedValues
     )
@@ -88,7 +88,7 @@ class RuleValServiceTest extends Specification {
         name
       , true
       , true
-      , None
+      , Some(reportKeysVariableName(name))
       , HighDisplayPriority
       , ""
       , Seq(makePredefinedSectionSpec(name, ("variable_"+name, Seq("variable_"+name+"one", "variable_"+name+"two"))))
@@ -136,7 +136,7 @@ class RuleValServiceTest extends Specification {
       , "longDescription"
       , 5
       , true
-      , false    
+      , false
     )
 
     val rule = Rule(
@@ -163,7 +163,7 @@ class RuleValServiceTest extends Specification {
       )
 
     // create the ActiveTechniqueCategory
-    val fullActiveTechniqueCategory = 
+    val fullActiveTechniqueCategory =
       FullActiveTechniqueCategory(
            ActiveTechniqueCategoryId("id")
          , "name"
@@ -177,7 +177,7 @@ class RuleValServiceTest extends Specification {
     "The RuleValService, with one directive, one Meta-technique " should {
 
       val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
-  
+
       "return a Full(RuleVal)" in {
         ruleVal.isDefined == true
       }
@@ -197,11 +197,11 @@ class RuleValServiceTest extends Specification {
       }
 
       val variables = directivesVals.head.variables
-      "one variable should be component1 -> (variable_component1 :: (variable_component1one, variable_component1two))" in {
-        val var1 = variables.get("component1")
+      "one variable should be reportKeysVariableName(component1) -> (variable_component1 :: (variable_component1one, variable_component1two))" in {
+        val var1 = variables.get(reportKeysVariableName("component1"))
         var1 match {
           case None => failure(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
-          case Some(vars) => 
+          case Some(vars) =>
             vars.values.size == 3 &&
             vars.values === Seq("variable_component1", "variable_component1one", "variable_component1two")
         }
@@ -215,13 +215,13 @@ class RuleValServiceTest extends Specification {
     "The cardinality computed " should {
       val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
       val directivesVals = ruleVal.open_!.directiveVals
-      
+
       val cardinality = computeCardinality.getCardinality(directivesVals.head)
 
       "return a seq of two components" in {
         cardinality.size == 2
       }
-      
+
       "first component should have 3 values" in {
         cardinality.head.x._2.size == 3 && cardinality.head.x._3.size == 3
       }

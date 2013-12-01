@@ -855,7 +855,7 @@ object RudderConfig extends Loggable {
         techniqueParser
       , gitRevisionProviderImpl
       , gitRepo
-      , "metadata.xml", "category.xml"
+      , "metadata.xml", "category.xml", "expected_reports.csv"
       , Some(relativePath)
     )
   }
@@ -1427,6 +1427,8 @@ object RudderConfig extends Loggable {
           case PasswordVType(algos) => new PasswordField(id, input.constraint.mayBeEmpty, algos)
           case _ => default(id)
         }
+        case predefinedField: PredefinedValuesVariableSpec => new ReadOnlyTextField(id)
+
         case _ =>
           logger.error("Unexpected case : variable %s should not be displayed. Only select1, select or input can be displayed.".format(v.name))
           default(id)
