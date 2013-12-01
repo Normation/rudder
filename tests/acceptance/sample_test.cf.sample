@@ -1,0 +1,45 @@
+#######################################################
+#
+# This is a sample test file to copy when creating a
+# new test. Please keep it updated with best practices.
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+}
+
+#######################################################
+
+bundle agent test
+{
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok" expression => 
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
