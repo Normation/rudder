@@ -855,7 +855,7 @@ object RudderConfig extends Loggable {
         techniqueParser
       , gitRevisionProviderImpl
       , gitRepo
-      , "metadata.xml", "category.xml"
+      , "metadata.xml", "category.xml", "reports.csv"
       , Some(relativePath)
     )
   }
@@ -1201,7 +1201,7 @@ object RudderConfig extends Loggable {
     ldapNodeConfigurationRepository,
     techniqueRepositoryImpl)
   private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
-  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(configurationExpectedRepo, reportsRepositoryImpl, techniqueRepositoryImpl)
+  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(configurationExpectedRepo, reportsRepositoryImpl, techniqueRepositoryImpl, new ComputeCardinalityOfDirectiveVal())
   private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val reportsRepositoryImpl = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD)
@@ -1427,6 +1427,8 @@ object RudderConfig extends Loggable {
           case PasswordVType(algos) => new PasswordField(id, input.constraint.mayBeEmpty, algos)
           case _ => default(id)
         }
+        case predefinedField: PredefinedValuesVariableSpec => new ReadOnlyTextField(id)
+
         case _ =>
           logger.error("Unexpected case : variable %s should not be displayed. Only select1, select or input can be displayed.".format(v.name))
           default(id)
