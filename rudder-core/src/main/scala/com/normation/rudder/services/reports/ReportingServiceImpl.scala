@@ -61,6 +61,7 @@ import com.normation.rudder.domain.policies.ExpandedRuleVal
 import com.normation.utils.Control._
 import scala.collection.mutable.Buffer
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
+import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 
 class ReportingServiceImpl(
     confExpectedRepo    : RuleExpectedReportsRepository
@@ -362,18 +363,24 @@ class ComputeCardinalityOfDirectiveVal {
               allComponents
             }
       case true =>
-        // this is easy, everything is in the DirectiveVal; the key of the variables are the components,
-        // and the values are the effective reporting values
-        val keys = container.variables.keys.toSeq
-        keys.map { key =>
-          (container.variables.get(key), container.originalVariables.get(key)) match {
-            case (Some(variable), Some(originalVariable)) =>
-              (key, variable.values, originalVariable.values)
-            case (_, _) =>
-              logger.error(s"Some variables were lost in the expansion of Technique ${container.technique.name} in Directive ${container.directiveId.value}, for Component ${key}")
-              (key, Seq(), Seq())
+        // this is easy, everything is in the DirectiveVal; the components contains only one value, the
+        // one that we want
+        val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
+          if (section.isComponent) {
+            section.getAllVariables.flatMap { case spec => 
+              spec match {
+                case p : PredefinedValuesVariableSpec =>
+                  Some(section.name, p.nelOfProvidedValues.toSeq, p.nelOfProvidedValues.toSeq)
+                case _ =>
+                  logger.error("We don't have predefined values in section ${section.name}")
+                  None
+              }
+            }
+          } else {
+            None
           }
         }
+        allComponents
     }
 
   }
