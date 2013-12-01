@@ -367,14 +367,23 @@ class ComputeCardinalityOfDirectiveVal {
         // one that we want
         val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
           if (section.isComponent) {
-            section.getAllVariables.flatMap { case spec => 
-              spec match {
-                case p : PredefinedValuesVariableSpec =>
-                  Some(section.name, p.nelOfProvidedValues.toSeq, p.nelOfProvidedValues.toSeq)
-                case _ =>
-                  logger.error("We don't have predefined values in section ${section.name}")
-                  None
-              }
+            section.componentKey match {
+              case None =>
+                logger.error(s"We don't have defined reports keys for section ${section.name} that should provide predefined values")
+                None
+              case Some(name) =>
+                (container.variables.get(name), container.originalVariables.get(name)) match {
+                  case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size == originalValues.values.size =>
+                    Some(section.name, expandedValues.values, originalValues.values)
+
+                  case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size != originalValues.values.size =>
+                    logger.error(s"In section ${section.name}, the original values and the expanded values don't have the same size. Orignal values are ${originalValues.values}, expanded are ${expandedValues.values}")
+                    None
+
+                  case _ =>
+                    logger.error(s"The reports keys for section ${section.name} do not exist")
+                    None
+                }
             }
           } else {
             None
