@@ -1,13 +1,19 @@
 #######################################################
 #
 # Test reloading a service
-# In staging because:
+# In unsafe because:
 #   - Will reload the "cron" service on the machine
 #######################################################
 
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
 body common control
 {
-      inputs => { "../../default.cf.sub", "../../default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
       bundlesequence  => { default("$(this.promise_filename)") };
       version => "1.0";
 }

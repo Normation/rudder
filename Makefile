@@ -2,8 +2,9 @@ all: clean test doc
 
 test:
 	cd tests/style/ && ./testall
-	cd tests/acceptance/ && ./testall
 	cd tests/unit/ && ./testall
+	cd tests/acceptance/ && ./testall --no-network
+	cd tests/acceptance/ && ./testall
 
 doc:
 	ls tree/30_generic_methods/ncf/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
