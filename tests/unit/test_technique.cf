@@ -1,0 +1,27 @@
+# This file contains a sample meta-technique
+
+# Meta-Technique bla
+#
+# This Technique is unlikely to be useful at all, however it does provide
+# the basic syntaxic requirements for the structured metadata in comments
+# above each meta-technique main bundle
+#
+# @name Bla Technique for evaluation of parsingness
+# @description This meta-Technique is a sample only, allowing for testing.
+# @version 0.1
+#
+# Please see the online documentation for more details.
+bundle agent bla
+{
+  vars:
+    redhat::
+      "apache_package_name" string => "httpd";
+    !redhat::
+      "apache_package_name" string => "apache2";
+
+  methods:
+    "ph1" usebundle => package_install("${bla.apache_package_name}");
+    "ph2" usebundle => service_restart("${bla.apache_package_name}");
+    "ph1" usebundle => package_install("nano");
+
+}

@@ -1,0 +1,19 @@
+# This file contains a sample generic_method
+
+# generic method package_install
+#
+# This method is unlikely to be useful at all, however it does provide
+# the basic syntaxic requirements for the structured metadata in comments
+# above each generic method main bundle
+#
+# @name Package install
+# @class_prefix package_install
+#
+# Please see the online documentation for more details.
+bundle agent package_install(package_name)
+{
+  packages:
+    "${package_name}"
+      package_action => "add";
+
+}
