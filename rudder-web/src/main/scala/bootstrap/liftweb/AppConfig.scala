@@ -855,7 +855,7 @@ object RudderConfig extends Loggable {
         techniqueParser
       , gitRevisionProviderImpl
       , gitRepo
-      , "metadata.xml", "category.xml"
+      , "metadata.xml", "category.xml", "reports.csv"
       , Some(relativePath)
     )
   }
