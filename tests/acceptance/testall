@@ -205,11 +205,13 @@ runtest() {
     # Prepare workdir
     WORKDIR=$BASE_WORKDIR/$FLATNAME
     $GAINROOT rm -rf $WORKDIR
-    mkdir -p $WORKDIR/bin $WORKDIR/tmp
+    mkdir -p $WORKDIR/bin $WORKDIR/tmp $WORKDIR/inputs
     ln -sf $AGENT $WORKDIR/bin
     ln -sf $CF_PROMISES $WORKDIR/bin
     ln -sf $CF_SERVERD $WORKDIR/bin
     ln -sf $CF_KEY $WORKDIR/bin
+
+    echo ".*" > $WORKDIR/inputs/ignore_interfaces.rx
 
     echo "#!/bin/sh
 CFENGINE_TEST_OVERRIDE_WORKDIR=$WORKDIR
