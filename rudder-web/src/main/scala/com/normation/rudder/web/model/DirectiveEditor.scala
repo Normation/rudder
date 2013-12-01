@@ -146,6 +146,13 @@ trait DirectiveField extends BaseField with SectionChildField {
 
   def getDefaultValue: ValueType
 
+  /**
+   * Define if the field is readonly or not
+   */
+  private var readOnly: Boolean = false
+  def isReadOnly = readOnly
+  def isReadOnly_=(s:Boolean):Unit = readOnly = s
+
   override def displayHtml = Text(toClient)
 
   override def toFormNodeSeq = {
@@ -320,6 +327,7 @@ case class MultivaluedSectionField(
     val sections          : Seq[SectionField]
   , private val newSection: () => SectionField
   , val displayedByDefault: Boolean
+  , val readOnlySection   : Boolean
 ) extends SectionField with HashcodeCaching {
   require(!sections.isEmpty)
 
@@ -341,9 +349,13 @@ case class MultivaluedSectionField(
   def toClient: String = childFields.mkString
 
   def add(section: SectionField = newSection()): Int = {
-    synchronized {
-      allSections += section
-      allSections.size - 1
+    if (!readOnlySection) {
+      synchronized {
+        allSections += section
+        allSections.size - 1
+      }
+    } else {
+      allSections.size-1
     }
   }
 
@@ -353,15 +365,19 @@ case class MultivaluedSectionField(
    * @return the new size of the otherSections, or an error
    */
   def delete(index: Int): Box[Int] = {
-    synchronized {
-      if (index < 0) {
-        Failure("Index must be a positive integer")
-      } else if (index >= allSections.size) {
-        Failure("Index (%s) must be lesser than number of sections (%s)".format(index, allSections.size))
-      } else {
-        allSections remove index
-        Full(allSections.size)
+    if (!readOnlySection) {
+      synchronized {
+        if (index < 0) {
+          Failure("Index must be a positive integer")
+        } else if (index >= allSections.size) {
+          Failure("Index (%s) must be lesser than number of sections (%s)".format(index, allSections.size))
+        } else {
+          allSections remove index
+          Full(allSections.size)
+        }
       }
+    } else {
+      Failure("Cannot modify read only parameters")
     }
   }
 
@@ -448,13 +464,17 @@ case class MultivaluedSectionField(
   }
 
   private def showAddAnother(): NodeSeq = {
-    <div class="directiveAddGroup">{
-      SHtml.ajaxSubmit("Add another", { () =>
-        add()
-        //refresh UI - all item of that group
-        SetHtml(htmlId, this.content) & postModificationJS()
-      })
-    }</div>
+    if (!readOnlySection) {
+      <div class="directiveAddGroup">{
+        SHtml.ajaxSubmit("Add another", { () =>
+          add()
+          //refresh UI - all item of that group
+          SetHtml(htmlId, this.content) & postModificationJS()
+        })
+      }</div>
+    } else {
+      NodeSeq.Empty
+    }
   }
 
   private def showFormEntry(section: SectionField, i: Int): NodeSeq = {
@@ -464,13 +484,15 @@ case class MultivaluedSectionField(
       </tbody>
     </table>
     <div class="textright directiveDeleteGroup">{
-      val attr = if (size > 1) ("" -> "") else ("disabled" -> "true")
-      SHtml.ajaxSubmit("Delete", { () =>
-        logError(delete(i))
-        //refresh UI - all item of that group
-        SetHtml(htmlId, this.content) & postModificationJS()
-      },
-        attr)
+      if (!readOnlySection) {
+        val attr = if (size > 1) ("" -> "") else ("disabled" -> "true")
+        SHtml.ajaxSubmit("Delete", { () =>
+          logError(delete(i))
+          //refresh UI - all item of that group
+          SetHtml(htmlId, this.content) & postModificationJS()
+        },
+          attr)
+      }
     }</div>
   }
   

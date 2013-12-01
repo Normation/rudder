@@ -43,8 +43,8 @@ import com.normation.cfclerk.services.TechniqueRepository
 import net.liftweb.common._
 import Box._
 import com.normation.cfclerk.domain.{ TechniqueId, Technique }
-
 import org.joda.time.{ LocalDate, LocalTime, Duration, DateTime }
+import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 
 trait DirectiveEditorService {
 
@@ -81,8 +81,14 @@ class DirectiveEditorServiceImpl(
    * to Seq()
    */
   private def getVars(allVars: Seq[VariableSpec], vars: Map[String, Seq[String]]): Seq[Variable] = {
-    allVars.map { varSpec =>
-      varSpec.toVariable(vars.getOrElse(varSpec.name, Seq()))
+    allVars.map { varSpec => varSpec match {
+      case spec : PredefinedValuesVariableSpec =>
+         // variables values are already builtin
+        spec.toVariable()
+      case _ =>
+         // variable can be modified
+        varSpec.toVariable(vars.getOrElse(varSpec.name, Seq()))
+      }
     }
   }
 

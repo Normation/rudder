@@ -64,7 +64,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
    */
   def initDirectiveEditor(
       policy          : Technique
-    , directiveId: DirectiveId
+    , directiveId     : DirectiveId
     , vars            : Seq[Variable]
   ): Box[DirectiveEditor] = {
 
@@ -117,13 +117,16 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       }
     }
 
-
-    if (section.isMultivalued) {
+    val sectionWithPredefinedValues = section.children.collect{ case x:PredefinedValuesVariableSpec => x}.size > 0
+    if (section.isMultivalued || sectionWithPredefinedValues) {
       val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionFieldForMultisec(section,sectionMap, isNewPolicy)
       MultivaluedSectionField(sectionFields, () => {
-        //here, valuesByName is empty, we are creating a new map.
-        createSingleSectionField(section,Map(),createDefaultMap(section), true)
-      }, priorityToVisibility(section.displayPriority) )
+          //here, valuesByName is empty, we are creating a new map.
+          createSingleSectionField(section,Map(),createDefaultMap(section), true)
+        }
+        , priorityToVisibility(section.displayPriority)
+        ,sectionWithPredefinedValues
+      )
     } else {
       createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy)
     }
