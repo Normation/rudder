@@ -87,71 +87,88 @@ class RuleDisplayer (
       woCategoryRepository.create(newCat, root.id,ModificationId(uuidGen.newUuid),CurrentUser.getActor,None)
       SetHtml("categoryTreeParent",viewCategories)
     }
-     <div>
-                <lift:authz role="rule_write">
-              <div id="actions_zone">
-                { if (directive.isEmpty) {
-                  SHtml.ajaxButton("New Category", () => AddNewCategory(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
+    val actionButton =
+                 if (directive.isEmpty) {
+                  SHtml.ajaxButton("New Category", () => AddNewCategory(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
                 } else {
                   NodeSeq.Empty
                 }
-              </div>
-            </lift:authz>
-             <div class="dataTables_wrapper" id="categoryTree">
-             {ruleGrid.tree}
-             </div>
+
+     <div>
+       <lift:authz role="rule_write">
+         <div>
+           {actionButton}
+         </div>
+       </lift:authz>
+       <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:300px;border: 1px #999 ridge; padding-right:15px;">
+         <div id="categoryTree">
+           {ruleGrid.tree}
+         </div>
+       </div>
      </div>
   }
 
   def viewRules : NodeSeq = {
-    val ruleGrid = new RuleGrid(
-        "rules_grid_zone",
-        ruleRepository.getAll().openOr(Seq()),
-        Some(detailsCallbackLink),
-        showCheckboxColumn = directive.isDefined
+    val ruleGrid = {
+      new RuleGrid(
+          "rules_grid_zone"
+        , ruleRepository.getAll().openOr(Seq())
+        , Some(detailsCallbackLink)
+        , directive.isDefined
         , directive
-    )
+      )
+    }
     def includeSubCategory = {
-      SHtml.ajaxCheckbox(true, value => JsRaw(s"""include=${value};
-          filterTableInclude('#grid_rules_grid_zone',filter,include); """), ("id","includeCheckbox"))
-
+      SHtml.ajaxCheckbox(
+          true
+        , value => JsRaw(s"""
+          include=${value};
+          filterTableInclude('#grid_rules_grid_zone',filter,include); """)
+        , ("id","includeCheckbox")
+      )
     }
 
-            <div id={htmlId_viewAll}>
-              <div id="actions_zone">
-                <lift:authz role="rule_write">
-                { if (directive.isDefined) {
-                    SHtml.ajaxButton("Select All", () => showPopup, ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
-                  } else {
-                    SHtml.ajaxButton("New Rule", () => showPopup, ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
-                  }
-                }
-                </lift:authz>
-                <span style="margin-left:50px;">{includeSubCategory} <span style="margin-left:10px;"> Include Rules from subcategories</span></span>
-              </div>
-             {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) }
-           </div>
+    def actionButton = {
+      if (directive.isDefined) {
+          SHtml.ajaxButton("Select All", () => Noop, ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+      } else {
+        SHtml.ajaxButton("New Rule", () => showPopup, ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+      }
+    }
+
+    <div id={htmlId_viewAll}>
+      <div>
+        <lift:authz role="rule_write">
+          {actionButton}
+        </lift:authz>
+        <span style="margin:10px 50px;">{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></span>
+      </div>
+      {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) }
+    </div>
 
   }
 
   def display = {
-    <div>
-      <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
-        <div class="inner-portlet-header" style="font-family:monospace; color: #999; border:0; letter-spacing:1px;'">Categories</div>
+   val columnToFilter = {
+     if (directive.isDefined) 2 else 1
+   }
+   <div style="padding:10px;">
+      <div style="float:left; width: 20%; overflow:auto">
+        <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
           <div class="inner-portlet-content" id="categoryTreeParent">
             {viewCategories}
           </div>
       </div>
-      <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
-        <div class="inner-portlet-header" style="font-family:monospace; color: #999; border:0; letter-spacing:1px;'" id="categoryDisplay">Rules</div>
+      <div style="float:left; width:78%;padding-left:2%;">
+        <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
         <div class="inner-portlet-content">
           {viewRules}
         </div>
       </div>
-    </div> ++ Script(JsRaw("""
+    </div> ++ Script(JsRaw(s"""
 var include = true;
-var filter = "Rules";
-var column = 2;"""))
+var filter = "";
+var column = ${columnToFilter};"""))
   }
 
 }

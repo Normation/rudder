@@ -261,14 +261,15 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
 
   }
 
+
   object RULECATEGORY extends CATEGORY(
-      "rootRuleCategory"
-    , BASE_DN
-    , "Rules"
-    , ""
-    , true
-    , OC_RULE_CATEGORY
-    , A_RULE_CATEGORY_UUID
+      uuid = "rootRuleCategory"
+    , parentDN = BASE_DN
+    , name = "Rules"
+    , description = "This is the main category of Rules"
+    , isSystem = true
+    , objectClass = OC_RULE_CATEGORY
+    , objectClassUuid = A_RULE_CATEGORY_UUID
   ) {
     ruleCategory =>
 
