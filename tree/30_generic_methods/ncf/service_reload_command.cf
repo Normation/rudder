@@ -39,7 +39,7 @@ bundle agent service_reload_command(service_name, reload_command)
 
   methods:
       "report_reload"
-        usebundle  => _logger("${this.promise_filename}", "Reloading service ${service_name} with command ${reload_command}", "${class_prefix}"),
+        usebundle  => _logger("Reloading service ${service_name} with command ${reload_command}", "${class_prefix}"),
         ifvarclass => "${class_prefix}_reached";
 
 }

@@ -49,7 +49,7 @@ bundle agent service_start_command(service_name, service_path, start_command)
 
   methods:
       "report"
-        usebundle  => _logger("${this.promise_filename}", "Starting service ${service_name} with command ${start_command}", "${class_prefix}"),
+        usebundle  => _logger("Starting service ${service_name} with command ${start_command}", "${class_prefix}"),
         ifvarclass => "${class_prefix}_reached";
 }
 
