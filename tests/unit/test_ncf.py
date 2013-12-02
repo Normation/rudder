@@ -13,6 +13,9 @@ class TestNcf(unittest.TestCase):
     self.technique_content = open(self.test_technique_file).read()
     self.generic_method_content = open(self.test_generic_method_file).read()
 
+  def test_get_ncf_root_dir(self):
+    self.assertEquals(ncf.get_root_dir(), os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../"))
+
   #####################################
   # Generic tests for parsing .cf files
   #####################################

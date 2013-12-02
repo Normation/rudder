@@ -20,5 +20,4 @@ OUR_DIR=`dirname "$0"`
 NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
 
 export PYTHONPATH=${NCF_TREE}/../tools/:$PYTHONPATH
-echo $PYTHONPATH
 python test_ncf.py

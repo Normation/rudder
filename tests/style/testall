@@ -75,6 +75,8 @@ SKIPPED_TESTS=0
 OUR_DIR=`dirname "$0"`
 NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
 
+PYTHONPATH=${NCF_TREE}/../tools/:$PYTHONPATH
+
 #
 # Many older platforms don't support date +%s, so check for compatibility
 # and find Perl for the unix_seconds() routine below. (Mantis #1254)
@@ -188,7 +190,8 @@ runtest() {
 CFENGINE_TEST_OVERRIDE_WORKDIR=\"$PLATFORM_WORKDIR\"
 TEMP=\"$PLATFORM_WORKDIR${DS}tmp\"
 NCF_TREE=\"${NCF_TREE}\"
-export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP NCF_TREE
+PYTHONPATH=\"${PYTHONPATH}\"
+export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP NCF_TREE PYTHONPATH
 
 " > "$WORKDIR/runtest"
 

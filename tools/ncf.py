@@ -13,8 +13,29 @@ import json
 import os.path
 
 tags = {}
-tags["generic_method"] = ["name", "class_prefix"]
-tags["technique"] = ["name", "description", "version"]
+tags["generic_method"] = ["bundle_name", "name", "class_prefix", "key_param"]
+tags["technique"] = ["bundle_name", "name", "description", "version"]
+
+def get_root_dir():
+  return os.path.realpath(os.path.dirname(__file__) + "/../")
+
+def get_all_generic_methods_filenames():
+  return get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
+
+def get_all_generic_methods_filenames_in_dir(dir):
+  return get_all_cf_filenames_under_dir(dir)
+
+def get_all_techniques_filenames():
+  return get_all_cf_filenames_under_dir(get_root_dir() + "/tree/50_techniques")
+
+def get_all_cf_filenames_under_dir(dir):
+  filenames = []
+  for root, dirs, files in os.walk(dir):
+    for file in files:
+      if file.endswith(".cf"):
+        filenames.append(root + "/" + file)
+
+  return filenames
 
 def parse_technique_metadata(technique_content):
   return parse_bundlefile_metadata(technique_content, "technique")
@@ -31,11 +52,10 @@ def parse_bundlefile_metadata(content, bundle_type):
       if match :
         res[tag] = match.group(1)
 
-    if sorted(res.keys()) == sorted(tags[bundle_type]):
-      # Found all the tags we need, stop parsing
-      break
+    match = re.match("[^#]*bundle\s+agent\s+(.*)$", line)
+    if match:
+      res['bundle_name'] = match.group(1)
 
-    if re.match("[^#]*bundle\s+agent\s+", line):
       # Any tags should come before the "bundle agent" declaration
       break
       

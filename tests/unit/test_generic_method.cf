@@ -8,6 +8,7 @@
 #
 # @name Package install
 # @class_prefix package_install
+#   @key_param 1
 #
 # Please see the online documentation for more details.
 bundle agent package_install(package_name)
