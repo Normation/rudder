@@ -1,0 +1,42 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This is a bundle to ensure that a line is absent in a specific location
+#
+# Contract:
+#  - Args:
+#     -- "file", file name to edit
+#     -- "lines", line(s) to remove in the file
+#  - Returns: defines a class file_edit_lines_absent_${target_file}_{kept,repaired,error,ok,reached}
+
+bundle agent file_edit_lines_absent(file, lines)
+{
+  vars:
+      "class_prefix" string => canonify("file_edit_lines_absent_${file}");
+
+  files:
+      "${file}"
+        create        => "false",
+        edit_line     => delete_lines_matching("${lines}"),
+        edit_defaults => no_backup,
+	classes       => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Delete line(s) ${lines} from ${file}", "${class_prefix}");
+}

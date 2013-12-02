@@ -1,0 +1,64 @@
+#######################################################
+#
+# Test checking if a line is absent in a file
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$#this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"         string => getenv("TEMP", 1024);
+    "file"        string => "${tmp}/test";
+    "file_canon"  string => canonify("${file}");
+    "line_to_test" string => "This is a test line!";
+
+  methods:
+    "ph1" usebundle => file_edit_lines_present("${file}", "${line_to_test}");
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => file_edit_lines_absent("${init.file}", "${init.line_to_test}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "line_exists_test" string => "/bin/grep -E \"^${init.line_to_test}$\" \"${init.file}\"";
+
+  classes:
+    "file_exists" expression => fileexists("${init.file}");
+    "line_absent" not => returnszero("${line_exists_test}", "noshell");
+
+    "ok" expression => "file_exists.line_absent.file_edit_lines_absent_${init.file_canon}_ok.!file_edit_lines_absent_${init.file_canon}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+    !file_exists::
+      "fileexists returns false for file ${init.file}";
+    !line_absent::
+      "grep command did return 0 for command: ${line_exists_test}";
+}

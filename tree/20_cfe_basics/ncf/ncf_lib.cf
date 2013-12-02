@@ -104,3 +104,9 @@ body action do_if_immediate {
    action_policy => "warn";
 }
 
+bundle edit_line ncf_insert_block(block) {
+  insert_lines:
+      "${block}"
+        insert_type => "preserve_block",
+        comment     => "Append a text block if it does not exist";
+}

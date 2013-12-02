@@ -1,0 +1,43 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# This is a bundle to ensure that a line in a file is replaced by another one
+#
+# Contract:
+#  - Args:
+#     -- "file", file name to edit
+#     -- "line", line to match in the file
+#     -- "replacement", line to add in the file as a replacement
+#  - Returns: defines a class file_edit_lines_replace_${target_file}_{kept,repaired,error,ok,reached}
+
+bundle agent file_edit_lines_replace(file, line, replacement)
+{
+  vars:
+      "class_prefix" string => canonify("file_edit_lines_replace_${file}");
+
+  files:
+      "${file}"
+        create        => "false",
+        edit_line     => regex_replace("${line}", "${replacement}"),
+        edit_defaults => no_backup,
+	classes       => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Replace line ${lines} with ${replacement} into ${file}", "${class_prefix}");
+}
