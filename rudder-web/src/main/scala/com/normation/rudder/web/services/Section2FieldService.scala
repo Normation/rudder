@@ -64,13 +64,15 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
    */
   def initDirectiveEditor(
       policy          : Technique
-    , directiveId: DirectiveId
+    , directiveId     : DirectiveId
     , vars            : Seq[Variable]
   ): Box[DirectiveEditor] = {
 
     val valuesByName = vars.map(v => (v.spec.name, v.values)).toMap
     val variableSpecs = vars.map(v => (v.spec.name -> v.spec)).toMap
     val sections = policy.rootSection.copyWithoutSystemVars
+
+    val providesExpectedReports = policy.providesExpectedReports
 
     //a policy is a new one if we don't have any saved values
     //Don't forget that we may have empty saved value.
@@ -79,7 +81,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
 
     val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
 
-    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs))
+    Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs, providesExpectedReports))
   }
 
   // --------------------------------------------
@@ -117,13 +119,16 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
       }
     }
 
-
+    val readOnlySection = section.children.collect{ case x:PredefinedValuesVariableSpec => x}.size > 0
     if (section.isMultivalued) {
       val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionFieldForMultisec(section,sectionMap, isNewPolicy)
       MultivaluedSectionField(sectionFields, () => {
-        //here, valuesByName is empty, we are creating a new map.
-        createSingleSectionField(section,Map(),createDefaultMap(section), true)
-      }, priorityToVisibility(section.displayPriority) )
+          //here, valuesByName is empty, we are creating a new map.
+          createSingleSectionField(section,Map(),createDefaultMap(section), true)
+        }
+        , priorityToVisibility(section.displayPriority)
+        , readOnlySection
+      )
     } else {
       createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy)
     }
@@ -234,7 +239,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
         NameValuesVar(varSpec.name, valuesByName.getOrElse(varSpec.name, Seq[String]()))
       }
     }
-    
+
     if (seqOfNameValues.isEmpty) {
       Seq(Map[String, Option[String]]())
     } else {
