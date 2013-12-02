@@ -61,6 +61,11 @@ import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.json.JArray
+import net.liftweb.json.JsonParser
+import net.liftweb.json.JString
+import net.liftweb.json.JObject
+import net.liftweb.json.JField
 
 
 
@@ -133,6 +138,46 @@ class RuleGrid(
     rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), popup, linkCompliancePopup)
   }
 
+
+  def selectAllVisibleRules(status : Boolean) : JsCmd= {
+    directiveApplication match {
+      case Some(directiveApp) =>
+        def moveCategory(arg: String) : JsCmd = {
+        //parse arg, which have to  be json object with sourceGroupId, destCatId
+          try {
+            (for {
+               JObject(JField("rules",JArray(childs)) :: Nil) <- JsonParser.parse(arg)
+               JString(ruleid) <- childs
+             } yield {
+               RuleId(ruleid)
+             }) match {
+              case ruleIds =>
+                directiveApp.checkRules(ruleIds,status)  match {
+                case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
+                  logger.error(completeCategories)
+                  logger.info(indeterminate)
+                  After(TimeSpan(50),JsRaw(s"""
+                    ${rules.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
+                    ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
+                    ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
+                    ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+                  """))
+            }
+            }
+          } catch {
+            case e:Exception => Alert("Error while trying to move group :"+e)
+          }
+        }
+
+        JsRaw(s"""
+            var rules = $$.map($$('#grid_rules_grid_zone tr.tooltipabletr'), function(v,i) {return $$(v).prop("id")});
+            var rulesIds = JSON.stringify({ "rules" : rules });
+            ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory _)};
+        """)
+      case None => Noop
+    }
+  }
+
   def rulesGrid(
       allNodeInfos: Box[Set[NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
@@ -173,7 +218,7 @@ class RuleGrid(
           "sZeroRecords": "No matching rules!",
           "sSearch": ""
         },
-        "aaSorting": [[ 0, "asc" ]],
+        "aaSorting": [[ ${ if (showCheckboxColumn) 1 else 0}, "asc" ]],
         "aoColumns": [${ if(showCheckboxColumn) """
           { "sWidth": "30px" , "bSortable" : false},""" else "" }
           { "sWidth": "90px" },
@@ -354,12 +399,32 @@ class RuleGrid(
         }
 
         descriptionTooltip ++
-        <tr tooltipid={tooltipId} class="tooltipabletr" title="">
+        <tr tooltipid={tooltipId} class="tooltipabletr" title="" id={line.rule.id.value}>
           { // CHECKBOX
-            if(showCheckboxColumn) <td>{
-              val isApplying = directiveApplication.map(d => line.rule.directiveIds.contains(d.directive.id)).getOrElse(false)
-              SHtml.ajaxCheckbox(isApplying, value => directiveApplication.foreach(_.checkRule(line.rule.id, value)))}</td> else NodeSeq.Empty
-          }
+
+              directiveApplication match {
+                case Some(directiveApplication) =>
+
+                  def check(value : Boolean) : JsCmd= {
+                    directiveApplication.checkRule(line.rule.id, value) match {
+                      case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
+                        JsRaw(s"""
+                          ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
+                          ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
+                          ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+                        """)
+                    }
+                  }
+                  val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
+
+                  val xml = SHtml.ajaxCheckbox(isApplying, check _, ("id",line.rule.id.value+"Checkbox"))
+
+                  <td>{xml}</td>
+                case None => NodeSeq.Empty
+                }
+
+
+           }
           <td>
          { // NAME
 
@@ -403,9 +468,12 @@ class RuleGrid(
             <td class="parametersTd">{ //  RULE PARAMETERS
               detailsCallbackLink match {
                 case None => Text("No parameters")
-                case Some(callback) =>  SHtml.ajaxButton("Edit", {
-                  () =>  callback(line.rule,"showEditForm")
-                  }, ("class", "smallButton"))
+                case Some(callback) =>
+                  SHtml.ajaxButton(
+                      "Edit"
+                    , () =>  callback(line.rule,"showEditForm")
+                    , ("class", "smallButton")
+                  )
                 }
               }
             </td>
@@ -439,10 +507,14 @@ class RuleGrid(
             } else {
           <td class="parametersTd">{
               detailsCallbackLink match {
-      case None => Text("No parameters")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, {
-                      () =>  callback(line.rule,"showEditForm")
-                    }, ("class", "smallButton")) }
+                case None => Text("No parameters")
+                case Some(callback) =>
+                  SHtml.ajaxButton(
+                      "Edit"
+                    , () =>  callback(line.rule,"showEditForm")
+                    , ("class", "smallButton")
+                   )
+               }
           }</td>
             }
 
@@ -504,89 +576,6 @@ class RuleGrid(
      "td *+" #> content ) apply <td class="compliance"/>
   }
 
-/*********************************************
-  Popup for the reports
- ************************************************/
-  private[this] def createPopup(rule: Rule, allNodes: Set[NodeInfo]) : NodeSeq = {
-
-    def showReportDetail(batch : Box[Option[ExecutionBatch]]) : NodeSeq = {
-    ( "#reportLine" #> {batch match {
-            case e:EmptyBox => <div class="error">Could not fetch reporting info from database</div>
-            case Full(None) => Text("No Reports")
-            case Full(Some(reports)) =>
-              reports.getNodeStatus().map {
-                nodeStatus =>
-                   allNodes.find ( _.id == nodeStatus.nodeId) match {
-                     case Some(nodeInfo)  => {
-                       val tooltipid = Helpers.nextFuncName
-                       val xml:NodeSeq = (
-                              "#node *" #>
-                                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
-                                  <span class="curspoint">
-                                    {nodeInfo.hostname}
-                                  </span>
-                                </a> &
-                              "#severity *" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) &
-                              "#severity [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")
-                       )(nodeLineXml)
-                       xml
-                     }
-                     case None =>
-                       <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
-                   }
-              }
-    }}
-    ).apply(reportsGridXml)
-    }
-
-
-    def reportsGridXml : NodeSeq = {
-    <table id="popupReportsGrid" cellspacing="0">
-      <thead>
-        <tr class="head">
-          <th>Node<span/></th>
-          <th class="severityWidth">Status<span/></th>
-        </tr>
-      </thead>
-      <tbody>
-        <div id="reportLine"/>
-      </tbody>
-    </table>
-  }
-
-
-    def nodeLineXml : NodeSeq = {
-    <tr class="unfoldable">
-      <td id="node"></td>
-      <td id="severity" class="severityWidth" style="text-align:center;"></td>
-    </tr>
-  }
-
-
-  val batch = reportingService.findImmediateReportsByRule(rule.id)
-
-  <div class="simplemodal-title">
-    <h1>List of nodes having the {Text(rule.name)} Rule</h1>
-    <hr/>
-  </div>
-  <div class="simplemodal-content"> { bind("lastReportGrid",reportTemplate,
-        "crName" -> Text(rule.name),
-        "lines" -> showReportDetail(batch)
-         )
-    }
-  <hr class="spacer" />
-  </div>
-  <div class="simplemodal-bottom">
-    <hr/>
-    <div class="popupButton">
-      <span>
-        <button class="simplemodal-close" onClick="return false;">
-          Close
-        </button>
-      </span>
-    </div>
-  </div>
-  }
 }
 sealed trait ComplianceLevel
 

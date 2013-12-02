@@ -136,7 +136,6 @@ class DiffServiceImpl extends DiffService {
         reference.id
       , reference.name
       , diffName
-      , diffCategory
       , None
       , diffTarget
       , diffDirectives
@@ -145,6 +144,7 @@ class DiffServiceImpl extends DiffService {
       , None
       , diffEnable
       , diffSystem
+      , diffCategory
     )
   }
 

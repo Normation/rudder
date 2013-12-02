@@ -43,7 +43,6 @@ import net.liftweb.common._
 
 
 
-// TOTO : Move to core
 case class DirectiveApplicationResult (
     rules              : List[RuleId]
   , completeCategory   : List[RuleCategoryId]
@@ -64,53 +63,70 @@ object DirectiveApplicationResult {
   }
 
   def mergeOne(that : DirectiveApplicationResult, into : DirectiveApplicationResult) = {
-    DirectiveApplicationResult (
-        (that.rules ++ into.rules).distinct
-      , (that.completeCategory ++ into.completeCategory).distinct
-      , (that.incompleteCategory ++ into.incompleteCategory).distinct
-    )
+    val newRules      = (that.rules ++ into.rules).distinct
+    val newComplete   = (that.completeCategory ++ into.completeCategory).distinct
+    // Filter complete from incomplete so there is no conflict (actions are building to end up with complete status, so if complete stauts is achieved in some there is no icomplete possibility)
+    val newIncomplete = (that.incompleteCategory ++ into.incompleteCategory).distinct.diff(newComplete)
+    DirectiveApplicationResult (newRules, newComplete, newIncomplete)
   }
 
-  // Must not be empty :(
   def merge( results : List[DirectiveApplicationResult]) = {
-    (results.tail :\ results.head) (mergeOne)
+    results match {
+      case Nil => DirectiveApplicationResult(Nil,Nil,Nil)
+      case head :: Nil => head
+      case _ => (results.tail :\ results.head) (mergeOne)
+    }
   }
 }
 
 
 case class DirectiveApplicationManagement (
-    directive : Directive
+    directive    : Directive
+  , rules        : List[Rule]
+  , rootCategory : RuleCategory
 ) extends Loggable {
 
-  type Category = RuleCategory
-  type CategoryId = RuleCategoryId
-  private[this] val roRuleRepo = RudderConfig.roRuleRepository
-  private[this] val roRuleCategoryRepo = RudderConfig.roRuleCategoryRepository
-  //private[this] val roRuleRepo = RudderConfig.roRuleRepository
+  // Utility Types
+  private[this] type Category = RuleCategory
+  private[this] type CategoryId = RuleCategoryId
 
-  // Static utils
+  /*
+   * Initial Values
+   */
 
-  val rules = roRuleRepo.getAll(false).get.toList
+  // Rules
 
-  val applyingRules = rules.filter(_.directiveIds.contains(directive.id))
+  // Applying Rules At the beginning
+  private[this] val applyingRules = rules.filter(_.directiveIds.contains(directive.id))
 
-  val applyingRulesId = applyingRules.map(_.id)
+  // Applying Rules Id
+  private[this] val applyingRulesId = applyingRules.map(_.id)
 
-  val rootCategory = roRuleCategoryRepo.getRootCategory.get
+  // Map to get a Rule form it id
+  private[this] val rulesMap= rules.groupBy(_.id).mapValues(_.head)
 
-  val categories = {
+
+  // Categories
+
+  // Map to get children categories from a category
+  private[this] val categories = {
     def mapCategories (cat : Category, map : Map[CategoryId,List[CategoryId]] = Map.empty) : Map[CategoryId,List[CategoryId]] = {
       (cat.childs :\ map) (mapCategories) + (cat.id -> cat.childs.map(_.id))
     }
 
-    mapCategories(rootCategory)
+    mapCategories(rootCategory).withDefaultValue(Nil)
   }
 
-  val parentCategories = {
+  // Map ti get parent category from a category
+  private[this] val parentCategories = {
     categories.flatMap{case (parent,childs) => childs.map( (_ -> parent) )}
   }
 
-  def completeMapping (baseMap : Map[CategoryId,List[RuleId]]) : Map[CategoryId,List[RuleId]] = {
+
+  // Category -> Rule
+
+  // Utility method to complete the map (add Rules to parents)
+  private[this] def completeMapping (baseMap : Map[CategoryId,List[RuleId]]) : Map[CategoryId,List[RuleId]] = {
     def toApply(category:CategoryId,rules:List[RuleId], map: Map[CategoryId,List[RuleId]])  : Map[CategoryId,List[RuleId]] = {
       val updatedMap = map.updated(category, (map.get(category).getOrElse(Nil) ++ rules).distinct)
       parentCategories.get(category) match {
@@ -118,91 +134,144 @@ case class DirectiveApplicationManagement (
         case Some(parent) => toApply(parent,rules,updatedMap)
       }
     }
-    logger.warn(baseMap)
     (baseMap :\ baseMap) {case ((cat,rules),map) => toApply(cat, rules, map)}
 
   }
-  val rulesByCategory = completeMapping(rules.groupBy(_.category).mapValues(_.map(_.id)))
 
-  logger.error(rulesByCategory)
-  val applyingRulesbyCategory = completeMapping(applyingRules.groupBy(_.category).mapValues(_.map(_.id)))
-  logger.info(applyingRulesbyCategory)
-  val rulesMap= rules.groupBy(_.id).mapValues(_.head)
 
-  private[this] var currentApplyingRules = applyingRulesbyCategory
+  // Get Rules from a category
+  private[this] val rulesByCategory = completeMapping(rules.groupBy(_.category).mapValues(_.map(_.id))).withDefaultValue(Nil)
 
+  // Get applying Rules fror each category at the beginning
+  private[this] val applyingRulesbyCategory = completeMapping(applyingRules.groupBy(_.category).mapValues(_.map(_.id))).withDefaultValue(Nil)
+
+  // Current State, this variable will contains the application state of all Rules and categories
+  private[this] var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)
+
+
+  // Get rules that needs to be updated , and divide them by those who are new application and those who don't apply the Directive annymore
   def checkRulesToUpdate = {
-    val current = currentApplyingRules.values.toList.flatten
 
+    // Need to get all Current application Rule, need to have them disctinct (we got them from a Map)
+    val current = currentApplyingRules.values.toList.flatten.distinct
+
+    // Compute Rules that are now applying the Directive, We need the Rules that are now applying and were not appying at the beginning
     val nowApplying = current.diff(applyingRulesId)
+    logger.debug(s"current is $current")
+    logger.debug(s"applyingRules are $applyingRulesId")
+    logger.debug(s"now applying are $nowApplying")
 
+    // Compute that are not applyting the Directive anymore, We need the rules that were applying and that don't apply anymore
     val notApplyingAnymore = applyingRulesId.diff(current)
 
     (nowApplying.map(rulesMap),notApplyingAnymore.map(rulesMap))
 
   }
 
-  def checkRule(id : RuleId, status: Boolean) = {
-    def checkRule(id : RuleId, status: Boolean /*maybe need a class to declare status ? */, category : CategoryId) : DirectiveApplicationResult = {
-      logger.info(s"check for $id, in $category")
-      val rules = currentApplyingRules.get(category).getOrElse(Nil)
-      val (newApplication,isComplete) =  if (status) {
-        val result = (id :: rules).sortBy(_.value)
-        val completeRules = rulesByCategory(category).sortBy(_.value)
-        (result,result == completeRules)
-      } else {
-        val result = rules.filter(_ != id)
 
-        (result,result.isEmpty)
+  /*
+   *  Check Functions, They will change the state inside the service
+   */
+  def checkRule(id : RuleId, status: Boolean) = {
+    def checkRule(id : RuleId, status: Boolean, category : CategoryId) : DirectiveApplicationResult = {
+      logger.debug(s"check for $id, in $category")
+      // Get current state
+      val currentAppliedRules = currentApplyingRules.get(category).getOrElse(Nil)
+      // Get the new application status, and if the category completed is Full
+      val (newApplication,isComplete) = {
+        if (status) {
+          val result = (id :: currentAppliedRules).sortBy(_.value).distinct
+          val completeRules = rulesByCategory(category).sortBy(_.value)
+          (result,result == completeRules)
+        } else {
+          val result = currentAppliedRules.filter(_ != id)
+          (result,result.isEmpty)
+        }
       }
+
+      // Update current state
       currentApplyingRules = currentApplyingRules.updated(category, newApplication)
 
-
-      parentCategories.get(category) match {
-        case None => DirectiveApplicationResult(id)
-        case Some(parent) =>
-          val result = checkRule(id, status, parent)
-          result.addCategory(isComplete, category)
-      }
-
+      // Look for parent and add the last result
+      (parentCategories.get(category) match {
+        case None         => DirectiveApplicationResult(id)
+        case Some(parent) => checkRule(id, status, parent)
+      }).addCategory(isComplete, category)
     }
-
-    val res = checkRule(id, status, rulesMap(id).category)
-    logger.info(res)
-    logger.error(checkRulesToUpdate)
-    res
+    // get category of Rule then start : TODO : pass a pattern matching, result to Box
+    checkRule(id, status, rulesMap(id).category)
 
   }
 
-  def checkCategory (id : CategoryId, status:Boolean) = {
-    val currentApplication = currentApplyingRules(id)
-    val completeApplication  = rulesByCategory(id)
+   // Check a Lists of Rules, used when you try to apply several rules together
+   def checkRules (rules : List[RuleId], status:Boolean) = {
+     DirectiveApplicationResult.merge(rules.map(checkRule(_, status)))
+  }
 
+  // Check a Category
+  def checkCategory (id : CategoryId, status:Boolean) = {
+    // Current application of that category
+    val currentApplication = currentApplyingRules(id)
+    // All Rules contained in that category
+    val completeApplication  = rulesByCategory(id)
+    logger.debug(s"category $id is currently applying ${currentApplication.size} rules and completeApplication contains ${completeApplication.size} ")
+
+    // Get Rules that needs modifications
     val rulesToCheck = if (status) {
+      // Here we add the Category: get those missing from complete state
       completeApplication.diff(currentApplication)
     } else {
-      completeApplication.intersect(currentApplication)
+      // Here we remove the category: Get so the actual application
+      completeApplication
     }
+    logger.debug(s"there is ${rulesToCheck.size} to ${if (status) "check" else "uncheck" }")
 
+    //Check Rules from that category
     val applications = rulesToCheck.map(checkRule(_, status))
-
+    logger.debug(s"final applications for category $id:")
+    // Final merge
     DirectiveApplicationResult.merge(applications)
   }
 
-  logger.info(applyingRulesbyCategory)
 
-  /* CE que je veux :
-   *   Pouvoir partager entre plusieurs component (Rule grid, Rule category tree, Directive Edit form)
-   *
-   *
-   * - Une list de toute les RULE appliquant la directive AVANT => applyingRules
-   * - Une map Rule category -> sous categories Directes: pour déterminer les dépendances
-   * - Une map Rule category -> categorie parentes ? pas nécessaire mais car on peut toujorus sé débrouiller pour faire le lookup dans l'autre table
-   * - Une map Rule category -> Rule filles (stricte, pas les rules des sous categories) : base
-   * - Une map mutable Rule Category -> Rule => ce qui est applique actuellement dans l'UI => fille strictes
-   *
-   * A chaque modif dans l'UI, appel en ajax pour modifier cet objet -> retourne trois listes : ce qui est a coché, ce qui est a décoché, ce qui est a mettre en intermédiaire, javascript pour modifier chaque checkbox (id = id de la regle)
-   * Lors de la validation par l'utilisateur, Directive EditForm récupérer le diff entre applying Rules, et tout les valeurs dans la map mutable
-   *
+  /*
+   * Check Status methods, here are functions to check whether a rule is considered apply the Directive or not
    */
+  // Check status of rule
+  def ruleStatus(rule: Rule) = {
+    currentApplyingRules.get(rule.category).getOrElse(Nil).contains(rule.id)
+  }
+  // Check status of Rule, based on its Id
+  def ruleStatus(ruleId : RuleId) : Box[Boolean] = {
+    rulesMap.get(ruleId) match {
+      case Some(rule) => Full(ruleStatus(rule))
+      case None       => Failure(s"Could not get Rule with id ${ruleId.value} from directive application.")
+    }
+  }
+
+  // Check a list of Rules
+  def checkRules = {
+    rules.partition(ruleStatus)
+  }
+
+  // Check if a category is complete or not
+  def isCompletecategory (id : CategoryId) = {
+    val currentApplication = currentApplyingRules.get(id).getOrElse(Nil)
+    val completeApplication  = rulesByCategory(id)
+    currentApplication.size > 0 && currentApplication == completeApplication
+  }
+
+  // Check if the category is in an indeterminate state
+  def isIndeterminateCategory (id : CategoryId) = {
+    val currentApplication = currentApplyingRules.get(id).getOrElse(Nil)
+    val completeApplication  = rulesByCategory(id)
+    currentApplication.size > 0 && currentApplication != completeApplication
+  }
+
+  // Check if the category is in empty
+  def isEmptyCategory (id : CategoryId) = {
+    val currentApplication = rulesByCategory.get(id).getOrElse(Nil)
+    currentApplication.size > 0
+  }
+
 }
