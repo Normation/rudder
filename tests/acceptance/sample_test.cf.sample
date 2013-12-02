@@ -22,6 +22,11 @@ body common control
 
 bundle agent init
 {
+  vars:
+    "tmp"         string => getenv("TEMP", 1024);
+    "file"        string => "${tmp}/test";
+    "file_canon"  string => canonify("${file}");
+    "line_to_add" string => "This is a test line!";
 }
 
 #######################################################
