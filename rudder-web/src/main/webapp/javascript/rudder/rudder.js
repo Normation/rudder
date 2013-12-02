@@ -80,7 +80,7 @@ function createTooltip() {
 }
 
 function createTooltiptr() {
-	  $("tr.tooltipable").tooltip({
+	  $(".tooltipabletr").tooltip({
 				show: {
 					effect: "none",
 	                delay: 100
@@ -88,11 +88,7 @@ function createTooltiptr() {
 				content: function() {
 			      return $("#"+$(this).attr("tooltipid")).html();
 			    },
-			    position: { 
-			      my: "left top+15",
-			      at: "right top",
-			      collision: "flipfit" 
-			    }
+			    track : true
 	  });
 	}
 
@@ -605,8 +601,13 @@ function filterTableInclude(tableId, filter, include) {
   if (typeof filter === 'undefined') {
     return;
   } else {
-	  var finalFilter = "^"+filter+"$";
-	  var includeFilter = finalFilter +"|^"+filter+" »";
+	var finalFilter = "^"+filter+"$";
+    var includeFilter;
+	if (filter === "") { 
+	  includeFilter = filter;
+	} else {
+	  includeFilter = finalFilter +"|^"+filter+" »";
+	}
     if (typeof include === 'undefined') {
       $(tableId).dataTable().fnFilter(includeFilter ,column,true,false,true );
     } else {

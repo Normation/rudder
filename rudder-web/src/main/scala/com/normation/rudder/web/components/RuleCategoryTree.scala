@@ -141,8 +141,6 @@ class RuleCategoryTree(
             $$.jstree.rollback(data.rlbk);
           }
         });
-
-
           createTooltip();"""
       )))
       case e:EmptyBox =>
@@ -158,29 +156,44 @@ class RuleCategoryTree(
 
   private[this] def categoryNode(category : RuleCategory) : JsTreeNode = new JsTreeNode {
     override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: Nil
-    override def body = {
-      def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="14" width="14" class="iconscala" style=" margin: 0 5px 0 0;float:none;" />
-      val tooltipId = Helpers.nextFuncName
-      val xml = {
-           <span class="treeRuleCategoryName tooltipable" tooltipid={tooltipId} title="">
-             {category.name}
 
-             <span id={"actions"+category.id.value} class="categoryAction">
-               {if(category.id.value!="rootRuleCategory")  SHtml.span(img("icPen.png","Edit"),Noop, ("style","margin:0 5px;max-height:20px; max-width:20px;")) ++
-                 SHtml.span(img("icfail.png","Delete"),Noop, ("style","margin:0 5px;max-height:20px; max-width:20px;"))
-                 else NodeSeq.Empty}
-             </span>
-           </span>
-         <div class="tooltipContent" id={tooltipId}>
-           <h3>{category.name}</h3>
-           <div>{category.description}</div>
-         </div> ++ Script{JsRaw {s"""
+    override def body = {
+      def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="12" width="12" class="iconscala" style=" margin: 0 10px 0 0;float:none;" />
+      val tooltipId = Helpers.nextFuncName
+      val actionButtons = {
+        if(category.id.value!="rootRuleCategory") {
+
+        <span id={"actions"+category.id.value} class="categoryAction" style="float:left; padding-top:2px;padding-left:10px">{
+          SHtml.span(img("icPen.png","Edit")     ,Noop) ++
+          SHtml.span(img("icDelete.png","Delete"),Noop)
+        } </span>
+        } else {
+          NodeSeq.Empty
+        }
+      }
+      val xml = {
+        <span id={category.id.value+"Name"} class="treeRuleCategoryName tooltipable" tooltipid={tooltipId} title="" style="float:left">
+          {category.name}
+
+
+                 </span> ++
+                     {actionButtons} ++
+        <div class="tooltipContent" id={tooltipId}>
+          <h3>{category.name}</h3>
+          <div>{category.description}</div>
+        </div> ++  (if(category.id.value!="rootRuleCategory") { Script{JsRaw {s"""
+           var widthSpanName = $$('#${category.id.value+"Name"}').width();
+           var widthActions  = $$('#${"actions"+category.id.value}').width();
+           var pos = $$('#${"actions"+category.id.value}').position().left;
+           // Add size of jstree element (icons, ...)
+           $$('#${category.id.value}').width(widthActions + widthSpanName + 40);
            $$('#${"actions"+category.id.value}').hide();
 
            $$('#${category.id.value}').mouseover( function(e) {
            e.stopPropagation();
 
            $$('#${"actions"+category.id.value}').show();
+           $$("#treeParent").focus();
            $$('#${category.id.value} a:first').addClass("treeOver jstree-hovered");
          });
 
@@ -189,21 +202,22 @@ class RuleCategoryTree(
            $$('.categoryAction').hide();
            $$('.treeOver').removeClass("treeOver jstree-hovered");
            $$('#${"actions"+category.id.value}').show();
+           $$("#treeParent").focus();
            $$('#${category.id.value} a:first').addClass("treeOver jstree-hovered");
            }, function(e) {
            $$('.treeOver').removeClass("treeOver jstree-hovered");
            $$('#${"actions"+category.id.value}').hide();
            } );
            """
-         }}
+         }} } else {NodeSeq.Empty})
       }
-       SHtml.a(() => ruleCategoryService.shortFqdn(category.id) match {
-         case Full(fqdn) =>
-           val escaped = Utility.escape(fqdn)
+       SHtml.a(() => ruleCategoryService.bothFqdn(category.id,true) match {
+         case Full((long,short)) =>
+           val escaped = Utility.escape(short)
            JsRaw(s"""
                filter='${escaped}';
                filterTableInclude('#grid_rules_grid_zone',filter,include);
-           """) & SetHtml("categoryDisplay",Text(fqdn))
+           """) & SetHtml("categoryDisplay",Text(long))
          case e: EmptyBox => //Display an error, for now, nothing
            Noop
        }, xml)

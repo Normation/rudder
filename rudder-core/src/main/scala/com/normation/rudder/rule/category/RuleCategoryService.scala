@@ -40,17 +40,27 @@ class RuleCategoryService(
   roRuleCategoryService : RoRuleCategoryRepository
 ) {
 
-  def fqdn(id:RuleCategoryId,rootInCaps : Boolean = false) : Box[String] = {
+  def bothFqdn(id:RuleCategoryId,rootInCaps : Boolean = false) : Box[(String,String)] = {
 
     for {
     root  <- roRuleCategoryService.getRootCategory
     short <- shortFqdn(id)
     } yield {
-      if (rootInCaps ) {
-        root.name.toUpperCase
-      } else {
-        root.name
-      } + " » " + short
+      val long = {
+        val rootName = {
+          if (rootInCaps ) {
+            root.name.toUpperCase
+          } else {
+            root.name
+          }
+        }
+          if (id != root.id) {
+            rootName + " » " + short
+          } else {
+            rootName
+          }
+      }
+      (long,short)
     }
   }
 

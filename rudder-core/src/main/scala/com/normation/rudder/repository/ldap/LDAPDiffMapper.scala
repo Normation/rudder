@@ -53,6 +53,7 @@ import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.eventlog.DirectiveEventLog
+import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries._
 import org.joda.time.Duration
 import org.joda.time.DateTime
@@ -141,6 +142,8 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modIsActivatedStatus = Some(SimpleDiff(oldCr.isEnabledStatus, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldCr.isSystem,mod.getAttribute().getValueAsBoolean))))
+                case A_RULE_CATEGORY =>
+                  tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.category , RuleCategoryId(mod.getAttribute().getValue)))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }

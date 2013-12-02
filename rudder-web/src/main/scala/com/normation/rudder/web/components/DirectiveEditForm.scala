@@ -397,7 +397,7 @@ class DirectiveEditForm(
           priority = piPriority.is,
           longDescription = piLongDescription.is)
 
-        if ((!isMigration && directive == updatedDirective)) {
+        if ((!isMigration && directive == updatedDirective && updatedRules.isEmpty)) {
           onNothingToDo()
         } else {
           displayConfirmationPopup(

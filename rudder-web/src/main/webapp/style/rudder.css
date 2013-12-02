@@ -1632,7 +1632,6 @@ p img {
 }
 
 .inner-portlet-header {
-  padding: 5px 0 5px 5px;
   font-size: 1.3em;
   font-weight: bold;
   cursor: default;
@@ -1642,7 +1641,6 @@ p img {
 }
 
 .inner-portlet-header-lower {
-  padding: 5px 0 5px 5px;
   font-size: 1.3em;
   cursor: default;
   background: none;
