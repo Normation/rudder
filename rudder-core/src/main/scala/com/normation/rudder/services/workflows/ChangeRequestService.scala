@@ -89,7 +89,7 @@ trait ChangeRequestService {
     , actor            : EventActor
     , reason           : Option[String]
   ) : Box[ChangeRequest]
-  
+
   def createChangeRequestFromDirectiveAndRules(
       changeRequestName: String
     , changeRequestDesc: String
@@ -102,7 +102,16 @@ trait ChangeRequestService {
     , reason           : Option[String]
     , rulesToUpdate    : List[Rule]
     , updatedRules     : List[Rule]
-  ) : Box[ChangeRequest]  
+  ) : Box[ChangeRequest]
+
+  def createChangeRequestFromRules(
+      changeRequestName: String
+    , changeRequestDesc: String
+    , actor            : EventActor
+    , reason           : Option[String]
+    , rulesToUpdate    : List[Rule]
+    , updatedRules     : List[Rule]
+  ) : Box[ChangeRequest]
 
   def createChangeRequestFromRule(
       changeRequestName: String
@@ -228,6 +237,23 @@ class ChangeRequestServiceImpl(
     saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
   }
 
+  private[this] def rulechange(
+      baseRule  : Rule
+    , finalRule : Rule
+    , actor     : EventActor
+    , reason    : Option[String]
+   ) = {
+    val change = RuleChanges(
+                     RuleChange(
+                         Some(baseRule)
+                       , RuleChangeItem(actor, DateTime.now, reason, ModifyToRuleDiff(finalRule))
+                       , Seq()
+                     )
+                   , Seq()
+                 )
+      baseRule.id -> change
+    }
+
   def createChangeRequestFromDirectiveAndRules(
       changeRequestName: String
     , changeRequestDesc: String
@@ -255,13 +281,7 @@ class ChangeRequestServiceImpl(
                    , firstChange = DirectiveChangeItem(actor, DateTime.now, reason, diff)
                    , Seq()
                  )
-    def rulechange(baseRule : Rule,finalRule : Rule) = {
-      (baseRule.id -> RuleChanges(RuleChange(    Some(baseRule)
-                   , RuleChangeItem(actor, DateTime.now, reason, ModifyToRuleDiff(finalRule))
-                   , Seq()
-                 ), Seq()))
-    }
-    val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2)).toMap
+    val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2,actor,reason)).toMap
     logger.debug(change)
     val changeRequest =  ConfigurationChangeRequest(
         ChangeRequestId(0)
@@ -279,6 +299,30 @@ class ChangeRequestServiceImpl(
   }
 
 
+
+  def createChangeRequestFromRules(
+      changeRequestName: String
+    , changeRequestDesc: String
+    , actor            : EventActor
+    , reason           : Option[String]
+    , rulesToUpdate    : List[Rule]
+    , updatedRules     : List[Rule]
+  ) : Box[ChangeRequest] = {
+    val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2,actor,reason)).toMap
+    val changeRequest =  ConfigurationChangeRequest(
+        ChangeRequestId(0)
+      , None
+      , ChangeRequestInfo(
+            changeRequestName
+          , changeRequestDesc
+        )
+      , Map()
+      , Map()
+      , rulesChanges
+      , Map()
+    )
+    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+  }
 
   def createChangeRequestFromRule(
       changeRequestName: String

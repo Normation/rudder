@@ -438,7 +438,7 @@ class ModificationValidationPopup(
       techniqueName: TechniqueName
     , directive    : Directive
     , initialState : Option[Directive]
-  ) : Box[ChangeRequestDirectiveDiff] = {
+  ) : Box[Option[ChangeRequestDirectiveDiff]] = {
 
     techniqueRepo.get(TechniqueId(techniqueName,directive.techniqueVersion)).map(_.rootSection) match {
       case None => Failure(s"Could not get root section for technique ${techniqueName.value} version ${directive.techniqueVersion}")
@@ -446,13 +446,18 @@ class ModificationValidationPopup(
         initialState match {
           case None =>
             if ((action=="save") || (action == "create"))
-              Full(AddDirectiveDiff(techniqueName,directive))
+              Full(Some(AddDirectiveDiff(techniqueName,directive)))
             else
               Failure(s"Action ${action} is not possible on a new directive")
           case Some(d) =>
             action match {
-              case "delete" => Full(DeleteDirectiveDiff(techniqueName,directive))
-              case "save"|"disable"|"enable"|"create" => Full(ModifyToDirectiveDiff(techniqueName,directive,rootSection))
+              case "delete" => Full(Some(DeleteDirectiveDiff(techniqueName,directive)))
+              case "save"|"disable"|"enable"|"create" =>
+                if (d == directive) {
+                  Full(None)
+                } else {
+                  Full(Some(ModifyToDirectiveDiff(techniqueName,directive,rootSection)))
+                }
               case _ =>         Failure(s"Action ${action} is not possible on a existing directive")
             }
         }
@@ -485,20 +490,30 @@ class ModificationValidationPopup(
     val cr = item match {
       case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules,updatedRules)) =>
         val action = DirectiveDiffFromAction(techniqueName, directive, optOriginal)
-        action.flatMap(
-          changeRequestService.createChangeRequestFromDirectiveAndRules(
+        action.flatMap{
+          case Some(diff) =>
+            changeRequestService.createChangeRequestFromDirectiveAndRules(
                 changeRequestName.get
               , crReasons.map( _.get ).getOrElse("")
               , techniqueName
               , oldRootSection
               , directive.id
               , optOriginal
-              , _
+              , diff
               , CurrentUser.getActor
               , crReasons.map( _.get )
               , baseRules
               , updatedRules
-          ) )
+            )
+          case None =>
+            changeRequestService.createChangeRequestFromRules(
+                changeRequestName.get
+              , crReasons.map( _.get ).getOrElse("")
+              , CurrentUser.getActor
+              , crReasons.map( _.get )
+              , baseRules
+              , updatedRules)
+          }
 
       case Right((nodeGroup, optParentCategory, optOriginal)) =>
         //if we have a optParentCategory, that means that we

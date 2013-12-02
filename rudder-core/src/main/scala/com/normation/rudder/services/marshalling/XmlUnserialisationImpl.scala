@@ -587,8 +587,6 @@ class ChangeRequestChangesUnserialisationImpl (
       rules           <-  unserialiseRuleChange(changeRequest)
       params          <-  unserialiseGlobalParameterChange(changeRequest)
     } yield {
-      val pp = new PrettyPrinter(1000,2)
-      logger.info(pp.format(changeRequest))
       (directives,groups, rules, params)
     }
   }

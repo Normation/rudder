@@ -125,6 +125,8 @@ class DirectiveEditForm(
   private[this] val woChangeRequestRepo    = RudderConfig.woChangeRequestRepository
   private[this] val roChangeRequestRepo    = RudderConfig.roChangeRequestRepository
   private[this] val techniqueRepo          = RudderConfig.techniqueRepository
+  private[this] val roRuleRepo = RudderConfig.roRuleRepository
+  private[this] val roRuleCategoryRepo = RudderConfig.roRuleCategoryRepository
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
@@ -143,8 +145,9 @@ class DirectiveEditForm(
     }
   }
 
-
-  val directiveApp = new DirectiveApplicationManagement(directive)
+  val rules = roRuleRepo.getAll(false).getOrElse(Seq()).toList
+  val rootCategory = roRuleCategoryRepo.getRootCategory.get
+  val directiveApp = new DirectiveApplicationManagement(directive,rules,rootCategory)
   def dispatch = {
     case "showForm" => { _ => showForm }
   }
