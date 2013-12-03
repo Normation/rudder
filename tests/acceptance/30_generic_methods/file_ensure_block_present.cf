@@ -55,7 +55,7 @@ bundle agent check
     "file_exists"  expression => fileexists("${init.file}");
     "block_exists" expression => returnszero("${line_exists_test}", "noshell");
 
-    "ok" expression => "file_exists.block_exists.file_ensure_block_present_${init.file_canon}_ok.!file_ensure_block_present_${init.file_canon}_error";
+    "ok"           expression => "file_exists.block_exists.file_ensure_block_present_${init.file_canon}_ok.!file_ensure_block_present_${init.file_canon}_error";
 
   reports:
     ok::

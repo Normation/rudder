@@ -52,7 +52,7 @@ bundle agent check
     "file_exists" expression => fileexists("${init.file}");
     "line_exists" expression => returnszero("${line_exists_test}", "noshell");
 
-    "ok" expression => "file_exists.line_exists.file_ensure_lines_replace_${init.file_canon}_ok.!file_ensure_lines_replace_${init.file_canon}_error";
+    "ok"          expression => "file_exists.line_exists.file_ensure_lines_replace_${init.file_canon}_ok.!file_ensure_lines_replace_${init.file_canon}_error";
 
   reports:
     ok::
