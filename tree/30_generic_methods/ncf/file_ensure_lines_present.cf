@@ -16,27 +16,27 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a text block is present in a specific location
+# This is a bundle to ensure that a line is present in a specific location
 #
 # Contract:
 #  - Args:
 #     -- "file", file name to edit
-#     -- "block", block(s) to add in the file
-#  - Returns: defines a class file_edit_block_present_${target_file}_{kept,repaired,error,ok,reached}
+#     -- "lines", line(s) to add in the file
+#  - Returns: defines a class file_ensure_lines_present_${target_file}_{kept,repaired,error,ok,reached}
 
-bundle agent file_edit_block_present(file, block)
+bundle agent file_ensure_lines_present(file, lines)
 {
   vars:
-      "class_prefix" string => canonify("file_edit_block_present_${file}");
+      "class_prefix" string => canonify("file_ensure_lines_present_${file}");
 
   files:
       "${file}"
         create        => "true",
-        edit_line     => ncf_insert_block("${block}"),
+        edit_line     => insert_lines("${lines}"),
         edit_defaults => no_backup,
 	classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"
-        usebundle  => _logger("Insert text block ${block} into ${file}", "${class_prefix}");
+        usebundle  => _logger("Insert line(s) ${lines} into ${file}", "${class_prefix}");
 }

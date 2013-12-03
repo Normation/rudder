@@ -16,27 +16,27 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a line is present in a specific location
+# This is a bundle to ensure that a line is absent in a specific location
 #
 # Contract:
 #  - Args:
 #     -- "file", file name to edit
-#     -- "lines", line(s) to add in the file
-#  - Returns: defines a class file_edit_lines_present_${target_file}_{kept,repaired,error,ok,reached}
+#     -- "lines", line(s) to remove in the file
+#  - Returns: defines a class file_ensure_lines_absent_${target_file}_{kept,repaired,error,ok,reached}
 
-bundle agent file_edit_lines_present(file, lines)
+bundle agent file_ensure_lines_absent(file, lines)
 {
   vars:
-      "class_prefix" string => canonify("file_edit_lines_present_${file}");
+      "class_prefix" string => canonify("file_ensure_lines_absent_${file}");
 
   files:
       "${file}"
-        create        => "true",
-        edit_line     => insert_lines("${lines}"),
+        create        => "false",
+        edit_line     => delete_lines_matching("${lines}"),
         edit_defaults => no_backup,
 	classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"
-        usebundle  => _logger("Insert line(s) ${lines} into ${file}", "${class_prefix}");
+        usebundle  => _logger("Delete line(s) ${lines} from ${file}", "${class_prefix}");
 }

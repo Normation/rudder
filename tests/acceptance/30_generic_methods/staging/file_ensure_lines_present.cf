@@ -33,7 +33,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_edit_lines_present("${init.file}", "${init.line_to_add}");
+    "ph1" usebundle => file_ensure_lines_present("${init.file}", "${init.line_to_add}");
 }
 
 #######################################################
@@ -44,11 +44,11 @@ bundle agent check
     "line_exists_test" string => "/bin/grep -E \"^${init.line_to_add}$\" \"${init.file}\"";
 
   classes:
-    # By default, file_edit_lines_present should create the file if it doesn't exist
+    # By default, file_ensure_lines_present should create the file if it doesn't exist
     "file_exists" expression => fileexists("${init.file}");
     "line_exists" expression => returnszero("${line_exists_test}", "noshell");
 
-    "ok" expression => "file_exists.line_exists.file_edit_lines_present_${init.file_canon}_ok.!file_edit_lines_present_${init.file_canon}_error";
+    "ok" expression => "file_exists.line_exists.file_ensure_lines_present_${init.file_canon}_ok.!file_ensure_lines_present_${init.file_canon}_error";
 
   reports:
     ok::

@@ -29,7 +29,7 @@ bundle agent init
     "line_for_replacement" string => "This is a better test line!";
 
   methods:
-    "ph1" usebundle => file_edit_lines_present("${file}", "${line_to_add}");
+    "ph1" usebundle => file_ensure_lines_present("${file}", "${line_to_add}");
 }
 
 #######################################################
@@ -37,7 +37,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_edit_lines_replace("${init.file}", "${init.line_to_add}", "${init.line_for_replacement}");
+    "ph1" usebundle => file_ensure_lines_replace("${init.file}", "${init.line_to_add}", "${init.line_for_replacement}");
 }
 
 #######################################################
@@ -48,11 +48,11 @@ bundle agent check
     "line_exists_test" string => "/bin/grep -E \"^${init.line_for_replacement}$\" \"${init.file}\"";
 
   classes:
-    # By default, file_edit_lines_replace should create the file if it doesn't exist
+    # By default, file_ensure_lines_replace should create the file if it doesn't exist
     "file_exists" expression => fileexists("${init.file}");
     "line_exists" expression => returnszero("${line_exists_test}", "noshell");
 
-    "ok" expression => "file_exists.line_exists.file_edit_lines_replace_${init.file_canon}_ok.!file_edit_lines_replace_${init.file_canon}_error";
+    "ok" expression => "file_exists.line_exists.file_ensure_lines_replace_${init.file_canon}_ok.!file_ensure_lines_replace_${init.file_canon}_error";
 
   reports:
     ok::

@@ -16,28 +16,27 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a line in a file is replaced by another one
+# This is a bundle to ensure that a text block is present in a specific location
 #
 # Contract:
 #  - Args:
 #     -- "file", file name to edit
-#     -- "line", line to match in the file
-#     -- "replacement", line to add in the file as a replacement
-#  - Returns: defines a class file_edit_lines_replace_${target_file}_{kept,repaired,error,ok,reached}
+#     -- "block", block(s) to add in the file
+#  - Returns: defines a class file_ensure_block_present_${target_file}_{kept,repaired,error,ok,reached}
 
-bundle agent file_edit_lines_replace(file, line, replacement)
+bundle agent file_ensure_block_present(file, block)
 {
   vars:
-      "class_prefix" string => canonify("file_edit_lines_replace_${file}");
+      "class_prefix" string => canonify("file_ensure_block_present_${file}");
 
   files:
       "${file}"
-        create        => "false",
-        edit_line     => regex_replace("${line}", "${replacement}"),
+        create        => "true",
+        edit_line     => ncf_insert_block("${block}"),
         edit_defaults => no_backup,
 	classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"
-        usebundle  => _logger("Replace line ${lines} with ${replacement} into ${file}", "${class_prefix}");
+        usebundle  => _logger("Insert text block ${block} into ${file}", "${class_prefix}");
 }
