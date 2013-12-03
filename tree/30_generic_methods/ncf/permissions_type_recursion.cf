@@ -40,6 +40,8 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       "is_type_files"       expression => strcmp("${type}", "files");
       "is_type_directories" expression => strcmp("${type}", "directories");
 
+      "is_target_directory" expression => isdir("${path}");
+
   files:
 
     is_type_all::
@@ -48,6 +50,14 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         depth_search => recurse("${recursion}"),
+	classes      => classes_generic("${class_prefix}");
+
+    is_type_all.is_target_directory::
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        depth_search => recurse("0"),
 	classes      => classes_generic("${class_prefix}");
 
     is_type_files::
@@ -65,6 +75,15 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         depth_search => recurse("${recursion}"),
+        file_select  => dirs,
+	classes      => classes_generic("${class_prefix}");
+
+    is_type_directories.is_target_directory::
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        depth_search => recurse("0"),
         file_select  => dirs,
 	classes      => classes_generic("${class_prefix}");
 
