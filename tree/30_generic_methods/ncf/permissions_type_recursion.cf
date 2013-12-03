@@ -1,0 +1,74 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Permissions type recursion
+# @description This is a bundle to ensure that a file or directory is present and has the right mode/owner/group
+#
+# @parameter path      Path to edit
+# @parameter mode      Mode of the path to edit
+# @parameter owner     Owner of the path to edit
+# @parameter group     Group of the path to edit
+# @parameter type      Type of the path to edit (all/files/directories)
+# @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+# 
+# @class_prefix permissions
+# @class_parameter file
+# This bundle will define a class permissions_${path}_{kept,repaired,error,ok,reached}
+
+bundle agent permissions_type_recursion(path, mode, owner, group, type, recursion)
+{
+  vars:
+      "class_prefix"        string => canonify("permissions_${path}");
+
+  classes:
+      "is_type_all"         expression => strcmp("${type}", "all");
+      "is_type_files"       expression => strcmp("${type}", "files");
+      "is_type_directories" expression => strcmp("${type}", "directories");
+
+  files:
+
+    is_type_all::
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        depth_search => recurse("${recursion}"),
+	classes      => classes_generic("${class_prefix}");
+
+    is_type_files::
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        depth_search => recurse("${recursion}"),
+        file_select  => plain,
+	classes      => classes_generic("${class_prefix}");
+
+    is_type_directories::
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        depth_search => recurse("${recursion}"),
+        file_select  => dirs,
+	classes      => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${class_prefix}");
+}
