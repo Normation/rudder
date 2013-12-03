@@ -181,8 +181,8 @@ class DirectiveEditForm(
          SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"dangerButton"))
        } &
        "#desactivateAction *" #> {
-         val status = directive.isEnabled ? "disable" | "enable"
-         SHtml.ajaxSubmit(status.capitalize, () => onSubmitDisable(status))
+         val status = directive.isEnabled ? ModificationValidationPopup.Disable | ModificationValidationPopup.Enable
+         SHtml.ajaxSubmit(status.displayName, () => onSubmitDisable(status))
        } &
        "#clone" #> SHtml.ajaxButton(
             { Text("Clone") },
@@ -367,31 +367,42 @@ class DirectiveEditForm(
     if (formTracker.hasErrors) {
       onFailure
     } else {
+      val (addRules,removeRules)= directiveApp.checkRulesToUpdate
+      val baseRules = (addRules ++ removeRules).sortBy(_.id.value)
+
+      val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.id ))
+      val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
+      val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.value)
+
       if (isADirectiveCreation) {
+
         // On creation, don't create workflow
+        //does some rules are assigned to that new directive ?
+        val action = if(baseRules.toSet == updatedRules.toSet) {
+          ModificationValidationPopup.CreateSolo
+        } else {
+          ModificationValidationPopup.CreateAndModRules
+        }
+
         val newDirective = directive.copy(
-          parameters = parameterEditor.mapValueSeq,
-          name = piName.is,
-          shortDescription = piShortDescription.is,
-          priority = piPriority.is,
-          longDescription = piLongDescription.is,
-          isEnabled = directive.isEnabled)
+            parameters = parameterEditor.mapValueSeq
+          , name = piName.is
+          , shortDescription = piShortDescription.is
+          , priority = piPriority.is
+          , longDescription = piLongDescription.is
+          , isEnabled = directive.isEnabled
+        )
+
         displayConfirmationPopup(
-            "create"
+            action
           , newDirective
-          , Nil
-          , Nil
+          , baseRules
+          , updatedRules
         )
       } else {
         //check if it's a migration - old directive present with a different technique version
         val isMigration = oldDirective.map( _.techniqueVersion != directive.techniqueVersion).getOrElse(false)
 
-        val (addRules,removeRules)= directiveApp.checkRulesToUpdate
-        val baseRules = (addRules ++ removeRules).sortBy(_.id.value)
-
-        val finalAdd = addRules.map(r => r.copy(directiveIds =  r.directiveIds + directive.id ))
-        val finalRem = removeRules.map(r => r.copy(directiveIds =  r.directiveIds - directive.id ))
-        val updatedRules = (finalAdd ++ finalRem).sortBy(_.id.value)
         logger.info(finalRem)
         val updatedDirective = directive.copy(
           parameters = parameterEditor.mapValueSeq,
@@ -404,7 +415,7 @@ class DirectiveEditForm(
           onNothingToDo()
         } else {
           displayConfirmationPopup(
-              "save"
+              ModificationValidationPopup.Save
             , updatedDirective
             , baseRules
             , updatedRules
@@ -418,7 +429,7 @@ class DirectiveEditForm(
   }
 
   //action must be 'enable' or 'disable'
-  private[this] def onSubmitDisable(action:String): JsCmd = {
+  private[this] def onSubmitDisable(action: ModificationValidationPopup.Action): JsCmd = {
     displayConfirmationPopup(
         action
       , directive.copy(isEnabled = !directive.isEnabled)
@@ -429,7 +440,7 @@ class DirectiveEditForm(
 
   private[this] def onSubmitDelete(): JsCmd = {
     displayConfirmationPopup(
-        "delete"
+        ModificationValidationPopup.Delete
       , directive
       , Nil
       , Nil
@@ -440,7 +451,7 @@ class DirectiveEditForm(
    * Create the confirmation pop-up
    */
   private[this] def displayConfirmationPopup(
-      action       : String
+      action      : ModificationValidationPopup.Action
     , newDirective : Directive
     , baseRules    : List[Rule]
     , updatedRules : List[Rule]
@@ -451,48 +462,40 @@ class DirectiveEditForm(
 
     val popup = {
       // if it's not a creation and we have workflow, then we redirect to the CR
-      if (!isADirectiveCreation) {
-        if (workflowEnabled) {
-          new ModificationValidationPopup(
-              Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules,updatedRules)
-            , action
-            , isADirectiveCreation
-            , workflowEnabled
-            , cr => onSuccessCallback(Right(cr))
-            , xml => JsRaw("$.modal.close();") & onFailure
-            , parentFormTracker = formTracker
+      val (successCallback, failureCallback) = {
+        if(workflowEnabled) {
+          (
+              (crId: ChangeRequestId) => onSuccessCallback(Right(crId))
+            , (xml: NodeSeq) => JsRaw("$.modal.close();") & onFailure
           )
         } else {
-          val callback = {
-            if (action == "delete") {
-                val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
-                cr : ChangeRequestId => JsRaw("$.modal.close();") &onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
-                successPopup(NodeSeq.Empty)
-              } else {
-                cr : ChangeRequestId  => JsRaw("$.modal.close();") & successPopup(NodeSeq.Empty) & onSuccessCallback(Left(newDirective))
-              }
+          val success = {
+            if (action == ModificationValidationPopup.Delete) {
+              val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
+              (_: ChangeRequestId) => JsRaw("$.modal.close();") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
+              successPopup(NodeSeq.Empty)
+            } else {
+              (_: ChangeRequestId)  => JsRaw("$.modal.close();") & successPopup(NodeSeq.Empty) & onSuccessCallback(Left(newDirective))
             }
-          new ModificationValidationPopup(
-              Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules,updatedRules)
-            , action
-            , isADirectiveCreation
-            , workflowEnabled
-            , callback
-            , xml => JsRaw("$.modal.close();") & onFailure
-            , parentFormTracker = formTracker
+          }
+
+          (
+              success
+            , (xml: NodeSeq) => JsRaw("$.modal.close();") & onFailure
           )
         }
-      } else {
-        new ModificationValidationPopup(
-            Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules,updatedRules)
-          , action
-          , isADirectiveCreation
-          , workflowEnabled
-          , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successPopup(NodeSeq.Empty))
-          , onCreateFailureCallBack = onFailure
-          , parentFormTracker = formTracker
-        )
       }
+
+      new ModificationValidationPopup(
+          Left(technique.id.name,activeTechnique.id, rootSection, newDirective, optOriginal, baseRules, updatedRules)
+        , action
+        , workflowEnabled
+        , onSuccessCallback = successCallback
+        , onFailureCallback = failureCallback
+        , onCreateSuccessCallBack = ( result => onSuccessCallback(result) & successPopup(NodeSeq.Empty))
+        , onCreateFailureCallBack = onFailure
+        , parentFormTracker = formTracker
+      )
     }
 
     popup.popupWarningMessages match {
