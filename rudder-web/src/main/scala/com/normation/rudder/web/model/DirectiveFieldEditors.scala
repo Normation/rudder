@@ -60,7 +60,10 @@ class TextField(val id: String) extends DirectiveField {
 
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
-  def toForm() = Full(SHtml.text(toClient, { x => parseClient(x) }, ("readOnly" -> isReadOnly.toString)))
+  def toForm() = {
+    val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
+    Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
+  }
   def manifest = manifestOf[String]
 
   override val uniqueFieldId = Full(id)
@@ -84,7 +87,10 @@ class ReadOnlyTextField(val id:String) extends DirectiveField {
 
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
-  def toForm() = Full(SHtml.text(toClient, { x => parseClient(x) }, ("readOnly" -> isReadOnly.toString)))
+  def toForm() = {
+    val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
+    Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
+  }
   def manifest = manifestOf[String]
 
   override val uniqueFieldId = Full(id)
