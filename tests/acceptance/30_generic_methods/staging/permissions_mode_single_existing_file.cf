@@ -1,0 +1,77 @@
+#######################################################
+#
+# Test checking if a file / directory has the right mode
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$#this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"        string => getenv("TEMP", 1024);
+    "file"       string => "${tmp}/test";
+    "file_canon" string => canonify("${file}");
+    "mode"       string => "640";
+    "owner"      string => "nobody";
+    "group"      string => "nogroup";
+    "type"       string => "files";
+    "recursion"  string => "0";
+
+  files:
+    "${file}"
+      create => "true",
+      perms  => mog("000", "root", "root");
+
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => permissions_type_recursion("${init.file}", "${init.mode}", "${init.owner}", "${init.group}", "${init.type}", "${init.recursion}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "permissions_test_mode"  string => "/usr/bin/test $(/usr/bin/stat -c %a ${init.file}) = \"${init.mode}\"";
+    "permissions_test_owner" string => "/usr/bin/test $(/usr/bin/stat -c %U ${init.file}) = \"${init.owner}\"";
+    "permissions_test_group" string => "/usr/bin/test $(/usr/bin/stat -c %G ${init.file}) = \"${init.group}\"";
+
+  classes:
+    # By default, permissions_type_recursion should create the file if it doesn't exist
+    "permissions_test_mode_ok"  expression => returnszero("${permissions_test_mode}", "useshell");
+    "permissions_test_owner_ok" expression => returnszero("${permissions_test_owner}", "useshell");
+    "permissions_test_group_ok" expression => returnszero("${permissions_test_group}", "useshell");
+
+    "ok"                   expression => "permissions_test_mode_ok.permissions_test_owner_ok.permissions_test_group_ok.permissions_${init.file_canon}_ok.!permissions_${init.file_canon}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+    !permissions_test_mode_ok::
+      "test command doesn't return 0 for command: ${permissions_test_mode}";
+    !permissions_test_owner_ok::
+      "test command doesn't return 0 for command: ${permissions_test_owner}";
+    !permissions_test_group_ok::
+      "test command doesn't return 0 for command: ${permissions_test_group}";
+}
