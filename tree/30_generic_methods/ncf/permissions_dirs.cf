@@ -1,0 +1,35 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+####################################################################################
+# permissions_dirs: Verify if a directory has the right permissions
+# Contract:
+#  - Args:
+#     -- "path", the path to the directory
+#     -- "mode", the mode to enforce
+#     -- "owner", the owner to enforce
+#     -- "group", the group to enforce
+#  - Returns: defines a class permissions_${path}_{kept,repaired,ok,not_ok,reached}
+# Usage example:
+# methods:
+#     "any" usebundle => permissions_dirs("/tmp/foo", "644", "nobody", "nogroup");
+####################################################################################
+bundle agent permissions_dirs(path, mode, owner, group)
+{
+  methods:
+      "placeholder" usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "directories", "0");
+}

@@ -1,0 +1,83 @@
+#######################################################
+#
+# Test checking if two file permissions in a directory can be changed recursively
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$#this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"             string => getenv("TEMP", 1024);
+    "directory"       string => "${tmp}/test";
+    "directory_canon" string => canonify("${directory}");
+    "mode"            string => "750";
+    "owner"           string => "nobody";
+    "group"           string => "nogroup";
+
+  files:
+    "${directory}/."
+      create => "true",
+      perms  => mog("000", "root", "root");
+
+    "${directory}/file1"
+      create => "true",
+      perms  => mog("000", "root", "root");
+
+    "${directory}/file2"
+      create => "true",
+      perms  => mog("000", "root", "root");
+
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => permissions_recurse("${init.directory}", "${init.mode}", "${init.owner}", "${init.group}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "permissions_test_mode"  string => "/usr/bin/test $(/usr/bin/find ${init.directory} -perm ${init.mode} | wc -l) = \"2\"";
+    "permissions_test_owner" string => "/usr/bin/test $(/usr/bin/find ${init.directory} -user ${init.owner} | wc -l) = \"2\"";
+    "permissions_test_group" string => "/usr/bin/test $(/usr/bin/find ${init.directory} -group ${init.group} | wc -l) = \"2\"";
+
+  classes:
+    # By default, permissions_type_recursion should create the directory if it doesn't exist
+    "permissions_test_mode_ok"  expression => returnszero("${permissions_test_mode}", "useshell");
+    "permissions_test_owner_ok" expression => returnszero("${permissions_test_owner}", "useshell");
+    "permissions_test_group_ok" expression => returnszero("${permissions_test_group}", "useshell");
+
+    "ok"                        expression => "permissions_test_mode_ok.permissions_test_owner_ok.permissions_test_group_ok.permissions_${init.directory_canon}_ok.!permissions_${init.directory_canon}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+    !permissions_test_mode_ok::
+      "test command doesn't return 0 for command: ${permissions_test_mode}";
+    !permissions_test_owner_ok::
+      "test command doesn't return 0 for command: ${permissions_test_owner}";
+    !permissions_test_group_ok::
+      "test command doesn't return 0 for command: ${permissions_test_group}";
+}
