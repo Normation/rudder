@@ -13,8 +13,9 @@ import json
 import os.path
 
 tags = {}
-tags["generic_method"] = ["bundle_name", "name", "class_prefix", "key_param"]
-tags["technique"] = ["bundle_name", "name", "description", "version"]
+tags["common"] = ["bundle_name", "bundle_args"]
+tags["generic_method"] = ["name", "class_prefix", "class_parameter", "class_parameter_id"]
+tags["technique"] = ["name", "description", "version"]
 
 def get_root_dir():
   return os.path.realpath(os.path.dirname(__file__) + "/../")
@@ -52,15 +53,25 @@ def parse_bundlefile_metadata(content, bundle_type):
       if match :
         res[tag] = match.group(1)
 
-    match = re.match("[^#]*bundle\s+agent\s+(.*)$", line)
+    match = re.match("[^#]*bundle\s+agent\s+([^(]+)\(?([^)]*)\)?.*$", line)
     if match:
       res['bundle_name'] = match.group(1)
+      res['bundle_args'] = []
+      res['bundle_args'] += [x.strip() for x in match.group(2).split(',')]
 
       # Any tags should come before the "bundle agent" declaration
       break
       
-  if sorted(res.keys()) != sorted(tags[bundle_type]):
-    missing_keys = [mkey for mkey in tags[bundle_type] if mkey not in set(res.keys())]
+  # The tag "class_parameter_id" is a magic tag, it's value is built from class_parameter and the list of args
+  if "class_parameter_id" in tags[bundle_type]:
+    try:
+      res['class_parameter_id'] = res['bundle_args'].index(res['class_parameter'])+1
+    except:
+      res['class_parameter_id'] = 0
+
+  expected_tags = tags[bundle_type] + tags["common"]
+  if sorted(res.keys()) != sorted(expected_tags):
+    missing_keys = [mkey for mkey in expected_tags if mkey not in set(res.keys())]
     raise Exception("One or more metadata tags not found before the bundle agent declaration (" + ", ".join(missing_keys) + ")")
 
   return res

@@ -8,10 +8,10 @@
 #
 # @name Package install
 # @class_prefix package_install
-#   @key_param 1
+#   @class_parameter package_name
 #
 # Please see the online documentation for more details.
-bundle agent package_install(package_name)
+bundle agent package_install_version(package_name, package_version)
 {
   packages:
     "${package_name}"

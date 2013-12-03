@@ -39,7 +39,7 @@ class TestNcf(unittest.TestCase):
   def test_parse_technique(self):
     """Parsing should return a dict with all defined technique tags"""
     metadata = ncf.parse_technique_metadata(self.technique_content)
-    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["technique"]))
+    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["technique"]+ncf.tags["common"]))
 
   def test_parse_technique_data(self):
     """Parsing should return a dict with the data from the test technique"""
@@ -55,7 +55,18 @@ class TestNcf(unittest.TestCase):
   def test_parse_generic_method(self):
     """Parsing a generic method should return a dict with all defined generic_method tags"""
     metadata = ncf.parse_generic_method_metadata(self.generic_method_content)
-    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["generic_method"]))
+    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["generic_method"]+ncf.tags["common"]))
+
+  def test_parse_generic_method_data(self):
+    """Parsing should return a dict with the data from the test generic_method"""
+    metadata = ncf.parse_generic_method_metadata(self.generic_method_content)
+    self.assertEqual(metadata['bundle_name'], "package_install_version")
+    self.assertEqual(metadata['bundle_args'], ["package_name", "package_version"])
+    self.assertEqual(metadata['name'], "Package install")
+    self.assertEqual(metadata['class_prefix'], "package_install")
+    self.assertEqual(metadata['class_parameter'], "package_name")
+    self.assertEqual(metadata['class_parameter_id'], 1)
+    self.assertEqual(len(metadata), len(ncf.tags["generic_method"]+ncf.tags["common"]))
 
   ###########################################################
   # Tests to obtain the generic methods that a Technique uses
