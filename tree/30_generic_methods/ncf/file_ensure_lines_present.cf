@@ -16,13 +16,15 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a line is present in a specific location
+# @name File ensure lines present
+# @description This is a bundle to ensure that a line is present in a specific location
 #
-# Contract:
-#  - Args:
-#     -- "file", file name to edit
-#     -- "lines", line(s) to add in the file
-#  - Returns: defines a class file_ensure_lines_present_${target_file}_{kept,repaired,error,ok,reached}
+# @parameter file  File name to edit
+# @parameter lines Line(s) to add in the file
+# 
+# @class_prefix file_ensure_lines_present
+# @class_parameter file
+# This bundle will define a class file_ensure_lines_present_${file}_{kept,repaired,error,ok,reached}
 
 bundle agent file_ensure_lines_present(file, lines)
 {

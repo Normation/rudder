@@ -16,16 +16,19 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a line in a file is replaced by another one
+# @name File replace lines
+# @description This is a bundle to ensure that a line in a file is replaced by another one
 #
-# Contract:
-#  - Args:
-#     -- "file", file name to edit
-#     -- "line", line to match in the file
-#     -- "replacement", line to add in the file as a replacement
-#  - Returns: defines a class file_ensure_lines_replace_${target_file}_{kept,repaired,error,ok,reached}
+# @parameter file File name to edit
+# @parameter line Line to match in the file
+# @parameter replacement Line to add in the file as a replacement
+#
+# @class_prefix file_replace_lines
+# @class_parameter file
+#
+# This bundle will define a class file_replace_lines_${file}_{kept,repaired,error,ok,reached}
 
-bundle agent file_ensure_lines_replace(file, line, replacement)
+bundle agent file_replace_lines(file, line, replacement)
 {
   vars:
       "class_prefix" string => canonify("file_ensure_lines_replace_${file}");

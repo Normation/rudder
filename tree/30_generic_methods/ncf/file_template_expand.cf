@@ -16,16 +16,19 @@
 #
 #####################################################################################
 
-# This is a bundle to expand a template in a specific location
+# @name File template expand
+# @description This is a bundle to expand a template in a specific location
 #
-# Contract:
-#  - Args:
-#     -- "tml_file", file name (with full path within the framework) of the template file
-#     -- "target_file", file name (with full path) where to expand the template
-#     -- "mode", mode of destination file
-#     -- "owner", owner of destination file
-#     -- "group", group of destination file
-#  - Returns: defines a class file_template_expand_${target_file}_{kept,repaired,error,ok,reached}
+# @parameter tml_file File name (with full path within the framework) of the template file
+# @parameter target_file File name (with full path) where to expand the template
+# @parameter mode Mode of destination file
+# @parameter owner Owner of destination file
+# @parameter group Froup of destination file
+#
+# @class_prefix file_template_expand
+# @class_parameter target_file
+#
+# This bundle will define a class file_template_expand_${target_file}_{kept,repaired,error,ok,reached}
 
 bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
 {

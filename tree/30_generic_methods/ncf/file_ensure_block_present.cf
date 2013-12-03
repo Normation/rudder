@@ -16,14 +16,16 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a text block is present in a specific location
+# @name File ensure block present
+# @description This is a bundle to ensure that a text block is present in a specific location
 #
-# Contract:
-#  - Args:
-#     -- "file", file name to edit
-#     -- "block", block(s) to add in the file
-#  - Returns: defines a class file_ensure_block_present_${target_file}_{kept,repaired,error,ok,reached}
-
+# @parameter file File name to edit
+# @parameter block Block(s) to add in the file
+#
+# @class_prefix file_ensure_block_present
+# @class_parameter file
+#
+# This bundle will define a class file_ensure_block_present_${file}_{kept,repaired,error,ok,reached}
 bundle agent file_ensure_block_present(file, block)
 {
   vars:

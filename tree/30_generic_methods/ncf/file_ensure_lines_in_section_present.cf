@@ -16,15 +16,17 @@
 #
 #####################################################################################
 
-# This is a bundle to ensure that a line is present in a section in a specific location
-# The objective of this method is to handle INI-style files
+# @name File ensure lines in section
+# @description This is a bundle to ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
-# Contract:
-#  - Args:
-#     -- "file", file name to edit
-#     -- "section", section where the lines should be added
-#     -- "content_tab", an array containing all the entries to add in the file ( tab[section][option]="option_content" )
-#  - Returns: defines a class file_ensure_lines_in_section_present_${target_file}_{kept,repaired,error,ok,reached}
+# @parameter file File name to edit
+# @parameter section Section where the lines should be added
+# @parameter content_tab Array containing all the entries to add in the file ( tab[section][option]="option_content" )
+#
+# @class_prefix file_ensure_lines_in_section_present
+# @class_parameter file
+#
+# This bundle will define a class file_ensure_lines_in_section_present_${file}_{kept,repaired,error,ok,reached}
 
 bundle agent file_ensure_lines_in_section_present(file, section, content_tab)
 {
