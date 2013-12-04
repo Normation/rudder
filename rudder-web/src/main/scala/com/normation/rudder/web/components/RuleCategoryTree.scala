@@ -162,7 +162,7 @@ class RuleCategoryTree(
     override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: ("tooltipid",tooltipId) :: ("title", "") :: Nil
 
     override def body = {
-      def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="12" width="12" class="iconscala" style=" margin: 0 10px 0 0;float:none;" />
+      def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="14" width="14" class="iconscala" style=" margin: 0 10px 0 0;float:none;" />
 
 
       // To handle correctly overflow with floating hidden elements, we need to compute the size of the container first
@@ -208,6 +208,9 @@ class RuleCategoryTree(
            $$('#${"edit"+category.id.value}').click( function(e) {
              e.stopPropagation();
            });
+           $$('#${"delete"+category.id.value}').click( function(e) {
+             e.stopPropagation();
+           });
            """
 
 
@@ -244,9 +247,9 @@ class RuleCategoryTree(
       val actionButtons = {
         if(!isDirectiveApplication && category.id.value!="rootRuleCategory") {
 
-        <span id={"actions"+category.id.value} class="categoryAction" style="float:left; padding-top:2px;padding-left:10px">{
+        <span id={"actions"+category.id.value} class="categoryAction" style="float:left; padding-top:1px;padding-left:10px">{
           SHtml.span(img("icPen.png","Edit")     ,editPopup(category),("id","edit"+category.id.value)) ++
-          SHtml.span(img("icDelete.png","Delete"),Noop)
+          SHtml.span(img("icDelete.png","Delete"),deletePopup(category), ("id","delete"+category.id.value))
         } </span>
         } else {
           NodeSeq.Empty
