@@ -1,0 +1,45 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File copy from remote source
+# @description This is a bundle to ensure that a file or directory is copied from a remote source
+#
+# @parameter source      Source file 
+# @parameter destination Destination file
+# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+# 
+# @class_prefix file_copy_from_remote_source
+# @class_parameter destination
+# This bundle will define a class file_copy_${destination}_{kept,repaired,error,ok,reached}
+
+bundle agent file_copy_from_remote_source(source, destination, recursion)
+{
+  vars:
+      "class_prefix"        string => canonify("file_copy_from_remote_source_${destination}");
+
+  files:
+
+      "${destination}"
+        copy_from    => remote_cp("${source}", "${sys.policy_hub}"),
+        depth_search => recurse("${recursion}"),
+	classes      => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
+}
