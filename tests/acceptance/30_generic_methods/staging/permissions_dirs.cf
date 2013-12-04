@@ -25,7 +25,7 @@ bundle agent init
     "tmp"             string => getenv("TEMP", 1024);
     "directory"       string => "${tmp}/test";
     "directory_canon" string => canonify("${directory}");
-    "mode"            string => "640";
+    "mode"            string => "750";
     "owner"           string => "nobody";
     "group"           string => "nogroup";
 
