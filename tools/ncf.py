@@ -33,6 +33,8 @@ def get_all_cf_filenames_under_dir(dir):
   filenames = []
   for root, dirs, files in os.walk(dir):
     for file in files:
+      if file.startswith("_"):
+        continue
       if file.endswith(".cf"):
         filenames.append(root + "/" + file)
 
