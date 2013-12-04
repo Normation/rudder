@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test checking if a file can be copied from a remote source
+# Test checking if a file can be copied from a local source
 #
 #######################################################
 
@@ -26,6 +26,7 @@ bundle agent init
     "source_file"            string => "${tmp}/source_test";
     "destination_file"       string => "${tmp}/destination_test";
     "destination_file_canon" string => canonify("${destination_file}");
+    "recursion"              string => "0";
 
     "mode"                   string => "644";
     "owner"                  string => "root";
@@ -43,7 +44,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_copy_from_remote_source("${init.source_file}", "${init.destination_file}");
+    "ph1" usebundle => file_copy_from_local_source_recursion("${init.source_file}", "${init.destination_file}", "${init.recursion}");
 }
 
 #######################################################
@@ -56,12 +57,12 @@ bundle agent check
     "permissions_test_group" string => "/usr/bin/test $(/usr/bin/stat -c %G ${init.destination_file}) = \"${init.group}\"";
 
   classes:
-    # By default, file_copy_from_remote_source_type_recursion should create the file if it doesn't exist
+    # By default, file_copy_from_local_source_type_recursion should create the file if it doesn't exist
     "permissions_test_mode_ok"  expression => returnszero("${permissions_test_mode}", "useshell");
     "permissions_test_owner_ok" expression => returnszero("${permissions_test_owner}", "useshell");
     "permissions_test_group_ok" expression => returnszero("${permissions_test_group}", "useshell");
 
-    "ok"                   expression => "permissions_test_mode_ok.permissions_test_owner_ok.permissions_test_group_ok.file_copy_from_remote_source_${init.destination_file_canon}_ok.!file_copy_from_remote_source_${init.destination_file_canon}_error";
+    "ok"                   expression => "permissions_test_mode_ok.permissions_test_owner_ok.permissions_test_group_ok.file_copy_from_local_source_${init.destination_file_canon}_ok.!file_copy_from_local_source_${init.destination_file_canon}_error";
 
   reports:
     ok::

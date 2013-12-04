@@ -21,25 +21,13 @@
 #
 # @parameter source      Source file 
 # @parameter destination Destination file
-# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 # 
 # @class_prefix file_copy_from_local_source
 # @class_parameter destination
 # This bundle will define a class file_copy_${destination}_{kept,repaired,error,ok,reached}
 
-bundle agent file_copy_from_local_source(source, destination, recursion)
+bundle agent file_copy_from_local_source(source, destination)
 {
-  vars:
-      "class_prefix"        string => canonify("file_copy_from_local_source_${destination}");
-
-  files:
-
-      "${destination}"
-        copy_from    => local_cp("${source}"),
-        depth_search => recurse("${recursion}"),
-	classes      => classes_generic("${class_prefix}");
-
   methods:
-      "report"
-        usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
+      "placeholder" usebundle => file_copy_from_local_source_recursion("${source}", "${destination}", "0");
 }

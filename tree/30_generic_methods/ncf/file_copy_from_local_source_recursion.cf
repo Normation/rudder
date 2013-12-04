@@ -16,18 +16,30 @@
 #
 #####################################################################################
 
-# @name File copy from remote source
-# @description This is a bundle to ensure that a file or directory is copied from a remote source
+# @name File copy from local source recurse
+# @description This is a bundle to ensure that a file or directory is copied from a local source
 #
 # @parameter source      Source file 
 # @parameter destination Destination file
+# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 # 
-# @class_prefix file_copy_from_remote_source
+# @class_prefix file_copy_from_local_source
 # @class_parameter destination
 # This bundle will define a class file_copy_${destination}_{kept,repaired,error,ok,reached}
 
-bundle agent file_copy_from_remote_source(source, destination)
+bundle agent file_copy_from_local_source_recursion(source, destination, recursion)
 {
+  vars:
+      "class_prefix"        string => canonify("file_copy_from_local_source_${destination}");
+
+  files:
+
+      "${destination}"
+        copy_from    => local_cp("${source}"),
+        depth_search => recurse("${recursion}"),
+	classes      => classes_generic("${class_prefix}");
+
   methods:
-      "placeholder" usebundle => file_copy_from_remote_source_recursion("${source}", "${destination}", "0");
+      "report"
+        usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
 }

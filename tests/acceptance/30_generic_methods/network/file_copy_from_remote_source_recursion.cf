@@ -26,6 +26,7 @@ bundle agent init
     "source_file"            string => "${tmp}/source_test";
     "destination_file"       string => "${tmp}/destination_test";
     "destination_file_canon" string => canonify("${destination_file}");
+    "recursion"              string => "0";
 
     "mode"                   string => "644";
     "owner"                  string => "root";
@@ -43,7 +44,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_copy_from_remote_source("${init.source_file}", "${init.destination_file}");
+    "ph1" usebundle => file_copy_from_remote_source_recursion("${init.source_file}", "${init.destination_file}", "${init.recursion}");
 }
 
 #######################################################
