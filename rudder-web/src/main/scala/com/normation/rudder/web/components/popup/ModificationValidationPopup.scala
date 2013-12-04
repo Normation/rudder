@@ -330,7 +330,7 @@ class ModificationValidationPopup(
     val (buttonName, classForButton, titleWorkflow) = (workflowEnabled, action) match {
       case (false, _) => ("Save", "", NodeSeq.Empty)
       case (true, CreateSolo) => ("Create", "", NodeSeq.Empty)
-      case (true, CreateAndModRules) => ("Create Directive and Submit for Validation", "wideButton", workflowMessage(true))
+      case (true, CreateAndModRules) => ("Submit for Validation", "wideButton", workflowMessage(true))
       case (true, _) => ("Submit for Validation", "wideButton", workflowMessage(false))
     }
 
@@ -512,8 +512,22 @@ class ModificationValidationPopup(
     // we only have quick change request now
     val cr = item match {
       case Left((techniqueName, activeTechniqueId, oldRootSection, directive, optOriginal, baseRules, updatedRules)) =>
-        val action = DirectiveDiffFromAction(techniqueName, directive, optOriginal)
-        action.flatMap{
+        //a def to avoid repetition in the following pattern matching
+        def ruleCr() = {
+          changeRequestService.createChangeRequestFromRules(
+                changeRequestName.get
+              , crReasons.map( _.get ).getOrElse("")
+              , CurrentUser.getActor
+              , crReasons.map( _.get )
+              , baseRules
+              , updatedRules
+           )
+        }
+
+
+        DirectiveDiffFromAction(techniqueName, directive, optOriginal).flatMap{
+          case None => ruleCr()
+          case Some(_) if(action == CreateAndModRules) => ruleCr()
           case Some(diff) =>
             changeRequestService.createChangeRequestFromDirectiveAndRules(
                 changeRequestName.get
@@ -528,14 +542,6 @@ class ModificationValidationPopup(
               , baseRules
               , updatedRules
             )
-          case None =>
-            changeRequestService.createChangeRequestFromRules(
-                changeRequestName.get
-              , crReasons.map( _.get ).getOrElse("")
-              , CurrentUser.getActor
-              , crReasons.map( _.get )
-              , baseRules
-              , updatedRules)
           }
 
       case Right((nodeGroup, optParentCategory, optOriginal)) =>
