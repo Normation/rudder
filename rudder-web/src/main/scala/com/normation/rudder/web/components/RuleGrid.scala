@@ -345,7 +345,7 @@ class RuleGrid(
           }
           compliance match {
             case e:EmptyBox => ErrorLine(rule, trackerVariables, targetsInfo)
-            case Full(value) =>  OKLine(rule, value, applicationStatus, seq, targets)
+            case Full(value) => OKLine(rule, value, applicationStatus, seq, targets)
           }
         case (x,y) =>
           if(rule.isEnabledStatus) {
@@ -381,11 +381,52 @@ class RuleGrid(
       }
     }
 
+      def status(line: Line) =
+        line match {
+          case line : OKLine =>
+            line.applicationStatus match {
+              case FullyApplied => Text("In application")
+              case PartiallyApplied(seq) =>
+                val tooltipId = Helpers.nextFuncName
+                val why = seq.map { case (at, d) => "Policy " + d.name + " disabled" }.mkString(", ")
+                <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
+                <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
+              case x:NotAppliedStatus =>
+                val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
+                val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
+                val conditions = {
+                  Seq(
+                      ( line.rule.isEnabled            , "rule disabled" )
+                    , ( line.trackerVariables.size > 0 , "No policy defined")
+                    , ( isAllTargetsEnabled            , "Group disabled")
+                    , ( nodeSize!=0                    , "Empty groups")
+                  ) ++
+                  line.trackerVariables.flatMap {
+                    case (directive, activeTechnique,_) =>
+                      Seq(
+                          ( directive.isEnabled , "Directive " + directive.name + " disabled")
+                        , ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
+                      )
+                  }
+                }
+                val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
+                <span class="tooltip tooltipable" title="" tooltipid={line.rule.id.value}>Not applied</span>
+                 <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
+            }
+        case _ : ErrorLine => "N/A"
+      }
+
+      def compliance(line:Line) = {
+        line match {
+          case line : OKLine => buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
+          case _ => <td class="compliance noCompliance"> N/A</td>
+        }
+      }
+
+
 
     //now, build html lines
-      lines.flatMap { l =>
-        l match {
-      case line:OKLine =>
+      lines.flatMap { line =>
         val tooltipId = Helpers.nextFuncName
         val descriptionTooltip = {
           if(line.rule.shortDescription.size > 0){
@@ -398,74 +439,9 @@ class RuleGrid(
            }
         }
 
-        descriptionTooltip ++
-        <tr tooltipid={tooltipId} class="tooltipabletr" title="" id={line.rule.id.value}>
-          { // CHECKBOX
-
-              directiveApplication match {
-                case Some(directiveApplication) =>
-
-                  def check(value : Boolean) : JsCmd= {
-                    directiveApplication.checkRule(line.rule.id, value) match {
-                      case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
-                        JsRaw(s"""
-                          ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
-                          ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
-                          ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
-                        """)
-                    }
-                  }
-                  val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
-
-                  val xml = SHtml.ajaxCheckbox(isApplying, check _, ("id",line.rule.id.value+"Checkbox"))
-
-                  <td>{xml}</td>
-                case None => NodeSeq.Empty
-                }
-
-
-           }
-          <td>
-         { // NAME
-
-            if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
-          }</td>
-          <td>{ // Category
-            categoryService.shortFqdn(line.rule.category).getOrElse("Error")
-          }</td>
-
-          <td><b>{ // EFFECTIVE STATUS
-            line.applicationStatus match {
-              case FullyApplied => Text("In application")
-              case PartiallyApplied(seq) =>
-                  val tooltipId = Helpers.nextFuncName
-                  val why = seq.map { case (at, d) => "Policy " + d.name + " disabled" }.mkString(", ")
-
-                 <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
-                 <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
-              case x:NotAppliedStatus =>
-                val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
-                val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
-                val conditions = Seq(
-                    ( line.rule.isEnabled, "rule disabled" ),
-                    ( line.trackerVariables.size > 0, "No policy defined"),
-                    ( isAllTargetsEnabled, "Group disabled"),
-                    ( nodeSize!=0, "Empty groups")
-                 ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
-                    ( pi.isEnabled, "Policy " + pi.name + " disabled") ,
-                    ( upt.isEnabled, "Technique for '" + pi.name + "' disabled")
-                 )}
-
-                val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
-                <span class="tooltip tooltipable" title="" tooltipid={line.rule.id.value}>Not applied</span>
-                 <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
-            }
-          }</b></td>
-          { //  COMPLIANCE
-            buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
-          }
-          { if (!popup)
-            <td class="parametersTd">{ //  RULE PARAMETERS
+        val editButton = {
+          if (!popup) {
+            <td class="parametersTd">{
               detailsCallbackLink match {
                 case None => Text("No parameters")
                 case Some(callback) =>
@@ -474,54 +450,63 @@ class RuleGrid(
                     , () =>  callback(line.rule,"showEditForm")
                     , ("class", "smallButton")
                   )
-                }
               }
-            </td>
-            else NodeSeq.Empty
-          }
-        </tr>
-      case line:ErrorLine =>
-        <tr class="error">
-
-            {// CHECKBOX
-              if(showCheckboxColumn) {
-              <td><input type="checkbox" name={line.rule.id.value} /></td>
-            } else {
-              NodeSeq.Empty
-            } }
-          <td>{ // NAME
-            if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
-          }</td>
-          <td>{ // Category
-            categoryService.shortFqdn(line.rule.category).map(_.name).getOrElse("Error")
-          }</td>
-          <td>{ // DEPLOYMENT STATUS
-            "N/A"
-          }</td>
-          <td class="compliance noCompliance">{ //  COMPLIANCE
-            "N/A"
-          }</td>{
-            //detail and parameter only if not in a pop-up
-            val detailsAndParam = if(popup) {
-              NodeSeq.Empty
-            } else {
-          <td class="parametersTd">{
-              detailsCallbackLink match {
-                case None => Text("No parameters")
-                case Some(callback) =>
-                  SHtml.ajaxButton(
-                      "Edit"
-                    , () =>  callback(line.rule,"showEditForm")
-                    , ("class", "smallButton")
-                   )
-               }
-          }</td>
             }
-
-
+            </td>
+          } else {
+            NodeSeq.Empty
           }
+        }
+
+        val checkBoxColumn = {
+          directiveApplication match {
+            case Some(directiveApplication) =>
+              def check(value : Boolean) : JsCmd= {
+                directiveApplication.checkRule(line.rule.id, value) match {
+                  case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
+                    JsRaw(s"""
+                      ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
+                      ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
+                      ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+                    """)
+                  }
+              }
+              val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
+              val xml = SHtml.ajaxCheckbox(isApplying, check _, ("id",line.rule.id.value+"Checkbox"))
+              <td>{xml}</td>
+            case None => NodeSeq.Empty
+          }
+        }
+
+        val cssClass = { line match{
+          case _:ErrorLine => " error"
+          case _ => ""}
+        }
+
+        val xml =
+        <tr tooltipid={tooltipId} class={s"tooltipabletr ${cssClass}"} title="" id={line.rule.id.value}>
+          { checkBoxColumn }
+          <td>
+            { if(popup) {
+                <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a>
+              } else {
+                detailsLink(line.rule, line.rule.name)
+            } }
+          </td>
+          <td>
+            { categoryService.shortFqdn(line.rule.category).getOrElse("Error") }
+          </td>
+          <td>
+            <b>{ status(line) }</b>
+          </td>
+          { compliance(line) }
+          { editButton }
         </tr>
-      } }
+
+
+        descriptionTooltip ++ xml
+
+      }
     }
 
     for {

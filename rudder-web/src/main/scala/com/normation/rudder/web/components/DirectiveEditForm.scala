@@ -202,7 +202,7 @@ class DirectiveEditForm(
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
       "#parameters" #> parameterEditor.toFormNodeSeq &
-      "#ruleDisplayer *" #> new RuleDisplayer(Some(directiveApp),"view",(r:Rule,s:String) => Noop,Noop).display &
+      "#directiveRulesTab *" #> new RuleDisplayer(Some(directiveApp),"view",(r:Rule,s:String) => Noop,Noop).display &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
