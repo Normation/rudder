@@ -264,8 +264,8 @@ class ModificationValidationPopup(
         Full(Set[Rule]())
       case _ =>
         item match {
-          case Left((_, _, _, directive, _, _, modifiedRules)) =>
-            dependencyService.directiveDependencies(directive.id, groupLib).map(_.rules ++ modifiedRules)
+          case Left((_, _, _, directive, _, baseRules, _)) =>
+            dependencyService.directiveDependencies(directive.id, groupLib).map(_.rules ++ baseRules)
 
           case Right((nodeGroup, _, _)) =>
             dependencyService.targetDependencies(GroupTarget(nodeGroup.id)).map( _.rules)
