@@ -39,6 +39,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.Rule
 
 /**
  * The Id for the server group category
@@ -80,6 +81,10 @@ case class RuleCategory(
     } else {
       this.copy(childs = this.childs.map(filter))
     }
+  }
+
+  def canBeDeleted(rules:List[Rule]) = {
+    childs.isEmpty && rules.filter(_.category == this.id).isEmpty
   }
 }
 

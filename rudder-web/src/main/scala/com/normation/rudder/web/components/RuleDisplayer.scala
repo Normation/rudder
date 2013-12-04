@@ -86,7 +86,7 @@ class RuleDisplayer (
       , directive
       , (() =>  check)
       , ((c:RuleCategory) => showCategoryPopup(Some(c)))
-      , ((c:RuleCategory) => showCategoryPopup(Some(c)))
+      , ((c:RuleCategory) => showDeleteCategoryPopup(c))
     )
   }
   def viewCategories : NodeSeq = {
@@ -125,9 +125,10 @@ class RuleDisplayer (
   }
 
 
+  private[this] val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq()))
   def viewRules : NodeSeq = {
 
-    val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq()))
+
     val ruleGrid = {
       new RuleGrid(
           "rules_grid_zone"
@@ -213,6 +214,14 @@ var column = ${columnToFilter};"""))
     */
     private[this] def showCategoryPopup(category : Option[RuleCategory]) : JsCmd = {
     val popupHtml = creationPopup(category).popupContent
+    SetHtml(htmlId_popup, popupHtml) &
+    JsRaw( s""" createPopup("${htmlId_popup}") """)
+    }
+    /**
+    * Create the delete popup
+    */
+    private[this] def showDeleteCategoryPopup(category : RuleCategory) : JsCmd = {
+    val popupHtml = creationPopup(Some(category)).deletePopupContent(category.canBeDeleted(rules.toList))
     SetHtml(htmlId_popup, popupHtml) &
     JsRaw( s""" createPopup("${htmlId_popup}") """)
     }
