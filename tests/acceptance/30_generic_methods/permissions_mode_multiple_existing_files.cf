@@ -1,6 +1,6 @@
 #######################################################
 #
-# Test checking if a directory / directory has the right mode
+# Test checking if two file permissions in a directory can be changed recursively
 #
 #######################################################
 
@@ -13,7 +13,7 @@ bundle common acc_path
 body common control
 {
       inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
-      bundlesequence  => { default("$#this.promise_filename}") };
+      bundlesequence  => { default("${this.promise_filename}") };
       version => "1.0";
 }
 
@@ -28,11 +28,19 @@ bundle agent init
     "mode"            string => "750";
     "owner"           string => "nobody";
     "group"           string => "nogroup";
-    "type"            string => "directories";
-    "recursion"       string => "0";
+    "type"            string => "files";
+    "recursion"       string => "inf";
 
   files:
     "${directory}/."
+      create => "true",
+      perms  => mog("000", "root", "root");
+
+    "${directory}/file1"
+      create => "true",
+      perms  => mog("000", "root", "root");
+
+    "${directory}/file2"
       create => "true",
       perms  => mog("000", "root", "root");
 
@@ -51,9 +59,9 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "permissions_test_mode"  string => "/usr/bin/test $(/usr/bin/stat -c %a ${init.directory}) = \"${init.mode}\"";
-    "permissions_test_owner" string => "/usr/bin/test $(/usr/bin/stat -c %U ${init.directory}) = \"${init.owner}\"";
-    "permissions_test_group" string => "/usr/bin/test $(/usr/bin/stat -c %G ${init.directory}) = \"${init.group}\"";
+    "permissions_test_mode"  string => "/usr/bin/test $(/usr/bin/find ${init.directory} -perm ${init.mode} | wc -l) = \"2\"";
+    "permissions_test_owner" string => "/usr/bin/test $(/usr/bin/find ${init.directory} -user ${init.owner} | wc -l) = \"2\"";
+    "permissions_test_group" string => "/usr/bin/test $(/usr/bin/find ${init.directory} -group ${init.group} | wc -l) = \"2\"";
 
   classes:
     # By default, permissions_type_recursion should create the directory if it doesn't exist

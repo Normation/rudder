@@ -13,7 +13,7 @@ bundle common acc_path
 body common control
 {
       inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
-      bundlesequence  => { default("$#this.promise_filename}") };
+      bundlesequence  => { default("${this.promise_filename}") };
       version => "1.0";
 }
 
