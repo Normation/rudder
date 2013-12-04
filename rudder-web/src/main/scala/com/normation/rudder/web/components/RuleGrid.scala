@@ -455,9 +455,35 @@ class RuleGrid(
           
           OKLine(rule, compliance, seq, targets)
         case (x,y) =>
+          if(rule.isEnabledStatus) {
           //the Rule has some error, try to disactivate it
-          ruleRepository.update(rule.copy(isEnabledStatus=false), RudderEventActor, 
+            //and be sure to not get a Rules from a modification pop-up, because we don't want to commit changes along
+            //with the disable.
+            //it's only a try, so it may fails, we won't try again
+            (for {
+              r <- ruleRepository.get(rule.id)
+              _ <- ruleRepository.update(r.copy(isEnabledStatus=false), RudderEventActor,
             Some("Rule automatically disabled because it contains error (bad target or bad directives)")) 
+            } yield {
+              logger.warn("Disabling rule '%s' (ID: '%s') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.".format(rule.name, rule.id.value))
+              x match {
+                case f: Failure => logger.warn("Rule '%s' (ID: '%s' directive problem: ".format(rule.name, rule.id.value) + f.messageChain)
+                case _ => //
+              }
+              y match {
+                case f: Failure => logger.warn("Rule '%s' (ID: '%s' target problem: ".format(rule.name, rule.id.value) + f.messageChain)
+                case _ => //
+              }
+            }) match {
+              case eb: EmptyBox =>
+                val e = eb ?~! "Error when to trying to disable the rule '%s' (ID: '%s') because it's data are unconsistant.".format(rule.name, rule.id.value)
+                logger.warn(e.messageChain)
+                e.rootExceptionCause.foreach { ex =>
+                  logger.warn("Exception was: ", ex)
+                }
+              case _ => //ok
+            }
+          }
           ErrorLine(rule, x, y)
       }
     }
