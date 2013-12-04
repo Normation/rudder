@@ -66,6 +66,7 @@ class RuleCategoryTree(
   , directive               : Option[DirectiveApplicationManagement]
   , check                   : () => JsCmd
   , editPopup               : RuleCategory => JsCmd
+  , deletePopup             : RuleCategory => JsCmd
 ) extends DispatchSnippet with Loggable {
 
   private[this] val roRuleCategoryRepository   = RudderConfig.roRuleCategoryRepository
@@ -156,11 +157,12 @@ class RuleCategoryTree(
 
 
   private[this] def categoryNode(category : RuleCategory) : JsTreeNode = new JsTreeNode {
-    override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: Nil
+    val tooltipId = Helpers.nextFuncName
+
+    override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: ("tooltipid",tooltipId) :: ("title", "") :: Nil
 
     override def body = {
       def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="12" width="12" class="iconscala" style=" margin: 0 10px 0 0;float:none;" />
-      val tooltipId = Helpers.nextFuncName
 
 
       // To handle correctly overflow with floating hidden elements, we need to compute the size of the container first
@@ -250,15 +252,23 @@ class RuleCategoryTree(
           NodeSeq.Empty
         }
       }
+
+      val tooltip = {
+        if (category.description.size > 0) {
+          <div class="tooltipContent" id={tooltipId}>
+            <h3>{category.name}</h3>
+            <div>{category.description}</div>
+          </div>
+        } else {
+          NodeSeq.Empty
+        }
+      }
       val xml = {
-        <span id={category.id.value+"Name"} class="treeRuleCategoryName tooltipable" tooltipid={tooltipId} title="" style="float:left">
+        <span id={category.id.value+"Name"} class="treeRuleCategoryName tooltipable" style="float:left">
           {applyCheckBox}{category.name}
         </span> ++
         {actionButtons} ++
-        <div class="tooltipContent" id={tooltipId}>
-          <h3>{category.name}</h3>
-          <div>{category.description}</div>
-        </div> ++
+        {tooltip} ++
         ( if (category.id.value!="rootRuleCategory") {
             jsInitFunction
           } else {
