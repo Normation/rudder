@@ -52,6 +52,8 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.rule.category._
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
+import net.liftweb.http.LocalSnippet
+import com.normation.rudder.web.components.popup.RuleCategoryPopup
 
 
 class RuleDisplayer (
@@ -68,34 +70,31 @@ class RuleDisplayer (
   private[this] val ruleCategoryService  = RudderConfig.ruleCategoryService
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
+  private[this] val htmlId_popup = "createRuleCategoryPopup"
+
+  private[this] var root = directive.map(_.rootCategory).getOrElse(roCategoryRepository.getRootCategory.get)
+
   def dispatch = {
     case "display" => { _ => NodeSeq.Empty }
   }
 
 
-  def viewCategories : NodeSeq = {
-    val root = directive.map(_.rootCategory).getOrElse(roCategoryRepository.getRootCategory.get)
-    val ruleGrid = new RuleCategoryTree(
+  private[this] val ruleCategoryTree = {
+    new RuleCategoryTree(
         "categoryTree"
       , root
       , directive
       , (() =>  check)
+      , ((c:RuleCategory) => showCategoryPopup(Some(c)))
+      , ((c:RuleCategory) => showCategoryPopup(Some(c)))
     )
-      def AddNewCategory() = {
-      val index = randomInt(1000)
-      val newCat = RuleCategory(
-          RuleCategoryId(uuidGen.newUuid)
-        , s"Category-$index"
-        , s"this is category $index"
-        , Nil
-      )
+  }
+  def viewCategories : NodeSeq = {
 
-      woCategoryRepository.create(newCat, root.id,ModificationId(uuidGen.newUuid),CurrentUser.getActor,None)
-      SetHtml("categoryTreeParent",viewCategories)
-    }
+
     val actionButton =
                  if (directive.isEmpty) {
-                  SHtml.ajaxButton("New Category", () => AddNewCategory(), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+                  SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
                 } else {
                   NodeSeq.Empty
                 }
@@ -108,7 +107,7 @@ class RuleDisplayer (
        </lift:authz>
        <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:300px;border: 1px #999 ridge; padding-right:15px;">
          <div id="categoryTree">
-           {ruleGrid.tree}
+           {ruleCategoryTree.tree}
          </div>
        </div>
      </div>
@@ -192,5 +191,30 @@ var include = true;
 var filter = "";
 var column = ${columnToFilter};"""))
   }
+
+
+
+
+
+
+ // Popup
+
+    private[this] def creationPopup(category : Option[RuleCategory]) =
+      new  RuleCategoryPopup(
+          root
+        , category
+        , {(r : RuleCategory) =>
+            root = roCategoryRepository.getRootCategory.get
+            ruleCategoryTree.refreshTree(root)
+          }
+    )
+   /**
+    * Create the popup
+    */
+    private[this] def showCategoryPopup(category : Option[RuleCategory]) : JsCmd = {
+    val popupHtml = creationPopup(category).popupContent
+    SetHtml(htmlId_popup, popupHtml) &
+    JsRaw( s""" createPopup("${htmlId_popup}") """)
+    }
 
 }
