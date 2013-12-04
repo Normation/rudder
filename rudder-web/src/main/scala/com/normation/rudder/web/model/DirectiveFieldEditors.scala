@@ -60,7 +60,10 @@ class TextField(val id: String) extends DirectiveField {
 
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
-  def toForm() = Full(SHtml.text(toClient, { x => parseClient(x) }))
+  def toForm() = {
+    val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
+    Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
+  }
   def manifest = manifestOf[String]
 
   override val uniqueFieldId = Full(id)
@@ -74,6 +77,34 @@ class TextField(val id: String) extends DirectiveField {
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
   def getDefaultValue = ""
 }
+
+class ReadOnlyTextField(val id:String) extends DirectiveField {
+  self =>
+  type ValueType = String
+  protected var _x: String = getDefaultValue
+
+  val readOnly = true
+
+  def get = _x
+  def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
+  def toForm() = {
+    val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
+    Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
+  }
+  def manifest = manifestOf[String]
+
+  override val uniqueFieldId = Full(id)
+  def name = id
+  def validate = Nil
+  def validations = Nil
+  def setFilter = Nil
+  def parseClient(s: String): Unit = if (null == s) _x = "" else _x = s
+  def toClient: String = if (null == _x) "" else _x
+
+  def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+  def getDefaultValue = ""
+}
+
 
 /**
  * A textarea field, with a css class
