@@ -90,6 +90,7 @@ class RuleGrid(
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
 
   //used to error tempering
+  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
 
