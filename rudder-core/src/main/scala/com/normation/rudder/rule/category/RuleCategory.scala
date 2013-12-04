@@ -60,5 +60,26 @@ case class RuleCategory(
   , description : String
   , childs      : List[RuleCategory]
   , isSystem    : Boolean = false
-)
+) {
+  def findParent (category : RuleCategory) :  Box[RuleCategory]= {
+    if (childs.contains(category)) {
+      Full(this)
+    } else {
+      childs.map(_.findParent(category)).collect {case Full(c) => c } match {
+        case c :: Nil => Full(c)
+        case Nil => Failure(s"cannot find parent category of ${category.name}")
+        case _ => Failure(s"too much parents for category ${category.name}")
+      }
+    }
+  }
+
+
+  def filter(category : RuleCategory) : RuleCategory = {
+    if (childs.contains(category)) {
+      this.copy(childs = this.childs.filter(_ != category))
+    } else {
+      this.copy(childs = this.childs.map(filter))
+    }
+  }
+}
 

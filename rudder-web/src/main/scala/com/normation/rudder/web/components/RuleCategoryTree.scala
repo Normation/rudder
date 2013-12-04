@@ -65,17 +65,20 @@ class RuleCategoryTree(
   , rootCategory            : RuleCategory
   , directive               : Option[DirectiveApplicationManagement]
   , check                   : () => JsCmd
+  , editPopup               : RuleCategory => JsCmd
 ) extends DispatchSnippet with Loggable {
 
   private[this] val roRuleCategoryRepository   = RudderConfig.roRuleCategoryRepository
   private[this] val woRuleCategoryRepository = RudderConfig.woRuleCategoryRepository
   private[this] val ruleCategoryService      = RudderConfig.ruleCategoryService
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] var root = rootCategory
   def dispatch = {
     case "tree" => { _ => tree }
   }
 
-  private[this] def refreshTree() : JsCmd =  {
+  def refreshTree(newRoot : RuleCategory) : JsCmd =  {
+    root = newRoot
     SetHtml(htmlId_RuleCategoryTree, tree()) &
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
@@ -103,11 +106,12 @@ class RuleCategoryTree(
                         , CurrentUser.getActor
                         , reason = None
                       ) ?~! s"Error while trying to move category with requested id '${sourceCatId}' to category id '${destCatId}'"
+            newRoot <- roRuleCategoryRepository.getRootCategory
           } yield {
-            (category.id.value, result)
+            (category.id.value, newRoot)
           }) match {
-            case Full((id,res)) =>
-              refreshTree
+            case Full((id,newRoot)) =>
+              refreshTree(newRoot)
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }
@@ -123,7 +127,7 @@ class RuleCategoryTree(
 
     val treeFun = if (isDirectiveApplication) "buildRuleCategoryTreeNoDnD" else "buildRuleCategoryTree"
     <ul>{
-      categoryNode(rootCategory).toXml}
+      categoryNode(root).toXml}
   </ul> ++
     Script(
       OnLoad(
@@ -198,7 +202,13 @@ class RuleCategoryTree(
            $$('.treeOver').removeClass("treeOver jstree-hovered");
            $$('#${"actions"+category.id.value}').hide();
            } );
+
+           $$('#${"edit"+category.id.value}').click( function(e) {
+             e.stopPropagation();
+           });
            """
+
+
          ))
 
       val applyCheckBox = {
@@ -233,7 +243,7 @@ class RuleCategoryTree(
         if(!isDirectiveApplication && category.id.value!="rootRuleCategory") {
 
         <span id={"actions"+category.id.value} class="categoryAction" style="float:left; padding-top:2px;padding-left:10px">{
-          SHtml.span(img("icPen.png","Edit")     ,Noop) ++
+          SHtml.span(img("icPen.png","Edit")     ,editPopup(category),("id","edit"+category.id.value)) ++
           SHtml.span(img("icDelete.png","Delete"),Noop)
         } </span>
         } else {
