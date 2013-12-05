@@ -15,16 +15,16 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
-####################################################################################
-# package_verify: Verify if a package is installed in its latest version available
-# Contract:
-#  - Args:
-#     -- "package_name", the name of the package to verify
-#  - Returns: defines a class package_install_${package_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => package_verify("nrpe");
-####################################################################################
+
+# @name Package verify
+# @description Verify if a package is installed in its latest version available
+#
+# @parameter package_name Name of the package to verify
+#
+# @class_prefix package_install
+# @class_parameter package_name
+# This bundle will define a class package_install_${package_name}_{kept,repaired,error,ok,reached}
+
 bundle agent package_verify(package_name)
 {
   methods:
