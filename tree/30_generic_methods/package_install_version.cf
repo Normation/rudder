@@ -16,18 +16,16 @@
 #
 #####################################################################################
 
-####################################################################################
-# package_install_version: Install or update a package in a specific version
-# Contract:
-#  - Args:
-#     -- "package_name", the name of the package to install
-#     -- "package_version", version of the package to install (can be "latest" to install it
-#                           in its latest version)
-#  - Returns: defines a class package_install_${package_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => package_install("nrpe", "el6");
-####################################################################################
+# @name Package install version
+# @description Install or update a package in a specific version
+#
+# @parameter package_name    Name of the package to install
+# @parameter package_version Version of the package to install (can be "latest" to install it in its latest version)
+#
+# @class_prefix package_install
+# @class_parameter package_name
+# This bundle will define a class package_install_${package_name}_{kept,repaired,error,ok,reached}
+
 bundle agent package_install_version(package_name, package_version)
 {
   methods:
