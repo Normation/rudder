@@ -27,7 +27,7 @@
 # @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 # 
 # @class_prefix permissions
-# @class_parameter file
+# @class_parameter path
 # This bundle will define a class permissions_${path}_{kept,repaired,error,ok,reached}
 
 bundle agent permissions_type_recursion(path, mode, owner, group, type, recursion)
