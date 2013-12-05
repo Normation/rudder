@@ -69,6 +69,7 @@ def parse_bundlefile_metadata(content, bundle_type):
       res['class_parameter_id'] = res['bundle_args'].index(res['class_parameter'])+1
     except:
       res['class_parameter_id'] = 0
+      raise Exception("The class_parameter name \"" + res['class_parameter'] + "\" does not seem to match any of the bundle's parameters")
 
   expected_tags = tags[bundle_type] + tags["common"]
   if sorted(res.keys()) != sorted(expected_tags):
