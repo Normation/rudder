@@ -15,19 +15,19 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
-####################################################################################
-# permissions_dirs_recurse: Verify if a directory has the right permissions recursively
-# Contract:
-#  - Args:
-#     -- "path", the path to the directory
-#     -- "mode", the mode to enforce
-#     -- "owner", the owner to enforce
-#     -- "group", the group to enforce
-#  - Returns: defines a class permissions_${path}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#     "any" usebundle => permissions_dirs_recurse("/tmp/foo", "644", "nobody", "nogroup");
-####################################################################################
+
+# @name Permissions dirs recurse
+# @description Verify if a directory has the right permissions recursively
+#
+# @parameter path Path to the directory
+# @parameter mode Mode to enforce
+# @parameter owner Owner to enforce
+# @parameter group Group to enforce
+#
+# @class_prefix permissions
+# @class_parameter path
+# This bundle will define a class permissions_${path}_{kept,repaired,error,ok,reached}
+
 bundle agent permissions_dirs_recurse(path, mode, owner, group)
 {
   methods:
