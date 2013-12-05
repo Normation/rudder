@@ -67,6 +67,7 @@ class RuleCategoryTree(
   , check                   : () => JsCmd
   , editPopup               : RuleCategory => JsCmd
   , deletePopup             : RuleCategory => JsCmd
+  , updateComponent         : () => JsCmd
 ) extends DispatchSnippet with Loggable {
 
   private[this] val roRuleCategoryRepository   = RudderConfig.roRuleCategoryRepository
@@ -112,7 +113,7 @@ class RuleCategoryTree(
             (category.id.value, newRoot)
           }) match {
             case Full((id,newRoot)) =>
-              refreshTree(newRoot)
+              refreshTree(newRoot) & updateComponent()
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }

@@ -160,6 +160,16 @@ class DirectiveEditForm(
   }
 
   def showDirectiveForm(): NodeSeq = {
+
+    val ruleDisplayer = {
+      new RuleDisplayer(
+          Some(directiveApp)
+        , "view"
+        , (r:Rule,s:String) => Noop
+        , Noop
+        ).display
+    }
+
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
@@ -202,7 +212,7 @@ class DirectiveEditForm(
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
       "#parameters" #> parameterEditor.toFormNodeSeq &
-      "#directiveRulesTab *" #> new RuleDisplayer(Some(directiveApp),"view",(r:Rule,s:String) => Noop,Noop).display &
+      "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &

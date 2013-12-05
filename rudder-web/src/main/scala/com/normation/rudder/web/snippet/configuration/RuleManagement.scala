@@ -175,7 +175,12 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   }
 
   def viewRules(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
-    new RuleDisplayer(None,"rules_grid_zone",detailsCallbackLink(workflowEnabled, changeMsgEnabled),showPopup(None, workflowEnabled, changeMsgEnabled)).display
+    new RuleDisplayer(
+        None
+      , "rules_grid_zone"
+      , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
+      , showPopup(None, workflowEnabled, changeMsgEnabled)
+    ).display
   }
 
   def editRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
@@ -239,6 +244,10 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  private[this] def updateRulesDisplayerComponent(workflowEnabled: Boolean, changeMsgEnabled : Boolean) = {
+    () => Replace(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled))
+  }
+
   private[this] def updateEditComponent(rule:Rule, workflowEnabled: Boolean, changeMsgEnabled : Boolean) : Unit = {
     val form = new RuleEditForm(
                        htmlId_editRuleDiv+"Form"
@@ -246,9 +255,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
                      , workflowEnabled
                      , changeMsgEnabled
                      , onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule), workflowEnabled, changeMsgEnabled) }
-                     , onSuccessCallback = { () => //update UI
-                         Replace(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled) )
-                       }
+                     , onSuccessCallback = { updateRulesDisplayerComponent(workflowEnabled,changeMsgEnabled)  }
                    )
     currentRuleForm.set(Full(form))
   }
