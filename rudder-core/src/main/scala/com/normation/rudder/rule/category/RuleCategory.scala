@@ -84,7 +84,7 @@ case class RuleCategory(
   }
 
   def canBeDeleted(rules:List[Rule]) = {
-    childs.isEmpty && rules.filter(_.category == this.id).isEmpty
+    childs.isEmpty && rules.filter(_.categoryId == this.id).isEmpty
   }
 }
 

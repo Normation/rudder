@@ -76,7 +76,7 @@ case class RestRule(
 
     def updateRule(rule:Rule) = {
       val updateName = name.getOrElse(rule.name)
-      val updateCategory = category.getOrElse(rule.category)
+      val updateCategory = category.getOrElse(rule.categoryId)
       val updateShort = shortDescription.getOrElse(rule.shortDescription)
       val updateLong = longDescription.getOrElse(rule.longDescription)
       val updateDirectives = directives.getOrElse(rule.directiveIds)
@@ -84,7 +84,7 @@ case class RestRule(
       val updateEnabled = enabled.getOrElse(rule.isEnabledStatus)
       rule.copy(
           name             = updateName
-        , category         = updateCategory
+        , categoryId       = updateCategory
         , shortDescription = updateShort
         , longDescription  = updateLong
         , directiveIds     = updateDirectives

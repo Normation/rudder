@@ -143,7 +143,7 @@ class LDAPDiffMapper(
                 case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldCr.isSystem,mod.getAttribute().getValueAsBoolean))))
                 case A_RULE_CATEGORY =>
-                  tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.category , RuleCategoryId(mod.getAttribute().getValue)))))
+                  tryo(diff.copy(modCategory = Some(SimpleDiff(oldCr.categoryId , RuleCategoryId(mod.getAttribute().getValue)))))
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }

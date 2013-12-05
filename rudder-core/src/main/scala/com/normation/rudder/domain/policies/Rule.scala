@@ -54,7 +54,7 @@ case class Rule(
     id              : RuleId
   , name            : String
   , serial          : Int
-  , category        : RuleCategoryId
+  , categoryId      : RuleCategoryId
     //is not mandatory, but if not present, rule is disabled
   , targets         : Set[RuleTarget] = Set()
     //is not mandatory, but if not present, rule is disabled
