@@ -22,7 +22,7 @@ set -e
 # Check that there are no bundle agent within the cfe_basics files
 
 # We check only the ncf sub-directory, because the CFEngine stdlib contains bundle agent
-FILES=${NCF_TREE}/20_cfe_basics/ncf/*.cf
+FILES=${NCF_TREE}/20_cfe_basics/*.cf
 NB_ERROR=0
 for f in $FILES
 do
