@@ -87,6 +87,7 @@ class RuleDisplayer (
       , (() =>  check)
       , ((c:RuleCategory) => showCategoryPopup(Some(c)))
       , ((c:RuleCategory) => showDeleteCategoryPopup(c))
+      , () => SetHtml(htmlId_viewAll, viewRules)
     )
   }
   def viewCategories : NodeSeq = {
@@ -125,7 +126,8 @@ class RuleDisplayer (
   }
 
 
-  private[this] val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq()))
+  private[this] def rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq()))
+
   def viewRules : NodeSeq = {
 
 
