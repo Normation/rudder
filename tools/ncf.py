@@ -31,12 +31,11 @@ def get_all_techniques_filenames():
 
 def get_all_cf_filenames_under_dir(dir):
   filenames = []
+  filenames_add = filenames.append
   for root, dirs, files in os.walk(dir):
     for file in files:
-      if file.startswith("_"):
-        continue
-      if file.endswith(".cf"):
-        filenames.append(root + "/" + file)
+      if not file.startswith("_") and file.endswith(".cf"):
+        filenames_add(os.path.join(root, file))
 
   return filenames
 
