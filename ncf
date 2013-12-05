@@ -2,6 +2,12 @@
 
 # This will become the main command line tool for ncf
 
-sys.path.append('/usr/bin/ncf')
+import os
+import sys
+
+ncf_dir = os.path.dirname(os.path.abspath(__file__))
+ncf_tools_dir = os.path.join(ncf_dir, 'tools')
+
+sys.path[0:0] = [ncf_dir + '/tools', '/usr/share/ncf']
 
 import ncf
