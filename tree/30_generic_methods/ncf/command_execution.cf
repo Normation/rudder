@@ -16,21 +16,26 @@
 #
 #####################################################################################
 
-#########################################################################################################
-# service_reload: Reload a service (for instance after a configuration modification)
-# Contract:
-#  - Args:
-#    -- "service_name", the name of the service 
-#  - Assumes
-#    -- The init script to start the service is /etc/init.d/${service_name}
-#  - Returns: defines a service_reload_${service_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#       "any" usebundle => service_reload("nrpe", "nrpe");
-#########################################################################################################
-bundle agent service_reload(service_name)
-{
-  methods:
-    "service_reload" usebundle => service_reload_command("${service_name}", "/etc/init.d/${service_name} reload");
-}
+# @name Command execution
+# @description Execute a command
+#
+# @parameter command_name  Command name
+# 
+# @class_prefix command_execution
+# @class_parameter command_name
+# This bundle will define a class command_execution_${command_name}_{kept,repaired,error,ok,reached}
 
+bundle agent command_execution(command_name)
+{
+  vars:
+      "class_prefix"        string => canonify("command_execution_${command_name}");
+
+  commands:
+
+      "${command_name}"
+        classes      => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle => _logger("Execute the command ${command_name}", "${class_prefix}");
+}

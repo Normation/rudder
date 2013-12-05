@@ -16,29 +16,26 @@
 #
 #####################################################################################
 
-# @name Logger
-# @description Standard logging output
+# @name Service check running ps
+# @description Check if a service is running using ps
 #
-# @parameter message      The common part of the message to display
-# @parameter class_prefix The prefix of the class for different states
-#
-# @class_prefix
-# @class_parameter
-# The three states are kept, repaired and not_ok
-# (as defined in the classes_generic of the cfengine_stdlib)
+# @parameter service_regex Regular expression used to select a process in ps output
+# 
+# @class_prefix service_check_running
+# @class_parameter service_regex
+# This bundle will define a class service_check_running_${service_regex}_{kept,repaired,error,ok,reached}
 
-bundle agent _logger(message, class_prefix)
-{ 
-  reports:
-    debug::
-      "[DEBUG] Promise kept, not doing anything: ${message}"
-        ifvarclass => canonify("${class_prefix}_kept");
+bundle agent service_check_running_ps(service_regex)
+{
+  vars:
+      "class_prefix" string => canonify("service_check_running_${service_regex}");
 
-    debug|info::
-      "[INFO] Promise repaired, made a change: ${message}"
-        ifvarclass => canonify("${class_prefix}_repaired");
+  processes:
 
-    cfengine:: # We always want to log errors
-      "[ERROR] Promise could not be repaired, error encountered: ${message}"
-        ifvarclass => canonify("${class_prefix}_not_ok");
+      "${service_regex}"
+        classes      => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${class_prefix}");
 }

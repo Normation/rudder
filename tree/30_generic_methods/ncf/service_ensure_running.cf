@@ -16,16 +16,16 @@
 #
 #####################################################################################
 
-# @name Service start
-# @description Start a service using the appropriate method
+# @name Service ensure running
+# @description Ensure that a service is running using the appropriate method
 #
 # @parameter service_name Service
 # 
-# @class_prefix service_start
+# @class_prefix service_ensure_running
 # @class_parameter service_name
-# This bundle will define a class service_start_${service_name}_{kept,repaired,error,ok,reached}
+# This bundle will define a class service_ensure_running_${service_name}_{kept,repaired,error,ok,reached}
 
-bundle agent service_start(service_name)
+bundle agent service_ensure_running(service_name)
 {
   vars:
 
@@ -34,7 +34,18 @@ bundle agent service_start(service_name)
 
   methods:
 
-      # Will be replaced later with less naive conditions (using either service, upstart, ...
-      "placeholder" usebundle => command_execution("/etc/init.d/${service_name} start");
-      "placeholder" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "service_start_${canonified_service_name}");
+      "placeholder"
+        usebundle  => service_check_running("${service_name}");
+
+      "placeholder"
+        usebundle  => service_start("${service_name}"),
+        ifvarclass => "!service_check_running_${canonified_service_name}_ok";
+
+      "placeholder"
+        usebundle => _classes_copy("service_check_running_${canonified_service_name}", "service_ensure_running_${canonified_service_name}");
+ 
+     "placeholder"
+        usebundle => _classes_copy("service_start_${canonified_service_name}", "service_ensure_running_${canonified_service_name}"),
+        ifvarclass => "!service_check_running_${canonified_service_name}_ok";
+
 }

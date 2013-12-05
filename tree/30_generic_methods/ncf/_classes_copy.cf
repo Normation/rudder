@@ -16,29 +16,26 @@
 #
 #####################################################################################
 
-#####################################################################################
-# _classes_copy: "Copy" classes based on a prefix into another prefix
-# The goal is to bubble up classes from one bundle to another
-# by copying classes from one contract to another
-# Contract:
-#  - Args:
-#     -- "source_prefix", the prefix of the source class to copy
-#     -- "dest_prefix" ,  the prefix of the destination class
-#  - Returns: defines classes ${dest_prefix}_{kept,repaired,ok,not_ok,reached}, based 
-#             on the defined sources classes
-#  Usage example:
-#  methods:
-#      "any" usebundle => _classes_copy("source", "dest");
-#####################################################################################
-bundle agent _classes_copy(source_prefix, dest_prefix)
+# @name Classes copy
+# @description Copy a class prefix to another one, to switch the context from a bundle to another
+#
+# @parameter source_prefix      The prefix of the source class to copy
+# @parameter destination_prefix The prefix of the destination class to copy
+#
+# @class_prefix 
+# @class_parameter 
+# This bundle will define a class ${destination_prefix}_{kept,repaired,error,ok,reached}
+# based on ${source_prefix}_{kept,repaired,error,ok,reached}
+
+bundle agent _classes_copy(source_prefix, destination_prefix)
 {
   vars:
       "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept" };
 
-      "local_dest_prefix_${suffix}"
-        string     => "${dest_prefix}_${suffix}",
+      "local_destination_prefix_${suffix}"
+        string     => "${destination_prefix}_${suffix}",
         ifvarclass => "${source_prefix}_${suffix}",
-        classes    => always("${dest_prefix}_${suffix}");
+        classes    => always("${destination_prefix}_${suffix}");
 }
 
 

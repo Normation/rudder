@@ -15,22 +15,21 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
-#########################################################################################################
-# service_stop: Make sure a service is not running
-# Contract:
-#  - Args:
-#    -- "service_name", the name of the service 
-#  - Assumes
-#    -- The init script to start the service is /etc/init.d/${service_name}
-#  - Returns: defines a service_stop_${service_name}_{kept,repaired,ok,not_ok,reached}
-# Usage example:
-# methods:
-#       "any" usebundle => service_stop("mdmonitor");
-#########################################################################################################
 
-bundle agent service_stop(service_name)
+# @name Service check running
+# @description Check if a service is running using the appropriate method
+#
+# @parameter service_name  Process name
+# 
+# @class_prefix service_check_running
+# @class_parameter service_name
+# This bundle will define a class service_check_running_${service_name}_{kept,repaired,error,ok,reached}
+
+bundle agent service_check_running(service_name)
 {
   methods:
-    "service_stop" usebundle => service_stop_command("${service_name}", "/etc/init.d/${service_name} stop");
-}
 
+      # Will be replaced later with less naive conditions (using either service, upstart, ...
+      "placeholder" usebundle => service_check_running_ps("${service_name}");
+
+}
