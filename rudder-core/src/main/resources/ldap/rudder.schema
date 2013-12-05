@@ -306,9 +306,8 @@ attributetype ( RudderAttributes:228
   
 attributetype ( RudderAttributes:229
   NAME 'tag'
-  DESC 'DN of a tag'
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.12
-  EQUALITY distinguishedNameMatch )
+  DESC 'ID of tag'
+  SUP uuid )
 
 ### API principal and tokens 
 

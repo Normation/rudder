@@ -223,7 +223,7 @@ class RuleEditForm(
     (
       "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       "#nameField" #>    <div>{crName.displayNameHtml.getOrElse("Could not fetch rule name")} {updatedrule.map(_.name).openOr("could not fetch rule name")} </div> &
-      "#categoryField" #> <div> {category.displayNameHtml.getOrElse("Could not fetch rule category")} {updatedrule.flatMap(c => categoryService.shortFqdn(c.category)).openOr("could not fetch rule category")}</div> &
+      "#categoryField" #> <div> {category.displayNameHtml.getOrElse("Could not fetch rule category")} {updatedrule.flatMap(c => categoryService.shortFqdn(c.categoryId)).openOr("could not fetch rule category")}</div> &
       "#rudderID" #> {rule.id.value.toUpperCase} &
       "#shortDescriptionField" #>  <div>{crShortDescription.displayNameHtml.getOrElse("Could not fetch short description")} {updatedrule.map(_.shortDescription).openOr("could not fetch rule short descritption")}</div> &
       "#longDescriptionField" #>  <div>{crLongDescription.displayNameHtml.getOrElse("Could not fetch description")} {updatedrule.map(_.longDescription).openOr("could not fetch rule long description")}</div> &
@@ -446,7 +446,7 @@ class RuleEditForm(
     new WBSelectField(
         "Rule category"
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(roCategoryRepository.getRootCategory.get, None).map { case (id, name) => (id.value -> name)}
-      , rule.category.value
+      , rule.categoryId.value
     ) {
     override def className = "twoCol"
   }
@@ -460,13 +460,13 @@ class RuleEditForm(
       onFailure
     } else { //try to save the rule
       val newCr = rule.copy(
-        name = crName.is,
-        shortDescription = crShortDescription.is,
-        longDescription = crLongDescription.is,
-        targets = selectedTargets,
-        directiveIds = selectedDirectiveIds,
-        isEnabledStatus = rule.isEnabledStatus,
-        category = RuleCategoryId(category.is)
+          name             = crName.is
+        , shortDescription = crShortDescription.is
+        , longDescription  = crLongDescription.is
+        , targets          = selectedTargets
+        , directiveIds     = selectedDirectiveIds
+        , isEnabledStatus  = rule.isEnabledStatus
+        , categoryId       = RuleCategoryId(category.is)
       )
        if (newCr == rule) {
           onNothingToDo()

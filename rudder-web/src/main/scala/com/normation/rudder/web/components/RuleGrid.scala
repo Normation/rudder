@@ -154,8 +154,6 @@ class RuleGrid(
               case ruleIds =>
                 directiveApp.checkRules(ruleIds,status)  match {
                 case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
-                  logger.error(completeCategories)
-                  logger.info(indeterminate)
                   After(TimeSpan(50),JsRaw(s"""
                     ${rules.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
                     ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
@@ -494,7 +492,7 @@ class RuleGrid(
             } }
           </td>
           <td>
-            { categoryService.shortFqdn(line.rule.category).getOrElse("Error") }
+            { categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error") }
           </td>
           <td>
             <b>{ status(line) }</b>

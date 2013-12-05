@@ -140,10 +140,10 @@ case class DirectiveApplicationManagement (
 
 
   // Get Rules from a category
-  private[this] val rulesByCategory = completeMapping(rules.groupBy(_.category).mapValues(_.map(_.id))).withDefaultValue(Nil)
+  private[this] val rulesByCategory = completeMapping(rules.groupBy(_.categoryId).mapValues(_.map(_.id))).withDefaultValue(Nil)
 
   // Get applying Rules fror each category at the beginning
-  private[this] val applyingRulesbyCategory = completeMapping(applyingRules.groupBy(_.category).mapValues(_.map(_.id))).withDefaultValue(Nil)
+  private[this] val applyingRulesbyCategory = completeMapping(applyingRules.groupBy(_.categoryId).mapValues(_.map(_.id))).withDefaultValue(Nil)
 
   // Current State, this variable will contains the application state of all Rules and categories
   private[this] var currentApplyingRules = applyingRulesbyCategory.withDefaultValue(Nil)
@@ -199,7 +199,7 @@ case class DirectiveApplicationManagement (
       }).addCategory(isComplete, category)
     }
     // get category of Rule then start : TODO : pass a pattern matching, result to Box
-    checkRule(id, status, rulesMap(id).category)
+    checkRule(id, status, rulesMap(id).categoryId)
 
   }
 
@@ -239,7 +239,7 @@ case class DirectiveApplicationManagement (
    */
   // Check status of rule
   def ruleStatus(rule: Rule) = {
-    currentApplyingRules.get(rule.category).getOrElse(Nil).contains(rule.id)
+    currentApplyingRules.get(rule.categoryId).getOrElse(Nil).contains(rule.id)
   }
   // Check status of Rule, based on its Id
   def ruleStatus(ruleId : RuleId) : Box[Boolean] = {

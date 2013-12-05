@@ -72,6 +72,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
 
 
 /**
@@ -516,9 +517,6 @@ class LDAPEntityMapper(
                     "Missing required attribute %s in entry %s".format(A_RULE_UUID, e)
         serial   <- e.getAsInt(A_SERIAL) ?~!
                     "Missing required attribute %s in entry %s".format(A_SERIAL, e)
-        category <- e(A_RULE_CATEGORY).map(
-                     cat => rudderDit.RULECATEGORY.getCategoryIdValue(new DN(cat))
-                    ).getOrElse(Full(rudderDit.RULECATEGORY.rootCategoryId.value))
       } yield {
         val targets = for {
           target <- e.valuesFor(A_RULE_TARGET)
@@ -534,11 +532,12 @@ class LDAPEntityMapper(
         val longDescription = e(A_LONG_DESCRIPTION).getOrElse("")
         val isEnabled = e.getAsBoolean(A_IS_ENABLED).getOrElse(false)
         val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+        val category = e(A_RULE_CATEGORY).map(RuleCategoryId(_)).getOrElse(rudderDit.RULECATEGORY.rootCategoryId)
         Rule(
             RuleId(id)
           , name
           , serial
-          , RuleCategoryId(category)
+          , category
           , targets
           , directiveIds
           , shortDescription
@@ -558,20 +557,19 @@ class LDAPEntityMapper(
    * Map a rule to an LDAP Entry.
    * WARN: serial is NEVER mapped.
    */
-  def rule2Entry(rule:Rule, categoryDN : DN) : LDAPEntry = {
+  def rule2Entry(rule:Rule) : LDAPEntry = {
     val entry = rudderDit.RULES.ruleModel(
         rule.id.value
       , rule.name
       , rule.isEnabledStatus
       , rule.isSystem
-      , categoryDN.toString
+      , rule.categoryId.value
     )
 
     entry +=! (A_RULE_TARGET, rule.targets.map( _.target).toSeq :_* )
     entry +=! (A_DIRECTIVE_UUID, rule.directiveIds.map( _.value).toSeq :_* )
     entry +=! (A_DESCRIPTION, rule.shortDescription)
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
-    entry +=! (A_RULE_CATEGORY, categoryDN.toString)
     entry
   }
 
