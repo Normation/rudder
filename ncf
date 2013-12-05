@@ -1,0 +1,7 @@
+#!/usr/bin/env python
+
+# This will become the main command line tool for ncf
+
+sys.path.append('/usr/bin/ncf')
+
+import ncf
