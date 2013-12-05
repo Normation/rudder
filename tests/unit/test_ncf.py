@@ -47,6 +47,8 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['name'], "Bla Technique for evaluation of parsingness")
     self.assertEqual(metadata['description'], "This meta-Technique is a sample only, allowing for testing.")
     self.assertEqual(metadata['version'], "0.1")
+    self.assertEqual(metadata['bundle_name'], "bla")
+    self.assertEqual(metadata['bundle_args'], [])
 
   ##############################
   # Generic method parsing tests

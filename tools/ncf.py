@@ -58,7 +58,9 @@ def parse_bundlefile_metadata(content, bundle_type):
     if match:
       res['bundle_name'] = match.group(1)
       res['bundle_args'] = []
-      res['bundle_args'] += [x.strip() for x in match.group(2).split(',')]
+
+      if len(match.group(2)):
+        res['bundle_args'] += [x.strip() for x in match.group(2).split(',')]
 
       # Any tags should come before the "bundle agent" declaration
       break
@@ -97,7 +99,6 @@ def parse_technique_methods(technique_file):
     raise Exception("This bundle if not a bundle agent, aborting")
 
   methods = [promiseType for promiseType in promises['bundles'][0]['promiseTypes'] if promiseType['name']=="methods"][0]['contexts']
-  #print "context = " + methods[0]['contexts']['name']
 
   for context in methods:
     class_context = context['name']
