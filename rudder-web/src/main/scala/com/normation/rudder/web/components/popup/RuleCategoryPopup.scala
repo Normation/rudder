@@ -118,8 +118,9 @@ class RuleCategoryPopup(
 
   def popupContent() : NodeSeq = {
      (
+
+      "#creationForm *"          #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *"           #> title &
-      "#creationForm"          #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#categoryName * "          #> categoryName.toForm_! &
       "#categoryParent *"        #> categoryParent.toForm_! &
       "#categoryDescription *" #> categoryDescription.toForm_! &
@@ -143,13 +144,15 @@ class RuleCategoryPopup(
   ///////////// fields for category settings ///////////////////
   private[this] val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
+    override def subContainerClassName = "twoColPopup"
     override def errorClassName = "threeColErrors"
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
     override def validations =
-      valMinLen(3, "The name must have at least 3 characters.") _ :: Nil
+      valMinLen(1, "The name must not be empty.") _ :: Nil
   }
 
   private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
+    override def subContainerClassName = "twoColPopup"
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","4")
     override def errorClassName = "threeColErrors"
@@ -165,6 +168,7 @@ class RuleCategoryPopup(
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name)}
       , targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value).getOrElse(rootCategory.id.value)
     ) {
+    override def subContainerClassName = "twoColPopup"
     override def className = "rudderBaseFieldSelectClassName"
   }
 

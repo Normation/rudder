@@ -2165,6 +2165,11 @@ hr.spacer {
     width:67%;
 }
 
+.twoColPopup {
+    float:left;
+    width:66%;
+}
+
 .rudderBaseFieldClassName {
     width:99%;
 }
