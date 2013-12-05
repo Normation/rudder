@@ -154,9 +154,9 @@ class RuleDisplayer (
 
     def actionButton = {
       if (directive.isDefined) {
-          SHtml.ajaxButton("Select All", () => ruleGrid.selectAllVisibleRules(true)) ++ Script(OnLoad(JsRaw("correctButtons();")))
+        NodeSeq.Empty
       } else {
-        SHtml.ajaxButton("New Rule", () => showPopup, ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+        SHtml.ajaxButton("New Rule", () => showPopup, ("class" -> "newRule"),("style","float:left")) ++ Script(OnLoad(JsRaw("correctButtons();")))
       }
     }
 
@@ -165,7 +165,8 @@ class RuleDisplayer (
         <lift:authz role="rule_write">
           {actionButton}
         </lift:authz>
-        <span style="margin:10px 50px;">{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></span>
+        <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
+        <hr class="spacer"/>
       </div>
       {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) }
     </div>

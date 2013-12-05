@@ -242,7 +242,7 @@ class RuleGrid(
           <table id={htmlId_rulesGridId} class="display" cellspacing="0">
             <thead>
               <tr class="head">
-                { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
+                { if(showCheckboxColumn) <th>{SHtml.ajaxCheckbox(false, value => selectAllVisibleRules(value))}</th> else NodeSeq.Empty }
                 <th>Name</th>
                 <th>Category</th>
                 <th>Status</th>
