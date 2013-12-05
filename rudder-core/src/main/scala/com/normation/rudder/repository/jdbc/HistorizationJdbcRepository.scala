@@ -462,7 +462,6 @@ case class SerializedRules(
     @Column("ruleid")           ruleId           : String
   , @Column("serial")           serial           : Int
   , @Column("name")             name             : String
- // , @Column("category")         category         : String
   , @Column("shortdescription") shortDescription : String
   , @Column("longdescription")  longDescription  : String
   , @Column("isenabled")        isEnabledStatus  : Boolean
