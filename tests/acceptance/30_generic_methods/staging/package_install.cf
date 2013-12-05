@@ -1,0 +1,49 @@
+#######################################################
+#
+# Install the htop package
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "package_name"            string => "htop";
+    "canonified_package_name" string => canonify("${package_name}");
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => package_install("${init.package_name}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+    "ok" expression => "package_install_${init.canonified_package_name}_ok.!package_install_${init.canonified_package_name}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}

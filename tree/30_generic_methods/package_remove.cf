@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package remove
+# @description Remove a package
+#
+# @parameter package_name        Name of the package to remove
+#
+# @class_prefix package_remove
+# @class_parameter package_name
+# This bundle will define a class package_remove_${package_name}_{kept,repaired,error,ok,reached}
+#
+# Usage example:
+# methods:
+#     "any" usebundle => package_remove("htop");
+
+bundle agent package_remove(package_name)
+{
+  vars:
+
+      "canonified_package_name" string => canonify("${package_name}");
+      "class_prefix"            string => "package_remove_${canonified_package_name}";
+
+  packages:
+      "${package_name}"
+                        package_policy  => "delete",
+                        package_method  => generic,
+                        classes         => classes_generic("${class_prefix}");
+
+  methods:
+      "placeholder" usebundle => _logger("Remove package ${package_name}", "${class_prefix}");
+}

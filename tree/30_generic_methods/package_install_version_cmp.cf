@@ -15,33 +15,28 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
-####################################################################################
-# package_install_version_cmp: Install a package or verify if it is installed in a specific version,
-# or higher or lower version than a version specified
-# Contract:
-#  - Args:
-#     -- "package_name", name of the package to install or verify
-#     -- "version_comparator", comparator between installed version and defined version; can be
-#                              "==": exact version
-#                              "<=": lower than or equal to the specified version
-#                              ">=": greater than or equal to the specified version
-#                              ">": greater than the specified version
-#                              "<": lower than the specified version
-#                              "!=": not equal to the specified version
-#     -- "package_version", the version of the package to verify (can be "latest" for latest version)
-#     -- "action", action to perform, can be
-#                  "add": to install or update the package
-#                  "verify": to check if it is installed 
-#                  default to "verify"
-#  - Returns: defines a class package_install_${package_name}_{kept,repaired,ok,not_ok,reached}
+
+# @name Package install version compare
+# @description Install a package or verify if it is installed in a specific version, or higher or lower version than a version specified
+#
+# @parameter package_name        Name of the package to install or verify
+# @parameter version_comparator  Comparator between installed version and defined version, can be ==,<=,>=,<,>,!=
+# @parameter package_version     The version of the package to verify (can be "latest" for latest version)
+# @parameter action              Action to perform, can be add, verify (defaults to verify)
+# 
+# @class_prefix package_install
+# @class_parameter package_name
+# This bundle will define a class package_install_${package_name}_{kept,repaired,error,ok,reached}
+# 
 # Usage example:
 # methods:
 #     "any" usebundle => package_install_version_cmp("postgresql", ">=", "9.1", "verify");
-####################################################################################
+
 bundle agent package_install_version_cmp(package_name, version_comparator, package_version, action)
 {
   vars:
-      "class_prefix" string => "package_install_${package_name}";
+      "canonified_package_name" string => canonify("${package_name}");
+      "class_prefix"            string => "package_install_${canonified_package_name}";
 
   defaults:
       "action" string => "immediate", if_match_regex => "add";
