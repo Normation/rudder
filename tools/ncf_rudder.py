@@ -10,6 +10,7 @@
 import os.path
 import ncf 
 import xml.etree.cElementTree as XML
+import xml.dom.minidom
 
 def generate_all_techniques(root_path): 
   techniques = ncf.get_all_techniques_metadata
@@ -20,17 +21,13 @@ def generate_all_techniques(root_path):
 def get_technique_metadata_xml(technique_metadata):
   """Get metadata xml for a technique as string"""
   generic_methods = ncf.get_all_generic_methods_metadata()
-  root = XML.Element("TECHNIQUE")
-  root.set("name", technique_metadata['bundle_name'])
-   
-  description = XML.SubElement(root, "DESCRIPTION")
-  description.text = technique_metadata['description']
-
-  bundles = XML.SubElement(root, "BUNDLES")
-  bundleName = XML.SubElement(bundles, "NAME")
-  bundleName.text = technique_metadata['bundle_name']
-
-  sections = XML.SubElement(root, "SECTIONS")
+  content = []
+  content.append('<TECHNIQUE name="'+technique_metadata['bundle_name']+'">')
+  content.append('  <DESCRIPTION>'+technique_metadata['description']+'</DESCRIPTION>')
+  content.append('  <BUNDLES>')
+  content.append('    <NAME>'+ technique_metadata['bundle_name'] + '</NAME>')
+  content.append('  </BUNDLES>')
+  content.append('  <SECTIONS>')
 
   method_calls = technique_metadata["method_calls"]  
 
@@ -43,36 +40,37 @@ def get_technique_metadata_xml(technique_metadata):
     generic_method = generic_methods[method_name]
     filter_method_calls = [x for x in method_calls if x["method_name"] == method_name]
     section = generate_section_xml(filter_method_calls, generic_method)
-    section_list.append(section)
+    section_list.extend(section)
 
-  sections.extend(section_list)
+  content.extend(section_list)
+  content.append('  </SECTIONS>')
+  content.append('</TECHNIQUE>')
+  join =  '\n'.join(content)+"\n"
 
-  return XML.tostring(root)
+  return join
 
 def generate_section_xml(method_calls, generic_method):
 
   def generate_value(method_call):
     return generate_value_xml(method_call, generic_method)
 
-  section = XML.Element("SECTION")
-  section.set("component","true")
-  section.set("multivalued","true")
-  section.set("name", generic_method["name"])
- 
-  reportKeys = XML.SubElement(section, "REPORTKEYS")
+  content = []
+  content.append('    <SECTION component="true" multivalued="true" name="'+generic_method["name"]+'">')
+  content.append('      <REPORTKEYS>') 
   values = map(generate_value, method_calls)
-  reportKeys.extend(values)
+  content.extend(values)
+  content.append('      </REPORTKEYS>') 
+  content.append('    </SECTION>')
   
-  return section
+  
+  return content 
  
 def generate_value_xml(method_call,generic_method):
   try: 
     parameter = method_call["args"][generic_method["class_parameter_id"]-1]
     value = generic_method["class_prefix"] + "_" + parameter
     
-    node = XML.Element("VALUE")
-    node.text = value
-    return node
+    return "        <VALUE>"+value+"</VALUE>"
   except:
     raise Exception("Method parameter \"" + generic_method['class_parameter_id'] + "\" is not defined")
 

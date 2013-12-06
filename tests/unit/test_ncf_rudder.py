@@ -29,7 +29,7 @@ class TestNcfRudder(unittest.TestCase):
   def test_metadata_xml_from_technique(self):
     """The XML content generated from a ncf technique must match the XML content required by Rudder for it's metadata.xml file"""
     metadata_xml_string = ncf_rudder.get_technique_metadata_xml(self.technique_metadata)
-    expected_metadata_pure_xml = re.sub("\n","",re.sub(' *<','<',self.test_metadata_xml_content))
+    expected_metadata_pure_xml = self.test_metadata_xml_content
     self.assertEquals(expected_metadata_pure_xml, metadata_xml_string)
 
   def test_path_for_technique_dir(self):

@@ -1,11 +1,8 @@
 <TECHNIQUE name="bla">
-
   <DESCRIPTION>This meta-Technique is a sample only, allowing for testing.</DESCRIPTION>
-
   <BUNDLES>
     <NAME>bla</NAME>
   </BUNDLES>
-
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Package install version">
       <REPORTKEYS>
@@ -22,7 +19,5 @@
         <VALUE>package_install_nano</VALUE>
       </REPORTKEYS>
     </SECTION>
-
   </SECTIONS>
-
 </TECHNIQUE>
