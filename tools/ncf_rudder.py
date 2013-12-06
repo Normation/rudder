@@ -12,11 +12,14 @@ import ncf
 import xml.etree.cElementTree as XML
 import xml.dom.minidom
 
-def generate_all_techniques(root_path): 
+def write_all_techniques_for_rudder(root_path):
   techniques = ncf.get_all_techniques_metadata
   for technique in techniques:
-    print("TODO")
+    write_technique_for_rudder(root_path, technique)
 
+
+def write_technique_for_rudder(root_path, technique):
+  return
 
 def get_technique_metadata_xml(technique_metadata):
   """Get metadata xml for a technique as string"""
@@ -51,13 +54,13 @@ def get_technique_metadata_xml(technique_metadata):
 
 def generate_section_xml(method_calls, generic_method):
 
-  def generate_value(method_call):
-    return generate_value_xml(method_call, generic_method)
-
   content = []
   content.append('    <SECTION component="true" multivalued="true" name="'+generic_method["name"]+'">')
-  content.append('      <REPORTKEYS>') 
-  values = map(generate_value, method_calls)
+  content.append('      <REPORTKEYS>')
+  values = []
+  for method_call in method_calls:
+    value = generate_value_xml(method_call,generic_method)
+    values.append(value)
   content.extend(values)
   content.append('      </REPORTKEYS>') 
   content.append('    </SECTION>')
