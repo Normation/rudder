@@ -16,8 +16,11 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA
 #
 
+set -e
+
 OUR_DIR=`dirname "$0"`
 NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
 
 export PYTHONPATH=${NCF_TREE}/../tools/:$PYTHONPATH
 python test_ncf.py
+python test_ncf_rudder.py
