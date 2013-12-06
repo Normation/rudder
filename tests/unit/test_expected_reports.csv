@@ -1,0 +1,5 @@
+# This file contains one line per report expected by Rudder from this technique
+# Format: technique_name;;class_prefix_${key};;@@RUDDER_ID@@;;component name;;component key
+bla;;package_install_${bla.apache_package_name};;@@RUDDER_ID@@;;Package install version;;${bla.apache_package_name}
+bla;;service_start_${bla.apache_package_name};;@@RUDDER_ID@@;;Service start;;${bla.apache_package_name}
+bla;;package_install_nano;;@@RUDDER_ID@@;;Package install;;nano
