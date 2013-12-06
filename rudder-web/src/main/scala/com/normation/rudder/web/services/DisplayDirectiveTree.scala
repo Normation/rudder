@@ -55,6 +55,8 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.DirectiveId
 
 /**
  *
@@ -71,6 +73,9 @@ object DisplayDirectiveTree extends Loggable {
    */
   def displayTree(
       directiveLib    : FullActiveTechniqueCategory
+      //set of all directives at least used by one rule
+      //the int is the number of rule which used it
+    , usedDirectiveIds: Seq[(DirectiveId, Int)]
     , onClickCategory : Option[FullActiveTechniqueCategory => JsCmd]
     , onClickTechnique: Option[(FullActiveTechniqueCategory, FullActiveTechnique) => JsCmd]
     , onClickDirective: Option[(FullActiveTechniqueCategory, FullActiveTechnique, Directive) => JsCmd]
@@ -78,7 +83,6 @@ object DisplayDirectiveTree extends Loggable {
     , keepTechnique   : FullActiveTechnique => Boolean = _ => true
     , keepDirective   : Directive => Boolean = _ => true
   ) : NodeSeq =  {
-
 
     def displayCategory(
         category: FullActiveTechniqueCategory
@@ -182,30 +186,43 @@ object DisplayDirectiveTree extends Loggable {
       , onClickDirective: Option[Directive => JsCmd]
     ) : JsTreeNode = new JsTreeNode {
 
+      val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id }.map(_._2).getOrElse(0)
+
       override def children = Nil
 
       override val attrs = (
                   ( "rel" -> "directive") ::
                   ( "id" -> ("jsTree-" + directive.id.value)) ::
-                  ( if(!directive.isEnabled)
-                      ("class" -> "disableTreeNode") :: Nil
-                    else Nil
-                  )
+                  ("class" -> List(
+                        { if(directive.isEnabled) "" else "disableTreeNode" }
+                    ).mkString(" ")
+                  ) ::
+                  Nil
 
       )
+
       override def body = {
         val tooltipId = Helpers.nextFuncName
 
-        val xml  = {
-                    <span class="treeDirective tooltipable" tooltipid={tooltipId} title="">
+        val xml  = (
+                    <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" style="float:left">
                      [{directive.techniqueVersion.toString}] {directive.name}
                     </span>
+                    ++ {
+                        if(isAssignedTo <= 0) {
+                          <span style="float:left; padding-left:5px"><img style="margin:0;padding:0" src="/images/icWarn.png" witdth="14" height="14" /></span>
+                        } else {
+                          NodeSeq.Empty
+                        }
+                    } ++
                     <div class="tooltipContent" id={tooltipId}>
                       <h3>{directive.name}</h3>
                       <div>{directive.shortDescription}</div>
                       <div>Technique version: {directive.techniqueVersion.toString}</div>
+                      <div>{s"Used in ${isAssignedTo} rules" }</div>
+                      { if(!directive.isEnabled) <div>Disable</div> }
                     </div>
-        }
+        )
 
         onClickDirective match {
           case None                     => <a style="cursor:default">{xml}</a>
