@@ -299,6 +299,8 @@ class RuleModificationValidationPopup(
               onSuccessCallBack(Left(rule))
           case eb:EmptyBox =>
             val e = (eb ?~! "Error when trying to save your modification")
+            parentFormTracker.map( _.addFormError(error(e.messageChain)))
+            logger.error(e.messageChain)
             e.chain.foreach { ex =>
               parentFormTracker.map(x => x.addFormError(error(ex.messageChain)))
               logger.error(s"Exception when trying to update a change request:", ex)

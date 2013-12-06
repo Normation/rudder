@@ -1,0 +1,58 @@
+
+<xml:group> 
+<component:creationPopup>
+<div id="RuleCategoryCreationContainer">
+  <div id="creationForm">   
+    <div class="simplemodal-title">
+      <h1 id="dialogTitle">Create new Rule category</h1>
+      <hr />
+    </div>
+    <div class="simplemodal-content">
+		<div id="createANewItemContentForm">
+			<div class="notifications"/>
+			<hr class="spacer" />
+			<div id="categoryName" />
+			<hr class="spacer" />
+			<div id="categoryParent" />
+			<hr class="spacer" />
+			<div id="categoryDescription" />
+			<hr class="spacer" />
+		</div>
+    </div>
+    <div class="simplemodal-bottom">
+      <hr />
+      <div class="popupButton">
+        <span>
+          <button class="simplemodal-close" onClick="$.modal.close();" style="float:left" tabindex="100">Cancel</button>
+          <button id="saveCategory">[Submit new Category]</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+</component:creationPopup>
+
+
+<component:deletePopup>
+<div id="RuleCategoryCreationContainer">
+  <div class="simplemodal-title">
+    <h1 id="dialogTitle">Delete category</h1>
+    <hr />
+  </div>
+    <div class="simplemodal-content">
+	  <h3 id="text">
+		<hr class="spacer" />
+      </h3>
+    </div>
+    <div class="simplemodal-bottom">
+      <hr />
+      <div class="popupButton">
+        <span>
+          <button class="simplemodal-close" onClick="$.modal.close();" style="float:left" tabindex="100">Cancel</button>
+          <button id="deleteCategoryButton">[Submit new Category]</button>
+        </span>
+      </div>
+    </div>
+</div>
+</component:deletePopup>
+</xml:group>

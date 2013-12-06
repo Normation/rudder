@@ -103,6 +103,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
     CrId match {
     case Full(id) => changeRequestService.get(ChangeRequestId(id)) match {
       case Full(Some(cr)) =>
+        logger.info(cr)
         if (checkAccess(cr))
         Full(cr)
         else Failure("You are not allowed to see this change request")

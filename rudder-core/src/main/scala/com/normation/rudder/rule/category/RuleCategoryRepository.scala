@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,42 +32,52 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
+package com.normation.rudder.rule.category
 
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.rule.category.RuleCategoryId
+import net.liftweb.common.Box
+import net.liftweb.common.Full
+import com.normation.eventlog.ModificationId
+import com.normation.eventlog.EventActor
 
+trait RoRuleCategoryRepository {
 
-/**
- * That file define "diff" object between rules.
- */
+  def get(id: RuleCategoryId) : Box[RuleCategory]
 
-sealed trait RuleDiff
+  def getParents(id:RuleCategoryId) : Box[List[RuleCategory]]
 
-//for change request, with add type tag to RuleDiff
-sealed trait ChangeRequestRuleDiff {
-  def rule     : Rule
+  def getRootCategory : Box[RuleCategory]
+
 }
 
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+trait WoRuleCategoryRepository {
 
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+  def create(
+      that   : RuleCategory
+    , into   : RuleCategoryId
+    , modId  : ModificationId
+    , actor  : EventActor
+    , reason : Option[String]
+  ) : Box[RuleCategory]
 
-final case class ModifyRuleDiff(
-    id                  : RuleId
-  , name                : String // keep the name around to be able to display it as it was at that time
-  , modName             : Option[SimpleDiff[String]] = None
-  , modSerial           : Option[SimpleDiff[Int]] = None
-  , modTarget           : Option[SimpleDiff[Set[RuleTarget]]] = None
-  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveId]]] = None
-  , modShortDescription : Option[SimpleDiff[String]] = None
-  , modLongDescription  : Option[SimpleDiff[String]] = None
-  , modreasons          : Option[SimpleDiff[String]] = None
-  , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
-  , modIsSystem         : Option[SimpleDiff[Boolean]] = None
-  , modCategory         : Option[SimpleDiff[RuleCategoryId]] = None
-) extends RuleDiff with HashcodeCaching
+  def update(category:RuleCategory    , modId  : ModificationId
+    , actor  : EventActor
+    , reason : Option[String]
+  ) : Box[RuleCategory]
 
-final case class ModifyToRuleDiff(
-    rule     : Rule
-) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+  def updateAndMove(
+      that   : RuleCategory
+    , into   : RuleCategoryId
+    , modId  : ModificationId
+    , actor  : EventActor
+    , reason : Option[String]
+  ) : Box[RuleCategory]
+
+  def delete(category:RuleCategoryId    , modId  : ModificationId
+    , actor  : EventActor
+    , reason : Option[String]
+    , checkEmpty:Boolean = true
+  ) : Box[RuleCategoryId]
+
+
+}
+

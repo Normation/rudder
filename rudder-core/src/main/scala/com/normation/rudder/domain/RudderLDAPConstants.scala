@@ -48,6 +48,7 @@ object RudderLDAPConstants extends Loggable {
   val A_DIRECTIVE_UUID = "directiveId"
   val A_TARGET_DIRECTIVE_UUID = "targetDirectiveId"
   val A_GROUP_CATEGORY_UUID = "groupCategoryId"
+  val A_RULE_CATEGORY_UUID = "ruleCategoryId"
   val A_TECHNIQUE_CATEGORY_UUID = "techniqueCategoryId"
   val A_TECHNIQUE_UUID = "techniqueId"
   val A_ACTIVE_TECHNIQUE_UUID = "activeTechniqueId"
@@ -63,6 +64,8 @@ object RudderLDAPConstants extends Loggable {
   val A_LAST_UPDATE_DATE = "lastUpdateTimestamp"
   val A_DIRECTIVE_VARIABLES = "directiveVariable"
   val A_WRITTEN_DATE = "writtenTimestamp"
+  val A_RULE_CATEGORY = "tag"
+
   /*
    * Last time an active technique was
    * accepted in the active technique library (either the
@@ -125,6 +128,7 @@ object RudderLDAPConstants extends Loggable {
   val OC_POLICY_SERVER_NODE = "rudderPolicyServer"
   val OC_TECHNIQUE_CATEGORY = "techniqueCategory"
   val OC_GROUP_CATEGORY = "groupCategory"
+  val OC_RULE_CATEGORY = "ruleCategory"
   val OC_RUDDER_NODE_GROUP = "nodeGroup"
   val OC_SPECIAL_TARGET = "specialRuleTarget"
   val OC_ROOT_POLICY_SERVER = "rootPolicyServerNodeConfiguration"
@@ -147,7 +151,7 @@ object RudderLDAPConstants extends Loggable {
 
   OC += (OC_RULE,
     must = Set(A_RULE_UUID),
-    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, A_SERIAL))
+    may = Set(A_NAME, A_DESCRIPTION, A_LONG_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM, A_RULE_TARGET, A_DIRECTIVE_UUID, A_SERIAL, A_RULE_CATEGORY))
 
   OC += (OC_RUDDER_NODE,
     must = Set(A_NODE_UUID, A_NAME, A_IS_BROKEN, A_IS_SYSTEM),
@@ -175,6 +179,10 @@ object RudderLDAPConstants extends Loggable {
   OC += (OC_GROUP_CATEGORY,
     must = Set(A_GROUP_CATEGORY_UUID, A_NAME, A_IS_SYSTEM),
     may = Set(A_DESCRIPTION))
+
+  OC += (OC_RULE_CATEGORY,
+    must = Set(A_RULE_CATEGORY_UUID, A_NAME),
+    may = Set(A_DESCRIPTION, A_IS_SYSTEM))
 
   OC += (OC_RUDDER_NODE_GROUP,
     must = Set(A_NODE_GROUP_UUID, A_NAME, A_IS_DYNAMIC),

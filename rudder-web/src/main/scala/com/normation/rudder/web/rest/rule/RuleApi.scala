@@ -37,12 +37,12 @@ package com.normation.rudder.web.rest.rule
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
-
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
+import com.normation.rudder.rule.category.RuleCategoryId
 
 class LatestRuleAPI (
     latestApi : RuleAPI
@@ -58,6 +58,7 @@ trait RuleAPI {
 
 case class RestRule(
       name             : Option[String] = None
+    , category         : Option[RuleCategoryId] = None
     , shortDescription : Option[String] = None
     , longDescription  : Option[String] = None
     , directives       : Option[Set[DirectiveId]] = None
@@ -66,6 +67,7 @@ case class RestRule(
   ) {
 
     val onlyName = name.isDefined           &&
+                   category.isEmpty         &&
                    shortDescription.isEmpty &&
                    longDescription.isEmpty  &&
                    directives.isEmpty       &&
@@ -74,6 +76,7 @@ case class RestRule(
 
     def updateRule(rule:Rule) = {
       val updateName = name.getOrElse(rule.name)
+      val updateCategory = category.getOrElse(rule.categoryId)
       val updateShort = shortDescription.getOrElse(rule.shortDescription)
       val updateLong = longDescription.getOrElse(rule.longDescription)
       val updateDirectives = directives.getOrElse(rule.directiveIds)
@@ -81,6 +84,7 @@ case class RestRule(
       val updateEnabled = enabled.getOrElse(rule.isEnabledStatus)
       rule.copy(
           name             = updateName
+        , categoryId       = updateCategory
         , shortDescription = updateShort
         , longDescription  = updateLong
         , directiveIds     = updateDirectives

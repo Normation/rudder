@@ -17,15 +17,7 @@
       </div>
       </lift:authz>
     </div>
-    <hr class="spacer"/>
-    <div>
-      <div class="inner-portlet">
-        <div class="inner-portlet-header">List of rules</div>
-        <div class="inner-portlet-content">
-          <lift:configuration.RuleManagement.viewRules />
-        </div>
-      </div>
-    </div>
+    <div id="viewAllRulesZone"><lift:configuration.RuleManagement.viewRules /></div>
     <hr class="spacer"/>
     <div id="editRuleZonePortlet" class="inner-portlet nodisplay">
       <div class="inner-portlet-header">Rule details</div>
@@ -42,7 +34,8 @@
     <div id="createRuleContainer"/>
   </div>
 
-
+  <div id="createRuleCategoryPopup" class="nodisplay">
+  </div>
   
 </div>
 </lift:surround>

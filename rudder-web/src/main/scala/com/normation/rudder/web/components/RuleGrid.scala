@@ -61,6 +61,12 @@ import com.normation.utils.Control.sequence
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.json.JArray
+import net.liftweb.json.JsonParser
+import net.liftweb.json.JString
+import net.liftweb.json.JObject
+import net.liftweb.json.JField
+
 
 
 object RuleGrid {
@@ -69,16 +75,23 @@ object RuleGrid {
       <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
       <style type="text/css">
         #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
+        .greenCompliance {{ background-color: #CCFFCC }}
+        .orangeCompliance  {{ background-color: #FFBB66 }}
+        .redCompliance  {{ background-color: #FF6655 }}
+        .noCompliance   {{ background-color:#BBAAAA; }}
+        .applyingCompliance {{ background-color:#CCCCCC; }}
+        .compliance {{ text-align: center; }}
       </style>
     </head>
 }
 
 class RuleGrid(
-    htmlId_rulesGridZone : String,
-    rules : Seq[Rule],
-    //JS callback to call when clicking on a line
-    detailsCallbackLink : Option[(Rule,String) => JsCmd],
-    showCheckboxColumn:Boolean = true
+    htmlId_rulesGridZone : String
+  , rules : Seq[Rule]
+   //JS callback to call when clicking on a line
+  , detailsCallbackLink : Option[(Rule,String) => JsCmd]
+  , showCheckboxColumn:Boolean = true
+  , directiveApplication : Option[DirectiveApplicationManagement] = None
 ) extends DispatchSnippet with Loggable {
 
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -88,6 +101,9 @@ class RuleGrid(
   private[this] val reportingService = RudderConfig.reportingService
   private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
+  private[this] val categoryRepository  = RudderConfig.roRuleCategoryRepository
+  private[this] val categoryService     = RudderConfig.ruleCategoryService
+
 
   //used to error tempering
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
@@ -99,6 +115,7 @@ class RuleGrid(
   private[this] val htmlId_rulesGridId = "grid_" + htmlId_rulesGridZone
   private[this] val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
+  private[this] val htmlId_rulesGridWrapper = htmlId_rulesGridId + "_wrapper"
   private[this] val tableId_reportsPopup = "popupReportsGrid"
 
 
@@ -121,6 +138,43 @@ class RuleGrid(
     rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), popup, linkCompliancePopup)
   }
 
+
+  def selectAllVisibleRules(status : Boolean) : JsCmd= {
+    directiveApplication match {
+      case Some(directiveApp) =>
+        def moveCategory(arg: String) : JsCmd = {
+        //parse arg, which have to  be json object with sourceGroupId, destCatId
+          try {
+            (for {
+               JObject(JField("rules",JArray(childs)) :: Nil) <- JsonParser.parse(arg)
+               JString(ruleid) <- childs
+             } yield {
+               RuleId(ruleid)
+             }) match {
+              case ruleIds =>
+                directiveApp.checkRules(ruleIds,status)  match {
+                case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
+                  After(TimeSpan(50),JsRaw(s"""
+                    ${rules.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
+                    ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
+                    ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${status}); """).mkString("\n")}
+                    ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+                  """))
+            }
+            }
+          } catch {
+            case e:Exception => Alert("Error while trying to move group :"+e)
+          }
+        }
+
+        JsRaw(s"""
+            var rules = $$.map($$('#grid_rules_grid_zone tr.tooltipabletr'), function(v,i) {return $$(v).prop("id")});
+            var rulesIds = JSON.stringify({ "rules" : rules });
+            ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory _)};
+        """)
+      case None => Noop
+    }
+  }
 
   def rulesGrid(
       allNodeInfos: Box[Set[NodeInfo]]
@@ -146,44 +200,11 @@ class RuleGrid(
 
 
       case Full(xml) =>
-
-    (
-        <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
-            <div id={htmlId_reportsPopup} ></div>
-          </div>
-          <table id={htmlId_rulesGridId} class="display" cellspacing="0">
-            <thead>
-              <tr class="head">
-                <th>Name</th>
-                <th>Status</th>
-                <th>Deployment status</th>
-                <th>Directives</th>
-                <th>Target node groups</th>
-                <th>Compliance</th>
-                { if (!popup) <th>Details</th><th>Parameters</th> else NodeSeq.Empty }
-                { if(showCheckboxColumn) <th></th> else NodeSeq.Empty }
-              </tr>
-            </thead>
-            <tbody>
-            {xml}
-            </tbody>
-          </table>
-          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
-            <div id={htmlId_rulesGridId +"_paginate_area"}></div>
-          </div>
-        </div>
-    ) ++ Script(
-      JsRaw("""
-        var #table_var#;
-      """.replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))) &
-      //pop-ups for multiple Directives
-      JsRaw( """var openMultiPiPopup = function(popupid) {
-          createPopup(popupid);
-     }""") &
-     OnLoad(JsRaw("""
+        val tableVar = jsVarNameForId(htmlId_rulesGridId)
+        val onLoad =
+          s"""
       /* Event handler function */
-      #table_var# = $('#%1$s').dataTable({
+       ${tableVar} = $$('#${htmlId_rulesGridId}').dataTable({
         "asStripeClasses": [ 'color1', 'color2' ],
         "bAutoWidth": false,
         "bFilter" : true,
@@ -195,27 +216,57 @@ class RuleGrid(
           "sZeroRecords": "No matching rules!",
           "sSearch": ""
         },
-        "aaSorting": [[ 0, "asc" ]],
-        "aoColumns": [
-          { "sWidth": "95px" },
-          { "sWidth": "60px"  },
-          { "sWidth": "115px" },
-          { "sWidth": "100px" },
-          { "sWidth": "120px", "sType": "html" },
-          { "sWidth": "60px"  }
-         %2$s
-         %3$s
+        "aaSorting": [[ ${ if (showCheckboxColumn) 1 else 0}, "asc" ]],
+        "aoColumns": [${ if(showCheckboxColumn) """
+          { "sWidth": "30px" , "bSortable" : false},""" else "" }
+          { "sWidth": "90px" },
+          { "sWidth": "120px"  },
+          { "sWidth": "60px" },
+          { "sWidth": "40px"  }${ if(!popup) """,
+          { "sWidth": "20px", "bSortable" : false }""" else "" }
         ],
         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
       });
-      $('.dataTables_filter input').attr("placeholder", "Search");
+      $$('.dataTables_filter input').attr("placeholder", "Search");
+      createTooltip();
+          createTooltiptr();
+          $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
+          """
 
-      createTooltip();""".format(
-          htmlId_rulesGridId
-        , { if(!popup) """, { "sWidth": "20px", "bSortable" : false }, { "sWidth": "20px", "bSortable" : false }""" else "" }
-        , { if(showCheckboxColumn) """, { "sWidth": "30px" }""" else "" }
-      ).replaceAll("#table_var#",jsVarNameForId(htmlId_rulesGridId))
-    )))
+
+    (
+        <div id={htmlId_rulesGridZone}>
+          <div id={htmlId_modalReportsPopup} class="nodisplay">
+            <div id={htmlId_reportsPopup} ></div>
+          </div>
+          <table id={htmlId_rulesGridId} class="display" cellspacing="0">
+            <thead>
+              <tr class="head">
+                { if(showCheckboxColumn) <th>{SHtml.ajaxCheckbox(false, value => selectAllVisibleRules(value))}</th> else NodeSeq.Empty }
+                <th>Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Compliance</th>
+                { if (!popup) <th/> else NodeSeq.Empty }
+              </tr>
+            </thead>
+            <tbody>
+            {xml}
+            </tbody>
+          </table>
+          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
+            <div id={htmlId_rulesGridId +"_paginate_area"}></div>
+          </div>
+        </div>
+    ) ++
+     Script(JsRaw(s"var ${tableVar};") &     //pop-ups for multiple Directives
+      JsRaw( """var openMultiPiPopup = function(popupid) {
+          createPopup(popupid);
+          createTooltip();
+          createTooltiptr();
+     }""") &
+ OnLoad(JsRaw(onLoad)))
+
   }
   }
 
@@ -250,180 +301,6 @@ class RuleGrid(
     ) extends Line with HashcodeCaching
 
 
-
-    /*
-     * For the Directive:
-     * - if none defined => "None"
-     * - if one define => <a href="Directive">Directive name</a>
-     * - if more than one => <a href="Directive">Directive name</a>, ... + tooltip with the full list
-     */
-
-    def displayPis(popup:Boolean, seq:Seq[(Directive,ActiveTechnique,Technique)]) : NodeSeq = {
-      def piLink(directive:Directive) = if (popup) directive.name + (if (directive.isEnabled) "" else " (disabled)") else <a href={"""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value)}>{
-          directive.name + (if (directive.isEnabled) "" else " (disabled)")
-        }</a>
-
-      if(seq.size < 1) <i>None</i>
-      else {
-        val popupId = Helpers.nextFuncName
-        val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('"+popupId+"') ; return false;"}>{seq.head._1.name + (if (seq.size > 1) ", ..." else "")}</span> ++
-        <div id={popupId} class="nodisplay">
-          <div class="simplemodal-title">
-            <h1>List of Directives</h1>
-            <hr/>
-          </div>
-          <div class="simplemodal-content">
-            <br/>
-            <h2>Click on a Directive name to go to its configuration screen</h2>
-            <hr class="spacer"/>
-            <br/>
-            <br/>
-            <table id={tableId_listPI} cellspacing="0">
-              <thead>
-                <tr class="head">
-                 <th>Directive<span/></th>
-                 <th>Technique<span/></th>
-                </tr>
-              </thead>
-              <tbody>
-            {
-              (
-                "span" #> seq.map { case(directive,activeTechnique,technique) => "#link" #> <tr><td>{piLink(directive)}</td><td>{technique.name}</td></tr> }
-              ).apply(<span id="link"/>
-              )
-            }
-              </tbody>
-            </table>
-            <hr class="spacer" />
-          </div>
-          <div class="simplemodal-bottom">
-             <hr/>
-             <div class="popupButton">
-               <span>
-                 <button class="simplemodal-close" onClick="return false;">
-                   Close
-                 </button>
-               </span>
-           </div>
-         </div>
-        </div> ++
-        Script(OnLoad(JsRaw("""
-          %1$s_tableId = $('#%2$s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" : true,
-            "bPaginate" : true,
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-            "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "200px" },
-              { "sWidth": "300px" }
-            ]
-          });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
-      }
-    }
-
-    def displayTarget(target:Option[RuleTargetInfo]) = {
-       target match {
-            case None => <i>None</i>
-            case Some(targetInfo) => targetInfo.target match {
-              case GroupTarget(groupId) => <a href={ """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)}>{
-                  targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)")
-                }</a>
-              case _ => Text({ targetInfo.name + (if (targetInfo.isEnabled) "" else " (disabled)") })
-             }
-          }
-    }
-
-    def displayTargets(targets: Set[RuleTargetInfo]) = {
-      def groupLink(t:RuleTargetInfo) = if(popup) t.name + (if (t.isEnabled) "" else " (disabled)") else{
-        val content = {t.name + (if (t.isEnabled) "" else " (disabled)")}
-        t.target match {
-          case GroupTarget(groupId) =>
-            val link = """/secure/nodeManager/groups#{"groupId":"%s"}""".format(groupId.value)
-            <a href={link}>{content}</a>
-          case x => {content}
-        }
-      }
-
-      if(targets.size < 1) {
-        <i>None</i>
-      }
-      else {
-        val popupId = Helpers.nextFuncName
-        val tableId_listPI = Helpers.nextFuncName
-        <span class={if(popup)"" else "curspoint"} onclick={"openMultiPiPopup('" + popupId + "') ; return false;"}>
-          {targets.head.name + (if (targets.size > 1) ", ..." else "")}
-        </span>
-        <div id={popupId} class="nodisplay">
-          <div class="simplemodal-title">
-            <h1>List of Groups</h1>
-            <hr/>
-          </div>
-          <div class="simplemodal-content">
-            <br/>
-            <h2>Click on a Group name to go to its configuration screen</h2>
-            <hr class="spacer"/>
-            <br/>
-            <br/>
-            <table id={tableId_listPI} cellspacing="0">
-              <thead>
-                <tr class="head">
-                 <th>Group<span/></th>
-                 <th>Description<span/></th>
-                </tr>
-              </thead>
-              <tbody>
-            {
-              (
-                "span" #> targets.map { target => "#link" #>
-                <tr><td>{groupLink(target)}</td><td>{target.description}</td></tr> }
-              ).apply(<span id="link"/>
-              )
-            }
-              </tbody>
-            </table>
-            <hr class="spacer" />
-          </div>
-          <div class="simplemodal-bottom">
-             <hr/>
-             <div class="popupButton">
-               <span>
-                 <button class="simplemodal-close" onClick="return false;">
-                   Close
-                 </button>
-               </span>
-           </div>
-         </div>
-        </div> ++
-        Script(OnLoad(JsRaw("""
-          %1$s_tableId = $('#%2$s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" : true,
-            "bPaginate" : true,
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-            "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "200px" },
-              { "sWidth": "300px" }
-            ]
-          });dropFilterArea('#%2$s');""".format( tableId_listPI, tableId_listPI))) )
-      }
-    }
 
     ////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////// actual start of the logic of the grid displaying /////////////////////
@@ -466,7 +343,7 @@ class RuleGrid(
           }
           compliance match {
             case e:EmptyBox => ErrorLine(rule, trackerVariables, targetsInfo)
-            case Full(value) =>  OKLine(rule, value, applicationStatus, seq, targets)
+            case Full(value) => OKLine(rule, value, applicationStatus, seq, targets)
           }
         case (x,y) =>
           if(rule.isEnabledStatus) {
@@ -502,134 +379,133 @@ class RuleGrid(
       }
     }
 
-
-    //now, build html lines
-    if(lines.isEmpty) {
-      NodeSeq.Empty
-    } else {
-      lines.map { l => l match {
-      case line:OKLine =>
-        <tr>
-          <td>{ // NAME
-            if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
-          }</td>
-          <td>{ // OWN STATUS
-            if (line.rule.isEnabledStatus) "Enabled" else "Disabled"
-          }</td>
-          <td><b>{ // EFFECTIVE STATUS
+      def status(line: Line) =
+        line match {
+          case line : OKLine =>
             line.applicationStatus match {
               case FullyApplied => Text("In application")
               case PartiallyApplied(seq) =>
-                  val tooltipId = Helpers.nextFuncName
-                  val why = seq.map { case (at, d) => "Policy " + d.name + " disabled" }.mkString(", ")
-
-                 <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
-                 <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
+                val tooltipId = Helpers.nextFuncName
+                val why = seq.map { case (at, d) => "Policy " + d.name + " disabled" }.mkString(", ")
+                <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
+                <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
               case x:NotAppliedStatus =>
                 val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
                 val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
-                val conditions = Seq(
-                    ( line.rule.isEnabled, "rule disabled" ),
-                    ( line.trackerVariables.size > 0, "No policy defined"),
-                    ( isAllTargetsEnabled, "Group disabled"),
-                    ( nodeSize!=0, "Empty groups")
-                 ) ++ line.trackerVariables.flatMap { case (pi, upt,pt) => Seq(
-                    ( pi.isEnabled, "Policy " + pi.name + " disabled") ,
-                    ( upt.isEnabled, "Technique for '" + pi.name + "' disabled")
-                 )}
-
+                val conditions = {
+                  Seq(
+                      ( line.rule.isEnabled            , "rule disabled" )
+                    , ( line.trackerVariables.size > 0 , "No policy defined")
+                    , ( isAllTargetsEnabled            , "Group disabled")
+                    , ( nodeSize!=0                    , "Empty groups")
+                  ) ++
+                  line.trackerVariables.flatMap {
+                    case (directive, activeTechnique,_) =>
+                      Seq(
+                          ( directive.isEnabled , "Directive " + directive.name + " disabled")
+                        , ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
+                      )
+                  }
+                }
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
                 <span class="tooltip tooltipable" title="" tooltipid={line.rule.id.value}>Not applied</span>
                  <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
             }
-          }</b></td>
-          <td>{ //  Directive: <not defined> or PIName [(disabled)]
-            displayPis(popup,line.trackerVariables)
-           }</td>
-          <td>{ //  TARGET NODE GROUP
-            displayTargets(line.targets)
-          }</td>
-          <td style="text-align:right;">{ //  COMPLIANCE
-            buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
-          }</td>
-          { if (!popup)
-            <td class="complianceTd">{ //  DETAILLED COMPLIANCE
-              detailsCallbackLink match {
-                case None => Text("No details")
-                case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                  () =>  callback(line.rule,"showForm")
-                  }, ("class", "smallButton"))
-                }
-              }
-            </td>
-            <td class="parametersTd">{ //  RULE PARAMETERS
+        case _ : ErrorLine => "N/A"
+      }
+
+      def compliance(line:Line) = {
+        line match {
+          case line : OKLine => buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
+          case _ => <td class="compliance noCompliance"> N/A</td>
+        }
+      }
+
+
+
+    //now, build html lines
+      lines.flatMap { line =>
+        val tooltipId = Helpers.nextFuncName
+        val descriptionTooltip = {
+          if(line.rule.shortDescription.size > 0){
+            <div class="tooltipContent" id={tooltipId}>
+              <h3>{line.rule.name}</h3>
+              <div>{line.rule.shortDescription}</div>
+            </div>
+           } else {
+             NodeSeq.Empty
+           }
+        }
+
+        val editButton = {
+          if (!popup) {
+            <td class="parametersTd">{
               detailsCallbackLink match {
                 case None => Text("No parameters")
-                case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, {
-                  () =>  callback(line.rule,"showEditForm")
-                  }, ("class", "smallButton"))
-                }
+                case Some(callback) =>
+                  SHtml.ajaxButton(
+                      "Edit"
+                    , () =>  callback(line.rule,"showEditForm")
+                    , ("class", "smallButton")
+                  )
               }
+            }
             </td>
-            else NodeSeq.Empty
+          } else {
+            NodeSeq.Empty
           }
-          { // CHECKBOX
-            if(showCheckboxColumn) <td><input type="checkbox" name={line.rule.id.value} /></td> else NodeSeq.Empty
+        }
+
+        val checkBoxColumn = {
+          directiveApplication match {
+            case Some(directiveApplication) =>
+              def check(value : Boolean) : JsCmd= {
+                directiveApplication.checkRule(line.rule.id, value) match {
+                  case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
+                    JsRaw(s"""
+                      ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
+                      ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
+                      ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+                    """)
+                  }
+              }
+              val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
+              val xml = SHtml.ajaxCheckbox(isApplying, check _, ("id",line.rule.id.value+"Checkbox"))
+              <td>{xml}</td>
+            case None => NodeSeq.Empty
           }
+        }
+
+        val cssClass = { line match{
+          case _:ErrorLine => " error"
+          case _ => ""}
+        }
+
+        val xml =
+        <tr tooltipid={tooltipId} class={s"tooltipabletr ${cssClass}"} title="" id={line.rule.id.value}>
+          { checkBoxColumn }
+          <td>
+            { if(popup) {
+                <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a>
+              } else {
+                detailsLink(line.rule, line.rule.name)
+            } }
+          </td>
+          <td>
+            { categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error") }
+          </td>
+          <td>
+            <b>{ status(line) }</b>
+          </td>
+          { compliance(line) }
+          { editButton }
         </tr>
 
-      case line:ErrorLine =>
-        <tr class="error">
-          <td>{ // NAME
-            if(popup) <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a> else detailsLink(line.rule, line.rule.name)
-          }</td>
-          <td>{ // OWN STATUS
-            "N/A"
-          }</td>
-          <td>{ // DEPLOYMENT STATUS
-            "N/A"
-          }</td>
-          <td>{ //  Directive: <not defined> or PIName [(disabled)]
-            line.trackerVariables.map(displayPis(popup,_)).getOrElse("ERROR")
-           }</td>
-          <td>{ //  TARGET NODE GROUP
-            line.targets.map(displayTargets(_)).getOrElse("ERROR")
-          }</td>
-          <td style="text-align:right;">{ //  COMPLIANCE
-            "N/A"
-          }</td>{
-            //detail and parameter only if not in a pop-up
-            val detailsAndParam = if(popup) {
-              NodeSeq.Empty
-            } else {
-          <td class="complianceTd">{ //  DETAIL
-              detailsCallbackLink match {
-      case None => Text("No details")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                      () =>  callback(line.rule,"showForm")
-                    }, ("class", "smallButton")) }
-          }</td>
-          <td class="parametersTd">{
-              detailsCallbackLink match {
-      case None => Text("No parameters")
-      case Some(callback) =>  SHtml.ajaxButton(<img src="/images/icTools.jpg"/>, {
-                      () =>  callback(line.rule,"showEditForm")
-                    }, ("class", "smallButton")) }
-          }</td>
-            }
 
-            // CHECKBOX
-            val checkbox = if(showCheckboxColumn) {
-              <td><input type="checkbox" name={line.rule.id.value} /></td>
-            } else {
-              NodeSeq.Empty
-            }
+        descriptionTooltip ++ xml
 
-            detailsAndParam ++ checkbox
-          }
-        </tr>
-      } }
-    } }
+      }
+    }
 
     for {
       directivesLib <- directiveLib
@@ -663,142 +539,27 @@ class RuleGrid(
   }
 
   private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean, allNodes: Set[NodeInfo]) : NodeSeq = {
-    level match {
-      case None => Text("N/A")
-      case Some(Applying) => Text("Applying")
-      case Some(NoAnswer) => Text("No answer")
-      case Some(Compliance(percent)) =>  {
-        val text = Text(percent.toString + "%")
-        if(linkCompliancePopup) SHtml.a({() => showPopup(rule, allNodes)}, text)
-        else text
+
+    val (complianceClass,content) =
+      level match {
+        case None => ("noCompliance",Text("N/A"))
+        case Some(Applying) => ("applyingCompliance",Text("Applying"))
+        case Some(NoAnswer) => ("noCompliance",Text("No answer"))
+        case Some(Compliance(percent)) =>
+          val complianceClass =  if (percent <= 10 ) "redCompliance"
+            else if(percent >= 90) "greenCompliance"
+              else "orangeCompliance"
+          val text = percent.toString + "%"
+          val res = if(linkCompliancePopup)
+            detailsLink(rule, text)
+          else Text(text)
+          (complianceClass,res)
       }
-    }
-  }
-
-/*********************************************
-  Popup for the reports
- ************************************************/
-  private[this] def createPopup(rule: Rule, allNodes: Set[NodeInfo]) : NodeSeq = {
-
-    def showReportDetail(batch : Box[Option[ExecutionBatch]]) : NodeSeq = {
-    ( "#reportLine" #> {batch match {
-            case e:EmptyBox => <div class="error">Could not fetch reporting info from database</div>
-            case Full(None) => Text("No Reports")
-            case Full(Some(reports)) =>
-              reports.getNodeStatus().map {
-                nodeStatus =>
-                   allNodes.find ( _.id == nodeStatus.nodeId) match {
-                     case Some(nodeInfo)  => {
-                       val tooltipid = Helpers.nextFuncName
-                       val xml:NodeSeq = (
-                              "#node *" #>
-                                <a class="unfoldable" href={"""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.nodeId.value)}>
-                                  <span class="curspoint">
-                                    {nodeInfo.hostname}
-                                  </span>
-                                </a> &
-                              "#severity *" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType) &
-                              "#severity [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.nodeReportType).replaceAll(" ", "")
-                       )(nodeLineXml)
-                       xml
-                     }
-                     case None =>
-                       <div class="error">Node with ID "{nodeStatus.nodeId.value}" is invalid</div>
-                   }
-              }
-    }}
-    ).apply(reportsGridXml)
-    }
-
-
-    def reportsGridXml : NodeSeq = {
-    <table id="popupReportsGrid" cellspacing="0">
-      <thead>
-        <tr class="head">
-          <th>Node<span/></th>
-          <th class="severityWidth">Status<span/></th>
-        </tr>
-      </thead>
-      <tbody>
-        <div id="reportLine"/>
-      </tbody>
-    </table>
-  }
-
-
-    def nodeLineXml : NodeSeq = {
-    <tr class="unfoldable">
-      <td id="node"></td>
-      <td id="severity" class="severityWidth" style="text-align:center;"></td>
-    </tr>
-  }
-
-
-  val batch = reportingService.findImmediateReportsByRule(rule.id)
-
-  <div class="simplemodal-title">
-    <h1>List of nodes having the {Text(rule.name)} Rule</h1>
-    <hr/>
-  </div>
-  <div class="simplemodal-content"> { bind("lastReportGrid",reportTemplate,
-        "crName" -> Text(rule.name),
-        "lines" -> showReportDetail(batch)
-         )
-    }
-  <hr class="spacer" />
-  </div>
-  <div class="simplemodal-bottom">
-    <hr/>
-    <div class="popupButton">
-      <span>
-        <button class="simplemodal-close" onClick="return false;">
-          Close
-        </button>
-      </span>
-    </div>
-  </div>
-  }
-
-  private[this] def showPopup(rule: Rule, allNodes: Set[NodeInfo]) : JsCmd = {
-    val popupHtml = createPopup(rule, allNodes)
-    SetHtml(htmlId_reportsPopup, popupHtml) &
-      JsRaw("""
-        var #table_var#;
-        /* Formating function for row details */
-        function fnFormatDetails ( id ) {
-          var sOut = '<div id="'+id+'" class="reportDetailsGroup"/>';
-          return sOut;
-        }
-      """.replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
-    ) & OnLoad(
-        JsRaw("""
-          /* Event handler function */
-          #table_var# = $('#%1$s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" : true,
-            "bPaginate" : true,
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-            "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [
-              { "sWidth": "200px" },
-              { "sWidth": "300px" }
-            ]
-          });
-            moveFilterAndFullPaginateArea('#%1$s');""".format( tableId_reportsPopup).replaceAll("#table_var#",jsVarNameForId(tableId_reportsPopup))
-        ) //&  initJsCallBack(tableId)
-    ) &
-    JsRaw( s""" createPopup("${htmlId_modalReportsPopup}")""")
+    ("td [class+]" #> complianceClass&
+     "td *+" #> content ) apply <td class="compliance"/>
   }
 
 }
-
 sealed trait ComplianceLevel
 
 
