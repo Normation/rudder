@@ -1,0 +1,28 @@
+<TECHNIQUE name="bla">
+
+  <DESCRIPTION>This meta-Technique is a sample only, allowing for testing.</DESCRIPTION>
+
+  <BUNDLES>
+    <NAME>bla</NAME>
+  </BUNDLES>
+
+  <SECTIONS>
+    <SECTION component="true" name="Package install version" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>package_install_${bla.apache_package_name}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION component="true" name="Service start" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>service_start_${bla.apache_package_name}</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+    <SECTION component="true" name="Package Install" multivalued="true">
+      <REPORTKEYS>
+        <VALUE>package_install_nano</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+
+  </SECTIONS>
+
+</TECHNIQUE>
