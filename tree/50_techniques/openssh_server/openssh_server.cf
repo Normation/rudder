@@ -16,6 +16,10 @@
 #
 #####################################################################################
 
+# @name OpenSSH server
+# @description Install, configure and ensure the OpenSSH server is running.
+# @version 0.1
+
 bundle agent openssh_server(params)
 {
   methods:

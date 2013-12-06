@@ -16,9 +16,16 @@
 #
 #####################################################################################
 
-# This technique manages CFEngine
+# @name CFEngine
+# @description Manage CFEngine itself
+# @version 0.1
 # Since cf-serverd and cf-execd are deamons, and no agent, it will have to rely a lot
 # on bundle common for definition of variables
+
+bundle agent cfengine
+{
+  # This will have to stuff at some point
+}
 
 bundle common cfengine_technique
 {

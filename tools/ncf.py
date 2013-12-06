@@ -138,3 +138,25 @@ def get_all_generic_methods_metadata():
       continue # skip this file, it doesn't have the right tags in - yuk!
 
   return all_metadata
+
+def get_all_techniques_metadata(include_methods_calls = True):
+  all_metadata = {}
+
+  filenames = get_all_techniques_filenames()
+
+  for file in filenames:
+    content = open(file).read()
+    try:
+      metadata = parse_technique_metadata(content)
+      all_metadata[metadata['bundle_name']] = metadata
+
+      if include_methods_calls:
+        method_calls = parse_technique_methods(file)
+        all_metadata[metadata['bundle_name']]['method_calls'] = method_calls
+    except Exception as e:
+      print file + " failed"
+      print e
+      continue # skip this file, it doesn't have the right tags in - yuk!
+
+  return all_metadata
+
