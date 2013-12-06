@@ -65,6 +65,13 @@ trait ReadConfigService {
   def rudder_workflow_self_validation(): Box[Boolean]
   def rudder_workflow_self_deployment(): Box[Boolean]
 
+
+  /**
+   * CFEngine server properties
+   */
+  def cfengine_server_denybadclocks(): Box[Boolean]
+  def cfengine_server_skipidentify(): Box[Boolean]
+
 }
 
 /**
@@ -83,6 +90,11 @@ trait UpdateConfigService {
   def set_rudder_workflow_self_validation(value: Boolean): Box[Unit]
   def set_rudder_workflow_self_deployment(value: Boolean): Box[Unit]
 
+  /**
+   * Set CFEngine server properties
+   */
+  def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit]
+  def set_cfengine_server_skipidentify(value: Boolean): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate : AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService {
@@ -95,6 +107,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.workflow.enabled=false
        rudder.workflow.self.validation=false
        rudder.workflow.self.deployment=true
+       cfengine.server.denybadclocks=true
+       cfengine.server.skipidentify=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -153,4 +167,10 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   }
   def set_rudder_workflow_self_validation(value: Boolean): Box[Unit] = save("rudder_workflow_self_validation", value)
   def set_rudder_workflow_self_deployment(value: Boolean): Box[Unit] = save("rudder_workflow_self_deployment", value)
+
+  ///// CFEngine server /////
+  def cfengine_server_denybadclocks(): Box[Boolean] = get("cfengine_server_denybadclocks")
+  def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit] = save("cfengine_server_denybadclocks", value)
+  def cfengine_server_skipidentify(): Box[Boolean] = get("cfengine_server_skipidentify")
+  def set_cfengine_server_skipidentify(value: Boolean): Box[Unit] = save("cfengine_server_skipidentify", value)
 }
