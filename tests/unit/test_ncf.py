@@ -88,6 +88,16 @@ class TestNcf(unittest.TestCase):
                ]
     self.assertEqual(bundle_calls, expected)
 
+  ############################################
+  # Tests for reading all generic_methods info
+  ############################################
+
+  def test_get_all_generic_methods_metadata(self):
+    """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
+    metadata = ncf.get_all_generic_methods_metadata()
+
+    number_generic_methods = len(ncf.get_all_generic_methods_filenames())
+    self.assertEquals(number_generic_methods, len(metadata))
 
 if __name__ == '__main__':
   unittest.main()

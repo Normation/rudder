@@ -123,3 +123,18 @@ def parse_technique_methods(technique_file):
         res.append({'class_context': class_context, 'method_name': method_name})
 
   return res
+
+def get_all_generic_methods_metadata():
+  all_metadata = {}
+
+  filenames = get_all_generic_methods_filenames()
+
+  for file in filenames:
+    content = open(file).read()
+    try:
+      metadata = parse_generic_method_metadata(content)
+      all_metadata[metadata['bundle_name']] = metadata
+    except Exception:
+      continue # skip this file, it doesn't have the right tags in - yuk!
+
+  return all_metadata
