@@ -5,7 +5,7 @@
 import os
 import sys
 
-ncf_dir = os.path.dirname(os.path.abspath(__file__))
+ncf_dir = os.path.dirname(os.path.realpath(__file__))
 ncf_tools_dir = os.path.join(ncf_dir, 'tools')
 
 sys.path[0:0] = [ncf_dir + '/tools', '/usr/share/ncf']
