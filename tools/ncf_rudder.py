@@ -18,16 +18,16 @@ def generate_all_techniques(root_path):
 
 
 def get_technique_metadata_xml(technique_metadata):
-
+  """Get metadata xml for a technique as string"""
   generic_methods = ncf.get_all_generic_methods_metadata()
   root = XML.Element("TECHNIQUE")
-  root.set("name", technique_metadata['name'])
-  
+  root.set("name", technique_metadata['bundle_name'])
+   
   description = XML.SubElement(root, "DESCRIPTION")
   description.text = technique_metadata['description']
 
   bundles = XML.SubElement(root, "BUNDLES")
-  bundleName = XML.SubElement(root, "NAME")
+  bundleName = XML.SubElement(bundles, "NAME")
   bundleName.text = technique_metadata['bundle_name']
 
   sections = XML.SubElement(root, "SECTIONS")
@@ -47,7 +47,7 @@ def get_technique_metadata_xml(technique_metadata):
 
   sections.extend(section_list)
 
-  return root
+  return XML.tostring(root)
 
 def generate_section_xml(method_calls, generic_method):
 

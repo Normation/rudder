@@ -7,17 +7,17 @@
   </BUNDLES>
 
   <SECTIONS>
-    <SECTION component="true" name="Package install version" multivalued="true">
+    <SECTION component="true" multivalued="true" name="Package install version">
       <REPORTKEYS>
         <VALUE>package_install_${bla.apache_package_name}</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION component="true" name="Service start" multivalued="true">
+    <SECTION component="true" multivalued="true" name="Service start">
       <REPORTKEYS>
         <VALUE>service_start_${bla.apache_package_name}</VALUE>
       </REPORTKEYS>
     </SECTION>
-    <SECTION component="true" name="Package Install" multivalued="true">
+    <SECTION component="true" multivalued="true" name="Package install">
       <REPORTKEYS>
         <VALUE>package_install_nano</VALUE>
       </REPORTKEYS>
