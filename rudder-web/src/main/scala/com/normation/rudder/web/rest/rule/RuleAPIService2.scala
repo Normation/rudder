@@ -63,6 +63,8 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.RestDataSerializer
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.rule.category.RuleCategoryId
 
 case class RuleApiService2 (
     readRule             : RoRuleRepository
@@ -199,7 +201,8 @@ case class RuleApiService2 (
                 workflowEnabled() match {
                   case Full(enabled) =>
                     val enableCheck = restRule.onlyName || (!enabled && defaultEnabled)
-                    val baseRule = Rule(ruleId,name,0)
+                    val category = restRule.category.getOrElse(RuleCategoryId("root"))
+                    val baseRule = Rule(ruleId,name,0,category)
                     // The enabled value in restRule will be used in the saved Rule
                     actualRuleCreation(restRule.copy(enabled = Some(enableCheck)),baseRule)
 

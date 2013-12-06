@@ -79,6 +79,19 @@ function createTooltip() {
   });
 }
 
+function createTooltiptr() {
+	  $(".tooltipabletr").tooltip({
+				show: {
+					effect: "none",
+	                delay: 100
+	            },
+				content: function() {
+			      return $("#"+$(this).attr("tooltipid")).html();
+			    },
+			    track : true
+	  });
+	}
+
 /* popups */
 
 /*
@@ -584,4 +597,26 @@ function makeDiff(beforeId,afterId,resultId) {
   result.append(fragment);
 }
 
-
+function filterTableInclude(tableId, filter, include) {
+  if (typeof filter === 'undefined') {
+    return;
+  } else {
+	var finalFilter = "^"+filter+"$";
+    var includeFilter;
+	if (filter === "") { 
+	  includeFilter = filter;
+	} else {
+	  includeFilter = finalFilter +"|^"+filter+" »";
+	}
+    if (typeof include === 'undefined') {
+      $(tableId).dataTable().fnFilter(includeFilter ,column,true,false,true );
+    } else {
+      if (include) {
+        $(tableId).dataTable().fnFilter(includeFilter,column,true,false,true );
+      } else {
+        
+        $(tableId).dataTable().fnFilter(finalFilter,column,true,false,true );
+      }
+    }
+  }
+}

@@ -588,27 +588,107 @@ class CommitAndDeployChangeRequestServiceImpl(
     val modId = ModificationId(uuidGen.newUuid)
 
     /*
-     * TODO: we should NOT commit into git each modification,
-     * but wait until the last line and then commit.
+     * Logic to commit Change request with multiple changes:
+     *
+     * - such a change request is NOT atomic, each change is
+     *   commited independently to other
+     * - from previous point, it may happen that a erroneous commit
+     *   in a beginner element leads to other errors
+     * - the commit order is DEFINED and FIXE
+     *   - we commit by element types,
+     *   - for a given type, we do all its action before passing to
+     *     an other type
+     *
+     * - Change type order:
+     *   - 1/ GlobalParameter
+     *   - 2/ Group
+     *   - 3/ Directive
+     *   - 4/ Rules
+     *
+     * - Action order:
+     *   - 1/ delete
+     *   - 2/ create
+     *   - 3/ modify
      */
 
-    for {
+    val sortedParam = cr.globalParams.values.toSeq.sortWith { case (x,y) =>
+      (for {
+        c1 <- x.changes.change
+        c2 <- y.changes.change
+      } yield {
+        (c1.diff, c2.diff) match {
+          case (_:DeleteGlobalParameterDiff, _:DeleteGlobalParameterDiff) => true
+          case (_, _:DeleteGlobalParameterDiff) => false
+          case (_, _:AddGlobalParameterDiff) => false
+          case _ => true
+        }
+      }).openOr(true)
+    }
 
-      directives <- sequence(cr.directives.values.toSeq) { directiveChange =>
-                      doDirectiveChange(directiveChange, modId)
-                    }
-      groups     <- sequence(cr.nodeGroups.values.toSeq) { nodeGroupChange =>
+    val sortedGroups = cr.nodeGroups.values.toSeq.sortWith { case (x,y) =>
+      (for {
+        c1 <- x.changes.change
+        c2 <- y.changes.change
+      } yield {
+        (c1.diff, c2.diff) match {
+          case (_:DeleteNodeGroupDiff, _:DeleteNodeGroupDiff) => true
+          case (_, _:DeleteNodeGroupDiff) => false
+          case (_, _:AddNodeGroupDiff) => false
+          case _ => true
+        }
+      }).openOr(true)
+    }
+
+    val sortedDirectives = cr.directives.values.toSeq.sortWith { case (x,y) =>
+      (for {
+        c1 <- x.changes.change
+        c2 <- y.changes.change
+      } yield {
+        (c1.diff, c2.diff) match {
+          case (_:DeleteDirectiveDiff, _:DeleteDirectiveDiff) => true
+          case (_, _:DeleteDirectiveDiff) => false
+          case (_, _:AddDirectiveDiff) => false
+          case _ => true
+        }
+      }).openOr(true)
+    }
+
+    val sortedRules = cr.rules.values.toSeq.sortWith { case (x,y) =>
+      (for {
+        c1 <- x.changes.change
+        c2 <- y.changes.change
+      } yield {
+        (c1.diff, c2.diff) match {
+          case (_:DeleteRuleDiff, _:DeleteRuleDiff) => true
+          case (_, _:DeleteRuleDiff) => false
+          case (_, _:AddRuleDiff) => false
+          case _ => true
+        }
+      }).openOr(true)
+    }
+
+    val params     = bestEffort(sortedParam) { param =>
+                      doParamChange(param, modId)
+                   }
+    val groups     = bestEffort(sortedGroups) { nodeGroupChange =>
                       doNodeGroupChange(nodeGroupChange, modId)
                     }
-      rules      <- sequence(cr.rules.values.toSeq) { rule =>
+    val directives = bestEffort(sortedDirectives) { directiveChange =>
+                      doDirectiveChange(directiveChange, modId)
+                    }
+    val rules      = bestEffort(sortedRules) { rule =>
                       doRuleChange(rule, modId)
                     }
-      params     <- sequence(cr.globalParams.values.toSeq) { param =>
-                      doParamChange(param, modId)
-                    }
+
+    //TODO: we will want to keep tracks of all the modification done, and in
+    //particular of all the error
+    //not fail on the first erroneous, but in case of error, get them all.
+    for {
+      ISoK <-  bestEffort(List(params, directives, groups, rules)) { x => x.map(_ => "OK") }
     } yield {
       modId
     }
+
   }
 
 }

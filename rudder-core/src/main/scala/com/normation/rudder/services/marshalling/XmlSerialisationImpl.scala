@@ -95,6 +95,7 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
     createTrimedElem(XML_TAG_RULE, xmlVersion) {
         <id>{rule.id.value}</id>
         <displayName>{rule.name}</displayName>
+        <category>{rule.categoryId.value}</category>
         <targets>{
           rule.targets.map { target => <target>{target.target}</target> }
         }</targets>

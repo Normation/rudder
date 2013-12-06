@@ -152,7 +152,7 @@ class WoLDAPRuleRepository(
     repo.synchronized { for {
       con             <- ldap
       idDoesntExist   <- if(con.exists(rudderDit.RULES.configRuleDN(rule.id.value))) {
-                           Failure("Cannot create a rule with id %s : there is already a rule with the same id".format(rule.id))
+                           Failure(s"Cannot create a rule with ID '${rule.id.value}' : there is already a rule with the same id")
                          } else {
                            Full(Unit)
                          }
@@ -161,7 +161,7 @@ class WoLDAPRuleRepository(
       crEntry         =  mapper.rule2Entry(rule)
       result          <- {
                            crEntry +=! (A_SERIAL, "0") //serial must be set to 0
-                           con.save(crEntry) ?~! "Error when saving rule entry in repository: %s".format(crEntry)
+                           con.save(crEntry) ?~! s"Error when saving rule entry in repository: ${crEntry}"
                          }
       diff            <- diffMapper.addChangeRecords2RuleDiff(crEntry.dn,result)
       loggedAction    <- actionLogger.saveAddRule(modId, principal = actor, addDiff = diff, reason = reason)
@@ -261,6 +261,7 @@ class WoLDAPRuleRepository(
     }
     //save rules, taking care of serial value
     def saveCR(con:RwLDAPConnection, rule:Rule) : Box[LDIFChangeRecord] = {
+
       val entry = mapper.rule2Entry(rule)
       entry +=! (A_SERIAL, rule.serial.toString)
       con.save(entry)

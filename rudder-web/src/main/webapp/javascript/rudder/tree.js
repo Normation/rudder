@@ -28,8 +28,8 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
             },
             "valid_children" : [ "category", "template" ],
             "select_node" : function(e) {
-        	  this.toggle_node(e);
-        	  return false;
+              this.toggle_node(e);
+              return false;
             },
             "start_drag" : false
           },
@@ -58,11 +58,11 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
         "drag_target" : false
       },
       "themes" : { 
-    	  "theme" : "rudder",
-    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
+          "theme" : "rudder",
+          "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ]
-    })   
+    })
 }
 
 /*
@@ -233,6 +233,115 @@ var buildDirectiveTree = function(id, initially_select , appContext) {
 
 }
 
+
+
+/*
+ * Rule category tree
+ */
+var buildRuleCategoryTree = function(id, initially_select , appContext) {
+  $(id).jstree({
+      "core" : {
+      "animation" : 300,
+      "html_titles" : true,
+      "initially_open" : [ "jstn_0" ]
+      },
+     "ui" : {
+        "select_limit" : 1,
+        "initially_select" : [initially_select]
+      },
+      // I set both options to -2, as I do not need depth and children count checking
+      // Those two checks may slow jstree a lot, so use only when needed
+      "max_depth" : -2,
+      "max_children" : -2,
+      "types" : {
+        "valid_children" : [ "category" ],
+          "types" : {
+            "category" : {
+              "icon" : {
+                "image" : appContext+"/images/tree/folder_16x16.png"
+              },
+              "valid_children" : [ "category" ],
+              "select_node" : function(e) {
+            	  return true;
+              }
+            },
+            "default" : {
+              "valid_children" : "none"
+            }
+          }
+      },
+      "search" : {
+        "case_insensitive" : true,
+        "show_only_matches": true
+      },
+      "dnd" : {
+          "drop_target" : false,
+          "drag_target" : false,
+        },
+      "themes" : {
+    	  "theme" : "rudder",
+    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
+      },
+      "plugins" : [ "themes", "html_data", "ui", "types", "search", "dnd" ]
+  }).bind("loaded.jstree", function (event, data) {
+      // you get two params - event & data - check the core docs for a detailed description
+      $(this).jstree("open_all");
+      $("#categoryTree ins.jstree-icon").css("float","left");
+  })
+  $(id).removeClass('nodisplay');
+}
+
+/*
+ * Rule category tree no drag and drom
+ */
+var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
+  $(id).jstree({
+      "core" : {
+      "animation" : 300,
+      "html_titles" : true,
+      "initially_open" : [ "jstn_0" ]
+      },
+     "ui" : {
+        "select_limit" : 1,
+        "initially_select" : [initially_select]
+      },
+      // I set both options to -2, as I do not need depth and children count checking
+      // Those two checks may slow jstree a lot, so use only when needed
+      "max_depth" : -2,
+      "max_children" : -2,
+      "types" : {
+        "valid_children" : [ "category" ],
+          "types" : {
+            "category" : {
+              "icon" : {
+                "image" : appContext+"/images/tree/folder_16x16.png"
+              },
+              "valid_children" : [ "category" ],
+              "select_node" : function(e) {
+            	  return true;
+              }
+            },
+            "default" : {
+              "valid_children" : "none"
+            }
+          }
+      },
+      "search" : {
+        "case_insensitive" : true,
+        "show_only_matches": true
+      },
+      "themes" : {
+    	  "theme" : "rudder",
+    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
+      },
+      "plugins" : [ "themes", "html_data", "ui", "types", "search" ]
+  }).bind("loaded.jstree", function (event, data) {
+      // you get two params - event & data - check the core docs for a detailed description
+      $(this).jstree("open_all");
+      $("#categoryTree ins.jstree-icon").css("float","left");
+  })
+  $(id).removeClass('nodisplay');
+}
 
 /*
  * Group tree

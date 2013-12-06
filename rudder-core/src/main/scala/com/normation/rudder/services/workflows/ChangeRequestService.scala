@@ -69,6 +69,7 @@ import com.normation.rudder.domain.eventlog.AddChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ModifyToChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ChangeRequestEventLog
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.policies.ModifyToRuleDiff
 
 
 /**
@@ -87,6 +88,29 @@ trait ChangeRequestService {
     , diff             : ChangeRequestDirectiveDiff
     , actor            : EventActor
     , reason           : Option[String]
+  ) : Box[ChangeRequest]
+
+  def createChangeRequestFromDirectiveAndRules(
+      changeRequestName: String
+    , changeRequestDesc: String
+    , techniqueName    : TechniqueName
+    , rootSection      : SectionSpec
+    , directiveId      : DirectiveId
+    , originalDirective: Option[Directive]
+    , diff             : ChangeRequestDirectiveDiff
+    , actor            : EventActor
+    , reason           : Option[String]
+    , rulesToUpdate    : List[Rule]
+    , updatedRules     : List[Rule]
+  ) : Box[ChangeRequest]
+
+  def createChangeRequestFromRules(
+      changeRequestName: String
+    , changeRequestDesc: String
+    , actor            : EventActor
+    , reason           : Option[String]
+    , rulesToUpdate    : List[Rule]
+    , updatedRules     : List[Rule]
   ) : Box[ChangeRequest]
 
   def createChangeRequestFromRule(
@@ -208,6 +232,93 @@ class ChangeRequestServiceImpl(
       , Map(directiveId -> DirectiveChanges(change, Seq()))
       , Map()
       , Map()
+      , Map()
+    )
+    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+  }
+
+  private[this] def rulechange(
+      baseRule  : Rule
+    , finalRule : Rule
+    , actor     : EventActor
+    , reason    : Option[String]
+   ) = {
+    val change = RuleChanges(
+                     RuleChange(
+                         Some(baseRule)
+                       , RuleChangeItem(actor, DateTime.now, reason, ModifyToRuleDiff(finalRule))
+                       , Seq()
+                     )
+                   , Seq()
+                 )
+      baseRule.id -> change
+    }
+
+  def createChangeRequestFromDirectiveAndRules(
+      changeRequestName: String
+    , changeRequestDesc: String
+    , techniqueName    : TechniqueName
+    , rootSection      : SectionSpec
+    , directiveId      : DirectiveId
+    , originalDirective: Option[Directive]
+    , diff             : ChangeRequestDirectiveDiff
+    , actor            : EventActor
+    , reason           : Option[String]
+    , rulesToUpdate    : List[Rule]
+    , updatedRules     : List[Rule]
+  ) : Box[ChangeRequest] = {
+
+
+
+    val initialState = originalDirective match {
+      case None =>  None
+      case Some(x) => Some((techniqueName, x, rootSection))
+    }
+
+
+    val change = DirectiveChange(
+                     initialState = initialState
+                   , firstChange = DirectiveChangeItem(actor, DateTime.now, reason, diff)
+                   , Seq()
+                 )
+    val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2,actor,reason)).toMap
+    logger.debug(change)
+    val changeRequest =  ConfigurationChangeRequest(
+        ChangeRequestId(0)
+      , None
+      , ChangeRequestInfo(
+            changeRequestName
+          , changeRequestDesc
+        )
+      , Map(directiveId -> DirectiveChanges(change, Seq()))
+      , Map()
+      , rulesChanges
+      , Map()
+    )
+    saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)
+  }
+
+
+
+  def createChangeRequestFromRules(
+      changeRequestName: String
+    , changeRequestDesc: String
+    , actor            : EventActor
+    , reason           : Option[String]
+    , rulesToUpdate    : List[Rule]
+    , updatedRules     : List[Rule]
+  ) : Box[ChangeRequest] = {
+    val rulesChanges = (rulesToUpdate zip updatedRules).map(r => rulechange(r._1,r._2,actor,reason)).toMap
+    val changeRequest =  ConfigurationChangeRequest(
+        ChangeRequestId(0)
+      , None
+      , ChangeRequestInfo(
+            changeRequestName
+          , changeRequestDesc
+        )
+      , Map()
+      , Map()
+      , rulesChanges
       , Map()
     )
     saveAndLogChangeRequest(AddChangeRequestDiff(changeRequest), actor, reason)

@@ -60,6 +60,11 @@ import com.normation.rudder.repository._
 import com.normation.utils.StringUuidGenerator
 import com.normation.plugins.{SpringExtendableSnippet,SnippetExtensionKey}
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.components.RuleCategoryTree
+import com.normation.rudder.rule.category._
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.components.RuleDisplayer
 
 /**
  * Snippet for managing Rules.
@@ -70,8 +75,10 @@ import bootstrap.liftweb.RudderConfig
 class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleManagement] with Loggable {
   import RuleManagement._
 
-  private[this] val ruleRepository    = RudderConfig.roRuleRepository
-  private[this] val uuidGen           = RudderConfig.stringUuidGenerator
+  private[this] val ruleRepository       = RudderConfig.roRuleRepository
+  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private[this] val woCategoryRepository = RudderConfig.woRuleCategoryRepository
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateOrCloneRulePopup]
@@ -138,6 +145,9 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
       <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
       {Script(
         JsRaw("""
+var include = true;
+var filter = "Rules";
+var column = 1;
 $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
         function updateTips( t ) {
           tips
@@ -165,22 +175,12 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   }
 
   def viewRules(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
-    val ruleGrid = new RuleGrid(
-        "rules_grid_zone",
-        ruleRepository.getAll().openOr(Seq()),
-        Some(detailsCallbackLink(workflowEnabled, changeMsgEnabled)),
-        showCheckboxColumn = false
-    )
-
-            <div id={htmlId_viewAll}>
-            <lift:authz role="rule_write">
-              <div id="actions_zone">
-                {SHtml.ajaxButton("Add a new rule", () => showPopup(None, workflowEnabled, changeMsgEnabled), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))}
-              </div>
-            </lift:authz>
-             {ruleGrid.rulesGridWithUpdatedInfo() }
-           </div>
-
+    new RuleDisplayer(
+        None
+      , "rules_grid_zone"
+      , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
+      , showPopup(None, workflowEnabled, changeMsgEnabled)
+    ).display
   }
 
   def editRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
@@ -244,6 +244,10 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+  private[this] def updateRulesDisplayerComponent(workflowEnabled: Boolean, changeMsgEnabled : Boolean) = {
+    () => Replace(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled))
+  }
+
   private[this] def updateEditComponent(rule:Rule, workflowEnabled: Boolean, changeMsgEnabled : Boolean) : Unit = {
     val form = new RuleEditForm(
                        htmlId_editRuleDiv+"Form"
@@ -251,9 +255,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
                      , workflowEnabled
                      , changeMsgEnabled
                      , onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule), workflowEnabled, changeMsgEnabled) }
-                     , onSuccessCallback = { () => //update UI
-                         Replace(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled) )
-                       }
+                     , onSuccessCallback = { updateRulesDisplayerComponent(workflowEnabled,changeMsgEnabled)  }
                    )
     currentRuleForm.set(Full(form))
   }
