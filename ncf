@@ -4,10 +4,59 @@
 
 import os
 import sys
+import shutil
 
-ncf_dir = os.path.dirname(os.path.realpath(__file__))
-ncf_tools_dir = os.path.join(ncf_dir, 'tools')
+DEFAULT_NCF_DIR = '/usr/share/ncf'
 
-sys.path[0:0] = [ncf_dir + '/tools', '/usr/share/ncf']
+NCF_DIR = os.path.dirname(os.path.realpath(__file__))
+NCF_TREE_DIR  = os.path.join(NCF_DIR, 'tree')
+NCF_TOOLS_DIR = os.path.join(NCF_DIR, 'tools')
+
+sys.path[0:0] = [NCF_TOOLS_DIR, DEFAULT_NCF_DIR]
 
 import ncf
+
+def usage():
+  print "ncf init [path]"
+
+def get_ncf_dir():
+  # Try the directory this script is run from first (in case of a git clone)
+  # Otherwise use the system default path
+  target_dirs = [ NCF_TREE_DIR, os.path.join(DEFAULT_NCF_DIR, 'tree') ]
+  for dir in target_dirs:
+    if os.path.isdir(dir):
+      return dir
+
+  # If none found, return None
+  return None
+
+def init(args):
+
+  # First argument is dir name, unless not specified then we use current dir
+  if len(args) == 0:
+    init_dir = os.getcwd()
+    print "INFO: No path specified, using current directory"
+  else:
+    init_dir = args[0]
+
+  print "INFO: Initialising in " + init_dir
+
+  # Check if this directory is already a ncf instance
+  if os.path.isdir(init_dir) and set(ncf.dirs).intersection(set(os.listdir(init_dir))):
+    print "ERROR: It looks like this directory is already initialized. Aborting"
+    exit(2)
+
+  for component_dir in ncf.dirs:
+    target_dir = os.path.join(init_dir, component_dir)
+    os.makedirs(target_dir)
+    shutil.copy(os.path.join(get_ncf_dir(), component_dir, "README.md"), target_dir)
+
+  print "INFO: Success"
+
+if __name__ == '__main__':
+  if len(sys.argv) <= 1:
+    usage()
+    exit(1)
+
+  if sys.argv[1] == "init":
+    init(sys.argv[2:])

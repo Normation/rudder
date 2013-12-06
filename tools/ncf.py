@@ -12,6 +12,8 @@ import subprocess
 import json
 import os.path
 
+dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services" ]
+
 tags = {}
 tags["common"] = ["bundle_name", "bundle_args"]
 tags["generic_method"] = ["name", "class_prefix", "class_parameter", "class_parameter_id"]
