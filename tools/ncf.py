@@ -91,14 +91,22 @@ def parse_technique_methods(technique_file):
   promises = json.loads(out)
 
   # Sanity check: if more than one bundle, this is a weird file and I'm quitting
-  if len(promises['bundles']) != 1:
+  bundle_count = 0
+  for bundle in promises['bundles']:
+    if bundle['bundleType'] == "agent":
+      bundle_count += 1
+
+  if bundle_count > 1:
     raise Exception("There is not exactly one bundle in this file, aborting")
 
   # Sanity check: the bundle must be of type agent
   if promises['bundles'][0]['bundleType'] != 'agent':
     raise Exception("This bundle if not a bundle agent, aborting")
 
-  methods = [promiseType for promiseType in promises['bundles'][0]['promiseTypes'] if promiseType['name']=="methods"][0]['contexts']
+  methods_promises = [promiseType for promiseType in promises['bundles'][0]['promiseTypes'] if promiseType['name']=="methods"]
+  methods = []
+  if len(methods_promises) >= 1:
+    methods = methods_promises[0]['contexts']
 
   for context in methods:
     class_context = context['name']
