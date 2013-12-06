@@ -24,15 +24,22 @@ def write_technique_for_rudder(root_path, technique):
   """ From a technique, generate all files needed for Rudder in specified path"""
 
   path = get_path_for_technique(root_path,technique)
-  write_xml_metadata_file(path,technique)
-  return
-
-def write_xml_metadata_file(path,technique):
-
   if not os.path.exists(path):
     os.makedirs(path)
+  write_xml_metadata_file(path,technique)
+  write_expected_reports_file(path,technique)
+
+def write_xml_metadata_file(path,technique):
+  """ write metadata.xml file from a technique, to a path """
   file = open(os.path.realpath(path+"/metadata.xml"),"w")
   content = get_technique_metadata_xml(technique)
+  file.write(content)
+  file.close()
+
+def write_expected_reports_file(path,technique):
+  """ write expected_reports.csv file from a technique, to a path """
+  file = open(os.path.realpath(path+"/expected_reports.csv"),"w")
+  content = get_technique_expected_reports(technique)
   file.write(content)
   file.close()
 
