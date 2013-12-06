@@ -82,9 +82,8 @@ class TestNcf(unittest.TestCase):
     """Parsing a technique should return a list of it's generic method calls"""
     bundle_calls = ncf.parse_technique_methods(self.test_technique_file)
     expected = [  { 'method_name': 'package_install_version', 'args': ['${bla.apache_package_name}', '2.2.11'], 'class_context': 'any' },
-                  { 'method_name': 'service_restart', 'args': ['${bla.apache_package_name}'], 'class_context': 'cfengine' },
+                  { 'method_name': 'service_start', 'args': ['${bla.apache_package_name}'], 'class_context': 'cfengine' },
                   { 'method_name': 'package_install', 'args': ['nano'], 'class_context': 'cfengine' },
-                  { 'method_name': 'shouldnt_happen_but_want_to_parse_anyway', 'class_context': 'cfengine' },
                ]
     self.assertEqual(bundle_calls, expected)
 

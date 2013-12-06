@@ -23,8 +23,8 @@ bundle agent bla
     any::
       "ph1" usebundle => package_install_version("${bla.apache_package_name}", "2.2.11");
     cfengine::
-      "ph2" usebundle => service_restart("${bla.apache_package_name}");
+      "ph2" usebundle => service_start("${bla.apache_package_name}");
       "ph3" usebundle => package_install("nano");
-      "ph3" usebundle => "shouldnt_happen_but_want_to_parse_anyway";
+
 
 }
