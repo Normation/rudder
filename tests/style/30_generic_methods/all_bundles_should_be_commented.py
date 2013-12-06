@@ -16,6 +16,9 @@ def check_comments_for_all_generic_methods():
       print "Error in " + file + ": " + e.__str__()
       errors += 1
 
+  if errors == 0:
+    print "R: ./30_generic_methods/all_bundles_should_be_commented.py Pass"
+
   return (errors != 0)
 
 if __name__ == '__main__':
