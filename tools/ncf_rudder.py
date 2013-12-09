@@ -16,6 +16,7 @@ import ncf
 import sys
 
 def write_all_techniques_for_rudder(root_path):
+  write_category_xml(root_path)
   techniques = ncf.get_all_techniques_metadata()
   for technique, metadata in techniques.iteritems():
     try:
@@ -23,6 +24,31 @@ def write_all_techniques_for_rudder(root_path):
     except Exception, e:
      print("Error: Unable to create Rudder Technique files related to NCF Technique "+technique+", skipping...")
      continue
+
+def get_category_xml():
+  """Create a category.xml content to be inserted in the NCF root directory"""
+
+  content = []
+  content.append('<xml>')
+  content.append('  <name>Technique library root</name>')
+  content.append('  <description>')
+  content.append('    This is the root category for the Techniques library. It contains Techniques provided by Normation.')
+  content.append('  </description>')
+  content.append('</xml>')
+
+  # Join all lines with \n to get a pretty xml
+  result = '\n'.join(content)+"\n"
+  return result
+
+def write_category_xml(path):
+  """Write the category.xml file to make Rudder acknowledge this directory as a Technique section"""
+
+  if not os.path.exists(path):
+    os.makedirs(path)
+
+  file = open(os.path.realpath(path+"/category.xml"),"w")
+  file.write(get_category_xml())
+  file.close()
 
 def write_technique_for_rudder(root_path, technique):
   """ From a technique, generate all files needed for Rudder in specified path"""

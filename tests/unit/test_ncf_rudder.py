@@ -37,6 +37,22 @@ class TestNcfRudder(unittest.TestCase):
     path = ncf_rudder.get_path_for_technique(root_path, self.technique_metadata)
     self.assertEquals(os.path.join(root_path, 'bla', '0.1'), path)
 
+  def test_category_xml_content(self):
+
+    content = []
+    content.append('<xml>')
+    content.append('  <name>Technique library root</name>')
+    content.append('  <description>')
+    content.append('    This is the root category for the Techniques library. It contains Techniques provided by Normation.')
+    content.append('  </description>')
+    content.append('</xml>')
+
+    # Join all lines with \n to get a pretty xml
+    result = '\n'.join(content)+"\n"
+    generated_result = ncf_rudder.get_category_xml()
+
+    self.assertEquals(result, generated_result)
+
   # Other required functions:
   # ncf_rudder.write_technique_for_rudder(path, technique_metadata)
   # ncf_rudder.write_all_techniques_for_rudder(path)
