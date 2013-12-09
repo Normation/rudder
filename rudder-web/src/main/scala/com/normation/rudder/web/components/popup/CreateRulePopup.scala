@@ -56,10 +56,12 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategory
 
 class CreateOrCloneRulePopup(
     rootRuleCategory  : RuleCategory
   , clonedRule        : Option[Rule]
+  , selectedCategory  : RuleCategoryId
   , onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
@@ -165,7 +167,7 @@ class CreateOrCloneRulePopup(
     new WBSelectField(
         "Category"
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name)}
-      , rootRuleCategory.id.value
+      , selectedCategory.value
     ) {
     override def className = "rudderBaseFieldSelectClassName"
   }
