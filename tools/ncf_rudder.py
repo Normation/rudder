@@ -46,7 +46,7 @@ def write_category_xml(path):
   if not os.path.exists(path):
     os.makedirs(path)
 
-  file = open(os.path.realpath(path+"/category.xml"),"w")
+  file = open(os.path.realpath(os.path.join(path, "category.xml")),"w")
   file.write(get_category_xml())
   file.close()
 
@@ -61,14 +61,14 @@ def write_technique_for_rudder(root_path, technique):
 
 def write_xml_metadata_file(path,technique):
   """ write metadata.xml file from a technique, to a path """
-  file = open(os.path.realpath(path+"/metadata.xml"),"w")
+  file = open(os.path.realpath(os.path.join(path, "metadata.xml")),"w")
   content = get_technique_metadata_xml(technique)
   file.write(content)
   file.close()
 
 def write_expected_reports_file(path,technique):
   """ write expected_reports.csv file from a technique, to a path """
-  file = open(os.path.realpath(path+"/expected_reports.csv"),"w")
+  file = open(os.path.realpath(os.path.join(path, "expected_reports.csv")),"w")
   content = get_technique_expected_reports(technique)
   file.write(content)
   file.close()
