@@ -41,9 +41,9 @@ class TestNcfRudder(unittest.TestCase):
 
     content = []
     content.append('<xml>')
-    content.append('  <name>Technique library root</name>')
+    content.append('  <name>Meta Techniques</name>')
     content.append('  <description>')
-    content.append('    This is the root category for the Techniques library. It contains Techniques provided by Normation.')
+    content.append('    Meta Techniques created using the NCF framework.')
     content.append('  </description>')
     content.append('</xml>')
 
