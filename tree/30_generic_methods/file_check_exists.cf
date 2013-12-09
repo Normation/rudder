@@ -1,0 +1,42 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File check exists
+# @description Checks if a file exists
+#
+# @parameter file_name File name
+# 
+# @class_prefix file_check_exists
+# @class_parameter file_name
+# This bundle will define a class file_check_exists_${file_name}_ok
+
+bundle agent file_check_exists(file_name)
+{
+  vars:
+    "class_prefix"        string => canonify("file_check_exists_${file_name}");
+    "dummy"               string => "any",
+                          ifvarclass => canonify("${file_name}_exists"),
+                          classes    => classes_generic("${class_prefix}");
+
+  classes:
+    "${file_name}_exists"  expression => fileexists("${file_name}");
+
+  methods:
+      "report"
+        usebundle => _logger("Check if ${file_name} exists", "${class_prefix}");
+}
