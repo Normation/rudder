@@ -136,6 +136,8 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
             "bFilter" :%s,
             "bPaginate" :%s,
             "bLengthChange": true,
+            "bStateSave": true,
+            "sCookiePrefix": "Rudder_DataTables_",
             "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
             "sPaginationType": "full_numbers",

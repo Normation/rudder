@@ -212,6 +212,8 @@ class RuleGrid(
         "bLengthChange": true,
         "sPaginationType": "full_numbers",
         "bJQueryUI": true,
+        "bStateSave": true,
+        "sCookiePrefix": "Rudder_DataTables_",
         "oLanguage": {
           "sZeroRecords": "No matching rules!",
           "sSearch": ""

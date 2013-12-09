@@ -769,6 +769,8 @@ class RuleEditForm(
                     "bLengthChange": true,
                     "sPaginationType": "full_numbers",
                     "bJQueryUI": true,
+                    "bStateSave": true,
+                    "sCookiePrefix": "Rudder_DataTables_",
                     "oLanguage": {
                       "sSearch": ""
                     },
@@ -979,6 +981,8 @@ class RuleEditForm(
                 "bLengthChange": true,
                 "sPaginationType": "full_numbers",
                 "bJQueryUI": true,
+                "bStateSave": true,
+                "sCookiePrefix": "Rudder_DataTables_",
                 "oLanguage": {
                  "sSearch": ""
                 },
@@ -1149,6 +1153,8 @@ class RuleEditForm(
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "oLanguage": {
                  "sSearch": ""
                },
@@ -1389,6 +1395,8 @@ class RuleEditForm(
                "bPaginate" : true,
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "bJQueryUI": true,
                "oLanguage": {
                  "sSearch": ""
@@ -1490,6 +1498,8 @@ class RuleEditForm(
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "oLanguage": {
                  "sSearch": ""
                },
