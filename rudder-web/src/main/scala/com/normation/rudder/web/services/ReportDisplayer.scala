@@ -303,6 +303,8 @@ class ReportDisplayer(
          "bFilter" : true,
          "bPaginate" : true,
          "bLengthChange": true,
+         "bStateSave": true,
+         "sCookiePrefix": "Rudder_DataTables_",
          "sPaginationType": "full_numbers",
          "bJQueryUI": true,
          "oLanguage": {
@@ -678,6 +680,8 @@ class ReportDisplayer(
                "bFilter" : true,
                "bPaginate" : true,
                "bLengthChange": true,
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
                "oLanguage": {
@@ -765,6 +769,8 @@ class ReportDisplayer(
                "bFilter" : true,
                "bPaginate" : true,
                "bLengthChange": true,
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
                "oLanguage": {
