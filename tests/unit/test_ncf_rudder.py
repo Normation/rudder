@@ -43,7 +43,7 @@ class TestNcfRudder(unittest.TestCase):
     content.append('<xml>')
     content.append('  <name>Meta Techniques</name>')
     content.append('  <description>')
-    content.append('    Meta Techniques created using the NCF framework.')
+    content.append('    Meta Techniques created using the ncf framework.')
     content.append('  </description>')
     content.append('</xml>')
 
