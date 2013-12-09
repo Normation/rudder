@@ -1,5 +1,9 @@
+#!/usr/bin/env python
+#
+# Usage: ./ncf_rudder.py path
+#
 # This is a Python module containing functions to generate technique for Rudder from ncf techniques
-
+#
 # This module is designed to run on the latest major versions of the most popular
 # server OSes (Debian, Red Hat/CentOS, Ubuntu, SLES, ...)
 # At the time of writing (November 2013) these are Debian 7, Red Hat/CentOS 6,
