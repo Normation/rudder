@@ -116,6 +116,7 @@ class RuleCategoryPopup(
     }
   }
 
+  val parentCategory = targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value)
   def popupContent() : NodeSeq = {
      (
 
@@ -124,7 +125,7 @@ class RuleCategoryPopup(
       "#categoryName * "          #> categoryName.toForm_! &
       "#categoryParent *"        #> categoryParent.toForm_! &
       "#categoryDescription *" #> categoryDescription.toForm_! &
-      "#saveCategory"          #> SHtml.ajaxSubmit("Save", () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","3"), ("style","margin-left:5px;")) andThen
+      "#saveCategory"          #> SHtml.ajaxSubmit("Save", () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
       ".notifications *"       #> updateAndDisplayNotifications()
 
     )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
@@ -137,8 +138,8 @@ class RuleCategoryPopup(
      (
       "#dialogTitle *"  #> s"Delete Rule category ${s"'${rootCategory.name}'"}" &
       "#text * "        #> (if(canBeDeleted) "Are you sure you want to delete this rule category?" else "This Rule category is not empty and therefore cannot be deleted")  &
-      "#deleteCategoryButton" #> SHtml.ajaxButton("Confirm", action, ("id", "createRuleCategorySaveButton") ,("tabindex","3") , ("style","margin-left:5px;"), disabled )
-    )(deleteHtml ++ Script(OnLoad(JsRaw("updatePopup();"))))
+      "#deleteCategoryButton" #> SHtml.ajaxButton("Confirm", action, ("id", "createRuleCategorySaveButton") ,("tabindex","1") , ("style","margin-left:5px;"), disabled )
+    )(deleteHtml ++ Script(OnLoad(JsRaw(s"updatePopup(); "))))
   }
 
   ///////////// fields for category settings ///////////////////
@@ -146,7 +147,7 @@ class RuleCategoryPopup(
     override def setFilter = notNull _ :: trim _ :: Nil
     override def subContainerClassName = "twoColPopup"
     override def errorClassName = "threeColErrors"
-    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
+    override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createRuleCategorySaveButton')") % ("tabindex","2")
     override def validations =
       valMinLen(1, "The name must not be empty.") _ :: Nil
   }
@@ -154,7 +155,7 @@ class RuleCategoryPopup(
   private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
     override def subContainerClassName = "twoColPopup"
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","4")
+    override def inputField = super.inputField  % ("style" -> "height:3em") % ("tabindex","4")
     override def errorClassName = "threeColErrors"
     override def validations =  Nil
 
@@ -166,9 +167,10 @@ class RuleCategoryPopup(
     new WBSelectField(
         "Parent category"
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name)}
-      , targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value).getOrElse(rootCategory.id.value)
+      , parentCategory.getOrElse(rootCategory.id.value)
     ) {
     override def subContainerClassName = "twoColPopup"
+    override def inputField = super.inputField % ("tabindex","3")
     override def className = "rudderBaseFieldSelectClassName"
   }
 
@@ -211,6 +213,7 @@ class RuleCategoryPopup(
   }
 
   private[this] def onSubmit() : JsCmd = {
+
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
@@ -233,10 +236,14 @@ class RuleCategoryPopup(
                             name        =  categoryName.is
                           , description = categoryDescription.is
                         )
-
           val parent = RuleCategoryId(categoryParent.is)
-          val modId = new ModificationId(uuidGen.newUuid)
-          woRulecategoryRepository.updateAndMove(updated, parent,modId , CurrentUser.getActor, None)
+
+          if (updated == category && parentCategory.exists(_ == parent.value)) {
+            Failure("There are no modifications to save")
+          } else {
+            val modId = new ModificationId(uuidGen.newUuid)
+            woRulecategoryRepository.updateAndMove(updated, parent,modId , CurrentUser.getActor, None)
+          }
       }) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
