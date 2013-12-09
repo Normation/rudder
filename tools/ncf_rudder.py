@@ -80,7 +80,7 @@ def get_technique_metadata_xml(technique_metadata):
   generic_methods = ncf.get_all_generic_methods_metadata()
 
   content = []
-  content.append('<TECHNIQUE name="'+technique_metadata['bundle_name']+'">')
+  content.append('<TECHNIQUE name="'+technique_metadata['name']+'">')
   content.append('  <DESCRIPTION>'+technique_metadata['description']+'</DESCRIPTION>')
   content.append('  <BUNDLES>')
   content.append('    <NAME>'+ technique_metadata['bundle_name'] + '</NAME>')
