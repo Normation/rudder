@@ -1,0 +1,72 @@
+#######################################################
+#
+# Test checking if a file can be generated from a local template
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"                    string => getenv("TEMP", 1024);
+    "source_template"        string => "${tmp}/source_template";
+    "destination_file"       string => "${tmp}/destination_test";
+    "destination_file_canon" string => canonify("${destination_file}");
+
+  files:
+    "${source_template}"
+      create => "true",
+      edit_line => insert_lines("sys.host is: ${sys.host}");
+
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => file_from_template("${init.source_template}", "${init.destination_file}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "file_length_check" string => "/bin/cat ${init.destination_file} | wc -l";
+    "file_content_check" string => "/bin/cat ${init.destination_file} | head -n1 | grep '^sys.host is: ${sys.host}$'";
+
+  classes:
+    # By default, should create the file if it doesn't exist
+    "file_exists"      expression => fileexists("${init.destination_file}");
+    "file_length_ok"   expression => strcmp(execresult("${file_length_check}", "useshell"), "1");
+    "file_content_ok"  expression => returnszero("${file_content_check}", "useshell");
+
+    "ok"                   expression => "file_exists.file_length_ok.file_content_ok.file_from_template_${init.destination_file_canon}_ok.!file_from_template_${init.destination_file_canon}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+    !file_exists::
+      "File ${init.destination_file} didn't appear to exist";
+    !file_length_ok::
+      "There was not exactly one line in ${init.destination_file}";
+    !file_content_ok::
+      "The file content in ${init.destination_file} was not exactly \"sys.host is: ${sys.host}\"";
+}

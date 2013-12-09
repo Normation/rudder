@@ -1,0 +1,43 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from template
+# @description This is a bundle to build a file from a template
+#
+# @parameter source_template Source file containing a template to be expanded
+# @parameter destination     Destination file
+#
+# @class_prefix file_from_template
+# @class_parameter destination
+# This bundle will define a class file_from_template_${destination}_{kept,repaired,error,ok,reached}
+
+bundle agent file_from_template(source_template, destination)
+{
+  vars:
+    "class_prefix" string => canonify("file_from_template_${destination}");
+
+  files:
+    "${destination}"
+      create        => "true",
+      edit_template => "${source_template}",
+      classes       => classes_generic("${class_prefix}");
+
+  methods:
+    "report" usebundle  => _logger("Build file ${destination} from template ${source_template}", "${class_prefix}");
+
+}
