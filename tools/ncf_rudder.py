@@ -43,12 +43,19 @@ def get_category_xml():
 def write_category_xml(path):
   """Write the category.xml file to make Rudder acknowledge this directory as a Technique section"""
 
+  # First, make sure that the directories are all here
   if not os.path.exists(path):
     os.makedirs(path)
 
-  file = open(os.path.realpath(os.path.join(path, "category.xml")),"w")
-  file.write(get_category_xml())
-  file.close()
+  # Then, skip the creation of the category.xml file if already present
+  category_xml_file = os.path.join(path, "category.xml")
+
+  if not os.path.exists(category_xml_file):
+    file = open(os.path.realpath(category_xml_file),"w")
+    file.write(get_category_xml())
+    file.close()
+  else:
+    print "INFO: The " + category_xml_file + " file already exists. Not updating."
 
 def write_technique_for_rudder(root_path, technique):
   """ From a technique, generate all files needed for Rudder in specified path"""
