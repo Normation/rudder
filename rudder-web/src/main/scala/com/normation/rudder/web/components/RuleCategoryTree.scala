@@ -75,6 +75,20 @@ class RuleCategoryTree(
   private[this] val ruleCategoryService      = RudderConfig.ruleCategoryService
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] var root = rootCategory
+
+  private[this] var selectedCategoryId = rootCategory.id
+
+  def getSelected = {
+    if (root.contains(selectedCategoryId)) {
+      selectedCategoryId
+    } else {
+      resetSelected
+      rootCategory.id
+    }
+  }
+
+  def resetSelected = selectedCategoryId = rootCategory.id
+
   def dispatch = {
     case "tree" => { _ => tree }
   }
@@ -82,9 +96,24 @@ class RuleCategoryTree(
   def refreshTree(newRoot : RuleCategory) : JsCmd =  {
     root = newRoot
     SetHtml(htmlId_RuleCategoryTree, tree()) &
+    selectCategory() &
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
 
+  def selectCategory() = {
+    ruleCategoryService.bothFqdn(selectedCategoryId,true) match {
+      case Full((long,short)) =>
+        val escaped = Utility.escape(short)
+        JsRaw(s"""
+            filter='${escaped}';
+            filterTableInclude('#grid_rules_grid_zone',filter,include);
+        """) &
+        SetHtml("categoryDisplay",Text(long)) &
+        check()
+      case e: EmptyBox => //Display an error, for now, nothing
+        Noop
+    }
+  }
   private[this] val isDirectiveApplication = directive.isDefined
 
   private[this] def moveCategory(arg: String) : JsCmd = {
@@ -113,7 +142,7 @@ class RuleCategoryTree(
             (category.id.value, newRoot)
           }) match {
             case Full((id,newRoot)) =>
-              refreshTree(newRoot) & updateComponent()
+              refreshTree(newRoot) & updateComponent() & selectCategory()
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }
@@ -134,7 +163,7 @@ class RuleCategoryTree(
     Script(
       OnLoad(
         JsRaw(s"""
-          ${treeFun}('#${htmlId_RuleCategoryTree}','${rootCategory.id.value}','${S.contextPath}');
+          ${treeFun}('#${htmlId_RuleCategoryTree}','${getSelected.value}','${S.contextPath}');
           $$('#${htmlId_RuleCategoryTree}').bind("move_node.jstree", function (e,data) {
             var sourceCatId = $$(data.rslt.o).attr("id");
             var destCatId = $$(data.rslt.np).attr("id");
@@ -280,15 +309,9 @@ class RuleCategoryTree(
           }
         )
       }
-       SHtml.a(() => ruleCategoryService.bothFqdn(category.id,true) match {
-         case Full((long,short)) =>
-           val escaped = Utility.escape(short)
-          JsRaw(s"""
-               filter='${escaped}';
-               filterTableInclude('#grid_rules_grid_zone',filter,include);
-           """) & SetHtml("categoryDisplay",Text(long)) &  check()
-         case e: EmptyBox => //Display an error, for now, nothing
-           Noop
+       SHtml.a(() => {
+         selectedCategoryId = category.id
+         selectCategory()
        }, xml)
     }
 
