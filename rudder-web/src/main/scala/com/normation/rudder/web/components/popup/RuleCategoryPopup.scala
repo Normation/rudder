@@ -70,6 +70,7 @@ import com.normation.rudder.rule.category.RuleCategory
 class RuleCategoryPopup(
     rootCategory      : RuleCategory
   , targetCategory    : Option[RuleCategory]
+  , selectedCategory  : RuleCategoryId
   , onSuccessCategory : (RuleCategory) => JsCmd
   , onSuccessCallback : (String) => JsCmd = { _ => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
@@ -167,7 +168,7 @@ class RuleCategoryPopup(
     new WBSelectField(
         "Parent"
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name)}
-      , parentCategory.getOrElse(rootCategory.id.value)
+      , parentCategory.getOrElse(selectedCategory.value)
     ) {
     override def subContainerClassName = "twoColPopup"
     override def inputField = super.inputField % ("tabindex","3")
