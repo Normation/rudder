@@ -117,7 +117,7 @@ sealed trait Action { def displayName: String }
 final case object Save extends Action { val displayName: String = "Save" }
 final case object Delete extends Action { val displayName: String = "Delete" }
 final case object Enable extends Action { val displayName: String = "Enable" }
-final case object Disable extends Action { val displayName: String = "Disabe" }
+final case object Disable extends Action { val displayName: String = "Disable" }
 
 //create the directive without modifying rules (creation only - skip workflows)
 final case object CreateSolo extends Action { val displayName: String = "Create" }
