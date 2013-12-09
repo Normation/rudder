@@ -21,7 +21,7 @@ def write_all_techniques_for_rudder(root_path):
     try:
       write_technique_for_rudder(root_path, metadata)
     except Exception, e:
-     print("Error: Unable to write Rudder Technique files related to NCF Technique "+technique+", skipping...")
+     print("Error: Unable to create Rudder Technique files related to NCF Technique "+technique+", skipping...")
      continue
 
 def write_technique_for_rudder(root_path, technique):
@@ -71,7 +71,12 @@ def get_technique_metadata_xml(technique_metadata):
   # For each method used, create a section containing all calls to that method
   section_list = []
   for method_name in methods_name:
-    generic_method = generic_methods[method_name]
+
+    try:
+      generic_method = generic_methods[method_name]
+    except Exception, e:
+      print "Error: The method '" + method_name + "' does not exist. Aborting Technique creation..."
+
     # Filter all method calls to get only those about that method
     filter_method_calls = [x for x in method_calls if x["method_name"] == method_name]
     # Generare xml for that section
