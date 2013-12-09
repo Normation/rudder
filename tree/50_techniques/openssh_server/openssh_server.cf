@@ -23,7 +23,7 @@
 bundle agent openssh_server(params)
 {
   methods:
-      "merge"     usebundle => var("openssh", "openssh_knowledge.default", "${params}");
+      # "merge"     usebundle => var("openssh", "openssh_knowledge.default", "${params}");
       "install"   usebundle => package_install("${openssh_knowledge.ssh_package_name}");
       "configure" usebundle => file_template_expand(
                                  "${openssh_knowledge.ssh_template_file}",
