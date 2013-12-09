@@ -21,7 +21,7 @@ def write_all_techniques_for_rudder(root_path):
     try:
       write_technique_for_rudder(root_path, metadata)
     except Exception, e:
-     print("Error: Could not write technique files for Technique "+technique+", continue with next technique")
+     print("Error: Unable to write Rudder Technique files related to NCF Technique "+technique+", skipping...")
      continue
 
 def write_technique_for_rudder(root_path, technique):

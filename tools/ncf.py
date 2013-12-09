@@ -12,6 +12,9 @@ import subprocess
 import json
 import os.path
 
+# Verbose output
+VERBOSE = 0
+
 dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services" ]
 
 tags = {}
@@ -21,6 +24,23 @@ tags["technique"] = ["name", "description", "version"]
 
 def get_root_dir():
   return os.path.realpath(os.path.dirname(__file__) + "/../")
+
+# This method emulates the behavior of subprocess check_output method.
+# We aim to be compatible with Python 2.6, thus this method does not exist
+# yet in subprocess.
+def check_output(command):
+    if VERBOSE == 1:
+        print "VERBOSE: About to run command '" + " ".join(command) + "'"
+    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    output = process.communicate()
+    retcode = process.poll()
+    if retcode != 0:
+        if VERBOSE == 1:
+            print "VERBOSE: Exception triggered, Command returned error code " + retcode
+        raise subprocess.CalledProcessError(retcode, command, output=output[0])
+    if VERBOSE == 1:
+        print "VERBOSE: Command output: '" + output[0] + "'"
+    return output[0]
 
 def get_all_generic_methods_filenames():
   return get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
@@ -89,7 +109,7 @@ def parse_technique_methods(technique_file):
   if not os.path.exists(technique_file):
     raise Exception("No such file: " + technique_file)
 
-  out = subprocess.check_output(["cf-promises", "-pjson", "-f", technique_file])
+  out = check_output(["cf-promises", "-pjson", "-f", technique_file])
   promises = json.loads(out)
 
   # Sanity check: if more than one bundle, this is a weird file and I'm quitting
@@ -164,7 +184,7 @@ def get_all_techniques_metadata(include_methods_calls = True):
         method_calls = parse_technique_methods(file)
         all_metadata[metadata['bundle_name']]['method_calls'] = method_calls
     except Exception as e:
-      print file + " failed"
+      print "ERROR: Exception triggered, Unable to parse file " + file
       print e
       continue # skip this file, it doesn't have the right tags in - yuk!
 
