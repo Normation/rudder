@@ -22,11 +22,11 @@ def write_all_techniques_for_rudder(root_path):
     try:
       write_technique_for_rudder(root_path, metadata)
     except Exception, e:
-     print("Error: Unable to create Rudder Technique files related to NCF Technique "+technique+", skipping...")
+     print("Error: Unable to create Rudder Technique files related to ncf Technique "+technique+", skipping...")
      continue
 
 def get_category_xml():
-  """Create a category.xml content to be inserted in the NCF root directory"""
+  """Create a category.xml content to be inserted in the ncf root directory"""
 
   content = []
   content.append('<xml>')
