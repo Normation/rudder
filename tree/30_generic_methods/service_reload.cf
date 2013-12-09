@@ -1,0 +1,40 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service reload
+# @description Reload a service using the appropriate method
+#
+# @parameter service_name Service
+# 
+# @class_prefix service_reload
+# @class_parameter service_name
+# This bundle will define a class service_reload_${service_name}_{kept,repaired,error,ok,reached}
+
+bundle agent service_reload(service_name)
+{
+  vars:
+
+    "canonified_service_name"      string => canonify("${service_name}");
+    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} reload");
+
+  methods:
+
+      # Will be replaced later with less naive conditions (using either service, upstart, ...
+      "placeholder" usebundle => command_execution("/etc/init.d/${service_name} reload");
+      "placeholder" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "service_reload_${canonified_service_name}");
+}

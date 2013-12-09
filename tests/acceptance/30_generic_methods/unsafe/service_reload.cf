@@ -1,0 +1,57 @@
+#######################################################
+#
+# Test reloading a service
+# In unsafe because:
+#   - Will reload the "cron" service on the machine
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    redhat::
+      "service_script" string => "crond";
+    !redhat::
+      "service_script" string => "cron";
+}
+
+#######################################################
+
+bundle agent test
+{
+
+  methods:
+    redhat::
+      "ph" usebundle => service_reload("${init.service_script}");
+    !redhat::
+      "ph" usebundle => service_reload("${init.service_script}");
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok" expression => "service_reload_${init.service_script}_reached.service_reload_${init.service_script}_repaired.!service_reload_${init.service_script}_kept.!service_reload_${init.service_script}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL (Service verification failed or no OS support)";
+}
