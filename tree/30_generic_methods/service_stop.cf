@@ -16,29 +16,25 @@
 #
 #####################################################################################
 
-# @name Service check running ps
-# @description Check if a service is running using ps
+# @name Service stop
+# @description Stop a service using the appropriate method
 #
-# @parameter service_regex Regular expression used to select a process in ps output
+# @parameter service_name Service
 # 
-# @class_prefix service_check_running
-# @class_parameter service_regex
-# This bundle will define a class service_check_running_${service_regex}_{kept,repaired}
+# @class_prefix service_stop
+# @class_parameter service_name
+# This bundle will define a class service_stop_${service_name}_{kept,repaired,error,ok,reached}
 
-bundle agent service_check_running_ps(service_regex)
+bundle agent service_stop(service_name)
 {
   vars:
-      "class_prefix" string => canonify("service_check_running_${service_regex}");
 
-  processes:
-
-      "${service_regex}"
-        process_count => any_count("${class_prefix}_kept");
-
-      "${service_regex}"
-        restart_class => "${class_prefix}_repaired";
+    "canonified_service_name"      string => canonify("${service_name}");
+    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} stop");
 
   methods:
-      "report"
-        usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${class_prefix}");
+
+      # Will be replaced later with less naive conditions (using either service, upstart, ...
+      "placeholder" usebundle => command_execution("/etc/init.d/${service_name} stop");
+      "placeholder" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "service_stop_${canonified_service_name}");
 }

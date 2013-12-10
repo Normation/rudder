@@ -1,0 +1,53 @@
+#######################################################
+#
+# Start cron
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "service_name"  string => "cron";
+
+  processes:
+    "crond"
+      signals => { "term", "kill" };
+
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => service_start("${init.service_name}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+    "ok" expression => "service_start_${init.service_name}_ok.!service_start_${init.service_name}_error";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
