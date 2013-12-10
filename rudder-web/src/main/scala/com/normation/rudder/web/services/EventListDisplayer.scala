@@ -133,6 +133,8 @@ class EventListDisplayer(
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
+            "bStateSave": true,
+            "sCookiePrefix": "Rudder_DataTables_",
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "bJQueryUI": true,
@@ -1602,6 +1604,8 @@ class EventListDisplayer(
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": true,
+            "bStateSave": true,
+            "sCookiePrefix": "Rudder_DataTables_",
             "sPaginationType": "full_numbers",
             "bJQueryUI": true,
             "oLanguage": {

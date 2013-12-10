@@ -111,6 +111,8 @@ object PendingHistoryGrid extends Loggable {
             "bAutoWidth": false,
             "bFilter" :true,
             "bLengthChange": true,
+            "bStateSave": true,
+            "sCookiePrefix": "Rudder_DataTables_",
             "bJQueryUI": true,
             "oLanguage": {
               "sSearch": ""

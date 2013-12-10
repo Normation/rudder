@@ -267,6 +267,8 @@ class ChangeRequestChangesForm(
           "oLanguage": {
           "sSearch": ""
           },
+          "bStateSave": true,
+          "sCookiePrefix": "Rudder_DataTables_",
           "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
           "aoColumns": [
             { "sWidth": "120px" },
