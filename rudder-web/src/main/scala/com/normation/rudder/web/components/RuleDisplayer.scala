@@ -130,12 +130,18 @@ class RuleDisplayer (
 
   def viewRules : NodeSeq = {
 
-
+    val callbackLink = {
+      if (directive.isDefined) {
+        None
+      } else {
+        Some(detailsCallbackLink)
+      }
+    }
     val ruleGrid = {
       new RuleGrid(
           "rules_grid_zone"
         , rules
-        , Some(detailsCallbackLink)
+        , callbackLink
         , directive.isDefined
         , directive
       )
