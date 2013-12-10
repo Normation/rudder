@@ -14,6 +14,7 @@
 import os.path
 import ncf 
 import sys
+import re
 
 def write_all_techniques_for_rudder(root_path):
   write_category_xml(root_path)
@@ -187,11 +188,42 @@ def get_path_for_technique(root_path, technique_metadata):
   """ Generate path where file about a technique needs to be created"""
   return os.path.join(root_path, technique_metadata['bundle_name'], technique_metadata['version'])
 
+def canonify_expected_reports(expected_reports, dest):
+
+  # Open file containing original expected_reports
+  source_file = open(expected_reports)
+
+  # Create destination file
+  dest_file = open(dest, 'w')
+  
+  # Iterate over each line (this does *not* read the whole file into memory)
+  for line in source_file:
+    # Just output comments as they are
+    if re.match("^\s*#", line):
+      dest_file.write(line)
+      continue
+
+    # Replace the second field with a canonfied version of itself (a la CFEngine)
+    fields = line.strip().split(";;")
+    fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1])
+    dest_file.write(";;".join(fields) + "\n")
+
 def usage():
-  print("Usage: python ncf_rudder.py path")
+  print("Usage: ncf_rudder <command> [arguments]")
+  print("Available commands:")
+  print(" - canonify_expected_reports <source file> <destination file>")
+  print(" - rudderify_techniques <destination path>")
 
 if __name__ == '__main__':
-  if len(sys.argv) == 2:
+
+  if len(sys.argv) <= 1:
+    usage()
+    exit(1)
+
+  if sys.argv[1] == "canonify_expected_reports":
+    init(sys.argv[2], sys.argv[3])
+  elif sys.argv[1] == "rudderify_techniques":
     write_all_techniques_for_rudder(sys.argv[1])
   else:
     usage()
+    exit(1)
