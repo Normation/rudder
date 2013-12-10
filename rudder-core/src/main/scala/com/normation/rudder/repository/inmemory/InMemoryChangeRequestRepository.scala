@@ -56,7 +56,7 @@ class InMemoryChangeRequestRepository
 
   private[this] val repo = MutMap[ChangeRequestId, ChangeRequest]()
 
-  private[this] var id = 0;
+  private[this] var id = 0
 
   private[this] def getNextId : Int = {
     imMemoryRepo.synchronized {

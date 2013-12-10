@@ -95,6 +95,8 @@ class ChangeRequestChangesForm(
   private[this] val eventLogDetailsService =  RudderConfig.eventLogDetailsService
   private[this] val diffService =  RudderConfig.diffService
   private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
+  private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
+
 
   def dispatch = {
     case "changes" =>
@@ -321,6 +323,7 @@ class ChangeRequestChangesForm(
       <ul class="evlogviewpad">
         <li style="padding-bottom : 10px;"><b>Rule:&nbsp;</b><value id="ruleID"/></li>
         <li><b>Name:&nbsp;</b><value id="ruleName"/></li>
+        <li><b>Category:&nbsp;</b><value id="category"/></li>
         <li><b>Short description:&nbsp;</b><value id="shortDescription"/></li>
         <li><b>Target:&nbsp;</b><value id="target"/></li>
         <li><b>Directives:&nbsp;</b><value id="policy"/></li>
@@ -354,8 +357,12 @@ class ChangeRequestChangesForm(
     , rule : Rule
     , groupLib: FullNodeGroupCategory
   ) = {
+
+    val categoryName = ruleCategoryService.shortFqdn(rule.categoryId).getOrElse("Error while looking for category")
+    val modCategory = diff.modCategory.map(diff => SimpleDiff(ruleCategoryService.shortFqdn(diff.oldValue).getOrElse("Error while looking for category"),ruleCategoryService.shortFqdn(diff.newValue).getOrElse("Error while looking for category")))
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> displaySimpleDiff(diff.modName, "name", Text(rule.name)) &
+      "#category" #> displaySimpleDiff(modCategory, "name", Text(categoryName)) &
       "#target" #> diff.modTarget.map{
         case SimpleDiff(oldOnes,newOnes) => DiffDisplayer.displayRuleTargets(oldOnes.toSeq,newOnes.toSeq, groupLib)
         }.getOrElse(DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib)) &

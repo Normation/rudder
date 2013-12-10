@@ -124,6 +124,7 @@ class DiffServiceImpl extends DiffService {
 
   def diffRule(reference:Rule, newItem:Rule) : ModifyRuleDiff = {
     val diffName = if (reference.name == newItem.name) None else Some(SimpleDiff(reference.name,newItem.name))
+    val diffCategory = if (reference.categoryId == newItem.categoryId) None else Some(SimpleDiff(reference.categoryId,newItem.categoryId))
     val diffShortDescription = if (reference.shortDescription == newItem.shortDescription) None else Some(SimpleDiff(reference.shortDescription,newItem.shortDescription))
     val diffLongDescription = if (reference.longDescription == newItem.longDescription) None else Some(SimpleDiff(reference.longDescription,newItem.longDescription))
     val diffSystem = if (reference.isSystem == newItem.isSystem) None else Some(SimpleDiff(reference.isSystem,newItem.isSystem))
@@ -143,6 +144,7 @@ class DiffServiceImpl extends DiffService {
       , None
       , diffEnable
       , diffSystem
+      , diffCategory
     )
   }
 

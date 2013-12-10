@@ -32,42 +32,59 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
+package com.normation.rudder.rule.category
 
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.rule.category.RuleCategoryId
+import net.liftweb.common.Box
+import net.liftweb.common.Full
+import net.liftweb.common.Failure
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.Rule
+
+/**
+ * The Id for the server group category
+ */
+case class RuleCategoryId(value:String) extends HashcodeCaching
 
 
 /**
- * That file define "diff" object between rules.
+ * A rule category is quite similar to a Technique category :
+ * an id
+ * a name
+ * a description
+ * some subcategories
+ * some items
  */
+case class RuleCategory(
+    id          : RuleCategoryId
+  , name        : String
+  , description : String
+  , childs      : List[RuleCategory]
+  , isSystem    : Boolean = false
+) {
+  def findParent (category : RuleCategory) :  Box[RuleCategory]= {
+    if (childs.contains(category)) {
+      Full(this)
+    } else {
+      childs.map(_.findParent(category)).collect {case Full(c) => c } match {
+        case c :: Nil => Full(c)
+        case Nil => Failure(s"cannot find parent category of ${category.name}")
+        case _ => Failure(s"too much parents for category ${category.name}")
+      }
+    }
+  }
 
-sealed trait RuleDiff
 
-//for change request, with add type tag to RuleDiff
-sealed trait ChangeRequestRuleDiff {
-  def rule     : Rule
+  def filter(category : RuleCategory) : RuleCategory = {
+    if (childs.contains(category)) {
+      this.copy(childs = this.childs.filter(_ != category))
+    } else {
+      this.copy(childs = this.childs.map(filter))
+    }
+  }
+
+  def canBeDeleted(rules:List[Rule]) = {
+    childs.isEmpty && rules.filter(_.categoryId == this.id).isEmpty
+  }
 }
 
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
-
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
-
-final case class ModifyRuleDiff(
-    id                  : RuleId
-  , name                : String // keep the name around to be able to display it as it was at that time
-  , modName             : Option[SimpleDiff[String]] = None
-  , modSerial           : Option[SimpleDiff[Int]] = None
-  , modTarget           : Option[SimpleDiff[Set[RuleTarget]]] = None
-  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveId]]] = None
-  , modShortDescription : Option[SimpleDiff[String]] = None
-  , modLongDescription  : Option[SimpleDiff[String]] = None
-  , modreasons          : Option[SimpleDiff[String]] = None
-  , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
-  , modIsSystem         : Option[SimpleDiff[Boolean]] = None
-  , modCategory         : Option[SimpleDiff[RuleCategoryId]] = None
-) extends RuleDiff with HashcodeCaching
-
-final case class ModifyToRuleDiff(
-    rule     : Rule
-) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff

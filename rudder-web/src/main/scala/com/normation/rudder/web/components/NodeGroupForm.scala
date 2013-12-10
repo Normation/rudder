@@ -295,20 +295,20 @@ class NodeGroupForm(
         formTracker.addFormError(Text("There are no modifications to save"))
         onFailure & onFailureCallback()
       } else {
-        displayConfirmationPopup("save", newGroup, optContainer)
+        displayConfirmationPopup(ModificationValidationPopup.Save, newGroup, optContainer)
       }
     }
   }
 
   private[this] def onSubmitDelete(): JsCmd = {
-    displayConfirmationPopup("delete", nodeGroup, None)
+    displayConfirmationPopup(ModificationValidationPopup.Delete, nodeGroup, None)
   }
 
   /*
    * Create the confirmation pop-up
    */
   private[this] def displayConfirmationPopup(
-      action     : String
+      action     : ModificationValidationPopup.Action
     , newGroup   : NodeGroup
     , newCategory: Option[NodeGroupCategoryId]
   ) : JsCmd = {
@@ -330,7 +330,6 @@ class NodeGroupForm(
       new ModificationValidationPopup(
           Right(newGroup, newCategory, optOriginal)
         , action
-        , false
         , workflowEnabled
         , crId => JsRaw("$.modal.close();") & successCallback(crId)
         , xml => JsRaw("$.modal.close();") & onFailure
