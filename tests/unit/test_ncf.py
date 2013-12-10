@@ -83,7 +83,16 @@ class TestNcf(unittest.TestCase):
     bundle_calls = ncf.parse_technique_methods(self.test_technique_file)
     expected = [  { 'method_name': 'package_install_version', 'args': ['${bla.apache_package_name}', '2.2.11'], 'class_context': 'any' },
                   { 'method_name': 'service_start', 'args': ['${bla.apache_package_name}'], 'class_context': 'cfengine' },
-                  { 'method_name': 'package_install', 'args': ['nano'], 'class_context': 'cfengine' },
+                  { 'method_name': 'package_install', 'args': ['openssh-server'], 'class_context': 'cfengine' },
+               ]
+    self.assertEqual(bundle_calls, expected)
+
+  def test_parse_technique_generic_method_calls_strings(self):
+    """Parsing a technique should return a list of it's generic method calls even if they are string literals"""
+    bundle_calls = ncf.parse_technique_methods(self.test_technique_file)
+    expected = [  { 'method_name': 'package_install_version', 'args': ['${bla.apache_package_name}', '2.2.11'], 'class_context': 'any' },
+                  { 'method_name': 'service_start', 'args': ['${bla.apache_package_name}'], 'class_context': 'cfengine' },
+                  { 'method_name': 'package_install', 'args': ['openssh-server'], 'class_context': 'cfengine' },
                ]
     self.assertEqual(bundle_calls, expected)
 

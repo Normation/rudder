@@ -6,17 +6,17 @@
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Package install version">
       <REPORTKEYS>
-        <VALUE>package_install_${bla.apache_package_name}</VALUE>
+        <VALUE>${bla.apache_package_name}</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION component="true" multivalued="true" name="Service start">
       <REPORTKEYS>
-        <VALUE>service_start_${bla.apache_package_name}</VALUE>
+        <VALUE>${bla.apache_package_name}</VALUE>
       </REPORTKEYS>
     </SECTION>
     <SECTION component="true" multivalued="true" name="Package install">
       <REPORTKEYS>
-        <VALUE>package_install_nano</VALUE>
+        <VALUE>openssh-server</VALUE>
       </REPORTKEYS>
     </SECTION>
   </SECTIONS>

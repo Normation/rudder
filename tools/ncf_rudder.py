@@ -149,7 +149,7 @@ def generate_value_xml(method_call,generic_method):
   """Generate xml containing value needed for reporting from a method call"""
   try:
     parameter = method_call["args"][generic_method["class_parameter_id"]-1]
-    value = generic_method["class_prefix"] + "_" + parameter
+    value = parameter
     
     return "        <VALUE>"+value+"</VALUE>"
   except:
