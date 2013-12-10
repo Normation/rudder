@@ -16,23 +16,24 @@
 #
 #####################################################################################
 
-# @name Logger
-# @description Standard logging output
-#
-# @parameter message      The common part of the message to display
-# @parameter class_prefix The prefix of the class for different states
-#
-# @class_prefix
-# @class_parameter
-# The three states are kept, repaired and not_ok
-# (as defined in the classes_generic of the cfengine_stdlib)
+# Config
+# This bundle will read the ncf specific configuration and expose it as global variables
+# Conventions:
+#   The variables will be usable in the context ncf.variablename
+bundle agent configuration
+{
 
-bundle agent _logger(message, class_prefix)
-{ 
+  vars:
 
-  methods:
+      "ncf_configuration_file" string => "${me.framework_path}/ncf.conf";
 
-      # Report using the appropriate bundle(s)
-      "logging" usebundle => _bundle_caller_two("${ncf.loggers}", "${message}" , "${class_prefix}");
+      # TODO: Put a logic to get the configuration from ${ncf_configuration_file}
 
+}
+
+# TEMPORARY: HARDCODE CONFIGURATION OF LOGGER BUNDLES
+bundle agent ncf
+{
+  vars:
+      "loggers" string => "_logger_default";
 }

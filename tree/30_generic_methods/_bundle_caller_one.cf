@@ -16,23 +16,18 @@
 #
 #####################################################################################
 
-# @name Logger
-# @description Standard logging output
+# @name Caller one
+# @description Call a bundle with one argument
 #
-# @parameter message      The common part of the message to display
-# @parameter class_prefix The prefix of the class for different states
+# @parameter method            The bundle to call
+# @parameter first_argument    The first argument to give
 #
-# @class_prefix
-# @class_parameter
-# The three states are kept, repaired and not_ok
-# (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent _logger(message, class_prefix)
-{ 
-
+bundle agent _bundle_caller_one(method, first_argument)
+{
   methods:
-
-      # Report using the appropriate bundle(s)
-      "logging" usebundle => _bundle_caller_two("${ncf.loggers}", "${message}" , "${class_prefix}");
-
+      "${method}"
+        usebundle => ${method}("${first_argument}"),
+        comment   => "Call the ${method} bundle with argument ${first_argument}";
 }
+

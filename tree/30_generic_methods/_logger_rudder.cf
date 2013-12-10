@@ -1,0 +1,65 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Logger for Rudder
+# @description Logging output for Rudder reports
+#
+# @parameter message      The common part of the message to display
+# @parameter class_prefix The prefix of the class for different states
+#
+
+bundle agent _logger_rudder(message, class_prefix)
+{
+  vars:
+    "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
+    "expected_reports_temp"   string => "${expected_reports_source}.tmp";
+    "expected_reports_file"   string => "${expected_reports_source}.res";
+
+    # Once the file has been expanded, read in our line
+    "number_lines"
+      int        => getfields("^[^;]*;;${class_prefix}.*", "${expected_reports_file}", ";;", "report_data"),
+      # ifvarclass => canonify("_logger_rudder_resfile_ok"),
+      classes    => if_ok("report_data_read");
+
+  files:
+
+    "${expected_reports_temp}"
+      create        => "true",
+      edit_template => "${expected_reports_source}",
+      classes       => classes_generic("_logger_rudder_resfile");
+
+    "${expected_reports_file}"
+      create        => "true",
+      edit_template => "${expected_reports_source}",
+      classes       => classes_generic("_logger_rudder_resfile");
+
+  reports:
+
+    report_data_read::
+
+      "@@${report_data[1]}@@result_success@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "@@${report_data[1]}@@result_repaired@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
+
+      "@@${report_data[1]}@@result_error@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
+        ifvarclass => "${class_prefix}_error";
+
+}
+
