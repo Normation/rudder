@@ -269,6 +269,9 @@ class RuleEditForm(
               , onClickCategory = None
               , onClickTechnique = None
               , onClickDirective = None
+                //filter techniques without directives, and categories without technique
+              , keepCategory    = category => category.allDirectives.nonEmpty
+              , keepTechnique   = technique => technique.directives.nonEmpty
             )
           }</ul>
         }</div> } &
