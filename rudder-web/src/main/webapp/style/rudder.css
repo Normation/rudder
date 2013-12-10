@@ -728,6 +728,9 @@ table.noMarginGrid {
   margin-top: 7px;
 }
 
+.wbBaseFieldLabel {
+  margin-top: 5px;
+}
 .policyDisplay {
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;

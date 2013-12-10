@@ -119,10 +119,10 @@ class RuleCategoryPopup(
   def popupContent() : NodeSeq = {
      (
 
-      "#creationForm *"          #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
-      "#dialogTitle *"           #> title &
-      "#categoryName * "          #> categoryName.toForm_! &
-      "#categoryParent *"        #> categoryParent.toForm_! &
+      "#creationForm *"        #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
+      "#dialogTitle *"         #> title &
+      "#categoryName * "       #> categoryName.toForm_! &
+      "#categoryParent *"      #> categoryParent.toForm_! &
       "#categoryDescription *" #> categoryDescription.toForm_! &
       "#saveCategory"          #> SHtml.ajaxSubmit("Save", () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","3"), ("style","margin-left:5px;")) andThen
       ".notifications *"       #> updateAndDisplayNotifications()
@@ -164,7 +164,7 @@ class RuleCategoryPopup(
 
   private[this] val categoryParent =
     new WBSelectField(
-        "Parent category"
+        "Parent"
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name)}
       , targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value).getOrElse(rootCategory.id.value)
     ) {
