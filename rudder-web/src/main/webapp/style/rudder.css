@@ -1632,7 +1632,6 @@ p img {
 }
 
 .inner-portlet-header {
-  padding: 5px 0 5px 5px;
   font-size: 1.3em;
   font-weight: bold;
   cursor: default;
@@ -1642,7 +1641,6 @@ p img {
 }
 
 .inner-portlet-header-lower {
-  padding: 5px 0 5px 5px;
   font-size: 1.3em;
   cursor: default;
   background: none;
@@ -2013,6 +2011,8 @@ color: #FF0000 !important;
 .smallButton {
   width: 40px !important;
   height: 22px !important;
+  font-size : 11px !important;
+  font-weight:100 !important;
 }
 
 .smallButton span {
@@ -2163,6 +2163,11 @@ hr.spacer {
 .twoCol {
     float:left;
     width:67%;
+}
+
+.twoColPopup {
+    float:left;
+    width:66%;
 }
 
 .rudderBaseFieldClassName {
@@ -2530,6 +2535,11 @@ tr.unfoldable {
 /***********************************
  * Trees
 ************************************/
+
+#categoryTree.jstree-rudder a {
+  vertical-align: middle;
+}
+
 .treefilternodecursor{
   cursor:pointer;
   cursor:hand;
@@ -2539,7 +2549,7 @@ tr.unfoldable {
   font-size:0.95em; 
 }
 
-.treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName {
+.treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
   font-weight: bold;
 }
 

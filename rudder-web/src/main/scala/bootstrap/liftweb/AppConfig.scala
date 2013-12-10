@@ -135,6 +135,7 @@ import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.status._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.appconfig._
+import com.normation.rudder.rule.category._
 
 /**
  * Define a resource for configuration.
@@ -364,6 +365,11 @@ object RudderConfig extends Loggable {
       , inMemoryChangeRequestRepository
     )
   }
+
+
+  val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
+  val ruleCategoryService          : RuleCategoryService = new RuleCategoryService(roRuleCategoryRepository)
+  val woRuleCategoryRepository : WoRuleCategoryRepository = woLDAPRuleCategoryRepository
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
 
@@ -1061,6 +1067,18 @@ object RudderConfig extends Loggable {
     , uuidGen
     , logRepository
     , gitNodeGroupArchiver
+    , personIdentServiceImpl
+    , RUDDER_AUTOARCHIVEITEMS
+  )
+
+  private[this] lazy val roLDAPRuleCategoryRepository = new RoLDAPRuleCategoryRepository(
+      rudderDitImpl, roLdap, ldapEntityMapper, groupLibReadWriteMutex
+  )
+  private[this] lazy val woLDAPRuleCategoryRepository = new WoLDAPRuleCategoryRepository(
+      roLDAPRuleCategoryRepository
+    , rwLdap
+    , uuidGen
+    , gitRuleArchiver
     , personIdentServiceImpl
     , RUDDER_AUTOARCHIVEITEMS
   )

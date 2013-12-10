@@ -45,6 +45,7 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
 
 
 

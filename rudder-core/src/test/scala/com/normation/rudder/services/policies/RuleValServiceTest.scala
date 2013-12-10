@@ -52,6 +52,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.services.reports.ComputeCardinalityOfDirectiveVal
+import com.normation.rudder.rule.category.RuleCategoryId
 
 /**
  * Test how RuleVal and DirectiveVal are constructed, and if they
@@ -143,6 +144,7 @@ class RuleValServiceTest extends Specification {
           ruleId
         , "Rule Name"
         , 55
+        , RuleCategoryId("cat1")
         , Set(GroupTarget(NodeGroupId("nodeGroupId")))
         , Set(directiveId)
         , ""

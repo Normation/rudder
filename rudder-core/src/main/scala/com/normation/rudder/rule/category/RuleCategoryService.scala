@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,42 +32,52 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
+package com.normation.rudder.rule.category
 
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.rule.category.RuleCategoryId
+import net.liftweb.common.Box
 
+class RuleCategoryService(
+  roRuleCategoryService : RoRuleCategoryRepository
+) {
 
-/**
- * That file define "diff" object between rules.
- */
+  def bothFqdn(id:RuleCategoryId,rootInCaps : Boolean = false) : Box[(String,String)] = {
 
-sealed trait RuleDiff
+    for {
+    root  <- roRuleCategoryService.getRootCategory
+    short <- shortFqdn(id)
+    } yield {
+      val long = {
+        val rootName = {
+          if (rootInCaps ) {
+            root.name.toUpperCase
+          } else {
+            root.name
+          }
+        }
+          if (id != root.id) {
+            rootName + " » " + short
+          } else {
+            rootName
+          }
+      }
+      (long,short)
+    }
+  }
 
-//for change request, with add type tag to RuleDiff
-sealed trait ChangeRequestRuleDiff {
-  def rule     : Rule
+  def shortFqdn(id:RuleCategoryId) : Box[String] = {
+
+    for {
+    parents <- roRuleCategoryService.getParents(id)
+    } yield {
+      (for {
+        parent <- parents
+      } yield {
+      if (parent.id.value == "rootRuleCategory") {
+        ""
+      } else {
+        parent.name
+      }}).tail.mkString(" » ")
+    }
+  }
+
 }
-
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
-
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
-
-final case class ModifyRuleDiff(
-    id                  : RuleId
-  , name                : String // keep the name around to be able to display it as it was at that time
-  , modName             : Option[SimpleDiff[String]] = None
-  , modSerial           : Option[SimpleDiff[Int]] = None
-  , modTarget           : Option[SimpleDiff[Set[RuleTarget]]] = None
-  , modDirectiveIds     : Option[SimpleDiff[Set[DirectiveId]]] = None
-  , modShortDescription : Option[SimpleDiff[String]] = None
-  , modLongDescription  : Option[SimpleDiff[String]] = None
-  , modreasons          : Option[SimpleDiff[String]] = None
-  , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
-  , modIsSystem         : Option[SimpleDiff[Boolean]] = None
-  , modCategory         : Option[SimpleDiff[RuleCategoryId]] = None
-) extends RuleDiff with HashcodeCaching
-
-final case class ModifyToRuleDiff(
-    rule     : Rule
-) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff

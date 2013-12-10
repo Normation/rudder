@@ -34,6 +34,7 @@
 
 package com.normation.rudder.domain.policies
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.rule.category.RuleCategoryId
 
 case class RuleId(value:String) extends HashcodeCaching
 
@@ -53,6 +54,7 @@ case class Rule(
     id              : RuleId
   , name            : String
   , serial          : Int
+  , categoryId      : RuleCategoryId
     //is not mandatory, but if not present, rule is disabled
   , targets         : Set[RuleTarget] = Set()
     //is not mandatory, but if not present, rule is disabled

@@ -77,20 +77,24 @@ trait RoChangeRequestRepository {
  * A proxy implementation simply delegating to either A or B implementation
  */
 class EitherRoChangeRequestRepository(cond: () => Box[Boolean], whenTrue: RoChangeRequestRepository, whenFalse: RoChangeRequestRepository) extends RoChangeRequestRepository {
-  def getAll() : Box[Seq[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.getAll else whenFalse.getAll)
-  def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.get(changeRequestId) else whenFalse.get(changeRequestId))
-  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.getByIds(changeRequestId) else whenFalse.getByIds(changeRequestId))
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.getByDirective(id,onlyPending) else whenFalse.getByDirective(id,onlyPending))
-  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.getByNodeGroup(id,onlyPending) else whenFalse.getByNodeGroup(id,onlyPending))
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.getByRule(id,onlyPending) else whenFalse.getByRule(id,onlyPending))
-  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]] =
-    cond().flatMap( if(_) whenTrue.getByContributor(actor) else whenFalse.getByContributor(actor))
+  //remove some boilerplate to make following proxy implementation more readable, just exposing the actual method to call
+  private[this] def condApply[T](method: RoChangeRequestRepository => Box[T]) : Box[T] =  {
+    cond().flatMap( if(_) method(whenTrue) else method(whenFalse) )
+  }
+
+  def getAll() : Box[Seq[ChangeRequest]] = condApply( _.getAll )
+
+  def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] = condApply( _.get(changeRequestId) )
+
+  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] = condApply( _.getByIds(changeRequestId) )
+
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = condApply( _.getByDirective(id, onlyPending) )
+
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = condApply( _.getByNodeGroup(id, onlyPending) )
+
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = condApply( _.getByRule(id, onlyPending) )
+
+  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]] = condApply( _.getByContributor(actor) )
 }
 
 
