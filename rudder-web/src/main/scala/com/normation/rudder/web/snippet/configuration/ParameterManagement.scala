@@ -157,6 +157,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
             "bFilter"      : true,
             "bPaginate"    : true,
             "bLengthChange": true,
+            "bStateSave"   : true,
+            "sCookiePrefix": "Rudder_DataTables_",
             "sPaginationType": "full_numbers",
             "oLanguage": {
               "sZeroRecords": "No parameters!",
