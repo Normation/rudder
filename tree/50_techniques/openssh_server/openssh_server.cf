@@ -20,7 +20,7 @@
 # @description Install, configure and ensure the OpenSSH server is running.
 # @version 0.1
 
-bundle agent openssh_server(params)
+bundle agent openssh_server
 {
   methods:
       # "merge"     usebundle => var("openssh", "openssh_knowledge.default", "${params}");
@@ -33,6 +33,6 @@ bundle agent openssh_server(params)
                                  "root");
       "reload"    usebundle => service_reload("${openssh_knowledge.ssh_etc_initd}"),
                  ifvarclass => canonify("expand_template_${openssh_knowledge.ssh_template_file}_repaired");
-      "running"   usebundle => service_start("${openssh_knowledge.ssh_etc_initd}", "${openssh_knowledge.ssh_service_path}");
+      "running"   usebundle => service_start("${openssh_knowledge.ssh_etc_initd}");
 }
 
