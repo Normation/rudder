@@ -86,5 +86,9 @@ case class RuleCategory(
   def canBeDeleted(rules:List[Rule]) = {
     childs.isEmpty && rules.filter(_.categoryId == this.id).isEmpty
   }
+
+  def contains(categoryId : RuleCategoryId) : Boolean = {
+    childs.exists(_.id == categoryId) || childs.exists(_.contains(categoryId))
+  }
 }
 

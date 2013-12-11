@@ -57,10 +57,11 @@ import com.normation.rudder.web.components.popup.RuleCategoryPopup
 
 
 class RuleDisplayer (
-    directive : Option[DirectiveApplicationManagement]
-  , htmlId_viewAll : String
+    directive           : Option[DirectiveApplicationManagement]
+  , gridId              : String
   , detailsCallbackLink : (Rule, String) => JsCmd
-  , showPopup : JsCmd
+  , onCreateRule        : (Rule) => JsCmd
+  , showRulePopup        : (Option[Rule]) => JsCmd
 ) extends DispatchSnippet with Loggable  {
 
 
@@ -72,25 +73,36 @@ class RuleDisplayer (
 
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
-  private[this] var root = directive.map(_.rootCategory).getOrElse(roCategoryRepository.getRootCategory.get)
+  private[this] var root : Box[RuleCategory]= {
+    directive match  {
+      case Some(appManagement) =>
+        Full(appManagement.rootCategory)
+      case None =>
+        roCategoryRepository.getRootCategory
+    }
+  }
 
   def dispatch = {
     case "display" => { _ => NodeSeq.Empty }
   }
 
+  private[this] def refreshGrid = {
+    SetHtml(gridId, viewRules)
+  }
 
   private[this] val ruleCategoryTree = {
-    new RuleCategoryTree(
-        "categoryTree"
-      , root
-      , directive
-      , (() =>  check)
-      , ((c:RuleCategory) => showCategoryPopup(Some(c)))
-      , ((c:RuleCategory) => showDeleteCategoryPopup(c))
-      , () => SetHtml(htmlId_viewAll, viewRules)
-    )
+    root.map(
+      new RuleCategoryTree(
+          "categoryTree"
+        , _
+        , directive
+        , (() =>  check)
+        , ((c:RuleCategory) => showCategoryPopup(Some(c)))
+        , ((c:RuleCategory) => showDeleteCategoryPopup(c))
+        , () => refreshGrid
+    ) )
   }
-  def viewCategories : NodeSeq = {
+  def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
 
 
     val actionButton =
@@ -130,12 +142,18 @@ class RuleDisplayer (
 
   def viewRules : NodeSeq = {
 
-
+    val callbackLink = {
+      if (directive.isDefined) {
+        None
+      } else {
+        Some(detailsCallbackLink)
+      }
+    }
     val ruleGrid = {
       new RuleGrid(
           "rules_grid_zone"
         , rules
-        , Some(detailsCallbackLink)
+        , callbackLink
         , directive.isDefined
         , directive
       )
@@ -156,11 +174,11 @@ class RuleDisplayer (
       if (directive.isDefined) {
         NodeSeq.Empty
       } else {
-        SHtml.ajaxButton("New Rule", () => showPopup, ("class" -> "newRule"),("style","float:left")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+        SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "newRule"),("style","float:left")) ++ Script(OnLoad(JsRaw("correctButtons();")))
       }
     }
 
-    <div id={htmlId_viewAll}>
+    <div id={gridId}>
       <div>
         <lift:authz role="rule_write">
           {actionButton}
@@ -177,54 +195,112 @@ class RuleDisplayer (
    val columnToFilter = {
      if (directive.isDefined) 2 else 1
    }
-   <div style="padding:10px;">
-      <div style="float:left; width: 20%; overflow:auto">
-        <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
-          <div class="inner-portlet-content" id="categoryTreeParent">
-            {viewCategories}
-          </div>
-      </div>
-      <div style="float:left; width:78%;padding-left:2%;">
-        <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
-        <div class="inner-portlet-content">
-          {viewRules}
+
+   ruleCategoryTree match {
+     case Full(ruleCategoryTree) =>
+       <div style="padding:10px;">
+         <div style="float:left; width: 20%; overflow:auto">
+           <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
+           <div class="inner-portlet-content" id="categoryTreeParent">
+               {viewCategories(ruleCategoryTree)}
+           </div>
+         </div>
+         <div style="float:left; width:78%;padding-left:2%;">
+           <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
+           <div class="inner-portlet-content">
+             {viewRules}
+           </div>
         </div>
-      </div>
-    </div> ++ Script(JsRaw(s"""
-var include = true;
-var filter = "";
-var column = ${columnToFilter};"""))
+      </div> ++ Script(JsRaw(s"""
+                  var include = true;
+                  var filter = "";
+                  var column = ${columnToFilter};"""
+                ) )
+     case eb:EmptyBox =>
+       val fail = eb ?~! "Could not get root category"
+       val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+       logger.error(msg)
+       <div style="padding:10px;">
+         <div class="error">{msg}</div>
+       </div>
+   }
   }
 
 
+  def ruleCreationPopup (ruleToClone:Option[Rule]) = {
+    ruleCategoryTree match {
+      case Full(ruleCategoryTree) =>
+        val root = ruleCategoryTree.getRoot
+        new CreateOrCloneRulePopup(
+            root
+          , ruleToClone
+          , ruleCategoryTree.getSelected
+          , onSuccessCallback = onCreateRule
+        ).popupContent
+     case eb:EmptyBox =>
+       val fail = eb ?~! "Could not get root category"
+       val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+       logger.error(msg)
+       <div style="padding:10px;">
+         <div class="error">{msg}</div>
+       </div>
+    }
+  }
 
 
+  // Popup
 
-
- // Popup
-
-    private[this] def creationPopup(category : Option[RuleCategory]) =
+    private[this] def creationPopup(category : Option[RuleCategory], ruleCategoryTree : RuleCategoryTree) = {
+      val rootCategory = ruleCategoryTree.getRoot
       new  RuleCategoryPopup(
-          root
+          rootCategory
         , category
+        , ruleCategoryTree.getSelected
         , {(r : RuleCategory) =>
-            root = roCategoryRepository.getRootCategory.get
-            ruleCategoryTree.refreshTree(root)
+            root = roCategoryRepository.getRootCategory
+            ruleCategoryTree.refreshTree(root) & refreshGrid
           }
-    )
+      )
+    }
+
    /**
     * Create the popup
     */
     private[this] def showCategoryPopup(category : Option[RuleCategory]) : JsCmd = {
-    val popupHtml = creationPopup(category).popupContent
-    SetHtml(htmlId_popup, popupHtml) &
-    JsRaw( s""" createPopup("${htmlId_popup}") """)
+    val popupHtml =
+      ruleCategoryTree match {
+        case Full(ruleCategoryTree) =>
+          creationPopup(category,ruleCategoryTree).popupContent
+        case eb:EmptyBox =>
+          // Should not happen, the function will be called only if the rootCategory is Set
+          val fail = eb ?~! "Could not get root category"
+          val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+          logger.error(msg)
+          <div style="padding:10px;">
+            <div class="error">{msg}</div>
+          </div>
+     }
+      SetHtml(htmlId_popup, popupHtml) &
+      JsRaw( s""" createPopup("${htmlId_popup}") """)
     }
-    /**
+
+  /**
     * Create the delete popup
     */
     private[this] def showDeleteCategoryPopup(category : RuleCategory) : JsCmd = {
-    val popupHtml = creationPopup(Some(category)).deletePopupContent(category.canBeDeleted(rules.toList))
+    val popupHtml =
+      ruleCategoryTree match {
+        case Full(ruleCategoryTree) =>
+          creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules.toList))
+        case eb:EmptyBox =>
+          // Should not happen, the function will be called only if the rootCategory is Set
+          val fail = eb ?~! "Could not get root category"
+          val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+          logger.error(msg)
+          <div style="padding:10px;">
+            <div class="error">{msg}</div>
+          </div>
+     }
     SetHtml(htmlId_popup, popupHtml) &
     JsRaw( s""" createPopup("${htmlId_popup}") """)
     }

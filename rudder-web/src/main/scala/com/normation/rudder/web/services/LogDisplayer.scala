@@ -143,6 +143,8 @@ class LogDisplayer(
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": true,
+            "bStateSave": true,
+            "sCookiePrefix": "Rudder_DataTables_",
             %2$s
             "sPaginationType": "full_numbers",
             "oLanguage": {

@@ -162,6 +162,9 @@ class RuleEditForm(
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
 
+  private[this] val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
+    r.directiveIds.map( id => (id -> r.id))
+  }.groupBy( _._1 ).mapValues( _.size).toSeq
 
   //////////////////////////// public methods ////////////////////////////
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
@@ -266,9 +269,13 @@ class RuleEditForm(
           <ul>{
             DisplayDirectiveTree.displayTree(
                 directiveLib = directiveLib
+              , usedDirectiveIds = usedDirectiveIds
               , onClickCategory = None
               , onClickTechnique = None
               , onClickDirective = None
+                //filter techniques without directives, and categories without technique
+              , keepCategory    = category => category.allDirectives.nonEmpty
+              , keepTechnique   = technique => technique.directives.nonEmpty
             )
           }</ul>
         }</div> } &
@@ -769,6 +776,8 @@ class RuleEditForm(
                     "bLengthChange": true,
                     "sPaginationType": "full_numbers",
                     "bJQueryUI": true,
+                    "bStateSave": true,
+                    "sCookiePrefix": "Rudder_DataTables_",
                     "oLanguage": {
                       "sSearch": ""
                     },
@@ -979,6 +988,8 @@ class RuleEditForm(
                 "bLengthChange": true,
                 "sPaginationType": "full_numbers",
                 "bJQueryUI": true,
+                "bStateSave": true,
+                "sCookiePrefix": "Rudder_DataTables_",
                 "oLanguage": {
                  "sSearch": ""
                 },
@@ -1149,6 +1160,8 @@ class RuleEditForm(
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "oLanguage": {
                  "sSearch": ""
                },
@@ -1389,6 +1402,8 @@ class RuleEditForm(
                "bPaginate" : true,
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "bJQueryUI": true,
                "oLanguage": {
                  "sSearch": ""
@@ -1490,6 +1505,8 @@ class RuleEditForm(
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
+               "bStateSave": true,
+               "sCookiePrefix": "Rudder_DataTables_",
                "oLanguage": {
                  "sSearch": ""
                },

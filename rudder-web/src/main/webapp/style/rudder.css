@@ -728,6 +728,9 @@ table.noMarginGrid {
   margin-top: 7px;
 }
 
+.wbBaseFieldLabel {
+  margin-top: 5px;
+}
 .policyDisplay {
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
@@ -2553,9 +2556,14 @@ tr.unfoldable {
   font-weight: bold;
 }
 
+
 li.disableTreeNode > a {
   color: grey;
   font-style:italic;
+}
+
+ins.jstree-icon {
+    float: left;
 }
 
 .jstree-default.jstree-focused {
