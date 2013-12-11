@@ -90,18 +90,19 @@ class RuleDisplayer (
     SetHtml(gridId, viewRules)
   }
 
-  private[this] def ruleCategoryTree(rootCategory : RuleCategory) = {
-    new RuleCategoryTree(
-        "categoryTree"
-      , rootCategory
-      , directive
-      , (() =>  check)
-      , ((c:RuleCategory) => showCategoryPopup(Some(c)))
-      , ((c:RuleCategory) => showDeleteCategoryPopup(c))
-      , () => refreshGrid
-    )
+  private[this] val ruleCategoryTree = {
+    root.map(
+      new RuleCategoryTree(
+          "categoryTree"
+        , _
+        , directive
+        , (() =>  check)
+        , ((c:RuleCategory) => showCategoryPopup(Some(c)))
+        , ((c:RuleCategory) => showDeleteCategoryPopup(c))
+        , () => refreshGrid
+    ) )
   }
-  def viewCategories(rootCategory : RuleCategory) : NodeSeq = {
+  def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
 
 
     val actionButton =
@@ -119,7 +120,7 @@ class RuleDisplayer (
        </lift:authz>
        <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:300px;border: 1px #999 ridge; padding-right:15px;">
          <div id="categoryTree">
-           {ruleCategoryTree(rootCategory).tree}
+           {ruleCategoryTree.tree}
          </div>
        </div>
      </div>
@@ -195,13 +196,13 @@ class RuleDisplayer (
      if (directive.isDefined) 2 else 1
    }
 
-   root match {
-     case Full(rootCategory) =>
+   ruleCategoryTree match {
+     case Full(ruleCategoryTree) =>
        <div style="padding:10px;">
          <div style="float:left; width: 20%; overflow:auto">
            <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
            <div class="inner-portlet-content" id="categoryTreeParent">
-               {viewCategories(rootCategory)}
+               {viewCategories(ruleCategoryTree)}
            </div>
          </div>
          <div style="float:left; width:78%;padding-left:2%;">
@@ -227,11 +228,13 @@ class RuleDisplayer (
 
 
   def ruleCreationPopup (ruleToClone:Option[Rule]) = {
-    root match {
-      case Full(root) =>
+    ruleCategoryTree match {
+      case Full(ruleCategoryTree) =>
+        val root = ruleCategoryTree.getRoot
         new CreateOrCloneRulePopup(
             root
           , ruleToClone
+          , ruleCategoryTree.getSelected
           , onSuccessCallback = onCreateRule
         ).popupContent
      case eb:EmptyBox =>
@@ -247,25 +250,27 @@ class RuleDisplayer (
 
   // Popup
 
- // Popup
-
-    private[this] def creationPopup(category : Option[RuleCategory], rootCategory : RuleCategory) =
+    private[this] def creationPopup(category : Option[RuleCategory], ruleCategoryTree : RuleCategoryTree) = {
+      val rootCategory = ruleCategoryTree.getRoot
       new  RuleCategoryPopup(
           rootCategory
         , category
+        , ruleCategoryTree.getSelected
         , {(r : RuleCategory) =>
             root = roCategoryRepository.getRootCategory
-            ruleCategoryTree(rootCategory).refreshTree(root) & refreshGrid
+            ruleCategoryTree.refreshTree(root) & refreshGrid
           }
-    )
+      )
+    }
+
    /**
     * Create the popup
     */
     private[this] def showCategoryPopup(category : Option[RuleCategory]) : JsCmd = {
     val popupHtml =
-      root match {
-        case Full(rootCategory) =>
-          creationPopup(category,rootCategory).popupContent
+      ruleCategoryTree match {
+        case Full(ruleCategoryTree) =>
+          creationPopup(category,ruleCategoryTree).popupContent
         case eb:EmptyBox =>
           // Should not happen, the function will be called only if the rootCategory is Set
           val fail = eb ?~! "Could not get root category"
@@ -284,9 +289,9 @@ class RuleDisplayer (
     */
     private[this] def showDeleteCategoryPopup(category : RuleCategory) : JsCmd = {
     val popupHtml =
-      root match {
-        case Full(rootCategory) =>
-          creationPopup(Some(category), rootCategory).deletePopupContent(category.canBeDeleted(rules.toList))
+      ruleCategoryTree match {
+        case Full(ruleCategoryTree) =>
+          creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules.toList))
         case eb:EmptyBox =>
           // Should not happen, the function will be called only if the rootCategory is Set
           val fail = eb ?~! "Could not get root category"
