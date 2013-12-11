@@ -136,7 +136,7 @@ class RuleCategoryPopup(
     val action = () => if (canBeDeleted)  onSubmitDelete else closePopup
     val disabled  = if (canBeDeleted) ("","") else ("disabled","true")
      (
-      "#dialogTitle *"  #> s"Delete Rule category ${s"'${rootCategory.name}'"}" &
+      "#dialogTitle *"  #> s"Delete Rule category ${s"'${targetCategory.map(_.name).getOrElse("")}'"}" &
       "#text * "        #> (if(canBeDeleted) "Are you sure you want to delete this rule category?" else "This Rule category is not empty and therefore cannot be deleted")  &
       "#deleteCategoryButton" #> SHtml.ajaxButton("Confirm", action, ("id", "createRuleCategorySaveButton") ,("tabindex","1") , ("style","margin-left:5px;"), disabled )
     )(deleteHtml ++ Script(OnLoad(JsRaw(s"updatePopup(); "))))
