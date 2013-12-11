@@ -42,7 +42,6 @@ bundle agent logger_rudder(message, class_prefix)
       # 3/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
         int        => getfields("^[^;]*;;${class_prefix}.*", "${expected_reports_file}", ";;", "report_data"),
-        ifvarclass => "logger_rudder_resfile_ok",
         classes    => if_ok("report_data_read");
 
   files:
