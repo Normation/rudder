@@ -25,15 +25,13 @@ bundle agent configuration
 
   vars:
 
-      "ncf_configuration_file" string => "${me.framework_path}/ncf.conf";
+      "ncf_configuration_basedir" string => dirname("${this.promise_filename}");
 
-      # TODO: Put a logic to get the configuration from ${ncf_configuration_file}
+      "ncf_configuration_file"    string => "${ncf_configuration_basedir}/../ncf.conf";
 
-}
+      # Read all entries from the configuration file
+      "num_entries"                  int => readstringarray("ncf_config","${ncf_configuration_file}","#[^\n]*","=",100,8000);
 
-# TEMPORARY: HARDCODE CONFIGURATION OF LOGGER BUNDLES
-bundle common ncf
-{
-  vars:
-      "loggers" string => "_logger_default";
+      "enabled_loggers"            slist => splitstring("${ncf_config[loggers][1]}",",","10");
+
 }

@@ -93,8 +93,9 @@ body common control
               };
 
     bundlesequence => { 
-                        "init", 
-                        "me", 
+                        "init",
+                        "me",
+                        "configuration",
                         "dispatcher",
                         "end",
                       };
