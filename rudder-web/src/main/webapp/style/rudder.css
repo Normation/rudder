@@ -2556,9 +2556,14 @@ tr.unfoldable {
   font-weight: bold;
 }
 
+
 li.disableTreeNode > a {
   color: grey;
   font-style:italic;
+}
+
+ins.jstree-icon {
+    float: left;
 }
 
 .jstree-default.jstree-focused {
