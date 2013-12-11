@@ -39,7 +39,7 @@
       </div>
     </div>
     <div class="inner-portlet">
-      <div class="inner-portlet-header">Configure allowed networks</div>
+      <div class="inner-portlet-header">Client-server communication</div>
       <div class="portlet-content">
 
         <div class="intro">
@@ -90,6 +90,36 @@
             <hr class="spacer" />
           </div>
         </div>
+
+        <hr class="spacer" />
+        <div class="deca">
+          <h3>Security</h3>
+          <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
+            <form class="lift:form.ajax">
+              <div class="wbBaseField"> 
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 50%;">
+                      <span style="float:left">Require time synchronization between nodes and policy server: </span>
+                      <span id="denyBadClocksTooltip" />
+                    </label>
+                    <input id="denyBadClocks" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <div class="wbBaseField"> 
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 50%;">
+                      <span style="float:left">Use reverse DNS lookups on nodes to reinforce authentication to policy server: </span>
+                      <span id="skipIdentifyTooltip" />
+                    </label>
+                    <input id="skipIdentify" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="[save]" id="cfserverNetworkSubmit"/>
+              <lift:Msg id="updateCfserverNetwork">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+        <hr class="spacer" />
+        
+        
       </div>
     </div>
     

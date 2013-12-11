@@ -55,6 +55,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def dispatch = {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
+    case "denyBadClocks" => cfserverNetworkConfiguration
   }
 
 
@@ -213,7 +214,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & initJs(enabled)))
   }
 
-    def workflowConfiguration = { xml : NodeSeq =>
+  def workflowConfiguration = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
     var initEnabled = configService.rudder_workflow_enabled
@@ -332,6 +333,112 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     ) apply (xml ++ Script(Run("correctButtons();") & initJs(enabled)))
   }
+
+  def cfserverNetworkConfiguration = { xml : NodeSeq =>
+
+    //  initial values, updated on successfull submit
+    var initDenyBadClocks = configService.cfengine_server_denybadclocks
+    //be careful, we want "No skipIdentify"
+    //convention: we negate on server i/o, not anywhere else
+    var initNoSkipIdentify = configService.cfengine_server_skipidentify.map( !_ )
+
+
+    // form values
+    var denyBadClocks = initDenyBadClocks.getOrElse(false)
+    var noSkipIdentify = initNoSkipIdentify.getOrElse(false)
+
+
+    def submit = {
+      configService.set_cfengine_server_denybadclocks(denyBadClocks).foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
+      configService.set_cfengine_server_skipidentify(!noSkipIdentify).foreach(updateOk => initNoSkipIdentify = Full(noSkipIdentify))
+
+      S.notice("updateCfserverNetwork","Network security options correctly updated")
+      check()
+    }
+
+    def noModif = (
+         initDenyBadClocks.map(_ == denyBadClocks).getOrElse(false)
+      && initNoSkipIdentify.map(_ == noSkipIdentify).getOrElse(false)
+    )
+
+    def check() = {
+      S.notice("updateCfserverNetwork","")
+      Run(s"""$$("#cfserverNetworkSubmit").button( "option", "disabled",${noModif});""")
+    }
+
+    ( "#denyBadClocks" #> {
+      initDenyBadClocks match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value
+            , (b : Boolean) => { denyBadClocks = b; check() }
+            , ("id","denyBadClocks")
+          )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Deny Bad Clocks' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+
+      "#denyBadClocksTooltip *" #> {
+
+        initDenyBadClocks match {
+          case Full(_) =>
+            val tooltipid = Helpers.nextFuncName
+
+            <span class="tooltipable" tooltipid={tooltipid} title="">
+              <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+            </span>
+            <div class="tooltipContent" id={tooltipid}>
+               By default, copying configuration policy to nodes requires system clocks to be synchronized
+               to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.
+            </div>
+
+
+          case _ => NodeSeq.Empty
+        }
+      } &
+     "#skipIdentify" #> {
+      initNoSkipIdentify match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value
+            , (b : Boolean) => { noSkipIdentify = b; check() }
+            , ("id","skipIdentify")
+          )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Skip verify' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+
+      "#skipIdentifyTooltip *" #> {
+
+        initNoSkipIdentify match {
+          case Full(_) =>
+            val tooltipid = Helpers.nextFuncName
+            <span class="tooltipable" tooltipid={tooltipid} title="">
+              <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+            </span>
+            <div class="tooltipContent" id={tooltipid}>
+              By default, copying configuration policy requires nodes to be able to
+              perform a reverse DNS lookup for the IP of the interface used to connect to the Rudder
+              server. This is then checked by a forward DNS lookup on the server. Disabling this will
+              bypass this check, thus slightly improving performance on each node without providing
+              any significant window for attack. It is necessary to disable this option if any of
+              your nodes are behind a NAT or if you don't have a full reverse DNS setup.
+            </div>
+
+          case _ => NodeSeq.Empty
+        }
+      } &
+
+      "#cfserverNetworkSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
+
 
 
 }
