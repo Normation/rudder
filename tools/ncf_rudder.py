@@ -223,7 +223,7 @@ if __name__ == '__main__':
   if sys.argv[1] == "canonify_expected_reports":
     canonify_expected_reports(sys.argv[2], sys.argv[3])
   elif sys.argv[1] == "rudderify_techniques":
-    write_all_techniques_for_rudder(sys.argv[1])
+    write_all_techniques_for_rudder(sys.argv[2])
   else:
     usage()
     exit(1)
