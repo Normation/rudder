@@ -87,6 +87,9 @@ class RuleCategoryTree(
     }
   }
 
+  def getRoot = {
+    root
+  }
   def resetSelected = selectedCategoryId = rootCategory.id
 
   def dispatch = {
