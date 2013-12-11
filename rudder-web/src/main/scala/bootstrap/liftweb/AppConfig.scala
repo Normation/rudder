@@ -1134,6 +1134,8 @@ object RudderConfig extends Loggable {
     , RUDDER_WEBDAV_USER
     , RUDDER_WEBDAV_PASSWORD
     , RUDDER_SYSLOG_PORT
+    , configService.cfengine_server_denybadclocks _
+    , configService.cfengine_server_skipidentify _
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
     techniqueRepositoryImpl,
@@ -1151,7 +1153,7 @@ object RudderConfig extends Loggable {
     RUDDER_COMMUNITY_CHECKPROMISES_COMMAND,
     RUDDER_NOVA_CHECKPROMISES_COMMAND)
 
-  //must be here because of cirular dependency if in techniqueRepository
+  //must be here because of circular dependency if in techniqueRepository
   techniqueRepositoryImpl.registerCallback(new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, woLdapDirectiveRepository))
 
   private[this] lazy val techniqueRepositoryImpl = {

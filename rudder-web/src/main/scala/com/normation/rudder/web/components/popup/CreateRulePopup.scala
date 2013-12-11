@@ -55,11 +55,15 @@ import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.WBSelectField
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategory
 
 class CreateOrCloneRulePopup(
-  clonedRule: Option[Rule],
-  onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop },
-  onFailureCallback : () => JsCmd = { () => Noop }
+    rootRuleCategory  : RuleCategory
+  , clonedRule        : Option[Rule]
+  , selectedCategory  : RuleCategoryId
+  , onSuccessCallback : (Rule) => JsCmd = { (rule : Rule) => Noop }
+  , onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
 
   // Load the template from the popup
@@ -151,7 +155,7 @@ class CreateOrCloneRulePopup(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Short description", clonedRule.map( _.shortDescription).getOrElse("")) {
+  private[this] val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map( _.shortDescription).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def errorClassName = ""
@@ -161,9 +165,9 @@ class CreateOrCloneRulePopup(
 
   private[this] val category =
     new WBSelectField(
-        "Rule category"
-      , categoryHierarchyDisplayer.getRuleCategoryHierarchy(roCategoryRepository.getRootCategory.get, None).map { case (id, name) => (id.value -> name)}
-      , roCategoryRepository.getRootCategory.get.id.value
+        "Category"
+      , categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name)}
+      , selectedCategory.value
     ) {
     override def className = "rudderBaseFieldSelectClassName"
   }

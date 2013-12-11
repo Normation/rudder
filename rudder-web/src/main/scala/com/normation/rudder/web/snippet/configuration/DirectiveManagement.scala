@@ -79,6 +79,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   val techniqueRepository = RudderConfig.techniqueRepository
   val getDirectiveLib     = () => RudderConfig.roDirectiveRepository.getFullDirectiveLibrary
+  val getRules            = () => RudderConfig.roRuleRepository.getAll()
   val uuidGen             = RudderConfig.stringUuidGenerator
   val treeUtilService     = RudderConfig.jsTreeUtilService
 
@@ -119,6 +120,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   //must be reloaded "updateDirectiveLibrary()"
   //when information change (directive added/removed/modified, etc)
   var directiveLibrary = getDirectiveLib()
+  var rules = getRules()
 
   private[this] val directiveId: Box[String] = S.param("directiveId")
 
@@ -170,18 +172,29 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def userLibrary(workflowEnabled: Boolean): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree} class="nodisplay">{
-          directiveLibrary match {
-            case eb:EmptyBox =>
-              val f = eb ?~! "Error when trying to get the root category of Active Techniques"
-              logger.error(f.messageChain)
-              f.rootExceptionCause.foreach { ex =>
-                logger.error("Exception causing the error was:" , ex)
-              }
-              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
-            case Full(activeTechLib) =>
+          (directiveLibrary,rules) match {
+            case (Full(activeTechLib), Full(allRules)) =>
+              val usedDirectives = allRules.flatMap { case r =>
+                  r.directiveIds.map( id => (id -> r.id))
+                }.groupBy( _._1 ).mapValues( _.size).toSeq
+
               <ul>{
-                DisplayDirectiveTree.displayTree(activeTechLib, None, Some(onClickActiveTechnique), Some(onClickDirective(workflowEnabled)))
+                DisplayDirectiveTree.displayTree(activeTechLib, usedDirectives, None, Some(onClickActiveTechnique), Some(onClickDirective(workflowEnabled)))
               }</ul>
+            case (x, y) =>
+
+              (x :: y :: Nil).foreach {
+                case eb: EmptyBox =>
+                  val f = eb ?~! "Error when trying to get the root category of Active Techniques"
+                  logger.error(f.messageChain)
+                  f.rootExceptionCause.foreach { ex =>
+                    logger.error("Exception causing the error was:" , ex)
+                  }
+
+                case _ => //
+              }
+
+              <span class="error">An error occured when trying to get information from the database. Please contact your administrator of retry latter.</span>
           }
       }</div>
     ) ++ Script(OnLoad(buildJsTree()))
@@ -558,6 +571,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] def updateDirectiveLibrary() : Unit = {
     directiveLibrary = getDirectiveLib()
+    rules = getRules()
   }
 
   //////////////// display trees ////////////////////////

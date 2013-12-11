@@ -286,7 +286,6 @@ var buildRuleCategoryTree = function(id, initially_select , appContext) {
   }).bind("loaded.jstree", function (event, data) {
       // you get two params - event & data - check the core docs for a detailed description
       $(this).jstree("open_all");
-      $("#categoryTree ins.jstree-icon").css("float","left");
   })
   $(id).removeClass('nodisplay');
 }
@@ -338,7 +337,6 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
   }).bind("loaded.jstree", function (event, data) {
       // you get two params - event & data - check the core docs for a detailed description
       $(this).jstree("open_all");
-      $("#categoryTree ins.jstree-icon").css("float","left");
   })
   $(id).removeClass('nodisplay');
 }

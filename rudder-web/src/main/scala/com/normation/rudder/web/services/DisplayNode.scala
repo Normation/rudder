@@ -119,6 +119,8 @@ object DisplayNode extends Loggable {
               "sSearch": ""
             },
             "bLengthChange": true,
+            "bStateSave": true,
+            "sCookiePrefix": "Rudder_DataTables_",
             "bAutoWidth": false,
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
@@ -158,6 +160,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                   "sSearch": ""
                 },
                 "bLengthChange": true,
+                "bStateSave": true,
+                "sCookiePrefix": "Rudder_DataTables_",
                 "sPaginationType": "full_numbers",
                 "bPaginate": true,
                 "bAutoWidth": false,
@@ -184,6 +188,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                   "sSearch": ""
                 },
                 "bLengthChange": true,
+                "bStateSave": true,
+                "sCookiePrefix": "Rudder_DataTables_",
                 "bAutoWidth": false,
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
