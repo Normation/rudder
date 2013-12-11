@@ -65,6 +65,7 @@ import com.normation.rudder.rule.category._
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.components.RuleDisplayer
+import com.normation.rudder.web.components.RuleDisplayer
 
 /**
  * Snippet for managing Rules.
@@ -81,7 +82,8 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
 
   //the popup component
-  private[this] val creationPopup = new LocalSnippet[CreateOrCloneRulePopup]
+  private[this] val currentRuleForm = new LocalSnippet[RuleEditForm]
+  private[this] val currentRuleDisplayer = new LocalSnippet[RuleDisplayer]
 
   val extendsAt = SnippetExtensionKey(classOf[RuleManagement].getSimpleName)
 
@@ -117,24 +119,10 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
   }
 
 
-  private def setCreationPopup(ruleToClone:Option[Rule], workflowEnabled: Boolean, changeMsgEnabled : Boolean) : Unit = {
-         creationPopup.set(Full(new CreateOrCloneRulePopup(ruleToClone,
-            onSuccessCallback = onCreateRule(workflowEnabled, changeMsgEnabled) )))
-   }
 
 
-   /**
-    * Create the popup
-    */
-  def createPopup : NodeSeq = {
-    creationPopup.is match {
-      case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
-      case Empty => <div>The component is not set</div>
-      case Full(popup) => popup.popupContent()
-    }
-  }
 
-  private[this] val currentRuleForm = new LocalSnippet[RuleEditForm]
+
 
 
   def head(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
@@ -174,13 +162,22 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     }
   }
 
+
   def viewRules(workflowEnabled: Boolean, changeMsgEnabled : Boolean) : NodeSeq = {
-    new RuleDisplayer(
+    currentRuleDisplayer.set(Full(new RuleDisplayer(
         None
       , "rules_grid_zone"
       , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
-      , showPopup(None, workflowEnabled, changeMsgEnabled)
-    ).display
+      , onCreateRule(workflowEnabled, changeMsgEnabled)
+      , showPopup
+    )))
+
+    currentRuleDisplayer.is match {
+      case Full(ruleDisplayer) => ruleDisplayer.display
+      case eb: EmptyBox =>
+        val fail = eb ?~! ("Error when displaying Rules")
+        <div class="error">Error in the form: {fail.messageChain}</div>
+    }
   }
 
   def editRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
@@ -234,12 +231,23 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     )
   }
 
-  private[this] def showPopup(clonedRule:Option[Rule], workflowEnabled: Boolean, changeMsgEnabled : Boolean) : JsCmd = {
-    setCreationPopup(clonedRule, workflowEnabled, changeMsgEnabled)
-    val popupHtml = createPopup
+
+     /**
+    * Create the popup
+    */
+  def createPopup(ruleToClone : Option[Rule]) : NodeSeq = {
+    currentRuleDisplayer.is match {
+      case Failure(m,_,_) =>  <span class="error">Error: {m}</span>
+      case Empty => <div>The component is not set</div>
+      case Full(popup) => popup.ruleCreationPopup(ruleToClone)
+    }
+  }
+
+  private[this] def showPopup(clonedRule:Option[Rule]) : JsCmd = {
+
+    val popupHtml = createPopup(clonedRule:Option[Rule])
     SetHtml(CreateOrCloneRulePopup.htmlId_popupContainer, popupHtml) &
     JsRaw( s""" createPopup("${CreateOrCloneRulePopup.htmlId_popup}") """)
-
   }
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,7 +262,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
                      , rule
                      , workflowEnabled
                      , changeMsgEnabled
-                     , onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule), workflowEnabled, changeMsgEnabled) }
+                     , onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule)) }
                      , onSuccessCallback = { updateRulesDisplayerComponent(workflowEnabled,changeMsgEnabled)  }
                    )
     currentRuleForm.set(Full(form))
