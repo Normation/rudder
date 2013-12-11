@@ -67,6 +67,9 @@ class SystemVariableServiceImpl(
   , webdavUser                      : String
   , webdavPassword                  : String
   , syslogPort                      : Int
+    //denybadclocks and skipIdentify are runtime properties
+  , getDenyBadClocks                : () => Box[Boolean]
+  , getSkipIdentify                 : () => Box[Boolean]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -157,22 +160,45 @@ class SystemVariableServiceImpl(
 
     val varAllowConnect = systemVariableSpecService.get("ALLOWCONNECT").toVariable().copyWithSavedValues(allowConnect.toSeq)
 
+    //obtaining variable values from (failable) properties
+    def getProp[T](specName: String, getter: () => Box[T]) : SystemVariable = {
+      //try to get the user configured value, else log an error and use the default value.
+      val variable = systemVariableSpecService.get(specName).toVariable()
+
+      getter() match {
+        case Full(value) =>
+          variable.copyWithSavedValue(value.toString)
+        case eb:EmptyBox =>
+          val e = eb ?~! s"Error when trying to get the value configured by the user for system variable '${specName}'"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception cause was:" , ex)
+          }
+          variable
+      }
+    }
+
+    val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
+    val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
+
     logger.debug("System variables for server %s done".format(nodeInfo.id.value))
 
     Full(Map(
-      (varNodeRole.spec.name, varNodeRole),
-      (varLicensesPaid.spec.name, varLicensesPaid),
-      (varToolsFolder.spec.name, varToolsFolder),
-      (varCmdbEndpoint.spec.name, varCmdbEndpoint),
-      (varSharedFilesFolder.spec.name, varSharedFilesFolder),
-      (varCommunityPort.spec.name, varCommunityPort),
-      (varAllowConnect.spec.name, varAllowConnect),
-      (varClientList.spec.name, varClientList),
-      (varManagedNodesId.spec.name, varManagedNodesId),
-      (varManagedNodes.spec.name, varManagedNodes),
-      (varWebdavUser.spec.name, varWebdavUser),
-      (varWebdavPassword.spec.name, varWebdavPassword),
-      (syslogPortConfig.spec.name, syslogPortConfig)
+        (varNodeRole.spec.name, varNodeRole)
+      , (varLicensesPaid.spec.name, varLicensesPaid)
+      , (varToolsFolder.spec.name, varToolsFolder)
+      , (varCmdbEndpoint.spec.name, varCmdbEndpoint)
+      , (varSharedFilesFolder.spec.name, varSharedFilesFolder)
+      , (varCommunityPort.spec.name, varCommunityPort)
+      , (varAllowConnect.spec.name, varAllowConnect)
+      , (varClientList.spec.name, varClientList)
+      , (varManagedNodesId.spec.name, varManagedNodesId)
+      , (varManagedNodes.spec.name, varManagedNodes)
+      , (varWebdavUser.spec.name, varWebdavUser)
+      , (varWebdavPassword.spec.name, varWebdavPassword)
+      , (syslogPortConfig.spec.name, syslogPortConfig)
+      , (denyBadClocks.spec.name, denyBadClocks)
+      , (skipIdentify.spec.name, skipIdentify)
     ))
 
   }
