@@ -22,8 +22,12 @@
 # @parameter message      The common part of the message to display
 # @parameter class_prefix The prefix of the class for different states
 #
+# @class_prefix    logger_rudder
+# @class_parameter class_prefix
+# The three states are kept, repaired and not_ok
+# (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent _logger_rudder(message, class_prefix)
+bundle agent logger_rudder(message, class_prefix)
 {
   vars:
 
@@ -33,12 +37,12 @@ bundle agent _logger_rudder(message, class_prefix)
       "expected_reports_temp"   string => "${expected_reports_source}.tmp";
       "expected_reports_file"   string => "${expected_reports_source}.res";
 
-    (_logger_rudder_final_resfile_repaired|_logger_rudder_temp_resfile_kept)::
+    (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept)::
 
       # 3/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
         int        => getfields("^[^;]*;;${class_prefix}.*", "${expected_reports_file}", ";;", "report_data"),
-        ifvarclass => "_logger_rudder_resfile_ok",
+        ifvarclass => "logger_rudder_resfile_ok",
         classes    => if_ok("report_data_read");
 
   files:
@@ -49,17 +53,17 @@ bundle agent _logger_rudder(message, class_prefix)
       "${expected_reports_temp}"
         create        => "true",
         edit_template => "${expected_reports_source}",
-        classes       => classes_generic("_logger_rudder_temp_resfile");
+        classes       => classes_generic("logger_rudder_temp_resfile");
 
   commands:
 
-    _logger_rudder_temp_resfile_repaired::
+    logger_rudder_temp_resfile_repaired::
 
       # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
       # it.
       "${log_canonification_tool}"
         args          => "canonify_expected_reports ${expected_reports_temp} ${expected_reports_file}",
-        classes       => classes_generic("_logger_rudder_final_resfile");
+        classes       => classes_generic("logger_rudder_final_resfile");
 
   reports:
 
@@ -67,13 +71,15 @@ bundle agent _logger_rudder(message, class_prefix)
 
       # 4/ Array is ready, reporting time !!!
       "@@${report_data[1]}@@result_success@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error",
+        classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_repaired@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error",
+        classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_error@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_error";
+        ifvarclass => "${class_prefix}_error",
+        classes    => classes_generic("logger_rudder_${class_prefix}");
 
 }
-
