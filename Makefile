@@ -23,7 +23,7 @@ clean:
 	rm -f tests/acceptance/xml.tmp
 	rm -rf tests/acceptance/workdir/
 	rm -f doc/all_generic_methods.txt
-	rm -f tools/ncf.pyc
+	find $(CURDIR) -iname "*.pyc" -delete
 
 distclean: clean
 
