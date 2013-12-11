@@ -93,9 +93,20 @@ class RuleCategoryTree(
     case "tree" => { _ => tree }
   }
 
-  def refreshTree(newRoot : RuleCategory) : JsCmd =  {
-    root = newRoot
-    SetHtml(htmlId_RuleCategoryTree, tree()) &
+  def refreshTree(newRoot : Box[RuleCategory]) : JsCmd =  {
+    val html = newRoot match {
+      case Full(newRoot) =>
+        root = newRoot
+        tree()
+      case eb : EmptyBox =>
+        val fail = eb ?~! "Could not get root category"
+        val msg = s"An error occured while refreshing Rule categoriy tree , cause is ${fail.messageChain}"
+        logger.error(msg)
+        <div style="padding:10px;">
+          <div class="error">{msg}</div>
+        </div>
+    }
+    SetHtml(htmlId_RuleCategoryTree, html)&
     selectCategory() &
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
@@ -142,7 +153,7 @@ class RuleCategoryTree(
             (category.id.value, newRoot)
           }) match {
             case Full((id,newRoot)) =>
-              refreshTree(newRoot) & updateComponent() & selectCategory()
+              refreshTree(Full(newRoot)) & updateComponent() & selectCategory()
             case f:Failure => Alert(f.messageChain + "\nPlease reload the page")
             case Empty => Alert("Error while trying to move category with requested id '%s' to category id '%s'\nPlease reload the page.".format(sourceCatId,destCatId))
           }
