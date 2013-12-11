@@ -26,32 +26,46 @@
 bundle agent _logger_rudder(message, class_prefix)
 {
   vars:
-    "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
-    "expected_reports_temp"   string => "${expected_reports_source}.tmp";
-    "expected_reports_file"   string => "${expected_reports_source}.res";
 
-    # Once the file has been expanded, read in our line
-    "number_lines"
-      int        => getfields("^[^;]*;;${class_prefix}.*", "${expected_reports_file}", ";;", "report_data"),
-      # ifvarclass => canonify("_logger_rudder_resfile_ok"),
-      classes    => if_ok("report_data_read");
+      "log_canonification_tool" string => "/usr/share/ncf/tools/ncf_rudder.py";
+
+      "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
+      "expected_reports_temp"   string => "${expected_reports_source}.tmp";
+      "expected_reports_file"   string => "${expected_reports_source}.res";
+
+    (_logger_rudder_final_resfile_repaired|_logger_rudder_temp_resfile_kept)::
+
+      # 3/ Once the final expected reports file has been expanded, read in our array
+      "number_lines"
+        int        => getfields("^[^;]*;;${class_prefix}.*", "${expected_reports_file}", ";;", "report_data"),
+        ifvarclass => "_logger_rudder_resfile_ok",
+        classes    => if_ok("report_data_read");
 
   files:
 
-    "${expected_reports_temp}"
-      create        => "true",
-      edit_template => "${expected_reports_source}",
-      classes       => classes_generic("_logger_rudder_resfile");
+      # 1/ First, check if the temporary file needs to be updated (The Rudder
+      # provided expected reports file has changed). If so, expand the variables
+      # in it into a temporary file.
+      "${expected_reports_temp}"
+        create        => "true",
+        edit_template => "${expected_reports_source}",
+        classes       => classes_generic("_logger_rudder_temp_resfile");
 
-    "${expected_reports_file}"
-      create        => "true",
-      edit_template => "${expected_reports_source}",
-      classes       => classes_generic("_logger_rudder_resfile");
+  commands:
+
+    _logger_rudder_temp_resfile_repaired::
+
+      # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
+      # it.
+      "${log_canonification_tool}"
+        args          => "canonify_expected_reports ${expected_reports_temp} ${expected_reports_file}",
+        classes       => classes_generic("_logger_rudder_final_resfile");
 
   reports:
 
     report_data_read::
 
+      # 4/ Array is ready, reporting time !!!
       "@@${report_data[1]}@@result_success@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
         ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
