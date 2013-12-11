@@ -221,7 +221,7 @@ if __name__ == '__main__':
     exit(1)
 
   if sys.argv[1] == "canonify_expected_reports":
-    init(sys.argv[2], sys.argv[3])
+    canonify_expected_reports(sys.argv[2], sys.argv[3])
   elif sys.argv[1] == "rudderify_techniques":
     write_all_techniques_for_rudder(sys.argv[1])
   else:
