@@ -7,5 +7,6 @@ bundle agent remote_access(path)
     "ssh_config[Port]" string => "5190";
 
   methods:
-      "any" usebundle => openssh_server("remote_access.ssh_config");
+      #"any" usebundle => openssh_server("remote_access.ssh_config");
+      "any" usebundle => openssh_server;
 }
