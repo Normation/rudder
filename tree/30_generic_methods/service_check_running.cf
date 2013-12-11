@@ -23,7 +23,7 @@
 # 
 # @class_prefix service_check_running
 # @class_parameter service_name
-# This bundle will define a class service_check_running_${service_name}_{kept,repaired,error,ok,reached}
+# This bundle will define a class service_check_running_${service_name}_{kept,repaired}
 
 bundle agent service_check_running(service_name)
 {

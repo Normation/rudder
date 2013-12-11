@@ -32,7 +32,7 @@ bundle agent configuration
 }
 
 # TEMPORARY: HARDCODE CONFIGURATION OF LOGGER BUNDLES
-bundle agent ncf
+bundle common ncf
 {
   vars:
       "loggers" string => "_logger_default";

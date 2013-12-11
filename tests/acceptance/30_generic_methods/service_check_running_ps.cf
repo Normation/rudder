@@ -22,7 +22,7 @@ body common control
 bundle agent init
 {
   vars:
-    "service_regex"            string => "^/usr/sbin/cron$";
+    "service_regex"            string => "/usr/sbin/cron";
     "canonified_service_regex" string => canonify("${service_regex}");
 }
 
@@ -39,7 +39,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_check_running_${init.canonified_service_regex}_ok.!service_check_running_${init.canonified_service_regex}_error";
+    "ok" expression => "service_check_running_${init.canonified_service_regex}_kept.!service_check_running_${init.canonified_service_regex}_repaired";
 
   reports:
     ok::

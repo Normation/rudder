@@ -38,7 +38,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_check_running_${init.service_name}_ok.!service_check_running_${init.service_name}_error";
+    "ok" expression => "service_check_running_${init.service_name}_kept.!service_check_running_${init.service_name}_repaired";
 
   reports:
     ok::
