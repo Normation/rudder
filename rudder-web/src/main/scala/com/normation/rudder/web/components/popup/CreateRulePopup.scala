@@ -151,7 +151,7 @@ class CreateOrCloneRulePopup(
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val ruleShortDescription = new WBTextAreaField("Short description", clonedRule.map( _.shortDescription).getOrElse("")) {
+  private[this] val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map( _.shortDescription).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
     override def errorClassName = ""
@@ -161,7 +161,7 @@ class CreateOrCloneRulePopup(
 
   private[this] val category =
     new WBSelectField(
-        "Rule category"
+        "Category"
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(roCategoryRepository.getRootCategory.get, None).map { case (id, name) => (id.value -> name)}
       , roCategoryRepository.getRootCategory.get.id.value
     ) {
