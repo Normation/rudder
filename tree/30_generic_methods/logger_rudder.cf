@@ -31,7 +31,7 @@ bundle agent logger_rudder(message, class_prefix)
 {
   vars:
 
-      "log_canonification_tool" string => "${g.rudder_ncf}/tools/ncf_rudder.py";
+      "log_canonification_tool" string => '/bin/cat "${expected_reports_temp}" | while read line; do if echo "${line}" | grep -E "^\s*#" > /dev/null; then echo "${line}"; continue; fi; canonified=$(echo "${line}" | cut -d";" -f3 | sed "s/[^a-zA-Z0-9_]/_/g"); echo ${line} | sed -r "s/([^;]+);;[^;]+;;(.*)$/\1;;${canonified};;\2/"; done > ${expected_reports_file}';
 
       "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
       "expected_reports_temp"   string => "${expected_reports_source}.tmp";
@@ -61,7 +61,7 @@ bundle agent logger_rudder(message, class_prefix)
       # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
       # it.
       "${log_canonification_tool}"
-        args          => "canonify_expected_reports ${expected_reports_temp} ${expected_reports_file}",
+        contain       => in_shell,
         classes       => classes_generic("logger_rudder_final_resfile");
 
   reports:
