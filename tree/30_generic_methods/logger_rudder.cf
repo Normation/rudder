@@ -31,7 +31,7 @@ bundle agent logger_rudder(message, class_prefix)
 {
   vars:
 
-      "log_canonification_tool" string => "/usr/share/ncf/tools/ncf_rudder.py";
+      "log_canonification_tool" string => "${g.rudder_ncf}/tools/ncf_rudder.py";
 
       "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
       "expected_reports_temp"   string => "${expected_reports_source}.tmp";
