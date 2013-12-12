@@ -48,39 +48,8 @@ bundle agent package_install_version_cmp(package_name, version_comparator, packa
       "immediate" expression => strcmp("immediate", "${action}");
 
   packages:
-    !version_not_specified.local_package.redhat::
-      "${package_name}"
-                        package_policy  => "addupdate",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => redhat_local_install,
-                        classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
 
-    !version_not_specified.!local_package.redhat::
-      "${package_name}"
-                        package_policy  => "addupdate",
-                        package_version => "${package_version}",
-                        package_select  => "${version_comparator}",
-                        package_method  => yum_rpm,
-                        classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
-
-
-    version_not_specified.local_package.redhat::
-      "${package_name}"
-                        package_policy => "addupdate",
-                        package_method => redhat_local_install,
-                        classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
-
-
-    version_not_specified.!local_package.redhat::
-      "${package_name}"
-                        package_policy => "addupdate",
-                        package_method => yum_rpm,
-                        classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+    ## Debian support ##
     !version_not_specified.local_package.debian::
       "${package_name}"
                         package_policy  => "addupdate",
@@ -115,6 +84,75 @@ bundle agent package_install_version_cmp(package_name, version_comparator, packa
                         classes        => classes_generic("${class_prefix}"),
                         action         => do_if_immediate;
 
+    ## RedHat support ##
+    !version_not_specified.local_package.redhat::
+      "${package_name}"
+                        package_policy  => "addupdate",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => redhat_local_install,
+                        classes         => classes_generic("${class_prefix}"),
+                        action          => do_if_immediate;
+
+    !version_not_specified.!local_package.redhat::
+      "${package_name}"
+                        package_policy  => "addupdate",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => yum_rpm,
+                        classes         => classes_generic("${class_prefix}"),
+                        action          => do_if_immediate;
+
+
+    version_not_specified.local_package.redhat::
+      "${package_name}"
+                        package_policy => "addupdate",
+                        package_method => redhat_local_install,
+                        classes        => classes_generic("${class_prefix}"),
+                        action         => do_if_immediate;
+
+
+    version_not_specified.!local_package.redhat::
+      "${package_name}"
+                        package_policy => "addupdate",
+                        package_method => yum_rpm,
+                        classes        => classes_generic("${class_prefix}"),
+                        action         => do_if_immediate;
+
+    ## SUSE support ##
+    !version_not_specified.local_package.SuSE::
+      "${package_name}"
+                        package_policy  => "addupdate",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => generic,
+                        classes         => classes_generic("${class_prefix}"),
+                        action          => do_if_immediate;
+
+    !version_not_specified.!local_package.SuSE::
+      "${package_name}"
+                        package_policy  => "addupdate",
+                        package_version => "${package_version}",
+                        package_select  => "${version_comparator}",
+                        package_method  => generic,
+                        classes         => classes_generic("${class_prefix}"),
+                        action          => do_if_immediate;
+
+
+    version_not_specified.local_package.SuSE::
+      "${package_name}"
+                        package_policy => "addupdate",
+                        package_method => generic,
+                        classes        => classes_generic("${class_prefix}"),
+                        action         => do_if_immediate;
+
+
+    version_not_specified.!local_package.SuSE::
+      "${package_name}"
+                        package_policy => "addupdate",
+                        package_method => generic,
+                        classes        => classes_generic("${class_prefix}"),
+                        action         => do_if_immediate;
 
   methods:
     immediate::
