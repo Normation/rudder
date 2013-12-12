@@ -25,23 +25,29 @@
 bundle agent openssh_knowledge
 {
   vars:
-      "ssh_package_name"              string => "openssh-server";
+
+      # Defaut variables
+      "ssh_service_path"              string => "/usr/sbin/sshd";
+      "ssh_config_file_location"      string => "/etc/ssh/sshd_config";
+      "ssh_template_file"             string => "40_it_ops_knowledge/openssh-server/sshd_config.tml";
 
       "default[Port]"                 string => "22";
       "default[Protocol]"             string => "2";
       "default[PermitRootLogin]"      string => "yes";
       "default[PubkeyAuthentication]" string => "yes";
 
-      "ssh_config_file_location"      string => "/etc/ssh/sshd_config";
+      # Defaut variables - Overridable by OS specific details
+      "ssh_package_name"
+        string => "openssh-server",
+        policy => "overridable";
 
-      "ssh_template_file"             string => "40_it_ops_knowledge/openssh-server/sshd_config.tml";
+      "ssh_etc_initd"
+        string => "sshd",
+        policy => "overridable";
 
-    redhat::
-      "ssh_etc_initd"                 string => "sshd";
+    SuSE::
+      "ssh_package_name"              string => "openssh";
 
-    !redhat::
+    debian::
       "ssh_etc_initd"                 string => "ssh";
-      
-    any::
-      "ssh_service_path"              string => "/usr/sbin/sshd";
 }
