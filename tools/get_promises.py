@@ -1,4 +1,4 @@
-#!/bin/env python2
+#!/usr/bin/env python
 #
 # Usage: ./get_promises cfengine_list_name path
 ###############################################
