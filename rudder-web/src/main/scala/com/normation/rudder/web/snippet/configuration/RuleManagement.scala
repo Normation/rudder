@@ -253,7 +253,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   private[this] def updateRulesDisplayerComponent(workflowEnabled: Boolean, changeMsgEnabled : Boolean) = {
-    () => SetHtml(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled))
+    () => Replace(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled))
   }
 
   private[this] def updateEditComponent(rule:Rule, workflowEnabled: Boolean, changeMsgEnabled : Boolean) : Unit = {
