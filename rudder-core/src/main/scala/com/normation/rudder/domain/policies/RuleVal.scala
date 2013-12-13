@@ -91,12 +91,37 @@ case class ExpandedRuleVal(
 /**
  * A composite class, to keep the link between the applied Directive and the Rule
  */
-case class RuleWithCf3PolicyDraft (
-    ruleId        : RuleId
+case class RuleWithCf3PolicyDraft private (
+    ruleId: RuleId
+  , directiveId: DirectiveId
   , cf3PolicyDraft: Cf3PolicyDraft
 ) extends HashcodeCaching {
   val draftId = cf3PolicyDraft.id
 }
+
+object RuleWithCf3PolicyDraft {
+  def apply(
+    ruleId         : RuleId
+  , directiveId    : DirectiveId
+  , technique      : Technique
+  , variableMap    : Map[String, Variable]
+  , trackerVariable: TrackerVariable
+  , priority       : Int
+  , serial         : Int
+  ): RuleWithCf3PolicyDraft = new RuleWithCf3PolicyDraft(
+      ruleId
+    , directiveId
+    , Cf3PolicyDraft(
+            Cf3PolicyDraftId(ruleId.value + "@@" + directiveId.value)
+          , technique
+          , variableMap
+          , trackerVariable
+          , priority = priority
+          , serial = serial
+      )
+  )
+}
+
 
 /**
  * This is the draft of the policy, not yet a cfengine policy, but a level of abstraction between both
@@ -112,15 +137,14 @@ case class PolicyDraft(
   , originalVariables: Map[String, Variable] // the original list of variable that are replaced
 )extends HashcodeCaching {
   def toRuleWithCf3PolicyDraft : RuleWithCf3PolicyDraft =
-    RuleWithCf3PolicyDraft(ruleId,
-        Cf3PolicyDraft(
-            Cf3PolicyDraftId(ruleId.value + "@@" + directiveId.value)
+    RuleWithCf3PolicyDraft(
+            ruleId
+          , directiveId
           , technique
           , variableMap
           , trackerVariable
           , priority = priority
           , serial = serial
-        )
     )
 
   def toDirectiveVal : DirectiveVal = {

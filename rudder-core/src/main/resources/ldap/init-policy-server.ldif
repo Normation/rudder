@@ -48,31 +48,6 @@
 # sed -i "s#%%POLICY_SERVER_ALLOWED_NETWORKS%%#192\\.168\\.100\\.0/24#g" me.ldif
 ###############################################################################
 
-#######################################################################################################################
-## Root Policy Node
-#######################################################################################################################
-
-
-dn: nodeId=root,ou=Nodes Configuration,ou=Rudder,cn=rudder-configuration
-objectClass: rootPolicyServerNodeConfiguration
-objectClass: nodeConfiguration
-objectClass: top
-nodeId: root
-isModified: TRUE
-cn: Rudder root policy server
-lastUpdateTimestamp: 20101026130817+0200
-nodeHostname: %%POLICY_SERVER_HOSTNAME%%
-localAdministratorAccountName: root
-#agentsName: Nova
-agentName: Community
-policyServerId: root
-isPolicyServer: TRUE
-targetName: Rudder root policy server
-targetNodeHostname: %%POLICY_SERVER_HOSTNAME%%
-targetAgentName: Community
-targetPolicyServerId: root
-targetLocalAdministratorAccountName: root
-
 
 
 #######################################################################################################################

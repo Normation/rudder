@@ -37,7 +37,6 @@ package com.normation.rudder.services.licenses
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import com.normation.rudder.exceptions.NotFoundException
-import com.normation.rudder.repository.NodeConfigurationRepository
 import com.normation.rudder.domain.licenses.NovaLicense
 import com.normation.rudder.repository.LicenseRepository
 import org.joda.time.DateTime
@@ -48,7 +47,6 @@ import com.normation.exceptions.BusinessException
 
 class NovaLicenseServiceImpl(
     licenseRepository           : LicenseRepository
-  , nodeConfigurationRepository : NodeConfigurationRepository
   , licensesPath                : String
 )  extends NovaLicenseService {
 
@@ -58,25 +56,4 @@ class NovaLicenseServiceImpl(
     licenseRepository.findLicense(nodeId)
   }
 
-//  def saveLicenseFile(uuid: String, licenseNumber: Int, expirationDate: DateTime, file: String): Unit = {
-//
-//    val sourceFile = new File(file)
-//    if (!sourceFile.exists) {
-//      logger.error("Trying to add a non-existing license file: {}", file)
-//      throw new FileNotFoundException("Cannot find the license file " + file)
-//    }
-//
-//    nodeConfigurationRepository.findNodeConfiguration(NodeId(uuid)) match {
-//      case Full(server) =>
-//        val destFile = FilenameUtils.normalize(licensesPath + "/" + uuid +"/" + "license.dat")
-//        FileUtils.copyFile(sourceFile, new File(destFile))
-//        val novaLicense = new NovaLicense(uuid, licenseNumber, expirationDate, destFile)
-//        licenseRepository.addLicense(novaLicense)
-//        () // unit is expected
-//      case e:EmptyBox =>
-//        val msg = "Error when trying to add a license to server with uuid %s.".format(uuid)
-//        logger.error(msg,e)
-//        throw new BusinessException(msg)
-//    }
-//  }
 }

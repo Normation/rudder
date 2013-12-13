@@ -84,7 +84,7 @@ class SystemVariableServiceImpl(
   // allNodeInfos has to contain ALL the node info (those of every node within Rudder)
   // for this method to work properly
   def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]] = {
-    logger.debug("Preparing the system variables for server %s".format(nodeInfo.id.value))
+    logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
 
     // Set the roles of the nodes
     val nodeConfigurationRoles = collection.mutable.Set[String]()
@@ -198,7 +198,7 @@ class SystemVariableServiceImpl(
     val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
     val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
 
-    logger.debug("System variables for server %s done".format(nodeInfo.id.value))
+    logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
     Full(Map(
         (varNodeRole.spec.name, varNodeRole)

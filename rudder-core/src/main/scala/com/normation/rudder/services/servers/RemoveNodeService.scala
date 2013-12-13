@@ -37,9 +37,7 @@ trait RemoveNodeService {
    * For the moment, it really deletes it, later it would be useful to actually move it
    * What it does :
    * - clean the ou=Nodes
-   * - clean the ou=Nodesconfiguration
    * - clean the groups
-   * - clean the AcceptedNodeConfiguration
    */
   def removeNode(nodeId : NodeId, modId: ModificationId, actor:EventActor) : Box[Seq[LDIFChangeRecord]]
 }
@@ -52,7 +50,6 @@ class RemoveNodeServiceImpl(
     , ldapEntityMapper          : LDAPEntityMapper
     , roNodeGroupRepository     : RoNodeGroupRepository
     , woNodeGroupRepository     : WoNodeGroupRepository
-    , nodeConfigurationService  : NodeConfigurationService
     , nodeInfoService           : NodeInfoService
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
@@ -131,14 +128,6 @@ class RemoveNodeServiceImpl(
    /**
    * Delete all node cnfiguration
    */
-  private def deleteAllNodesConfiguration() : Box[Unit]= {
-    logger.debug("Trying to clear all Nodes Configuration")
-    for {
-      result  <-  nodeConfigurationService.deleteAllNodeConfigurations()
-    } yield {
-      () // unit is expected
-    }
-  }
 
   /**
    * Look for the groups containing this node in their nodes list, and remove the node

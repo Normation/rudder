@@ -34,21 +34,23 @@
 
 package com.normation.rudder.services.policies
 
+import scala.Option.option2Iterable
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.domain.parameters.Parameter
+import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies.AppliedStatus
 import com.normation.rudder.domain.policies.ExpandedRuleVal
 import com.normation.rudder.domain.policies.PolicyDraft
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.rudder.domain.reports.RuleExpectedReports
-import com.normation.rudder.domain.servers.NodeConfiguration
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -57,41 +59,17 @@ import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.WoRuleRepository
 import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationService
 import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.services.servers.NodeConfigurationChangeDetectService
-import com.normation.rudder.services.servers.NodeConfigurationService
 import com.normation.utils.Control._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.repository.WoRuleRepository
-import com.normation.rudder.domain.parameters.Parameter
-import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationCache
 
-/**
- * TODO: ca devrait être un "target node configuration", ie
- * tout ce qui va changer dans le node configuration
- *
- */
-case class TargetNodeConfiguration(
-    nodeInfo:NodeInfo,
-    identifiableCFCPIs: Seq[RuleWithCf3PolicyDraft],
-    //environment variable for that server
-    nodeContext:Map[String, Variable],
-    parameters: Set[ParameterForConfiguration]
-) extends HashcodeCaching
 
-case class ParameterForConfiguration(
-    name       : ParameterName
-  , value      : String
-) extends HashcodeCaching
 
-case object ParameterForConfiguration {
-  def fromParameter(param: Parameter) : ParameterForConfiguration = {
-    ParameterForConfiguration(param.name, param.value)
-  }
-}
 
 /**
  * The main service which deploy modified rules and
@@ -107,8 +85,11 @@ trait DeploymentService extends Loggable {
    * Return the list of node IDs actually updated.
    *
    */
-  def deploy() : Box[Seq[NodeConfiguration]] = {
-    val initialTime = DateTime.now().getMillis
+  def deploy() : Box[Set[NodeId]] = {
+
+    logger.info("Start policy generation, checking updated rules")
+
+    val initialTime = System.currentTimeMillis
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
 
     val result = for {
@@ -121,75 +102,76 @@ trait DeploymentService extends Loggable {
       directiveLib    <- getDirectiveLibrary() ?~! "Could not get the directive library"
       groupLib        <- getGroupLibrary() ?~! "Could not get the group library"
       allParameters   <- getAllGlobalParameters ?~! "Could not get global parameters"
-      timeFetchAll    =  (DateTime.now().getMillis - initialTime)
+      timeFetchAll    =  (System.currentTimeMillis - initialTime)
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
 
-      historizeTime =  DateTime.now().getMillis
+      historizeTime =  System.currentTimeMillis
       historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos)
-      timeHistorize =  (DateTime.now().getMillis - historizeTime)
-      _             =  logger.debug(s"Historization of name done in ${timeHistorize}ms, start to build RuleVals.")
+      timeHistorize =  (System.currentTimeMillis - historizeTime)
+      _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
 
-      crValTime   =  DateTime.now().getMillis
+      ruleValTime   =  System.currentTimeMillis
       rawRuleVals <- buildRuleVals(allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
-      timeCrVal   =  (DateTime.now().getMillis - crValTime)
-      _           =  logger.debug(s"RuleVals built in ${timeCrVal}ms, start to expand their values.")
+      timeRuleVal   =  (System.currentTimeMillis - ruleValTime)
+      _           =  logger.debug(s"RuleVals built in ${timeRuleVal}ms, start to expand their values.")
 
-      expandRuleTime =  DateTime.now().getMillis
+      expandRuleTime =  System.currentTimeMillis
       ruleVals       <- expandRuleVal(rawRuleVals, allNodeInfos, groupLib, directiveLib, lowerIdRulesMap) ?~! "Cannot expand Rule vals values"
-      timeExpandRule =  (DateTime.now().getMillis - expandRuleTime)
-      _              =  logger.debug(s"RuleVals expanded in ${timeExpandRule}, start to build node's new configuration.")
+      timeExpandRule =  (System.currentTimeMillis - expandRuleTime)
+      _              =  logger.debug(s"RuleVals expanded in ${timeExpandRule}ms, start to build new node configurations.")
 
-      targetNodeTime  =  DateTime.now().getMillis
-      (config, rules) <- buildtargetNodeConfigurations(ruleVals, allNodeInfos, groupLib, directiveLib, lowerIdRulesMap, allParameters) ?~! "Cannot build target configuration node"
-      timeBuildConfig =  (DateTime.now().getMillis - targetNodeTime)
-      _               =  logger.debug(s"Node's target onfiguration built in ${timeBuildConfig}, start to update whose needed to be updated.")
+      buildConfigTime  =  System.currentTimeMillis
+      (config, rules) <- buildNodeConfigurations(ruleVals, allNodeInfos, groupLib, directiveLib, lowerIdRulesMap, allParameters) ?~! "Cannot build target configuration node"
+      timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
+      _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
 
-      updateConfNodeTime =  DateTime.now().getMillis
-      allNodeConfigs     <- getAllNodeConfigurations() ?~! "Error when retrieving the current node configuration"
-      _                  <- purgeDeletedNodes(allNodeInfos.map( _.id), allNodeConfigs) ?~! "Can not delete node configuration for non existing nodes"
-      updatedNodeConfigs <- updateTargetNodeConfigurations(config, allNodeConfigs) ?~! "Cannot set target configuration node"
-      timeUpdateRuleVals =  (DateTime.now().getMillis - updateConfNodeTime)
-      _                  =  logger.debug(s"RuleVals updated in ${timeUpdateRuleVals} millisec, detect changes.")
+      sanitizeTime        =  System.currentTimeMillis
+      _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet)
+      sanitizedNodeConfig <- sanitize(config) ?~! "Cannot set target configuration node"
+      timeSanitize        =  (System.currentTimeMillis - sanitizeTime)
+      _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} millisec, start to detect changes in node configuration.")
 
-      beginTime                =  DateTime.now().getMillis
+      beginTime                =  System.currentTimeMillis
       //that's the first time we actually write something in repos: new serial for updated rules
-      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(updatedNodeConfigs.values.toSeq, directiveLib, allRulesMap)?~! "Cannot detect the updates in the NodeConfiguration"
-      timeIncrementRuleSerial  =  (DateTime.now().getMillis - beginTime)
-      serialedNodes            =  updateSerialNumber(updatedNodeConfigs, updatedCrs)
+
+
+      nodeConfigCache          <- getNodeConfigurationCache()
+      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCache, directiveLib, allRulesMap)?~! "Cannot detect the updates in the NodeConfiguration"
+      serialedNodes            =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
       // Update the serial of ruleVals when there were modifications on Rules values
       // replace variables with what is really applied
       updatedRuleVals          =  updateRuleVal(rules, updatedCrs)
-      _                        = logger.debug(s"Detected the changes in the NodeConfiguration to trigger change in CR in ${timeIncrementRuleSerial}ms, updating the SN in the nodes")
+      timeIncrementRuleSerial  =  (System.currentTimeMillis - beginTime)
+      _                        = logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial}ms")
 
-
-      writeTime = DateTime.now().getMillis
+      writeTime = System.currentTimeMillis
       //second time we write something in repos: updated node configuration
-      writtenNodeConfigs <- writeNodeConfigurations(rootNodeId, serialedNodes) ?~! "Cannot write  configuration node"
-      timeWriteNodeConfig = (DateTime.now().getMillis - writeTime)
-      _ = logger.debug(s"rules deployed in ${timeWriteNodeConfig}ms, process report information")
+      writtenNodeConfigs <- writeNodeConfigurations(rootNodeId, serialedNodes, nodeConfigCache) ?~! "Cannot write configuration node"
+      timeWriteNodeConfig = (System.currentTimeMillis - writeTime)
+      _ = logger.debug(s"Node configuration written in ${timeWriteNodeConfig}ms, start to update expected reports.")
 
-      reportTime = DateTime.now().getMillis
+      reportTime = System.currentTimeMillis
       // need to update this part as well
       expectedReports <- setExpectedReports(updatedRuleVals, deletedCrs)  ?~! "Cannot build expected reports"
-      timeSetExpectedReport = (DateTime.now().getMillis - reportTime)
+      timeSetExpectedReport = (System.currentTimeMillis - reportTime)
       _ = logger.debug(s"Reports updated in ${timeSetExpectedReport}ms")
 
     } yield {
       logger.debug("Timing summary:")
       logger.debug("Fetch all information     : %10s ms".format(timeFetchAll))
       logger.debug("Historize names           : %10s ms".format(timeHistorize))
-      logger.debug("Build current rule vals   : %10s ms".format(timeCrVal))
+      logger.debug("Build current rule values : %10s ms".format(timeRuleVal))
       logger.debug("Expand rule parameters    : %10s ms".format(timeExpandRule))
       logger.debug("Build target configuration: %10s ms".format(timeBuildConfig))
-      logger.debug("Update rule vals          : %10s ms".format(timeUpdateRuleVals))
+      logger.debug("Update rule vals          : %10s ms".format(timeSanitize))
       logger.debug("Increment rule serials    : %10s ms".format(timeIncrementRuleSerial))
       logger.debug("Write node configurations : %10s ms".format(timeWriteNodeConfig))
       logger.debug("Save expected reports     : %10s ms".format(timeSetExpectedReport))
 
-      writtenNodeConfigs
+      writtenNodeConfigs.map( _.nodeInfo.id )
     }
 
-    logger.debug("Deployment completed in %d millisec".format((DateTime.now().getMillis - initialTime)))
+    logger.debug("Policy generation completed in %d millisec".format((System.currentTimeMillis - initialTime)))
     result
   }
 
@@ -240,34 +222,31 @@ trait DeploymentService extends Loggable {
    * with the actual Cf3PolicyDraftBean they will have.
    * Replace all ${node.varName} vars.
    */
-  def buildtargetNodeConfigurations(
+  def buildNodeConfigurations(
       ruleVals:Seq[RuleVal]
     , allNodeInfos: Set[NodeInfo]
     , groupLib: FullNodeGroupCategory
     , directiveLib: FullActiveTechniqueCategory
     , allRulesCaseInsensitive: Map[RuleId, Rule]
     , parameters: Seq[GlobalParameter]
-  ) : Box[(Seq[TargetNodeConfiguration], Seq[ExpandedRuleVal])]
+  ) : Box[(Seq[NodeConfiguration], Seq[ExpandedRuleVal])]
 
   /**
-   * For each CFCNodeConfiguration, look if the target node is already configured or
-   * will be modified.
-   * For each modified node, set its target objects to CFCNodeConfiguration.
-   * Return the actually modified nodes.
+   * Check the consistency of each NodeConfiguration.
    */
-  def updateTargetNodeConfigurations(configurations:Seq[TargetNodeConfiguration], allNodeConfis: Map[NodeId, NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]]
+  def sanitize(configurations:Seq[NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]]
 
   /**
-   * Get all existing node configuration
+   * Forget all other node configuration state.
+   * If passed with an empty set, actually forget all node configuration.
    */
-  def getAllNodeConfigurations() : Box[Map[NodeId, NodeConfiguration]]
+  def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Set[NodeId]]
+
 
   /**
-   * That method remove node configurations for nodes not in allNodes.
-   * Corresponding nodes are deleted from the repository of node configurations.
-   * Return the updated map of all node configurations (really present).
+   * Get the actual cached values for NodeConfiguration
    */
-  def purgeDeletedNodes(allNodes: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]]
+  def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]]
 
   /**
    * Detect changes in the NodeConfiguration, to trigger an increment in the related CR
@@ -275,13 +254,13 @@ trait DeploymentService extends Loggable {
    * Must have all the NodeConfiguration in nodes
    * Returns two seq : the updated rule, and the deleted rule
    */
-  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], directiveLib: FullActiveTechniqueCategory, rules: Map[RuleId, Rule]) : Box[(Seq[(RuleId,Int)], Seq[RuleId])]
+  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory, rules: Map[RuleId, Rule]) : Box[(Seq[(RuleId,Int)], Seq[RuleId])]
 
   /**
    * Set all the serial number when needed (a change in CR)
    * Must have all the NodeConfiguration in nodes
    */
-  def updateSerialNumber(nodes : Map[NodeId, NodeConfiguration], rules : Seq[(RuleId,Int)]) :  Map[NodeId, NodeConfiguration]
+  def updateSerialNumber(nodes : Map[NodeId, NodeConfiguration], rules : Map[RuleId, Int]) :  Map[NodeId, NodeConfiguration]
 
   /**
    * Actually  write the new configuration for the list of given node.
@@ -289,7 +268,7 @@ trait DeploymentService extends Loggable {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig:Map[NodeId, NodeConfiguration]) : Box[Seq[NodeConfiguration]]
+  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]]
 
 
   /**
@@ -325,7 +304,6 @@ class DeploymentServiceImpl (
   , override val systemVarService: SystemVariableService
   , override val nodeConfigurationService : NodeConfigurationService
   , override val nodeInfoService : NodeInfoService
-  , override val nodeConfigurationChangeDetectService : NodeConfigurationChangeDetectService
   , override val reportingService : ReportingService
   , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
@@ -335,7 +313,7 @@ class DeploymentServiceImpl (
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
-  DeploymentService_buildtargetNodeConfigurations with
+  DeploymentService_buildNodeConfigurations with
   DeploymentService_updateAndWriteRule with
   DeploymentService_setExpectedReports with
   DeploymentService_historization
@@ -391,7 +369,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
     })
 
     for {
-      rawRuleVals <- sequence(appliedRules) {  rule =>
+      rawRuleVals <- sequence(appliedRules) { rule =>
                        ruleValService.buildRuleVal(rule, directiveLib)
                      } ?~! "Could not find configuration vals"
     } yield rawRuleVals
@@ -459,7 +437,7 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService with Loggable {
+trait DeploymentService_buildNodeConfigurations extends DeploymentService with Loggable {
   def systemVarService: SystemVariableService
   def parameterizedValueLookupService : ParameterizedValueLookupService
   def roNodeGroupRepository: RoNodeGroupRepository
@@ -467,16 +445,18 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   /**
    * This object allows to construct the target node configuration
    */
-  private[this] case class MutableTargetNodeConfiguration(
+  private[this] case class MutableNodeConfiguration(
         nodeInfo:NodeInfo,
         //environment variable for that server
         nodeContext: Map[String, Variable],
         // parameters for this node
         parameters : Set[ParameterForConfiguration]
+      , isRoot            : Boolean = false
+      , writtenDate       : Option[DateTime] = None
   ) {
     val identifiablePolicyDrafts = scala.collection.mutable.Buffer[PolicyDraft]()
 
-    def immutable = TargetNodeConfiguration(nodeInfo, identifiablePolicyDrafts.toSeq.map(_.toRuleWithCf3PolicyDraft), nodeContext, parameters)
+    def immutable = NodeConfiguration(nodeInfo, identifiablePolicyDrafts.map(_.toRuleWithCf3PolicyDraft).toSet, nodeContext, parameters, writtenDate, isRoot)
   }
 
 
@@ -486,15 +466,15 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
    * Replace all ${rudder.node.varName} vars, returns the nodes ready to be configured, and expanded RuleVal
    * allNodeInfos *must* contains the nodes info of every nodes
    */
-  override def buildtargetNodeConfigurations(
+  override def buildNodeConfigurations(
       ruleVals:Seq[RuleVal]
     , allNodeInfos: Set[NodeInfo]
     , groupLib: FullNodeGroupCategory
     , directiveLib: FullActiveTechniqueCategory
     , allRulesCaseInsensitive: Map[RuleId, Rule]
     , parameters: Seq[GlobalParameter]
-  ) : Box[(Seq[TargetNodeConfiguration], Seq[ExpandedRuleVal])] = {
-    val targetNodeConfigMap = scala.collection.mutable.Map[NodeId, MutableTargetNodeConfiguration]()
+  ) : Box[(Seq[NodeConfiguration], Seq[ExpandedRuleVal])] = {
+    val targetNodeConfigMap = scala.collection.mutable.Map[NodeId, MutableNodeConfiguration]()
 
     ruleVals.foreach { ruleVal =>
 
@@ -513,7 +493,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
               nodeInfo <- Box(allNodeInfos.find( _.id == nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
               nodeContext <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, groupLib, directiveLib, allRulesCaseInsensitive)
             } yield {
-              val nodeConfig = MutableTargetNodeConfiguration(
+              val nodeConfig = MutableNodeConfiguration(
                                    nodeInfo
                                  , nodeContext.toMap
                                  , parameters.map(ParameterForConfiguration.fromParameter(_)).toSet
@@ -554,7 +534,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   }
 
 
-  private[this] def getExpandedRuleVal(ruleVals:Seq[RuleVal], nodeConfigs : Seq[MutableTargetNodeConfiguration]) : Seq[ExpandedRuleVal]= {
+  private[this] def getExpandedRuleVal(ruleVals:Seq[RuleVal], nodeConfigs : Seq[MutableNodeConfiguration]) : Seq[ExpandedRuleVal]= {
     ruleVals map { rule =>
       ExpandedRuleVal(
           rule.ruleId
@@ -572,7 +552,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
    * Check is there are nodes with directives based on two separate version of technique.
    * An empty returned set means that everything is ok.
    */
-  private[this] def checkDuplicateTechniquesVersion(nodesConfigs : Map[NodeId, MutableTargetNodeConfiguration]) : Set[TechniqueName] = {
+  private[this] def checkDuplicateTechniquesVersion(nodesConfigs : Map[NodeId, MutableNodeConfiguration]) : Set[TechniqueName] = {
     nodesConfigs.values.flatMap { config =>
       // Group the CFCPI of a node by technique name
       val group = config.identifiablePolicyDrafts.groupBy(x => x.technique.id.name)
@@ -585,7 +565,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
   /**
    * Replace variables in a node configuration
    */
-  private[this] def replaceNodeVars(targetNodeConfig:MutableTargetNodeConfiguration, allNodeInfos: Set[NodeInfo]) : Box[MutableTargetNodeConfiguration] = {
+  private[this] def replaceNodeVars(targetNodeConfig:MutableNodeConfiguration, allNodeInfos: Set[NodeInfo]) : Box[MutableNodeConfiguration] = {
     val nodeId = targetNodeConfig.nodeInfo.id
     //replace in system vars
     def replaceNodeContext() : Box[Map[String, Variable]] = {
@@ -637,7 +617,7 @@ trait DeploymentService_buildtargetNodeConfigurations extends DeploymentService 
         replaceDirective(pib)
       }
     } yield {
-      val mutableNodeConfig = MutableTargetNodeConfiguration(
+      val mutableNodeConfig = MutableNodeConfiguration(
           targetNodeConfig.nodeInfo,
           replacedNodeContext,
           targetNodeConfig.parameters
@@ -658,13 +638,10 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
 
   def nodeConfigurationService : NodeConfigurationService
 
-  def nodeConfigurationChangeDetectService : NodeConfigurationChangeDetectService
 
 //  def roRuleRepo: RoRuleRepository
 
   def woRuleRepo: WoRuleRepository
-
-  def getAllNodeConfigurations() : Box[Map[NodeId, NodeConfiguration]] = nodeConfigurationService.getAllNodeConfigurations()
 
   /**
    * That methode remove node configurations for nodes not in allNodes.
@@ -681,30 +658,27 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
   }
 
    /**
-   * For each NodeConfiguration, look if the target node is already configured or
-   * will be modified.
-   * For each modified node, set its target objects to NodeConfiguration.
-   * Return the actually modified nodes.
+   * Check the consistency of each NodeConfiguration.
    */
-  def updateTargetNodeConfigurations(targetConfigurations:Seq[TargetNodeConfiguration], allNodeConfigs:Map[NodeId, NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]] = {
-    val rollbacked =  allNodeConfigs.map { case (id, config) => (id, config.rollbackModification) }.toMap
-    for {
-      updated    <- pipeline(targetConfigurations, rollbacked) { (targetConfig, all) =>
-                      nodeConfigurationService.updateNodeConfiguration(targetConfig, all)
-                    }
-    } yield {
-      updated
-    }
+  def sanitize(targetConfigurations:Seq[NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]] = {
+    nodeConfigurationService.sanitize(targetConfigurations)
   }
+
+  def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Set[NodeId]] = {
+    nodeConfigurationService.onlyKeepNodeConfiguration(keep)
+  }
+
+  def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]] = nodeConfigurationService.getNodeConfigurationCache()
+
 
   /**
    * Detect changes in rules and update their serial
    * Returns two seq : the updated rules, and the deleted rules
    */
-  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]) : Box[(Seq[(RuleId,Int)], Seq[RuleId])] = {
+  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]) : Box[(Seq[(RuleId,Int)], Seq[RuleId])] = {
     val firstElt = (Seq[(RuleId,Int)](), Seq[RuleId]())
     // First, fetch the updated CRs (which are either updated or deleted)
-    (( Full(firstElt) )/:(nodeConfigurationChangeDetectService.detectChangeInNodes(nodes, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
+    (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
       allRules.get(ruleId) match {
         case Some(rule) =>
           woRuleRepo.incrementSerial(rule.id) match {
@@ -724,7 +698,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
   /**
    * Increment the serial number of the CR. Must have ALL NODES as inputs
    */
-  def updateSerialNumber(allConfigs : Map[NodeId, NodeConfiguration], rules:Seq[(RuleId,Int)]) : Map[NodeId, NodeConfiguration] = {
+  def updateSerialNumber(allConfigs : Map[NodeId, NodeConfiguration], rules: Map[RuleId, Int]) : Map[NodeId, NodeConfiguration] = {
     allConfigs.map { case (id, config) => (id, config.setSerial(rules)) }.toMap
   }
 
@@ -734,8 +708,27 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]) : Box[Seq[NodeConfiguration]] = {
-    nodeConfigurationService.writeTemplateForUpdatedNodeConfigurations(rootNodeId, allNodeConfigs)
+  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]] = {
+    /*
+     * Several steps heres:
+     * - look what node configuration are updated (based on their cache ?)
+     * - write these node configuration
+     * - update caches
+     */
+    val updated = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, cache)
+    val fsWrite0   =  DateTime.now.getMillis
+
+    for {
+      written    <- nodeConfigurationService.writeTemplate(rootNodeId, updated, allNodeConfigs)
+      ldapWrite0 =  DateTime.now.getMillis
+      fsWrite1   =  (ldapWrite0 - fsWrite0)
+      _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} millisec.")
+      cached     <- nodeConfigurationService.cacheNodeConfiguration(allNodeConfigs.filterKeys(updated.contains(_)).values.toSet)
+      ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
+      _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} millisec.")
+    } yield {
+      written.toSet
+    }
   }
 
 }
