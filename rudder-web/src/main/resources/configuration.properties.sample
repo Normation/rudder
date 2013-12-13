@@ -221,6 +221,26 @@ rudder.dir.backup=/var/rudder/backup/
 #
 rudder.dir.shared.files.folder=/var/rudder/configuration-repository/shared-files
 
+#
+# Debug Node Configuration parameters
+# 
+# Node Configurations are all the parameters (global parameters, 
+# applied rules/directives with their parameters, node information, etc)
+# contextualized for the node. They are the resources used to actually
+# generate promises for THAT node. 
+#
+# By default, these information are only used internally by Rudder and
+# are not available to the user. But they may be needed in some cases, 
+# for debugging. 
+#
+# This option allows to define the directory where the node configurations
+# (in JSON format) will go. 
+# 
+# To enable the writing of node configurations, enable the logger 
+# named "rudder.debug.nodeconfiguration" in logback.xml
+#
+rudder.debug.nodeconfiguration.path=/var/log/rudder/nodeConfigurations
+
 ############################################
 # Technique library and its Git properties ##########################################
 ############################################

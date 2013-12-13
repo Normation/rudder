@@ -47,7 +47,7 @@ import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser
-import com.normation.rudder.services.servers.NodeConfigurationService
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationService
 import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
 import com.normation.rudder.domain.eventlog.ClearCacheEventLog
 import com.normation.eventlog.EventLogDetails
@@ -98,7 +98,7 @@ class ClearCache extends DispatchSnippet with Loggable {
               logger.debug(e.exceptionChain)
             case _ => //ok
           }
-          logger.debug("Delete node configurations on user clear cache demand: " + set.mkString(", ") )
+          logger.debug("Delete node configurations on user clear cache request")
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
           S.notice("clearCacheNotice","Caches were correctly cleaned")
       }

@@ -167,6 +167,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit.register(PARAMETERS.model)
   dit.register(APPCONFIG.model)
   dit.register(RULECATEGORY.model)
+  dit.register(NODE_CONFIGS.model)
 
 
   //here, we can't use activeTechniqueCategory because we want a subclass
@@ -425,70 +426,17 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   /**
    * That branch contains definition for Rudder server type.
    */
-  object NODE_CONFIGS extends OU("Nodes Configuration", BASE_DN) {
-    servers =>
+  object NODE_CONFIGS extends ENTRY1("cn", "Nodes Configuration") {
+    ou =>
 
-    /**
-     * There is two actual implementations of Rudder server, which
-     * differ only slightly in their identification.
-     */
-    object NODE_CONFIG extends ENTRY1(A_NODE_UUID) {
-      server =>
+    lazy val rdn : RDN = this.rdn(this.rdnValue._1)
+    lazy val dn = new DN(rdn, BASE_DN)
 
-      //get id from dn
-      def idFromDn(dn:DN) : Option[NodeId] = buildId(dn,servers.dn,{x:String => NodeId(x)})
-
-      //build the dn from an UUID
-      def dn(uuid:String) = new DN(this.rdn(uuid),servers.dn)
-
-      def rootPolicyServerModel(uuid:NodeId) : LDAPEntry = {
-        val mod = LDAPEntry(this.dn(uuid.value))
-        mod +=! (A_OC, OC.objectClassNames(OC_ROOT_POLICY_SERVER).toSeq:_*)
-        mod
-      }
-
-      def nodeConfigurationModel(uuid:NodeId) : LDAPEntry = {
-        val mod = LDAPEntry(this.dn(uuid.value))
-        mod +=! (A_OC, OC.objectClassNames(OC_NODE_CONFIGURATION).toSeq:_*)
-        mod
-      }
-
-
-      /**
-       * Directives for a server.
-       * There is both current and target Directives,
-       * they only differ on the objectType
-       */
-      object CF3POLICYDRAFT extends ENTRY1(A_DIRECTIVE_UUID) {
-        def dn(uuid:String,nodeConfigurationDN:DN) : DN = {
-          require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
-          require( !nodeConfigurationDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
-          new DN(this.rdn(uuid),nodeConfigurationDN)
-        }
-
-        def model(directiveUUID:String,serverDN:DN) : LDAPEntry = {
-          val mod = LDAPEntry(this.dn(directiveUUID,serverDN))
-          mod +=! (A_OC, OC.objectClassNames(OC_RULE_WITH_CF3POLICYDRAFT).toSeq:_*)
-          mod
-        }
-      } //end CF3POLICYDRAFT
-
-      object TARGET_CF3POLICYDRAFT extends ENTRY1(A_TARGET_DIRECTIVE_UUID) {
-        def dn(uuid:String,serverDN:DN) : DN = {
-          require(nonEmpty(uuid), "A CF3 Policy Draft ID can not be empty")
-          require( !serverDN.isNullDN , "Can not use a null DN for the Cf3 Policy Draft's node configuration")
-          new DN(this.rdn(uuid),serverDN)
-        }
-
-       def model(directiveUUID:String,serverDN:DN) : LDAPEntry = {
-          val mod = LDAPEntry(this.dn(directiveUUID,serverDN))
-          mod +=! (A_OC, OC.objectClassNames(OC_TARGET_RULE_WITH_CF3POLICYDRAFT).toSeq:_*)
-          mod
-        }
-
-      } //end TARGET_CF3POLICYDRAFT
-
-    } //end NODE_CONFIG
+    def model() : LDAPEntry = {
+      val mod = LDAPEntry(dn)
+      mod +=! (A_OC, OC.objectClassNames(OC_NODES_CONFIG).toSeq:_*)
+      mod
+    }
 
   } //end NODE_CONFIGS
 

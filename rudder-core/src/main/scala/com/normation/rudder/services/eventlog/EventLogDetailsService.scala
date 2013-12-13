@@ -50,7 +50,6 @@ import org.joda.time.format.ISODateTimeFormat
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.batch.SuccessStatus
 import com.normation.rudder.batch.ErrorStatus
-import com.normation.rudder.domain.servers.NodeConfiguration
 import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.inventory.domain.AgentType

@@ -38,7 +38,7 @@ import com.normation.utils.Utils
 import com.normation.inventory.ldap.core.LDAPConstants._
 import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.Variable
-import com.normation.rudder.services.policies.ParameterForConfiguration
+import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
 
 object RudderLDAPConstants extends Loggable {
 
@@ -121,6 +121,9 @@ object RudderLDAPConstants extends Loggable {
   val A_PROPERTY_NAME = "propertyName"
   val A_PROPERTY_VALUE = "propertyValue"
 
+  //node configuraiton
+  val A_NODE_CONFIG = "nodeConfig"
+
   //
   // Object Classe names
   //
@@ -142,6 +145,7 @@ object RudderLDAPConstants extends Loggable {
   val OC_NODE_CONFIGURATION = "nodeConfiguration" //actually a node configuration, not a "rudder server"
   val OC_PARAMETER = "parameter"
   val OC_PROPERTY = "property"
+  val OC_NODES_CONFIG = "nodeConfigurations"
 
   val OC_API_ACCOUNT = "apiAccount"
 
@@ -225,6 +229,10 @@ object RudderLDAPConstants extends Loggable {
   OC += ( OC_PROPERTY,
     must = Set(A_PROPERTY_NAME),
     may = Set(A_PROPERTY_VALUE, A_DESCRIPTION))
+
+  OC += ( OC_NODES_CONFIG,
+    must = Set(A_NAME),
+    may = Set(A_DESCRIPTION, A_NODE_CONFIG))
 
 
   /**

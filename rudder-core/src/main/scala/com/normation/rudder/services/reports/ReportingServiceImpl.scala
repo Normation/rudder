@@ -97,8 +97,8 @@ class ReportingServiceImpl(
           confToCreate += conf
 
         case Some((serial, nodeSet)) if ((serial == newSerial)&&(configs.size > 0)) =>
-            // no change if same serial and some config appliable
-            logger.debug("Same serial %s for ruleId %s, and configs presents".format(serial, ruleId))
+            // no change if same serial and some config appliable, that's ok, trace level
+            logger.trace(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed and cache up-to-date: nothing to do")
             // must check that their are no differents nodes in the DB than in the new reports
             // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
             if (configs.keySet != nodeSet) {
@@ -110,10 +110,10 @@ class ReportingServiceImpl(
 
         case Some((serial, nodeSet)) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
             // if there is not target, then it need to be closed
-          logger.debug("Same serial, and no configs present")
+          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
 
-        case Some((serial, nodeSet)) => // not the same serial
-          logger.debug("Not same serial")
+        case Some(serial) => // not the same serial
+          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
             confToCreate += conf
             confToClose += ruleId
 
@@ -318,8 +318,6 @@ class ComputeCardinalityOfDirectiveVal {
               boundingVar, container.trackerVariable.spec.name, container.directiveId.value,variable.values, originalVariables.values ))
           (variable.values, originalVariables.values)
         case (None, Some(originalVariables)) =>
-          logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in DirectiveVal %s was lost".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
           (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
         case (Some(variable), None) =>
           logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in DirectiveVal %s appeared, but was not originally there".format(
@@ -362,9 +360,12 @@ class ComputeCardinalityOfDirectiveVal {
             }
 
             if(allComponents.size < 1) {
-              logger.debug("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
+              //that log is outputed one time for each directive for each node using a technique, it's far too
+              //verbose on debug.
+              logger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
                 container.technique.id, container.directiveId))
-                val trackingVarCard = getTrackingVariableCardinality
+
+              val trackingVarCard = getTrackingVariableCardinality
               Seq((container.technique.id.name.value, trackingVarCard._1, trackingVarCard._2))
             } else {
               allComponents

@@ -80,7 +80,7 @@ class RuleValServiceImpl (
           trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
           otherVars = vared - policyPackage.trackerVariableSpec.name
         } yield {
-            logger.debug("Creating a DirectiveVal %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
+            logger.trace("Creating a DirectiveVal %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
 
             Some(DirectiveVal(
                 policyPackage,

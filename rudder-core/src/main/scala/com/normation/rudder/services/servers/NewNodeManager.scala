@@ -39,7 +39,7 @@ import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.servers.{Srv,NodeConfiguration}
+import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.rudder.services.queries.DynGroupService

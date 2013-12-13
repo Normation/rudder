@@ -48,6 +48,7 @@ import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.cfclerk.domain.Variable
 import org.specs2.specification.Example
 import org.specs2.execute.Pending
+import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
 
 
 /**
