@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure block in section
+# @description This is a bundle to ensure that a section contain exactly a text block
+#
+# @parameter file File name to edit
+# @parameter section_start Start of the section
+# @parameter section_end End of the section
+# @parameter block Block representing the content of the section
+#
+# @class_prefix file_ensure_block_in_section
+# @class_parameter file
+#
+# This bundle will define a class file_ensure_block_in_section_${file}_{kept,repaired,error,ok,reached}
+bundle agent file_ensure_block_in_section(file, section_start, section_end, block)
+{
+  vars:
+      "class_prefix" string => canonify("file_ensure_block_in_section_${file}");
+
+  files:
+      "${file}"
+        create        => "true",
+        edit_line     => ncf_ensure_section_content("${section_start}", "${section_end}", "${block}"),
+        edit_defaults => no_backup,
+	classes       => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Insert text block ${block} into ${file}", "${class_prefix}");
+}
