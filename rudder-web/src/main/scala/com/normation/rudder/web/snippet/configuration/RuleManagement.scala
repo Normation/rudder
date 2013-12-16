@@ -180,6 +180,15 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     }
   }
 
+  // When a rule is changed, the Rule displayer should be updated (Rule grid, selected category, ...)
+  def onRuleChange(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule) = {
+    currentRuleDisplayer.is match {
+      case Full(ruleDisplayer) =>
+        ruleDisplayer.onRuleChange(rule.categoryId)
+      case eb: EmptyBox =>
+        SetHtml(htmlId_viewAll,viewRules(workflowEnabled, changeMsgEnabled))
+    }
+  }
   def editRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean, dispatch:String="showForm") : NodeSeq = {
     def errorDiv(f:Failure) = <div id={htmlId_editRuleDiv} class="error">Error in the form: {f.messageChain}</div>
 
@@ -198,7 +207,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     updateEditComponent(rule, workflowEnabled, changeMsgEnabled)
 
     //update UI
-    SetHtml(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled)) &
+    onRuleChange(workflowEnabled, changeMsgEnabled)(rule) &
     Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, "showEditForm"))
   }
 
@@ -252,10 +261,6 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  private[this] def updateRulesDisplayerComponent(workflowEnabled: Boolean, changeMsgEnabled : Boolean) = {
-    () => SetHtml(htmlId_viewAll,  viewRules(workflowEnabled, changeMsgEnabled))
-  }
-
   private[this] def updateEditComponent(rule:Rule, workflowEnabled: Boolean, changeMsgEnabled : Boolean) : Unit = {
     val form = new RuleEditForm(
                        htmlId_editRuleDiv+"Form"
@@ -263,7 +268,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
                      , workflowEnabled
                      , changeMsgEnabled
                      , onCloneCallback = { (updatedRule:Rule) => showPopup(Some(updatedRule)) }
-                     , onSuccessCallback = { updateRulesDisplayerComponent(workflowEnabled,changeMsgEnabled)  }
+                     , onSuccessCallback = { (updatedRule:Rule) => onRuleChange(workflowEnabled,changeMsgEnabled)(updatedRule)  }
                    )
     currentRuleForm.set(Full(form))
   }
