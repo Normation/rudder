@@ -278,9 +278,10 @@ class RuleCategoryTree(
                   )
               } }
 
+            // Create the checkbox with their values, then set the "indeterminate" content
             SHtml.ajaxCheckbox(directiveApplication.isCompletecategory(category.id), check _, ("id",category.id.value + "Checkbox"), ("style","margin : 2px 5px 0px 2px;"))++
             Script(OnLoad(After(
-                TimeSpan(50)
+                TimeSpan(400)
               , JsRaw(s"""
                   $$('#${category.id.value + "Checkbox"}').click(function (e) { e.stopPropagation(); })
                   $$('#${category.id.value + "Checkbox"}').prop("indeterminate",${directiveApplication.isIndeterminateCategory(category.id)});"""))))
