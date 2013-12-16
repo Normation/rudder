@@ -478,13 +478,25 @@ class RuleGrid(
           }
         }
 
-        val cssClass = { line match{
-          case _:ErrorLine => " error"
-          case _ => ""}
+        val cssClass = {
+          val disabled = {
+            if (line.rule.isEnabled)
+              ""
+            else
+             "disabledRule"
+          }
+
+          val error =
+            line match{
+              case _:ErrorLine => " error"
+              case _ => ""
+            }
+
+          s"tooltipabletr ${disabled} ${error}"
         }
 
         val xml =
-        <tr tooltipid={tooltipId} class={s"tooltipabletr ${cssClass}"} title="" id={line.rule.id.value}>
+        <tr tooltipid={tooltipId} class={cssClass} title="" id={line.rule.id.value}>
           { checkBoxColumn }
           <td>
             { if(popup) {
