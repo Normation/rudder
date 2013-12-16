@@ -114,6 +114,18 @@ class RuleCategoryTree(
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
 
+
+  // Update selected category and select it in the tree (trigger its function)
+  def updateSelectedCategory(newSelection : RuleCategoryId) = {
+    selectedCategoryId = newSelection
+    // Select the new node, boolean flag to true to respect select limitation
+    JsRaw(s"""
+        $$("#${htmlId_RuleCategoryTree}").jstree("select_node", "#${newSelection.value}", true);
+    """) &
+    selectCategory()
+  }
+
+  // Perform category selection, filter in the dataTable and display the name of the category
   def selectCategory() = {
     ruleCategoryService.bothFqdn(selectedCategoryId,true) match {
       case Full((long,short)) =>
