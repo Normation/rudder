@@ -133,9 +133,6 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
       <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
       {Script(
         JsRaw("""
-var include = true;
-var filter = "Rules";
-var column = 1;
 $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";
         function updateTips( t ) {
           tips
