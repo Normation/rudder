@@ -86,6 +86,15 @@ class RuleDisplayer (
     case "display" => { _ => NodeSeq.Empty }
   }
 
+
+  // Update Rule displayer after a Rule has changed ( update / creation )
+  def onRuleChange (selectedCategoryUpdate : RuleCategoryId)= {
+    refreshGrid & ruleCategoryTree.map(_.updateSelectedCategory(selectedCategoryUpdate)).getOrElse(Noop)
+  }
+
+
+
+  // refresh the rule grid
   private[this] def refreshGrid = {
     SetHtml(gridId, viewRules)
   }
