@@ -2562,6 +2562,15 @@ li.disableTreeNode > a {
   font-style:italic;
 }
 
+tr.disabledRule > td {
+  color: grey;
+  font-style:italic;
+}
+
+tr.disabledRule a {
+  color: grey;
+}
+
 ins.jstree-icon {
     float: left;
 }
