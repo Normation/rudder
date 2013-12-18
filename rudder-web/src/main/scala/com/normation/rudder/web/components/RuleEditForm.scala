@@ -136,7 +136,7 @@ class RuleEditForm(
   , var rule          : Rule //the Rule to edit
   , workflowEnabled   : Boolean
   , changeMsgEnabled  : Boolean
-  , onSuccessCallback : () => JsCmd = { () => Noop } //JS to execute on form success (update UI parts)
+  , onSuccessCallback : (Rule) => JsCmd = { (r : Rule) => Noop } //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called,
   , onFailureCallback : () => JsCmd = { () => Noop }
   , onCloneCallback   : (Rule) => JsCmd = { (r:Rule) => Noop }
@@ -376,7 +376,7 @@ class RuleEditForm(
   private[this] def onSuccess() : JsCmd = {
     //MUST BE THIS WAY, because the parent may change some reference to JsNode
     //and so, our AJAX could be broken
-    onSuccessCallback() & updateFormClientSide() &
+    onSuccessCallback(rule) & updateFormClientSide() &
     //show success popup
     successPopup
   }
@@ -527,7 +527,7 @@ class RuleEditForm(
 
   private[this] def workflowCallBack(action:String)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
-      JsRaw("$.modal.close();") & onSuccessCallback() & SetHtml("editRuleZone",
+      JsRaw("$.modal.close();") & onSuccessCallback(rule) & SetHtml("editRuleZone",
           <div id={htmlId_rule}>Rule '{rule.name}' successfully deleted</div>
       )
     } else {

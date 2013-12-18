@@ -114,6 +114,18 @@ class RuleCategoryTree(
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
 
+
+  // Update selected category and select it in the tree (trigger its function)
+  def updateSelectedCategory(newSelection : RuleCategoryId) = {
+    selectedCategoryId = newSelection
+    // Select the new node, boolean flag to true to respect select limitation
+    JsRaw(s"""
+        $$("#${htmlId_RuleCategoryTree}").jstree("select_node", "#${newSelection.value}", true);
+    """) &
+    selectCategory()
+  }
+
+  // Perform category selection, filter in the dataTable and display the name of the category
   def selectCategory() = {
     ruleCategoryService.bothFqdn(selectedCategoryId,true) match {
       case Full((long,short)) =>
@@ -278,9 +290,10 @@ class RuleCategoryTree(
                   )
               } }
 
+            // Create the checkbox with their values, then set the "indeterminate" content
             SHtml.ajaxCheckbox(directiveApplication.isCompletecategory(category.id), check _, ("id",category.id.value + "Checkbox"), ("style","margin : 2px 5px 0px 2px;"))++
             Script(OnLoad(After(
-                TimeSpan(50)
+                TimeSpan(400)
               , JsRaw(s"""
                   $$('#${category.id.value + "Checkbox"}').click(function (e) { e.stopPropagation(); })
                   $$('#${category.id.value + "Checkbox"}').prop("indeterminate",${directiveApplication.isIndeterminateCategory(category.id)});"""))))
