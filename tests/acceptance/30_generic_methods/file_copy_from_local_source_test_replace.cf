@@ -1,0 +1,80 @@
+#######################################################
+#
+# Test checking if a file can be copied from a local source
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"                    string => getenv("TEMP", 1024);
+    "source_file"            string => "${tmp}/source_test";
+    "destination_file"       string => "${tmp}/destination_test";
+    "destination_file_canon" string => canonify("${destination_file}");
+
+    "reference_content"         string => "This is a source
+test file
+that contains some dummy content
+¿÷¿↓÷öŀüỗœ’üŀï©»’";
+
+    "destination_content"         string => "This is a destination dummy content";
+
+
+  commands:
+      "/bin/echo"
+        args    => "\"${destination_content}\" > \"${destination_file}\"",
+        contain => in_shell;
+
+      # we need to sleep there, because the time comparision granularity is not precise enough
+      "/bin/sleep"
+        args => "1";
+
+      "/bin/echo"
+        args    => "\"${reference_content}\" > \"${source_file}\"",
+        contain => in_shell;
+
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => file_copy_from_local_source("${init.source_file}", "${init.destination_file}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "content_comparision"    string => "/usr/bin/diff \"${init.destination_file}\" \"${init.source_file}\"";
+
+"diff" string => execresult("${content_comparision}", "useshell");
+
+  classes:
+    "ok"                 expression => returnszero("${content_comparision}", "noshell");
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+    !ok::
+      "Source and destination file are not identical";
+}

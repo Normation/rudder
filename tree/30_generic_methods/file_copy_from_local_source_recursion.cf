@@ -30,16 +30,31 @@
 bundle agent file_copy_from_local_source_recursion(source, destination, recursion)
 {
   vars:
-      "class_prefix"        string => canonify("file_copy_from_local_source_${destination}");
+      "class_prefix" string => canonify("file_copy_from_local_source_${destination}");
+
+  classes:
+      # depth_search prevents from copying file/symlink
+      # so we need to detect if we want to copy a folder or a file
+      "is_file_copy"    not => isdir("${source}");
 
   files:
+   is_file_copy::
+      "${destination}"
+        copy_from    => local_cp("${source}"),
+        classes      => classes_generic("${class_prefix}");
 
+   !is_file_copy::
       "${destination}"
         copy_from    => local_cp("${source}"),
         depth_search => recurse("${recursion}"),
 	classes      => classes_generic("${class_prefix}");
 
   methods:
+   is_file_copy::
+      "report"
+        usebundle  => _logger("Copying ${destination} from ${source}", "${class_prefix}");
+
+   !is_file_copy::
       "report"
         usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
 }
