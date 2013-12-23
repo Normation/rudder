@@ -75,11 +75,13 @@ case class RuleCategory(
   }
 
 
+  // Filter a category from children categories
   def filter(category : RuleCategory) : RuleCategory = {
     if (childs.contains(category)) {
       this.copy(childs = this.childs.filter(_ != category))
     } else {
-      this.copy(childs = this.childs.map(filter))
+      // Not in that category, filter its children
+      this.copy(childs = this.childs.map(_.filter(category)))
     }
   }
 
