@@ -477,14 +477,14 @@ class LDAPEntityMapper(
     if(e.isA(OC_RULE_CATEGORY)) {
       //OK, translate
       for {
-        id <- e(A_RULE_CATEGORY_UUID) ?~! "Missing required id (attribute name %s) in entry %s".format(A_RULE_CATEGORY_UUID, e)
-        name <- e(A_NAME) ?~! "Missing required name (attribute name %s) in entry %s".format(A_NAME, e)
+        id <- e(A_RULE_CATEGORY_UUID) ?~! s"Missing required id (attribute name '${A_RULE_CATEGORY_UUID}) in entry ${e}"
+        name <- e(A_NAME) ?~! s"Missing required name (attribute name '${A_NAME}) in entry ${e}"
         description = e(A_DESCRIPTION).getOrElse("")
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
          RuleCategory(RuleCategoryId(id), name, description, Nil, isSystem)
       }
-    } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_GROUP_CATEGORY, e))
+    } else Failure(s"The given entry is not of the expected ObjectClass '${OC_RULE_CATEGORY}'. Entry details: ${e}")
   }
 
   /**

@@ -43,10 +43,9 @@ trait RoRuleCategoryRepository {
 
   def get(id: RuleCategoryId) : Box[RuleCategory]
 
-  def getParents(id:RuleCategoryId) : Box[List[RuleCategory]]
-
   def getRootCategory : Box[RuleCategory]
 
+  def getParents(targetId:RuleCategoryId) : Box[List[RuleCategory]]
 }
 
 trait WoRuleCategoryRepository {
@@ -72,7 +71,9 @@ trait WoRuleCategoryRepository {
     , reason : Option[String]
   ) : Box[RuleCategory]
 
-  def delete(category:RuleCategoryId    , modId  : ModificationId
+  def delete(
+      category:RuleCategoryId
+    , modId  : ModificationId
     , actor  : EventActor
     , reason : Option[String]
     , checkEmpty:Boolean = true
