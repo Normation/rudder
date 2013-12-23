@@ -197,15 +197,15 @@ class RuleCategoryPopup(
       case Some(category) =>
         val modId = new ModificationId(uuidGen.newUuid)
         woRulecategoryRepository.delete(category.id, modId , CurrentUser.getActor, None, true) match {
-         case Full(x) => closePopup() & onSuccessCallback(x.value) & onSuccessCategory(category)
-              case Empty =>
-                logger.error("An error occurred while deleting the category")
-                formTracker.addFormError(error("An error occurred while deleting the category"))
-                onFailure & onFailureCallback()
-              case Failure(m,_,_) =>
-                logger.error("An error occurred while deleting the category:" + m)
-                formTracker.addFormError(error(m))
-                onFailure & onFailureCallback()
+          case Full(x) =>
+            closePopup() &
+            onSuccessCallback(x.value) &
+            onSuccessCategory(category)
+          case eb:EmptyBox =>
+            val fail = eb ?~! s"An error occurred while deleting category '${category.name}'"
+            logger.error(s"An error occurred while deleting the category: ${fail.msg}")
+            formTracker.addFormError(error(fail.msg))
+            onFailure & onFailureCallback()
         }
       case None =>
         // Should not happen, close popup

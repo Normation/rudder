@@ -65,7 +65,6 @@ class RuleCategoryService(
   }
 
   def shortFqdn(id:RuleCategoryId) : Box[String] = {
-
     for {
     parents <- roRuleCategoryService.getParents(id)
     } yield {
