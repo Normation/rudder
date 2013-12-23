@@ -154,38 +154,17 @@ class RoLDAPRuleCategoryRepository(
     })
   }
 
-
   /**
-   * Get the direct parent of the given category.
-   * Return empty for root of the hierarchy, fails if the category
-   * is not in the repository
-   */
-  def getParentCategory(id: RuleCategoryId): Box[RuleCategory] = {
-    categoryMutex.readLock { for {
-      con                 <- ldap
-      categoryEntry       <- getCategoryEntry(con, id, "1.1") ?~! s"Entry with ID '${id.value}' was not found"
-      parentCategoryEntry <- con.get(categoryEntry.dn.getParent)
-      parentCategory      <- mapper.entry2RuleCategory(parentCategoryEntry) ?~! s"Error when transforming LDAP entry ${parentCategoryEntry} into a Rule category"
-    } yield {
-      addSubEntries(parentCategory, parentCategoryEntry.dn, con)
-    }  }
-  }
-
-  /**
-   * Return the list of parents for that category, from the RootCategory to the rule category itself
+   * Return the list of parents for that category, from the root category to the category itself
    */
   def getParents(id:RuleCategoryId) : Box[List[RuleCategory]] = {
-    //TODO : LDAPify that, we can have the list of all DN from id to root at the begining
-    if(id == rudderDit.RULECATEGORY.rootCategoryId) {
-      getRootCategory.map(_ :: Nil)
-    } else {
-      (getParentCategory(id),get(id)) match {
-        case (Full(parent),Full(category)) => getParents(parent.id).map(_ ++ (category :: Nil))
-        case (e:EmptyBox,_) => e
-        case (_,e:EmptyBox) => e
-    } }
+    for {
+      root <- getRootCategory
+      parents <- root.childPath(id)
+    } yield {
+      parents
+    }
   }
-
 }
 
 class WoLDAPRuleCategoryRepository(
