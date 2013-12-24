@@ -1,6 +1,7 @@
 #######################################################
 #
-# Test checking if a line is absent in a file
+# Test checking if a line is absent in a file, from an
+# empty file
 #
 #######################################################
 
@@ -27,8 +28,10 @@ bundle agent init
     "file_canon"  string => canonify("${file}");
     "line_to_test" string => "This is a test line!";
 
-  methods:
-    "ph1" usebundle => file_ensure_lines_present("${file}", "${line_to_test}");
+  files:
+    "${file}"
+      create => "true";
+
 }
 
 #######################################################
@@ -50,7 +53,7 @@ bundle agent check
     "file_exists" expression => fileexists("${init.file}");
     "line_absent" not => returnszero("${line_exists_test}", "noshell");
 
-    "ok"          expression => "file_exists.line_absent.file_ensure_lines_absent_${init.file_canon}_ok.!file_ensure_lines_absent_${init.file_canon}_error.file_ensure_lines_absent_${init.file_canon}_repaired";
+    "ok"          expression => "file_exists.line_absent.file_ensure_lines_absent_${init.file_canon}_ok.!file_ensure_lines_absent_${init.file_canon}_error.!file_ensure_lines_absent_${init.file_canon}_repaired";
 
   reports:
     ok::
@@ -61,7 +64,8 @@ bundle agent check
       "fileexists returns false for file ${init.file}";
     !line_absent::
       "grep command did return 0 for command: ${line_exists_test}";
+
     cfengine::
-      "The file should be repaired by the method, but the repaired class is not defined"
+      "The file add to be repaired, but it was created empty"
         ifvarclass => "file_ensure_lines_absent_${init.file_canon}_repaired";
 }

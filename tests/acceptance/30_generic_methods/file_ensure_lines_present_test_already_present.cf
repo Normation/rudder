@@ -1,0 +1,77 @@
+#######################################################
+#
+# Test checking if checking is line is present in a file
+# when it was already there don't duplicate
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$#this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"         string => getenv("TEMP", 1024);
+    "file"        string => "${tmp}/test";
+    "file_canon"  string => canonify("${file}");
+    "line_to_add" string => "This is a test line!";
+
+  commands:
+    "/bin/echo"
+      args    => "\"${init.line_to_add}\" > \"${init.file}\"",
+      contain => in_shell;
+
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1" usebundle => file_ensure_lines_present("${init.file}", "${init.line_to_add}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  vars:
+    "line_exists_test" string => "/bin/grep \"^${init.line_to_add}$\" \"${init.file}\" | wc -l";
+    "nb_lines"         string => execresult("${line_exists_test}", "useshell");
+
+  classes:
+    # By default, file_ensure_lines_present should create the file if it doesn't exist
+    "file_exists" expression => fileexists("${init.file}");
+    
+    "line_exists" expression => strcmp("${nb_lines}", "1");
+
+    "ok"          expression => "file_exists.line_exists.file_ensure_lines_present_${init.file_canon}_ok.!file_ensure_lines_present_${init.file_canon}_error.file_ensure_lines_present_${init.file_canon}_kept.!file_ensure_lines_present_${init.file_canon}_repaired";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+    !file_exists::
+      "fileexists returns false for file ${init.file}";
+    !line_exists::
+      "grep command doesn't return 1 for command: ${line_exists_test}, meaning there is not exactly one line";
+    cfengine::
+      "the line was already there, but the kept class is not defined"
+        ifvarclass => "!file_ensure_lines_present_${init.file_canon}_kept";
+
+      "the line was already there, but the repaired class is defined"
+        ifvarclass => "file_ensure_lines_present_${init.file_canon}_repaired";
+}
