@@ -99,6 +99,7 @@ object Constants {
   val XML_CURRENT_FILE_FORMAT = XML_FILE_FORMAT_4
 
   val CONFIGURATION_RULES_ARCHIVE_TAG = "#rules-archive"
+  val RULE_CATEGORY_ARCHIVE_TAG = "#rule-categories-archive"
   val GROUPS_ARCHIVE_TAG = "#groups-archive"
   val POLICY_LIBRARY_ARCHIVE_TAG = "#directives-archive"
   val FULL_ARCHIVE_TAG = "#full-archive"
@@ -107,6 +108,7 @@ object Constants {
   ///// XML tag names for directive, categories, etc
 
   val XML_TAG_RULE = "rule"
+  val XML_TAG_RULE_CATEGORY = "ruleCategory"
   val XML_TAG_ACTIVE_TECHNIQUE_CATEGORY = "activeTechniqueCategory"
   val XML_TAG_ACTIVE_TECHNIQUE = "activeTechnique"
   val XML_TAG_DIRECTIVE = "directive"

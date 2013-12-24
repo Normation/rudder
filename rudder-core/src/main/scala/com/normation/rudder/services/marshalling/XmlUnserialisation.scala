@@ -54,6 +54,7 @@ import com.normation.rudder.domain.workflows._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.rule.category.RuleCategory
 
 
 trait XmlUnserializer {
@@ -62,6 +63,7 @@ trait XmlUnserializer {
   val directive   : DirectiveUnserialisation
   val group       : NodeGroupUnserialisation
   val globalParam : GlobalParameterUnserialisation
+  val ruleCat     : RuleCategoryUnserialisation
 
 }
 
@@ -155,6 +157,22 @@ trait RuleUnserialisation {
       </rule>
    */
   def unserialise(xml:XNode) : Box[Rule]
+}
+
+/**
+ * That trait allows to unserialise Rule categories from an XML file.
+ */
+trait RuleCategoryUnserialisation {
+  /**
+   * Version 4: (rc: nodeGroupCategory)
+     <ruleCategory fileFormat="4">
+        <id>{ngc.id.value}</id>
+        <displayName>{ngc.name}</displayName>
+        <description>{ngc.description}</serial>
+        <isSystem>{ngc.isSystem}</isSystem>
+      </ruleCategory>
+   */
+  def unserialise(xml:XNode): Box[RuleCategory]
 }
 
 /**

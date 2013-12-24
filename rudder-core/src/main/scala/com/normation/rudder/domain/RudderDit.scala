@@ -137,7 +137,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     )
   }
 
- /* def ruleCategory(
+  def ruleCategory (
       uuid       : String
     , parentDN   : DN
     , name       : String = ""
@@ -152,7 +152,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
       , OC_RULE_CATEGORY
       , A_RULE_CATEGORY_UUID
     )
-  }*/
+  }
 
 
   /*
@@ -512,6 +512,13 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
     def groupLibDN(id:NodeGroupLibraryArchiveId) : DN = {
       groupCategory(
           uuid     = "GroupLibrary-" + id.value
+        , parentDN = archives.dn
+      ).model.dn
+    }
+
+    def RuleCategoryLibDN(id:RuleCategoryArchiveId) : DN = {
+      ruleCategory(
+          uuid     = "RuleCategoryLibrarby-" + id.value
         , parentDN = archives.dn
       ).model.dn
     }

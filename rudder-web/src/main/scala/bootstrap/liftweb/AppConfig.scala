@@ -136,6 +136,7 @@ import com.normation.rudder.reports.status._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.appconfig._
 import com.normation.rudder.rule.category._
+import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 
 /**
  * Define a resource for configuration.
@@ -259,6 +260,7 @@ object RudderConfig extends Loggable {
   val userLibraryDirectoryName = "directives"
   val groupLibraryDirectoryName = "groups"
   val rulesDirectoryName = "rules"
+  val ruleCategoriesDirectoryName = "ruleCategories"
   val parametersDirectoryName = "parameters"
 
   //deprecated
@@ -379,6 +381,7 @@ object RudderConfig extends Loggable {
     , directiveSerialisation
     , nodeGroupSerialisation
     , globalParameterSerialisation
+    ,ruleCategorySerialisation
   )
 
   val xmlUnserializer = XmlUnserializerImpl(
@@ -386,6 +389,7 @@ object RudderConfig extends Loggable {
     , directiveUnserialisation
     , nodeGroupUnserialisation
     , globalParameterUnserialisation
+    , ruleCategoryUnserialisation
   )
   val workflowEventLogService =    new WorkflowEventLogServiceImpl(eventLogRepository,uuidGen)
   val diffService: DiffService = new DiffServiceImpl()
@@ -733,6 +737,7 @@ object RudderConfig extends Loggable {
 
   ///// items serializer - service that transforms items to XML /////
   private[this] lazy val ruleSerialisation: RuleSerialisation = new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val ruleCategorySerialisation: RuleCategorySerialisation = new RuleCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val rootSectionSerialisation : SectionSpecWriter = new SectionSpecWriterImpl()
   private[this] lazy val activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation =
     new ActiveTechniqueCategorySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
@@ -790,6 +795,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeGroupCategoryUnserialisation = new NodeGroupCategoryUnserialisationImpl
   private[this] lazy val nodeGroupUnserialisation = new NodeGroupUnserialisationImpl(queryParser)
   private[this] lazy val ruleUnserialisation = new RuleUnserialisationImpl
+  private[this] lazy val ruleCategoryUnserialisation = new RuleCategoryUnserialisationImpl
   private[this] lazy val globalParameterUnserialisation = new GlobalParameterUnserialisationImpl
   private[this] lazy val changeRequestChangesUnserialisation = new ChangeRequestChangesUnserialisationImpl(
       nodeGroupUnserialisation
@@ -971,6 +977,14 @@ object RudderConfig extends Loggable {
     , prettyPrinter
     , gitModificationRepository
   )
+  private[this] lazy val gitRuleCategoryArchiver: GitRuleCategoryArchiver = new GitRuleCategoryArchiverImpl(
+      gitRepo
+    , new File(RUDDER_DIR_GITROOT)
+    , ruleCategorySerialisation
+    , ruleCategoriesDirectoryName
+    , prettyPrinter
+    , gitModificationRepository
+  )
   private[this] lazy val gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver = new GitActiveTechniqueCategoryArchiverImpl(
       gitRepo
     , new File(RUDDER_DIR_GITROOT)
@@ -1071,17 +1085,24 @@ object RudderConfig extends Loggable {
     , RUDDER_AUTOARCHIVEITEMS
   )
 
-  private[this] lazy val roLDAPRuleCategoryRepository = new RoLDAPRuleCategoryRepository(
-      rudderDitImpl, roLdap, ldapEntityMapper, groupLibReadWriteMutex
-  )
-  private[this] lazy val woLDAPRuleCategoryRepository = new WoLDAPRuleCategoryRepository(
-      roLDAPRuleCategoryRepository
-    , rwLdap
-    , uuidGen
-    , gitRuleArchiver
-    , personIdentServiceImpl
-    , RUDDER_AUTOARCHIVEITEMS
-  )
+  private[this] lazy val roLDAPRuleCategoryRepository = {
+    new RoLDAPRuleCategoryRepository(
+        rudderDitImpl
+      , roLdap
+      , ldapEntityMapper
+      , groupLibReadWriteMutex
+    )
+  }
+  private[this] lazy val woLDAPRuleCategoryRepository = {
+    new WoLDAPRuleCategoryRepository(
+        roLDAPRuleCategoryRepository
+      , rwLdap
+      , uuidGen
+      , gitRuleCategoryArchiver
+      , personIdentServiceImpl
+      , RUDDER_AUTOARCHIVEITEMS
+    )
+  }
 
   private[this] lazy val roLDAPParameterRepository = new RoLDAPParameterRepository(
       rudderDitImpl, roLdap, ldapEntityMapper, parameterReadWriteMutex
@@ -1099,6 +1120,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val itemArchiveManagerImpl = new ItemArchiveManagerImpl(
       roLdapRuleRepository
     , woLdapRuleRepository
+    , roLDAPRuleCategoryRepository
     , roLdapDirectiveRepository
     , roLdapNodeGroupRepository
     , roLDAPParameterRepository
@@ -1106,6 +1128,7 @@ object RudderConfig extends Loggable {
     , gitRepo
     , gitRevisionProvider
     , gitRuleArchiver
+    , gitRuleCategoryArchiver
     , gitActiveTechniqueCategoryArchiver
     , gitActiveTechniqueArchiver
     , gitNodeGroupArchiver
@@ -1113,9 +1136,11 @@ object RudderConfig extends Loggable {
     , parseRules
     , ParseActiveTechniqueLibrary
     , parseGlobalParameter
+    , parseRuleCategories
     , importTechniqueLibrary
     , parseGroupLibrary
     , importGroupLibrary
+    , importRuleCategoryLibrary
     , logRepository
     , asyncDeploymentAgentImpl
     , gitModificationRepository
@@ -1264,7 +1289,19 @@ object RudderConfig extends Loggable {
     , entityMigration
     , parametersDirectoryName
   )
+  private[this] lazy val parseRuleCategories : ParseRuleCategories = new GitParseRuleCategories(
+      ruleCategoryUnserialisation
+    , gitRepo
+    , entityMigration
+    , ruleCategoriesDirectoryName
+  )
   private[this] lazy val importGroupLibrary : ImportGroupLibrary = new ImportGroupLibraryImpl(
+     rudderDitImpl
+   , rwLdap
+   , ldapEntityMapper
+   , groupLibReadWriteMutex
+  )
+  private[this] lazy val importRuleCategoryLibrary : ImportRuleCategoryLibrary = new ImportRuleCategoryLibraryImpl(
      rudderDitImpl
    , rwLdap
    , ldapEntityMapper
@@ -1394,6 +1431,11 @@ object RudderConfig extends Loggable {
    * Bootstrap check actions
    * **************************************************
    */
+
+
+
+  private[this] lazy val ruleCategoriesDirectory = new File(new File(RUDDER_DIR_GITROOT),ruleCategoriesDirectoryName)
+
   private[this] lazy val allChecks = new SequentialImmediateBootStrapChecks(
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
     , new CheckRootNodeUnicity(ldapNodeConfigurationRepository, nodeInfoServiceImpl)
@@ -1403,6 +1445,7 @@ object RudderConfig extends Loggable {
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
     , new CheckMigrationXmlFileFormat3_4(controlXmlFileFormatMigration_3_4)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
+    , new CheckRootRuleCategoryExport (itemArchiveManager, ruleCategoriesDirectory,  personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
     , new CheckDotInGenericCFEngineVariableDef(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
     // Check technique library reload needs to be achieved after modification in configuration (like migration of CFEngine variables)
