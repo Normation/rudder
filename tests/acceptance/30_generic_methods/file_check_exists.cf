@@ -29,6 +29,7 @@ bundle agent init
     "file1_canon" string => canonify("${file1}");
     "file_list"   slist => { "${file}", "${file1}" };
 
+
   files:
     "${file}"
       create => "true",
@@ -57,7 +58,7 @@ bundle agent check
     "file_check_exists_test_ok"  expression => returnszero("${file_check_exists_test}", "useshell");
     "file_check_exists_test1_ok"  expression => returnszero("${file_check_exists_test1}", "useshell");
 
-    "ok"                   expression => "file_check_exists_test_ok.file_check_exists_${init.file_canon}_ok.!file_check_exists_test1_ok.!file_check_exists_${init.file1_canon}_ok";
+    "ok"                   expression => "file_check_exists_test_ok.file_check_exists_${init.file_canon}_ok.!file_check_exists_test1_ok.!file_check_exists_${init.file1_canon}_ok.file_check_exists_${init.file_canon}_reached.file_check_exists_${init.file1_canon}_reached";
 
   reports:
     ok::
@@ -68,4 +69,11 @@ bundle agent check
       "${file} is not present as expected";
     file_check_exists_test1_ok::
       "${file1} is not absent as expected";
+
+    cfengine::
+      "Check of ${init.file} is not reached"
+        ifvarclass => "!file_check_exists_${init.file_canon}_reached";
+      "Check of ${init.file1} is not reached"
+        ifvarclass => "!file_check_exists_${init.file1_canon}_reached";
+
 }

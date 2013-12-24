@@ -23,20 +23,28 @@
 # 
 # @class_prefix file_check_exists
 # @class_parameter file_name
-# This bundle will define a class file_check_exists_${file_name}_ok
+# This bundle will define a class file_check_exists_${file_name}_{ok, reached, kept} if the
+# file exists, or file_check_exists_${file_name}_{not_ok, reached, not_kept, failed} if
+# the file doesn't exists
 
 bundle agent file_check_exists(file_name)
 {
   vars:
-    "class_prefix"        string => canonify("file_check_exists_${file_name}");
-    "dummy"               string => "any",
-                          ifvarclass => canonify("${file_name}_exists"),
-                          classes    => classes_generic("${class_prefix}");
+      "class_prefix"        string => canonify("file_check_exists_${file_name}");
 
   classes:
-    "${file_name}_exists"  expression => fileexists("${file_name}");
+      "file_exists"  expression => fileexists("${file_name}");
 
   methods:
+    file_exists::
+      "file_exists"
+        usebundle => _classes_success("${class_prefix}");
+
+    !file_exists::
+      "file_dont_exists"
+        usebundle => _classes_failure("${class_prefix}");
+
+    any::
       "report"
         usebundle => _logger("Check if ${file_name} exists", "${class_prefix}");
 }
