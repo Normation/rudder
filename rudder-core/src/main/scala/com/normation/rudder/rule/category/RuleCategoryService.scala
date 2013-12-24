@@ -46,7 +46,7 @@ class RuleCategoryService(
   // The root category element can be displayed in caps in the full fqdn
   def bothFqdn(id:RuleCategoryId,rootInCaps : Boolean = false) : Box[(String,String)] = {
     for {
-      fqdn  <-roRuleCategoryService.getParents(id)
+      fqdn  <-roRuleCategoryService.getParents(id,true)
       short = toShortFqdn(fqdn)
     } yield {
       val full = {
@@ -70,6 +70,6 @@ class RuleCategoryService(
 
   // Get the short fqdn from the id of a Rule category
   def shortFqdn (id : RuleCategoryId) : Box[String] = {
-      roRuleCategoryService.getParents(id).map(toShortFqdn _)
+      roRuleCategoryService.getParents(id,true).map(toShortFqdn _)
   }
 }

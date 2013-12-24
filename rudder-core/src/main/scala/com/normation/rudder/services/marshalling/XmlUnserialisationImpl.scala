@@ -89,12 +89,15 @@ import com.normation.rudder.api._
 import com.normation.rudder.rule.category.RuleCategoryId
 import scala.xml.XML
 import scala.xml.PrettyPrinter
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
 
 case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
   , directive   : DirectiveUnserialisation
   , group       : NodeGroupUnserialisation
   , globalParam : GlobalParameterUnserialisation
+  , ruleCat     : RuleCategoryUnserialisation
 ) extends XmlUnserializer
 
 
@@ -285,6 +288,31 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
         , longDescription
         , isEnabled
         , isSystem
+      )
+    }
+  }
+}
+
+class RuleCategoryUnserialisationImpl extends RuleCategoryUnserialisation {
+
+  def unserialise(entry:XNode): Box[RuleCategory] = {
+    for {
+      category         <- {
+                            if(entry.label ==  XML_TAG_RULE_CATEGORY) Full(entry)
+                            else Failure("Entry type is not a <%s>: %s".format(XML_TAG_RULE_CATEGORY, entry))
+                          }
+      fileFormatOk     <- TestFileFormat(category)
+      id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
+      name             <- (category \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
+      description      <- (category \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
+      isSystem         <- (category \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
+    } yield {
+      RuleCategory(
+          id = RuleCategoryId(id)
+        , name = name
+        , description = description
+        , childs = Nil
+        , isSystem = isSystem
       )
     }
   }
