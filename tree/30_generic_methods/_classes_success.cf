@@ -1,0 +1,38 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes success definition
+# @description Defines success classes based on a prefix
+#
+# @parameter class_prefix      The prefix of the success class to defined
+#
+# @class_prefix 
+# @class_parameter 
+# This bundle will define a class ${class_prefix}_{kept,ok,reached}
+
+bundle agent _classes_success(class_prefix)
+{
+  vars:
+      "suffix" slist => { "ok", "reached", "kept" };
+
+      "local_${suffix}"
+        string     => "${class_prefix}_${suffix}",
+        classes    => always("${class_prefix}_${suffix}");
+}
+
+
