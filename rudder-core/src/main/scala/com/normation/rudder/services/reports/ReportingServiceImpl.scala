@@ -80,8 +80,8 @@ class ReportingServiceImpl(
    */
   def updateExpectedReports(expandedRuleVals : Seq[ExpandedRuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
     // All the rule and serial. Used to know which one are to be removed
-    val currentConfigurationsToRemove =  mutable.Map[RuleId, Int]() ++
-      confExpectedRepo.findAllCurrentExpectedReportsAndSerial()
+    val currentConfigurationsToRemove =  mutable.Map[RuleId, (Int, Set[NodeId])]() ++
+      confExpectedRepo.findAllCurrentExpectedReportsWithNodesAndSerial()
 
     val confToClose = mutable.Set[RuleId]()
     val confToCreate = mutable.Buffer[ExpandedRuleVal]()
@@ -90,20 +90,27 @@ class ReportingServiceImpl(
     for (conf@ExpandedRuleVal(ruleId, configs, newSerial) <- expandedRuleVals) {
       currentConfigurationsToRemove.get(ruleId) match {
         // non existant, add it
-        case None => 
+        case None =>
           logger.debug("New rule %s".format(ruleId))
           confToCreate += conf
 
-        case Some(serial) if ((serial == newSerial)&&(configs.size > 0)) => 
+        case Some((serial, nodeSet)) if ((serial == newSerial)&&(configs.size > 0)) =>
             // no change if same serial and some config appliable
             logger.debug("Same serial %s for ruleId %s, and configs presents".format(serial, ruleId))
+            // must check that their are no differents nodes in the DB than in the new reports
+            // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
+            if (configs.keySet != nodeSet) {
+              logger.debug("Same serial %s for ruleId %s, but not same node set, it need to be closed and created".format(serial, ruleId))
+              confToCreate += conf
+              confToClose += ruleId
+            }
             currentConfigurationsToRemove.remove(ruleId)
 
-        case Some(serial) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
+        case Some((serial, nodeSet)) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
             // if there is not target, then it need to be closed
           logger.debug("Same serial, and no configs present")
 
-        case Some(serial) => // not the same serial
+        case Some((serial, nodeSet)) => // not the same serial
           logger.debug("Not same serial")
             confToCreate += conf
             confToClose += ruleId
