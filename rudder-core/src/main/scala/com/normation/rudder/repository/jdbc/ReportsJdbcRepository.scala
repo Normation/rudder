@@ -250,13 +250,9 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   
   def getDatabaseSize() : Box[Long] = {
     jdbcTemplate.query(
-      """SELECT  nspname ||  '.'  ||  relname AS  "relation",
-          pg_relation_size(C.oid)  AS  "size"
-        FROM  pg_class C
-        LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
-        WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = 'ruddersysevents' 
-        """
-        , DatabaseSizeMapper).toSeq match {
+        """SELECT pg_total_relation_size('ruddersysevents') as "size" """
+        , DatabaseSizeMapper
+    ).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
       case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
       
