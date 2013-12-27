@@ -269,23 +269,19 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   def getDatabaseSize(databaseName:String) : Box[Long] = {
     try {
       jdbcTemplate.query(
-        """SELECT  nspname ||  '.'  ||  relname AS  "relation",
-            pg_relation_size(C.oid)  AS  "size"
-          FROM  pg_class C
-          LEFT  JOIN  pg_namespace N ON  (N.oid=  C.relnamespace)
-          WHERE  nspname NOT  IN  ('pg_catalog',  'information_schema') and relname = '%s'
-          """.format(databaseName)
-          , DatabaseSizeMapper).toSeq match {
-        case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-        case seq  => seq.headOption ?~! "The query used to find database size did not return any tuple"
+          s"""SELECT pg_total_relation_size('${databaseName}') as "size" """
+        , DatabaseSizeMapper
+      ).toSeq match {
+        case seq if seq.size > 1 => Failure(s"Too many answer for the latest report in the database '${databaseName}'")
+        case seq  => seq.headOption ?~! s"The query used to find database '${databaseName}' size did not return any tuple"
 
-       }
-     } catch {
-       case e: DataAccessException =>
-         val msg ="Could not compute the size of the database, cause is " + e.getMessage()
-         logger.error(msg)
-         Failure(msg,Full(e),Empty)
-     }
+      }
+    } catch {
+      case e: DataAccessException =>
+        val msg ="Could not compute the size of the database, cause is " + e.getMessage()
+        logger.error(msg)
+        Failure(msg,Full(e),Empty)
+    }
   }
 
   def archiveEntries(date : DateTime) : Box[Int] = {
