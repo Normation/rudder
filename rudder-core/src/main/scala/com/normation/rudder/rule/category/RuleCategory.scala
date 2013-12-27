@@ -75,11 +75,33 @@ case class RuleCategory(
   }
 
 
+  // Path to a Children, including this child
+  def childPath (childrenId : RuleCategoryId) :  Box[List[RuleCategory]]= {
+    if (this.id == childrenId) {
+      Full(this :: Nil)
+    } else {
+      // Try to find children id in childs, collect to get only positive results
+      val paths = childs.map(_.childPath(childrenId)).collect {case Full(c) => c }
+      paths match {
+        case c :: Nil => Full(this :: c)
+        case Nil => Failure(s"cannot find parent category of ID '${childrenId.value}'")
+        case _ => Failure(s"too much parents for category of ID '${childrenId.value}'")
+      }
+    }
+  }
+
+  // Path to a children not containing the children
+  def findParents (childrenId : RuleCategoryId) :  Box[List[RuleCategory]]= {
+    childPath(childrenId).map(_.init)
+  }
+
+  // Filter a category from children categories
   def filter(category : RuleCategory) : RuleCategory = {
     if (childs.contains(category)) {
       this.copy(childs = this.childs.filter(_ != category))
     } else {
-      this.copy(childs = this.childs.map(filter))
+      // Not in that category, filter its children
+      this.copy(childs = this.childs.map(_.filter(category)))
     }
   }
 

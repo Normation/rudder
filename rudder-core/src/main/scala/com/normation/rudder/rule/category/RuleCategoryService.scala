@@ -35,49 +35,41 @@
 package com.normation.rudder.rule.category
 
 import net.liftweb.common.Box
+import net.liftweb.common.Full
 
 class RuleCategoryService(
   roRuleCategoryService : RoRuleCategoryRepository
 ) {
 
+
+  // from a rule category, get the full FQDN and the short fqdn
+  // The root category element can be displayed in caps in the full fqdn
   def bothFqdn(id:RuleCategoryId,rootInCaps : Boolean = false) : Box[(String,String)] = {
-
     for {
-    root  <- roRuleCategoryService.getRootCategory
-    short <- shortFqdn(id)
+      fqdn  <-roRuleCategoryService.getParents(id)
+      short = toShortFqdn(fqdn)
     } yield {
-      val long = {
-        val rootName = {
-          if (rootInCaps ) {
-            root.name.toUpperCase
-          } else {
-            root.name
-          }
+      val full = {
+        val complete =
+        if (rootInCaps ) {
+          fqdn.head.name.toUpperCase :: fqdn.tail.map(_.name)
+        } else {
+          fqdn.map(_.name)
         }
-          if (id != root.id) {
-            rootName + " » " + short
-          } else {
-            rootName
-          }
+        complete.mkString(" » ")
       }
-      (long,short)
+      (full,short)
     }
   }
 
-  def shortFqdn(id:RuleCategoryId) : Box[String] = {
-
-    for {
-    parents <- roRuleCategoryService.getParents(id)
-    } yield {
-      (for {
-        parent <- parents
-      } yield {
-      if (parent.id.value == "rootRuleCategory") {
-        ""
-      } else {
-        parent.name
-      }}).tail.mkString(" » ")
-    }
+  // transform a list of Rule categrory to a short fqdn for Rule category
+  // short fqdn is the path list of all parents to the root category, minus the root category
+  private[this] def toShortFqdn(parents  : List[RuleCategory]) : String = {
+    parents.tail.map(_.name).mkString(" » ")
   }
 
+  // Get the short fqdn from the id of a Rule category
+  def shortFqdn (id : RuleCategoryId) : Box[String] = {
+      roRuleCategoryService.getParents(id).map(toShortFqdn _)
+  }
 }
