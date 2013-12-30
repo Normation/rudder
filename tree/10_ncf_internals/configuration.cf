@@ -17,9 +17,9 @@
 #####################################################################################
 
 # Config
-# This bundle will read the ncf specific configuration and expose it as global variables
+# This bundle will read the ncf specific configuration and expose it as CFEngine variables
 # Conventions:
-#   The variables will be usable in the context ncf.variablename
+#   The variables will be usable in the context configuration.variablename
 bundle agent configuration
 {
 
@@ -32,6 +32,8 @@ bundle agent configuration
       # Read all entries from the configuration file
       "num_entries"                  int => readstringarray("ncf_config","${ncf_configuration_file}","#[^\n]*","=",100,8000);
 
-      "enabled_loggers"            slist => splitstring("${ncf_config[loggers][1]}",",","10");
+      # See ncf.conf for reference about these variables
+      "enabled_loggers"             slist => splitstring("${ncf_config[loggers][1]}",",","10");
+      "cfengine_port"              string => "${ncf_config[cfengine_port][1]}";
 
 }
