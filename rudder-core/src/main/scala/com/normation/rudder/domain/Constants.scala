@@ -95,8 +95,9 @@ object Constants {
   val XML_FILE_FORMAT_2 = 2
   val XML_FILE_FORMAT_3 = 3
   val XML_FILE_FORMAT_4 = 4
+  val XML_FILE_FORMAT_5 = 5
 
-  val XML_CURRENT_FILE_FORMAT = XML_FILE_FORMAT_4
+  val XML_CURRENT_FILE_FORMAT = XML_FILE_FORMAT_5
 
   val CONFIGURATION_RULES_ARCHIVE_TAG = "#rules-archive"
   val RULE_CATEGORY_ARCHIVE_TAG = "#rule-categories-archive"
