@@ -62,6 +62,10 @@ import Migration_3_DATA_Rule.rule_delete_3
 import Migration_3_DATA_Rule.rule_modify_3
 import Migration_3_DATA_ChangeRequest.cr_directive_change_3
 import Migration_4_DATA_ChangeRequest.cr_directive_change_4
+import Migration_4_DATA_Rule._
+import Migration_4_DATA_ChangeRequest._
+import Migration_5_DATA_ChangeRequest._
+import Migration_5_DATA_Rule._
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
@@ -139,6 +143,28 @@ class TestXmlMigration_2_3 extends Specification with Loggable {
   "change request migration from fileFormat '3' to '4'" should {
     "correctly rewrite add" in {
       compare(migration_3_4.changeRequest(cr_directive_change_3) , cr_directive_change_4)
+    }
+  }
+
+  val migration_4_5 = new XmlMigration_4_5
+
+
+  "rule migration from fileFormat '4' to '5'" should {
+    "correctly rewrite add" in {
+      compare(migration_4_5.rule(rule_add_4) , rule_add_5)
+    }
+    "correctly rewrite modify" in {
+      compare(migration_4_5.rule(rule_modify_4), rule_modify_5)
+    }
+    "correctly rewrite delete" in {
+      compare(migration_4_5.rule(rule_delete_4), rule_delete_5)
+    }
+  }
+
+
+  "change request migration from fileFormat '4' to '5'" should {
+    "correctly update inner rule modification" in {
+      compare(migration_4_5.changeRequest(cr_rule_change_4) , cr_rule_change_5)
     }
   }
 }

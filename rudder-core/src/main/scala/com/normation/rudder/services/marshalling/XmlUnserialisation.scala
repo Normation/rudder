@@ -141,8 +141,8 @@ trait NodeGroupUnserialisation {
  */
 trait RuleUnserialisation {
   /**
-   * Version 2:
-     <rule fileName="1.0">
+   * Version 5:
+     <rule fileFormat="5">
         <id>{rule.id.value}</id>
         <name>{rule.name}</name>
         <serial>{rule.serial}</serial>
@@ -150,6 +150,7 @@ trait RuleUnserialisation {
         <directiveIds>{
           rule.directiveIds.map { id => <id>{id.value}</id> }
         }</directiveIds>
+        <category>{rule.category.value}</category>
         <shortDescription>{rule.shortDescription}</shortDescription>
         <longDescription>{rule.longDescription}</longDescription>
         <isEnabled>{rule.isEnabledStatus}</isEnabled>
@@ -164,8 +165,8 @@ trait RuleUnserialisation {
  */
 trait RuleCategoryUnserialisation {
   /**
-   * Version 4: (rc: nodeGroupCategory)
-     <ruleCategory fileFormat="4">
+   * Version 5: (rc: nodeGroupCategory)
+     <ruleCategory fileFormat="5">
         <id>{ngc.id.value}</id>
         <displayName>{ngc.name}</displayName>
         <description>{ngc.description}</serial>

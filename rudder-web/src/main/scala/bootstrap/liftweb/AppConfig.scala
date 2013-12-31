@@ -128,7 +128,7 @@ import com.normation.rudder.migration.EventLogMigration_3_4
 import com.normation.rudder.migration.ChangeRequestsMigration_3_4
 import com.normation.rudder.migration.ChangeRequestMigration_3_4
 import com.normation.rudder.migration.EventLogsMigration_3_4
-import com.normation.rudder.migration.EventLogsMigration_3_4
+import com.normation.rudder.migration._
 import com.normation.rudder.web.rest.parameter._
 import com.normation.rudder.web.rest.changeRequest._
 import com.normation.rudder.reports.execution._
@@ -808,9 +808,15 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val deploymentStatusUnserialisation = new DeploymentStatusUnserialisationImpl
 
-  private[this] lazy val entityMigration = new DefaultXmlEventLogMigration(xmlMigration_2_3, xmlMigration_3_4)
+  private[this] lazy val entityMigration =
+    new DefaultXmlEventLogMigration(
+        xmlMigration_2_3
+      , xmlMigration_3_4
+      , xmlMigration_4_5
+    )
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
   private[this] lazy val xmlMigration_3_4 = new XmlMigration_3_4()
+  private[this] lazy val xmlMigration_4_5 = new XmlMigration_4_5()
 
   private[this] lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
       queryParser
@@ -1425,6 +1431,23 @@ object RudderConfig extends Loggable {
     , previousMigrationController = Some(eventLogsMigration_2_3_Management)
   )
 
+  private[this] lazy val eventLogsMigration_4_5 = new EventLogsMigration_4_5(
+      jdbcTemplate
+    , new EventLogMigration_4_5(xmlMigration_4_5)
+    , eventLogsMigration_3_4
+  )
+
+  private[this] lazy val controlXmlFileFormatMigration_4_5 = new ControlXmlFileFormatMigration_4_5(
+      migrationEventLogRepository = migrationRepository
+    , batchMigrators              = Seq(eventLogsMigration_4_5
+                                      , new ChangeRequestsMigration_4_5(
+                                          jdbcTemplate
+                                        , new ChangeRequestMigration_4_5(xmlMigration_4_5)
+                                      )
+                                    )
+    , previousMigrationController = Some(eventLogsMigration_2_3_Management)
+  )
+
 
   /**
    * *************************************************
@@ -1443,7 +1466,7 @@ object RudderConfig extends Loggable {
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
-    , new CheckMigrationXmlFileFormat3_4(controlXmlFileFormatMigration_3_4)
+    , new CheckMigrationXmlFileFormat4_5(controlXmlFileFormatMigration_4_5)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckRootRuleCategoryExport (itemArchiveManager, ruleCategoriesDirectory,  personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
