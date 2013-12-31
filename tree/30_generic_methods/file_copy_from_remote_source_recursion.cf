@@ -35,7 +35,7 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
   files:
 
       "${destination}"
-        copy_from    => remote_cp("${source}", "${sys.policy_hub}"),
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
         depth_search => recurse("${recursion}"),
 	classes      => classes_generic("${class_prefix}");
 

@@ -16,7 +16,6 @@
 #
 #####################################################################################
 
-
 # Install packages using yum localinstall, disable package caching
 body package_method redhat_local_install
 {
@@ -145,4 +144,22 @@ body select_region ncf_section_selector(section_start, section_end)
 {
   select_start => "${section_start}";
   select_end   => "${section_end}";
+}
+
+
+# Modular local copy_from body
+body copy_from ncf_local_cp_method(from, method)
+{
+  source      => "${from}";
+  compare     => "${method}";
+}
+
+# Modular remote copy_from body
+# This body gets the CFEngine port from ncf's configuration.
+body copy_from ncf_remote_cp_method(from, server, method)
+{
+  servers     => { "${server}" };
+  source      => "${from}";
+  portnumber  => "${configuration.cfengine_port}";
+  compare     => "${method}";
 }
