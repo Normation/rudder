@@ -66,8 +66,8 @@ trait XmlSerializer {
  */
 trait RuleSerialisation {
   /**
-   * Version 2:
-     <rule fileFormat="2">
+   * Version 5:
+     <rule fileFormat="5">
         <id>{rule.id.value}</id>
         <name>{rule.name}</name>
         <serial>{rule.serial}</serial>
@@ -91,8 +91,8 @@ trait RuleSerialisation {
  */
 trait RuleCategorySerialisation {
   /**
-   * Version 4: (rc: nodeGroupCategory)
-     <ruleCategory fileFormat="4">
+   * Version 5: (rc: nodeGroupCategory)
+     <ruleCategory fileFormat="5">
         <id>{ngc.id.value}</id>
         <displayName>{ngc.name}</displayName>
         <description>{ngc.description}</serial>
