@@ -38,6 +38,7 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.services.marshalling.GlobalParameterSerialisation
 import com.normation.rudder.services.marshalling.APIAccountSerialisation
 import com.normation.rudder.api._
+import com.normation.rudder.rule.category.RuleCategoryService
 
 trait EventLogFactory {
 
@@ -298,12 +299,14 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : ModifyRule = {
+    val modCategory = modifyDiff.modCategory.map(diff => SimpleDiff(diff.oldValue.value,diff.newValue.value))
     val details = EventLog.withContent {
       scala.xml.Utility.trim(
         <rule changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
           <id>{modifyDiff.id.value}</id>
           <displayName>{modifyDiff.name}</displayName>{
             modifyDiff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
+            modCategory.map(x => SimpleDiff.stringToXml(<category/>, x) ) ++
             modifyDiff.modSerial.map(x => SimpleDiff.intToXml(<serial/>, x ) ) ++
             modifyDiff.modTarget.map(x =>
               SimpleDiff.toXml[Set[RuleTarget]](<targets/>, x){ targets =>
