@@ -577,8 +577,15 @@ class EventListDisplayer(
                   modDiff.modName.map(diff => diff.newValue).getOrElse(modDiff.name)
                }</li>
               </ul>
-              {(
+              {
+                val modCategory = modDiff.modCategory.map {
+                  case SimpleDiff(oldOne,newOne) =>
+                      <li><b>Rule category changed: </b></li> ++
+                      DiffDisplayer.displayRuleCategory(oldOne,Some(newOne))
+                  }
+               (
                 "#name" #>  mapSimpleDiff(modDiff.modName) &
+                "#category" #>  modCategory &
                 "#isEnabled *" #> mapSimpleDiff(modDiff.modIsActivatedStatus) &
                 "#isSystem *" #> mapSimpleDiff(modDiff.modIsSystem) &
                 "#shortDescription *" #> mapSimpleDiff(modDiff.modShortDescription) &
@@ -1231,16 +1238,20 @@ class EventListDisplayer(
     }
   }
 
-  private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory) = (
-      "#ruleID" #> rule.id.value.toUpperCase &
-      "#ruleName" #> rule.name &
-      "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
-      "#policy" #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
+  private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory) = {
+
+    (
+      "#ruleID"    #> rule.id.value.toUpperCase &
+      "#ruleName"  #> rule.name &
+      "#category"  #> DiffDisplayer.displayRuleCategory(rule.categoryId, None) &
+      "#target"    #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
+      "#policy"    #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &
-      "#isSystem" #> rule.isSystem &
+      "#isSystem"  #> rule.isSystem &
       "#shortDescription" #> rule.shortDescription &
-      "#longDescription" #> rule.longDescription
-  )(xml)
+      "#longDescription"  #> rule.longDescription
+    ) (xml)
+  }
 
   private[this] def directiveDetails(xml:NodeSeq, ptName: TechniqueName, directive:Directive, sectionVal:SectionVal) = (
       "#directiveID" #> directive.id.value.toUpperCase &
@@ -1353,6 +1364,7 @@ class EventListDisplayer(
       <ul class="evlogviewpad">
         <li><b>ID:&nbsp;</b><value id="ruleID"/></li>
         <li><b>Name:&nbsp;</b><value id="ruleName"/></li>
+        <li><b>Category:&nbsp;</b><value id="category"/></li>
         <li><b>Description:&nbsp;</b><value id="shortDescription"/></li>
         <li><b>Target:&nbsp;</b><value id="target"/></li>
         <li><b>Directives:&nbsp;</b><value id="policy"/></li>
@@ -1483,6 +1495,7 @@ class EventListDisplayer(
   private[this] val crModDetailsXML =
     <xml:group>
       {liModDetailsXML("name", "Name")}
+      {liModDetailsXML("category", "Category")}
       {liModDetailsXML("shortDescription", "Description")}
       {liModDetailsXML("longDescription", "Details")}
       {liModDetailsXML("target", "Target")}
