@@ -370,7 +370,7 @@ object RudderConfig extends Loggable {
 
 
   val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
-  val ruleCategoryService          : RuleCategoryService = new RuleCategoryService(roRuleCategoryRepository)
+  val ruleCategoryService      : RuleCategoryService = new RuleCategoryService(roRuleCategoryRepository)
   val woRuleCategoryRepository : WoRuleCategoryRepository = woLDAPRuleCategoryRepository
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)

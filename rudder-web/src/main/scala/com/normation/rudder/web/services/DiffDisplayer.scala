@@ -46,6 +46,10 @@ import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.rule.category.RuleCategoryId
+import net.liftweb.common.Full
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Loggable
 
 
 
@@ -99,7 +103,7 @@ case class Modified[T](
   delete.display ++ add.display
 }
 
-object DiffDisplayer {
+object DiffDisplayer extends Loggable {
 
   //Directive targets Displayer
   private[this] val roDirectiveRepo = RudderConfig.roDirectiveRepository
@@ -171,4 +175,39 @@ object DiffDisplayer {
     </ul>
   }
 
+
+  private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
+  def displayRuleCategory (
+      oldCategory : RuleCategoryId
+    , newCategory : Option[RuleCategoryId]
+  ) = {
+
+    def getCategoryFullName(category : RuleCategoryId) = {
+      ruleCategoryService.shortFqdn(category) match {
+        case Full(fqdn) => fqdn
+        case eb : EmptyBox =>
+          logger.error(s"Error while looking for category ${category.value}")
+          category.value.toUpperCase()
+      }
+    }
+    implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId) = {
+    <span>{getCategoryFullName(ruleCategoryId)}</span>
+    }
+
+    newCategory match {
+      case Some(newCategory) =>
+        val changes = Seq(Deleted(oldCategory),Added(newCategory))
+            <ul style="padding-left:10px">
+      { for {
+          change <- changes
+        } yield {
+          // Implicit used here (displayRuleCategory)
+          change.display
+        }
+      }
+    </ul>
+      case None => displayRuleCategory(oldCategory)
+
+    }
+  }
 }
