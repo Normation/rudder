@@ -38,3 +38,5 @@ import com.normation.utils.HashcodeCaching
 final case class RuleArchiveId(value:String) extends HashcodeCaching
 
 final case class ParameterArchiveId(value:String) extends HashcodeCaching
+
+final case class RuleCategoryArchiveId(value:String) extends HashcodeCaching

@@ -38,6 +38,7 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.archives.RuleArchiveId
 
 trait RoRuleCategoryRepository {
 
@@ -45,7 +46,7 @@ trait RoRuleCategoryRepository {
 
   def getRootCategory : Box[RuleCategory]
 
-  def getParents(targetId:RuleCategoryId) : Box[List[RuleCategory]]
+  def getParents(targetId:RuleCategoryId, includeCategory : Boolean) : Box[List[RuleCategory]]
 }
 
 trait WoRuleCategoryRepository {
@@ -58,9 +59,11 @@ trait WoRuleCategoryRepository {
     , reason : Option[String]
   ) : Box[RuleCategory]
 
-  def update(category:RuleCategory    , modId  : ModificationId
-    , actor  : EventActor
-    , reason : Option[String]
+  def update(
+      category : RuleCategory
+    , modId    : ModificationId
+    , actor    : EventActor
+    , reason   : Option[String]
   ) : Box[RuleCategory]
 
   def updateAndMove(
@@ -72,13 +75,12 @@ trait WoRuleCategoryRepository {
   ) : Box[RuleCategory]
 
   def delete(
-      category:RuleCategoryId
-    , modId  : ModificationId
-    , actor  : EventActor
-    , reason : Option[String]
-    , checkEmpty:Boolean = true
+      category   : RuleCategoryId
+    , modId      : ModificationId
+    , actor      : EventActor
+    , reason     : Option[String]
+    , checkEmpty : Boolean = true
   ) : Box[RuleCategoryId]
-
 
 }
 

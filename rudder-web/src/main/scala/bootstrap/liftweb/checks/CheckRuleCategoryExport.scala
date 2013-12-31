@@ -41,6 +41,10 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import net.liftweb.common._
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import java.io.File
+import net.liftweb.util.ControlHelpers.tryo
+
 
 
 /**
@@ -54,41 +58,41 @@ import com.normation.eventlog.ModificationId
  * So, if a full export wasn't done until know, just do one.
  *
  */
-class CheckInitXmlExport(
-    itemArchiveManager: ItemArchiveManager
-  , personIdentService: PersonIdentService
-  , uuidGen           : StringUuidGenerator
+class CheckRootRuleCategoryExport(
+    itemArchiveManager : ItemArchiveManager
+  , categoryDirectory  : File
+  , personIdentService : PersonIdentService
+  , uuidGen            : StringUuidGenerator
 ) extends BootstrapChecks with Loggable {
 
   override def checks() : Unit = {
     (for {
-      tagMap <- itemArchiveManager.getFullArchiveTags
+      exists <- tryo{ categoryDirectory.exists() }
       ident  <- personIdentService.getPersonIdentOrDefault(RudderEventActor.name)
-
     } yield {
-      if(tagMap.isEmpty) {
-        logger.info("No full archive of configuration-repository items seems to have been done, initialising the system with one")
-        itemArchiveManager.exportAll(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository sub-system"), false)
+      if(!exists) {
+        logger.info(s"Directory '${categoryDirectory.getAbsolutePath()}' is missing, initialize it by exporting Rules")
+        itemArchiveManager.exportRules(ident, ModificationId(uuidGen.newUuid), RudderEventActor, Some("Initialising configuration-repository Rule categories directory"), false)
       } else {
-        logger.trace("At least a full archive of configuration items done, no need for further initialisation")
+        logger.trace(s"Directory '${categoryDirectory.getAbsolutePath()}' exists")
         Full("OK")
       }
     }) match {
       case eb: EmptyBox =>
-        val fail = eb ?~! "Error when trying to get the list of archive tag"
-        logger.error(fail)
+        val fail = eb ?~! s"Error when checking '${categoryDirectory}' directory existence"
+        logger.error(fail.msg)
         fail.rootExceptionCause.foreach { t =>
           logger.error("Root exception was:", t)
         }
       case Full(eb:EmptyBox) =>
-        val fail = eb ?~! "Error when trying to initialise to configuration-repository sub-system with a first full archive"
-        logger.error(fail)
+        val fail = eb ?~! "Initialising configuration-repository Rule categories directory with a Rule archive"
+        logger.error(fail.msg)
         fail.rootExceptionCause.foreach { t =>
           logger.error("Root exception was:", t)
         }
 
       case Full(Full(_)) =>
-        logger.info("First full archive of configuration-repository items done")
+        logger.info(s"Creating directory '${categoryDirectory.getAbsolutePath()}' exists, done")
     }
   }
 }

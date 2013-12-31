@@ -54,10 +54,15 @@ import com.normation.rudder.domain.policies.ActiveTechniqueId
 import org.eclipse.jgit.api._
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventLog
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import com.normation.rudder.rule.category.GitRuleCategoryArchiver
+import java.io.File
+import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
 
 class ItemArchiveManagerImpl(
     roRuleRepository                  : RoRuleRepository
   , woRuleRepository                  : WoRuleRepository
+  , roRuleCategoryeRepository         : RoRuleCategoryRepository
   , uptRepository                     : RoDirectiveRepository
   , groupRepository                   : RoNodeGroupRepository
   , roParameterRepository             : RoParameterRepository
@@ -65,6 +70,7 @@ class ItemArchiveManagerImpl(
   , override val gitRepo              : GitRepositoryProvider
   , revisionProvider                  : GitRevisionProvider
   , gitRuleArchiver                   : GitRuleArchiver
+  , gitRuleCategoryArchiver           : GitRuleCategoryArchiver
   , gitActiveTechniqueCategoryArchiver: GitActiveTechniqueCategoryArchiver
   , gitActiveTechniqueArchiver        : GitActiveTechniqueArchiver
   , gitNodeGroupArchiver              : GitNodeGroupArchiver
@@ -72,9 +78,11 @@ class ItemArchiveManagerImpl(
   , parseRules                        : ParseRules
   , parseActiveTechniqueLibrary       : ParseActiveTechniqueLibrary
   , parseGlobalParameters             : ParseGlobalParameters
+  , parseRuleCategories               : ParseRuleCategories
   , importTechniqueLibrary            : ImportTechniqueLibrary
   , parseGroupLibrary                 : ParseGroupLibrary
   , importGroupLibrary                : ImportGroupLibrary
+  , importRuleCategoryLibrary         : ImportRuleCategoryLibrary
   , eventLogger                       : EventLogRepository
   , asyncDeploymentAgent              : AsyncDeploymentAgent
   , gitModificationRepo               : GitModificationRepository
@@ -88,6 +96,14 @@ class ItemArchiveManagerImpl(
   override val relativePath = "."
   override val gitModificationRepository = gitModificationRepo
   ///// implementation /////
+
+
+  // Clean a directory only if it exists, all exception are catched by the tryo
+  private[this] def cleanExistingDirectory (directory : File) : Box[Unit] = {
+    tryo {
+        if (directory.exists) FileUtils.cleanDirectory(directory)
+    }
+  }
 
   override def exportAll(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[(GitArchiveId, NotArchivedElements)] = {
     for {
@@ -114,8 +130,29 @@ class ItemArchiveManagerImpl(
   override def exportRules(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] =
     exportRulesAndDeploy(commiter, modId, actor, reason, includeSystem)
 
+
+  private[this] def exportRuleCategories(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String]) = {
+    for {
+      // Get Map of all categories grouped by parent categories
+      categories  <- roRuleCategoryeRepository.getRootCategory.map(_.childrenMap)
+      cleanedRoot <- cleanExistingDirectory(gitRuleCategoryArchiver.getRootDirectory)
+      saved       <-  sequence(categories.toSeq) {
+                        case (parentCategories, categories ) =>
+                          // Archive each category
+                          sequence(categories) {
+                            case category =>
+                              gitRuleCategoryArchiver.archiveRuleCategory(category,parentCategories, gitCommit = None)
+                          }
+                      }
+      commitId    <- gitRuleCategoryArchiver.commitRuleCategories(modId, commiter, reason)
+    } yield {
+      commitId
+    }
+  }
   private[this] def exportRulesAndDeploy(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true): Box[GitArchiveId] = {
     for {
+      // Treat categories before treating Rules
+      categories  <- exportRuleCategories(commiter, modId, actor, reason)
       rules       <- roRuleRepository.getAll(false)
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitRuleArchiver.getRootDirectory) }
       saved       <- sequence(rules.filterNot(_.isSystem)) { rule =>
@@ -264,6 +301,7 @@ class ItemArchiveManagerImpl(
   override def importRules(archiveId:GitCommitId, commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) = {
     val commitMsg = "User %s requested rule archive restoration to commit %s".format(actor.name,archiveId.value)
     for {
+
     rulesArchiveId <- importRulesAndDeploy(archiveId, modId, actor, reason, includeSystem)
     eventLogged    <- eventLogger.saveEventLog(modId,new ImportRulesArchive(actor,archiveId, reason))
     commit         <- restoreCommitAtHead(commiter,commitMsg,archiveId,RuleArchive,modId)
@@ -271,9 +309,21 @@ class ItemArchiveManagerImpl(
       archiveId
   }
 
+  private[this] def importRuleCategories(archiveId:GitCommitId) : Box[GitCommitId] = {
+    logger.info("Importing rule categories archive with id '%s'".format(archiveId.value))
+    for {
+      parsed      <- parseRuleCategories.getArchive(archiveId)
+      imported    <- importRuleCategoryLibrary.swapRuleCategory(parsed)
+    } yield {
+      archiveId
+    }
+  }
+
+
   private[this] def importRulesAndDeploy(archiveId:GitCommitId, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false, deploy:Boolean = true) : Box[GitCommitId] = {
     logger.info("Importing rules archive with id '%s'".format(archiveId.value))
     for {
+      categories  <- importRuleCategories(archiveId)
       parsed      <- parseRules.getArchive(archiveId)
       imported    <- woRuleRepository.swapRules(parsed)
     } yield {

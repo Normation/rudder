@@ -65,6 +65,9 @@ import com.normation.eventlog.EventLog
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.eventlog.ImportParametersArchive
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
 
 
 
@@ -248,6 +251,11 @@ trait GitRuleArchiver {
    */
   def getRootDirectory : File
 }
+
+/**
+ * A specific trait to create archive of Rule Categories
+ */
+
 
 
 /////////////// Active Technique Library ///////////////

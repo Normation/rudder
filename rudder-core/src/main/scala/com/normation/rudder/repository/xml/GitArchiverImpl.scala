@@ -50,6 +50,7 @@ import com.normation.rudder.domain.Constants.{
   , GROUPS_ARCHIVE_TAG
   , POLICY_LIBRARY_ARCHIVE_TAG
   , PARAMETERS_ARCHIVE_TAG
+  , RULE_CATEGORY_ARCHIVE_TAG
 }
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.domain.nodes.NodeGroupCategory
@@ -72,12 +73,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters.ParameterName
 
-private[xml] object GET {
-  def apply(reason:Option[String]) = reason match {
-    case None => ""
-    case Some(m) => "\n\nReason provided by user:\n" + m
-  }
-}
+
 
 class GitRuleArchiverImpl(
     override val gitRepo                   : GitRepositoryProvider
@@ -149,7 +145,6 @@ class GitRuleArchiverImpl(
   }
 
 }
-
 
 /**
  * An Utility trait that allows to build the path from a root directory
@@ -319,7 +314,7 @@ trait ActiveTechniqueModificationCallback {
 class UpdatePiOnActiveTechniqueEvent(
     gitDirectiveArchiver: GitDirectiveArchiver
   , techniqeRepository  : TechniqueRepository
-  , directiveRepository : RoDirectiveRepository    
+  , directiveRepository : RoDirectiveRepository
 ) extends ActiveTechniqueModificationCallback with Loggable {
   override val uptModificationCallbackName = "Update PI on UPT events"
 
@@ -568,7 +563,7 @@ class GitDirectiveArchiverImpl(
  *
  * Basically, we directly map the category tree to file-system directories,
  * with the root category being the file denoted by "nodeGroupLibrary
- */  
+ */
 class GitNodeGroupArchiverImpl(
     override val gitRepo          : GitRepositoryProvider
   , override val gitRootDirectory : File
@@ -580,12 +575,12 @@ class GitNodeGroupArchiverImpl(
   , override val encoding         : String = "UTF-8"
   , serializedCategoryName        : String = "category.xml"
 ) extends
-  GitNodeGroupArchiver with 
+  GitNodeGroupArchiver with
   Loggable with
   GitArchiverUtils with
   BuildCategoryPathName[NodeGroupCategoryId] with
   GitArchiverFullCommitUtils {
-  
+
 
   override lazy val relativePath = groupLibraryRootDir
   override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
@@ -777,7 +772,7 @@ class GitNodeGroupArchiverImpl(
 /**
  * A specific trait to create archive of global parameters
  *
- */  
+ */
 class GitParameterArchiverImpl(
     override val gitRepo          : GitRepositoryProvider
   , override val gitRootDirectory : File
@@ -787,14 +782,14 @@ class GitParameterArchiverImpl(
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding         : String = "UTF-8"
 ) extends
-  GitParameterArchiver with 
+  GitParameterArchiver with
   Loggable with
   GitArchiverUtils with
   GitArchiverFullCommitUtils {
 
   override val relativePath = parameterRootDir
   override val tagPrefix = "archives/parameters/"
-    
+
   private[this] def newParameterFile(parameterName:ParameterName) = new File(getRootDirectory, parameterName + ".xml")
 
   def archiveParameter(
@@ -819,14 +814,14 @@ class GitParameterArchiverImpl(
       GitPath(gitPath)
     }
   }
-  
+
   def commitParameters(modId: ModificationId, commiter:PersonIdent, reason:Option[String]) : Box[GitArchiveId] = {
     this.commitFullGitPathContentAndTag(
         commiter
       , PARAMETERS_ARCHIVE_TAG + " Commit all modification done on parameters (git path: '%s')%s".format(parameterRootDir, GET(reason))
     )
   }
-  
+
   def deleteParameter(parameterName:ParameterName, doCommit:Option[(ModificationId, PersonIdent,Option[String])]) : Box[GitPath] = {
     val paramFile = newParameterFile(parameterName)
     val gitPath = toGitPath(paramFile)
