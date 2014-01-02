@@ -1,0 +1,57 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes inverted copy
+# @description Copy an inverted class prefix to another one, to switch the context from a bundle to another
+#
+# @parameter source_prefix      The prefix of the source class to copy
+# @parameter destination_prefix The prefix of the destination class to copy
+#
+# @class_prefix
+# @class_parameter
+# This bundle will define a class ${destination_prefix}_{kept,repaired,error,ok,reached}
+# based on an inverted ${source_prefix}_{kept,repaired,error,ok,reached}
+
+bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
+{
+  vars:
+      # Specify which are specific classes to kept or repaired
+      "kept_suffix"     slist => { "not_repaired", "kept" };
+      "repaired_suffix" slist => { "repaired", "not_kept"};
+      "common_suffix"   slist => { "ok", "reached", "failed", "not_ok", "denied", "timeout" };
+
+      # Copy common classes
+      "local_destination_prefix_${common_suffix}"
+        string     => "${destination_prefix}_${common_suffix}",
+        ifvarclass => "${source_prefix}_${common_suffix}",
+        classes    => always("${destination_prefix}_${common_suffix}");
+
+      # Copy kept classes from repaired
+      "local_destination_prefix_${kept_suffix}"
+        string     => "${destination_prefix}_${kept_suffix}",
+        ifvarclass => "${source_prefix}_${repaired_suffix}",
+        classes    => always("${destination_prefix}_${kept_suffix}");
+
+      # Copy repaired classes from kept
+      "local_destination_prefix_${repaired_suffix}"
+        string     => "${destination_prefix}_${repaired_suffix}",
+        ifvarclass => "${source_prefix}_${kept_suffix}",
+        classes    => always("${destination_prefix}_${repaired_suffix}");
+}
+
+
