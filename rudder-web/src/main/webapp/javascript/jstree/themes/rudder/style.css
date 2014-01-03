@@ -14,6 +14,7 @@
 
 .jstree-rudder .jstree-hovered { background:#ffffee; border:1px dotted #974807; padding:0 2px 0 1px; }
 .jstree-rudder .jstree-clicked { background:#fff3c9; border:1px dotted #974807; padding:0 2px 0 1px; }
+.jstree-rudder a { whitespace : normal !important; height : auto !important }
 .jstree-rudder a .jstree-icon { background-position:-56px -19px; }
 .jstree-rudder a.jstree-loading .jstree-icon { background:url("throbber.gif") center center no-repeat !important; }
 
