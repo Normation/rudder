@@ -16,16 +16,14 @@
 #
 #####################################################################################
 
-# @name File copy from local source recurse
-# @description This is a bundle to ensure that a file or directory is copied from a local source
+# @name Symlink creation
+# @description This is a bundle to create a symlink with a path and a target. This is also possible to enforce its creation
 #
 # @parameter enforce     Force symlink if file already exist (true or false)
 # @parameter source      Source file 
 # @parameter destination Destination file
 # 
 # @class_prefix file_create_symlink
-# @class_parameter enforce
-# @class_parameter source
 # @class_parameter destination
 # This bundle will define a class file_create_symlink_${destination}_{kept,repaired,error,ok,reached}
 
@@ -44,5 +42,5 @@ bundle agent file_create_symlink(enforce, source, destination)
 
   methods:
       "report"
-                    usebundle         => _logger("Copying ${destination} from ${source}", "${class_prefix}");
+                    usebundle         => _logger("Symlink ${destination} targeting ${source}", "${class_prefix}");
 }
