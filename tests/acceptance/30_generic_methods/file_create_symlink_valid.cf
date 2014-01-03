@@ -1,0 +1,61 @@
+#######################################################
+#
+# This is a sample test file to copy when creating a
+# new test. Please keep it updated with best practices.
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"         string => getenv("TEMP", 1024);
+    "file"        string => "${tmp}/test";
+    "file_canon"  string => canonify("${file}");
+    "line_to_add" string => "This is a test line!";
+
+  methods:
+    "ph1" usebundle => file_ensure_lines_present("${file}", "${line_to_add}");
+}
+
+#######################################################
+
+bundle agent test
+{
+  vars:
+    "symlink_1" string    => "${init.tmp}/test_symlink1";
+    "symlink_2" string    => "${init.tmp}/test_symlink2";
+
+  methods:
+    "ph1"       usebundle => file_create_symlink("false", "${init.file}", "${symlink_1}");
+    "ph2"       usebundle => file_create_symlink("true", "${init.file}", "${symlink_2}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok" and => { islink("${test.symlink_1}"), islink("${test.symlink_2}")};
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+
+}
