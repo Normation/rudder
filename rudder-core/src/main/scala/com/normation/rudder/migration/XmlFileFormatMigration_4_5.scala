@@ -162,9 +162,9 @@ class EventLogMigration_4_5(
     for {
       xml      <- TestIsEntry(data)
       migrated <- eventType.toLowerCase match {
+                    //Need only to modify rule added and Rule deleted events
                     case "ruleadded"    => create(xmlMigration.rule(xml), "RuleAdded")
                     case "ruledeleted"  => create(xmlMigration.rule(xml), "RuleDeleted")
-                    case "rulemodified" => create(xmlMigration.rule(xml), "RuleModified")
 
                     case _    => create(xmlMigration.other(xml), eventType)
                   }
