@@ -100,6 +100,10 @@ def get_technique_metadata_xml(technique_metadata):
   # Get all method call, with no duplicate values
   methods_name = set()
   for method_call in method_calls:
+    # Expected reports for Rudder should not include any "meta" bundle calls (any beginning with _)
+    if method_call['method_name'].startswith("_"):
+      continue
+
     method_name = methods_name.add(method_call['method_name'])
 
   # For each method used, create a section containing all calls to that method
@@ -168,6 +172,10 @@ def get_technique_expected_reports(technique_metadata):
   
   technique_name = technique_metadata['bundle_name']
   for method_call in technique_metadata["method_calls"]:
+    # Expected reports for Rudder should not include any "meta" bundle calls (any beginning with _)
+    if method_call['method_name'].startswith("_"):
+      continue
+
     method_name = method_call['method_name']
     generic_method = generic_methods[method_name]
 
