@@ -70,10 +70,10 @@ class RestGetGitCommitAsZip(
       getZip(commitId, List("directives"), "directives")
 
     case Get("api" :: "archives" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
-      getZip(commitId, List("rules"), "rules")
+      getZip(commitId, List("rules", "ruleCategories"), "rules")
 
     case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups", "directives", "rules"), "all")
+      getZip(commitId, List("groups", "directives", "rules", "ruleCategories"), "all")
 
 
     /*
@@ -90,10 +90,10 @@ class RestGetGitCommitAsZip(
       getZip(commitId, List("directives"), "directives")
 
     case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
-      getZip(commitId, List("rules"), "rules")
+      getZip(commitId, List("rules", "ruleCategories"), "rules")
 
     case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups", "directives", "rules"), "all")
+      getZip(commitId, List("groups", "directives", "rules", "ruleCategories"), "all")
 
 
   }

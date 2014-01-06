@@ -48,6 +48,7 @@ import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.rule.category.RuleCategory
 
 trait XmlSerializer {
 
@@ -55,7 +56,7 @@ trait XmlSerializer {
   val directive   : DirectiveSerialisation
   val group       : NodeGroupSerialisation
   val globalParam : GlobalParameterSerialisation
-
+  val ruleCat     : RuleCategorySerialisation
 
 }
 
@@ -65,11 +66,12 @@ trait XmlSerializer {
  */
 trait RuleSerialisation {
   /**
-   * Version 2:
-     <rule fileFormat="2">
+   * Version 5:
+     <rule fileFormat="5">
         <id>{rule.id.value}</id>
         <name>{rule.name}</name>
         <serial>{rule.serial}</serial>
+        <category>{rule.categoryId.value}</category>
         <target>{ rule.target.map( _.target).getOrElse("") }</target>
         <directiveIds>{
           rule.directiveIds.map { id => <id>{id.value}</id> }
@@ -81,6 +83,23 @@ trait RuleSerialisation {
       </rule>
    */
   def serialise(rule:Rule):  Elem
+}
+
+/**
+ * That trait allows to serialise
+ * Node group categories to an XML file.
+ */
+trait RuleCategorySerialisation {
+  /**
+   * Version 5: (rc: nodeGroupCategory)
+     <ruleCategory fileFormat="5">
+        <id>{ngc.id.value}</id>
+        <displayName>{ngc.name}</displayName>
+        <description>{ngc.description}</serial>
+        <isSystem>{ngc.isSystem}</isSystem>
+      </ruleCategory>
+   */
+  def serialise(rc:RuleCategory):  Elem
 }
 
 /**

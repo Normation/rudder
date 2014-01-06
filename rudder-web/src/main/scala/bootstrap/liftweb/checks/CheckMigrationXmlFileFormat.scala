@@ -73,3 +73,7 @@ class CheckMigrationXmlFileFormat3_4(
   override val controler: ControlXmlFileFormatMigration_3_4
 ) extends CheckMigrationXmlFileFormat
 
+class CheckMigrationXmlFileFormat4_5(
+  override val controler: ControlXmlFileFormatMigration_4_5
+) extends CheckMigrationXmlFileFormat
+

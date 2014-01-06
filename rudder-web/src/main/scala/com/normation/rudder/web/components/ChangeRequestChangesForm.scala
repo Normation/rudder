@@ -342,8 +342,10 @@ class ChangeRequestChangesForm(
   ) = diff.map(value => displayFormDiff(value, name)).getOrElse(default)
 
   private[this] def displayRule(rule:Rule, groupLib: FullNodeGroupCategory) = {
+    val categoryName = ruleCategoryService.shortFqdn(rule.categoryId).getOrElse("Error while looking for category")
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> rule.name &
+      "#category" #> categoryName &
       "#target" #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
       "#policy" #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &

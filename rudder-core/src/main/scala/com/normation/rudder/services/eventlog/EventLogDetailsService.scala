@@ -75,6 +75,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.Constants._
+import com.normation.rudder.rule.category.RuleCategoryId
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -264,6 +265,7 @@ class EventLogDetailsServiceImpl(
      <id>012f3064-d392-43a3-bec9-b0f75950a7ea</id>
      <displayName>cr1</displayName>
      <name><from>cr1</from><to>cr1-x</to></name>
+     <category><from>oldId</from><to>newId</to></category>
      <target><from>....</from><to>....</to></target>
      <directiveIds><from><id>...</id><id>...</id></from><to><id>...</id></to></directiveIds>
      <shortDescription><from>...</from><to>...</to></shortDescription>
@@ -286,6 +288,10 @@ class EventLogDetailsServiceImpl(
       displayName       <- (rule \ "displayName").headOption.map( _.text ) ?~!
                            ("Missing attribute 'displayName' in entry type rule : " + entry)
       name              <- getFromToString((rule \ "name").headOption)
+      category          <- getFromTo[RuleCategoryId](
+                               (rule \ "category").headOption
+                             , { s => Full(RuleCategoryId(s.text)) }
+                           )
       serial            <- getFromTo[Int]((rule \ "serial").headOption,
                              { x => tryo(x.text.toInt) } )
       targets           <- getFromTo[Set[RuleTarget]]((rule \ "targets").headOption,
@@ -316,6 +322,7 @@ class EventLogDetailsServiceImpl(
         , modLongDescription = longDescription
         , modIsActivatedStatus = isEnabled
         , modIsSystem = isSystem
+        , modCategory = category
       )
     }
   }

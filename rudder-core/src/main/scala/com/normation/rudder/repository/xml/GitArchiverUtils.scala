@@ -61,6 +61,13 @@ import com.normation.eventlog.ModificationId
  */
 trait GitArchiverUtils extends Loggable {
 
+  object GET {
+    def apply(reason:Option[String]) = reason match {
+      case None => ""
+      case Some(m) => "\n\nReason provided by user:\n" + m
+    }
+}
+
   def gitRepo : GitRepositoryProvider
   def gitRootDirectory : File
   def relativePath : String

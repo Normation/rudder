@@ -81,6 +81,7 @@ import com.normation.rudder.domain.policies.DeleteRuleDiff
 import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
+import com.normation.rudder.rule.category.RuleCategory
 
 
 case class XmlSerializerImpl (
@@ -88,6 +89,7 @@ case class XmlSerializerImpl (
   , directive   : DirectiveSerialisation
   , group       : NodeGroupSerialisation
   , globalParam : GlobalParameterSerialisation
+  , ruleCat     : RuleCategorySerialisation
 ) extends XmlSerializer
 
 class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
@@ -107,6 +109,22 @@ class RuleSerialisationImpl(xmlVersion:String) extends RuleSerialisation {
         <isEnabled>{rule.isEnabledStatus}</isEnabled>
         <isSystem>{rule.isSystem}</isSystem>
     }
+  }
+}
+
+/**
+ * That trait allows to serialise
+ * Node group categories to an XML file.
+ */
+class RuleCategorySerialisationImpl(xmlVersion:String) extends RuleCategorySerialisation {
+
+  def serialise(rc:RuleCategory):  Elem = {
+    createTrimedElem(XML_TAG_RULE_CATEGORY, xmlVersion) (
+        <id>{rc.id.value}</id>
+        <displayName>{rc.name}</displayName>
+        <description>{rc.description}</description>
+        <isSystem>{rc.isSystem}</isSystem>
+    )
   }
 }
 
