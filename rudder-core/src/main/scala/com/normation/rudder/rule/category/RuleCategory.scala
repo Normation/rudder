@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -40,6 +40,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.Failure
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
+import net.liftweb.common.Loggable
 
 /**
  * The Id for the server group category
@@ -61,7 +62,7 @@ case class RuleCategory(
   , description : String
   , childs      : List[RuleCategory]
   , isSystem    : Boolean = false
-) {
+) extends Loggable {
   def findParent (category : RuleCategory) :  Box[RuleCategory]= {
     if (childs.contains(category)) {
       Full(this)
@@ -111,6 +112,44 @@ case class RuleCategory(
 
   def contains(categoryId : RuleCategoryId) : Boolean = {
     childs.exists(_.id == categoryId) || childs.exists(_.contains(categoryId))
+  }
+
+
+  type ChildMap = Map[List[RuleCategoryId],List[RuleCategory]]
+  // Create containing all categories of this node grouped by parent categories
+  def childrenMap  : ChildMap = {
+
+    // Merge current map with already merged map
+    def mergeChildMaps (
+        currentMap    : ChildMap
+      , alreadyMerged : ChildMap
+    ) : ChildMap = {
+      // get all distinct keys from both map
+      val keys = (currentMap.keys ++ alreadyMerged.keys).toList.distinct
+      // For all keys
+      val merge = keys.map{
+        case key =>
+          // Get value from key
+          val childValue = currentMap.get(key).getOrElse(Nil)
+          val parentValue = alreadyMerged.get(key).getOrElse(Nil)
+          // merge them (distinct is not mandatory, a Category could not be into two separeted branch
+          val mergedValues = (childValue ++ parentValue).distinct
+          // Make a couple so it can be converted into a Map
+          (key, mergedValues)
+      }
+      merge.toMap
+    }
+    // Transform all childs into their map of childrens
+    val childMap : List[ChildMap] = childs.map(_.childrenMap)
+
+    // Add the current category id to all keys in the map
+    val augmentedChildMap : List[ChildMap] = childMap.map(_.map{case (k,v) => (id :: k, v)})
+
+    // baseMap is the current level, it should have an empty list as key, it will be augmented by the parent by recursion
+    val baseMap : ChildMap = Map((List.empty[RuleCategoryId]) -> (this :: Nil))
+
+    // fold all maps together
+    (augmentedChildMap :\ baseMap) (mergeChildMaps _ )
   }
 }
 

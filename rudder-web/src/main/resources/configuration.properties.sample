@@ -134,10 +134,10 @@ rudder.jdbc.password=Normation
 # If the archive TTL is greater than the delete TTL then archiving will be disabled
 # as there will be no reports to archive (they would be deleted first).
 #
-# Defaults: archive after 30 days, delete after 90 days.
+# Defaults: archive after 3 days, delete after 90 days.
 #
 
-rudder.batch.reportscleaner.archive.TTL=30
+rudder.batch.reportscleaner.archive.TTL=3
 rudder.batch.reportscleaner.delete.TTL=90
 
 #

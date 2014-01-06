@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2013 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -155,12 +155,17 @@ class RoLDAPRuleCategoryRepository(
   }
 
   /**
-   * Return the list of parents for that category, from the root category to the category itself
+   * Return the list of parents for that category, from the root category
+   * You can choose wether to include or not the category itself
    */
-  def getParents(id:RuleCategoryId) : Box[List[RuleCategory]] = {
+  def getParents(id:RuleCategoryId, includeCategory : Boolean) : Box[List[RuleCategory]] = {
     for {
       root <- getRootCategory
-      parents <- root.childPath(id)
+      parents <- if (includeCategory) {
+                   root.childPath(id)
+                 } else {
+                   root.findParents(id)
+                 }
     } yield {
       parents
     }
@@ -171,7 +176,7 @@ class WoLDAPRuleCategoryRepository(
     roruleCategoryRepo : RoLDAPRuleCategoryRepository
   , ldap               : LDAPConnectionProvider[RwLDAPConnection]
   , uuidGen            : StringUuidGenerator
-  , gitArchiver        : GitRuleArchiver
+  , gitArchiver        : GitRuleCategoryArchiver
   , personIdentService : PersonIdentService
   , autoExportOnModify : Boolean
 ) extends WoRuleCategoryRepository with Loggable {
@@ -240,10 +245,12 @@ class WoLDAPRuleCategoryRepository(
       result              <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
-                                 parents  <- getParents(that.id)
+                                 parents  <- getParents(that.id,false)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 //archive  <- gitArchiver.archiveRuleCategory(that,parents.map( _.id), Some(modId,commiter, reason))
-                               } yield commiter
+                                 archive  <- gitArchiver.archiveRuleCategory(that,parents.map( _.id), Some(modId,commiter, reason))
+                               } yield {
+                                 archive
+                               }
                              } else Full("ok")
       newCategory         <- get(that.id) ?~! s"The newly created category '${that.id.value}' was not found"
     } yield {
@@ -274,10 +281,12 @@ class WoLDAPRuleCategoryRepository(
       // Maybe we have to check if the parents are system or not too
       autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                              for {
-                              parents  <- getParents(category.id)
+                              parents  <- getParents(category.id,false)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              //archive  <- gitArchiver.archiveRuleCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
-                            } yield commiter //archive
+                              archive  <- gitArchiver.archiveRuleCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
+                            } yield {
+                              archive
+                            }
                           } else Full("ok")
     } yield {
       updated
@@ -297,7 +306,7 @@ class WoLDAPRuleCategoryRepository(
     repo.synchronized { for {
       con              <- ldap
       oldParents       <- if(autoExportOnModify) {
-                            getParents(category.id)
+                            getParents(category.id,false)
                           } else Full(Nil)
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! s"Entry with ID '${category.id.value}' was not found"
       newParent        <- getCategoryEntry(con, containerId, "1.1") ?~! s"Parent entry with ID '${containerId.value}' was not found"
@@ -318,11 +327,11 @@ class WoLDAPRuleCategoryRepository(
                             case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => Full("OK, nothing to archive")
                             case _ if(autoExportOnModify && !updated.isSystem) =>
                               (for {
-                                parents  <- getParents(updated.id)
+                                parents  <- getParents(updated.id,false)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                //moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
+                                moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
                               } yield {
-                                commiter
+                                moved
                               }) ?~! "Error when trying to archive automatically the category move"
                             case _ => Full("ok")
                           }
@@ -358,7 +367,7 @@ class WoLDAPRuleCategoryRepository(
           case Full(entry) =>
             for {
               parents     <- if(autoExportOnModify) {
-                               getParents(that)
+                               getParents(that,false)
                              } else Full(Nil)
               ok          <- try {
                                categoryMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) ?~! s"Error when trying to delete category with ID '${that.value}'" }
@@ -372,9 +381,9 @@ class WoLDAPRuleCategoryRepository(
               autoArchive <- (if(autoExportOnModify && ok.size > 0 && !category.isSystem) {
                                for {
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                                 //archive  <- gitArchiver.deleteRuleCategory(that.id,parents.map( _.id), Some(modId, commiter, reason))
+                                 archive  <- gitArchiver.deleteRuleCategory(that,parents.map( _.id), Some(modId, commiter, reason))
                                } yield {
-                                 commiter//archive
+                                 archive
                                }
                              } else Full("ok") )  ?~! "Error when trying to archive automatically the category deletion"
             } yield {
