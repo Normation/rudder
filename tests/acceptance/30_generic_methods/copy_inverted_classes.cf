@@ -52,13 +52,15 @@ bundle agent test
            string => "foo",
            classes => always("global_class3_error"),
            classes => always("global_class3_failed"),
-           classes => always("global_class3_repair_failed"),
+           classes => always("repair_failed_global_class3"),
            classes => always("global_class3_not_ok"),
            classes => always("global_class3_not_kept"),
            classes => always("global_class3_not_repaired"),
            classes => always("global_class3_reached"),
            classes => always("global_class3_timeout"),
-           classes => always("global_class3_repair_timeout");
+           classes => always("repair_timeout_global_class3"),
+           classes => always("global_class3_denied"),
+           classes => always("repair_denied_global_class3");
 
 
 
@@ -74,7 +76,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok" expression => "(global_classA_repaired.global_classA_not_kept.promise_repaired_global_classA.global_classA_ok.global_classA_reached).(global_classB_kept.global_classB_not_repaired.promise_kept_global_classB.global_classB_ok.global_classB_reached).(global_classC_error.global_classC_failed.global_classC_repair_failed.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached.global_classC_timeout.global_classC_repair_timeout)";
+      "ok" expression => "(global_classA_repaired.global_classA_not_kept.promise_repaired_global_classA.global_classA_ok.global_classA_reached).(global_classB_kept.global_classB_not_repaired.promise_kept_global_classB.global_classB_ok.global_classB_reached).(global_classC_error.global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached.global_classC_timeout.repair_timeout_global_classC.global_classC_denied.repair_denied_global_classC)";
 
   reports:
     ok::

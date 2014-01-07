@@ -31,27 +31,70 @@ bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
 {
   vars:
       # Specify which are specific classes to kept or repaired
-      "kept_suffix"     slist => { "not_repaired", "kept" };
-      "repaired_suffix" slist => { "repaired", "not_kept"};
-      "common_suffix"   slist => { "ok", "reached", "failed", "not_ok", "denied", "timeout" };
+      "kept_prefix"        slist => { "promise_kept" };
+      "kept_suffix"        slist => { "not_repaired", "kept" };
+      "repaired_prefix"    slist => { "promise_repaired" };
+      "repaired_suffix"    slist => { "repaired", "not_kept" };
+      "common_ok_suffix"   slist => { "ok", "reached" };
+      "error_prefix"       slist => { "repair_failed", "repair_denied", "repair_timeout" };
+      "error_suffix"       slist => { "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout" };
+      "total_prefix"       slist => { "@{kept_prefix}", "@{repaired_prefix}", "@{error_prefix}" };
+      "total_suffix"       slist => { "@{kept_suffix}", "@{repaired_suffix}", "@{common_ok_suffix}", "@{error_suffix}" };
 
+    iteration1.!source_class_error::
       # Copy common classes
-      "local_destination_prefix_${common_suffix}"
-        string     => "${destination_prefix}_${common_suffix}",
-        ifvarclass => "${source_prefix}_${common_suffix}",
-        classes    => always("${destination_prefix}_${common_suffix}");
+      "local_destination_prefix_${common_ok_suffix}"
+        string     => "${destination_prefix}_${common_ok_suffix}",
+        ifvarclass => "${source_prefix}_${common_ok_suffix}",
+        classes    => always("${destination_prefix}_${common_ok_suffix}");
 
       # Copy kept classes from repaired
+      "${kept_prefix}_local_destination_prefix"
+        string     => "${kept_prefix}_${destination_prefix}",
+        ifvarclass => "${repaired_prefix}_${source_prefix}",
+        classes    => always("${kept_prefix}_${destination_prefix}");
       "local_destination_prefix_${kept_suffix}"
         string     => "${destination_prefix}_${kept_suffix}",
         ifvarclass => "${source_prefix}_${repaired_suffix}",
         classes    => always("${destination_prefix}_${kept_suffix}");
 
       # Copy repaired classes from kept
+      "${repaired_prefix}_local_destination_prefix"
+        string     => "${repaired_prefix}_${destination_prefix}",
+        ifvarclass => "${kept_prefix}_${source_prefix}",
+        classes    => always("${repaired_prefix}_${destination_prefix}");
       "local_destination_prefix_${repaired_suffix}"
         string     => "${destination_prefix}_${repaired_suffix}",
         ifvarclass => "${source_prefix}_${kept_suffix}",
         classes    => always("${destination_prefix}_${repaired_suffix}");
+
+      # Copy error classes (even if they should not exist)
+      "${error_prefix}_local_destination_prefix"
+        string     => "${error_prefix}_${destination_prefix}",
+        ifvarclass => "${error_prefix}_${source_prefix}",
+        classes    => always("${error_prefix}_${destination_prefix}");
+      "local_destination_prefix_${error_suffix}"
+        string     => "${destination_prefix}_${error_suffix}",
+        ifvarclass => "${source_prefix}_${error_suffix}",
+        classes    => always("${destination_prefix}_${error_suffix}");
+
+    # If this is an error class, no inversion should be done but a simple copy
+    iteration1.source_class_error::
+      # Copy classes prefix
+      "${total_prefix}_local_destination_prefix"
+        string     => "${total_prefix}_${destination_prefix}",
+        ifvarclass => "${total_prefix}_${source_prefix}",
+        classes    => always("${total_prefix}_${destination_prefix}");
+
+      # Copy classes suffix
+      "local_destination_prefix_${total_suffix}"
+        string     => "${destination_prefix}_${total_suffix}",
+        ifvarclass => "${source_prefix}_${total_suffix}",
+        classes    => always("${destination_prefix}_${total_suffix}");
+
+
+  classes:
+      "source_class_error" or => { classmatch(".*_${error_suffix}"), classmatch("${error_prefix}_.*") };
+      "iteration1"         expression => "any";
+
 }
-
-
