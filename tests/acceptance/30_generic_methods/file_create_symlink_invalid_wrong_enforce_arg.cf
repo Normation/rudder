@@ -54,11 +54,11 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok_symlink_fs_1"    not        => islink("${init.symlink_1}");
-      "ok_symlink_class_1" expression => "file_create_symlink_${init.symlink_1_canon}_not_ok";
-      "ok_symlink_fs_2"    not        => islink("${init.symlink_2}");
-      "ok_symlink_class_2" expression => "file_create_symlink_${init.symlink_2_canon}_not_ok";
-      "ok"                 and        => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2" };
+      "ok_symlink_fs_1"    not => islink("${init.symlink_1}");
+      "ok_symlink_class_1" and => { "repair_failed_file_create_symlink_${init.symlink_1_canon}", "file_create_symlink_${init.symlink_1_canon}_failed", "file_create_symlink_${init.symlink_1_canon}_not_repaired", "file_create_symlink_${init.symlink_1_canon}_not_ok", "file_create_symlink_${init.symlink_1_canon}_not_kept","file_create_symlink_${init.symlink_1_canon}_reached" };
+      "ok_symlink_fs_2"    not => islink("${init.symlink_2}");
+      "ok_symlink_class_2" and => { "repair_failed_file_create_symlink_${init.symlink_2_canon}", "file_create_symlink_${init.symlink_2_canon}_failed", "file_create_symlink_${init.symlink_2_canon}_not_repaired", "file_create_symlink_${init.symlink_2_canon}_not_ok", "file_create_symlink_${init.symlink_2_canon}_not_kept","file_create_symlink_${init.symlink_2_canon}_reached" };
+      "ok"                 and => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2" };
 
   reports:
     ok::
