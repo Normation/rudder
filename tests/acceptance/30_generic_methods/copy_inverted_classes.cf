@@ -33,41 +33,15 @@ bundle agent init
 
 bundle agent test
 {
-  vars:
-    "local_var1"
-           string => "foo",
-           classes => always("global_class1_kept"),
-           classes => always("global_class1_not_repaired"),
-           classes => always("promise_kept_global_class1"),
-           classes => always("global_class1_ok"),
-           classes => always("global_class1_reached");
-    "local_var2"
-           string => "foo",
-           classes => always("global_class2_repaired"),
-           classes => always("global_class2_not_kept"),
-           classes => always("promise_repaired_global_class2"),
-           classes => always("global_class2_ok"),
-           classes => always("global_class2_reached");
-    "local_var3"
-           string => "foo",
-           classes => always("global_class3_error"),
-           classes => always("global_class3_failed"),
-           classes => always("repair_failed_global_class3"),
-           classes => always("global_class3_not_ok"),
-           classes => always("global_class3_not_kept"),
-           classes => always("global_class3_not_repaired"),
-           classes => always("global_class3_reached"),
-           classes => always("global_class3_timeout"),
-           classes => always("repair_timeout_global_class3"),
-           classes => always("global_class3_denied"),
-           classes => always("repair_denied_global_class3");
-
-
 
   methods:
-    "ph1"  usebundle => _classes_inverted_copy("global_class1","global_classA");
-    "ph2"  usebundle => _classes_inverted_copy("global_class2","global_classB");
-    "ph3"  usebundle => _classes_inverted_copy("global_class3","global_classC");
+    "ph1" usebundle => file_ensure_lines_present("${init.file}", "sample two"); # should get repaired
+    "ph2" usebundle => file_ensure_lines_absent("${init.file}", "sample one"); # should get success
+    "ph3" usebundle => file_ensure_lines_absent("/dev/zero", "sample three"); # should get failed
+
+    "ph1"  usebundle => _classes_inverted_copy("file_ensure_lines_absent_${init.file_canon}","global_classA");
+    "ph2"  usebundle => _classes_inverted_copy("file_ensure_lines_present_${init.file_canon}","global_classB");
+    "ph3"  usebundle => _classes_inverted_copy("file_ensure_lines_absent__dev_zero","global_classC");
 
 }
 
@@ -76,9 +50,9 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok_success"  expression => "(global_classA_ok.global_classA_reached.global_classA_repaired.global_classA_not_kept.promise_repaired_global_classA)";
+      "ok_success"  expression => "(global_classA_ok.global_classA_reached.global_classA_repaired.promise_repaired_global_classA)";
       "ok_repaired" expression => "(global_classB_ok.global_classB_reached.global_classB_kept.global_classB_not_repaired.promise_kept_global_classB)";
-      "ok_error"    expression => "(global_classC_error.global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached.global_classC_timeout.repair_timeout_global_classC.global_classC_denied.repair_denied_global_classC)";
+      "ok_error"    expression => "(global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached)";
       "ok"          expression => "ok_success.ok_repaired.ok_error";
 
   reports:

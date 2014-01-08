@@ -26,27 +26,59 @@
 # @class_parameter
 # This bundle will define a class ${destination_prefix}_{kept,repaired,error,ok,reached}
 # based on an inverted ${source_prefix}_{kept,repaired,error,ok,reached}
+#
+# Conversion tables are:
+#--------------------------------------------------
+# KEPT CLASSES         <==>       REPAIRED CLASSES
+#--------------------------------------------------
+# promise_kept_class   <==> promise_repaired_class
+# class_kept           <==> class_repaired
+# class_not_repaired   <==> N/A
+# class_ok             <==> class_ok
+# class_reached        <==> class_reached
+# -------------------------------------------------
+#
+#--------------------------------------------------
+# ERROR CLASSES        <==>          ERROR CLASSES
+#--------------------------------------------------
+# repair_failed_class  <==> repair_failed_class
+# repair_denied_class  <==> repair_denied_class
+# repair_timeout_class <==> repair_timeout_class
+# class_failed         <==> class_failed
+# class_not_ok         <==> class_not_ok
+# class_not_kept       <==> class_not_kept
+# class_denied         <==> class_denied
+# class_timeout        <==> class_timeout
+# class_reached        <==> class_reached
+#--------------------------------------------------
 
 bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
 {
   vars:
       # Specify which are specific classes to kept or repaired
-      "kept_prefix"        slist => { "promise_kept" };
-      "kept_suffix"        slist => { "not_repaired", "kept" };
-      "repaired_prefix"    slist => { "promise_repaired" };
-      "repaired_suffix"    slist => { "repaired", "not_kept" };
-      "common_ok_suffix"   slist => { "ok", "reached" };
-      "error_prefix"       slist => { "repair_failed", "repair_denied", "repair_timeout" };
-      "error_suffix"       slist => { "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout" };
-      "total_prefix"       slist => { "@{kept_prefix}", "@{repaired_prefix}", "@{error_prefix}" };
-      "total_suffix"       slist => { "@{kept_suffix}", "@{repaired_suffix}", "@{common_ok_suffix}", "@{error_suffix}" };
+      "kept_prefix"                 slist => { "promise_kept" };
+      "kept_suffix"                 slist => { "kept" };
+      "repaired_prefix"             slist => { "promise_repaired" };
+      "repaired_suffix"             slist => { "repaired" };
+      "common_kept_repaired_suffix" slist => { "ok", "reached" };
+      "error_prefix"                slist => { "repair_failed", "repair_denied", "repair_timeout" };
+      "error_suffix"                slist => { "failed", "not_ok", "not_kept", "denied", "timeout" };
+      "total_prefix"                slist => { "@{kept_prefix}", "@{repaired_prefix}", "@{error_prefix}" };
+      "total_suffix"                slist => { "@{kept_suffix}", "@{repaired_suffix}", "@{common_kept_repaired_suffix}", "@{error_suffix}" };
+
+    iteration1::
+      # Copy not_repaired class, as it is a special case (only exists for error or kept, so kept classes are not exactly inverted repaired classes)
+      "local_destination_prefix_not_repaired"
+        string     => "${destination_prefix}_not_repaired",
+        ifvarclass => "(${repaired_prefix}_${source_prefix}|${source_prefix}_${repaired_suffix})|(${error_prefix}_${source_prefix}|${source_prefix}_${error_suffix})",
+        classes    => always("${destination_prefix}_not_repaired");
 
     iteration1.!source_class_error::
       # Copy common classes
-      "local_destination_prefix_${common_ok_suffix}"
-        string     => "${destination_prefix}_${common_ok_suffix}",
-        ifvarclass => "${source_prefix}_${common_ok_suffix}",
-        classes    => always("${destination_prefix}_${common_ok_suffix}");
+      "local_destination_prefix_${common_kept_repaired_suffix}"
+        string     => "${destination_prefix}_${common_kept_repaired_suffix}",
+        ifvarclass => "${source_prefix}_${common_kept_repaired_suffix}",
+        classes    => always("${destination_prefix}_${common_kept_repaired_suffix}");
 
       # Copy kept classes from repaired
       "${kept_prefix}_local_destination_prefix"
@@ -94,7 +126,7 @@ bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
 
 
   classes:
-      "source_class_error" or => { classmatch(".*_${error_suffix}"), classmatch("${error_prefix}_.*") };
+      "source_class_error" or => { classmatch("${source_prefix}_${error_suffix}"), classmatch("${error_prefix}_${source_prefix}") };
       "iteration1"         expression => "any";
 
 }
