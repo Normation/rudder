@@ -1,7 +1,6 @@
 #######################################################
 #
-# This is a sample test file to copy when creating a
-# new test. Please keep it updated with best practices.
+# Test checking if a symlink is not created if not enforced
 #
 #######################################################
 
@@ -23,26 +22,31 @@ body common control
 bundle agent init
 {
   vars:
-    "tmp"         string => getenv("TEMP", 1024);
-    "file"        string => "${tmp}/test";
-    "file_canon"  string => canonify("${file}");
-    "line_to_add" string => "This is a test line!";
+    "tmp"             string => getenv("TEMP", 1024);
+    "file"            string => "${tmp}/test";
+    "file_canon"      string => canonify("${file}");
+    "line_to_add"     string => "This is a test line!";
+    "symlink_1"       string => "${tmp}/test_symlink1";
+    "symlink_1_canon" string => canonify("${symlink_1}");
+    "symlink_2"       string => "${tmp}/test_symlink2";
+    "symlink_2_canon" string => canonify("${symlink_2}");
 
   methods:
-    "ph1" usebundle => file_ensure_lines_present("${file}", "${line_to_add}");
-    "ph2" usebundle => file_ensure_lines_present("${test.symlink_1}", "${line_to_add}");
+    "ph1"             usebundle => file_ensure_lines_present("${file}", "${line_to_add}");
+    # This file will test if the symlink is enforced or not
+    "ph2"             usebundle => file_ensure_lines_present("${symlink_1}", "${line_to_add}");
+    "ph3"             usebundle => file_ensure_lines_present("${symlink_2}", "${line_to_add}");
 }
 
 #######################################################
 
 bundle agent test
 {
-  vars:
-    "symlink_1"       string    => "${init.tmp}/test_symlink1";
-    "symlink_1_canon" string    => canonify("${symlink_1}");
-
   methods:
-    "ph1"             usebundle => file_create_symlink("foo","${init.file}", "${symlink_1}");
+    # A file already exist and the creation is not enforced, so this symlink should not be created
+    "ph1" usebundle => file_create_symlink("${init.file}", "${init.symlink_1}", "false");
+    # The use of a wrong argument result in a default value 'false', so this symlink should not be created too
+    "ph2" usebundle => file_create_symlink("${init.file}", "${init.symlink_2}", "dummy");
 }
 
 #######################################################
@@ -50,7 +54,11 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok" not => islink("${test.symlink_1}");
+      "ok_symlink_fs_1"    not        => islink("${init.symlink_1}");
+      "ok_symlink_class_1" expression => "file_create_symlink_${init.symlink_1_canon}_not_ok";
+      "ok_symlink_fs_2"    not        => islink("${init.symlink_2}");
+      "ok_symlink_class_2" expression => "file_create_symlink_${init.symlink_2_canon}_not_ok";
+      "ok"                 and        => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2" };
 
   reports:
     ok::

@@ -17,17 +17,17 @@
 #####################################################################################
 
 # @name Symlink creation
-# @description This is a bundle to create a symlink with a path and a target. This is also possible to enforce its creation
+# @description This is a bundle to create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
 #
-# @parameter enforce     Force symlink if file already exist (true or false)
 # @parameter source      Source file 
 # @parameter destination Destination file
+# @parameter enforce     Force symlink if file already exist (true or false)
 # 
 # @class_prefix file_create_symlink
 # @class_parameter destination
 # This bundle will define a class file_create_symlink_${destination}_{kept,repaired,error,ok,reached}
 
-bundle agent file_create_symlink(enforce, source, destination)
+bundle agent file_create_symlink(source, destination, enforce)
 {
   vars:
       "class_prefix" string           => canonify("file_create_symlink_${destination}");
