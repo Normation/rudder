@@ -1,0 +1,43 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service restart
+# @description Restart a service using the appropriate method
+#
+# @parameter service_name Name of the service to restart in /etc/init.d
+# 
+# @class_prefix service_restart
+# @class_parameter service_name
+# This bundle will define a class service_restart_${service_name}_{kept,repaired,error,ok,reached}
+
+bundle agent service_restart(service_name)
+{
+  vars:
+
+    "restart_command"            string => "/etc/init.d/${service_name} restart";
+    "canonified_restart_command" string => canonify("${restart_command}");
+    "class_prefix"               string => canonify("service_restart_${service_name}");
+
+  methods:
+
+      # Will be replaced later with less naive conditions (using either service, upstart, ...
+      "restart"    usebundle => command_execution("${restart_command}");
+      "class copy" usebundle => _classes_copy("command_execution_${canonified_restart_command}", "${class_prefix}");
+      "report"     usebundle => _logger("Restart service ${service_name}", "${class_prefix}");
+
+}
