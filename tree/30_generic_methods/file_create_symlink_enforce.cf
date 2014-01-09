@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Create symlink (optional overwriting)
+# @description This is a bundle to create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
+#
+# @parameter source      Source file 
+# @parameter destination Destination file
+# @parameter enforce     Force symlink if file already exist (true or false)
+# 
+# @class_prefix file_create_symlink
+# @class_parameter destination
+# This bundle will define a class file_create_symlink_${destination}_{kept,repaired,error,ok,reached}
+
+bundle agent file_create_symlink_enforce(source, destination, enforce)
+{
+  vars:
+      "class_prefix" string           => canonify("file_create_symlink_${destination}");
+
+  files:
+   # Symlink
+      "${destination}"
+                    link_from         => ln_s("${source}"),
+                    move_obstructions => "${enforce}",
+                    classes           => classes_generic("${class_prefix}"),
+                    comment           => "Create the ${destination} symlink pointing to ${source}";
+
+  methods:
+      "report"
+                    usebundle         => _logger("Symlink ${destination} targeting ${source}", "${class_prefix}");
+}
