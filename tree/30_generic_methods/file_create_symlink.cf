@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Symlink creation without enforcement
+# @name Create symlink
 # @description This is a bundle to create a symlink at a destination path and pointing to a source target except if a file or directory already exists.
 #
 # @parameter source      Source file
@@ -28,13 +28,8 @@
 
 bundle agent file_create_symlink(source, destination)
 {
-  vars:
-      "class_prefix"      string    => canonify("file_create_symlink_${destination}");
-      "destination_canon" string    => canonify("${destination}");
 
   methods:
       "wrap"              usebundle => file_create_symlink_enforce("${source}", "${destination}", "false");
-      "classes"           usebundle => _classes_copy("file_create_symlink_enforce_${destination_canon}", "${class_prefix}");
-      "reports"           usebundle => _logger("Symlink ${destination} targeting ${source}", "${class_prefix}");
 
 }

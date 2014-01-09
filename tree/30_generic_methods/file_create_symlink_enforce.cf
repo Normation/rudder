@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Symlink creation with enforce choice
+# @name Create symlink (optional overwriting)
 # @description This is a bundle to create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
 #
 # @parameter source      Source file 
