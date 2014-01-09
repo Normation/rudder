@@ -52,7 +52,7 @@
 # class_reached        <==> class_reached
 #--------------------------------------------------
 
-bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
+bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefix)
 {
   vars:
       # Specify which are specific classes to kept or repaired
@@ -63,8 +63,6 @@ bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
       "common_kept_repaired_suffix" slist => { "ok", "reached" };
       "error_prefix"                slist => { "repair_failed", "repair_denied", "repair_timeout" };
       "error_suffix"                slist => { "failed", "not_ok", "not_kept", "denied", "timeout" };
-      "total_prefix"                slist => { "@{kept_prefix}", "@{repaired_prefix}", "@{error_prefix}" };
-      "total_suffix"                slist => { "@{kept_suffix}", "@{repaired_suffix}", "@{common_kept_repaired_suffix}", "@{error_suffix}" };
 
     iteration1::
       # Copy not_repaired class, as it is a special case (only exists for error or kept, so kept classes are not exactly inverted repaired classes)
@@ -73,7 +71,6 @@ bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
         ifvarclass => "(${repaired_prefix}_${source_prefix}|${source_prefix}_${repaired_suffix})|(${error_prefix}_${source_prefix}|${source_prefix}_${error_suffix})",
         classes    => always("${destination_prefix}_not_repaired");
 
-    iteration1.!source_class_error::
       # Copy common classes
       "local_destination_prefix_${common_kept_repaired_suffix}"
         string     => "${destination_prefix}_${common_kept_repaired_suffix}",
@@ -100,7 +97,8 @@ bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
         ifvarclass => "${source_prefix}_${kept_suffix}",
         classes    => always("${destination_prefix}_${repaired_suffix}");
 
-      # Copy error classes (even if they should not exist)
+      # Copy error classes
+      # If this is an error class, no inversion should be done but a simple copy
       "${error_prefix}_local_destination_prefix"
         string     => "${error_prefix}_${destination_prefix}",
         ifvarclass => "${error_prefix}_${source_prefix}",
@@ -110,23 +108,7 @@ bundle agent _classes_inverted_copy(source_prefix, destination_prefix)
         ifvarclass => "${source_prefix}_${error_suffix}",
         classes    => always("${destination_prefix}_${error_suffix}");
 
-    # If this is an error class, no inversion should be done but a simple copy
-    iteration1.source_class_error::
-      # Copy classes prefix
-      "${total_prefix}_local_destination_prefix"
-        string     => "${total_prefix}_${destination_prefix}",
-        ifvarclass => "${total_prefix}_${source_prefix}",
-        classes    => always("${total_prefix}_${destination_prefix}");
-
-      # Copy classes suffix
-      "local_destination_prefix_${total_suffix}"
-        string     => "${destination_prefix}_${total_suffix}",
-        ifvarclass => "${source_prefix}_${total_suffix}",
-        classes    => always("${destination_prefix}_${total_suffix}");
-
-
   classes:
-      "source_class_error" or => { classmatch("${source_prefix}_${error_suffix}"), classmatch("${error_prefix}_${source_prefix}") };
       "iteration1"         expression => "any";
 
 }

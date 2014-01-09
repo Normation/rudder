@@ -1,7 +1,8 @@
 #######################################################
 #
-# This is a sample test file to copy when creating a
-# new test. Please keep it updated with best practices.
+# This will check that repaired classes are converted
+# into kept classes and vice versa and that error
+# classes are still error classes
 #
 #######################################################
 
@@ -26,7 +27,6 @@ bundle agent init
     "tmp"         string => getenv("TEMP", 1024);
     "file"        string => "${tmp}/test";
     "file_canon"  string => canonify("${file}");
-    "line_to_add" string => "This is a test line!";
 }
 
 #######################################################
@@ -39,9 +39,9 @@ bundle agent test
     "ph2" usebundle => file_ensure_lines_absent("${init.file}", "sample one"); # should get success
     "ph3" usebundle => file_ensure_lines_absent("/dev/zero", "sample three"); # should get failed
 
-    "ph1"  usebundle => _classes_inverted_copy("file_ensure_lines_absent_${init.file_canon}","global_classA");
-    "ph2"  usebundle => _classes_inverted_copy("file_ensure_lines_present_${init.file_canon}","global_classB");
-    "ph3"  usebundle => _classes_inverted_copy("file_ensure_lines_absent__dev_zero","global_classC");
+    "ph1"  usebundle => _classes_copy_invert_kept_repaired("file_ensure_lines_absent_${init.file_canon}","global_classA");
+    "ph2"  usebundle => _classes_copy_invert_kept_repaired("file_ensure_lines_present_${init.file_canon}","global_classB");
+    "ph3"  usebundle => _classes_copy_invert_kept_repaired("file_ensure_lines_absent__dev_zero","global_classC");
 
 }
 
@@ -50,9 +50,9 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok_success"  expression => "(global_classA_ok.global_classA_reached.global_classA_repaired.promise_repaired_global_classA)";
-      "ok_repaired" expression => "(global_classB_ok.global_classB_reached.global_classB_kept.global_classB_not_repaired.promise_kept_global_classB)";
-      "ok_error"    expression => "(global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached)";
+      "ok_success"  expression => "(global_classA_ok.global_classA_reached.global_classA_repaired.promise_repaired_global_classA).!(global_classA_kept.global_classA_not_repaired.promise_kept_global_classA)";
+      "ok_repaired" expression => "(global_classB_ok.global_classB_reached.global_classB_kept.global_classB_not_repaired.promise_kept_global_classB).!(global_classB_repaired.promise_repaired_global_classB)";
+      "ok_error"    expression => "(global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached).!((global_classC_kept.global_classC_not_repaired.promise_kept_global_classC)|(global_classC_repaired.promise_repaired_global_classC))";
       "ok"          expression => "ok_success.ok_repaired.ok_error";
 
   reports:
