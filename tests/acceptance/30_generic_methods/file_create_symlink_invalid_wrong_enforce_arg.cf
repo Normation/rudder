@@ -44,9 +44,9 @@ bundle agent test
 {
   methods:
     # A file already exist and the creation is not enforced, so this symlink should not be created
-    "ph1" usebundle => file_create_symlink("${init.file}", "${init.symlink_1}", "false");
+    "ph1" usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_1}", "false");
     # The use of a wrong argument result in a default value 'false', so this symlink should not be created too
-    "ph2" usebundle => file_create_symlink("${init.file}", "${init.symlink_2}", "dummy");
+    "ph2" usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_2}", "dummy");
 }
 
 #######################################################
@@ -55,9 +55,9 @@ bundle agent check
 {
   classes:
       "ok_symlink_fs_1"    not => islink("${init.symlink_1}");
-      "ok_symlink_class_1" and => { "repair_failed_file_create_symlink_${init.symlink_1_canon}", "file_create_symlink_${init.symlink_1_canon}_failed", "file_create_symlink_${init.symlink_1_canon}_not_repaired", "file_create_symlink_${init.symlink_1_canon}_not_ok", "file_create_symlink_${init.symlink_1_canon}_not_kept","file_create_symlink_${init.symlink_1_canon}_reached" };
+      "ok_symlink_class_1" and => { "repair_failed_file_create_symlink_enforce_${init.symlink_1_canon}", "file_create_symlink_enforce_${init.symlink_1_canon}_failed", "file_create_symlink_enforce_${init.symlink_1_canon}_not_repaired", "file_create_symlink_enforce_${init.symlink_1_canon}_not_ok", "file_create_symlink_enforce_${init.symlink_1_canon}_not_kept","file_create_symlink_enforce_${init.symlink_1_canon}_reached" };
       "ok_symlink_fs_2"    not => islink("${init.symlink_2}");
-      "ok_symlink_class_2" and => { "repair_failed_file_create_symlink_${init.symlink_2_canon}", "file_create_symlink_${init.symlink_2_canon}_failed", "file_create_symlink_${init.symlink_2_canon}_not_repaired", "file_create_symlink_${init.symlink_2_canon}_not_ok", "file_create_symlink_${init.symlink_2_canon}_not_kept","file_create_symlink_${init.symlink_2_canon}_reached" };
+      "ok_symlink_class_2" and => { "repair_failed_file_create_symlink_enforce_${init.symlink_2_canon}", "file_create_symlink_enforce_${init.symlink_2_canon}_failed", "file_create_symlink_enforce_${init.symlink_2_canon}_not_repaired", "file_create_symlink_enforce_${init.symlink_2_canon}_not_ok", "file_create_symlink_enforce_${init.symlink_2_canon}_not_kept","file_create_symlink_enforce_${init.symlink_2_canon}_reached" };
       "ok"                 and => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2" };
 
   reports:

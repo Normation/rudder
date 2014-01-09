@@ -45,9 +45,9 @@ bundle agent test
 {
 
   methods:
-    "ph1"       usebundle => file_create_symlink("${init.file}", "${init.symlink_1}", "false");
-    "ph2"       usebundle => file_create_symlink("${init.file}", "${init.symlink_2}", "true");
-    "ph3"       usebundle => file_create_symlink("${init.file}", "${init.symlink_3}", "true");
+    "ph1"       usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_1}", "false");
+    "ph2"       usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_2}", "true");
+    "ph3"       usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_3}", "true");
 }
 
 #######################################################
@@ -55,9 +55,9 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok_symlink1" and => { islink("${init.symlink_1}"), "promise_repaired_file_create_symlink_${init.symlink_1_canon}", "file_create_symlink_${init.symlink_1_canon}_repaired", "file_create_symlink_${init.symlink_1_canon}_ok", "file_create_symlink_${init.symlink_1_canon}_reached" };
-      "ok_symlink2" and => { islink("${init.symlink_2}"), "promise_repaired_file_create_symlink_${init.symlink_2_canon}", "file_create_symlink_${init.symlink_2_canon}_repaired", "file_create_symlink_${init.symlink_2_canon}_ok", "file_create_symlink_${init.symlink_2_canon}_reached" };
-      "ok_symlink3" and => { islink("${init.symlink_3}"), "promise_repaired_file_create_symlink_${init.symlink_3_canon}", "file_create_symlink_${init.symlink_3_canon}_repaired", "file_create_symlink_${init.symlink_3_canon}_ok", "file_create_symlink_${init.symlink_3_canon}_reached" };
+      "ok_symlink1" and => { islink("${init.symlink_1}"), "promise_repaired_file_create_symlink_enforce_${init.symlink_1_canon}", "file_create_symlink_enforce_${init.symlink_1_canon}_repaired", "file_create_symlink_enforce_${init.symlink_1_canon}_ok", "file_create_symlink_enforce_${init.symlink_1_canon}_reached" };
+      "ok_symlink2" and => { islink("${init.symlink_2}"), "promise_repaired_file_create_symlink_enforce_${init.symlink_2_canon}", "file_create_symlink_enforce_${init.symlink_2_canon}_repaired", "file_create_symlink_enforce_${init.symlink_2_canon}_ok", "file_create_symlink_enforce_${init.symlink_2_canon}_reached" };
+      "ok_symlink3" and => { islink("${init.symlink_3}"), "promise_repaired_file_create_symlink_enforce_${init.symlink_3_canon}", "file_create_symlink_enforce_${init.symlink_3_canon}_repaired", "file_create_symlink_enforce_${init.symlink_3_canon}_ok", "file_create_symlink_enforce_${init.symlink_3_canon}_reached" };
       "ok"          and        => { "ok_symlink1", "ok_symlink2", "ok_symlink3" };
 
   reports:
