@@ -31,21 +31,24 @@ bundle agent service_ensure_stopped(service_name)
 
     "canonified_service_name"      string => canonify("${service_name}");
     "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
-
+    "class_prefix"                 string => canonify("service_ensure_stopped_${service_name}");
   methods:
 
-      "placeholder"
+      "check running"
         usebundle  => service_check_running("${service_name}");
 
-      "placeholder"
+      "stop if running"
         usebundle  => service_stop("${service_name}"),
         ifvarclass => "service_check_running_${canonified_service_name}_ok";
 
-      "placeholder"
-        usebundle => _classes_copy("service_check_running_${canonified_service_name}", "service_ensure_stopped_${canonified_service_name}");
+      "class copy check"
+        usebundle => _classes_copy("service_check_running_${canonified_service_name}", "${class_prefix}");
  
-     "placeholder"
-        usebundle => _classes_copy("service_start_${canonified_service_name}", "service_ensure_stopped_${canonified_service_name}"),
+     "class copy if running"
+        usebundle => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
         ifvarclass => "service_stop_${canonified_service_name}_ok";
+
+      "report"
+        usebundle => _logger("Ensure that service ${service_name} is stopped", "${class_prefix}");
 
 }

@@ -31,10 +31,13 @@ bundle agent service_start(service_name)
 
     "canonified_service_name"      string => canonify("${service_name}");
     "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
+    "class_prefix"                 string => canonify("service_start_${service_name}");
 
   methods:
 
-      # Will be replaced later with less naive conditions (using either service, upstart, ...
-      "placeholder" usebundle => command_execution("/etc/init.d/${service_name} start");
-      "placeholder" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "service_start_${canonified_service_name}");
+    # Will be replaced later with less naive conditions (using either service, upstart, ...
+    "start"      usebundle => command_execution("/etc/init.d/${service_name} start");
+    "class copy" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "${class_prefix}");
+    "report"     usebundle => _logger("Start service ${service_name}", "${class_prefix}");
+
 }
