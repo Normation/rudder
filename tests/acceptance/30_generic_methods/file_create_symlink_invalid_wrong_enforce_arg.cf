@@ -64,7 +64,7 @@ bundle agent check
       "ok_symlink_class_2" and => { "repair_failed_file_create_symlink_${init.symlink_2_canon}", "file_create_symlink_${init.symlink_2_canon}_failed", "file_create_symlink_${init.symlink_2_canon}_not_repaired", "file_create_symlink_${init.symlink_2_canon}_not_ok", "file_create_symlink_${init.symlink_2_canon}_not_kept","file_create_symlink_${init.symlink_2_canon}_reached" };
       "ok_symlink_fs_3"    not => islink("${init.symlink_3}");
       "ok_symlink_class_3" and => { "repair_failed_file_create_symlink_${init.symlink_3_canon}", "file_create_symlink_${init.symlink_3_canon}_failed", "file_create_symlink_${init.symlink_3_canon}_not_repaired", "file_create_symlink_${init.symlink_3_canon}_not_ok", "file_create_symlink_${init.symlink_3_canon}_not_kept","file_create_symlink_${init.symlink_3_canon}_reached" };
-      "ok"                 and => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2" };
+      "ok"                 and => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2", "ok_symlink_fs_3", "ok_symlink_class_3" };
 
   reports:
     ok::
