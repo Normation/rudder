@@ -31,21 +31,26 @@ bundle agent service_ensure_running(service_name)
 
     "canonified_service_name"      string => canonify("${service_name}");
     "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
+    "class_prefix"                 string => canonify("service_ensure_running_${service_name}");
 
   methods:
 
-      "placeholder"
-        usebundle  => service_check_running("${service_name}");
+    "check running"
+      usebundle  => service_check_running("${service_name}");
 
-      "placeholder"
-        usebundle  => service_start("${service_name}"),
-        ifvarclass => "!service_check_running_${canonified_service_name}_kept";
+    "start if not running"
+      usebundle  => service_start("${service_name}"),
+      ifvarclass => "!service_check_running_${canonified_service_name}_kept";
 
-      "placeholder"
-        usebundle => _classes_copy("service_check_running_${canonified_service_name}", "service_ensure_running_${canonified_service_name}");
+    "class copy check"
+      usebundle => _classes_copy("service_check_running_${canonified_service_name}", "${class_prefix}");
  
-     "placeholder"
-        usebundle => _classes_copy("service_start_${canonified_service_name}", "service_ensure_running_${canonified_service_name}"),
-        ifvarclass => "!service_check_running_${canonified_service_name}_kept";
+    "class copy if not running"
+      usebundle => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
+      ifvarclass => "!service_check_running_${canonified_service_name}_kept";
+
+    "report"
+      usebundle => _logger("Ensure that service ${service_name} is running", "${class_prefix}");
+
 
 }

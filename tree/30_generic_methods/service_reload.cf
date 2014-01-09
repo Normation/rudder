@@ -31,10 +31,13 @@ bundle agent service_reload(service_name)
 
     "canonified_service_name"      string => canonify("${service_name}");
     "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} reload");
+    "class_prefix"                 string => canonify("service_reload_${service_name}");
 
   methods:
 
-      # Will be replaced later with less naive conditions (using either service, upstart, ...
-      "placeholder" usebundle => command_execution("/etc/init.d/${service_name} reload");
-      "placeholder" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "service_reload_${canonified_service_name}");
+    # Will be replaced later with less naive conditions (using either service, upstart, ...
+    "reload"     usebundle => command_execution("/etc/init.d/${service_name} reload");
+    "class copy" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "${class_prefix}");
+    "report"     usebundle => _logger("Reload service ${service_name}", "${class_prefix}");
+
 }
