@@ -42,7 +42,7 @@ bundle agent service_ensure_stopped(service_name)
         ifvarclass => "service_check_running_${canonified_service_name}_ok";
 
       "class copy check"
-        usebundle => _classes_inverted_copy("service_check_running_${canonified_service_name}", "${class_prefix}");
+        usebundle => _classes_copy_invert_kept_repaired("service_check_running_${canonified_service_name}", "${class_prefix");
  
      "class copy if running"
         usebundle => _classes_copy("service_stop_${canonified_service_name}", "${class_prefix}"),
