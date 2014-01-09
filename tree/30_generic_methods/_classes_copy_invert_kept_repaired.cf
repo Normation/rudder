@@ -16,8 +16,8 @@
 #
 #####################################################################################
 
-# @name Classes inverted copy
-# @description Copy an inverted class prefix to another one, to switch the context from a bundle to another
+# @name Class copy and invert kept and repaired
+# @description Copy class prefix to another one and invert kept and repaired, to switch the context from a bundle to another
 #
 # @parameter source_prefix      The prefix of the source class to copy
 # @parameter destination_prefix The prefix of the destination class to copy
@@ -47,6 +47,7 @@
 # class_failed         <==> class_failed
 # class_not_ok         <==> class_not_ok
 # class_not_kept       <==> class_not_kept
+# class_not_repaired   <==> class_not_repaired
 # class_denied         <==> class_denied
 # class_timeout        <==> class_timeout
 # class_reached        <==> class_reached
@@ -64,7 +65,6 @@ bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefi
       "error_prefix"                slist => { "repair_failed", "repair_denied", "repair_timeout" };
       "error_suffix"                slist => { "failed", "not_ok", "not_kept", "denied", "timeout" };
 
-    iteration1::
       # Copy not_repaired class, as it is a special case (only exists for error or kept, so kept classes are not exactly inverted repaired classes)
       "local_destination_prefix_not_repaired"
         string     => "${destination_prefix}_not_repaired",
@@ -98,7 +98,6 @@ bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefi
         classes    => always("${destination_prefix}_${repaired_suffix}");
 
       # Copy error classes
-      # If this is an error class, no inversion should be done but a simple copy
       "${error_prefix}_local_destination_prefix"
         string     => "${error_prefix}_${destination_prefix}",
         ifvarclass => "${error_prefix}_${source_prefix}",
@@ -107,8 +106,5 @@ bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefi
         string     => "${destination_prefix}_${error_suffix}",
         ifvarclass => "${source_prefix}_${error_suffix}",
         classes    => always("${destination_prefix}_${error_suffix}");
-
-  classes:
-      "iteration1"         expression => "any";
 
 }

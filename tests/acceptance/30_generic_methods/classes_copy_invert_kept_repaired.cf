@@ -50,9 +50,9 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok_success"  expression => "(global_classA_ok.global_classA_reached.global_classA_repaired.promise_repaired_global_classA).!(global_classA_kept.global_classA_not_repaired.promise_kept_global_classA)";
-      "ok_repaired" expression => "(global_classB_ok.global_classB_reached.global_classB_kept.global_classB_not_repaired.promise_kept_global_classB).!(global_classB_repaired.promise_repaired_global_classB)";
-      "ok_error"    expression => "(global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached).!((global_classC_kept.global_classC_not_repaired.promise_kept_global_classC)|(global_classC_repaired.promise_repaired_global_classC))";
+      "ok_success"  expression => "(global_classA_ok.global_classA_reached.global_classA_repaired.promise_repaired_global_classA).!(global_classA_kept|global_classA_not_repaired|promise_kept_global_classA)";
+      "ok_repaired" expression => "(global_classB_ok.global_classB_reached.global_classB_kept.global_classB_not_repaired.promise_kept_global_classB).!(global_classB_repaired|promise_repaired_global_classB)";
+      "ok_error"    expression => "(global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached).!(global_classC_kept|promise_kept_global_classC|global_classC_repaired|promise_repaired_global_classC)";
       "ok"          expression => "ok_success.ok_repaired.ok_error";
 
   reports:
