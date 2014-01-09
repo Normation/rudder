@@ -30,12 +30,15 @@ bundle agent init
     "symlink_1_canon" string => canonify("${symlink_1}");
     "symlink_2"       string => "${tmp}/test_symlink2";
     "symlink_2_canon" string => canonify("${symlink_2}");
+    "symlink_3"       string => "${tmp}/test_symlink3";
+    "symlink_3_canon" string => canonify("${symlink_3}");
 
   methods:
     "ph1"             usebundle => file_ensure_lines_present("${file}", "${line_to_add}");
     # This file will test if the symlink is enforced or not
     "ph2"             usebundle => file_ensure_lines_present("${symlink_1}", "${line_to_add}");
     "ph3"             usebundle => file_ensure_lines_present("${symlink_2}", "${line_to_add}");
+    "ph4"             usebundle => file_ensure_lines_present("${symlink_3}", "${line_to_add}");
 }
 
 #######################################################
@@ -47,6 +50,7 @@ bundle agent test
     "ph1" usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_1}", "false");
     # The use of a wrong argument result in a default value 'false', so this symlink should not be created too
     "ph2" usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_2}", "dummy");
+    "ph3" usebundle => file_create_symlink("${init.file}", "${init.symlink_3}");
 }
 
 #######################################################
@@ -55,9 +59,11 @@ bundle agent check
 {
   classes:
       "ok_symlink_fs_1"    not => islink("${init.symlink_1}");
-      "ok_symlink_class_1" and => { "repair_failed_file_create_symlink_enforce_${init.symlink_1_canon}", "file_create_symlink_enforce_${init.symlink_1_canon}_failed", "file_create_symlink_enforce_${init.symlink_1_canon}_not_repaired", "file_create_symlink_enforce_${init.symlink_1_canon}_not_ok", "file_create_symlink_enforce_${init.symlink_1_canon}_not_kept","file_create_symlink_enforce_${init.symlink_1_canon}_reached" };
+      "ok_symlink_class_1" and => { "repair_failed_file_create_symlink_${init.symlink_1_canon}", "file_create_symlink_${init.symlink_1_canon}_failed", "file_create_symlink_${init.symlink_1_canon}_not_repaired", "file_create_symlink_${init.symlink_1_canon}_not_ok", "file_create_symlink_${init.symlink_1_canon}_not_kept","file_create_symlink_${init.symlink_1_canon}_reached" };
       "ok_symlink_fs_2"    not => islink("${init.symlink_2}");
-      "ok_symlink_class_2" and => { "repair_failed_file_create_symlink_enforce_${init.symlink_2_canon}", "file_create_symlink_enforce_${init.symlink_2_canon}_failed", "file_create_symlink_enforce_${init.symlink_2_canon}_not_repaired", "file_create_symlink_enforce_${init.symlink_2_canon}_not_ok", "file_create_symlink_enforce_${init.symlink_2_canon}_not_kept","file_create_symlink_enforce_${init.symlink_2_canon}_reached" };
+      "ok_symlink_class_2" and => { "repair_failed_file_create_symlink_${init.symlink_2_canon}", "file_create_symlink_${init.symlink_2_canon}_failed", "file_create_symlink_${init.symlink_2_canon}_not_repaired", "file_create_symlink_${init.symlink_2_canon}_not_ok", "file_create_symlink_${init.symlink_2_canon}_not_kept","file_create_symlink_${init.symlink_2_canon}_reached" };
+      "ok_symlink_fs_3"    not => islink("${init.symlink_3}");
+      "ok_symlink_class_3" and => { "repair_failed_file_create_symlink_${init.symlink_3_canon}", "file_create_symlink_${init.symlink_3_canon}_failed", "file_create_symlink_${init.symlink_3_canon}_not_repaired", "file_create_symlink_${init.symlink_3_canon}_not_ok", "file_create_symlink_${init.symlink_3_canon}_not_kept","file_create_symlink_${init.symlink_3_canon}_reached" };
       "ok"                 and => { "ok_symlink_fs_1", "ok_symlink_class_1", "ok_symlink_fs_2", "ok_symlink_class_2" };
 
   reports:

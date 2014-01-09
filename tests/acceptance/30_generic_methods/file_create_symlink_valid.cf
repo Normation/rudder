@@ -32,11 +32,18 @@ bundle agent init
     "symlink_2_canon" string => canonify("${symlink_2}");
     "symlink_3"       string => "${tmp}/test_symlink3";
     "symlink_3_canon" string => canonify("${symlink_3}");
+    "symlink_4"       string => "${tmp}/test_symlink4";
+    "symlink_4_canon" string => canonify("${symlink_4}");
+    "symlink_5"       string => "${tmp}/test_symlink5";
+    "symlink_5_canon" string => canonify("${symlink_5}");
+    "symlink_6"       string => "${tmp}/test_symlink6";
+    "symlink_6_canon" string => canonify("${symlink_6}");
 
   methods:
     "ph1" usebundle => file_ensure_lines_present("${file}", "${line_to_add}");
-    # This file will test if the symlink is enforced or not
+    # Theses files will test if the symlink is enforced or not
     "ph2" usebundle => file_ensure_lines_present("${symlink_3}", "${line_to_add}");
+    "ph3" usebundle => file_ensure_lines_present("${symlink_6}", "${line_to_add}");
 }
 
 #######################################################
@@ -48,17 +55,23 @@ bundle agent test
     "ph1"       usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_1}", "false");
     "ph2"       usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_2}", "true");
     "ph3"       usebundle => file_create_symlink_enforce("${init.file}", "${init.symlink_3}", "true");
+    "ph4"       usebundle => file_create_symlink("${init.file}", "${init.symlink_4}");
+    "ph5"       usebundle => file_create_symlink_force("${init.file}", "${init.symlink_5}");
+    "ph6"       usebundle => file_create_symlink_force("${init.file}", "${init.symlink_6}");
 }
 
-#######################################################
+#######################################################²
 
 bundle agent check
 {
   classes:
-      "ok_symlink1" and => { islink("${init.symlink_1}"), "promise_repaired_file_create_symlink_enforce_${init.symlink_1_canon}", "file_create_symlink_enforce_${init.symlink_1_canon}_repaired", "file_create_symlink_enforce_${init.symlink_1_canon}_ok", "file_create_symlink_enforce_${init.symlink_1_canon}_reached" };
-      "ok_symlink2" and => { islink("${init.symlink_2}"), "promise_repaired_file_create_symlink_enforce_${init.symlink_2_canon}", "file_create_symlink_enforce_${init.symlink_2_canon}_repaired", "file_create_symlink_enforce_${init.symlink_2_canon}_ok", "file_create_symlink_enforce_${init.symlink_2_canon}_reached" };
-      "ok_symlink3" and => { islink("${init.symlink_3}"), "promise_repaired_file_create_symlink_enforce_${init.symlink_3_canon}", "file_create_symlink_enforce_${init.symlink_3_canon}_repaired", "file_create_symlink_enforce_${init.symlink_3_canon}_ok", "file_create_symlink_enforce_${init.symlink_3_canon}_reached" };
-      "ok"          and        => { "ok_symlink1", "ok_symlink2", "ok_symlink3" };
+      "ok_symlink1" and => { islink("${init.symlink_1}"), "promise_repaired_file_create_symlink_${init.symlink_1_canon}", "file_create_symlink_${init.symlink_1_canon}_repaired", "file_create_symlink_${init.symlink_1_canon}_ok", "file_create_symlink_${init.symlink_1_canon}_reached" };
+      "ok_symlink2" and => { islink("${init.symlink_2}"), "promise_repaired_file_create_symlink_${init.symlink_2_canon}", "file_create_symlink_${init.symlink_2_canon}_repaired", "file_create_symlink_${init.symlink_2_canon}_ok", "file_create_symlink_${init.symlink_2_canon}_reached" };
+      "ok_symlink3" and => { islink("${init.symlink_3}"), "promise_repaired_file_create_symlink_${init.symlink_3_canon}", "file_create_symlink_${init.symlink_3_canon}_repaired", "file_create_symlink_${init.symlink_3_canon}_ok", "file_create_symlink_${init.symlink_3_canon}_reached" };
+      "ok_symlink4" and => { islink("${init.symlink_4}"), "promise_repaired_file_create_symlink_${init.symlink_4_canon}", "file_create_symlink_${init.symlink_4_canon}_repaired", "file_create_symlink_${init.symlink_4_canon}_ok", "file_create_symlink_${init.symlink_4_canon}_reached" };
+      "ok_symlink5" and => { islink("${init.symlink_5}"), "promise_repaired_file_create_symlink_${init.symlink_5_canon}", "file_create_symlink_${init.symlink_5_canon}_repaired", "file_create_symlink_${init.symlink_5_canon}_ok", "file_create_symlink_${init.symlink_5_canon}_reached" };
+      "ok_symlink6" and => { islink("${init.symlink_6}"), "promise_repaired_file_create_symlink_${init.symlink_6_canon}", "file_create_symlink_${init.symlink_6_canon}_repaired", "file_create_symlink_${init.symlink_6_canon}_ok", "file_create_symlink_${init.symlink_6_canon}_reached" };
+      "ok"          and        => { "ok_symlink1", "ok_symlink2", "ok_symlink3", "ok_symlink4", "ok_symlink5", "ok_symlink6" };
 
   reports:
     ok::
