@@ -30,23 +30,30 @@ bundle agent service_ensure_stopped(service_name)
   vars:
 
     "canonified_service_name"      string => canonify("${service_name}");
-    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
     "class_prefix"                 string => canonify("service_ensure_stopped_${service_name}");
+
   methods:
 
       "check running"
         usebundle  => service_check_running("${service_name}");
 
+      # If service_check_running has detected a process, it will result in
+      # a success, so we have to stop the process
       "stop if running"
         usebundle  => service_stop("${service_name}"),
-        ifvarclass => "service_check_running_${canonified_service_name}_ok";
+        ifvarclass => "service_check_running_${canonified_service_name}_kept";
 
-      "class copy check"
-        usebundle => _classes_copy("service_check_running_${canonified_service_name}", "${class_prefix}");
+      # If service_check_running has no detected any process, it will not result
+      # in a success so the result class of this promise should be the a success.
+      "create success class"
+        usebundle => _classes_success("${class_prefix"),
+        ifvarclass => "!service_check_running_${canonified_service_name}_kept";
  
-     "class copy if running"
-        usebundle => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
-        ifvarclass => "service_stop_${canonified_service_name}_ok";
+     # If service_check_running has detected a process, the process will be
+     # stopped and the result class should be the same as this promise.
+      "class copy if running"
+        usebundle => _classes_copy("service_stop_${canonified_service_name}", "${class_prefix}"),
+        ifvarclass => "service_check_running_${canonified_service_name}_kept";
 
       "report"
         usebundle => _logger("Ensure that service ${service_name} is stopped", "${class_prefix}");
