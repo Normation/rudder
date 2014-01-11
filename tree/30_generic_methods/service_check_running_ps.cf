@@ -33,12 +33,20 @@ bundle agent service_check_running_ps(service_regex)
   processes:
 
       "${service_regex}"
-        process_count => any_count("${class_prefix}_kept");
+        process_count => any_count("${service_regex}_checked_ok");
 
       "${service_regex}"
-        restart_class => "${class_prefix}_repaired";
+        restart_class => "${service_regex}_checked_not_ok";
 
   methods:
+      "success_classes"
+        usebundle  => _classes_success("${class_prefix}"),
+        ifvarclass => canonify("${service_regex}_checked_ok");
+
+      "error_classes"
+        usebundle  => _classes_failure("${class_prefix}"),
+        ifvarclass => canonify("${service_regex}_checked_not_ok");
+
       "report"
         usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${class_prefix}");
 }
