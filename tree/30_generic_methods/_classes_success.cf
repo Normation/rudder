@@ -28,7 +28,12 @@
 bundle agent _classes_success(class_prefix)
 {
   vars:
-      "suffix" slist => { "ok", "reached", "kept" };
+      "prefix" slist => { "promise_kept" };
+      "suffix" slist => { "ok", "reached", "kept", "not_repaired" };
+
+      "${prefix}_local"
+        string     => "${prefix}_${class_prefix}",
+        classes    => always("${prefix}_${class_prefix}");
 
       "local_${suffix}"
         string     => "${class_prefix}_${suffix}",
