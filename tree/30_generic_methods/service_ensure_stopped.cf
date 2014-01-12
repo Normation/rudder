@@ -46,7 +46,7 @@ bundle agent service_ensure_stopped(service_name)
       # If service_check_running has no detected any process, it will not result
       # in a success so the result class of this promise should be the a success.
       "create success class"
-        usebundle => _classes_success("${class_prefix"),
+        usebundle => _classes_success("${class_prefix}"),
         ifvarclass => "!service_check_running_${canonified_service_name}_kept";
  
      # If service_check_running has detected a process, the process will be
