@@ -23,11 +23,13 @@ bundle agent init
 {
   vars:
     !ubuntu::
-      "service_regex"            string => "/usr/sbin/cron";
+      "service_regex_1"            string => "/usr/sbin/cron";
     ubuntu::
-      "service_regex"            string => "cron";
+      "service_regex_1"            string => "cron";
     any::
-      "canonified_service_regex" string => canonify("${service_regex}");
+      "service_regex_2"            string => "thisisadummyservice";
+      "canonified_service_regex_1" string => canonify("${service_regex_1}");
+      "canonified_service_regex_2" string => canonify("${service_regex_2}");
 }
 
 #######################################################
@@ -35,7 +37,8 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => service_check_running_ps("${init.service_regex}");
+    "ph1" usebundle => service_check_running_ps("${init.service_regex_1}");
+    "ph2" usebundle => service_check_running_ps("${init.service_regex_2}");
 }
 
 #######################################################
@@ -43,7 +46,13 @@ bundle agent test
 bundle agent check
 {
   classes:
-    "ok" expression => "service_check_running_${init.canonified_service_regex}_kept.!service_check_running_${init.canonified_service_regex}_repaired";
+    "ok_success_1"  expression => "(promise_kept_service_check_running_${init.canonified_service_regex_1}.service_check_running_${init.canonified_service_regex_1}_kept.service_check_running_${init.canonified_service_regex_1}_ok.service_check_running_${init.canonified_service_regex_1}_not_repaired.service_check_running_${init.canonified_service_regex_1}_reached)";
+    "ok_repaired_1" expression => "!(promise_repaired_service_check_running_${init.canonified_service_regex_1}|service_check_running_${init.canonified_service_regex_1}_repaired)";
+    "ok_error_1"    expression => "!(service_check_running_${init.canonified_service_regex_1}_not_kept|repair_failed_service_check_running_${init.canonified_service_regex_1}|service_check_running_${init.canonified_service_regex_1}_failed|service_check_running_${init.canonified_service_regex_1}_not_ok)";
+    "ok_success_2"  expression => "!(promise_kept_service_check_running_${init.canonified_service_regex_2}|service_check_running_${init.canonified_service_regex_2}_kept|service_check_running_${init.canonified_service_regex_2}_ok)";
+    "ok_repaired_2" expression => "!(promise_repaired_service_check_running_${init.canonified_service_regex_2}|service_check_running_${init.canonified_service_regex_2}_repaired)";
+    "ok_error_2"    expression => "repair_failed_service_check_running_${init.canonified_service_regex_2}.service_check_running_${init.canonified_service_regex_2}_failed.service_check_running_${init.canonified_service_regex_2}_not_ok.service_check_running_${init.canonified_service_regex_2}_not_kept";
+    "ok"            and        => { "ok_success_1", "ok_repaired_1", "ok_error_1", "ok_success_2", "ok_repaired_2", "ok_error_2" };
 
   reports:
     ok::
