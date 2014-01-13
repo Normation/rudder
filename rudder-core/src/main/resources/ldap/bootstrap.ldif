@@ -222,6 +222,25 @@ isSystem: TRUE
 longDescription: This rule makes all nodes do daily self inventories
 serial: 0
 
+# A demonstration rule: group "all nodes", no directive
+dn: ruleId=32377fd7-02fd-43d0-aab7-28460a91347b,ou=Rules,ou=Rudder,cn=rudder
+ -configuration
+objectClass: top
+objectClass: rule
+ruleId: 32377fd7-02fd-43d0-aab7-28460a91347b
+ruleTarget: special:all
+cn: Global configuration for all nodes
+longDescription: This Rule was created automatically when Rudder was installed.
+ It can be used to target Directives to all nodes (including the Rudder root
+  server itself), or deleted if you would rather create your own set of
+  Rules (it will never be created again).
+isEnabled: TRUE
+isSystem: FALSE
+tag: rootRuleCategory
+serial: 0
+
+
+
 #######################################################################################################################
 ## Archives
 #######################################################################################################################
