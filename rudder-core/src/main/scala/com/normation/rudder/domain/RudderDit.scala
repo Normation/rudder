@@ -138,6 +138,7 @@ class RudderDit(val BASE_DN:DN) extends AbstractDit {
   dit.register(ARCHIVES.model)
   dit.register(GROUP.model)
   dit.register(GROUP.SYSTEM.model)
+  dit.register(NODE_CONFIGS.model)
 
 
   //here, we can't use activeTechniqueCategory because we want a subclass
