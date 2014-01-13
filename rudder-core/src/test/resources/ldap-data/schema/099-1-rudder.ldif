@@ -73,6 +73,10 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.110
   NAME 'apiAccountId'
   DESC 'Unique identifier for an API Account'
   SUP uuid )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.111
+  NAME 'ruleCategoryId'
+  DESC 'Unique identifier for a Rule category'
+  SUP uuid )
 #######################################################################
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.201
   NAME 'techniqueLibraryVersion'
@@ -241,6 +245,10 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.228
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
   EQUALITY caseExactMatch
   SUBSTR caseIgnoreSubstringsMatch )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.229
+  NAME 'tag'
+  DESC 'ID of tag'
+  SUP uuid )
 ### API principal and tokens 
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.250
   NAME 'apiToken'
@@ -372,7 +380,14 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   MAY ( cn $ description $ longDescription $
   isEnabled $ isSystem $
   ruleTarget $
-  directiveId ) )
+  directiveId $ tag) )
+objectClasses: ( 1.3.6.1.4.1.35061.2.2.31
+  NAME 'ruleCategory'
+  DESC 'Rule categories'
+  SUP top
+  STRUCTURAL
+  MUST ( ruleCategoryId $ cn )
+  MAY ( description $ isSystem ) )
 #
 # Node configurations
 # (current and expected state of
