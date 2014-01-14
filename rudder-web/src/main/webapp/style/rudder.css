@@ -1149,6 +1149,12 @@ fieldset.crEditHierarchy {
   display: inline-block;
   vertical-align: top;
 }
+/* Firefox specific behavior cause bug https://bugzilla.mozilla.org/show_bug.cgi?id=504622 https://bugzilla.mozilla.org/show_bug.cgi?id=261037 */
+@-moz-document url-prefix() { 
+  fieldset.crEditHierarchy {
+    display: table-column;
+  }
+}
 
 div.hierarchySpacer {
   width:5%;
@@ -2207,7 +2213,8 @@ template, a Directive, etc)
 }
 
 .object-details fieldset {
-    padding:10px;
+    padding-left: 2px;
+    padding-right: 20px;
 }
 
 
