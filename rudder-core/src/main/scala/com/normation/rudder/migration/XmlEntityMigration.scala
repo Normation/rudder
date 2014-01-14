@@ -430,7 +430,7 @@ class DefaultXmlEventLogMigration(
     xml.label match {
       case "rule" => xmlMigration_4_5.rule(xml)
       case "changeRequest" => xmlMigration_4_5.changeRequest(xml)
-      case _ => xmlMigration_3_4.other(xml)
+      case _ => xmlMigration_4_5.other(xml)
     }
   }
 
