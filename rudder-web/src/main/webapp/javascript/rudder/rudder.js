@@ -118,7 +118,8 @@ function createPopup(popupName){
             autoResize: true
 		});
 		$('#simplemodal-container').css('height', 'auto').css('width', 'auto');
-		correctButtons();
+		// call Update popup to force resize of the popup and correct buttons
+		updatePopup();
 }
 
 /* ignore event propagation (IE compliant) */
