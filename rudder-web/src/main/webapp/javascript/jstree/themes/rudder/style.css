@@ -4,6 +4,11 @@
  * Supported plugins: ui (hovered, clicked), checkbox, contextmenu, search
  */
 
+.jstree-rudder a {
+  height: auto !important;
+  white-space: normal !important;
+}
+.jstree-rudder li > ins { vertical-align:top; }
 .jstree-rudder li, 
 .jstree-rudder ins { background-image:url("d.png"); background-repeat:no-repeat; background-color:transparent; }
 .jstree-rudder li { background-position:-90px 0; background-repeat:repeat-y; }
