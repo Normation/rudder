@@ -256,7 +256,7 @@ class ImportGroupLibraryImpl(
     /**
      * Check that the user lib match our global rules:
      * - two NodeGroup can't referenced the same PT (arbitrary skip the second one)
-     * - two categories can not have the same name (arbitrary skip the second one)
+     * - two categories WITH THE SAME PARENT can not have the same name (arbitrary skip the second one)
      * - all ids must be uniques
      * + remove system library if we don't want them
      */
@@ -265,7 +265,8 @@ class ImportGroupLibraryImpl(
       val nodeGroupIds = Set[NodeGroupId]()
       val nodeGroupNames = Map[String, NodeGroupId]()
       val categoryIds = Set[NodeGroupCategoryId]()
-      val categoryNames = Map[String, NodeGroupCategoryId]()
+      // for a name, all Category already containing a child with that name.
+      val categoryNamesByParent = Map[String, List[NodeGroupCategoryId]]()
 
       def sanitizeNodeGroup(nodeGroup:NodeGroup) : Option[NodeGroup] = {
 
@@ -284,7 +285,7 @@ class ImportGroupLibraryImpl(
         }
       }
 
-      def recSanitizeCategory(content:NodeGroupCategoryContent, isRoot:Boolean = false) : Option[NodeGroupCategoryContent] = {
+      def recSanitizeCategory(content:NodeGroupCategoryContent, parent: NodeGroupCategory, isRoot:Boolean = false) : Option[NodeGroupCategoryContent] = {
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
@@ -293,17 +294,17 @@ class ImportGroupLibraryImpl(
         } else if(cat.name == null || cat.name.size < 1) {
           logger.error("Ignoring Active Technique Category because its name is empty: " + cat)
           None
-        } else categoryNames.get(cat.name) match { //name is mandatory
-          case Some(id) =>
-            logger.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category with ID '%s'".format(
-                cat.id.value, cat.name, id.value
+        } else categoryNamesByParent.get(cat.name) match { //name is mandatory
+          case Some(list) if list.contains(parent.id) =>
+            logger.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category '%s' with ID '%s'".format(
+                cat.id.value, cat.name, parent.name, parent.id.value
             ))
             None
-          case None => //OK, process PT and sub categories !
+          case _ => //OK, process PT and sub categories !
             categoryIds += cat.id
-            categoryNames += (cat.name -> cat.id)
+            categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-            val subCategories = content.categories.flatMap( recSanitizeCategory(_) ).toSet
+            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat) ).toSet
             val subNodeGroups = content.groups.flatMap( sanitizeNodeGroup(_) ).toSet
 
             //remove from sub cat groups that where not correct
@@ -325,7 +326,7 @@ class ImportGroupLibraryImpl(
         }
       }
 
-      Box(recSanitizeCategory(userLib, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
+      Box(recSanitizeCategory(userLib, userLib.category, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
     }
 
     //all the logic for a library swap.
