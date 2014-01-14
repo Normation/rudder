@@ -4,6 +4,7 @@
  * Supported plugins: ui (hovered, clicked), checkbox, contextmenu, search
  */
 
+.jstree-rudder li > ins { vertical-align:top; }
 .jstree-rudder li, 
 .jstree-rudder ins { background-image:url("d.png"); background-repeat:no-repeat; background-color:transparent; }
 .jstree-rudder li { background-position:-90px 0; background-repeat:repeat-y; }
@@ -14,7 +15,7 @@
 
 .jstree-rudder .jstree-hovered { background:#ffffee; border:1px dotted #974807; padding:0 2px 0 1px; }
 .jstree-rudder .jstree-clicked { background:#fff3c9; border:1px dotted #974807; padding:0 2px 0 1px; }
-.jstree-rudder a { whitespace : normal !important; height : auto !important }
+.jstree-rudder a { white-space : normal !important; height : auto !important }
 .jstree-rudder a .jstree-icon { background-position:-56px -19px; }
 .jstree-rudder a.jstree-loading .jstree-icon { background:url("throbber.gif") center center no-repeat !important; }
 
