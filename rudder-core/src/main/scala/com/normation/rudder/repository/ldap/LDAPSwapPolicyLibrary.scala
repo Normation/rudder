@@ -62,6 +62,7 @@ import com.normation.ldap.sdk.LDAPConnectionProvider
 import com.normation.utils.ScalaReadWriteLock
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.ldap.sdk.RwLDAPConnection
 import org.joda.time.DateTime
@@ -183,7 +184,7 @@ class ImportTechniqueLibraryImpl(
     /**
      * Check that the user lib match our global rules:
      * - two UPT can't referenced the same PT (arbitrary skip the second one)
-     * - two categories can not have the same name (arbitrary skip the second one)
+     * - two categories WITH THE SAME PARENT can not have the same name (arbitrary skip the second one)
      * - all ids must be uniques
      * + remove system library if we don't want them
      */
@@ -193,7 +194,8 @@ class ImportTechniqueLibraryImpl(
       val ptNames = Map[TechniqueName,ActiveTechniqueId]()
       val uactiveTechniqueIds = Set[ActiveTechniqueId]()
       val categoryIds = Set[ActiveTechniqueCategoryId]()
-      val categoryNames = Map[String, ActiveTechniqueCategoryId]()
+      // for a name, all Category already containing a child with that name.
+      val categoryNamesByParent = Map[String, List[ActiveTechniqueCategoryId]]()
 
       def sanitizeUPT(uptContent:ActiveTechniqueContent) : Option[ActiveTechniqueContent] = {
         val activeTechnique = uptContent.activeTechnique
@@ -226,7 +228,7 @@ class ImportTechniqueLibraryImpl(
         }
       }
 
-      def recSanitizeCategory(content:ActiveTechniqueCategoryContent, isRoot:Boolean = false) : Option[ActiveTechniqueCategoryContent] = {
+      def recSanitizeCategory(content:ActiveTechniqueCategoryContent, parent: ActiveTechniqueCategory, isRoot:Boolean = false) : Option[ActiveTechniqueCategoryContent] = {
         val cat = content.category
         if( !isRoot && content.category.isSystem && includeSystem == false) None
         else if(categoryIds.contains(cat.id)) {
@@ -235,17 +237,17 @@ class ImportTechniqueLibraryImpl(
         } else if(cat.name == null || cat.name.size < 1) {
           logger.error("Ignoring Active Technique Category because its name is empty: " + cat)
           None
-        } else categoryNames.get(cat.name) match { //name is mandatory
-          case Some(id) =>
-            logger.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category with ID '%s'".format(
-                cat.id.value, cat.name, id.value
+        } else categoryNamesByParent.get(cat.name) match { //name is mandatory
+          case Some(list) if(list.contains(parent.id))=>
+            logger.error("Ignoring Active Technique Categor with ID '%s' because its name is '%s' already referenced by category '%s' with ID '%s'".format(
+                cat.id.value, cat.name, parent.name, parent.id.value
             ))
             None
-          case None => //OK, process PT and sub categories !
+          case _ => //OK, process PT and sub categories !
             categoryIds += cat.id
-            categoryNames += (cat.name -> cat.id)
+            categoryNamesByParent += (cat.name -> (parent.id :: categoryNamesByParent.getOrElse(cat.name, Nil)))
 
-            val subCategories = content.categories.flatMap( recSanitizeCategory(_) )
+            val subCategories = content.categories.flatMap(c => recSanitizeCategory(c, cat))
             val subUPTs = content.templates.flatMap( sanitizeUPT(_) )
 
             Some(content.copy(
@@ -259,7 +261,7 @@ class ImportTechniqueLibraryImpl(
         }
       }
 
-      Box(recSanitizeCategory(userLib, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
+      Box(recSanitizeCategory(userLib, userLib.category, true)) ?~! "Error when trying to sanitize serialised user library for consistency errors"
     }
 
     //all the logic for a library swap.
