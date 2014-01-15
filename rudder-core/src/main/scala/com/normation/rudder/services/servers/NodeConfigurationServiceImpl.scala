@@ -82,7 +82,7 @@ class NodeConfigurationServiceImpl(
   /**
    * Update a node configuration using a targetNodeConfiguration :
    * update the directives and the node context, as well as the agentsName
-   * (well, every fields actually)
+   * (well, every field actually)
    * @param target
    * @return
    */
