@@ -124,7 +124,7 @@ class ReportingServiceImpl(
 
     val expanded = confToCreate.map { case ExpandedRuleVal(ruleId, configs, serial) =>
       configs.toSeq.map { case (nodeId, directives) =>
-        // each directive are converted into Seq[DirectiveExpectedReports]
+        // each directive is converted into Seq[DirectiveExpectedReports]
         val directiveExpected = directives.map { directive =>
 	          val seq = getCardinality(directive)
 
