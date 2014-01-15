@@ -266,6 +266,8 @@ class DirectiveEditForm(
 
   private[this] def showErrorNotifications() : JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
+    //restore user to the update parameter tab
+    JsRaw("""$("#editZone").tabs("option", "active", 1)""") &
     JsRaw("""scrollToElement("notifications");""")
   }
 
