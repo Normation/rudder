@@ -321,7 +321,7 @@ class NodeGroupForm(
         onSuccessCallback(Right(crId))
       } else {
         successPopup & onSuccessCallback(Left(newGroup)) &
-        (if (action=="delete")
+        (if (action==ModificationValidationPopup.Delete)
            SetHtml(htmlId_item,NodeSeq.Empty)
         else
              Noop)
