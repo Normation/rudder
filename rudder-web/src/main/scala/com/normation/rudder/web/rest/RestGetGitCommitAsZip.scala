@@ -62,7 +62,7 @@ class RestGetGitCommitAsZip(
                                    .appendLiteral('T')
                                    .append(DateTimeFormat.forPattern("hhmmss")).toFormatter
 
-  val directiveFiles = List("directives","techniques")
+  val directiveFiles = List("directives","techniques", "parameters")
 
   val allFiles = "groups" :: "rules" :: directiveFiles
 
