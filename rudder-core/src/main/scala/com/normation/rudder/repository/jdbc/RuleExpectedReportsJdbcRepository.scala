@@ -77,6 +77,19 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           RuleIdAndSerialMapper).toMap;
   }
 
+  def findAllCurrentExpectedReportsWithNodesAndSerial(): scala.collection.Map[RuleId, (Int, scala.collection.Set[NodeId])] = {
+    val composite = jdbcTemplate.query("select distinct ruleid, serial, nodejoinkey from "+ TABLE_NAME +
+          "      where enddate is null",
+            RuleIdSerialNodeJoinKeyMapper);
+
+    (for {
+      (ruleId, serial, nodeJoin) <- composite
+      nodeList <- getNodes(nodeJoin)
+    } yield {
+      (ruleId, (serial, nodeList.toSet))
+    }).toMap
+
+  }
   /**
    * Return current expectedreports (the one still pending) for this Rule
    * @param rule
@@ -382,6 +395,11 @@ object RuleIdAndSerialMapper extends RowMapper[(RuleId, Int)] {
   }
 }
 
+object RuleIdSerialNodeJoinKeyMapper extends RowMapper[(RuleId, Int, Int)] {
+  def mapRow(rs : ResultSet, rowNum: Int) : (RuleId, Int, Int) = {
+    (new RuleId(rs.getString("ruleid")) , rs.getInt("serial"), rs.getInt("nodejoinkey"))
+  }
+}
 /**
  * Just a plain mapping of the database
  */
