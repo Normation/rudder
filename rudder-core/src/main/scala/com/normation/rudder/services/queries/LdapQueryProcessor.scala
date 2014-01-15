@@ -268,7 +268,7 @@ class InternalLDAPQueryProcessor(
      * - a composition type (and/or)
      * - a target object type to return with its own filters (not combined)
      * - criteria as a map of (dn type -->  map(object type name --> filters ))
-     *   (for each dnType, we have all the attribute that should return that dnType and their own filter not composed)
+     *   (for each dnType, we have all the attributes that should return that dnType and their own filter not composed)
      */
 
     /*
@@ -492,7 +492,7 @@ class InternalLDAPQueryProcessor(
 
        /*
         * Optimization : we limit query time/size. That means that perhaps we won't have all response.
-        * That DOES not change the validity of each final answer, just we may don't find ALL valid answer.
+        * That DOES not change the validity of each final answer, just we may don't find ALL valid answers.
         * (in the case of a and, a missing result here can lead to an empty set at the end)
         * TODO : this behaviour should be removable
         */

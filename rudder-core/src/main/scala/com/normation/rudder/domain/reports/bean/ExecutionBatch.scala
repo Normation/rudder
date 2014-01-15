@@ -480,7 +480,7 @@ case class ConfigurationExecutionBatch(
       }.toSeq
   }
   /**
-   * Get the status of every components of the directive passed as a parameter
+   * Get the status of every component of the directive passed as a parameter
    * Parameters:
    * directiveId : Components we are looking for are contained in that directive
    * components  : Expected component report format
