@@ -62,18 +62,24 @@ class RestGetGitCommitAsZip(
                                    .appendLiteral('T')
                                    .append(DateTimeFormat.forPattern("hhmmss")).toFormatter
 
+  val directiveFiles = List("directives","techniques", "parameters")
+
+  val ruleFiles = List("rules","ruleCategories")
+
+  val allFiles = "groups" :: ruleFiles ::: directiveFiles
+
   serve {
     case Get("api" :: "archives" :: "zip" :: "groups"     :: commitId :: Nil, req) =>
       getZip(commitId, List("groups"), "groups")
 
     case Get("api" :: "archives" :: "zip" :: "directives" :: commitId :: Nil, req) =>
-      getZip(commitId, List("directives"), "directives")
+      getZip(commitId, directiveFiles, "directives")
 
     case Get("api" :: "archives" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
-      getZip(commitId, List("rules", "ruleCategories"), "rules")
+      getZip(commitId, ruleFiles, "rules")
 
     case Get("api" :: "archives" :: "zip" :: "all"        :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups", "directives", "rules", "ruleCategories"), "all")
+      getZip(commitId, allFiles, "all")
 
 
     /*
@@ -87,14 +93,13 @@ class RestGetGitCommitAsZip(
       getZip(commitId, List("groups"), "groups")
 
     case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "directives" :: commitId :: Nil, req) =>
-      getZip(commitId, List("directives"), "directives")
+      getZip(commitId, directiveFiles, "directives")
 
     case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "rules"      :: commitId :: Nil, req) =>
-      getZip(commitId, List("rules", "ruleCategories"), "rules")
+      getZip(commitId, ruleFiles, "rules")
 
     case Get("secure" :: "utilities" :: "archiveManagement" :: "zip" :: "all"        :: commitId :: Nil, req) =>
-      getZip(commitId, List("groups", "directives", "rules", "ruleCategories"), "all")
-
+      getZip(commitId, allFiles, "all")
 
   }
 
