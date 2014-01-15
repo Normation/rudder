@@ -230,7 +230,13 @@ class DirectiveEditForm(
           $("input").not("#treeSearch").keydown( function(event) {
             processKey(event , '%s');
           } );
-          """.format(htmlId_save)))&
+          """.format(htmlId_save)) &
+      //adapt the height of tabs to the screen, so that the parameter edition takes all the available
+      //space (leting the possibility to see tabs and save button)
+      //Use a 450px as the minimum height.
+      JsRaw("""$('.tabContent').css('max-height', Math.max($(window).height()-100, 450) +'px') """)
+
+    )&
           JsRaw(
             s"""$$( "#editZone" ).tabs({
    select: function(event, ui) {
@@ -266,6 +272,8 @@ class DirectiveEditForm(
 
   private[this] def showErrorNotifications() : JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
+    //restore user to the update parameter tab
+    JsRaw("""$("#editZone").tabs("option", "active", 1)""") &
     JsRaw("""scrollToElement("notifications");""")
   }
 
