@@ -85,9 +85,6 @@
 <component:body>
 	<div id="container">
 		<div id="editForm" />
-		<div id="removeActionDialog" />
-		<div id="disableActionDialog" />
-		<div id="confirmUpdateActionDialog"  class="nodisplay"/>
 	</div>
 </component:body>
 
@@ -200,7 +197,7 @@
 		 </div>
 
 	</div>
-	<div id="confirmUpdateActionDialog" class="nodisplay"/>
+
 	<lift:authz role="directive_edit">
       <div class="cpiefsave">
         <button id="save">Save</button>
@@ -208,19 +205,15 @@
     </lift:authz>
     <br/>
   </div>
-
+  <div id="removeActionDialog" />
+  <div id="disableActionDialog" />
+  <div id="confirmUpdateActionDialog" class="nodisplay"/>
   <div id="createCloneDirectivePopup" class="nodisplay">
 	  <lift:ignore>
 	    This div gets the content of the createDirective injected within
 	  </lift:ignore>
 	</div>
 
-  <div id="confirmUpdateActionDialog" class="nodisplay">
-    <lift:ignore>
-      This div gets the content of action (save, delete,
-      enable/disable) confirmation pop-up
-    </lift:ignore>
-  </div>
 </component:form>
 
 <component:informationTab>
