@@ -44,7 +44,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     ===================================================================
     Our default configuration : log on stdout appender so that our logs
     are managed by the container log system (and so, if Tomcat/Jetty/etc
-    logs are stored in files and rotated, so are our log information).
+    logs are stored in files and rotated, so is our log information).
     
     Log format is:
     - date/time/thread of the log on 30 chars (fixed)
@@ -130,7 +130,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     Display AJAX information of the Web interface
     =============================================
     Whatever the root logger level is, you are likely
-    to not wanting these information. 
+    to not wanting this information. 
     Set the level to debug if you are really interested
     in AJAX-related debug messages.
   -->
@@ -146,9 +146,9 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <logger name="org.springframework" level="warn" />
  
   <!-- 
-    We don't need to have a timing information for each 
+    We don't need to have timing information for each 
     HTTP request.
-    If you want to have these information, set the log
+    If you want to have this information, set the log
     level for that logger to (at least) "info"
    -->
   <logger name="net.liftweb.util.TimeHelpers" level="warn" />
