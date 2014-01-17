@@ -501,7 +501,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           , directive
           , oldDirective
           , workflowEnabled
-          , onSuccessCallback = directiveEditFormSuccessCallBack
+          , onSuccessCallback = directiveEditFormSuccessCallBack(workflowEnabled)
           , isADirectiveCreation = isADirectiveCreation
           , onRemoveSuccessCallBack = () => onRemoveSuccessCallBack(workflowEnabled)
         )
@@ -519,8 +519,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * been done
    * If it is given a directive, it updated the form, else goes to the changerequest page
    */
-  private[this] def directiveEditFormSuccessCallBack(returns: Either[Directive,ChangeRequestId]): JsCmd = {
-    val workflowEnabled = returns.isRight
+  private[this] def directiveEditFormSuccessCallBack(workflowEnabled : Boolean)(returns: Either[Directive,ChangeRequestId]): JsCmd = {
 
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
