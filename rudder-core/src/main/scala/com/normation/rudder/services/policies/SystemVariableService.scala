@@ -51,6 +51,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.Constants
 
 trait SystemVariableService {
   def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]]
@@ -117,6 +118,7 @@ class SystemVariableServiceImpl(
 
     var varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable()
     var varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable()
+    var varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable()
 
     val allowConnect = collection.mutable.Set[String]()
 
@@ -127,6 +129,20 @@ class SystemVariableServiceImpl(
     if(nodeInfo.isPolicyServer) {
       val allowedNodeVarSpec = SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true)
       val allowedNodeVar = SystemVariable(allowedNodeVarSpec, Seq()).copyWithSavedValues(Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}"))
+
+      val varNameForAllowedNetwork = "${rudder.hasPolicyServer-" + nodeInfo.id.value + "." + Constants.V_ALLOWED_NETWORK+"}"
+      val allowedNetworkVarSpec = SystemVariableSpec(name = varNameForAllowedNetwork, description = "", multivalued = true)
+      val allowedNetworkVar = SystemVariable(allowedNetworkVarSpec, Seq()).copyWithSavedValues(Seq(varNameForAllowedNetwork))
+
+      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNetworkVar), allNodeInfos, groupLib, directiveLib, allRules) match {
+        case Full(variable) =>
+          varAllowedNetworks = varAllowedNetworks.copyWithSavedValues(variable.flatMap(x => x.values))
+        case Empty => logger.warn(s"No variable parametrized found for ${varNameForAllowedNetwork}")
+        case f: Failure =>
+          val e = f ?~! s"Failure when fetching the allowed network for policy server ${nodeInfo.hostname} with id ${nodeInfo.id}"
+          logger.error(e.messageChain)
+          return e
+      }
 
       parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar), allNodeInfos, groupLib, directiveLib, allRules) match {
         case Full(variable) =>
@@ -170,6 +186,7 @@ class SystemVariableServiceImpl(
       (varClientList.spec.name, varClientList),
       (varManagedNodesId.spec.name, varManagedNodesId),
       (varManagedNodes.spec.name, varManagedNodes),
+      (varAllowedNetworks.spec.name, varAllowedNetworks),
       (varWebdavUser.spec.name, varWebdavUser),
       (varWebdavPassword.spec.name, varWebdavPassword),
       (syslogPortConfig.spec.name, syslogPortConfig)
