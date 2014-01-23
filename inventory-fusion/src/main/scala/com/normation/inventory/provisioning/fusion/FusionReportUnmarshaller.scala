@@ -802,8 +802,7 @@ class FusionReportUnmarshaller(
   }
 
   def processProcesses(proc : NodeSeq) : Option[Process] = {
-    val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm")
-	  optText(proc\"PID") match {
+     optText(proc\"PID") match {
 	  case None =>
 	    logger.debug("Ignoring entry Process because tag PID is empty")
 	    logger.debug(proc)
@@ -815,7 +814,7 @@ class FusionReportUnmarshaller(
 	          , cpuUsage      = optText(proc\"CPUUSAGE").map(_.toFloat)
 	          , memory        = optText(proc\"MEM").map(_.toFloat)
 	          , commandName   = optText(proc\"CMD")
-	          , started       = parseDate(proc\"STARTED",fmt)
+	          , started       = optText(proc\"STARTED")
 	          , tty           = optText(proc\"TTY")
 	          , user          = optText(proc\"USER")
 	          , virtualMemory = optText(proc\"VIRTUALMEMORY").map(_.toInt)
