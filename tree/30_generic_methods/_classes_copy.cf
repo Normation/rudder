@@ -30,8 +30,16 @@
 bundle agent _classes_copy(source_prefix, destination_prefix)
 {
   vars:
+      "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
       "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept" };
 
+      # Copy result classes prefixes
+      "${prefix}_local_destination_prefix"
+        string     => "${prefix}_${destination_prefix}",
+        ifvarclass => "${prefix}_${source_prefix}",
+        classes    => always("${prefix}_${destination_prefix}");
+
+      # Copy result classes suffixes
       "local_destination_prefix_${suffix}"
         string     => "${destination_prefix}_${suffix}",
         ifvarclass => "${source_prefix}_${suffix}",
