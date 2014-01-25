@@ -22,9 +22,9 @@
 # @parameter service_name Service
 # @parameter trigger_class class(es) which will trigger the restart of Service "(package_service_installed|service_conf_changed)" by example
 # 
-# @class_prefix service_restart_if
+# @class_prefix service_restart
 # @class_parameter service_name
-# This bundle will define a class service_restart_if_${service_name}_{kept,repaired,error,ok,reached}
+# This bundle will define a class service_restart_${service_name}_{kept,repaired,error,ok,reached}
 
 bundle agent service_restart_if(service_name, trigger_class)
 {
@@ -39,17 +39,15 @@ bundle agent service_restart_if(service_name, trigger_class)
 
       # Create kept class
       "success_class"              usebundle  => _classes_success("${class_prefix}"),
+                                   # parenthesis used to negate all the class
                                    ifvarclass => "!(${trigger_class})";
 
       # Will be replaced later with less naive conditions (using either service, upstart, ...
-      "placeholder"                usebundle  => command_execution("${init_command}"),
+      "command_restart"            usebundle  => command_execution("${init_command}"),
                                    ifvarclass => "${trigger_class}";
-      "placeholder"                usebundle  => _classes_copy("command_execution_${canonified_init_command_name}", "${class_prefix}"),
+      "class_copy"                 usebundle  => _classes_copy("command_execution_${canonified_init_command_name}", "${class_prefix}"),
                                    ifvarclass => "${trigger_class}";
 
       # reporting
-      "service_restarted"          usebundle  => _logger("Service ${canonified_service_name} restarted", "service_restart_${canonified_service_name}"),
-                                   ifvarclass => "${class_prefix}_repaired";
-      "service_restarted"          usebundle  => _logger("Service ${canonified_service_name} does not need to be restarted", "service_restart_${canonified_service_name}"),
-                                   ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired";
+      "report"                     usebundle  => _logger("Service ${canonified_service_name} restarted", "service_restart_${canonified_service_name}");
 }

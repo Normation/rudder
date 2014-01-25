@@ -44,7 +44,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok" expression => "service_restart_${init.service_script}_reached.service_restart_${init.service_script}_repaired.!service_restart_${init.service_script}_kept.!service_restart_${init.service_script}_error";
+      "ok" expression => "(service_restart_${init.service_script}_ok.service_restart_${init.service_script}_reached.service_restart_${init.service_script}_repaired.promise_repaired_service_restart_${init.service_script}).!(service_restart_${init.service_script}_kept|service_restart_${init.service_script}_not_repaired|promise_kept_service_restart_${init.service_script})";
 
   reports:
     ok::
