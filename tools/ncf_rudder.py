@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 #
 # Usage: ./ncf_rudder.py path
 #
@@ -18,7 +19,7 @@ import re
 
 def write_all_techniques_for_rudder(root_path):
   write_category_xml(root_path)
-  techniques = ncf.get_all_techniques_metadata()
+  techniques = ncf.get_all_techniques_metadata("true",'/var/rudder/configuration-repository/ncf')
   for technique, metadata in techniques.iteritems():
     try:
       write_technique_for_rudder(root_path, metadata)
