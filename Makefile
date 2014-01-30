@@ -8,7 +8,7 @@ test:
 
 doc:
 	ls tree/30_generic_methods/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
-	python tools/ncf-doc.py
+	tools/ncf-doc.py
 clean:
 	rm -rf tests/style/.succeeded
 	rm -f tests/style/summary.log
@@ -23,6 +23,7 @@ clean:
 	rm -f tests/acceptance/xml.tmp
 	rm -rf tests/acceptance/workdir/
 	rm -f doc/all_generic_methods.txt
+	rm -f doc/generic_methods.md
 	find $(CURDIR) -iname "*.pyc" -delete
 
 distclean: clean
