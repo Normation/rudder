@@ -21,10 +21,10 @@ if __name__ == '__main__':
   for (method_name,generic_method) in generic_methods.iteritems():
     content.append('# '+generic_method["name"])
     content.append('* *bundle name:* '+method_name)
-    content.append('## parameters')
+    content.append('\n## parameters')
     for args in generic_method["bundle_args"]:
       content.append("* "+args)
-    content.append('## class result')
+    content.append('\n## class result')
     content.append('* '+generic_method["class_prefix"]+"_"+generic_method["class_parameter"])
     content.append('')
 
