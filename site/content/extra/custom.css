@@ -1,5 +1,6 @@
 .navbar-inverse {
   background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
+  border: 1px solid #A35700;
 }
 .navbar-inverse .navbar-brand {
   color: #eeeeee;
