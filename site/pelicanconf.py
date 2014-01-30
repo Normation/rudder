@@ -28,11 +28,20 @@ TRANSLATION_FEED_ATOM = None
 
 # Theme extras
 BOOTSTRAP_THEME = 'spacelab'
+CUSTOM_CSS = 'static/custom.css'
 GITHUB_URL = 'http://github.com/Normation/ncf'
 GOOGLE_ANALYTICS = 'UA-15347142-5'
 BOOTSTRAP_NAVBAR_INVERSE = True
 PYGMENTS_STYLE = 'monokai'
 HIDE_SIDEBAR = True
+
+# Tell Pelican to add 'extra/custom.css' to the output dir
+STATIC_PATHS = ['images', 'extra/custom.css']
+
+# Tell Pelican to change the path to 'static/custom.css' in the output dir
+EXTRA_PATH_METADATA = {
+  'extra/custom.css': {'path': 'static/custom.css'}
+}
 
 # Sidebar
 DISPLAY_TAGS_ON_SIDEBAR = False

@@ -1,0 +1,10 @@
+.navbar-inverse {
+  background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
+}
+.navbar-inverse .navbar-brand {
+  color: #eeeeee;
+}
+
+.navbar-inverse .navbar-nav > li > a {
+  color: #eeeeee;
+}
