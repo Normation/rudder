@@ -65,6 +65,8 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['bundle_name'], "package_install_version")
     self.assertEqual(metadata['bundle_args'], ["package_name", "package_version"])
     self.assertEqual(metadata['name'], "Package install")
+    self.assertEqual(metadata['description'], "Install a package by name from the default system package manager")
+    self.assertEqual(metadata['parameter'], [{'name': 'package_name', 'description': 'Name of the package to install'},{'name': 'package_version', 'description': 'Version of the package to install'}])
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)

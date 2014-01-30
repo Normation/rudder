@@ -7,6 +7,11 @@
 # above each generic method main bundle
 #
 # @name Package install
+# @description Install a package by name from the default system package manager
+#
+# @parameter package_name Name of the package to install
+# @parameter package_version Version of the package to install
+
 # @class_prefix package_install
 #   @class_parameter package_name
 #

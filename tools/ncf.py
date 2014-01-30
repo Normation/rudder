@@ -19,7 +19,7 @@ dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_k
 
 tags = {}
 tags["common"] = ["bundle_name", "bundle_args"]
-tags["generic_method"] = ["name", "class_prefix", "class_parameter", "class_parameter_id"]
+tags["generic_method"] = ["name", "description", "parameter", "class_prefix", "class_parameter", "class_parameter_id"]
 tags["technique"] = ["name", "description", "version"]
 
 def get_root_dir():
@@ -69,12 +69,17 @@ def parse_generic_method_metadata(technique_content):
 
 def parse_bundlefile_metadata(content, bundle_type):
   res = {}
+  parameters = []
 
   for line in content.splitlines():
     for tag in tags[bundle_type]:
-      match = re.match("^\s*#\s*@" + tag + "\s+(.*)$", line)
+      match = re.match("^\s*#\s*@" + tag + "\s(([a-zA-Z_]+)\s+(.*)|.*)$", line)
       if match :
-        res[tag] = match.group(1)
+        # tag "parameter" may be multi-valued
+        if tag == "parameter":
+          parameters.append({'name': match.group(2), 'description': match.group(3)})
+        else:
+          res[tag] = match.group(1)
 
     match = re.match("[^#]*bundle\s+agent\s+([^(]+)\(?([^)]*)\)?.*$", line)
     if match:
@@ -94,6 +99,10 @@ def parse_bundlefile_metadata(content, bundle_type):
     except:
       res['class_parameter_id'] = 0
       raise Exception("The class_parameter name \"" + res['class_parameter'] + "\" does not seem to match any of the bundle's parameters")
+
+  # If we found any parameters, store them in the res object
+  if len(parameters) > 0:
+    res['parameter'] = parameters
 
   expected_tags = tags[bundle_type] + tags["common"]
   if sorted(res.keys()) != sorted(expected_tags):
