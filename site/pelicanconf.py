@@ -31,6 +31,7 @@ GITHUB_URL = 'http://github.com/Normation/ncf'
 GOOGLE_ANALYTICS = 'UA-15347142-5'
 BOOTSTRAP_NAVBAR_INVERSE = True
 PYGMENTS_STYLE = 'monokai'
+HIDE_SIDEBAR = True
 
 # Sidebar
 DISPLAY_TAGS_ON_SIDEBAR = False
