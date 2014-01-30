@@ -30,17 +30,22 @@ if __name__ == '__main__':
   content.append("Author: Normation")
 
   for category in sorted(categories.iterkeys()):
-     content.append("* ["+category.title()+"](#"+category+")")
+    content.append("* ["+category.title()+"](#"+category+")")
+    for generic_method in categories[category]:
+      name = generic_method["name"]
+      content.append("    * ["+name+"](#"+name+")")
   for category in sorted(categories.iterkeys()):
     content.append('<a name="'+category+'"></a><br/><br/>')
     content.append('\n# '+category.title())
  
   # Generate markdown for each generic method
     for generic_method in categories[category]:
+      bundle_name = generic_method["bundle_name"]
+      content.append('<a name="'+generic_method["name"]+'"></a><br/><br/>')
       content.append('\n## '+generic_method["name"])
-      content.append('* *Bundle name:* '+method_name)
+      content.append('* *Bundle name:* '+bundle_name)
       content.append('\n### Signature')
-      content.append('* ' + method_name + "(" + ", ".join(generic_method["bundle_args"]) + ")")
+      content.append('* ' + bundle_name + "(" + ", ".join(generic_method["bundle_args"]) + ")")
       content.append('\n### Parameters')
       for args in generic_method["bundle_args"]:
         content.append("* "+args)
