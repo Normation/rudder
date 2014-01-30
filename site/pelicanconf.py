@@ -27,6 +27,7 @@ CATEGORY_FEED_ATOM = None
 TRANSLATION_FEED_ATOM = None
 
 # Theme extras
+BOOTSTRAP_THEME = 'spacelab'
 GITHUB_URL = 'http://github.com/Normation/ncf'
 GOOGLE_ANALYTICS = 'UA-15347142-5'
 BOOTSTRAP_NAVBAR_INVERSE = True
