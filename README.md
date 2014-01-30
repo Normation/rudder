@@ -1,6 +1,6 @@
-# NCF
+# ncf
 
-This repository contains the NCF framework.
+This repository contains the ncf framework.
 This framework aims at easing the development and use of the configuration management tool CFEngine 3.
 
 ## Concepts
@@ -15,6 +15,7 @@ There are several levels in this framework, from 10 to 60, representing a layer,
   - __60_services__: this directory contains the configurations of services, with parameters and conditions. This level is specific for each organisation.
 
 Each level contains at least 3 subfolders:
+
   1. __ncf__: the files shipped with the framework
   2. __local__: local imlementation, organisation specific. This folder is always ignored in git
   3. __d-c__: extension point for the framework, for the Design-Center
