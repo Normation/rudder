@@ -14,7 +14,7 @@ html: doc
 	cp doc/generic_methods.md site/content/pages/
 	cd site; make html
 
-testWebsite: html
+testsite: html
 	cd site; make serve
 
 clean:
