@@ -11,7 +11,8 @@ doc:
 	tools/ncf_doc.py
 
 html: doc
-	cp doc/generic_methods.md site/content/pages/
+	# To use this, run pip install pelican Markdown
+	cp doc/generic_methods.md site/content/
 	cd site; make html
 
 testsite: html
