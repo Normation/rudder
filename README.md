@@ -14,10 +14,4 @@ There are several levels in this framework, from 10 to 60, representing a layer,
   - __50_techniques__: this directory contains Techniques, which are the know-how of configuring a services
   - __60_services__: this directory contains the configurations of services, with parameters and conditions. This level is specific for each organisation.
 
-Each level contains at least 3 subfolders:
-
-  1. __ncf__: the files shipped with the framework
-  2. __local__: local imlementation, organisation specific. This folder is always ignored in git
-  3. __d-c__: extension point for the framework, for the Design-Center
-
 Each level uses items from the lower level (lower number) or from its own level.
