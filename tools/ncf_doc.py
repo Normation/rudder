@@ -30,6 +30,9 @@ if __name__ == '__main__':
   content.append("Author: Normation")
 
   for category in sorted(categories.iterkeys()):
+     content.append("* ["+category.title()+"](#"+category+")")
+  for category in sorted(categories.iterkeys()):
+    content.append('<a name="'+category+'"></a><br/><br/>')
     content.append('\n# '+category.title())
  
   # Generate markdown for each generic method
