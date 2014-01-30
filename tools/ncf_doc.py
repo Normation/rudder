@@ -25,32 +25,34 @@ if __name__ == '__main__':
 
   content = []
 
-  content.append("Title: Generic methods")
-  content.append("slugs: generic-methods")
+  content.append("Title: Reference")
+  content.append("slugs: reference")
   content.append("Author: Normation")
 
   for category in sorted(categories.iterkeys()):
     content.append("* ["+category.title()+"](#"+category+")")
     for generic_method in categories[category]:
-      name = generic_method["name"]
+      name = generic_method["bundle_name"]
       content.append("    * ["+name+"](#"+name+")")
   for category in sorted(categories.iterkeys()):
     content.append('<a name="'+category+'"></a><br/><br/>')
-    content.append('\n# '+category.title())
+    content.append('\n## '+category.title())
  
-  # Generate markdown for each generic method
+    # Generate markdown for each generic method
     for generic_method in categories[category]:
       bundle_name = generic_method["bundle_name"]
-      content.append('<a name="'+generic_method["name"]+'"></a><br/><br/>')
-      content.append('\n## '+generic_method["name"])
-      content.append('* *Bundle name:* '+bundle_name)
-      content.append('\n### Signature')
-      content.append('* ' + bundle_name + "(" + ", ".join(generic_method["bundle_args"]) + ")")
-      content.append('\n### Parameters')
-      for args in generic_method["bundle_args"]:
-        content.append("* "+args)
-      content.append('\n### Classes defined')
-      content.append('* '+generic_method["class_prefix"]+"_$("+generic_method["class_parameter"] + ")")
+      content.append('<a name="'+generic_method["bundle_name"]+'"></a><br/><br/>')
+      content.append('\n### '+ bundle_name)
+      content.append(generic_method["description"])
+      content.append('\n#### Signature')
+      content.append('    :::cfengine3')
+      content.append('    bundle agent ' + bundle_name + "(" + ", ".join(generic_method["bundle_args"]) + ")")
+      content.append('\n#### Parameters')
+      for parameter in generic_method["parameter"]:
+        content.append("* **" + parameter['name'] + "**: " + parameter['description'])
+      content.append('\n#### Classes defined')
+      content.append('    :::perl')
+      content.append('    '+generic_method["class_prefix"]+"_${"+generic_method["class_parameter"] + "}_{kept, repaired, not_ok, reached}")
       content.append('')
 
   # Write generic_methods.md
