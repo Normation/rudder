@@ -13,4 +13,5 @@ tests/style/xml.tmp
 tests/style/workdir/*
 doc/all_generic_methods.txt
 doc/generic_methods.md
+site/output/*
 *.pyc

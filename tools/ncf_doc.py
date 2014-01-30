@@ -13,7 +13,10 @@ if __name__ == '__main__':
 
   content = []
 
-  # Generate markdown for each generic method
+  content.append("Title: Generic methods")
+  content.append("slugs: generic-methods")
+  content.append("Author: Normation")
+# Generate markdown for each generic method
   for (method_name,generic_method) in generic_methods.iteritems():
     content.append('# '+generic_method["name"])
     content.append('* *Bundle name:* '+method_name)

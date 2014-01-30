@@ -9,6 +9,14 @@ test:
 doc:
 	ls tree/30_generic_methods/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
 	tools/ncf_doc.py
+
+html: doc
+	cp doc/generic_methods.md site/content/pages/
+	cd site; make html
+
+testWebsite: html
+	cd site; make serve
+
 clean:
 	rm -rf tests/style/.succeeded
 	rm -f tests/style/summary.log
