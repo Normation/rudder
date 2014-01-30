@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 #
-# Usage: ./ncf-rudder.py
+# Usage: ./ncf_doc.py
 #
 # This is a Python module to generate documentation from generic methods in ncf
 
-import os.path
 import ncf 
-import sys
-import re
-import json
 
 if __name__ == '__main__':
 
@@ -20,12 +16,14 @@ if __name__ == '__main__':
   # Generate markdown for each generic method
   for (method_name,generic_method) in generic_methods.iteritems():
     content.append('# '+generic_method["name"])
-    content.append('* *bundle name:* '+method_name)
-    content.append('\n## parameters')
+    content.append('* *Bundle name:* '+method_name)
+    content.append('\n## Signature')
+    content.append('* ' + method_name + "(" + ", ".join(generic_method["bundle_args"]) + ")")
+    content.append('\n## Parameters')
     for args in generic_method["bundle_args"]:
       content.append("* "+args)
-    content.append('\n## class result')
-    content.append('* '+generic_method["class_prefix"]+"_"+generic_method["class_parameter"])
+    content.append('\n## Classes defined')
+    content.append('* '+generic_method["class_prefix"]+"_$("+generic_method["class_parameter"] + ")")
     content.append('')
 
   # Write generic_methods.md
