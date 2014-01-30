@@ -8,7 +8,7 @@ test:
 
 doc:
 	ls tree/30_generic_methods/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
-	tools/ncf-doc.py
+	tools/ncf_doc.py
 clean:
 	rm -rf tests/style/.succeeded
 	rm -f tests/style/summary.log
