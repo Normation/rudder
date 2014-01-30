@@ -110,7 +110,9 @@
                 {% endif %}
             </ul>
             <ul class="nav navbar-nav navbar-right">
+                {% if DISPLAY_ARCHIVES_ON_MENU %}
                 <li><a href="{{ SITEURL }}/{{ ARCHIVES_URL | default('archives.html') }}"><i class="fa fa-th-list"></i><span class="icon-label">Archives</span></a></li>
+                {% endif %}
             </ul>
         </div>
         <!-- /.navbar-collapse -->
