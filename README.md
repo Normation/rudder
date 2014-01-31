@@ -4,7 +4,7 @@
 
 However, many have a hard time with the language and tooling, and need an easier way. CFEngine has been [described](https://digitalelf.net/2013/04/a-case-study-in-cfengine-layout/) as flour, eggs, milk and butter. All the ingredients needed to make a cake, but no recipe. __ncf__ is that missing recipe, and much more.
 
-ncf is a framework that runs in __pure CFEngine__, to help __structure__ your CFEngine policy and provide __reusable, single purpose components__ distributed under the __GPLv3__ license.
+ncf is a framework that runs in __pure CFEngine language__, to help __structure__ your CFEngine policy and provide __reusable, single purpose components__ distributed under the __GPLv3__ license.
 
 ## Philosophy
 
