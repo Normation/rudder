@@ -12,6 +12,15 @@ doc:
 
 html: doc
 	# To use this, run pip install pelican Markdown
+	
+	# Copy README.md and prefix it with metadata to make the site's index file
+	echo "Title: A powerful and structured CFEngine framework" > site/content/index.md
+	echo "URL: " >> site/content/index.md
+	echo "save_as: index.html" >> site/content/index.md
+	# Skip the first line (title that will be re-added by pelican)
+	tail -n+2 README.md >> site/content/index.md
+
+	# Copy reference data
 	cp doc/generic_methods.md site/content/
 	cd site; make html
 

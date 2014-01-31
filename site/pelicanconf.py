@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 AUTHOR = u'Normation'
-SITENAME = u'ncf - a structured and powerful CFEngine framework'
+SITENAME = u'ncf'
 #SITEURL = 'http://www.ncf-project.org'
 
 TIMEZONE = 'Europe/Paris'

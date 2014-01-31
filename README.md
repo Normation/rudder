@@ -1,5 +1,3 @@
-Title: A powerful and structured CFEngine framework
-
 # A powerful and structured CFEngine framework
 
 [CFEngine 3](http://www.cfengine.com) is a powerful configuration management tool that's speed, small footprint, multi-platform support, network resilience and agent-based approach attract many.
@@ -17,6 +15,7 @@ ncf is designed with the following concepts at all times:
   - __Minimal effort__: Reduce typing and syntax effort for everyday use as much as possible. Make the framework do the heavy lifting - code once, benefit forever! (aka "Lazy" :) )
   - __Intuitive__: Reading and writing configuration management rules with ncf should be self-evident. Clearly named bundles and conventions make this easy.
   - __Extensible__: You should be able to extend anything, add methods or support for new tools easily, without breaking anything.
+  - __Open source__: We believe in sharing so that the world can build on each other's work, and continually improve. ncf is [distributed under the GPLv3 license on GitHub](https://github.com/normation/ncf/).
 
 ## Decoupled layers
 
