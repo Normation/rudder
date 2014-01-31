@@ -34,12 +34,23 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
 
   files:
 
+   is_file_copy::
+      "${destination}"
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
+        classes      => classes_generic("${class_prefix}");
+
+   !is_file_copy::
       "${destination}"
         copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
         depth_search => recurse("${recursion}"),
-	classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic("${class_prefix}");
 
   methods:
+   is_file_copy::
+      "report"
+        usebundle  => _logger("Copying ${destination} from ${source}", "${class_prefix}");
+
+   !is_file_copy::
       "report"
         usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
 }
