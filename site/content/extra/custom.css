@@ -9,3 +9,15 @@
 .navbar-inverse .navbar-nav > li > a {
   color: #eeeeee;
 }
+
+.anchor {
+  display: block;
+  position: relative;
+  top: -50px;
+  visibility: hidden;
+}
+
+hr {
+  margin-bottom : -10px;
+  border-width : 2px 0 0;
+}

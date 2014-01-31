@@ -35,13 +35,13 @@ if __name__ == '__main__':
       name = generic_method["bundle_name"]
       content.append("    * ["+name+"](#"+name+")")
   for category in sorted(categories.iterkeys()):
-    content.append('<a name="'+category+'"></a><br/><br/>')
+    content.append('<a class="anchor" name="'+category+'"></a>')
     content.append('\n## '+category.title())
  
     # Generate markdown for each generic method
     for generic_method in categories[category]:
       bundle_name = generic_method["bundle_name"]
-      content.append('<a name="'+generic_method["bundle_name"]+'"></a><br/><br/>')
+      content.append('<a class="anchor" name="'+generic_method["bundle_name"]+'"></a>')
       content.append('\n### '+ bundle_name)
       content.append(generic_method["description"])
       content.append('\n#### Signature')
@@ -53,7 +53,7 @@ if __name__ == '__main__':
       content.append('\n#### Classes defined')
       content.append('    :::perl')
       content.append('    '+generic_method["class_prefix"]+"_${"+generic_method["class_parameter"] + "}_{kept, repaired, not_ok, reached}")
-      content.append('')
+      content.append('<hr/>')
 
   # Write generic_methods.md
   result = '\n'.join(content)+"\n"
