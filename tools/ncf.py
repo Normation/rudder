@@ -178,10 +178,7 @@ def parse_technique_methods(technique_file):
 def get_all_generic_methods_metadata(alt_path = ''):
   all_metadata = {}
 
-  if alt_path == '':
-    filenames = get_all_generic_methods_filenames()
-  else:
-    filenames = get_all_generic_methods_filenames(alt_path)
+  filenames = get_all_generic_methods_filenames(alt_path)
 
   for file in filenames:
     content = open(file).read()
@@ -196,11 +193,9 @@ def get_all_generic_methods_metadata(alt_path = ''):
 def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
   all_metadata = {}
 
-  if alt_path == '':
-    filenames = get_all_techniques_filenames()
-  else:
-    print "alternative source path added: %s" % alt_path
-    filenames = get_all_techniques_filenames(alt_path)
+  if alt_path != '': print "alternative source path added: %s" % alt_path
+
+  filenames = get_all_techniques_filenames(alt_path)
 
   for file in filenames:
     content = open(file).read()
