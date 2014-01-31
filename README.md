@@ -36,4 +36,4 @@ There are none, other than CFEngine itself.
 
 ncf is a pure-CFEngine framework, so you can just add it in your CFEngine policy files. Nothing else is needed.
 
-Some tooling is provided (ncf CLI), but it is not mandatory. It is designed to help developing your policy. The tooling is all in Python, and required Python 2.6+.
+Some tooling is provided (ncf CLI), but it is not mandatory. It is designed to help developing your policy. The tooling is all in Python, and requires Python 2.6+.
