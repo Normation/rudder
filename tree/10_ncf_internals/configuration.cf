@@ -36,4 +36,10 @@ bundle agent configuration
       "enabled_loggers"             slist => splitstring("${ncf_config[loggers][1]}",",","10");
       "cfengine_port"              string => "${ncf_config[cfengine_port][1]}";
 
+      # Constants
+      "error"                     string => "[ERROR]";
+      "info"                      string => "[INFO] ";
+      "debug"                     string => "[DEBUG]";
+      "trace"                     string => "[TRACE]";
+
 }

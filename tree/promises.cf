@@ -57,12 +57,12 @@ bundle agent init
 {
   reports:
     cfengine::
-      "[INFO] Starting CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
-    debug::
-      "[DEBUG] inputs from ncf_internals : ${inputs.ncf_internals_files}";
-      "[DEBUG] inputs from framework : ${inputs.generic_framework_files}";
-      "[DEBUG] inputs from techiques : ${inputs.techniques_files}";
-      "[DEBUG] inputs from services : ${inputs.services_files}";
+      "${configuration.info} Starting CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
+    trace::
+      "${configuration.trace} File read from 10_ncf_internals: ${inputs.ncf_internals_files}";
+      "${configuration.trace} File read from 20_cfe_basics, 30_generic_methods, 40_it_ops_knowledge: ${inputs.generic_framework_files}";
+      "${configuration.trace} File read from 50_techiques: ${inputs.techniques_files}";
+      "${configuration.trace} File read from 60_services: ${inputs.services_files}";
 }
 
 ##############################################################################
@@ -74,7 +74,7 @@ bundle agent end
 {
   reports:
     cfengine::
-      "[INFO] Finished CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
+      "${configuration.info} Finished CFEngine ${sys.cf_version} on host ${sys.fqhost} (${sys.flavour} ${sys.arch})";
 }
 
 

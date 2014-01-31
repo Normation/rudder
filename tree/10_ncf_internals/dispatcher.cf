@@ -47,14 +47,14 @@ bundle agent dispatcher
 
   reports:
     !mapper_services_exists::
-      "[ERROR] There are no services defined in service_dispatcher.cf. The execution is stopped";
+      "${configuration.error} There are no services defined in service_dispatcher.cf. The execution is stopped";
     mapper_services_exists::
-      "[INFO] Running services, going to run bundle: ${services_array_${services}[2]} (in version '${services_array_${services}[3]}')";
+      "${configuration.info} Running services, going to run bundle: ${services_array_${services}[2]} (in version '${services_array_${services}[3]}')";
 
     cfengine::
-      "[INFO] Starting bundle runs..."
+      "${configuration.info} Starting bundle runs..."
         classes => classes_generic("dispatcher_reports");
-      "[ERROR] Could not run bundle ${services_array_${services}[2]} (with service path ${services_array_${services}[0]})"
+      "${configuration.error} Could not run bundle ${services_array_${services}[2]} (with service path ${services_array_${services}[0]})"
         ifvarclass => canonify("dispatcher_${services_array_${services}[2]}_not_ok");
 }
 
@@ -71,13 +71,13 @@ bundle agent caller(service_path, service_name, service_version)
 
   reports:
     cfengine::
-      "[INFO] Starting bundle execution: ${service_name} (with path ${service_path}"
+      "${configuration.info} Starting bundle execution: ${service_name} (with path ${service_path})"
         classes => classes_generic("caller_reports_start_${service_name}");
 
-      "[INFO] Finished bundle execution: ${service_name} (with path ${service_path}"
+      "${configuration.info} Finished bundle execution: ${service_name} (with path ${service_path})"
         ifvarclass => canonify("caller_${service_name}_ok");
 
-      "[ERROR] there were some error while the execution of bundle: ${service_name} (with path ${service_path}"
+      "${configuration.error} Error in bundle execution: ${service_name} (with path ${service_path})"
         ifvarclass => canonify("caller_${service_name}_not_ok");
 
 }

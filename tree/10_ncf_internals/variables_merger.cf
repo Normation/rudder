@@ -40,7 +40,7 @@ bundle agent var(name, default_array, user_array)
          string => "${${user_array}[${user_keys}]}";
   reports:
     debug:: 
-      "[DEBUG] Merging variables into variable with name ${name}:";
-      "[DEBUG] Default values ${default_keys} : ${${default_array}[${default_keys}]}";
-      "[DEBUG] User values    ${user_keys} : ${${user_array}[${user_keys}]}";
+      "${configuration.debug} Merging variables into variable with name ${name}:";
+      "${configuration.debug} Default values ${default_keys} : ${${default_array}[${default_keys}]}";
+      "${configuration.debug} User values    ${user_keys} : ${${user_array}[${user_keys}]}";
 }
