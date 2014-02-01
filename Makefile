@@ -22,6 +22,7 @@ html: doc
 
 	# Copy reference data
 	cp doc/generic_methods.md site/content/
+	cp doc/generic_methods.html site/pelican-bootstrap3/templates/includes/
 	cd site; make html
 
 testsite: html

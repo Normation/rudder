@@ -25,16 +25,29 @@ if __name__ == '__main__':
 
 
   content = []
+  html_content = []
 
   content.append("Title: Reference")
   content.append("slugs: reference")
   content.append("Author: Normation")
+  content.append("Template: ref")
+  html_content.append("<ul>")
 
   for category in sorted(categories.iterkeys()):
-    content.append("* ["+category.title()+"](#"+category+")")
+    html_content.append("<li><a href='#"+category+"'>"+category.title()+"</a></li>")
     for generic_method in categories[category]:
       name = generic_method["bundle_name"]
-      content.append("    * ["+name+"](#"+name+")")
+      html_content.append("<ul>")
+      html_content.append("<li><a href='#"+name+"'>"+name.title()+"</a></li>")
+      html_content.append("</ul>")
+
+  html_content.append("</ul>")
+
+  html = '\n'.join(html_content)+"\n"
+  htmlfile = open("doc/generic_methods.html","w")
+  htmlfile.write(html)
+  htmlfile.close()
+
   for category in sorted(categories.iterkeys()):
     content.append('<a class="anchor" name="'+category+'"></a>')
     content.append('\n## '+category.title())
