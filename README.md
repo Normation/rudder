@@ -6,6 +6,27 @@ However, many have a hard time with the language and tooling, and need an easier
 
 ncf is a framework that runs in __pure CFEngine language__, to help __structure__ your CFEngine policy and provide __reusable, single purpose components__ distributed under the __GPLv3__ license.
 
+## Example
+
+Since an example is worth a thousand words, here goes. This is a sample config written using ncf:
+
+    :::cfengine3
+    bundle agent ntp {
+      methods:
+        "package" usebundle  => package_install("ntp");
+        "config"  usebundle  => file_from_template("ntp.conf", "/etc/ntp.conf");
+        "reload"  usebundle  => service_restart("ntp"),
+                  ifvarclass => "file_from_template__etc_ntp_conf_repaired";
+        "running" usebundle  => service_ensure_running("ntp");
+    }
+
+This example will:
+
+  - ensure the "ntp" package is installed
+  - ensure the /etc/ntp.conf file is up to date from a template
+  - restart ntpd if the configuration file is changed (the class "file_from_template__etc_ntp_conf_repaired" is automatically defined by the previous bundle)
+  - ensure the "ntp" service is running
+
 ## Philosophy
 
 ncf is designed with the following concepts at all times:
@@ -37,3 +58,13 @@ There are none, other than CFEngine itself.
 ncf is a pure-CFEngine framework, so you can just add it in your CFEngine policy files. Nothing else is needed.
 
 Some tooling is provided (ncf CLI), but it is not mandatory. It is designed to help developing your policy. The tooling is all in Python, and requires Python 2.6+.
+
+## Getting started
+
+Start by downloading ncf from our [Download]({filename}/download.md) page.
+
+Then, check out the [reference documentation]({{filename}/generic_methods.md) that lists all available generic_methods.
+
+## Feedback
+
+We'd love to hear your feedback about ncf, please get in touch on IRC (#ncf on Freenode)!
