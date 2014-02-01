@@ -10,6 +10,14 @@
   color: #eeeeee;
 }
 
+.navbar-inverse .navbar-nav > .active > a,
+.navbar-inverse .navbar-nav > .active > a:hover,
+.navbar-inverse .navbar-nav > .active > a:focus {
+  color: #ffffff;
+  background-color: transparent;
+  font-weight: bold;
+}
+
 .anchor {
   display: block;
   position: relative;
