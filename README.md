@@ -63,7 +63,7 @@ Some tooling is provided (ncf CLI), but it is not mandatory. It is designed to h
 
 Start by downloading ncf from our [Download]({filename}/download.md) page.
 
-Then, check out the [reference documentation]({{filename}/generic_methods.md) that lists all available generic_methods.
+Then, check out the [reference documentation]({filename}/generic_methods.md) that lists all available generic_methods.
 
 ## Feedback
 
