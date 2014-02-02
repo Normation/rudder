@@ -49,5 +49,5 @@ bundle agent service_restart_if(service_name, trigger_class)
                                    ifvarclass => "${trigger_class}";
 
       # reporting
-      "report"                     usebundle  => _logger("Service ${canonified_service_name} restarted", "service_restart_${canonified_service_name}");
+      "report"                     usebundle  => _logger("Restart service ${canonified_service_name}", "service_restart_${canonified_service_name}");
 }

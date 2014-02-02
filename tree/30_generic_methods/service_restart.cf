@@ -29,7 +29,6 @@ bundle agent service_restart(service_name)
 {
   methods:
 
-      # Will be replaced later with less naive conditions (using either service, upstart, ...
       "wrap"    usebundle => service_restart_if("${service_name}","any");
 
 }

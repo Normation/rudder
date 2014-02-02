@@ -27,7 +27,7 @@ bundle agent init
       "service_script_1" string => "crond";
     !redhat::
       "service_script_1" string => "cron";
-
+    any::
       "service_script_2" string => "my_service";
 }
 
