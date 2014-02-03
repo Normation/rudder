@@ -35,27 +35,29 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
   classes:
       # depth_search prevents from copying file/symlink
       # so we need to detect if we want to copy a folder or a file
-      "is_file_copy"    not => isdir("${source}");
+      # If we check if it is a file, the class will always be true
+      # event if was in fact a directory. Then, we test if it is a dir.
+      "is_dir_copy"   expression  => isdir("${source}");
 
   files:
 
-   is_file_copy::
+   !is_dir_copy::
       "${destination}"
         copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
         classes      => classes_generic("${class_prefix}");
 
-   !is_file_copy::
+   is_dir_copy::
       "${destination}"
         copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
         depth_search => recurse("${recursion}"),
         classes      => classes_generic("${class_prefix}");
 
   methods:
-   is_file_copy::
+   !is_dir_copy::
       "report"
         usebundle  => _logger("Copying ${destination} from ${source}", "${class_prefix}");
 
-   !is_file_copy::
+   is_dir_copy::
       "report"
         usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
 }

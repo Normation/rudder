@@ -23,12 +23,12 @@ bundle agent init
 {
   vars:
     "tmp"                      string => getenv("TEMP", 1024);
-    "source_file_1"            string => "${tmp}/source_test_1";
-    "source_folder"            string => "${tmp}/folder_test";
-    "source_file_2"            string => "${source_folder}/source_test_2";
-    "destination_file_1"       string => "${tmp}/destination_test_1";
+    "source_file_1"            string => "${tmp}/source_file_1";
+    "source_folder"            string => "${tmp}/source_folder";
+    "source_file_2"            string => "${source_folder}/file_2";
+    "destination_file_1"       string => "${tmp}/destination_file_1";
     "destination_folder"       string => "${tmp}/destination_folder";
-    "destination_file_2"       string => "${tmp}/destination_test_2";
+    "destination_file_2"       string => "${destination_folder}/file_2";
     "destination_file_canon_1" string => canonify("${destination_file_1}");
     "destination_folder_canon" string => canonify("${destination_folder}");
     "destination_file_canon_2" string => canonify("${destination_file_2}");
@@ -64,14 +64,15 @@ bundle agent check
 {
 
   classes:
-    "file_exists_ok"   expression => fileexists("${init.source_file_1}");
-    "folder_exists_ok" expression => fileexists("${init.source_folder}"); 
-    "file_isdir_ok"    not => isdir("${init.source_file_1}");
+    "file_1_exists_ok" expression => fileexists("${init.destination_file_1}");
+    "folder_exists_ok" expression => fileexists("${init.destination_folder}");
+    "file_2_exists_ok" expression => fileexists("${init.destination_file_2}");
+    "file_isdir_ok"    not        => isdir("${init.source_file_1}");
     "folder_isdir_ok"  expression => isdir("${init.source_folder}");
-    "ok_file"          and => { "file_exists_ok", "file_isdir_ok" };
-    "ok_folder"        and => { "folder_exists_ok", "folder_isdir_ok" };
+    "ok_file"          and        => { "file_1_exists_ok", "file_isdir_ok" };
+    "ok_folder"        and        => { "folder_exists_ok", "folder_isdir_ok", "file_2_exists_ok" };
 
-    "ok"               and => { "ok_file", "ok_folder" };
+    "ok"               and        => { "ok_file", "ok_folder" };
 
   reports:
     ok::
