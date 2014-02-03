@@ -38,7 +38,7 @@ if __name__ == '__main__':
     for generic_method in categories[category]:
       name = generic_method["bundle_name"]
       html_content.append("<ul>")
-      html_content.append("<li><a href='#"+name+"'>"+name.title()+"</a></li>")
+      html_content.append("<li><a href='#"+name+"'>"+name+"</a></li>")
       html_content.append("</ul>")
 
   html_content.append("</ul>")
