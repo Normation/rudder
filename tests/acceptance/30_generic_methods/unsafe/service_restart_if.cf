@@ -56,5 +56,5 @@ bundle agent check
     ok::
       "$(this.promise_filename) Pass";
     !ok::
-      "$(this.promise_filename) FAIL (Service restart failed or no OS support)";
+      "$(this.promise_filename) FAIL (Service restart failed)";
 }
