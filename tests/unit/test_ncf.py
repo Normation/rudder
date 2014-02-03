@@ -109,11 +109,27 @@ class TestNcf(unittest.TestCase):
     number_generic_methods = len(ncf.get_all_generic_methods_filenames())
     self.assertEquals(number_generic_methods, len(metadata))
 
+  def test_get_all_generic_methods_metadata_with_arg(self):
+    """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
+    alternative_path = os.path.realpath(__file__) + "test_methods"
+    metadata = ncf.get_all_generic_methods_metadata(alternative_path)
+
+    number_generic_methods = len(ncf.get_all_generic_methods_filenames(alternative_path))
+    self.assertEquals(number_generic_methods, len(metadata))
+
   def test_get_all_techniques_metadata(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
     metadata = ncf.get_all_techniques_metadata()
 
     number = len(ncf.get_all_techniques_filenames())
+    self.assertEquals(number, len(metadata))
+
+  def test_get_all_techniques_metadata_with_args(self):
+    """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
+    alternative_path = os.path.realpath(__file__) + "test_methods"
+    metadata = ncf.get_all_techniques_metadata(alternative_path)
+
+    number = len(ncf.get_all_techniques_filenames(alternative_path))
     self.assertEquals(number, len(metadata))
 
 if __name__ == '__main__':
