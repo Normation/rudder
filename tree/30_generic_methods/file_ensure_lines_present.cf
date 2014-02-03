@@ -40,5 +40,5 @@ bundle agent file_ensure_lines_present(file, lines)
 
   methods:
       "report"
-        usebundle  => _logger("Insert line(s) ${lines} into ${file}", "${class_prefix}");
+        usebundle  => _logger("Ensure line(s) '${lines}' present in ${file}", "${class_prefix}");
 }

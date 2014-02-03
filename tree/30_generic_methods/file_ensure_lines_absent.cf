@@ -36,9 +36,9 @@ bundle agent file_ensure_lines_absent(file, lines)
         create        => "false",
         edit_line     => delete_lines_matching("${lines}"),
         edit_defaults => no_backup,
-	classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"
-        usebundle  => _logger("Delete line(s) ${lines} from ${file}", "${class_prefix}");
+        usebundle  => _logger("Ensure line(s) '${lines}' absent from ${file}", "${class_prefix}");
 }
