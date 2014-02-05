@@ -35,26 +35,34 @@ bundle agent file_copy_from_local_source_recursion(source, destination, recursio
   classes:
       # depth_search prevents from copying file/symlink
       # so we need to detect if we want to copy a folder or a file
-      "is_file_copy"    not => isdir("${source}");
+      # If we check if it is a file, the class will always be true
+      # event if was in fact a directory. Then, we test if it is a dir.
+      "is_dir_copy"  expression => isdir("${destination}");
+      # We won't be able to know if it is really a directory
+      # or not before the first iteration
+      "iteration_2"  expression => "iteration_1";
+      "iteration_1"  expression => "any";
 
   files:
-   is_file_copy::
+   !is_dir_copy::
       "${destination}"
         copy_from    => ncf_local_cp_method("${source}", "mtime"),
         classes      => classes_generic("${class_prefix}");
 
-   !is_file_copy::
+   is_dir_copy::
       "${destination}"
         copy_from    => ncf_local_cp_method("${source}", "mtime"),
         depth_search => recurse("${recursion}"),
-	classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic("${class_prefix}");
 
   methods:
-   is_file_copy::
+   # The reports should only be made after we know if this is a
+   # directory (to apply recursion) or a file
+   iteration_2.!is_dir_copy::
       "report"
         usebundle  => _logger("Copying ${destination} from ${source}", "${class_prefix}");
 
-   !is_file_copy::
+   iteration_2.is_dir_copy::
       "report"
         usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
 }
