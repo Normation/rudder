@@ -215,7 +215,7 @@ class ReportingServiceImpl(
     val rulesAndSerials = nonEmptyExpected.map(x => (x.ruleId, x.serial))
     val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials)
 
-    // Here we go over each elements of the map [ruleId, Box[ExpectedReports], and reconcile the
+    // Here we go over each element of the map [ruleId, Box[ExpectedReports], and reconcile the
     // entries with the batches
     expectedReports.map { case (ruleId, status) =>
       val executionBatch = status match {
