@@ -27,17 +27,8 @@
 
 bundle agent service_restart(service_name)
 {
-  vars:
-
-    "restart_command"            string => "/etc/init.d/${service_name} restart";
-    "canonified_restart_command" string => canonify("${restart_command}");
-    "class_prefix"               string => canonify("service_restart_${service_name}");
-
   methods:
 
-      # Will be replaced later with less naive conditions (using either service, upstart, ...
-      "restart"    usebundle => command_execution("${restart_command}");
-      "class copy" usebundle => _classes_copy("command_execution_${canonified_restart_command}", "${class_prefix}");
-      "report"     usebundle => _logger("Restart service ${service_name}", "${class_prefix}");
+      "wrap"    usebundle => service_restart_if("${service_name}","any");
 
 }
