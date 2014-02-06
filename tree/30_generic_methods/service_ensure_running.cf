@@ -19,7 +19,7 @@
 # @name Service ensure running
 # @description Ensure that a service is running using the appropriate method
 #
-# @parameter service_name Service
+# @parameter service_name Service name (as recognized by init.d, upstart, etc...)
 # 
 # @class_prefix service_ensure_running
 # @class_parameter service_name
@@ -27,30 +27,9 @@
 
 bundle agent service_ensure_running(service_name)
 {
-  vars:
-
-    "canonified_service_name"      string => canonify("${service_name}");
-    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
-    "class_prefix"                 string => canonify("service_ensure_running_${service_name}");
-
   methods:
 
     "check running"
-      usebundle  => service_check_running("${service_name}");
-
-    "start if not running"
-      usebundle  => service_start("${service_name}"),
-      ifvarclass => "!service_check_running_${canonified_service_name}_kept";
-
-    "class copy check"
-      usebundle => _classes_copy("service_check_running_${canonified_service_name}", "${class_prefix}");
- 
-    "class copy if not running"
-      usebundle => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
-      ifvarclass => "!service_check_running_${canonified_service_name}_kept";
-
-    "report"
-      usebundle => _logger("Ensure that service ${service_name} is running", "${class_prefix}");
-
+      usebundle  => service_ensure_running_path("${service_name}", "${service_name}");
 
 }
