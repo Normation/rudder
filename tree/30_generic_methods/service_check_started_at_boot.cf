@@ -1,0 +1,50 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service check at boot
+# @description Check if a service is set to start at boot using the appropriate method
+#
+# @parameter service_name  Service name (as recognized by init.d, upstart, etc...)
+# 
+# @class_prefix service_check_started_at_boot
+# @class_parameter service_name
+# This bundle will define a class service_check_started_at_boot_${service_name}_{kept,ok,not_ok,failed,reached}
+#
+# Does not work (yet) on Debian systems
+bundle agent service_check_started_at_boot(service_name)
+{
+  vars:
+      "class_prefix"       string => canonify("service_check_started_at_boot_${service_name}");
+      "command_to_check"   string => "/sbin/chkconfig --list ${service_name} | grep -q 3:on";
+      "canonified_command" string => canonify("${command_to_check}");
+
+  methods:
+      "check_run"
+        usebundle => command_execution("${command_to_check}");
+
+
+      "success" usebundle => _classes_success("${class_prefix}"),
+               ifvarclass => "command_execution_${canonified_command}_repaired.!command_execution_${canonified_command}_failed";
+
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+               ifvarclass => "command_execution_${canonified_command}_failed";
+
+    any::
+      "reports" usebundle => _logger("Ensure that service ${service_name} is defined at boot", "${class_prefix}");
+
+}
