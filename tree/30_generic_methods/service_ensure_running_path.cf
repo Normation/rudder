@@ -1,0 +1,60 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service ensure running with service path
+# @description Ensure that a service is running using the appropriate method, specifying the path of the service in the ps output
+# 
+#
+# @parameter service_name Service name (as recognized by init.d, upstart, etc...)
+# @parameter service_path Service with its path, as in the output from 'ps'
+
+# @class_prefix service_ensure_running
+# @class_parameter service_name
+# This bundle will define a class service_ensure_running_${service_name}_{kept,repaired,error,ok,reached}
+
+bundle agent service_ensure_running_path(service_name, service_path)
+{
+  vars:
+
+    "canonified_service_name"      string => canonify("${service_name}");
+    "canonified_service_path"      string => canonify("${service_path}");
+    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
+    "class_prefix"                 string => canonify("service_ensure_running_${service_name}");
+
+  methods:
+
+    "check running"
+      usebundle  => service_check_running("${service_path}");
+
+    "start if not running"
+      usebundle  => service_start("${service_name}"),
+      ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+
+    "class copy check"
+      usebundle => _classes_success("${class_prefix}"),
+      ifvarclass => "service_check_running_${canonified_service_path}_kept";
+ 
+    "class copy if not running"
+      usebundle => _classes_copy("service_start_${canonified_service_path}", "${class_prefix}"),
+      ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+
+    "report"
+      usebundle => _logger("Ensure that service ${service_name} is running", "${class_prefix}");
+
+
+}
