@@ -1325,6 +1325,7 @@ class RuleEditForm(
                     $('td.details', nDetailsRow).attr("colspan",4);
                     $('div.innerDetails table', nDetailsRow).attr("style","");
                     $('div.innerDetails', nDetailsRow).slideDown(300);
+                      updatePopup();
                     anOpen%1$s.push( nTr );
                     createTooltip();
                     }
@@ -1333,6 +1334,7 @@ class RuleEditForm(
                     $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
                       oTable%1$s.fnClose( nTr );
                       anOpen%1$s.splice( i, 1 );
+                      updatePopup();
                     } );
                   }
                 } ); } )""".format(tabid, S.contextPath)
@@ -1370,6 +1372,7 @@ class RuleEditForm(
                   } );
                   $('div.innerDetails table:first', nDetailsRow).attr("style","");
                   $('div.innerDetails', nDetailsRow).slideDown(300);
+                      updatePopup();
                   $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
                   anOpen%1$s.push( nTr );
                 }
@@ -1378,6 +1381,7 @@ class RuleEditForm(
                     $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
                     oTable%1$s.fnClose( nTr );
                     anOpen%1$s.splice( i, 1 );
+                      updatePopup();
                   } );
                 }
           } );} );""".format(tabid, gridId + "Grid", S.contextPath, innerJsFun)
