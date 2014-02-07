@@ -46,13 +46,12 @@ def check_output(command):
 def get_all_generic_methods_filenames(alt_path = ''):
   result = []
   filelist1 = get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
+  filelist2 = []
   if alt_path == '':
     filelist2 = []
   else:
     filelist2 = get_all_generic_methods_filenames_in_dir(alt_path + "/30_generic_methods")
-  for filelists in filelist1, filelist2:
-    for file in filelists:
-      result.append(file)
+  result = filelist1 + filelist2
 
   return result
 
@@ -62,13 +61,12 @@ def get_all_generic_methods_filenames_in_dir(dir):
 def get_all_techniques_filenames(alt_path = ''):
   result = []
   filelist1 = get_all_cf_filenames_under_dir(get_root_dir() + "/tree/50_techniques")
+  filelist2 = []
   if alt_path == '':
     filelist2 = []
   else:
     filelist2 = get_all_cf_filenames_under_dir(alt_path + "/50_techniques")
-  for filelists in filelist1, filelist2:
-    for file in filelists:
-      result.append(file)
+  result = filelist1 + filelist2
 
   return result
 
@@ -79,7 +77,6 @@ def get_all_cf_filenames_under_dir(dir):
     for file in files:
       if not file.startswith("_") and file.endswith(".cf"):
         filenames_add(os.path.join(root, file))
-
   return filenames
 
 def parse_technique_metadata(technique_content):
@@ -193,7 +190,7 @@ def get_all_generic_methods_metadata(alt_path = ''):
 def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
   all_metadata = {}
 
-  if alt_path != '': print "alternative source path added: %s" % alt_path
+  if alt_path != '': print "INFO: Alternative source path added: %s" % alt_path
 
   filenames = get_all_techniques_filenames(alt_path)
 

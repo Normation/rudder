@@ -6,15 +6,13 @@
 # the basic syntaxic requirements for the structured metadata in comments
 # above each generic method main bundle
 #
-# @name Package install
-# @class_prefix package_install
-#   @class_parameter package_name
+# @name Test Technique
+# @description Test a generic Technique
+# @version 0.1
 #
 # Please see the online documentation for more details.
-bundle agent package_install_version(package_name, package_version)
+bundle agent test_technique
 {
-  packages:
-    "${package_name}"
-      package_action => "add";
-
+  methods:
+    "ph" usebundle => test_generic_method("my_package","0.1");
 }

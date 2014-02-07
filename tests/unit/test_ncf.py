@@ -102,6 +102,40 @@ class TestNcf(unittest.TestCase):
   # Tests for reading all metadata info
   #####################################
 
+  def test_get_all_generic_methods_filenames(self):
+    """test_get_all_generic_methods_filenames should return a list of all generic_methods files"""
+    base_dir = ncf.get_root_dir() + "/tree/30_generic_methods"
+    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
+
+    # Get list of generic_methods without prefix "_" on the filesystem
+    list_methods_files = []
+    list_methods_files += ["%s/%s" % (base_dir,filename) for filename in os.listdir(base_dir) if not filename.startswith('_') and filename.endswith('.cf')]
+    list_methods_files += ["%s/%s" % (alternative_path+"/30_generic_methods",filename) for filename in os.listdir(alternative_path+"/30_generic_methods") if not filename.startswith('_') and filename.endswith('.cf')]
+
+    filenames = ncf.get_all_generic_methods_filenames(alternative_path)
+
+    filenames.sort()
+    list_methods_files.sort()
+
+    self.assertEquals(filenames, list_methods_files)
+
+  def test_get_all_techniques_filenames(self):
+    """test_get_all_techniques_filenames should return a list of all techniques files"""
+    base_dir = ncf.get_root_dir() + "/tree/50_techniques"
+    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
+
+    # Get list of techniques without prefix "_" on the filesystem
+    list_methods_files = []
+    list_methods_files += ["%s/%s" % (base_dir+"/openssh_server",filename) for filename in os.listdir(base_dir+"/openssh_server") if not filename.startswith('_') and filename.endswith('.cf')]
+    list_methods_files += ["%s/%s" % (alternative_path+"/50_techniques/test_technique",filename) for filename in os.listdir(alternative_path+"/50_techniques/test_technique") if not filename.startswith('_') and filename.endswith('.cf')]
+
+    filenames = ncf.get_all_techniques_filenames(alternative_path)
+
+    filenames.sort()
+    list_methods_files.sort()
+
+    self.assertEquals(filenames, list_methods_files)
+
   def test_get_all_generic_methods_metadata(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
     metadata = ncf.get_all_generic_methods_metadata()
@@ -111,7 +145,7 @@ class TestNcf(unittest.TestCase):
 
   def test_get_all_generic_methods_metadata_with_arg(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
-    alternative_path = os.path.realpath(__file__) + "test_methods"
+    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
     metadata = ncf.get_all_generic_methods_metadata(alternative_path)
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames(alternative_path))
@@ -126,8 +160,8 @@ class TestNcf(unittest.TestCase):
 
   def test_get_all_techniques_metadata_with_args(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
-    alternative_path = os.path.realpath(__file__) + "test_methods"
-    metadata = ncf.get_all_techniques_metadata(alternative_path)
+    alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
+    metadata = ncf.get_all_techniques_metadata(alt_path=alternative_path)
 
     number = len(ncf.get_all_techniques_filenames(alternative_path))
     self.assertEquals(number, len(metadata))
