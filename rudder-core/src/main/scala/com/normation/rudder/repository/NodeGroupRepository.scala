@@ -368,7 +368,7 @@ trait WoNodeGroupRepository {
   def delete(id:NodeGroupId, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[DeleteNodeGroupDiff]
 
   /**
-   * Add that group categoy into the given parent category
+   * Add that group category into the given parent category
    * Fails if the parent category does not exists or
    * if it already contains that category.
    *
