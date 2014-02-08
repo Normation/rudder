@@ -296,9 +296,10 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       (
         <div id={htmlId_groupTree}>
           <ul>{DisplayNodeGroupTree.displayTree(
-                  groupLib = lib
-                , onClickCategory = Some(fullDisplayCategory(workflowEnabled))
-                , onClickTarget  = Some(showTargetInfo(workflowEnabled))
+                  lib
+                , Some(fullDisplayCategory(workflowEnabled))
+                , Some(showTargetInfo(workflowEnabled))
+                , Map()
            )}</ul>
         </div>
       ) ++ Script(OnLoad(
@@ -453,7 +454,9 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
   private[this] def showGroupSection(workflowEnabled: Boolean)(g: NodeGroup, parentCategoryId: NodeGroupCategoryId) = {
     refreshRightPanel(GroupForm(g, parentCategoryId), workflowEnabled)&
-    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({'groupId':'${g.id.value}'})""")
+    JsRaw(s"""
+        var groupId = JSON.stringify({'groupId':'${g.id.value}'});
+        window.location.hash = "#"+groupId""")
   }
 
   private[this] def showTargetInfo(workflowEnabled: Boolean)(parentCategory: FullNodeGroupCategory, targetInfo: FullRuleTargetInfo) : JsCmd = {

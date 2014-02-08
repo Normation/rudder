@@ -329,11 +329,16 @@ class RuleGrid(
             }
         }
 
-      val targetsInfo = sequence(rule.targets.toSeq) { target =>
-        groupsLib.allTargets.get(target) match {
-          case Some(t) => Full(t.toTargetInfo)
-          case None => Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
-        }
+      val targetsInfo = sequence(rule.targets.toSeq) {
+        case json:CompositeRuleTarget =>
+          val ruleTargetInfo = RuleTargetInfo(json,"","",true,false)
+          Full(ruleTargetInfo)
+
+        case target =>
+          groupsLib.allTargets.get(target) match {
+            case Some(t) => Full(t.toTargetInfo)
+            case None => Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
+          }
       }.map(x => x.toSet)
 
       (trackerVariables, targetsInfo) match {
