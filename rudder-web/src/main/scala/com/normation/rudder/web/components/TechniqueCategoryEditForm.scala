@@ -134,7 +134,7 @@ class TechniqueCategoryEditForm(
         logger.error("Error when deleting user lib category with ID %s".format(currentCategory.id), e)
 
         val xml = (
-            ("#deleteCategoryMsg") #> <span class="error" id="deleteCategoryMsg">Error when deleting the categoy</span>
+            ("#deleteCategoryMsg") #> <span class="error" id="deleteCategoryMsg">Error when deleting the category</span>
         ).apply(showForm)
 
         Replace(htmlId_form, xml)
