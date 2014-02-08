@@ -64,10 +64,14 @@ var #table_var#;
  */
 function createTooltip() {
   $(".tooltipable").tooltip({
-			show: {
-				effect: "none",
-                delay: 100
-            },
+		show: {
+			effect: "none",
+            delay: 0
+        },
+        hide: {
+			effect: "none",
+            delay: 0
+        },
 			content: function() {
 		      return $("#"+$(this).attr("tooltipid")).html();
 		    },
@@ -84,6 +88,10 @@ function createTooltiptr() {
 				show: {
 					effect: "none",
 	                delay: 100
+	            },
+	            hide: {
+                    effect: "none",
+	                delay: 0
 	            },
 				content: function() {
 			      return $("#"+$(this).attr("tooltipid")).html();
