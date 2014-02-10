@@ -231,8 +231,8 @@ object RudderConfig extends Loggable {
   val RUDDER_DIR_TECHNIQUES = config.getString("rudder.dir.techniques")
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
   val RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL = config.getInt("rudder.batch.techniqueLibrary.updateInterval") //60 * 5 //five minutes
-  val reportCleanerArchiveTTL = AutomaticReportsCleaning.defaultArchiveTTL
-  val RUDDER_BATCH__REPORTSCLEANER_DELETE_TTL = config.getInt("rudder.batch.reportscleaner.delete.TTL") //AutomaticReportsCleaning.defaultDeleteTTL
+  val RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL = config.getInt("rudder.batch.reportscleaner.archive.TTL") //AutomaticReportsCleaning.defaultArchiveTTL
+  val RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL = config.getInt("rudder.batch.reportscleaner.delete.TTL") //AutomaticReportsCleaning.defaultDeleteTTL
   val RUDDER_BATCH_REPORTSCLEANER_FREQUENCY = config.getString("rudder.batch.reportscleaner.frequency") //AutomaticReportsCleaning.defaultDay
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_HOUR = config.getInt("rudder.batch.databasecleaner.runtime.hour") //AutomaticReportsCleaning.defaultHour
   val RUDDER_BATCH_DATABASECLEANER_RUNTIME_MINUTE = config.getInt("rudder.batch.databasecleaner.runtime.minute") //AutomaticReportsCleaning.defaultMinute
@@ -1307,8 +1307,8 @@ object RudderConfig extends Loggable {
 
     new AutomaticReportsCleaning(
       databaseManagerImpl
-    , RUDDER_BATCH__REPORTSCLEANER_DELETE_TTL
-    , reportCleanerArchiveTTL
+    , RUDDER_BATCH_REPORTSCLEANER_DELETE_TTL
+    , RUDDER_BATCH_REPORTSCLEANER_ARCHIVE_TTL
     , cleanFrequency
   )}
 
