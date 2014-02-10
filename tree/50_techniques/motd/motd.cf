@@ -1,0 +1,7 @@
+bundle agent motd {
+  vars:
+    "motd_content" string => "Welcome to ${sys.host}, managed by CFEngine ${sys.cf_version} with ncf, running on ${sys.flavour} ${sys.arch}";
+
+  methods:
+    "config"  usebundle  => file_ensure_lines_present("/etc/motd", "${motd_content}");
+}

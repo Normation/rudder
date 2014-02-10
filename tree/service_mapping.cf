@@ -25,7 +25,7 @@ bundle agent mapper
     any::
       # Defines the list of services applicable to every nodes
       "base_services" slist => {
-                                "/site_policy/stable"
+                                "/baseline/stable"
                                };
 
     host1::

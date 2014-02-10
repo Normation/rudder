@@ -1,0 +1,11 @@
+bundle agent ntp {
+  vars:
+    "path_technique" string => "${me.framework_path}/inputs/50_techniques/ntp/";
+
+  methods:
+    "package" usebundle  => package_install("ntp");
+    "config"  usebundle  => file_from_template("${path_technique}/templates/ntp.conf", "/etc/ntp.conf");
+    "reload"  usebundle  => service_restart("ntp"),
+              ifvarclass => "file_from_template__etc_ntp_conf_repaired";
+    "running" usebundle  => service_ensure_running("ntp");
+}
