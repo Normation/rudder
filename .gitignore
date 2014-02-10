@@ -18,4 +18,6 @@ site/content/generic_methods.md
 site/pelican-bootstrap3/templates/includes/generic_methods.html
 site/content/index.md
 site/output/*
+site/*.pid
 *.pyc
+*.swp
