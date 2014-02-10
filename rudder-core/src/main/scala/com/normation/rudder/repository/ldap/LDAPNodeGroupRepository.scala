@@ -108,8 +108,8 @@ class RoLDAPNodeGroupRepository(
     val subEntries = con.searchOne(dn, OR(IS(OC_GROUP_CATEGORY),IS(OC_RUDDER_NODE_GROUP),IS(OC_SPECIAL_TARGET)),
         A_OC, A_NODE_GROUP_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM).partition(e => e.isA(OC_GROUP_CATEGORY))
     category.copy(
-      children = subEntries._1.sortBy(e => e(A_NAME)).map(e => mapper.dn2NodeGroupCategoryId(e.dn)).toList,
-      items = subEntries._2.sortBy(e => e(A_NAME)).flatMap(entry => mapper.entry2RuleTargetInfo(entry) match {
+      children = subEntries._1.sortBy(e => e(A_NAME).map(_.toLowerCase())).map(e => mapper.dn2NodeGroupCategoryId(e.dn)).toList,
+      items = subEntries._2.sortBy(e => e(A_NAME).map(_.toLowerCase())).flatMap(entry => mapper.entry2RuleTargetInfo(entry) match {
         case Full(targetInfo) => Some(targetInfo)
         case e:EmptyBox =>
           logger.error((e ?~! "Error when trying to get the child of group category '%s' with DN '%s'".format(category.id, entry.dn)).messageChain)
