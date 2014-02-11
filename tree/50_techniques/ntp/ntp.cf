@@ -1,3 +1,8 @@
+
+# @name NTP
+# @description Install, configure and ensure ntpd is running. Uses a template file for configuration.
+# @version 0.1
+
 bundle agent ntp {
   vars:
     "path_technique" string => "${me.framework_path}/inputs/50_techniques/ntp/";

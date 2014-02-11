@@ -1,3 +1,8 @@
+
+# @name Message Of The Day (MOTD)
+# @description Edit the MOTD file and add a line to it
+# @version 0.1
+
 bundle agent motd {
   vars:
     "motd_content" string => "Welcome to ${sys.host}, managed by CFEngine ${sys.cf_version} with ncf, running on ${sys.flavour} ${sys.arch}";
