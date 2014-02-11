@@ -440,8 +440,16 @@ class RwLDAPConnection(
    * Ask the directory if it knows how to
    * delete full sub-tree in one command.
    */
-  private lazy val canDeleteTree : Boolean =
-    backed.getRootDSE.supportsControl(com.unboundid.ldap.sdk.controls.SubtreeDeleteRequestControl.SUBTREE_DELETE_REQUEST_OID)
+  private lazy val canDeleteTree : Boolean = {
+    try {
+      backed.getRootDSE.supportsControl(com.unboundid.ldap.sdk.controls.SubtreeDeleteRequestControl.SUBTREE_DELETE_REQUEST_OID)
+    } catch {
+      case e: LDAPException =>
+        logger.debug("Can not know if the LDAP server support recursive subtree delete request control, supposing not. Exception was: " + e.getMessage())
+        false
+    }
+  }
+
 
 
   /*
