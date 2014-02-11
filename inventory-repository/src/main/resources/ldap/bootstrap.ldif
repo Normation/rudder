@@ -1,8 +1,6 @@
 dn: cn=rudder-configuration
-objectclass: dcObject
-objectclass: organization
-o: Example Company
-dc: example
+objectClass: configurationRoot
+cn: rudder-configuration
 
 dn: ou=Inventories,cn=rudder-configuration
 objectclass: top
@@ -40,7 +38,7 @@ dn: ou=Pending Inventories,ou=Inventories,cn=rudder-configuration
 objectclass: top
 objectclass: organizationalUnit
 ou: Pending Inventories
-description: Store inventories not yet accepted in Rudder 
+description: Store inventories not yet accepted in Rudder
 
 # Machines, pending @ example.org
 
