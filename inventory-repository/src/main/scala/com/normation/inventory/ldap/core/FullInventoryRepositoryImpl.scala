@@ -34,6 +34,8 @@
 
 package com.normation.inventory.ldap.core
 
+
+import com.normation.utils.Control.bestEffort
 import LDAPConstants.{A_CONTAINER_DN, A_NODE_UUID}
 import com.normation.inventory.services.core._
 import com.normation.inventory.domain._
@@ -42,6 +44,8 @@ import net.liftweb.common._
 import com.unboundid.ldif.LDIFChangeRecord
 import com.unboundid.ldap.sdk.{Modification, ModificationType}
 import com.normation.ldap.sdk.BuildFilter.EQ
+import com.unboundid.ldap.sdk.DN
+import com.normation.ldap.ldif.LDIFNoopChangeRecord
 
 
 trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChangeRecord]]
@@ -69,36 +73,75 @@ class FullInventoryRepositoryImpl(
     inventoryDitService.getDit(inventoryStatus).NODES.dn
   }
 
+  private[this] def findDnForMachine(con: RwLDAPConnection, id:MachineUuid): Option[DN] = {
+    Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dn(id,s))).map(dn(id, _))
+  }
+
+  /*
+   * return the list of status for machine, in the order:
+   * index 0: Accepted
+   * index 1: Pending
+   * index 2: Removed
+   *
+   */
+  private[this] def getExistingMachineDN(con: RwLDAPConnection, id: MachineUuid): Seq[(Boolean, DN)] = {
+    val status = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
+    status.map{ x =>
+      val d = dn(id, x)
+      val exists = con.exists(d)
+      (exists, d)
+    }
+  }
+
   /**
    * Get a machine by its ID
    */
-  override def get(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[MachineInventory] = {
+  override def get(id:MachineUuid) : Box[MachineInventory] = {
     for {
       con <- ldap
-      tree <- con.getTree(dn(id, inventoryStatus))
+      tree <- {
+        findDnForMachine(con, id).map(con.getTree(_)).getOrElse(Empty)
+      }
       machine <- mapper.machineFromTree(tree)
     } yield {
       machine
     }
   }
 
-  /**
-   * For a given machine, find all the node on it
+  /*
+   * For a given machine, find all the node that use it
+   * Return node entries with only the container attribute, in a map with
+   * the node status for key.
    */
-  override def getNodes(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[NodeId]] = {
-    val entries = (for {
-      con <- ldap
-      entries = con.searchOne(nodeDn(inventoryStatus), EQ(A_CONTAINER_DN, dn(id, inventoryStatus).toString()), A_NODE_UUID)
-    } yield {
-      entries
-    })
-    entries match {
-      case e: EmptyBox => e
-      case Full(seq) =>
-         com.normation.utils.Control.boxSequence(seq.map(x => inventoryDitService.getDit(inventoryStatus).NODES.NODE.idFromDN(x.dn)))
+  def getNodesForMachine(con: RwLDAPConnection, id:MachineUuid) : Map[InventoryStatus, Set[LDAPEntry]] = {
+
+    val status = Seq(PendingInventory, AcceptedInventory, RemovedInventory)
+    val orFilter = BuildFilter.OR(status.map(x => EQ(A_CONTAINER_DN,dn(id, x).toString)):_*)
+
+    def machineForNodeStatus(con:RwLDAPConnection, inventoryStatus: InventoryStatus) = {
+      con.searchOne(nodeDn(inventoryStatus),  orFilter, A_NODE_UUID).toSet
     }
+
+    //only add keys for non empty node list
+    Seq(PendingInventory, AcceptedInventory, RemovedInventory).map(x => (x, machineForNodeStatus(con, x))).filterNot( _._2.isEmpty).toMap
   }
 
+  /*
+   * Update the list of node, setting the container value to the one given.
+   * Delete the attribute if None.
+   */
+  private[this] def updateNodes(con: RwLDAPConnection, nodes: Map[InventoryStatus, Set[LDAPEntry]], newMachineId:Option[(MachineUuid, InventoryStatus)] ) = {
+    import com.normation.utils.Control.bestEffort
+    val mod = newMachineId match {
+      case None => new Modification(ModificationType.DELETE, A_CONTAINER_DN)
+      case Some((id, status)) => new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(id, status).toString)
+    }
+
+    bestEffort(nodes.values.flatten.map( _.dn).toSeq) { dn =>
+      con.modify(dn, mod)
+    }
+
+  }
 
   override def save(machine:MachineInventory) : Box[Seq[LDIFChangeRecord]] = {
     for {
@@ -107,25 +150,65 @@ class FullInventoryRepositoryImpl(
     } yield res
   }
 
-  override def delete(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
+  override def delete(id:MachineUuid) : Box[Seq[LDIFChangeRecord]] = {
     for {
        con <- ldap
-       res <- con.delete(dn(id, inventoryStatus))
-    } yield res
+       machines = getExistingMachineDN(con,id).collect { case(exists,dn) if exists => dn }
+       res <- bestEffort(machines) { dn =>
+                con.delete(dn)
+              }
+       nodes <- updateNodes(con, getNodesForMachine(con, id), None)
+    } yield res.flatten ++ nodes
   }
 
 
-  override def move(id:MachineUuid, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
-    if(from == into ) Full(Seq())
-    else {
-      for {
-        con <- ldap
-        dnFrom = dn(id, from)
-        dnTo = dn(id, into)
-        moved <- con.move(dnFrom, dnTo.getParent)
-      } yield {
-       Seq(moved)
-      }
+
+  /**
+   * We want to actually move the machine toward the same place
+   * as the node of highest priority (accepted > pending > removed),
+   * and if no node, to the asked place.
+   */
+  override def move(id:MachineUuid, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
+    val priorityStatus = Seq(AcceptedInventory, PendingInventory, RemovedInventory)
+    for {
+      con <- ldap
+      nodes = getNodesForMachine(con, id)
+      intoStatus = priorityStatus.find(x => nodes.isDefinedAt(x) && nodes(x).size > 0).getOrElse(into)
+      //now, check what to do:
+      //if the machine is already in the target, does nothing
+      //else, move
+      moved <- {
+                 val machinePresences = getExistingMachineDN(con, id)
+
+                 val machineToKeep = machinePresences.find( _._1 ).map( _._2)
+
+                 machineToKeep match {
+                   case None => Full(Seq())
+                   case Some(machineDN) =>
+
+                     def testAndMove(i:Int) = {
+                       for {
+                         moved <- if(machinePresences(i)._1) {
+                                    //if there is already a machine at the destination,
+                                    //keep it and delete the other one
+                                    con.delete(machineDN)
+                                  } else {
+                                    con.move(machineDN, dn(id, intoStatus).getParent).map(Seq(_))
+                                  }
+                       } yield {
+                         moved
+                       }
+                     }
+                     intoStatus match {
+                       case AcceptedInventory => testAndMove(0)
+                       case PendingInventory => testAndMove(1)
+                       case RemovedInventory => testAndMove(2)
+                     }
+                 }
+               }
+      nodes <- updateNodes(con, nodes, Some((id, intoStatus)))
+    } yield {
+     moved++nodes
     }
   }
 
@@ -152,9 +235,14 @@ class FullInventoryRepositoryImpl(
       optMachine <- {
         server.machineId match {
           case None => Full(None)
-          case Some((machineId, status)) => this.get(machineId,status) match {
+          case Some((machineId, status)) =>
+            //here, we want to actually use the provided DN to:
+            // 1/ not make 3 existence tests each time we get a node,
+            // 2/ make the thing more debuggable. If we don't use the DN and display
+            //    information taken elsewhere, future debugging will leads people to madness
+            con.getTree(dn(machineId, status)) match {
             case Empty => Full(None)
-            case Full(x) => Full(Some(x))
+            case Full(x) => mapper.machineFromTree(x).map(Some(_))
             case f:Failure => f
           }
         }
@@ -164,7 +252,7 @@ class FullInventoryRepositoryImpl(
     }
   }
 
-  override def save(inventory:FullInventory, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
+  override def save(inventory:FullInventory) : Box[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
       resServer <- con.saveTree(mapper.treeFromNode(inventory.node))
@@ -178,16 +266,24 @@ class FullInventoryRepositoryImpl(
   override def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
     for {
       con <- ldap
-      //if there is a machine, delete it. Continu on error, but on success log ldiff records
+      //if there is only one node using the machine, delete it. Continue on error, but on success log ldif records
+      //if several node use it, does nothing
       machineRecord <- {
         (for {
-          (machineId,machineStatus) <- getMachineId(id, inventoryStatus)
-          res <- this.delete(machineId, machineStatus)
+          (machineId,_) <- getMachineId(id, inventoryStatus)
+          res <- {
+                    val nodes = getNodesForMachine(con, machineId).values.flatten.size
+                    if(nodes < 2) {
+                      this.delete(machineId)
+                    } else {
+                      Full(Seq())
+                    }
+                  }
         } yield {
-          (machineId, machineStatus, res)
+          (machineId, res)
         }) match {
           case Empty => Full(Seq())
-          case Full((machineId, machineStatus, diff)) => Full(diff)
+          case Full((machineId, diff)) => Full(diff)
           case f:Failure =>
             logger.warn("Error when trying to delete machine for server with id '%s' and inventory status '%s'. Message was: %s".
                 format(id.value,inventoryStatus,f.msg))
@@ -214,80 +310,32 @@ class FullInventoryRepositoryImpl(
   }
 
   override def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[Seq[LDIFChangeRecord]] = {
-    def moveMachine(con:RwLDAPConnection) : Box[Seq[LDIFChangeRecord]] = {
-      //given the sequence of the move (start with node, then machine)
-      //when that method is called, the node is already in "into" branch
-      getMachineId(id, into) match {
-        case Empty => Full(Seq()) //the node may not have a machine, stop here
-        case f:Failure => f
-        case Full((machineId, status)) =>
-          if(status == into) { //the machine is already in the same place than the node, great !
-            Full(Seq())
-          } else {
-            // is the machine linked to others machines ?
-            getNodes(machineId, status) match {
-              case e:EmptyBox => logger.error("cannot fetch nodes linked to machine %s, cause %s".format(machineId, e)); e
-              case Full(seq) =>
-                if (seq.size>1) {
-                  // more than one node linked to this machine, it has to be copied
-                  get(machineId, status) match {
-                    case e:EmptyBox => logger.error("cannot fetch machine linked to node %s, cause %s".format(id.value, e)); e
-                    case Full(entry) =>
-                      save( entry.copy(status = RemovedInventory))
-                  }
-                } else {
-                  // only this node on this machine, it has to be moved
-                  for {
-                    machineMoved <- move(machineId,status,into)
-                    //update reference dn for that machine in node
-                    updatedContainer <- con.modify(
-                        dn(id,into),
-                        new Modification(ModificationType.REPLACE, A_CONTAINER_DN, dn(machineId,into).toString)
-                    )
-                  } yield {
-                    machineMoved :+ updatedContainer
-                  }
-                }
-            }
-          }
-      }
-    }
-
-    def deleteMachine(where:InventoryStatus) : Box[LDIFChangeRecord] = {
-      for {
-        con              <- ldap
-        updatedContainer <- con.modify(
-                              dn(id,where),
-                              new Modification(ModificationType.DELETE, A_CONTAINER_DN)
-                            )
-      } yield {
-        updatedContainer
-      }
-    }
-
     for {
       con <- ldap
       dnFrom = dn(id, from)
       dnTo = dn(id, into)
       moved <- con.move(dnFrom, dnTo.getParent)
     } yield {
-      //try to move the referenced machine too
-      moveMachine(con) match {
-        case empty:EmptyBox =>
-          val e = (empty ?~! ("Error when moving machine referenced by container for node '%s'. ".format(id.value) +
-              "We will assume that the machine was deleted, and remove the reference in node"))
-          logger.debug(e.failureChain.map( _.msg).mkString("", "\n     cause:", ""))
-
-          deleteMachine(into) match {
-            case e:EmptyBox =>
-              logger.debug("Error when trying to delete bad container ID for node '%s'".format(id.value))
-              Seq(moved)
-            case Full(mod) =>
-              moved +: Seq(mod)
+      // try to move the referenced machine too, but move it to the same
+      // status that the more prioritary node with
+      // accepted > pending > deleted
+      // logic in machine#move
+      val machineMoved = (for {
+        (machineId, _) <- getMachineId(id, into)
+        moved <- move(machineId, into)
+      } yield {
+        moved
+      }) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! s"Error when updating the container value when moving nodes '${id.value}'"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Exception was: ", ex)
           }
-        case Full(machineMoved) =>
-          moved +: machineMoved
+          Seq()
+        case Full(diff) => diff
       }
+      Seq(moved) ++ machineMoved
     }
   }
 }

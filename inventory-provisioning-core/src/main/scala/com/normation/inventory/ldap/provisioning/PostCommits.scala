@@ -75,11 +75,11 @@ class AcceptPendingMachineIfServerIsAccepted(
       case (AcceptedInventory,  PendingInventory) =>
         logger.debug("Found machine '%s' in pending DIT but that machine is the container of the accepted node '%s'. Moving machine to accpeted".format(report.machine.id,report.node.main.id))
         // Change the container state, no need to keep the machine
-        val fullInventory = FullInventory(report.node.copy(machineId = Some(report.machine.id,AcceptedInventory)),None)
+        val fullInventory = FullInventory(report.node.copy(machineId = Some((report.machine.id,AcceptedInventory))),None)
         for {
-          res <- fullInventoryRepositoryImpl.move(report.machine.id, PendingInventory, AcceptedInventory)
+          res <- fullInventoryRepositoryImpl.move(report.machine.id, AcceptedInventory)
           // Save Inventory to change the container too, no need to have the machine saved again
-          inventory <- fullInventoryRepositoryImpl.save(fullInventory, AcceptedInventory)
+          inventory <- fullInventoryRepositoryImpl.save(fullInventory)
         } yield {
           logger.debug("Machine '%s' moved to accepted DIT".format(report.machine.id))
           records ++ res ++ inventory

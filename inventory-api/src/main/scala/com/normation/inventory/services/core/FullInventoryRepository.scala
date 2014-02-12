@@ -39,11 +39,13 @@ import net.liftweb.common.Box
 
 trait ReadOnlyMachineRepository {
   /**
-   * Retrieve a full ServerAndMachine.
-   * TODO: allows to lazy-load some heavy parts, like software, machine elements, etc.
+   * Get the machine with the given ID.
+   *
+   * A machine could exists in several status, but
+   * it should not. In that case, return the machine with the most
+   * prioritary status (Accepted > Pending > Removed)
    */
-  def get(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[MachineInventory]
-
+  def get(id:MachineUuid) : Box[MachineInventory]
 
 }
 
@@ -52,6 +54,12 @@ trait ReadOnlyMachineRepository {
  * The R parameter is the return type of operation, which should be a diff
  * resulting from the modification, but could be the new version of the entity
  * if the store can not give better information.
+ *
+ *
+ * Machine should be unique among all available status, so we don't have to
+ * specify there status when searching for them. If they are not,
+ * we always consider a priority order Accepted > Pending > Removed
+ *
  */
 trait WriteOnlyMachineRepository[R] {
 
@@ -62,9 +70,25 @@ trait WriteOnlyMachineRepository[R] {
    * with a different inventoryStatus).0
    */
   def save(machine:MachineInventory) : Box[R]
-  def delete(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[R]
- // def copy(id:MachineUuid, from: InventoryStatus, into : InventoryStatus) : Box[MachineInventory]
-  def move(id:MachineUuid, from: InventoryStatus, into : InventoryStatus) : Box[R]
+
+  /**
+   * Delete the corresponding machine. Does not fail if the machine does
+   * not exists.
+   *
+   * That method should take all action needed to assure that consistency
+   * is kept, especially deleting reference to that machine.
+   */
+  def delete(id:MachineUuid) : Box[R]
+
+  /**
+   * Change the status of a machine.
+   * That method should take ALL action to keep consistency, especially:
+   * - moving a machine to a status where the same machine exists is
+   *   equivalent to DELETING the old status EVEN if the two machine are different
+   * - changing the status of a machine should change all reference to the
+   *   machine accordingly
+   */
+  def move(id:MachineUuid, into : InventoryStatus) : Box[R]
 }
 
 trait MachineRepository[R] extends ReadOnlyMachineRepository with WriteOnlyMachineRepository[R]
@@ -77,16 +101,11 @@ trait ReadOnlyFullInventoryRepository {
   def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
   def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
 
-  /**
-   * For a given machine, find all the node on it
-   */
-  def getNodes(id:MachineUuid, inventoryStatus : InventoryStatus) : Box[Seq[NodeId]]
 }
 
 trait WriteOnlyFullInventoryRepository[R] {
-  def save(serverAndMachine:FullInventory, inventoryStatus : InventoryStatus) : Box[R]
+  def save(serverAndMachine:FullInventory) : Box[R]
   def delete(id:NodeId, inventoryStatus : InventoryStatus) : Box[R]
-//  def copy(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[ServerAndMachine]
   def move(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
 
   def moveNode(id:NodeId, from: InventoryStatus, into : InventoryStatus) : Box[R]
