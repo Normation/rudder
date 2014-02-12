@@ -65,8 +65,8 @@ class InMemoryDsConnectionProvider[CON <: RoLDAPConnection](
     }
   }
 
-  protected def releaseInternalConnection(con:CON) : Unit = close
-  protected def releaseDefuncInternalConnection(con:CON) : Unit = close
+  protected def releaseInternalConnection(con:CON) : Unit = {}
+  protected def releaseDefuncInternalConnection(con:CON) : Unit = {}
   override def close : Unit = connection.foreach  { con => con.close() }
 
 }
