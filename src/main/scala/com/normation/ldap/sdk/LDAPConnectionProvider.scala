@@ -237,7 +237,10 @@ trait OneConnectionProvider[LDAP <: RoLDAPConnection] extends LDAPConnectionProv
   protected def getInternalConnection() = this.synchronized {
     connection match {
       case None => connection = Some(newConnection); connection.get
-      case Some(con) => if(con.backed.isConnected) con else newConnection
+      case Some(con) => if(con.backed.isConnected) con else {
+        releaseInternalConnection(con)
+        newConnection
+      }
     }
   }
   protected def releaseInternalConnection(con:LDAP) : Unit = {}
