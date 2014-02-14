@@ -32,8 +32,11 @@ bundle common inputs
   vars:
       # this list contains everything that is in the 10_ncf_internals
       "ncf_internals_files"     slist => lsdir("${me.framework_path}/10_ncf_internals", ".*\.cf", "true");
-      # Here, we get all the generic files of the framework (basics, methods, it ops knowledge
-      "generic_framework"      string => execresult("/bin/bash -c \"cd ${me.framework_path} && /usr/bin/find 20_cfe_basics  30_generic_methods  40_it_ops_knowledge -name '*.cf' -printf '${me.framework_path}/%p\n'\"", "noshell");
+      # Here, we get all the generic files of the framework (basics, methods, it ops knowledge)
+      # without their full path as it may break the 4K limit
+      # see https://cfengine.com/dev/issues/2912
+      "generic_framework"      string => execresult("/bin/bash -c \"cd ${me.framework_path} && /usr/bin/find 20_cfe_basics 30_generic_methods 40_it_ops_knowledge -name '*.cf' -printf '%p\n'\"", "noshell");
+
       # The Techniques and Services part are choosen separatly, as we may not want to load
       # them all automatically in the future
       # This fetches the techniques cf files
@@ -43,7 +46,9 @@ bundle common inputs
 
       # We have to convert the result of the find into lists so that they can be use in the 
       # inputs list
-      "generic_framework_files" slist => splitstring("${generic_framework}", "\n", 10000);
+      "generic_framework_list"  slist => splitstring("${generic_framework}", "\n", 10000);
+      "generic_framework_files" slist => maplist("${me.framework_path}/${this}", "generic_framework_list");
+
       "techniques_files"        slist => splitstring("${techniques}", "\n", 10000);
       "services_files"          slist => splitstring("${services}", "\n", 10000);    
 }
