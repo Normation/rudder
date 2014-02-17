@@ -5,7 +5,7 @@
 
 bundle agent ntp {
   vars:
-    "path_technique" string => "${me.framework_path}/inputs/50_techniques/ntp/";
+    "path_technique" string => "${me.framework_path}/50_techniques/ntp/";
 
   methods:
     "package" usebundle  => package_install("ntp");
