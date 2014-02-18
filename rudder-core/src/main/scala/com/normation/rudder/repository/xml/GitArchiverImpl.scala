@@ -63,7 +63,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import scala.xml.Elem
-import scala.xml.PrettyPrinter
 import scala.collection.mutable.Buffer
 import scala.collection.JavaConversions._
 import com.normation.cfclerk.domain.TechniqueId
@@ -81,7 +80,7 @@ class GitRuleArchiverImpl(
   , override val gitRootDirectory          : File
   , ruleSerialisation                      : RuleSerialisation
   , ruleRootDir                            : String //relative path !
-  , override val xmlPrettyPrinter          : PrettyPrinter
+  , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding                  : String = "UTF-8"
 ) extends
@@ -189,7 +188,7 @@ class GitActiveTechniqueCategoryArchiverImpl(
   , override val gitRootDirectory       : File
   , activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation
   , techniqueLibraryRootDir             : String //relative path !
-  , override val xmlPrettyPrinter       : PrettyPrinter
+  , override val xmlPrettyPrinter       : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding               : String = "UTF-8"
   , serializedCategoryName              : String = "category.xml"
@@ -316,7 +315,7 @@ trait ActiveTechniqueModificationCallback {
 class UpdatePiOnActiveTechniqueEvent(
     gitDirectiveArchiver: GitDirectiveArchiver
   , techniqeRepository  : TechniqueRepository
-  , directiveRepository : RoDirectiveRepository    
+  , directiveRepository : RoDirectiveRepository
 ) extends ActiveTechniqueModificationCallback with Loggable {
   override val uptModificationCallbackName = "Update PI on UPT events"
 
@@ -367,7 +366,7 @@ class GitActiveTechniqueArchiverImpl(
   , override val gitRootDirectory  : File
   , activeTechniqueSerialisation   : ActiveTechniqueSerialisation
   , techniqueLibraryRootDir        : String //relative path !
-  , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val xmlPrettyPrinter  : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding          : String = "UTF-8"
   , val uptModificationCallback    : Buffer[ActiveTechniqueModificationCallback] = Buffer()
@@ -479,7 +478,7 @@ class GitDirectiveArchiverImpl(
   , override val gitRootDirectory  : File
   , directiveSerialisation         : DirectiveSerialisation
   , techniqueLibraryRootDir        : String //relative path !
-  , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val xmlPrettyPrinter  : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding          : String = "UTF-8"
 ) extends GitDirectiveArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
@@ -565,24 +564,24 @@ class GitDirectiveArchiverImpl(
  *
  * Basically, we directly map the category tree to file-system directories,
  * with the root category being the file denoted by "nodeGroupLibrary
- */  
+ */
 class GitNodeGroupArchiverImpl(
     override val gitRepo          : GitRepositoryProvider
   , override val gitRootDirectory : File
   , nodeGroupSerialisation        : NodeGroupSerialisation
   , nodeGroupCategorySerialisation: NodeGroupCategorySerialisation
   , groupLibraryRootDir           : String //relative path !
-  , override val xmlPrettyPrinter : PrettyPrinter
+  , override val xmlPrettyPrinter : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding         : String = "UTF-8"
   , serializedCategoryName        : String = "category.xml"
 ) extends
-  GitNodeGroupArchiver with 
+  GitNodeGroupArchiver with
   Loggable with
   GitArchiverUtils with
   BuildCategoryPathName[NodeGroupCategoryId] with
   GitArchiverFullCommitUtils {
-  
+
 
   override lazy val relativePath = groupLibraryRootDir
   override def  getCategoryName(categoryId:NodeGroupCategoryId) = categoryId.value
