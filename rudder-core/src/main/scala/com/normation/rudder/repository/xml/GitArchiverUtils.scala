@@ -37,7 +37,6 @@ package com.normation.rudder.repository.xml
 import java.io.File
 import scala.collection.JavaConversions.asScalaSet
 import scala.xml.Elem
-import scala.xml.PrettyPrinter
 import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.joda.time.format.ISODateTimeFormat
@@ -71,7 +70,7 @@ trait GitArchiverUtils extends Loggable {
   def gitRepo : GitRepositoryProvider
   def gitRootDirectory : File
   def relativePath : String
-  def xmlPrettyPrinter : PrettyPrinter
+  def xmlPrettyPrinter : RudderPrettyPrinter
   def encoding : String
   def gitModificationRepository : GitModificationRepository
 

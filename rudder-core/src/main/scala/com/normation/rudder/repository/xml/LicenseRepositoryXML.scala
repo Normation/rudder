@@ -88,20 +88,15 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
    */
 
   private def loadLicenseFile() : Elem = {
-    val doc =
-      try {
-        XML.loadFile(licenseFile)
-      } catch {
-        case e:SAXParseException => logger.error("Cannot parse license file"); throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
-        case e : java.net.MalformedURLException =>  logger.error("Cannot read license file {}" + licenseFile); throw new FileNotFoundException("License file not found : " + licenseFile )
-      }
-
-    if(doc.isEmpty) {
-      logger.error("Empty license file : {} ", licenseFile)
-      throw new ParsingException("Empty license file " )
+    try {
+      XML.loadFile(licenseFile)
+    } catch {
+      case e : SAXParseException => logger.error("Cannot parse license file"); throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
+      case e : java.net.MalformedURLException =>  logger.error("Cannot read license file {}" + licenseFile); throw new FileNotFoundException("License file not found : " + licenseFile )
+      case e : java.io.FileNotFoundException =>
+        logger.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
+        <licenses/>
     }
-
-    doc
   }
 
 
