@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Permissions recurse
+# @name Permissions (non recursive)
 # @description Verify if a file or directory has the right permissions non recursively
 #
 # @parameter path Path to the file / directory
