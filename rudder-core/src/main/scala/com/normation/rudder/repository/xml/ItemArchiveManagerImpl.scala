@@ -94,7 +94,7 @@ class ItemArchiveManagerImpl(
       saveCrs        <- exportRules(commiter, modId, actor, reason, includeSystem)
       saveUserLib    <- exportTechniqueLibrary(commiter, modId, actor, reason, includeSystem)
       saveGroups     <- exportGroupLibrary(commiter, modId, actor, reason, includeSystem)
-      saveParameters <- exportParametersAndDeploy(commiter, modId, actor, reason, includeSystem)
+      saveParameters <- exportParameters(commiter, modId, actor, reason, includeSystem)
       msg            =  (  FULL_ARCHIVE_TAG
                       + " Archive and tag groups, technique library, rules and parameters"
                       + (reason match {
@@ -210,10 +210,7 @@ class ItemArchiveManagerImpl(
     }
   }
 
-  override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId] =
-    exportParametersAndDeploy(commiter, modId, actor, reason, includeSystem)
-
-  private[this] def exportParametersAndDeploy(commiter:PersonIdent, modId:ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false): Box[GitArchiveId] = {
+  override def exportParameters(commiter:PersonIdent, modId: ModificationId, actor:EventActor, reason:Option[String], includeSystem:Boolean = false) : Box[GitArchiveId] = {
     for {
       parameters  <- roParameterRepository.getAllGlobalParameters()
       cleanedRoot <- tryo { FileUtils.cleanDirectory(gitParameterArchiver.getRootDirectory) }
