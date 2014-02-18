@@ -236,13 +236,16 @@ class RudderCf3PromisesFileWriterServiceImpl(
     val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
 
     val errorCode = agentType match {
-      case NOVA_AGENT =>
+      case NOVA_AGENT if(novaCheckPromises != "/bin/true") =>
         val process: scala.sys.process.ProcessBuilder = (novaCheckPromises + " -f " + pathOfPromises + "/promises.cf")
         process.!(processLogger)
 
-      case _ =>
+      case COMMUNITY_AGENT if(communityCheckPromises != "/bin/true") =>
         val process: scala.sys.process.ProcessBuilder = (communityCheckPromises + " -f " + pathOfPromises + "/promises.cf")
         process.!(processLogger)
+
+      //command is /bin/true => just return with no error (0)
+      case _ => 0
     }
     (errorCode, out.reverse ++ err.reverse)
   }
