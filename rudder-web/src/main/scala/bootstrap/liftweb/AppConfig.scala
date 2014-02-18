@@ -80,7 +80,6 @@ import com.normation.rudder.services.servers.NodeConfigurationChangeDetectServic
 import org.apache.commons.dbcp.BasicDataSource
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
-import scala.xml.PrettyPrinter
 import com.normation.rudder.services.marshalling._
 import com.normation.utils.ScalaLock
 import com.normation.rudder.web.rest._
@@ -241,7 +240,7 @@ object RudderConfig extends Loggable {
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
-  val prettyPrinter = new PrettyPrinter(120, 2)
+  val prettyPrinter = new RudderPrettyPrinter(120, 2)
   val userLibraryDirectoryName = "directives"
   val groupLibraryDirectoryName = "groups"
   val rulesDirectoryName = "rules"
