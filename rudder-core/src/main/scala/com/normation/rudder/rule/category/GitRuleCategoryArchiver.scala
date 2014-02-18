@@ -121,7 +121,7 @@ class GitRuleCategoryArchiverImpl(
   , override val gitRootDirectory          : File
   , ruleCategorySerialisation              : RuleCategorySerialisation
   , ruleCategoryRootDir                    : String //relative path !
-  , override val xmlPrettyPrinter          : PrettyPrinter
+  , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding                  : String = "UTF-8"
   , categoryFileName                       : String = "category.xml"

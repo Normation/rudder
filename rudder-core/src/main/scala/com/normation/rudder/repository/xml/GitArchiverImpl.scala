@@ -65,7 +65,6 @@ import org.eclipse.jgit.lib.PersonIdent
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import scala.xml.Elem
-import scala.xml.PrettyPrinter
 import scala.collection.mutable.Buffer
 import scala.collection.JavaConversions._
 import com.normation.cfclerk.domain.TechniqueId
@@ -80,7 +79,7 @@ class GitRuleArchiverImpl(
   , override val gitRootDirectory          : File
   , ruleSerialisation                      : RuleSerialisation
   , ruleRootDir                            : String //relative path !
-  , override val xmlPrettyPrinter          : PrettyPrinter
+  , override val xmlPrettyPrinter          : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding                  : String = "UTF-8"
 ) extends
@@ -187,7 +186,7 @@ class GitActiveTechniqueCategoryArchiverImpl(
   , override val gitRootDirectory       : File
   , activeTechniqueCategorySerialisation: ActiveTechniqueCategorySerialisation
   , techniqueLibraryRootDir             : String //relative path !
-  , override val xmlPrettyPrinter       : PrettyPrinter
+  , override val xmlPrettyPrinter       : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding               : String = "UTF-8"
   , serializedCategoryName              : String = "category.xml"
@@ -365,7 +364,7 @@ class GitActiveTechniqueArchiverImpl(
   , override val gitRootDirectory  : File
   , activeTechniqueSerialisation   : ActiveTechniqueSerialisation
   , techniqueLibraryRootDir        : String //relative path !
-  , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val xmlPrettyPrinter  : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding          : String = "UTF-8"
   , val uptModificationCallback    : Buffer[ActiveTechniqueModificationCallback] = Buffer()
@@ -477,7 +476,7 @@ class GitDirectiveArchiverImpl(
   , override val gitRootDirectory  : File
   , directiveSerialisation         : DirectiveSerialisation
   , techniqueLibraryRootDir        : String //relative path !
-  , override val xmlPrettyPrinter  : PrettyPrinter
+  , override val xmlPrettyPrinter  : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding          : String = "UTF-8"
 ) extends GitDirectiveArchiver with Loggable with GitArchiverUtils with BuildCategoryPathName[ActiveTechniqueCategoryId] {
@@ -570,7 +569,7 @@ class GitNodeGroupArchiverImpl(
   , nodeGroupSerialisation        : NodeGroupSerialisation
   , nodeGroupCategorySerialisation: NodeGroupCategorySerialisation
   , groupLibraryRootDir           : String //relative path !
-  , override val xmlPrettyPrinter : PrettyPrinter
+  , override val xmlPrettyPrinter : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding         : String = "UTF-8"
   , serializedCategoryName        : String = "category.xml"
@@ -778,7 +777,7 @@ class GitParameterArchiverImpl(
   , override val gitRootDirectory : File
   , parameterSerialisation        : GlobalParameterSerialisation
   , parameterRootDir              : String //relative path !
-  , override val xmlPrettyPrinter : PrettyPrinter
+  , override val xmlPrettyPrinter : RudderPrettyPrinter
   , override val gitModificationRepository : GitModificationRepository
   , override val encoding         : String = "UTF-8"
 ) extends
