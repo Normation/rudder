@@ -47,12 +47,12 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
 
    !is_dir_copy::
       "${destination}"
-        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
         classes      => classes_generic("${class_prefix}");
 
    is_dir_copy::
       "${destination}"
-        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "mtime"),
+        copy_from    => ncf_remote_cp_method("${source}", "${sys.policy_hub}", "digest"),
         depth_search => recurse("${recursion}"),
         classes      => classes_generic("${class_prefix}");
 
