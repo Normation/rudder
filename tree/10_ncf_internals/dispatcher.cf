@@ -47,7 +47,7 @@ bundle agent dispatcher
 
   reports:
     !mapper_services_exists::
-      "${configuration.error} There are no services defined in service_dispatcher.cf. The execution is stopped";
+      "${configuration.error} There are no services defined in service_mapping.cf. The execution is stopped";
     mapper_services_exists::
       "${configuration.info} Running services, going to run bundle: ${services_array_${services}[2]} (in version '${services_array_${services}[3]}')";
 
