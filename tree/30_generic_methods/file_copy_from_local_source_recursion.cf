@@ -46,12 +46,12 @@ bundle agent file_copy_from_local_source_recursion(source, destination, recursio
   files:
    !is_dir_copy::
       "${destination}"
-        copy_from    => ncf_local_cp_method("${source}", "mtime"),
+        copy_from    => ncf_local_cp_method("${source}", "digest"),
         classes      => classes_generic("${class_prefix}");
 
    is_dir_copy::
       "${destination}"
-        copy_from    => ncf_local_cp_method("${source}", "mtime"),
+        copy_from    => ncf_local_cp_method("${source}", "digest"),
         depth_search => recurse("${recursion}"),
         classes      => classes_generic("${class_prefix}");
 
