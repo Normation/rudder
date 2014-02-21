@@ -60,24 +60,25 @@ class HomePage extends Loggable {
   private[this] val ldap            = RudderConfig.roLDAPConnectionProvider
   private[this] val pendingNodesDit = RudderConfig.pendingNodesDit
   private[this] val nodeDit         = RudderConfig.nodeDit
-  private[this] val ruleRepository  = RudderConfig.roRuleRepository
+  private[this] val rudderDit       = RudderConfig.rudderDit
 
   private def countPendingNodes() : Box[Int] = {
     ldap.map { con =>
-      con.searchOne(pendingNodesDit.NODES.dn,ALL)
+      con.searchOne(pendingNodesDit.NODES.dn, ALL, "1.1")
     }.map(x => x.size)
   }
 
   private def countAcceptedNodes() : Box[Int] = {
     ldap.map { con =>
-      con.searchOne(nodeDit.NODES.dn,NOT(IS(OC_POLICY_SERVER_NODE)))
+      con.searchOne(nodeDit.NODES.dn, NOT(IS(OC_POLICY_SERVER_NODE)), "1.1")
     }.map(x => x.size)
   }
 
   private def countAllCr() : Box[Int] = {
-    ruleRepository.getAll().map(_.size)
+    ldap.map { con =>
+      con.searchOne(rudderDit.RULES.dn, ALL, "1.1")
+    }.map(x => x.size)
   }
-
 
   def pendingNodes(html : NodeSeq) : NodeSeq = {
     countPendingNodes match {
