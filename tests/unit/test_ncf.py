@@ -109,8 +109,9 @@ class TestNcf(unittest.TestCase):
 
     # Get list of generic_methods without prefix "_" on the filesystem
     list_methods_files = []
-    list_methods_files += ["%s/%s" % (base_dir,filename) for filename in os.listdir(base_dir) if not filename.startswith('_') and filename.endswith('.cf')]
-    list_methods_files += ["%s/%s" % (alternative_path+"/30_generic_methods",filename) for filename in os.listdir(alternative_path+"/30_generic_methods") if not filename.startswith('_') and filename.endswith('.cf')]
+    ## Get recursivly each promises in the basic path and the alternative one
+    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(base_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
+    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(alternative_path+"/30_generic_methods") for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
 
     filenames = ncf.get_all_generic_methods_filenames(alternative_path)
 
@@ -126,8 +127,9 @@ class TestNcf(unittest.TestCase):
 
     # Get list of techniques without prefix "_" on the filesystem
     list_methods_files = []
-    list_methods_files += ["%s/%s" % (base_dir+"/openssh_server",filename) for filename in os.listdir(base_dir+"/openssh_server") if not filename.startswith('_') and filename.endswith('.cf')]
-    list_methods_files += ["%s/%s" % (alternative_path+"/50_techniques/test_technique",filename) for filename in os.listdir(alternative_path+"/50_techniques/test_technique") if not filename.startswith('_') and filename.endswith('.cf')]
+    ## Get recursivly each promises in the basic path and the alternative one
+    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(base_dir) for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
+    list_methods_files += [os.path.join(full_path,filename) for full_path, dirname, files in os.walk(alternative_path+"/50_techniques") for filename in files if not filename.startswith('_') and filename.endswith('.cf')]
 
     filenames = ncf.get_all_techniques_filenames(alternative_path)
 
