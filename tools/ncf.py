@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # This is a Python module containing functions to parse and analyze ncf components
 
 # This module is designed to run on the latest major versions of the most popular
@@ -42,14 +43,32 @@ def check_output(command):
         print "VERBOSE: Command output: '" + output[0] + "'"
     return output[0]
 
-def get_all_generic_methods_filenames():
-  return get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
+def get_all_generic_methods_filenames(alt_path = ''):
+  result = []
+  filelist1 = get_all_generic_methods_filenames_in_dir(get_root_dir() + "/tree/30_generic_methods")
+  filelist2 = []
+  if alt_path == '':
+    filelist2 = []
+  else:
+    filelist2 = get_all_generic_methods_filenames_in_dir(alt_path + "/30_generic_methods")
+  result = filelist1 + filelist2
+
+  return result
 
 def get_all_generic_methods_filenames_in_dir(dir):
   return get_all_cf_filenames_under_dir(dir)
 
-def get_all_techniques_filenames():
-  return get_all_cf_filenames_under_dir(get_root_dir() + "/tree/50_techniques")
+def get_all_techniques_filenames(alt_path = ''):
+  result = []
+  filelist1 = get_all_cf_filenames_under_dir(get_root_dir() + "/tree/50_techniques")
+  filelist2 = []
+  if alt_path == '':
+    filelist2 = []
+  else:
+    filelist2 = get_all_cf_filenames_under_dir(alt_path + "/50_techniques")
+  result = filelist1 + filelist2
+
+  return result
 
 def get_all_cf_filenames_under_dir(dir):
   filenames = []
@@ -58,7 +77,6 @@ def get_all_cf_filenames_under_dir(dir):
     for file in files:
       if not file.startswith("_") and file.endswith(".cf"):
         filenames_add(os.path.join(root, file))
-
   return filenames
 
 def parse_technique_metadata(technique_content):
@@ -164,10 +182,10 @@ def parse_technique_methods(technique_file):
 
   return res
 
-def get_all_generic_methods_metadata():
+def get_all_generic_methods_metadata(alt_path = ''):
   all_metadata = {}
 
-  filenames = get_all_generic_methods_filenames()
+  filenames = get_all_generic_methods_filenames(alt_path)
 
   for file in filenames:
     content = open(file).read()
@@ -179,10 +197,12 @@ def get_all_generic_methods_metadata():
 
   return all_metadata
 
-def get_all_techniques_metadata(include_methods_calls = True):
+def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
   all_metadata = {}
 
-  filenames = get_all_techniques_filenames()
+  if alt_path != '': print "INFO: Alternative source path added: %s" % alt_path
+
+  filenames = get_all_techniques_filenames(alt_path)
 
   for file in filenames:
     content = open(file).read()

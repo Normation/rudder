@@ -1,0 +1,30 @@
+# This file contains a sample generic_method
+
+# generic method package_install
+#
+# This method is unlikely to be useful at all, however it does provide
+# the basic syntaxic requirements for the structured metadata in comments
+# above each generic method main bundle
+#
+# @name Test generic method
+# @description sample generic_method
+#
+# @parameter test_arg1 test argument
+#
+# @class_prefix test_generic_method
+# @class_parameter test_arg1
+#
+# Please see the online documentation for more details.
+bundle agent test_generic_method(test_arg1, test_arg2)
+{
+  vars:
+   "class_prefix"     string => canonify("test_generic_method_${test_arg1}");
+
+  packages:
+    "${package_name}" package_action => "add";
+
+  methods:
+    "success"         usebundle => _classes_success("${class_prefix}");
+    "report"          usebundle => _logger("Test Generic Method ${service_name}", "${class_prefix}");
+
+}

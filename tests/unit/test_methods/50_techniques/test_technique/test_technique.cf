@@ -1,0 +1,18 @@
+# This file contains a sample generic_method
+
+# generic method package_install
+#
+# This method is unlikely to be useful at all, however it does provide
+# the basic syntaxic requirements for the structured metadata in comments
+# above each generic method main bundle
+#
+# @name Test Technique
+# @description Test a generic Technique
+# @version 0.1
+#
+# Please see the online documentation for more details.
+bundle agent test_technique
+{
+  methods:
+    "ph" usebundle => test_generic_method("my_package","0.1");
+}
