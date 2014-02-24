@@ -33,3 +33,10 @@ history.inventories.rootdir=/var/rudder/inventories/historical
 # where to store debug information about LDAP modification requests
 ldif.tracelog.rootdir=/var/rudder/inventories/debug
 
+#
+# Max number of reports waiting to be processed internally. 
+# For a rough estimation, you can consider that a report in queue 
+# takes 5 MB, so to handle 50 (default), the application will 
+# need around 250 MB of spare memory. 
+# 
+waiting.inventory.queue.size=50

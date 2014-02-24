@@ -93,6 +93,9 @@ class AppConfig {
   @Value("${ldap.inventories.software.basedn}")
   var SOFTWARE_INVENTORIES_DN = ""
 
+  @Value("${waiting.inventory.queue.size}")
+  var WAITING_QUEUE_SIZE = 50
+
   //TODO: only have a root DN here !
 
 
@@ -155,7 +158,7 @@ class AppConfig {
     , port = PORT
     , ldifFileLogger = new DefaultLDIFFileLogger(ldifTraceRootDir = LDIF_TRACELOG_ROOT_DIR)
   )
-  
+
   @Bean
   def rwLdapConnectionProvider = new RWPooledSimpleAuthConnectionProvider(
       authDn = AUTH_DN
@@ -304,6 +307,6 @@ class AppConfig {
     ocsiUnmarshaller:ReportUnmarshaller,
     reportSaver:ReportSaver[Seq[LDIFChangeRecord]]
   ) : FusionReportEndpoint = {
-    new FusionReportEndpoint(ocsiUnmarshaller,reportSaver)
+    new FusionReportEndpoint(ocsiUnmarshaller,reportSaver, WAITING_QUEUE_SIZE)
   }
 }
