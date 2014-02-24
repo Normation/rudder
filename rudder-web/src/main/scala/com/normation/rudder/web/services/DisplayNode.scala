@@ -577,7 +577,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     displayTabGrid(jsId)("bios", sm.machine.map(fm => fm.bios)){
         ("Name", {x:Bios => Text(x.name)}) ::
         ("Editor", {x:Bios => ?(x.editor.map( _.name))}) ::
-        ("Version", {x:Bios => ?(x.editor.map( _.name))}) ::
+        ("Version", {x:Bios => ?(x.version.map( _.value))}) ::
         ("Release Date", {x:Bios => ?(x.releaseDate.map(DateFormaterService.getFormatedDate(_)))}) ::
         Nil
     }
