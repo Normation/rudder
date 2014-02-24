@@ -116,7 +116,7 @@ class FusionReportEndpoint(
                   //release connection
                   new ResponseEntity("Report correctly received and sent to report processor.\n", HttpStatus.ACCEPTED)
                 case TooManyInQueue =>
-                  new ResponseEntity("Too many reports waiting to be saved.\n", HttpStatus.INTERNAL_SERVER_ERROR)
+                  new ResponseEntity("Too many reports waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
               }
             case f@Failure(_,_,_) =>
               val msg = "Error when trying to parse report: %s".format(f.failureChain.map( _.msg).mkString("\n", "\ncause: ", "\n"))
