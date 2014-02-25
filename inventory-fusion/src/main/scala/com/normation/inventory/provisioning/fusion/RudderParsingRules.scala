@@ -182,7 +182,10 @@ class RudderPublicKeyParsing(keyNormalizer:PrintedKeyNormalizer) extends FusionR
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
     optText(x._1) match {
       case None => x._2
-      case Some(key) => x._2.copy( node = x._2.node.copy( publicKeys = (new PublicKey(keyNormalizer(key) ) +: x._2.node.publicKeys ) ) )
+      case Some(key) => keyNormalizer(key) match {
+        case "" => x._2 //we have an empty key !
+        case k => x._2.copy( node = x._2.node.copy( publicKeys = (new PublicKey(k) +: x._2.node.publicKeys ) ) )
+      }
     }
   }
 }
