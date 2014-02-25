@@ -62,6 +62,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       checkRoot _ ::
       checkPolicyServer _ ::
       checkOS _ ::
+      checkKernelVersion _ ::
       checkAgent _ ::
       checkMachineId _ ::
       Nil
@@ -131,7 +132,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   }
 
   private[this] def checkOS(report:NodeSeq) : Box[NodeSeq] = {
-    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "KERNEL_VERSION" :: "NAME" :: "VERSION" :: Nil
+    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: "VERSION" :: Nil
     for {
       tagHere <- bestEffort(tags) { tag =>
                    checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
@@ -140,6 +141,46 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
       report
     }
   }
+
+  /**
+   * Kernel version: either
+   * - non empty OPERATINGSYSTEM > KERNEL_VERSION
+   * or
+   * - (on AIX and non empty HARDWARE > OSVERSION )
+   * Other cases are failure (missing required info)
+   */
+  private[this] def checkKernelVersion(report:NodeSeq) : Box[NodeSeq] = {
+
+    val failure = Failure("Missing attribute OPERATINGSYSTEM>KERNEL_VERSION in report. This attribute is mandatory")
+    val aixFailure = Failure("Missing attribute HARDWARE>OSVERSION in report. This attribute is mandatory")
+
+    checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("KERNEL_VERSION")) match {
+      case Full(x) => Full(report)
+      case e:EmptyBox => //perhaps we are on AIX ?
+        checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("KERNEL_NAME")) match {
+          case Full(x) if(x.toLowerCase == "aix") => //ok, check for OSVERSION
+            checkNodeSeq(report, "HARDWARE", false, Some("OSVERSION")) match {
+              case e:EmptyBox => aixFailure
+              case Full(kernelVersion) => //update the report to put it in the right place
+                Full(new scala.xml.transform.RuleTransformer(
+                    new AddChildrenTo("OPERATINGSYSTEM", <KERNEL_VERSION>{kernelVersion}</KERNEL_VERSION>)
+                ).transform(report).head)
+            }
+          //should not be empty give checkOS, but if so, fails. Also fails is not aix.
+          case _ => failure
+        }
+
+    }
+  }
+  //for check kernel version
+  private[this] class AddChildrenTo(label: String, newChild: scala.xml.Node) extends scala.xml.transform.RewriteRule {
+    override def transform(n: scala.xml.Node) = n match {
+      case Elem(prefix, "OPERATINGSYSTEM", attribs, scope, child @ _*) =>
+        Elem(prefix, label, attribs, scope, false, child ++ newChild : _*)
+      case other => other
+    }
+  }
+
 
   private[this] def checkAgent(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "AGENTNAME"
