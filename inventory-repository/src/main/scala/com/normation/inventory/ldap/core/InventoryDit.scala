@@ -177,6 +177,12 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         mod
       }
 
+      def aixModel(id:NodeId) : LDAPEntry = {
+        val mod = model(id)
+        mod += (A_OC,OC.objectClassNames(OC_AIX_NODE).toSeq:_*)
+        mod
+      }
+
       def dn(uuid:String) = new DN(this.rdn(uuid), servers.dn)
 
       def idFromDN(dn:DN) : Box[NodeId] = {

@@ -948,6 +948,12 @@ objectclass ( InventoryObjectClasses:23
   SUP node
   STRUCTURAL )
 
+objectclass ( InventoryObjectClasses:24
+  NAME 'aixNode'
+  DESC 'A node running with AIX as operating system'
+  SUP node
+  STRUCTURAL )
+
 objectclass ( InventoryObjectClasses:18
   NAME 'logicalElement'
   DESC 'A logical element, ie a component of a node (network interface, file system, etc)'

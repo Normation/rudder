@@ -1285,7 +1285,7 @@
   <QUERY>INVENTORY</QUERY>
 
 <!-- Needed elements for Rudder -->  
-<UUID>0876521e-3c81-4775-85c7-5dd7f9d5d3da</UUID>
+<UUID>aix6521e-3c81-4775-85c7-5dd7f9d5d3da</UUID>
 <USER>root</USER>
 <AGENTSNAME>
 <AGENTNAME>Community</AGENTNAME>
