@@ -62,7 +62,7 @@ class RudderDatasourceProvider(
     pool.setPassword(password)
 
     //set parameters to test for dead connection
-    pool.setValidationQuery("SELECT tables.table_name FROM information_schema.tables WHERE lower(table_name) = 'eventlog'")
+    pool.setValidationQuery("SELECT 1")
 
     /* try to get the connection */
     val connection = pool.getConnection()
