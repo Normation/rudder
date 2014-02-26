@@ -299,7 +299,7 @@ case object MemoryComparator extends CriterionType {
 }
 
 case object OstypeComparator extends CriterionType {
-  val osTypes = List("Linux","Windows","Solaris")
+  val osTypes = List("Linux","Windows","Solaris", "AIX")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
@@ -309,9 +309,10 @@ case object OstypeComparator extends CriterionType {
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
     val v = value match {
       case "Windows" => OC_WINDOWS_NODE
-      case "Linux" => OC_LINUX_NODE
+      case "Linux"   => OC_LINUX_NODE
       case "Solaris" => OC_SOLARIS_NODE
-      case _ => OC_UNIX_NODE
+      case "AIX"     => OC_AIX_NODE
+      case _         => OC_UNIX_NODE
     }
     comparator match {
       //for equals and not equals, check value for jocker
@@ -333,7 +334,7 @@ case object OstypeComparator extends CriterionType {
 case object OsNameComparator extends CriterionType {
   import net.liftweb.http.S
 
-  val osNames = LinuxType.allKnownTypes ::: WindowsType.allKnownTypes ::: SolarisType.allKnownTypes
+  val osNames = SolarisOS :: AixOS :: LinuxType.allKnownTypes ::: WindowsType.allKnownTypes
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
