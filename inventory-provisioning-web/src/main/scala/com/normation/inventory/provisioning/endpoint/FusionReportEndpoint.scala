@@ -59,7 +59,8 @@ object FusionReportEndpoint{
 @Controller
 class FusionReportEndpoint(
     unmarshaller:ReportUnmarshaller,
-    reportSaver:ReportSaver[Seq[LDIFChangeRecord]]
+    reportSaver:ReportSaver[Seq[LDIFChangeRecord]],
+    queueSize: Int
 ) extends Loggable {
 
   //start the report processor actor
@@ -108,11 +109,15 @@ class FusionReportEndpoint(
 
           (unmarshaller.fromXml(reportFile.getName,in) ?~! "Can't parse the input report, aborting") match {
             case Full(report) if(null != report) =>
-              logger.info("Report '%s' parsed in %s, sending to save engine.".format(reportFile.getOriginalFilename, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
+              logger.info(s"Report '${reportFile.getOriginalFilename}' parsed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}, sending to save engine.\n")
               //send report to asynchronous report processor
-              ReportProcessor ! report
-              //release connection
-              new ResponseEntity("Report correctly received and sent to report processor.", HttpStatus.ACCEPTED)
+              (ReportProcessor !? report) match {
+                case OkToSave =>
+                  //release connection
+                  new ResponseEntity("Report correctly received and sent to report processor.\n", HttpStatus.ACCEPTED)
+                case TooManyInQueue =>
+                  new ResponseEntity("Too many reports waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
+              }
             case f@Failure(_,_,_) =>
               val msg = "Error when trying to parse report: %s".format(f.failureChain.map( _.msg).mkString("\n", "\ncause: ", "\n"))
               logger.error(msg)
@@ -130,23 +135,18 @@ class FusionReportEndpoint(
             val msg = "Exception when processing report '%s'".format(reportFile.getOriginalFilename)
             logger.error(msg)
             logger.error("Reported exception is: ", e)
-            new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
+            new ResponseEntity(msg+"\n", HttpStatus.PRECONDITION_FAILED)
         } finally {
           in.close
         }
 
-        //clean-up
-//        try {
-//          if(! new File(reportFile.getAbsolutePath).delete) {
-//            logger.error("Error when trying to delete temporary report file '%s'. You will have to delete it by hand.".format(reportFile.getAbsolutePath))
-//          }
-//        } catch {
-//          case e =>
-//            logger.error("Exception when processing report {}",reportFile.getAbsolutePath)
-//            logger.error("Reported exception is: ", e)
-//        }
     }
   }
+
+  //two message to know if the backend accept to process the report
+  case object OkToSave
+  case object TooManyInQueue
+
 
   import scala.actors.Actor
   import Actor._
@@ -155,29 +155,49 @@ class FusionReportEndpoint(
    * An asynchronous actor process the query
    */
   private object ReportProcessor extends Actor {
+    self =>
+
+    //a message from the processor to self
+    //saying it finish processing
+    case object Processed
+
+    var inQueue = 0
+
+    //that actor only check the number of queued elements and decide to
+    //queue it or not
     override def act = {
-      loop {
-        react {
+      loop { react {
           case i:InventoryReport =>
+
+            if(inQueue < queueSize) {
+              actualProcessor ! i
+              reply(OkToSave)
+              inQueue += 1
+            } else {
+              logger.warn(s"Not processing inventory ${i.name} because there is already the maximum number (${inQueue}) of inventory waiting to be processed")
+              reply(TooManyInQueue)
+            }
+
+          case Processed =>
+            inQueue -= 1
+      } }
+    }
+
+    //this is the actor that process the report
+    val actualProcessor = new Actor {
+      override def act = {
+        loop { react {
+            case i:InventoryReport =>
               saveReport(i)
-              }
+              self ! Processed
+        } }
       }
     }
+
+    actualProcessor.start
+
   }
 
-//  private def copyFileToTempDir(src:MultipartFile) : File = {
-//    val in = src.getInputStream
-//    val fout = File.createTempFile(src.getName+"_"+System.currentTimeMillis, ".tmp")
-//    logger.debug("Saving {} to {} for post-processing", src.getName, fout.getAbsolutePath)
-//    val out = new FileOutputStream(fout)
-//    // Transfer bytes from in to out
-//    val buf = new Array[Byte](1024)
-//    var len = 0
-//    while ({len = in.read(buf) ; len} > 0) { out.write(buf, 0, len) }
-//    in.close
-//    out.close
-//    fout
-//  }
 
   private def saveReport(report:InventoryReport) : Unit = {
     logger.trace("Start post processing of report %s".format(report.name))
