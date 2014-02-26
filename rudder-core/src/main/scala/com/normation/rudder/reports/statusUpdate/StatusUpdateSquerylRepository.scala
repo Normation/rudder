@@ -56,7 +56,7 @@ class StatusUpdateSquerylRepository (
 
   private def getValue(key : String) : Box[Option[(Int,DateTime)]] = {
     try {
-      sessionProvider.ourTransaction {
+      sessionProvider.ourSession {
         val q = from(statusTable)(entry =>
 	        where(entry.key === key)
 	        select(entry)

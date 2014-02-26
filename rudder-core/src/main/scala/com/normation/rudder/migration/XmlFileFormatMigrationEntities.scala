@@ -101,7 +101,7 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
    * If the database does not exist or no line are present, retrun none.
    */
   def getLastDetectionLine: Option[SerializedMigrationEventLog] = {
-    squerylConnectionProvider.ourTransaction {
+    squerylConnectionProvider.ourSession {
       val q = from(MigrationEventLogTable.migrationEventLog)(line =>
         select(line)
         orderBy(line.id.desc)
