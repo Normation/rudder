@@ -55,7 +55,51 @@ class SquerylConnectionProvider(
    }
 
 
-  def ourTransaction[A](a : => A) : A = {
+   /* This must be done only if select are made, otherwise all update and insert will be lost ! */
+   def ourSession[A](a : => A) : A = {
+    val c = getConnection
+    val s = Session.create(c, new PostgreSqlAdapter)
+
+
+    if(c.getAutoCommit)
+      c.setAutoCommit(false)
+
+    var txOk = false
+    try {
+      val res =try {
+        s.bindToCurrentThread
+        a
+
+      }
+      finally {
+        s.unbindFromCurrentThread
+        s.cleanup
+      }
+
+      txOk = true
+      res
+    }
+    finally {
+      try {
+        // Don't commit nor rollback, simply close for return safely in the pool
+        c.close()
+      }
+      catch {
+        case e:SQLException => {
+          if(txOk) throw e // if an exception occured b4 the commit/rollback we don't want to obscure the original exception
+        }
+      }
+      try{c.close}
+      catch {
+        case e:SQLException => {
+          if(txOk) throw e // if an exception occured b4 the close we don't want to obscure the original exception
+        }
+      }
+     }
+   }
+
+   /* This has to be used when insert or update are done*/
+   def ourTransaction[A](a : => A) : A = {
     val c = getConnection
     val s = Session.create(c, new PostgreSqlAdapter)
 
