@@ -408,7 +408,7 @@ class DeploymentStatusUnserialisationImpl extends DeploymentStatusUnserialisatio
                   }
     } yield {
       status match {
-        case "success" => SuccessStatus(id, started, ended, Map())
+        case "success" => SuccessStatus(id, started, ended, Set())
         case "failure" => ErrorStatus(id, started, ended, errorMessage.map(x => Failure(x)).getOrElse(Failure("")) )
         case s       => NoStatus
       }

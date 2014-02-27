@@ -38,7 +38,6 @@ package com.normation.rudder.batch
 import net.liftweb.common._
 import net.liftweb.actor._
 import org.joda.time._
-import com.normation.rudder.domain.servers.NodeConfiguration
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.DeploymentService
 import net.liftweb.http.ListenerManager
@@ -84,7 +83,7 @@ sealed trait CurrentDeploymentStatus
 //noting was done for now
 final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching
 //last status - success or error
-final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration:Map[NodeId,NodeConfiguration]) extends CurrentDeploymentStatus with HashcodeCaching
+final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration: Set[NodeId]) extends CurrentDeploymentStatus with HashcodeCaching
 final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus with HashcodeCaching
 
 
@@ -104,7 +103,7 @@ final class AsyncDeploymentAgent(
 
   deploymentManager =>
 
-  val timeFormat = "yyyy/MM/dd HH:mm:ss"
+  val timeFormat = "yyyy-MM-dd HH:mm:ss"
 
   //message from the deployment agent to the manager
   private[this] sealed case class DeploymentResult(
@@ -112,7 +111,7 @@ final class AsyncDeploymentAgent(
     , modId  : ModificationId
     , start  : DateTime
     , end    : DateTime
-    , results: Box[Map[NodeId, NodeConfiguration]]
+    , results: Box[Set[NodeId]]
     , actor  : EventActor
     , eventLogId: Int) extends HashcodeCaching
   //message from manager to deployment agent
@@ -261,9 +260,9 @@ final class AsyncDeploymentAgent(
             , reason = None
           )))
 
-        case Full(nodeConfigurations) =>
-          logger.info("Successful deployment %s [%s - %s]".format(id, startTime.toString(timeFormat), endTime.toString(timeFormat)))
-          lastFinishedDeployement = SuccessStatus(id, startTime, endTime, nodeConfigurations)
+        case Full(nodeIds) =>
+          logger.info(s"Successful policy generation '${id}' [started ${startTime.toString(timeFormat)} - ended ${endTime.toString(timeFormat)}]")
+          lastFinishedDeployement = SuccessStatus(id, startTime, endTime, nodeIds)
           eventLogger.repository.saveEventLog(modId, SuccessfulDeployment(EventLogDetails(
               modificationId = None
             , principal = actor
@@ -315,9 +314,8 @@ final class AsyncDeploymentAgent(
       case NewDeployment(id, modId, startTime, actor, eventId) =>
         logger.trace("Deployer Agent: start a new deployment")
         try {
-          val result = deploymentService.deploy().map { nodeConfs =>
-            nodeConfs.map { conf => (conf.id, conf) }.toMap
-          }
+          val result = deploymentService.deploy()
+
           result match {
             case Full(_) => // nothing to report
             case m: Failure => logger.error("Error when doing deployment, reason %s".format(m.messageChain))
