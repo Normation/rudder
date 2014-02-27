@@ -404,9 +404,9 @@ class FusionReportUnmarshaller(
           else if(x contains "scientific") Scientific
           else                          UnknownLinuxType
 
-        case("solaris",x) =>
-          if (x contains  "solaris" ) SolarisOS
-          else UnknownSolarisType
+        case("solaris", _) => SolarisOS
+
+        case("aix", _) => AixOS
 
         case _  => UnknownOSType
       }
@@ -435,10 +435,17 @@ class FusionReportUnmarshaller(
             , kernelVersion = kernelVersion
           )
 
-        case solaris:SolarisType =>
+        case SolarisOS =>
           Solaris(
-              os = solaris
-            , fullName = fullName
+              fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
+        case AixOS =>
+          Aix(
+              fullName = fullName
             , version = version
             , servicePack = servicePack
             , kernelVersion = kernelVersion

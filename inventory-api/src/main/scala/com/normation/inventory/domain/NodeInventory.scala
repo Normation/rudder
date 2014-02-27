@@ -187,18 +187,20 @@ case object Android extends LinuxType with HashcodeCaching          { val name =
 case object Oracle extends LinuxType with HashcodeCaching           { val name = "Oracle" }
 case object Scientific extends LinuxType with HashcodeCaching       { val name = "Scientific" }
 
-sealed abstract class SolarisType extends OsType {
+//solaris has only one flavour for now
+//to be updated in the future with OSS verison
+object SolarisOS extends OsType {
   val kernelName = "Solaris"
+  val name = "Solaris"
 }
-object SolarisType {
-  val allKnownTypes = (
-       SolarisOS
-    :: Nil
-  )
+
+//AIX has only one flavour
+object AixOS extends OsType {
+  val kernelName = "AIX"
+  val name = "AIX"
 }
-// Only one Solaris Type for the moment
-case object SolarisOS  extends SolarisType with HashcodeCaching          { val name = "Solaris"  }
-case object UnknownSolarisType  extends SolarisType with HashcodeCaching { val name = "Solaris"  }
+
+
 
 /**
  * The different OS type. For now, we know
@@ -234,12 +236,18 @@ case class Linux(
 ) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
 case class Solaris(
-    override val os            : OsType
-  , override val fullName      : String
+    override val fullName      : String
   , override val version       : Version
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
-) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
+) extends OsDetails(SolarisOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
+
+case class Aix(
+    override val fullName      : String
+  , override val version       : Version
+  , override val servicePack   : Option[String]
+  , override val kernelVersion : Version
+) extends OsDetails(AixOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
 case class Windows(
     override val os            : OsType
