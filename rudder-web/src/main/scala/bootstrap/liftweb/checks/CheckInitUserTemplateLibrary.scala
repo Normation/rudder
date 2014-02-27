@@ -50,6 +50,8 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 /**
  * That class add all the available reference template in
@@ -63,6 +65,7 @@ class CheckInitUserTemplateLibrary(
   , roDirectiveRepos   : RoDirectiveRepository
   , woDirectiveRepos   : WoDirectiveRepository
   , uuidGen            : StringUuidGenerator
+  , asyncDeploymentAgent: AsyncDeploymentAgent
 ) extends BootstrapChecks with Loggable {
 
 
@@ -76,7 +79,9 @@ class CheckInitUserTemplateLibrary(
             case None =>
               ApplicationLogger.info("The Active Technique library is not marked as being initialized: adding all policies from reference library...")
               copyReferenceLib() match {
-                case Full(x) => ApplicationLogger.info("...done")
+                case Full(x) =>
+                  asyncDeploymentAgent ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), RudderEventActor)
+                  ApplicationLogger.info("...done")
                 case eb:EmptyBox =>
                   val e = eb ?~! "Some error where encountered during the initialization of the user library"
                   val msg = e.messageChain.split("<-").mkString("\n ->")
@@ -155,7 +160,7 @@ class CheckInitUserTemplateLibrary(
     }
 
     //apply with root cat children ids
-    roDirectiveRepos.getActiveTechniqueLibrary.flatMap { root => 
+    roDirectiveRepos.getActiveTechniqueLibrary.flatMap { root =>
       bestEffort(refTemplateService.getTechniqueLibrary.subCategoryIds.toSeq) { id =>
         recCopyRef(id, root)
       }

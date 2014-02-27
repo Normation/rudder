@@ -1379,7 +1379,7 @@ object RudderConfig extends Loggable {
     , new CheckSystemDirectives(rudderDitImpl, roLdapRuleRepository)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
-        roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen) //new CheckDirectiveBusinessRules()
+        roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
     , new CheckMigrationXmlFileFormat3_4(controlXmlFileFormatMigration_3_4)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
