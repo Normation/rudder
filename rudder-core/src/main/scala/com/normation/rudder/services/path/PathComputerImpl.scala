@@ -46,6 +46,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.exceptions.BusinessException
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 
 /**
  * Utilitary tool to compute the path of a machine promises (and others information) on the rootMachine
@@ -109,20 +110,18 @@ class PathComputerImpl(
     } else {
       for {
         toNode <- Box(allNodeConfig.get(toNodeId)) ?~! s"Missing node with id ${toNodeId.value} when trying to build the promise files path for node ${fromNodeId.value}"
-        pid    =  NodeId(toNode.targetMinimalNodeConfig.policyServerId)
+        pid    =  toNode.nodeInfo.policyServerId
         parent <- Box(allNodeConfig.get(pid)) ?~! s"Can not find the parent node (${pid.value}) of node ${toNodeId.value} when trying to build the promise files for node ${fromNodeId.value}"
         result <- parent match {
-                    case root: RootNodeConfiguration if root.id == NodeId("root") =>
+                    case root if root.nodeInfo.id == NodeId("root") =>
                         // root is a specific case, it is the root of everything
-                        recurseComputePath(fromNodeId, root.id, path, allNodeConfig)
+                        recurseComputePath(fromNodeId, root.nodeInfo.id, path, allNodeConfig)
 
                     // If the chain is longer, then we need to add the .new for each parent folder
                     // or else we won't have the proper paths used during backuping
                     // This will deserve a sever refactoring
-                    case policyParent: RootNodeConfiguration =>
-                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + ".new" + "/" + relativeShareFolder + "/" + path, allNodeConfig)
-                    case policyParent: SimpleNodeConfiguration =>
-                        recurseComputePath(fromNodeId, policyParent.id, policyParent.id.value + ".new" + "/" + relativeShareFolder + "/" + path, allNodeConfig)
+                    case policyParent =>
+                        recurseComputePath(fromNodeId, policyParent.nodeInfo.id, policyParent.nodeInfo.id.value + ".new" + "/" + relativeShareFolder + "/" + path, allNodeConfig)
                   }
       } yield {
         result

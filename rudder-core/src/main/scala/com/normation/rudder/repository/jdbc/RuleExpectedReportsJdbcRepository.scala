@@ -118,11 +118,11 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
    * @param ruleId
    */
   def closeExpectedReport(ruleId : RuleId) : Box[Unit] = {
-    logger.info("Closing report {}", ruleId)
+    logger.debug(s"Closing expected report for rules '${ruleId.value}'")
     findCurrentExpectedReports(ruleId) match {
       case e:EmptyBox => e
       case Full(None) =>
-            logger.warn("Cannot close a non existing entry %s".format(ruleId.value))
+            logger.warn(s"Cannot close a non existing entry '${ruleId.value}'")
             Full(Unit)
       case Full(Some(entry)) =>
         jdbcTemplate.update("update "+ TABLE_NAME +"  set enddate = ? where serial = ? and ruleId = ?",
@@ -143,14 +143,14 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     , policyExpectedReports : Seq[DirectiveExpectedReports]
     , nodes                 : Seq[NodeId]
   ) : Box[RuleExpectedReports] = {
-     logger.info("Saving expected report for rule {}", ruleId.value)
+     logger.debug("Saving expected report for rule {}", ruleId.value)
 // TODO : store also the unexpanded
      findCurrentExpectedReports(ruleId) match {
        case e: EmptyBox => e
        case Full(Some(x)) =>
          // I need to check I'm not having duplicates
          // easiest way : unfold all, and check intersect
-         val toInsert = policyExpectedReports.flatMap { case DirectiveExpectedReports(dir, comp) => 
+         val toInsert = policyExpectedReports.flatMap { case DirectiveExpectedReports(dir, comp) =>
              comp.map(x => (dir, x.componentName))
            }.flatMap { case (dir, compName) =>
              nodes.map(node => Comparator(node, dir, compName))}
@@ -297,7 +297,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           RuleExpectedReportsMapper).toSeq)
 
   }
-  
+
   private[this] def getNodes(nodeJoinKey : Int) : Box[Seq[NodeId]] = {
     tryo {
       jdbcTemplate.queryForList("select nodeId from "+ NODE_TABLE_NAME +" where nodeJoinKey = ?",
@@ -340,7 +340,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           val directivesOnNode = seq.groupBy(x => x.nodeJoinKey).map { case (nodeJoinKey, mappedEntries) =>
             // need to convert to group everything by directiveId, the convert to DirectiveExpectedReports
             val directiveExpectedReports = mappedEntries.groupBy(x=>x.policyExpectedReport).map { case (directiveId, lines) =>
-              // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are 
+              // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are
               // for the same directive, and must be put together
               DirectiveExpectedReports(directiveId, lines.map( x => ReportComponent(x.component, x.cardinality, x.componentsValues, x.unexpandedComponentsValues)))
             }

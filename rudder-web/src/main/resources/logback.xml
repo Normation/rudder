@@ -133,6 +133,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   -->
   <logger name="trace.ldif.in.file" level="off" />
 
+
+  <!-- 
+    Dump Node Configurations
+    ========================
+    See information in the "rudder.debug.nodeconfiguration.path"
+    application property.
+    
+    To enable that debug, set level to "debug". 
+    To disable that debug, set level to "off".
+   -->
+  <logger name="rudder.debug.nodeconfiguration" level="off" />
+
   
   <!-- ==================================================== -->
   <!-- YOU SHOULD NOT HAVE TO CHANGE THINGS BELOW THAT LINE -->
