@@ -741,14 +741,12 @@ class AcceptHostnameAndIp(
   private[this] val objectType = ditQueryData.criteriaMap(OC_NODE)
   private[this] val hostnameCriteria = objectType.criteria.find(c => c.name == A_HOSTNAME).
     getOrElse(throw new IllegalArgumentException("Data model inconsistency: missing '%s' criterion in object type '%s'".format(A_HOSTNAME, OC_NODE) ))
-  private[this] val ipCriteria = objectType.criteria.find(c => c.name == A_LIST_OF_IP).
-    getOrElse(throw new IllegalArgumentException("Data model inconsistency: missing '%s' criterion in object type '%s'".format(A_LIST_OF_IP, OC_NODE) ))
 
   /*
    * search in database nodes having the same hostname as one provided.
    * Only return existing hostname (and so again, we want that to be empty)
    */
-  private[this] def queryForDuplicateHostnameAndIp(hostnames:Seq[String], ips: Seq[String]) : Box[Unit] = {
+  private[this] def queryForDuplicateHostname(hostnames:Seq[String]) : Box[Unit] = {
     def failure(duplicates:Seq[String], name:String) = {
       Failure("There is already a node with %s %s in database. You can not add it again.".format(name, duplicates.mkString("'", "' or '", "'")))
     }
@@ -762,17 +760,6 @@ class AcceptHostnameAndIp(
       )
     }
 
-
-
-    val ipCriterion = ips.map(ip =>
-      CriterionLine(
-          objectType = objectType
-        , attribute  = ipCriteria
-        , comparator = Equals
-        , value      = ip
-      )
-    )
-
     for {
       duplicatesH    <- queryProcessor.process(Query(NodeReturnType,Or,hostnameCriterion)).map { nodesInfo =>
                           //here, all nodes found are duplicate-in-being. They should be unique, but
@@ -781,59 +768,19 @@ class AcceptHostnameAndIp(
                         }
       noDuplicatesH  <- if(duplicatesH.isEmpty) Full({})
                         else failure(duplicatesH, "Hostname")
-      duplicatesIP   <- queryProcessor.process(Query(NodeReturnType,Or,ipCriterion)).map { nodesInfo =>
-                          nodesInfo.map( ni => ni.ips.filter(ip1 => ips.exists(ip2 => ip2 == ip1))).flatten
-                        }
-      noDuplicatesIP <- if(duplicatesIP.isEmpty) Full({})
-                        else failure(duplicatesIP , "IP")
     } yield {
       {}
     }
   }
 
-  /**
-   * Check if the given addresses are contained in any of the given networks (like 192.168.0.0/24)
-   * Return the list of IP in authorized network.
-   */
-  private[this] def keepIpsInAuthorizedNetwork(ips: Seq[String], networks: Seq[SubnetUtils#SubnetInfo]) : Seq[String]= {
-    ips.flatMap { ip =>
-      try {
-        if(networks.exists( _.isInRange(ip))) {
-          Some(ip)
-        } else {
-          None
-        }
-      } catch {
-        case e:Exception => None //can be an invalid ip format, or an IPv6 one
-      }
-    }
-  }
-
-
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = {
 
     val hostnames = sms.map( _.node.main.hostname)
-    val ips = sms.map( _.node.serverIps).flatten.filter( InetAddressUtils.getAddressByName(_) match {
-      case None => false
-      //we don't want to check for duplicate loopback and the like - we expect them to be duplicated
-      //we also want to ONLY check for IP in authorized network, as it is legit to have two
-      //node with two interfaces, one public and one local (and the same)
-      case Some(ip) => !(ip.isAnyLocalAddress || ip.isLoopbackAddress || ip.isMulticastAddress )
-    })
 
     for {
       authorizedNetworks   <- policyServerNet.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
-      validNetworks        =  authorizedNetworks.flatMap { net =>
-                                try {
-                                  Some(new SubnetUtils(net).getInfo)
-                                } catch {
-                                  case e:Exception => None
-                                }
-                              }
-      fitleredIps          =  keepIpsInAuthorizedNetwork(ips, validNetworks)
       noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
-      noDuplicateIPs       <- checkDuplicateString(fitleredIps, "IP")
-      noDuplicateInDB      <- queryForDuplicateHostnameAndIp(hostnames, fitleredIps)
+      noDuplicateInDB      <- queryForDuplicateHostname(hostnames)
     } yield {
       sms
     }
