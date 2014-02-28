@@ -127,7 +127,7 @@ class RuleDisplayer (
            {actionButton}
          </div>
        </lift:authz>
-       <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:300px;border: 1px #999 ridge; padding-right:15px;">
+       <div id="treeParent" style="overflow:auto; margin-top:10px; max-height:443px;border: 1px #999 ridge; padding-right:15px;">
          <div id="categoryTree">
            {ruleCategoryTree.tree}
          </div>
