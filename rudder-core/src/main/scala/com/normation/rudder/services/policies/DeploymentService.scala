@@ -126,7 +126,7 @@ trait DeploymentService extends Loggable {
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
 
       sanitizeTime        =  System.currentTimeMillis
-      _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet)
+      _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
       sanitizedNodeConfig <- sanitize(config) ?~! "Cannot set target configuration node"
       timeSanitize        =  (System.currentTimeMillis - sanitizeTime)
       _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} millisec, start to detect changes in node configuration.")
@@ -135,7 +135,7 @@ trait DeploymentService extends Loggable {
       //that's the first time we actually write something in repos: new serial for updated rules
 
 
-      nodeConfigCache          <- getNodeConfigurationCache()
+      nodeConfigCache          <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
       (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCache, directiveLib, allRulesMap)?~! "Cannot detect the updates in the NodeConfiguration"
       serialedNodes            =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
       // Update the serial of ruleVals when there were modifications on Rules values
