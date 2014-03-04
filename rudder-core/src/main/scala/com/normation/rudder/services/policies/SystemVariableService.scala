@@ -176,7 +176,7 @@ class SystemVariableServiceImpl(
         case Full(variable) =>
           varManagedNodesAdmin = varManagedNodesAdmin.copyWithSavedValues(variable.flatMap(x => x.values).distinct)
         case Empty =>
-          logger.warn(s"No variable parametrized found for ${varNameForAdminUsers}")
+          logger.warn(s"There were no variable parametrized found for ${varNameForAdminUsers}, which means that the configuration of Policy Server with Rudder ID ${nodeInfo.id.value} is probably incorrect. Please run again the rudder-init.sh script, or the script used to add a Relay Server")
         case f: Failure =>
           val e = f ?~! "Failure when fetching the list of administrators of managed nodes"
           logger.error(e.messageChain)
