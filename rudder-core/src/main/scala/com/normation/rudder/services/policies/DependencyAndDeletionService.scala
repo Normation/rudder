@@ -35,7 +35,7 @@
 package com.normation.rudder.services.policies
 
 import com.normation.rudder.domain.policies.{
-  GroupTarget,RuleTarget
+  GroupTarget,RuleTarget,CompositeRuleTarget
 }
 import com.unboundid.ldap.sdk.DN
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
@@ -362,7 +362,7 @@ class DependencyAndDeletionServiceImpl(
   /////////////////////////////////////////////////////////////////////////////////
 
   private[this] def searchRules(con:RoLDAPConnection, target:RuleTarget) : Box[Seq[Rule]] = {
-    sequence(con.searchOne(rudderDit.RULES.dn, EQ(A_RULE_TARGET, target.target))) { entry =>
+    sequence(con.searchOne(rudderDit.RULES.dn, SUB(A_RULE_TARGET,null,Array(target.target),null))) { entry =>
       mapper.entry2Rule(entry)
     }
   }
@@ -411,43 +411,39 @@ class DependencyAndDeletionServiceImpl(
    * Delete a given item and all its dependencies.
    * Return the list of items actually deleted.
    */
-  override def cascadeDeleteTarget(target:RuleTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TargetDependencies] = {
-    target match {
+  override def cascadeDeleteTarget(targetToDelete:RuleTarget, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[TargetDependencies] = {
+    // Update Rule to remove the target
+    def updateRule ( rule : Rule ) = {
+      // Target directly removed
+      val removedTargets = rule.targets - targetToDelete
+      // Remove target from composite targets
+      val updatedTargets = removedTargets.map({
+        case composite : CompositeRuleTarget => composite.removeTarget(targetToDelete)
+        case t => t
+      } )
+      // Update the Rule and save it
+      val updatedRule = rule.copy(targets = updatedTargets)
+      val updatedRuleRes = if(rule.isSystem) {
+        woRuleRepository.updateSystem(updatedRule, modId, actor, reason)
+      } else {
+        woRuleRepository.update(updatedRule, modId, actor, reason)
+      }
+      updatedRuleRes ?~! s"Can not remove target '${targetToDelete.target}' from rule with id '${rule.id.value}'."
+    }
+    targetToDelete match {
       case GroupTarget(groupId) =>
         for {
           con           <- ldap
-          configRules   <- searchRules(con,target)
-          updatedRules  <- sequence(configRules) { rule =>
-                             //check that target is actually "target", and remove it
-                             if (rule.targets.contains(target)) {
-                                 val newRule = rule.copy(targets = rule.targets - target)
-                                 val updatedRuleRes = if(rule.isSystem) {
-                                   woRuleRepository.updateSystem(newRule, modId, actor, reason)
-                                 } else {
-                                   woRuleRepository.update(newRule, modId, actor, reason)
-                                 }
-                                 updatedRuleRes ?~!
-                                   "Can not remove target '%s' from rule with Dd '%s'. %s".format(
-                                       target.target, rule.id.value, {
-                                         val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
-                                         if(alreadyUpdated.isEmpty) ""
-                                         else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
-                                       }
-                                   )
-                             } else {
-                                logger.debug("Do not cascade modify rule with ID '%s', because its target is '%s' and we are deleting '%s'".
-                                    format(rule.id.value, rule.targets.map( _.target), target.target))
-                                Full(None)
-                             }
-                           }
+          configRules   <- searchRules(con,targetToDelete)
+          updatedRules  <- sequence(configRules) {updateRule}
           deletedTarget <- woGroupRepository.delete(groupId, modId, actor, reason) ?~!
                             "Error when deleting target %s. All dependent rules where updated %s".format(
-                              target, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
+                              targetToDelete, configRules.map( _.id.value ).mkString("(", ", ", ")" ))
         } yield {
-          TargetDependencies(target,configRules.toSet)
+          TargetDependencies(targetToDelete,configRules.toSet)
         }
 
-      case _ => Failure("Can not delete the special target: %s ; abort".format(target))
+      case _ => Failure("Can not delete the special target: %s ; abort".format(targetToDelete))
     }
   }
 
