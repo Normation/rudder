@@ -130,7 +130,7 @@ case class RestDataSerializerImpl (
      ~ ( "shortDescription" -> rule.shortDescription )
      ~ ( "longDescription"  -> rule.longDescription )
      ~ ( "directives"       -> rule.directiveIds.map(_.value) )
-     ~ ( "targets"          -> rule.targets.map(_.target) )
+     ~ ( "targets"          -> rule.targets.map(_.toJson) )
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
    )
