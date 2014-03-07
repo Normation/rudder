@@ -38,6 +38,11 @@ import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.domain.nodes.NodeGroup
+import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
+import net.liftweb.util.JSONParser
+import net.liftweb.common._
+import com.normation.utils.Control.sequence
 
 
 /**
@@ -48,7 +53,8 @@ import com.normation.rudder.domain.nodes.NodeGroup
  * - a specific node
  */
 sealed abstract class RuleTarget {
-  def target:String
+  def target : String
+  def toJson : JValue = JString(target)
 }
 
 sealed trait NonGroupRuleTarget extends RuleTarget
@@ -79,18 +85,207 @@ final case object AllTargetExceptPolicyServers extends NonGroupRuleTarget {
 }
 
 
-object RuleTarget {
+/**
+ * A composite target is a target composed of different target
+ * This target is rendered as Json
+ */
+sealed trait CompositeRuleTarget extends RuleTarget {
+  final def target = compact(render(toJson))
 
-  def unser(s:String) = {
-    s match {
-      case GroupTarget.r(g) => Some(GroupTarget(NodeGroupId(g)))
-//      case NodeTarget.r(s) => Some(NodeTarget(NodeId(s)))
-      case PolicyServerTarget.r(s) => Some(PolicyServerTarget(NodeId(s)))
-      case AllTarget.r() => Some(AllTarget)
-      case AllTargetExceptPolicyServers.r() => Some(AllTargetExceptPolicyServers)
-      case _ => None
+
+  /**
+   * Removing a target is the action of erasing that target in each place where
+   * it appears.
+   */
+  final def removeTarget(target : RuleTarget) : CompositeRuleTarget = {
+    //filter a set of targets recursively
+    def recRemoveTarget(targets:Set[RuleTarget]): Set[RuleTarget] = {
+      targets.filterNot( _ == target).map {
+        case t:CompositeRuleTarget => t.removeTarget(target)
+        case x => x
+      }
+    }
+
+    def removeOnJoin(t:TargetComposition): TargetComposition = {
+      t match {
+        case TargetUnion(t) => TargetUnion(recRemoveTarget(t))
+        case TargetIntersection(t) => TargetIntersection(recRemoveTarget(t))
+      }
+    }
+
+    this match {
+      case t: TargetComposition => removeOnJoin(t)
+      case TargetExclusion(plus, minus) => TargetExclusion(removeOnJoin(plus), removeOnJoin(minus))
     }
   }
+}
+
+
+/**
+ * Target Composition allow you to compose multiple targets in one target
+ */
+trait TargetComposition extends CompositeRuleTarget {
+  /**
+   * Targets contained in that composition
+   */
+  def targets : Set[RuleTarget]
+
+
+  /**
+   * Add a target:
+   * - If the same kind of composition: merge all targets
+   * - otherwise: add the target as one of the target handled by the composition
+   */
+  def addTarget(target : RuleTarget) : TargetComposition
+
+}
+
+
+/**
+ * Union of all Targets, Should take all Nodes from these targets
+ */
+final case class TargetUnion(targets:Set[RuleTarget] = Set()) extends TargetComposition {
+  override val toJson : JValue = {
+    ( "or" -> targets.map(_.toJson))
+  }
+  def addTarget(target : RuleTarget) : TargetComposition = TargetUnion(targets + target)
+}
+
+
+/**
+ * Intersection of all Targets, Should take Nodes belongings to all targets
+ */
+final case class TargetIntersection(targets:Set[RuleTarget] = Set()) extends TargetComposition {
+  override val toJson : JValue = {
+    ( "and" -> targets.map(_.toJson))
+  }
+  def addTarget(target : RuleTarget) : TargetComposition = TargetIntersection(targets + target)
+}
+
+/**
+ * this Target take 2 composition targets as parameters:
+ * - Included : Targets that should be counted in
+ * - Excluded : Targets that should be removed
+ * Final result should be Included set of nodes with Nodes from Excluded removed
+ */
+case class TargetExclusion(
+    includedTarget : TargetComposition
+  , excludedTarget : TargetComposition
+) extends CompositeRuleTarget {
+
+  /**
+   * Json value of a composition:
+   * { "include" -> target composition, "kind" -> target composition }
+   */
+  override val toJson : JValue = {
+    ( "include" -> includedTarget.toJson ) ~
+    ( "exclude" -> excludedTarget.toJson )
+  }
+
+  override def toString = {
+    target
+  }
+
+  /**
+   * Add a target to the included target
+   */
+  def updateInclude (target : RuleTarget) = {
+    val newIncluded = includedTarget addTarget target
+    copy(newIncluded)
+  }
+
+
+  /**
+   * Add a target to the excluded target
+   */
+  def updateExclude (target : RuleTarget) = {
+    val newExcluded = excludedTarget addTarget target
+    copy(includedTarget,newExcluded)
+  }
+
+}
+
+object RuleTarget extends Loggable {
+
+  /**
+   * Unserialize RuleTarget from Json
+   */
+  def unserJson(json : JValue) : Box[RuleTarget] = {
+
+    def unserComposition(json : JValue) : Box[TargetComposition] = {
+      json match {
+        case JObject(JField("or",JArray(content)) :: Nil) =>
+          for {
+            targets <- sequence(content)(unserJson)
+          } yield {
+            TargetUnion(targets.toSet)
+          }
+        case JObject(JField("and",JArray(content)) :: Nil) =>
+          for {
+            targets <- sequence(content)(unserJson)
+          } yield {
+            TargetIntersection(targets.toSet)
+          }
+      case _ =>
+        Failure(s"${json.toString} is not a valid rule target")
+      }
+    }
+
+    json match {
+      case JString(s) =>
+        unser(s)
+      case JObject(JField("include",includedJson) :: JField("exclude",excludedJson) :: Nil) =>
+        for {
+          includeTargets <- unserComposition(includedJson)
+          excludeTargets <- unserComposition(excludedJson)
+        } yield {
+          TargetExclusion(includeTargets,excludeTargets)
+        }
+      case _ =>
+        unserComposition(json)
+    }
+  }
+
+  def unser(s:String) : Option[RuleTarget] = {
+    s match {
+      case GroupTarget.r(g) =>
+        Some(GroupTarget(NodeGroupId(g)))
+      case PolicyServerTarget.r(s) =>
+        Some(PolicyServerTarget(NodeId(s)))
+      case AllTarget.r() =>
+        Some(AllTarget)
+      case AllTargetExceptPolicyServers.r() =>
+        Some(AllTargetExceptPolicyServers)
+      case _ =>
+        try {
+          unserJson(parse(s))
+        } catch {
+          case e : Exception =>
+            logger.error(s"Error when trying to read the following serialized Rule target as a composite target (other case where not relevant): '${s}'. Reported parsing error cause was: ${e.getMessage}")
+            None
+        }
+    }
+  }
+
+  /**
+   * Create a targetExclusion from a Set of RuleTarget
+   * If the set contains only a TargetExclusion, use it
+   * else put all targets into a new target Exclusion using TargetUnion as composition
+   */
+  def merge(targets : Set[RuleTarget]) : TargetExclusion = {
+    targets.toSeq match {
+      case Seq(t:TargetExclusion) => t
+      case _ =>
+        val start = TargetExclusion(TargetUnion(Set()),TargetUnion(Set()))
+        val res = (start /: targets) {
+          case (res,e:TargetExclusion) =>
+           res.updateInclude(e.includedTarget).updateExclude(e.excludedTarget)
+          case (res,t) => res.updateInclude(t)
+          }
+        res
+    }
+  }
+
 }
 
 /** common information on a target */
@@ -112,6 +307,10 @@ sealed trait FullRuleTarget {
 final case class FullGroupTarget(
     target   : GroupTarget
   , nodeGroup: NodeGroup
+) extends FullRuleTarget
+
+final case class FullCompositeRuleTarget(
+    target: CompositeRuleTarget
 ) extends FullRuleTarget
 
 final case class FullOtherTarget(
