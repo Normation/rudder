@@ -123,10 +123,12 @@ class ReportDisplayer(
          ruleRepository.get(reportStatus.ruleId) match {
            case Full(rule) =>
              val tooltipid = Helpers.nextFuncName
+             val severity = ReportType.getSeverityFromStatus(reportStatus.nodeReportType)
+
              ( "#details *" #> showDirectivesReport(reportStatus.directives,tooltipid) &
                "#rule *" #> <b>{rule.name}</b> &
-               "#status *" #> <center>{getSeverityFromStatus(reportStatus.nodeReportType)}</center> &
-               "#status [class+]" #> getSeverityFromStatus(reportStatus.nodeReportType).replaceAll(" ", "")
+               "#status *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
+               "#status [class+]" #> severity
              )(reportsLineXml)
            case _ => <div>Could not find rule {reportStatus.ruleId} </div>
          }
@@ -151,15 +153,15 @@ class ReportDisplayer(
           val tech = directiveRepository.getActiveTechnique(dir.id).map(act => techniqueRepository.getLastTechniqueByName(act.techniqueName).map(_.name).getOrElse("Unknown technique")).getOrElse("Unknown technique")
           val techversion = dir.techniqueVersion;
           val tooltipid = Helpers.nextFuncName
-          val severity = getSeverityFromStatus(directive.directiveReportType)
+          val severity = ReportType.getSeverityFromStatus(directive.directiveReportType)
           val directiveImage = <img   src="/images/icTools.png" style="padding-left:4px"/>
           val directiveEditLink:NodeSeq = if (!dir.isSystem)
               SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(dir.id.value))},directiveImage,("style","padding-left:4px"))
             else
               NodeSeq.Empty
           val components = showComponentsReports(directive.components)
-           ( "#status [class+]" #> severity.replaceAll(" ", "") &
-             "#status *" #> <center>{severity}</center> &
+           ( "#status [class+]" #> severity &
+             "#status *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
              "#details *" #> components &
              "#directiveLink *" #> directiveEditLink &
              "#directiveInfo *" #>{
@@ -196,8 +198,8 @@ class ReportDisplayer(
       components.flatMap { component =>
         val severity = ReportType.getSeverityFromStatus(component.componentReportType)
         val value = showComponentValueReport(component.componentValues++component.unexpectedCptValues,worstseverity)
-        ( "#status [class+]" #> severity.replaceAll(" ", "") &
-          "#status *" #> <center>{severity}</center> &
+        ( "#status [class+]" #> severity &
+          "#status *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
           "#component *" #>  <b>{component.component}</b> &
           "#details *" #>  value
         ) (componentDetails)
@@ -221,8 +223,8 @@ class ReportDisplayer(
       <tbody>{
         values.flatMap { value =>
           val severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
-          ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
-            "#valueStatus *" #> <center>{severity}</center> &
+          ( "#valueStatus [class+]" #> severity &
+            "#valueStatus *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
             "#message *" #>  <ul>{value.message.map(msg => <li>{msg}</li>)}</ul>&
             "#componentValue *" #> {
               value.unexpandedComponentValue match {
@@ -246,15 +248,8 @@ class ReportDisplayer(
     </table>
   }
 
-  def getSeverityFromStatus(status : ReportType) : String = {
-    status match {
-      case SuccessReportType => "Success"
-      case RepairedReportType => "Repaired"
-      case ErrorReportType => "Error"
-      case NoAnswerReportType => "No answer"
-      case PendingReportType => "Applying"
-      case _ => "Unknown"
-    }
+  def getDisplayStatusFromSeverity(severity: String) : String = {
+    S.?(s"reports.severity.${severity}")
   }
 
   def asyncDisplay(node : NodeInfo) : NodeSeq = {

@@ -2454,9 +2454,11 @@ tr.Unknown {
 tr.Error {
   background-color:#FF6655;
 }
-
-tr.Noanswer {
+tr.NoAnswer {
   background-color:#BBAAAA;
+}
+tr.NotApplicable {
+  background-color:#CFCFFF;
 }
 
 td.Success {
@@ -2477,9 +2479,11 @@ td.Unknown {
 td.Error {
   background-color:#FF6655;
 }
-
-td.Noanswer {
+td.NoAnswer {
   background-color:#BBAAAA;
+}
+td.NotApplicable {
+  background-color:#CFCFFF;
 }
 
 td.details{

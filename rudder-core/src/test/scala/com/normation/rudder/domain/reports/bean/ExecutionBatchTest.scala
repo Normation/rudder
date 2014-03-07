@@ -87,6 +87,9 @@ class ExecutionBatchTest extends Specification {
     "have one success report when we create it with one success report" in {
       uniqueExecutionBatch.getSuccessReports.size == 1
     }
+    "have no not applicable report when we create it with one success report" in {
+      uniqueExecutionBatch.getNotApplicableReports.size == 0
+    }
   }
 
   "An execution Batch, with one component, cardinality one, two nodes" should {
@@ -1375,4 +1378,71 @@ class ExecutionBatchTest extends Specification {
       (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
     }
   }
+
+   // Test the component part - with NotApplicable
+  "A component, with two keys and NotApplicable reports" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultNotApplicableReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+              )
+
+    val expectedComponent = new ReportComponent(
+                      "component"
+                    , 2
+                    , Seq("/var/cfengine", "bar")
+                    , Seq("/var/cfengine", "bar"))
+
+    val executionBatch = new ConfigurationExecutionBatch(
+       "cr",
+       12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("nodeId"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent)
+             )
+           )
+         )
+       ),
+       executionTimestamp,
+       reports,
+       executionTimestamp, None)
+
+    "return a component globally success " in {
+      executionBatch.checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")).componentReportType == SuccessReportType
+    }
+    "return a component with two key values " in {
+      executionBatch.checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")).componentValues.size == 2
+    }
+    "return a component with the /var/cfengine in NotApplicable " in {
+      executionBatch.checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "/var/cfengine").size == 1 &&
+       executionBatch.checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "/var/cfengine").forall(x => x.cptValueReportType == NotApplicableReportType)
+    }
+    "return a component with the bar key success " in {
+      executionBatch.checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").size == 1 &&
+       executionBatch.checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.cptValueReportType == SuccessReportType)
+    }
+  }
+
 }

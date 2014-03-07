@@ -75,6 +75,20 @@ sealed case class ResultSuccessReport(
   val severity = Reports.RESULT_SUCCESS
 }
 
+sealed case class ResultNotApplicableReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends Reports with HashcodeCaching {
+  val severity = Reports.RESULT_NOTAPPLICABLE
+}
+
 sealed case class ResultRepairedReport(
     executionDate      : DateTime
   , ruleId             : RuleId
@@ -199,9 +213,14 @@ object Reports {
     severity.toLowerCase match {
       case RESULT_ERROR => new ResultErrorReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
+
       case RESULT_SUCCESS => new ResultSuccessReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
+
       case RESULT_REPAIRED => new ResultRepairedReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, keyValue, executionTimestamp, message )
+
+      case RESULT_NOTAPPLICABLE => new ResultNotApplicableReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
 
       case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId,
@@ -213,13 +232,11 @@ object Reports {
       case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
 
-
       case LOG_DEBUG => new LogDebugReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
 
       case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, keyValue, executionTimestamp, message )
-
 
       case _ =>
         logger.error(s"Invalid report type ${severity} for directive ${directiveId}")
@@ -247,16 +264,17 @@ object Reports {
     report.directiveId, report.nodeId, report.serial, report.component, report.keyValue, report.executionTimestamp, report.severity, report.message))
 
 
-  val LOG_TRACE = "log_trace"
-  val LOG_DEBUG = "log_debug"
-  val LOG_INFO = "log_info"
-  val LOG_INFORM = "log_inform"
-  val LOG_WARN = "log_warn"
-  val LOG_WARNING = "log_warning"
-  val LOG_REPAIRED = "log_repaired"
+  val LOG_TRACE       = "log_trace"
+  val LOG_DEBUG       = "log_debug"
+  val LOG_INFO        = "log_info"
+  val LOG_INFORM      = "log_inform"
+  val LOG_WARN        = "log_warn"
+  val LOG_WARNING     = "log_warning"
+  val LOG_REPAIRED    = "log_repaired"
 
-  val RESULT_SUCCESS = "result_success"
-  val RESULT_REPAIRED = "result_repaired"
-  val RESULT_ERROR = "result_error"
+  val RESULT_SUCCESS       = "result_success"
+  val RESULT_NOTAPPLICABLE = "result_na"
+  val RESULT_REPAIRED      = "result_repaired"
+  val RESULT_ERROR         = "result_error"
 
 }

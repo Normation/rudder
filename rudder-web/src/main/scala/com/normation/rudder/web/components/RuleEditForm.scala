@@ -738,8 +738,8 @@ class RuleEditForm(
                     val tooltipid = Helpers.nextFuncName
                     val components= showComponentsReports(directiveStatus.components)
                     val severity = ReportType.getSeverityFromStatus(directiveStatus.directiveReportType)
-                    ( "#status [class+]" #> severity.replaceAll(" ", "") &
-                      "#status *" #> <center>{severity}</center> &
+                    ( "#status [class+]" #> severity &
+                      "#status *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
                       "#details *" #> components &
                       "#directive [class+]" #> "listopen" &
                       "#directive *" #>{
@@ -800,22 +800,22 @@ class RuleEditForm(
      * Display component details of a directive and add its compoenent value details if needed
      */
     def showComponentsReports(components : Seq[ComponentRuleStatusReport]) : NodeSeq = {
-    val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(components.map(_.componentReportType))).replaceAll(" ", "")
-    <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth">
-     <thead>
-       <tr class="head tablewidth">
-       <th class="emptyTd"><span/></th>
-       <th >Component<span/></th>
-       <th >Status<span/></th>
-       <th >Compliance<span/></th>
-       <th style="border-left:0;" ></th>
-     </tr>
-    </thead>
-    <tbody>{
+      val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(components.map(_.componentReportType))).replaceAll(" ", "")
+      <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth">
+      <thead>
+         <tr class="head tablewidth">
+           <th class="emptyTd"><span/></th>
+           <th >Component<span/></th>
+           <th >Status<span/></th>
+           <th >Compliance<span/></th>
+           <th style="border-left:0;" ></th>
+         </tr>
+      </thead>
+      <tbody>{
       components.flatMap { component =>
         val severity = ReportType.getSeverityFromStatus(component.componentReportType)
-        ( "#status [class+]" #> severity.replaceAll(" ", "") &
-          "#status *" #> <center>{severity}</center> &
+        ( "#status [class+]" #> severity &
+          "#status *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
           "#component *" #>  <b>{component.component}</b> &
           "#severity *" #>  buildComplianceChart(component)
           ) (
@@ -867,8 +867,8 @@ class RuleEditForm(
           )
         }.flatMap { value =>
           val severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
-          ( "#valueStatus [class+]" #> severity.replaceAll(" ", "") &
-            "#valueStatus *" #> <center>{severity}</center> &
+          ( "#valueStatus [class+]" #> severity &
+            "#valueStatus *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
             "#componentValue *" #>  <b>{value.componentValue}</b> &
             "#componentValue [class+]" #>  "firstTd" &
             "#keySeverity *" #> buildComplianceChartForComponent(value, reportsByComponents.get(value.componentValue))
@@ -923,14 +923,14 @@ class RuleEditForm(
     }
 
     def buildComplianceChart(rulestatusreport:RuleStatusReport) : NodeSeq = {
-    rulestatusreport.computeCompliance match {
-      case Some(percent) =>  {
-        val text = Text(percent.toString + "%")
-        val attr = BasicElemAttr("class","noexpand")
-        SHtml.a({() => showPopup(rulestatusreport, directiveLib, allNodeInfos)}, text,attr)
+      rulestatusreport.computeCompliance match {
+        case Some(percent) =>  {
+          val text = Text(percent.toString + "%")
+          val attr = BasicElemAttr("class","noexpand")
+          SHtml.a({() => showPopup(rulestatusreport, directiveLib, allNodeInfos)}, text,attr)
+        }
+        case None => Text("Not Applied")
       }
-      case None => Text("Not Applied")
-    }
     }
 
     def buildComplianceChartForComponent(
@@ -1123,14 +1123,16 @@ class RuleEditForm(
         val nodeReport = allNodeInfos.get(nodeStatus.node) match {
           case Some(nodeInfo) => {
             val tooltipid = Helpers.nextFuncName
+            val severity = ReportType.getSeverityFromStatus(nodeStatus.reportType)
             ("#node *" #>
               <a class="noexpand" href={ """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeStatus.node.value) }>
                 <span class="curspoint">
                   { nodeInfo.hostname }
                 </span>
               </a> &
-              "#severity *" #> <center>{ ReportType.getSeverityFromStatus(nodeStatus.reportType) }</center> &
-              "#severity [class+]" #> ReportType.getSeverityFromStatus(nodeStatus.reportType).replaceAll(" ", ""))(nodeLineXml)
+              "#severity *" #> <center>{ getDisplayStatusFromSeverity(severity) }</center> &
+              "#severity [class+]" #> severity
+            )(nodeLineXml)
           }
           case None =>
             logger.error("An error occured when trying to load node %s".format(nodeStatus.node.value))
@@ -1205,8 +1207,8 @@ class RuleEditForm(
                 SHtml.a({ () => RedirectTo("""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)) }, xml, ("style", "padding-left:4px"), ("class", "noexpand"))
               }
             </span> &
-            "#status *" #> <center>{ status }</center> &
-            "#status [class+]" #> status.replaceAll(" ", "") &
+            "#status *" #> <center>{ getDisplayStatusFromSeverity(status) }</center> &
+            "#status [class+]" #> status &
             "#details *" #> showComponentReport(nodeReport._2))(reportLineXml)
         }
         case None =>
@@ -1235,8 +1237,8 @@ class RuleEditForm(
             valueReports.flatMap { report =>
               val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(report._2.map(_._4)))
               ("#component *" #> report._1 &
-                "#status *" #> <center>{ status }</center> &
-                "#status [class+]" #> status.replaceAll(" ", "") &
+                "#status *" #> <center>{ getDisplayStatusFromSeverity(status) }</center> &
+                "#status [class+]" #> status &
                 "#details *" #> showValueReport(report._2))(messageLineXml)
             }
           }
@@ -1274,8 +1276,8 @@ class RuleEditForm(
                     </div>
                 }
               } &
-                "#status *" #> <center>{ status }</center> &
-                "#status [class+]" #> status.replaceAll(" ", "") &
+                "#status *" #> <center>{ getDisplayStatusFromSeverity(status) }</center> &
+                "#status [class+]" #> status &
                 "#message *" #> <ul>{ report._3.map(msg => <li>{ msg }</li>) }</ul>)(messageValueLineXml)
             }
           }
@@ -1463,11 +1465,11 @@ class RuleEditForm(
   def showReportsByType(reports: Seq[ComponentValueRuleStatusReport], directiveId : DirectiveId, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): NodeSeq = {
     val optDirective = directiveLib.allDirectives.get(directiveId)
     val (techName, techVersion) = optDirective.map { case (fat, d) => (fat.techniqueName.value, d.techniqueVersion.toString) }.getOrElse(("Unknown Technique", "N/A"))
-    val error = reports.flatMap(report => report.processMessageReport(_.reportType == ErrorReportType))
+   // val error = reports.flatMap(report => report.processMessageReport(_.reportType == ErrorReportType))
     val missing = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size == 0))
     val unexpected = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size != 0))
-    val repaired = reports.flatMap(report => report.processMessageReport(_.reportType == RepairedReportType))
-    val success = reports.flatMap(report => report.processMessageReport(_.reportType == SuccessReportType))
+   // val repaired = reports.flatMap(report => report.processMessageReport(_.reportType == RepairedReportType))
+   // val success = reports.flatMap(report => report.processMessageReport(_.reportType == SuccessReportType))
     val all = reports.flatMap(report => report.processMessageReport(report => true))
 
     val xml = (
@@ -1651,4 +1653,7 @@ class RuleEditForm(
     JsRaw( s""" createPopup("${htmlId_modalReportsPopup}")""")
   }
 
+  def getDisplayStatusFromSeverity(severity: String) : String = {
+    S.?(s"reports.severity.${severity}")
+  }
 }
