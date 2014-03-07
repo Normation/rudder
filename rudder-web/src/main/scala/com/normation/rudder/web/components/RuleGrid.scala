@@ -539,7 +539,7 @@ class RuleGrid(
             case Full(None) => Full(Some(Applying)) // when we have a rule but nothing in the database, it means that it is currently being deployed
             case Full(Some(x)) if (x.directivesOnNodesExpectedReports.size==0) => Full(None)
             case Full(Some(x)) if x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType ) => Full(Some(Applying))
-            case Full(Some(x)) =>  Full(Some(new Compliance((100 * x.getNodeStatus().filter(x => x.nodeReportType == SuccessReportType).size) / x.getNodeStatus().size)))
+            case Full(Some(x)) =>  Full(Some(new Compliance((100 * x.getNodeStatus().filter(x => (x.nodeReportType == SuccessReportType || x.nodeReportType == NotApplicableReportType)).size) / x.getNodeStatus().size)))
           }
       )
     }
