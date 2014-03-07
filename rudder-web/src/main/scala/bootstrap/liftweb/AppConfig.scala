@@ -909,7 +909,7 @@ object RudderConfig extends Loggable {
     RUDDER_DIR_LOCK)
   private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
   private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(ruleTargetServiceImpl,configurationExpectedRepo, reportsRepositoryImpl, techniqueRepositoryImpl)
-  private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate)
+  private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate, transactionManager)
   private[this] lazy val reportsRepositoryImpl = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD)
   private[this] lazy val squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
@@ -917,6 +917,8 @@ object RudderConfig extends Loggable {
     val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
     template
   }
+
+  private[this] lazy val transactionManager = new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSourceProvider.datasource)
 
   private[this] lazy val parseRules : ParseRules = new GitParseRules(
       ruleUnserialisation
