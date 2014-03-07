@@ -365,7 +365,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
    * system one, on the rule page
    * (so where category are not selectable
    */
-  var select_system_node_allowed = !select_node;
+  var select_system_node_allowed = false;
   
   $(id).bind("loaded.jstree", function (event, data) {
     data.inst.open_all(-1);
@@ -413,11 +413,12 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
           },
         "group" : {
           "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
-          "valid_children" : "none" 
+          "valid_children" : "none",
+          "select_node" : select_node
         },
         "system_target" : {
           "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
-          "select_node" : select_system_node_allowed,
+          "select_node" :  select_system_node_allowed,
           "hover_node" : select_system_node_allowed,
           "valid_children" : "none"
         },

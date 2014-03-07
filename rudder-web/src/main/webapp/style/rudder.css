@@ -1985,6 +1985,12 @@ popin Alert
     padding-top: 0px;
 }
 
+.spacing-title {
+  padding-top:0;
+  margin-bottom:5px;
+  margin-top:5px;
+}
+
 .tooltipable > .directiveVarValue {
   background-image: url("../images/icInfo.png");
   background-repeat: no-repeat;
@@ -2737,4 +2743,65 @@ fieldset {
   list-style-type: disc;
 }
 
+img.targetRemove {
+  margin : 0 0 -3px 5px;
+  float  : none;
+  cursor : pointer
+}
+
+img.targetIcon {
+  margin : 0 0 -3px 0;
+  float  : none;
+}
+
+.targetDisplay {
+  display          : block;
+  float            : left;
+  padding          : 5px;
+  margin           : 0 0px 5px 5px;
+  background-color : rgba(255, 255, 255, 0.8);
+}
+
+.targetContainer {
+  border      : 1px solid #B4B3A8;
+  padding-top : 5px
+}
+
+.targetHeader {
+  font-size   : 1.3em;
+  font-weight : bold;
+}
+
+img.targetAction {
+  margin : 0 5px 0 0;
+  cursor : pointer
+}
+
+.targetActions {
+  float        : left;
+  padding-top  : 1px;
+  padding-left : 10px
+}
+
+li.targetIncluded a {
+  background: none repeat scroll 0 0 #DDFFDD !important;
+  border: 1px dotted #48A648 !important;
+  padding: 0 2px 0 1px;
+}
+
+li.targetExcluded a{
+  background: none repeat scroll 0 0 #FFDDDD !important;
+  border: 1px dotted #A64848 !important;
+  padding: 0 2px 0 1px;
+}
+
+.title-link {
+ font-size : 12px;
+}
+
+.ui-tooltip {
+	max-width: 600px !important;
+    border: 1px solid #DDDDDD !important;
+    color: #333333 !important;
+}
 }

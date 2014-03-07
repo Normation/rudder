@@ -131,6 +131,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
     {<head>
       <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
       <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
+      <script type="text/javascript" src="/javascript/rudder/angular/groupManagement.js" id="angular-groupManagement"></script>
       {Script(
         JsRaw("""
 $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disabled";

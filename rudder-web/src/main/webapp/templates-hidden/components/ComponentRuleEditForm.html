@@ -135,13 +135,7 @@
   </div>
   <hr class="spacer"/>
   
-  <fieldset class="topLevelAction">
-    <p class="clearable">
-      This is the zone for top level actions which does not take into account
-      modifications done in the edit zone. 
-    </p>
-    
-    <legend>Rule actions</legend>
+  <div class="topLevelAction">
 
     <div id="removeAction" class="twoColumns">
 <!--      <label for="removeButton" id="removeButtonLabel">Remove from user library</label>-->
@@ -161,11 +155,7 @@
         Note: the Rule will be applied only if its status is Enabled and 
         its Directive, Technique and target node group are all Enabled.
     </div>
-        
-  </fieldset>
-
-  <fieldset class="editZone">
-    <legend>Modify Rule parameters</legend>
+    </div>
 
     <div id="notifications">
 <!--       <ul> -->
@@ -173,6 +163,8 @@
 <!--       </ul> -->
     </div>
     <hr class="spacer" />
+
+    <div class="inner-portlet-header spacing-title">GENERAL INFORMATION</div>
     <div class="groupedEditZone">
       <div id="nameField">
         Here comes the name field
@@ -195,25 +187,73 @@
     
 
     <div class="groupedEditZone">
-       <fieldset class="crEditHierarchy"><legend>Directive <lift:authz role="directive_write"><a href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz></legend>
-          <div id="selectPiField">
-            Here comes the Directive selection field
+      <div class="inner-portlet-header spacing-title">
+        DIRECTIVES
+        <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
+      </div>
+      <div id="selectPiField">
+        Here comes the Directive selection field
+      </div>
+      <hr class="spacer"/>
+
+      <div class="inner-portlet-header spacing-title">
+        GROUPS
+        <lift:authz role="group_write"><a class="title-link" href= "/secure/nodeManager/groups">(Create a new Group)</a></lift:authz>
+      </div>
+      <div id="selectGroupField" style="float:left;width:55%">
+        Here comes the group selection field
+      </div>
+      <div ng-app="groupManagement" id="groupManagement" style="float:left;width:45%" >
+        <div class="deca" id="GroupCtrl" ng-controller="GroupCtrl">
+          <div class="spacing-title targetHeader">
+            Apply to Nodes in any of these Groups:
+            <img src="/images/ic_question.png" class="targetIcon" tooltip="includeExplanation"/>
           </div>
-        </fieldset>
-        <fieldset class="crEditHierarchy"><legend>Group hierarchy  <lift:authz role="group_write"><a href= "/secure/nodeManager/groups">(Create a new Group)</a></lift:authz></legend>
-          <div id="selectGroupField">
-            Here comes the group selection field
+          <div style="background-color:#DDFFDD;" class="targetContainer">
+	        <ul>
+	          <li ng-show="target.include.or.length === 0">
+	            <span class="targetDisplay">{{emptyTarget}}</span>
+	          </li>
+	          <li ng-repeat="included in target.include.or">
+	            <span class="targetDisplay">
+                  <img src="/images/tree/server_group_16x16.gif" class="targetIcon" />
+                  {{ getTargetName(included) }}
+                  <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(included)"/>
+	            </span>
+	          </li>
+	        </ul>
+	        <hr class="spacer"/>
           </div>
-        </fieldset>
-      <div class="hierarchySpacer"></div>
+	      <hr class="spacer"/><br/>
+          <div class="spacing-title targetHeader">
+            Don't apply to Nodes in any of these Groups:
+            <img src="/images/ic_question.png" class="targetIcon" tooltip="excludeExplanation"/>
+          </div>
+          <div style="background-color:#FFDDDD;" class="targetContainer">
+            <ul>
+	          <li ng-show="target.exclude.or.length === 0">
+	            <span class="targetDisplay">{{emptyTarget}}</span>
+	          </li>
+              <li ng-repeat="excluded in target.exclude.or"  >
+                <span class="targetDisplay">
+	              <img src="/images/tree/server_group_16x16.gif" class="targetIcon"/>
+                  {{ getTargetName(excluded) }}
+                  <img class="targetRemove" src="/images/ic_delete.png" ng-click="removeExclude(excluded)"/>
+                </span>
+              </li>
+            </ul>
+            <hr class="spacer"/>
+          </div>
+        </div>
+      </div>
+      <div class="hierarchySpacer"/>
     </div>
-    
     <hr class="spacer" />
 
     <div class="cpiefsave">
       <button id="save">Save</button>
     </div>
-  </fieldset>
+    <hr class="spacer" />
 </div>
 
 </component:form>

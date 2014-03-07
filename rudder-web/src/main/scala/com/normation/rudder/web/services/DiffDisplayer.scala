@@ -42,14 +42,13 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import scala.xml.Text
 import net.liftweb.http.SHtml
 import com.normation.rudder.repository.RoNodeGroupRepository
-import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
+import com.normation.rudder.domain.policies._
 
 
 
@@ -147,6 +146,14 @@ object DiffDisplayer extends Loggable {
 
     implicit def displayNodeGroup(target: RuleTarget) : NodeSeq= {
       target match {
+        case TargetUnion(targets) =>
+          <span> all Nodes from: <ul>{targets.map(t => <li>{displayNodeGroup(t)}</li>)}</ul> </span>
+        case TargetIntersection(targets) =>
+          <span> Nodes that belongs to all these groups: <ul>{targets.map(t => <li>{displayNodeGroup(t)}</li>)}</ul> </span>
+        case TargetExclusion(included,excluded) =>
+          <span> Include {displayNodeGroup(included)} </span>
+          <br/><span> Exclude {displayNodeGroup(excluded)} </span>
+
         case GroupTarget(nodeGroupId) =>
           <span> Group {createGroupLink(nodeGroupId)}</span>
         case x => groupLib.allTargets.get(x).map{ targetInfo =>
@@ -158,21 +165,55 @@ object DiffDisplayer extends Loggable {
       }
     }
 
-    val (unchanged,deleted) = oldTargets.partition(newTargets.contains)
-    val added = newTargets.filterNot(unchanged.contains).map(Added(_))
-    val deletedMap = deleted.map(Deleted(_))
-    val unchangedMap = unchanged.map(Unchanged(_))
-
-    val changeMap:Seq[DiffItem[RuleTarget]] = deletedMap ++ unchangedMap ++ added
-    <ul style="padding-left:10px">
-      { for {
-          change <- changeMap
-        } yield {
-          // Implicit used here (displayNodeGroup)
-          change.display
+    (oldTargets,newTargets) match {
+      case (Seq(TargetExclusion(newIncluded,newExcluded)),Seq(TargetExclusion(oldIncluded,oldExcluded))) =>
+        def displayKind(kind: TargetComposition) : NodeSeq= {
+          kind match {
+            case _:TargetUnion =>
+              <span> all Nodes from: </span>
+            case _:TargetIntersection =>
+            <span> Nodes that belongs to all these groups:</span>
+          }
         }
-      }
-    </ul>
+
+       val includedKind = {
+         ((newIncluded,oldIncluded) match {
+           case (_:TargetUnion,_:TargetUnion) | (_:TargetIntersection,_:TargetIntersection) =>
+           Seq(Unchanged (newIncluded))
+           case _ =>
+           (Seq(Deleted(oldIncluded),Added(newIncluded)))
+         }).flatMap(_.display(displayKind))
+       }
+       val excludedKind = {
+         ((newExcluded,oldExcluded) match {
+           case (_:TargetUnion,_:TargetUnion) | (_:TargetIntersection,_:TargetIntersection) =>
+           Seq(Unchanged (newExcluded))
+           case _ =>
+           (Seq(Deleted(oldExcluded),Added(newExcluded)))
+         }).flatMap(_.display(displayKind))
+       }
+       val includedTargets = displayRuleTargets(newIncluded.targets.toSeq,oldIncluded.targets.toSeq, groupLib)
+       val excludedTargets = displayRuleTargets(newExcluded.targets.toSeq,oldExcluded.targets.toSeq, groupLib)
+       <span> Include</span> ++ includedKind ++ includedTargets ++
+       <span> Exclude</span> ++ excludedKind ++ excludedTargets
+
+      case (_,_) =>
+        val (unchanged,deleted) = oldTargets.partition(newTargets.contains)
+        val added = newTargets.filterNot(unchanged.contains).map(Added(_))
+        val deletedMap = deleted.map(Deleted(_))
+        val unchangedMap = unchanged.map(Unchanged(_))
+
+        val changeMap:Seq[DiffItem[RuleTarget]] = deletedMap ++ unchangedMap ++ added
+        <ul style="padding-left:10px">
+          { for {
+              change <- changeMap
+            } yield {
+              // Implicit used here (displayNodeGroup)
+              change.display
+            }
+          }
+        </ul>
+    }
   }
 
 
