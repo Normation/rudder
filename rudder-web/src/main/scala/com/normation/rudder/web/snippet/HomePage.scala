@@ -52,7 +52,7 @@ import JE._
 import net.liftweb.http.SHtml._
 import com.normation.ldap.sdk.RoLDAPConnection
 import bootstrap.liftweb.RudderConfig
-
+import com.normation.ldap.sdk.FALSE
 
 
 class HomePage extends Loggable {
@@ -76,7 +76,7 @@ class HomePage extends Loggable {
 
   private def countAllCr() : Box[Int] = {
     ldap.map { con =>
-      con.searchOne(rudderDit.RULES.dn, ALL, "1.1")
+      con.searchOne(rudderDit.RULES.dn, EQ(A_IS_SYSTEM, FALSE.toLDAPString), "1.1")
     }.map(x => x.size)
   }
 
