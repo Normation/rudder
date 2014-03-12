@@ -49,7 +49,7 @@ import net.liftweb.json.JsonDSL._
 class NodeAPI2 (
     apiV2         : NodeApiService2
   , restExtractor : RestExtractorService
-) extends RestHelper with NodeAPI with Loggable{
+) extends NodeAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -111,6 +111,5 @@ class NodeAPI2 (
       }
 
   }
-  serve( "api" / "2" / "nodes" prefix requestDispatch)
 
 }

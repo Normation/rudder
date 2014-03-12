@@ -93,7 +93,6 @@ class GroupAPI2 (
     }
 
   }
-  serve( "api" / "2" / "groups" prefix requestDispatch)
 
 
 }

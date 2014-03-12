@@ -43,17 +43,11 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.web.rest.RestAPI
 
-class LatestRuleAPI (
-    latestApi : RuleAPI
-) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "rules" prefix latestApi.requestDispatch)
 
-}
-
-trait RuleAPI {
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
-
+trait RuleAPI extends RestAPI {
+  val kind = "rules"
 }
 
 case class RestRule(

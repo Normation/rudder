@@ -50,8 +50,8 @@ import net.liftweb.json.JString
 class DirectiveAPI2 (
     readDirective : RoDirectiveRepository
   , restExtractor : RestExtractorService
-  , apiV2       : DirectiveAPIService2
-) extends RestHelper with DirectiveAPI with Loggable{
+  , apiV2          : DirectiveAPIService2
+) extends DirectiveAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -93,6 +93,5 @@ class DirectiveAPI2 (
     }
 
   }
-  serve( "api" / "2" / "directives" prefix requestDispatch)
 
 }

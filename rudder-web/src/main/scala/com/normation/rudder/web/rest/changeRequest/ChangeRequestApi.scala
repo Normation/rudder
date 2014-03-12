@@ -40,15 +40,8 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.domain.workflows.ChangeRequest
+import com.normation.rudder.web.rest.RestAPI
 
-class LatestChangeRequestAPI (
-    latestApi : ChangeRequestAPI
-) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "changeRequests" prefix latestApi.requestDispatch)
-
-}
-
-trait ChangeRequestAPI {
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
-
+trait ChangeRequestAPI extends RestAPI {
+  val kind = "changeRequests"
 }
