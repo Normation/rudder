@@ -533,20 +533,25 @@ object RudderConfig extends Loggable {
     )
 
     val nodeApiService2 =
-    new NodeApiService2 (
+      NodeApiService2 (
         newNodeManager
       , nodeInfoService
       , removeNodeService
       , uuidGen
       , restExtractorService
       , restDataSerializer
+      , false
     )
 
   val nodeApi2 =
-    new NodeAPI2 (
+    NodeAPI2 (
         nodeApiService2
       , restExtractorService
     )
+
+  val fixedApiService2 = nodeApiService2.copy(fixedTag = true)
+
+  val nodeApi4 = nodeApi2.copy(apiV2 = fixedApiService2)
 
   val parameterApiService2 =
     new ParameterApiService2 (
@@ -589,11 +594,14 @@ object RudderConfig extends Loggable {
     )
 
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
+  val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
+  val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
 
   val apis = {
     Map (
         ( ApiVersion(2) -> apiV2)
-      , ( ApiVersion(3) -> (changeRequestApi3 :: apiV2))
+      , ( ApiVersion(3) -> apiV3)
+      , ( ApiVersion(4) -> apiV4)
     )
   }
 
