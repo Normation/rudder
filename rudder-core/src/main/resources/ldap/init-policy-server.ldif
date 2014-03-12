@@ -145,8 +145,6 @@ directiveVariable: POLICYSERVER[0]:%%POLICY_SERVER_HOSTNAME%%
 directiveVariable: POLICYSERVER_ID[0]:root
 directiveVariable: POLICYSERVER_ADMIN[0]:root
 directiveVariable: ALLOWEDNETWORK[0]:%%POLICY_SERVER_ALLOWED_NETWORKS%%
-directiveVariable: POLICYCHILDREN[0]:${rudder.hasPolicyServer-root.target.hostname}
-directiveVariable: CHILDRENID[0]:${rudder.hasPolicyServer-root.target.id}
 
 
 #######################################################################################################################
