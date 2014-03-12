@@ -51,7 +51,7 @@ class RuleAPI2 (
     readRule             : RoRuleRepository
   , restExtractor        : RestExtractorService
   , apiV2              : RuleApiService2
-) extends RestHelper with RuleAPI with Loggable{
+) extends RuleAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -94,6 +94,5 @@ class RuleAPI2 (
 
 
   }
-  serve( "api" / "2" / "rules" prefix requestDispatch)
 
 }
