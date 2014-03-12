@@ -629,7 +629,6 @@ object RudderConfig extends Loggable {
     PendingInventory)
   private[this] lazy val acceptNodeRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptNodeRule(
     "accept_new_server:add_system_configuration_rules",
-    asyncDeploymentAgentImpl,
     roLdapNodeGroupRepository,
     woLdapNodeGroupRepository,
     ldapNodeConfigurationRepository,
