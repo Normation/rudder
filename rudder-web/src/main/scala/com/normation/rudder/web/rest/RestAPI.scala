@@ -1,3 +1,37 @@
+/*
+*************************************************************************************
+* Copyright 2014 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
 package com.normation.rudder.web.rest
 
 import net.liftweb.http.Req
@@ -6,47 +40,81 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
+import net.liftweb.json.JString
 
 
+
+/**
+ * The trait of all API definition
+ * It needs to define its kind (will  be the url prefix )
+ * and its requestDispatch ( which requests are concerned, how to handle it and respond )
+ * That class will not dispatch the api itself only define it
+ */
 trait RestAPI  extends RestHelper{
 
   def kind : String
+
   def requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
 
 }
 
+
+/**
+ * The class that actually dispatch the API
+ * It dispatchs them from a map of API definition
+ * then define the latest version of API and dispatch it as latest
+ * Then define the header API from the map
+ */
 case class APIDispatcher (
-    apis : Map[ApiVersion,List[RestAPI]]
+    apisByVersion : Map[ApiVersion,List[RestAPI]]
 ) extends RestHelper {
-  apis.foreach{
+
+  // For each api version
+  apisByVersion.foreach{
       case (ApiVersion(version),apis) =>
+        // Dispatch all api
         apis.foreach{
           api =>
             serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch)
         }
     }
-    apis(apis.keySet.maxBy(_.value)).foreach{
+
+    // Get the max version ...
+    apisByVersion(apisByVersion.keySet.maxBy(_.value)).foreach{
       api =>
+        // ... and Dispatch it
         serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch)
     }
 
-    val res = apis.toList.flatMap{case (version,list) => list.map((version,_))}.groupBy(_._2.kind).mapValues(_.toMap)
+    // regroup api by kind, to be able to dispatch header api version
+    val apiByKindByVersion = apisByVersion.toList.flatMap{case (version,list) => list.map((version,_))}.groupBy(_._2.kind).mapValues(_.toMap)
 
-    res.foreach{
+    // for each kind
+    apiByKindByVersion.foreach{
       case (kind,apis) =>
+
         implicit val availableVersions = apis.keySet.toList.map(_.value)
+        // Build request dispatch
         val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
-          case req =>
-            println("oups")
+        // on all requests
+        case req =>
+            // analyze apiVersion
             ApiVersion.fromRequest(req) match {
               case Full(apiVersion) => apis.get(apiVersion) match {
-                case Some(api) => api.requestDispatch(req)
-                case None => RestUtils.notValidVersionResponse("N/A")
+                // If the api exists
+                case Some(api) =>
+                  // Use the api of that version
+                  api.requestDispatch(req)
+                case None =>
+                  // Not a valid version
+                  RestUtils.notValidVersionResponse(kind)
               }
-              case eb : EmptyBox =>  RestUtils.notValidVersionResponse("N/A")
+              case eb : EmptyBox =>
+                // Not a valid version
+                RestUtils.notValidVersionResponse(kind)
               }
             }
-
+        // Dispatch header API
         serve("api" / s"${kind}" prefix requestDispatch)
     }
 
