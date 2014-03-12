@@ -46,7 +46,7 @@ import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 
 
-class NodeAPI2 (
+case class NodeAPI2 (
     apiV2         : NodeApiService2
   , restExtractor : RestExtractorService
 ) extends NodeAPI with Loggable{
