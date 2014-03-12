@@ -50,7 +50,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 class ChangeRequestAPI3 (
     restExtractor : RestExtractorService
   , apiV3       : ChangeRequestAPIService3
-) extends RestHelper with ChangeRequestAPI with Loggable{
+) extends ChangeRequestAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -108,6 +108,5 @@ class ChangeRequestAPI3 (
       }
     }
   }
-  serve( "api" / "3" / "changeRequests" prefix requestDispatch)
 
 }

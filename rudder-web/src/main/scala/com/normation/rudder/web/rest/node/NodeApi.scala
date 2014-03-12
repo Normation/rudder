@@ -39,14 +39,8 @@ import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
+import com.normation.rudder.web.rest.RestAPI
 
-class LatestNodeAPI (
-    latestApi : NodeAPI
-) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "nodes" prefix latestApi.requestDispatch)
-
-}
-
-trait NodeAPI {
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
+trait NodeAPI extends RestAPI {
+  val kind = "nodes"
 }

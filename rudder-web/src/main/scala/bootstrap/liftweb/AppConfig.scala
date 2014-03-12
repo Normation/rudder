@@ -490,21 +490,6 @@ object RudderConfig extends Loggable {
       , ruleApiService2
     )
 
-  val ruleApi3 =
-    new RuleAPI3 (
-        ruleApi2
-    )
-
-  val latestRuleApi = new LatestRuleAPI (ruleApi2)
-
-  val genericRuleApi =
-    new RuleAPIHeaderVersion (
-        roRuleRepository
-      , restExtractorService
-      , ruleApiService2
-    )
-
-
    val directiveApiService2 =
     new DirectiveAPIService2 (
         roDirectiveRepository
@@ -521,20 +506,6 @@ object RudderConfig extends Loggable {
 
   val directiveApi2 =
     new DirectiveAPI2 (
-        roDirectiveRepository
-      , restExtractorService
-      , directiveApiService2
-    )
-
-  val directiveApi3 =
-    new DirectiveAPI3 (
-        directiveApi2
-    )
-
-  val latestDirectiveApi = new LatestDirectiveAPI (directiveApi2)
-
-  val genericDirectiveApi =
-    new DirectiveAPIHeaderVersion (
         roDirectiveRepository
       , restExtractorService
       , directiveApiService2
@@ -561,20 +532,6 @@ object RudderConfig extends Loggable {
       , groupApiService2
     )
 
-  val groupApi3 =
-    new GroupAPI3 (
-        groupApi2
-    )
-
-  val latestGroupApi = new LatestGroupAPI (groupApi2)
-
-  val genericGroupApi =
-    new GroupAPIHeaderVersion (
-        roNodeGroupRepository
-      , restExtractorService
-      , groupApiService2
-    )
-
     val nodeApiService2 =
     new NodeApiService2 (
         newNodeManager
@@ -587,19 +544,6 @@ object RudderConfig extends Loggable {
 
   val nodeApi2 =
     new NodeAPI2 (
-        nodeApiService2
-      , restExtractorService
-    )
-
-  val nodeApi3 =
-    new NodeAPI3 (
-        nodeApi2
-    )
-
-  val latestNodeApi = new LatestNodeAPI (nodeApi2)
-
-  val genericNodeApi =
-    new NodeAPIHeaderVersion (
         nodeApiService2
       , restExtractorService
     )
@@ -621,20 +565,6 @@ object RudderConfig extends Loggable {
         restExtractorService
       , parameterApiService2
     )
-
-  val parameterApi3 =
-    new ParameterAPI3 (
-        parameterApi2
-    )
-
-  val latestParameterApi = new LatestParameterAPI (parameterApi2)
-
-  val genericParameterApi =
-    new ParameterAPIHeaderVersion (
-        restExtractorService
-      , parameterApiService2
-    )
-
 
   val changeRequestApiService3 =
     new ChangeRequestAPIService3 (
@@ -658,13 +588,16 @@ object RudderConfig extends Loggable {
       , changeRequestApiService3
     )
 
-  val latestChangeRequestApi = new LatestChangeRequestAPI (changeRequestApi3)
+  val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
 
-  val genericChangeRequestApi =
-    new ChangeRequestAPIHeaderVersion (
-        restExtractorService
-      , changeRequestApiService3
+  val apis = {
+    Map (
+        ( ApiVersion(2) -> apiV2)
+      , ( ApiVersion(3) -> (changeRequestApi3 :: apiV2))
     )
+  }
+
+  val apiDispatcher = APIDispatcher(apis)
 
   lazy val configService: ReadConfigService with UpdateConfigService =
     new LDAPBasedConfigService(

@@ -51,7 +51,7 @@ import net.liftweb.json.JsonDSL._
 class ParameterAPI2 (
     restExtractor : RestExtractorService
   , apiV2       : ParameterApiService2
-) extends RestHelper with ParameterAPI with Loggable{
+) extends ParameterAPI with Loggable{
 
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -116,6 +116,5 @@ class ParameterAPI2 (
 
 
   }
-  serve( "api" / "2" / "parameters" prefix requestDispatch)
 
 }
