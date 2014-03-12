@@ -43,17 +43,10 @@ import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.domain.parameters.Parameter
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.web.rest.RestAPI
 
-class LatestParameterAPI (
-    latestApi : ParameterAPI
-) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "parameters" prefix latestApi.requestDispatch)
-
-}
-
-trait ParameterAPI {
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
-
+trait ParameterAPI extends RestAPI{
+  val kind = "parameters"
 }
 
 case class RestParameter(
