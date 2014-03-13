@@ -53,11 +53,24 @@ import net.liftweb.json._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers.tryo
 import com.normation.utils.Control._
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.TransactionCallback
+import org.springframework.transaction.PlatformTransactionManager
 
-class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
-    extends RuleExpectedReportsRepository {
+class RuleExpectedReportsJdbcRepository(
+    jdbcTemplate      : JdbcTemplate
+  , transactionManager: PlatformTransactionManager
+  ) extends RuleExpectedReportsRepository {
 
   val logger = LoggerFactory.getLogger(classOf[RuleExpectedReportsJdbcRepository])
+
+  /**
+   * We need to create transaction for the insertion of expected reports
+   * otherwise race conditions may occur
+   * We are clearly pushing the complexity of jdbcTemplate, and will need to move to
+   * higher lever abstraction for this
+   */
+  val transactionTemplate = new org.springframework.transaction.support.TransactionTemplate(transactionManager)
 
   val TABLE_NAME = "expectedreports"
   val NODE_TABLE_NAME = "expectedreportsnodes"
@@ -150,7 +163,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
        case Full(Some(x)) =>
          // I need to check I'm not having duplicates
          // easiest way : unfold all, and check intersect
-         val toInsert = policyExpectedReports.flatMap { case DirectiveExpectedReports(dir, comp) => 
+         val toInsert = policyExpectedReports.flatMap { case DirectiveExpectedReports(dir, comp) =>
              comp.map(x => (dir, x.componentName))
            }.flatMap { case (dir, compName) =>
              nodes.map(node => Comparator(node, dir, compName))}
@@ -183,33 +196,37 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     , policyExpectedReports : Seq[DirectiveExpectedReports]
     , nodes                 : Seq[NodeId]
   ) : Box[RuleExpectedReports] = {
-    // Compute first the version id
-    val nodeJoinKey = getNextVersionId
 
-    // Create the lines for the mapping
-    val list = for {
-            policy <- policyExpectedReports
-            component <- policy.components
+    transactionTemplate.execute(new TransactionCallback[Box[RuleExpectedReports]]() {
+      def doInTransaction(status: TransactionStatus): Box[RuleExpectedReports] = {
+        // Compute first the version id
+        val nodeJoinKey = getNextVersionId
 
-    } yield {
-            new ExpectedConfRuleMapping(0, nodeJoinKey, ruleId, serial,
-                  policy.directiveId, component.componentName, component.cardinality, component.componentsValues, component.unexpandedComponentsValues, DateTime.now(), None)
-    }
-    "select pkid, nodejoinkey, ruleid, serial, directiveid, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME + "  where 1=1 ";
+        // Create the lines for the mapping
+        val list = for {
+                policy <- policyExpectedReports
+                component <- policy.components
 
-    list.foreach(entry =>
-                jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsValues, unexpandedComponentsValues, begindate) " +
-                    " values (?,?,?,?,?,?,?,?,?)",
-                  new java.lang.Integer(entry.nodeJoinKey), ruleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
-                  entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), ComponentsValuesSerialiser.serializeComponents(entry.unexpandedComponentsValues), new Timestamp(entry.beginDate.getMillis)
-                )
-    )
-    saveNode(nodes, nodeJoinKey )
-    findCurrentExpectedReports(ruleId) match {
-       case Full(Some(x)) => Full(x)
-       case Full(None) => Failure("Could not fetch the freshly saved expected report for rule %s".format(ruleId.value))
-       case e:EmptyBox => e
-    }
+        } yield {
+                new ExpectedConfRuleMapping(0, nodeJoinKey, ruleId, serial,
+                      policy.directiveId, component.componentName, component.cardinality, component.componentsValues, component.unexpandedComponentsValues, DateTime.now(), None)
+        }
+        list.foreach(entry =>
+                    jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsValues, unexpandedComponentsValues, begindate) " +
+                        " values (?,?,?,?,?,?,?,?,?)",
+                      new java.lang.Integer(entry.nodeJoinKey), ruleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
+                      entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), ComponentsValuesSerialiser.serializeComponents(entry.unexpandedComponentsValues), new Timestamp(entry.beginDate.getMillis)
+                    )
+        )
+        saveNode(nodes, nodeJoinKey )
+        findCurrentExpectedReports(ruleId) match {
+          case Full(Some(x)) => Full(x)
+          case Full(None) => Failure("Could not fetch the freshly saved expected report for rule %s".format(ruleId.value))
+          case e:EmptyBox => e
+        }
+      }
+    })
+
   }
 
 
@@ -297,7 +314,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           RuleExpectedReportsMapper).toSeq)
 
   }
-  
+
   private[this] def getNodes(nodeJoinKey : Int) : Box[Seq[NodeId]] = {
     tryo {
       jdbcTemplate.queryForList("select nodeId from "+ NODE_TABLE_NAME +" where nodeJoinKey = ?",
@@ -340,7 +357,7 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
           val directivesOnNode = seq.groupBy(x => x.nodeJoinKey).map { case (nodeJoinKey, mappedEntries) =>
             // need to convert to group everything by directiveId, the convert to DirectiveExpectedReports
             val directiveExpectedReports = mappedEntries.groupBy(x=>x.policyExpectedReport).map { case (directiveId, lines) =>
-              // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are 
+              // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are
               // for the same directive, and must be put together
               DirectiveExpectedReports(directiveId, lines.map( x => ReportComponent(x.component, x.cardinality, x.componentsValues, x.unexpandedComponentsValues)))
             }
