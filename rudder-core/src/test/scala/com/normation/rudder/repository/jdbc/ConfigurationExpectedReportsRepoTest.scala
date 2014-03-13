@@ -49,7 +49,7 @@ import net.liftweb.common.Full
 @RunWith(classOf[JUnitRunner])
 class RuleExpectedReportsRepoTest  extends Specification  {
 
-   val service = new RuleExpectedReportsJdbcRepository(null)
+   val service = new RuleExpectedReportsJdbcRepository(null, null)
 /*
    val beginDate = DateTime.now()
 
