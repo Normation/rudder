@@ -641,7 +641,6 @@ class RefuseGroups(
  */
 class AcceptNodeRule(
     override val name:String,
-    asyncDeploymentAgent:AsyncDeploymentAgent,
     roGroupRepo: RoNodeGroupRepository,
     woGroupRepo: WoNodeGroupRepository,
     inventoryStatus: InventoryStatus
@@ -700,8 +699,7 @@ class AcceptNodeRule(
   }
 
   override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = {
-    asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
-    logger.debug("Successfully sent deployment request")
+    //nothing, node configuration state will be handle by the deployment service
     Full(sms)
   }
 
