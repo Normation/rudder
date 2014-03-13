@@ -53,11 +53,24 @@ import net.liftweb.json._
 import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers.tryo
 import com.normation.utils.Control._
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.TransactionCallback
+import org.springframework.transaction.PlatformTransactionManager
 
-class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
-    extends RuleExpectedReportsRepository {
+class RuleExpectedReportsJdbcRepository(
+    jdbcTemplate      : JdbcTemplate
+  , transactionManager: PlatformTransactionManager
+  ) extends RuleExpectedReportsRepository {
 
   val logger = LoggerFactory.getLogger(classOf[RuleExpectedReportsJdbcRepository])
+
+  /**
+   * We need to create transaction for the insertion of expected reports
+   * otherwise race conditions may occur
+   * We are clearly pushing the complexity of jdbcTemplate, and will need to move to
+   * higher lever abstraction for this
+   */
+  val transactionTemplate = new org.springframework.transaction.support.TransactionTemplate(transactionManager)
 
   val TABLE_NAME = "expectedreports"
   val NODE_TABLE_NAME = "expectedreportsnodes"
@@ -183,33 +196,37 @@ class RuleExpectedReportsJdbcRepository(jdbcTemplate : JdbcTemplate)
     , policyExpectedReports : Seq[DirectiveExpectedReports]
     , nodes                 : Seq[NodeId]
   ) : Box[RuleExpectedReports] = {
-    // Compute first the version id
-    val nodeJoinKey = getNextVersionId
 
-    // Create the lines for the mapping
-    val list = for {
-            policy <- policyExpectedReports
-            component <- policy.components
+    transactionTemplate.execute(new TransactionCallback[Box[RuleExpectedReports]]() {
+      def doInTransaction(status: TransactionStatus): Box[RuleExpectedReports] = {
+        // Compute first the version id
+        val nodeJoinKey = getNextVersionId
 
-    } yield {
-            new ExpectedConfRuleMapping(0, nodeJoinKey, ruleId, serial,
-                  policy.directiveId, component.componentName, component.cardinality, component.componentsValues, component.unexpandedComponentsValues, DateTime.now(), None)
-    }
-    "select pkid, nodejoinkey, ruleid, serial, directiveid, component, componentsvalues, cardinality, begindate, enddate  from "+ TABLE_NAME + "  where 1=1 ";
+        // Create the lines for the mapping
+        val list = for {
+                policy <- policyExpectedReports
+                component <- policy.components
 
-    list.foreach(entry =>
-                jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsValues, unexpandedComponentsValues, begindate) " +
-                    " values (?,?,?,?,?,?,?,?,?)",
-                  new java.lang.Integer(entry.nodeJoinKey), ruleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
-                  entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), ComponentsValuesSerialiser.serializeComponents(entry.unexpandedComponentsValues), new Timestamp(entry.beginDate.getMillis)
-                )
-    )
-    saveNode(nodes, nodeJoinKey )
-    findCurrentExpectedReports(ruleId) match {
-       case Full(Some(x)) => Full(x)
-       case Full(None) => Failure("Could not fetch the freshly saved expected report for rule %s".format(ruleId.value))
-       case e:EmptyBox => e
-    }
+        } yield {
+                new ExpectedConfRuleMapping(0, nodeJoinKey, ruleId, serial,
+                      policy.directiveId, component.componentName, component.cardinality, component.componentsValues, component.unexpandedComponentsValues, DateTime.now(), None)
+        }
+        list.foreach(entry =>
+                    jdbcTemplate.update("insert into "+ TABLE_NAME +" ( nodejoinkey, ruleid, serial, directiveid, component, cardinality, componentsValues, unexpandedComponentsValues, begindate) " +
+                        " values (?,?,?,?,?,?,?,?,?)",
+                      new java.lang.Integer(entry.nodeJoinKey), ruleId.value, new java.lang.Integer(entry.serial), entry.policyExpectedReport.value,
+                      entry.component,  new java.lang.Integer(entry.cardinality), ComponentsValuesSerialiser.serializeComponents(entry.componentsValues), ComponentsValuesSerialiser.serializeComponents(entry.unexpandedComponentsValues), new Timestamp(entry.beginDate.getMillis)
+                    )
+        )
+        saveNode(nodes, nodeJoinKey )
+        findCurrentExpectedReports(ruleId) match {
+          case Full(Some(x)) => Full(x)
+          case Full(None) => Failure("Could not fetch the freshly saved expected report for rule %s".format(ruleId.value))
+          case e:EmptyBox => e
+        }
+      }
+    })
+
   }
 
 
