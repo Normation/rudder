@@ -1100,6 +1100,10 @@ object RudderConfig extends Loggable {
     , RUDDER_SYSLOG_PORT
     , configService.cfengine_server_denybadclocks _
     , configService.cfengine_server_skipidentify _
+    , configService.agent_run_interval
+    , configService.agent_run_splaytime
+    , configService.agent_run_start_hour
+    , configService.agent_run_start_minute
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
     techniqueRepositoryImpl,
@@ -1184,7 +1188,13 @@ object RudderConfig extends Loggable {
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
   )
 //  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
-  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(configurationExpectedRepo, reportsRepositoryImpl, techniqueRepositoryImpl, new ComputeCardinalityOfDirectiveVal())
+  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(
+        configurationExpectedRepo
+      , reportsRepositoryImpl
+      , techniqueRepositoryImpl
+      , new ComputeCardinalityOfDirectiveVal()
+      , configService.agent_run_interval
+  )
   private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate, transactionManager)
   private[this] lazy val reportsRepositoryImpl = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD)

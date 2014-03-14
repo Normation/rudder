@@ -64,12 +64,11 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   val idQuery = "select id, executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from ruddersysevents where 1=1 ";
 
   // find the last full run per node
-  // we are not looking for older request that 15 minutes for the moment
-  val lastQuery = "select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '15 minutes') and complete = true group by nodeid"
-  val lastQueryByNode = "select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '15 minutes') and nodeid = ? and complete = true group by nodeid"
-
-  val joinQuery = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
-  val joinQueryByNode = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
+  // we are not looking for older request than interval minutes
+  def lastQuery(interval: Int) = s"select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '${interval} minutes') and complete = true group by nodeid"
+  def lastQueryByNode(interval: Int) = s"select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '${interval}') and nodeid = ? and complete = true group by nodeid"
+  def joinQuery(interval: Int) = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery(interval) +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1"
+  def joinQueryByNode(interval: Int) = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode(interval) +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
 
   val fetchExecutions = """select T.nodeid, T.executiontimestamp, coalesce(C.iscomplete, false) as complete from
                           (select distinct nodeid, executiontimestamp from ruddersysevents where id > ? and id <= ?) as T left join
@@ -177,19 +176,21 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
    * Return the last (really the last, serial wise, with full execution) reports for a rule
    */
   def findLastReportByRule(
-      ruleId: RuleId
-    , serial: Int
-    , node  : Option[NodeId]
+      ruleId     : RuleId
+    , serial     : Int
+    , node       : Option[NodeId]
+    , runInterval: Int
   ) : Seq[Reports] = {
     var query = ""
     var array = Buffer[AnyRef]()
+    val interval = 3*runInterval
 
     node match {
       case None =>
-          query += joinQuery +  " and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes')"
+          query += joinQuery(interval) +  s" and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '${interval} minutes')"
           array ++= Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
       case Some(nodeId) =>
-        query += joinQueryByNode +  " and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '15 minutes') and nodeId = ?"
+        query += joinQueryByNode(interval) +  s" and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '${interval} minutes') and nodeId = ?"
         array ++= Buffer[AnyRef](nodeId.value, ruleId.value, new java.lang.Integer(serial), nodeId.value)
     }
 
@@ -203,15 +204,18 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
    */
   def findLastReportsByRules(
       rulesAndSerials: Set[(RuleId, Int)]
+    , runInterval    : Int
   ) : Seq[Reports] = {
-    var query = joinQuery + " and ( 1 != 1 "
+    val interval = 3*runInterval
+
+    var query = joinQuery(interval) + " and ( 1 != 1 "
     var array = Buffer[AnyRef]()
 
     rulesAndSerials.foreach { case (ruleId, serial) =>
           query +=   " or (ruleId = ? and serial = ?)"
           array ++= Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
     }
-    query += " ) and executionTimeStamp > (now() - interval '15 minutes')"
+    query += s" ) and executionTimeStamp > (now() - interval '${interval} minutes')"
     jdbcTemplate.query(query,
           array.toArray[AnyRef],
           ReportsMapper).toSeq;
