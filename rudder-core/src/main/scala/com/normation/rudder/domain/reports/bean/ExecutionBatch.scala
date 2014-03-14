@@ -76,12 +76,16 @@ trait ExecutionBatch {
 
   def getRuleStatus() : Seq[DirectiveRuleStatusReport]
 
+  def getNotApplicableReports() : Seq[Reports] = {
+    executionReports.collect { case x : ResultNotApplicableReport => x }
+  }
+
   def getSuccessReports() : Seq[Reports] = {
-    executionReports.filter(x => x.isInstanceOf[ResultSuccessReport])
+    executionReports.collect { case x : ResultSuccessReport => x }
   }
 
   def getRepairedReports() : Seq[Reports] = {
-    executionReports.filter(x => x.isInstanceOf[ResultRepairedReport])
+    executionReports.collect { case x : ResultRepairedReport => x }
   }
 
   /* Warn is temporarly unused*/
@@ -91,7 +95,7 @@ trait ExecutionBatch {
   }*/
 
   def getErrorReports() : Seq[Reports] = {
-    executionReports.filter(x => x.isInstanceOf[ResultErrorReport])
+    executionReports.collect { case x : ResultErrorReport => x }
   }
 
 }
@@ -223,6 +227,7 @@ case class ConfigurationExecutionBatch(
         val purgedReports = filteredReports.filter(x => x.isInstanceOf[ResultErrorReport]
                                || x.isInstanceOf[ResultRepairedReport]
                                || x.isInstanceOf[ResultSuccessReport]
+                               || x.isInstanceOf[ResultNotApplicableReport]
                                || x.isInstanceOf[UnknownReport])
 
         val components = for {
@@ -307,7 +312,11 @@ case class ConfigurationExecutionBatch(
           if (reports.exists(x => x.isInstanceOf[ResultSuccessReport])) {
             SuccessReportType
           } else {
-            getNoAnswerOrPending()
+            if (reports.exists(x => x.isInstanceOf[ResultNotApplicableReport])) {
+              NotApplicableReportType
+            } else {
+              getNoAnswerOrPending()
+            }
           }
         }
       }
@@ -604,14 +613,16 @@ sealed trait RuleStatusReport {
     if (nodesreport.size>0){
       val reportsSize = nodesreport.size.toDouble
       Some((nodesreport.map(report => report.reportType match {
-      case SuccessReportType => 1
-      case _ => 0
+        case SuccessReportType => 1
+        case NotApplicableReportType    => 1
+        case _                 => 0
     }):\ 0)((res:Int,value:Int) => res+value) * 100 / reportsSize).map{ res =>
       BigDecimal(res).setScale(0,BigDecimal.RoundingMode.HALF_UP).toInt
       }
     }
-    else
+    else {
       None
+    }
   }
 }
 
