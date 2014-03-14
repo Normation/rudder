@@ -231,6 +231,33 @@ case class RestExtractorService (
     }
   }
 
+  private[this] def convertToNodeDetailLevel (value:String) : Box[NodeDetailLevel] = {
+    val fields = value.split(",")
+    if (fields.contains("full")) {
+       Full(FullDetailLevel)
+    } else {
+      val base = {
+        if (fields.contains("minimal")) {
+          MinimalDetailLevel
+        } else {
+          DefaultDetailLevel
+        }
+      }
+      val customFields = fields.filter{
+        field =>
+          field != "minimal" &&
+          field != "default" &&
+          NodeDetailLevel.allFields.contains(field)
+      }
+      if (customFields.isEmpty) {
+        Full(base)
+      } else {
+        val customLevel = CustomDetailLevel(base,customFields.toSet)
+        Full(customLevel)
+      }
+    }
+  }
+
   /*
    * Convert List Functions
    */
@@ -556,6 +583,14 @@ case class RestExtractorService (
       case Full(Some(status)) => Full(status)
       case Full(None) => Failure("node status should not be empty")
       case eb:EmptyBox => eb ?~ "error with node status"
+    }
+  }
+
+  def extractNodeDetailLevel (params : Map[String,List[String]]) : Box[NodeDetailLevel] = {
+    extractOneValue(params,"include")(convertToNodeDetailLevel) match {
+      case Full(Some(level)) => Full(level)
+      case Full(None) => Full(DefaultDetailLevel)
+      case eb:EmptyBox => eb ?~ "error with node level detail"
     }
   }
 
