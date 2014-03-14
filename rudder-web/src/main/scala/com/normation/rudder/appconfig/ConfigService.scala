@@ -41,6 +41,8 @@ import com.normation.rudder.services.workflows.WorkflowUpdate
 import com.typesafe.config.ConfigFactory
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
+import net.liftweb.common.Failure
+import net.liftweb.common.Loggable
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -65,13 +67,21 @@ trait ReadConfigService {
   def rudder_workflow_self_validation(): Box[Boolean]
   def rudder_workflow_self_deployment(): Box[Boolean]
 
-
   /**
    * CFEngine server properties
    */
   def cfengine_server_denybadclocks(): Box[Boolean]
   def cfengine_server_skipidentify(): Box[Boolean]
 
+  /**
+   * Agent execution interval and start run
+   * Note: Interval may NEVER fail, if the value is not in LDAP, then default value arise
+   */
+  def agent_run_interval(): Int
+
+  def agent_run_splaytime(): Box[Int]
+  def agent_run_start_hour(): Box[Int]
+  def agent_run_start_minute(): Box[Int]
 }
 
 /**
@@ -95,10 +105,22 @@ trait UpdateConfigService {
    */
   def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit]
   def set_cfengine_server_skipidentify(value: Boolean): Box[Unit]
+
+  /**
+   * Agent frequency and start run
+   */
+  def set_agent_run_interval(value: Int): Box[Unit]
+  def set_agent_run_splaytime(value: Int): Box[Unit]
+  def set_agent_run_start_hour(value: Int): Box[Unit]
+  def set_agent_run_start_minute(value: Int): Box[Unit]
 }
 
-class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate : AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService {
+class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
 
+  /**
+   * Create a cache for already values that should never fail
+   */
+  var cacheExecutionInterval: Option[Int] = None
 
   val defaultConfig =
     """rudder.ui.changeMessage.enabled=true
@@ -109,6 +131,10 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.workflow.self.deployment=true
        cfengine.server.denybadclocks=true
        cfengine.server.skipidentify=false
+       agent.run.interval=5
+       agent.run.splaytime=5
+       agent.run.start.hour=0
+       agent.run.start.minute=0
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -139,7 +165,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     repos.saveConfigParameter(p)
   }
 
-
   private[this] implicit def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
     case "true" | "1" => true
     case _ => false
@@ -149,13 +174,20 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
 
   private[this] implicit def toUnit(p: Box[RudderWebProperty]) : Box[Unit] = p.map( _ => ())
 
+  private[this] implicit def toInt(p: Box[RudderWebProperty]) : Box[Int] = {
+    try {
+      p.map(Integer.parseInt(_))
+    } catch {
+      case ex:NumberFormatException => Failure(ex.getMessage)
+    }
+  }
+
   def rudder_ui_changeMessage_enabled() = get("rudder_ui_changeMessage_enabled")
   def rudder_ui_changeMessage_mandatory() = get("rudder_ui_changeMessage_mandatory")
   def rudder_ui_changeMessage_explanation() = get("rudder_ui_changeMessage_explanation")
   def set_rudder_ui_changeMessage_enabled(value: Boolean): Box[Unit] = save("rudder_ui_changeMessage_enabled", value)
   def set_rudder_ui_changeMessage_mandatory(value: Boolean): Box[Unit] = save("rudder_ui_changeMessage_mandatory", value)
   def set_rudder_ui_changeMessage_explanation(value: String): Box[Unit] = save("rudder_ui_changeMessage_explanation", value)
-
 
   ///// workflows /////
   def rudder_workflow_enabled() = get("rudder_workflow_enabled")
@@ -173,4 +205,39 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def set_cfengine_server_denybadclocks(value: Boolean): Box[Unit] = save("cfengine_server_denybadclocks", value)
   def cfengine_server_skipidentify(): Box[Boolean] = get("cfengine_server_skipidentify")
   def set_cfengine_server_skipidentify(value: Boolean): Box[Unit] = save("cfengine_server_skipidentify", value)
+
+  def agent_run_interval(): Int = {
+    toInt(get("agent_run_interval")) match {
+      case Full(interval) =>
+        cacheExecutionInterval = Some(interval)
+        interval
+      case f: Failure =>
+        val e = f ?~! "Failure when fetching the agent run interval "
+        logger.error(e.messageChain)
+        cacheExecutionInterval match {
+          case Some(interval) =>
+            interval
+          case None =>
+            val errorMsg = "Error while fetch the agent run interval; the value is unavailable in the LDAP and in cache."
+            logger.error(errorMsg)
+            throw new RuntimeException(errorMsg)
+        }
+    }
+
+
+  }
+  def set_agent_run_interval(value: Int): Box[Unit] = {
+    cacheExecutionInterval = Some(value)
+    save("agent_run_interval", value)
+  }
+
+  def agent_run_splaytime(): Box[Int] = get("agent_run_splaytime")
+  def set_agent_run_splaytime(value: Int): Box[Unit] = save("agent_run_splaytime", value)
+
+  def agent_run_start_hour(): Box[Int] = get("agent_run_start_hour")
+  def set_agent_run_start_hour(value: Int): Box[Unit] = save("agent_run_start_hour", value)
+
+  def agent_run_start_minute(): Box[Int] = get("agent_run_start_minute")
+  def set_agent_run_start_minute(value: Int): Box[Unit] = save("agent_run_start_minute", value)
+
 }

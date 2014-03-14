@@ -72,7 +72,8 @@ class ExecutionBatchTest extends Specification {
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
        DateTime.now(),
-       None)
+       None,
+       5)
 
     "have one reports when we create it with one report" in {
       uniqueExecutionBatch.executionReports.size ==1
@@ -111,7 +112,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have one reports when we create it with one report" in {
       multipleNodeExecutionBatch.executionReports.size ==1
@@ -146,7 +149,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        reports,
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
@@ -185,7 +190,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        reports,
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
@@ -231,7 +238,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        reports,
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have 8 reports when we create it with 8 reports" in {
       multipleNodeExecutionBatch.executionReports.size == 8
@@ -273,7 +282,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        reports,
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have two reports when we create it with two report" in {
       multipleNodeExecutionBatch.executionReports.size == 2
@@ -314,7 +325,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "have 2 reports when we create it with 2 reports" in {
       sameKeyExecutionBatch.executionReports.size == 2
@@ -347,7 +360,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "have 3 reports when we create it with 3 reports" in {
       sameKeyExecutionBatch.executionReports.size == 3
@@ -393,7 +408,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
 
     "return a component globally repaired " in {
@@ -500,7 +517,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
 
     "return a component globally repaired " in {
@@ -586,7 +605,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "return a component globally repaired " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -648,7 +669,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "return a component globally repaired " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -735,7 +758,9 @@ class ExecutionBatchTest extends Specification {
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
 
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have one detailed reports when we create it with one report" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
@@ -814,7 +839,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message")),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have one detailed reports when we create it with one report" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
@@ -867,7 +894,9 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
          , new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
        ),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have one detailed reports when we create it" in {
       uniqueExecutionBatch.getNodeStatus.size ==1
@@ -920,7 +949,9 @@ class ExecutionBatchTest extends Specification {
        ),
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have two detailed reports when we create it" in {
       uniqueExecutionBatch.getNodeStatus.size == 2
@@ -968,7 +999,9 @@ class ExecutionBatchTest extends Specification {
        DateTime.now(),
        Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
                     new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message")),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have one detailed rule report" in {
       uniqueExecutionBatch.getRuleStatus.size == 1
@@ -1017,7 +1050,9 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
            new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message")
        ),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have two detailed rule report" in {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
@@ -1067,7 +1102,9 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message"),
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
        ),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have two detailed rule report" in {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
@@ -1116,7 +1153,9 @@ class ExecutionBatchTest extends Specification {
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value2",DateTime.now(), "message"),
            new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
        ),
-       DateTime.now(), None)
+       DateTime.now()
+     , None
+     , 5)
 
     "have one detailed rule report" in {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(1)
@@ -1159,7 +1198,9 @@ class ExecutionBatchTest extends Specification {
        ),
        new DateTime(),
        Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some\"text""",new DateTime(), "message")),
-       new DateTime(), None)
+       new DateTime()
+     , None
+     , 5)
 
     "have one reports when we create it with one report" in {
       uniqueExecutionBatch.executionReports.size ==1
@@ -1240,7 +1281,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "have one reports when we create it with one report" in {
       sameKeyExecutionBatch.executionReports.size ==1
@@ -1320,7 +1363,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "have one reports when we create it with one report" in {
       sameKeyExecutionBatch.executionReports.size ==1
@@ -1409,7 +1454,9 @@ class ExecutionBatchTest extends Specification {
        ),
        executionTimestamp,
        reports,
-       executionTimestamp, None)
+       executionTimestamp
+     , None
+     , 5)
 
     "return a component globally success " in {
       executionBatch.checkExpectedComponentWithReports(

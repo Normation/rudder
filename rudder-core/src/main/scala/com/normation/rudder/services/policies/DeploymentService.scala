@@ -118,10 +118,15 @@ trait DeploymentService extends Loggable {
       expandRuleTime =  System.currentTimeMillis
       ruleVals       <- expandRuleVal(rawRuleVals, allNodeInfos, groupLib, directiveLib, lowerIdRulesMap) ?~! "Cannot expand Rule vals values"
       timeExpandRule =  (System.currentTimeMillis - expandRuleTime)
-      _              =  logger.debug(s"RuleVals expanded in ${timeExpandRule}ms, start to build new node configurations.")
+      _              =  logger.debug(s"RuleVals expanded in ${timeExpandRule}ms, start to build global system variables.")
 
-      buildConfigTime  =  System.currentTimeMillis
-      (config, rules) <- buildNodeConfigurations(ruleVals, allNodeInfos, groupLib, directiveLib, lowerIdRulesMap, allParameters) ?~! "Cannot build target configuration node"
+      globalSystemVarTime    =  System.currentTimeMillis
+      globalSystemVariables <- buildGlobalSystemVariables() ?~! "Cannot build global system configuration"
+      timeGlobalSystemVar   =  (System.currentTimeMillis - globalSystemVarTime)
+      _                     =  logger.debug(s"Global system variables built in ${timeExpandRule}ms, start to build new node configurations.")
+
+      buildConfigTime =  System.currentTimeMillis
+      (config, rules) <- buildNodeConfigurations(ruleVals, allNodeInfos, groupLib, directiveLib, lowerIdRulesMap, allParameters, globalSystemVariables) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
 
@@ -218,17 +223,22 @@ trait DeploymentService extends Loggable {
    def expandRuleVal(rawRuleVals:Seq[RuleVal], allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, rules: Map[RuleId, Rule]) : Box[Seq[RuleVal]]
 
   /**
+   * Compute all the global system variable
+   */
+  def buildGlobalSystemVariables() : Box[Map[String, Variable]]
+  /**
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual Cf3PolicyDraftBean they will have.
    * Replace all ${node.varName} vars.
    */
   def buildNodeConfigurations(
-      ruleVals:Seq[RuleVal]
-    , allNodeInfos: Set[NodeInfo]
-    , groupLib: FullNodeGroupCategory
-    , directiveLib: FullActiveTechniqueCategory
+      ruleVals               :Seq[RuleVal]
+    , allNodeInfos           : Set[NodeInfo]
+    , groupLib               : FullNodeGroupCategory
+    , directiveLib           : FullActiveTechniqueCategory
     , allRulesCaseInsensitive: Map[RuleId, Rule]
-    , parameters: Seq[GlobalParameter]
+    , parameters             : Seq[GlobalParameter]
+    , globalSystemVariable   : Map[String, Variable]
   ) : Box[(Seq[NodeConfiguration], Seq[ExpandedRuleVal])]
 
   /**
@@ -459,6 +469,12 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     def immutable = NodeConfiguration(nodeInfo, identifiablePolicyDrafts.map(_.toRuleWithCf3PolicyDraft).toSet, nodeContext, parameters, writtenDate, isRoot)
   }
 
+  /**
+   * really, simply fetch all the global system variables
+   */
+  override def buildGlobalSystemVariables() : Box[Map[String, Variable]] = {
+    systemVarService.getGlobalSystemVariables()
+  }
 
   /**
    * From a list of ruleVal, find the list of all impacted nodes
@@ -467,12 +483,13 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
    * allNodeInfos *must* contains the nodes info of every nodes
    */
   override def buildNodeConfigurations(
-      ruleVals:Seq[RuleVal]
-    , allNodeInfos: Set[NodeInfo]
-    , groupLib: FullNodeGroupCategory
-    , directiveLib: FullActiveTechniqueCategory
+      ruleVals               :Seq[RuleVal]
+    , allNodeInfos           : Set[NodeInfo]
+    , groupLib               : FullNodeGroupCategory
+    , directiveLib           : FullActiveTechniqueCategory
     , allRulesCaseInsensitive: Map[RuleId, Rule]
-    , parameters: Seq[GlobalParameter]
+    , parameters             : Seq[GlobalParameter]
+    , globalSystemVariables  : Map[String, Variable]
   ) : Box[(Seq[NodeConfiguration], Seq[ExpandedRuleVal])] = {
     val targetNodeConfigMap = scala.collection.mutable.Map[NodeId, MutableNodeConfiguration]()
 
@@ -491,7 +508,7 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
           case None => //init nodeConfig for that id
             (for {
               nodeInfo <- Box(allNodeInfos.find( _.id == nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-              nodeContext <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, groupLib, directiveLib, allRulesCaseInsensitive)
+              nodeContext <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, groupLib, directiveLib, allRulesCaseInsensitive, globalSystemVariables)
             } yield {
               val nodeConfig = MutableNodeConfiguration(
                                    nodeInfo

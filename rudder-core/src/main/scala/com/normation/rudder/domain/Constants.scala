@@ -79,12 +79,6 @@ object Constants {
 
   /////////////////////////////////////////////////
 
-  /**
-   * The lapse of time when we consider that the CR is still pending
-   * Let's say 10 minutes
-   */
-  val pendingDuration = new Duration(10*1000*60)
-
   val TECHLIB_MINIMUM_UPDATE_INTERVAL = 1 //in minutes
 
   val DYNGROUP_MINIMUM_UPDATE_INTERVAL = 1 //in minutes

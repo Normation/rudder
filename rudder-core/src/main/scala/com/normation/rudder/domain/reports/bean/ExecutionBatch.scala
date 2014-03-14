@@ -63,6 +63,8 @@ trait ExecutionBatch {
 
   val executionTime : DateTime // this is the time of the batch
 
+  val agentExecutionInterval : Int // this is the agent execution interval, in minutes
+
   // Differents Nodes may have differents version of the same directive.
   // We use this seq to store this information
   // It could even in a not so distant future allow differents node to have differents
@@ -133,6 +135,7 @@ case class ConfigurationExecutionBatch(
   , val executionReports        : Seq[Reports]
   , val beginDate               : DateTime
   , val endDate                 : Option[DateTime]
+  , val agentExecutionInterval : Int
 ) extends ExecutionBatch {
 
   // A cache of the already computed values
@@ -425,9 +428,10 @@ case class ConfigurationExecutionBatch(
 
   /**
    * Utility method to determine if we are in the pending time, or if the node hasn't answered for a long time
+   * We consider it is a no answer if the agent hasn't answered for twice the run interval
    */
   private[this] def getNoAnswerOrPending() : ReportType = {
-    if (beginDate.plus(Constants.pendingDuration).isAfter(DateTime.now())) {
+    if (beginDate.plus(agentExecutionInterval*2).isAfter(DateTime.now())) {
       PendingReportType
     } else {
       NoAnswerReportType
