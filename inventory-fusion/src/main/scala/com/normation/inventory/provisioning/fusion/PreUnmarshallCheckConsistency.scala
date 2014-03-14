@@ -74,6 +74,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   }
 
 
+
   private[this] def checkNodeSeq(xml:NodeSeq, tag:String, directChildren:Boolean = false, optChild:Option[String] = None) : Box[String] = {
     val nodes = (
       if(directChildren) (xml \ tag)
@@ -94,10 +95,23 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
+  private[this] def checkInRudderTag(xml:NodeSeq,tag : String)= {
+    checkNodeSeq(xml,"RUDDER",false,Some(tag))
+  }
+
+  private[this] def checkInAgentTag(xml:NodeSeq,tag : String)= {
+    checkNodeSeq(xml,"AGENT",false,Some(tag))
+  }
+
   private[this] def checkId(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "UUID"
     for {
-      tagHere <- checkNodeSeq(report, tag, true) ?~! "Missing node ID attribute '%s' in report. This attribute is mandatory and must contains node ID.".format(tag)
+      tagHere <- {
+        checkInRudderTag(report,tag) match {
+          case full : Full[String] => full
+          case eb: EmptyBox => checkNodeSeq(report, tag, true) ?~! s"Missing node ID attribute '${tag}' in report. This attribute is mandatory and must contains node ID."
+        }
+      }
       uuidOK  <- checkNodeUUID(tagHere)
     } yield {
       report
@@ -107,25 +121,42 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   private[this] def checkHostname(report:NodeSeq) : Box[NodeSeq] = {
     val tag = "HOSTNAME"
     for {
-      tagHere <- checkNodeSeq(report, tag) ?~! "Missing '%s' attribute in report. This attribute is mandatory and must contains node hostname.".format(tag)
+      tagHere <- {
+        checkInRudderTag(report,tag) match {
+          case full : Full[String] => full
+          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing '${tag}' attribute in report. This attribute is mandatory and must contains node hostname."
+        }
+      }
     } yield {
       report
     }
   }
 
   private[this] def checkRoot(report:NodeSeq) : Box[NodeSeq] = {
+    val agentTag = "OWNER"
     val tag = "USER"
     for {
-      tagHere <- checkNodeSeq(report, tag, true) ?~! "Missing administrator attribute '%s' in report. This attribute is mandatory and must contains node local administrator login.".format(tag)
+      tagHere <- {
+        checkInAgentTag(report,agentTag) match {
+          case full : Full[String] => full
+          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing administrator attribute '${tag}' in report. This attribute is mandatory and must contains node local administrator login."
+        }
+      }
     } yield {
       report
     }
   }
 
   private[this] def checkPolicyServer(report:NodeSeq) : Box[NodeSeq] = {
+    val agentTag = "POLICY_SERVER_UUID"
     val tag = "POLICY_SERVER"
     for {
-      tagHere <- checkNodeSeq(report, tag) ?~! "Missing rudder policy server attribute '%s' in report. This attribute is mandatory and must contains the policy server ID that the node must contact.".format(tag)
+      tagHere <- {
+        checkInAgentTag(report,agentTag) match {
+          case full : Full[String] => full
+          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing rudder policy server attribute '${tag}' in report. This attribute is mandatory and must contains node local administrator login."
+        }
+      }
     } yield {
       report
     }
@@ -183,9 +214,15 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
 
 
   private[this] def checkAgent(report:NodeSeq) : Box[NodeSeq] = {
+    val agentTag = "AGENT_NAME"
     val tag = "AGENTNAME"
     for {
-      tagHere <- checkNodeSeq(report, tag) ?~! "Missing agent name attribute in report. This attribute is mandatory and must contains (at least one of) the agent deployed on the node.".format(tag)
+      tagHere <- {
+        checkInAgentTag(report,agentTag) match {
+          case full : Full[String] => full
+          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing Missing agent name attribute ${tag} in report. This attribute is mandatory and must contains node local administrator login."
+        }
+      }
     } yield {
       report
     }
