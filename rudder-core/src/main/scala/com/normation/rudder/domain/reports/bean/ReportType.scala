@@ -56,6 +56,9 @@ trait ReportType {
 
 }
 
+case object NotApplicableReportType extends ReportType {
+  val severity = "NotApplicable"
+}
 case object SuccessReportType extends ReportType {
   val severity = "Success"
 }
@@ -69,7 +72,7 @@ case object UnknownReportType extends ReportType{
   val severity = "Unknown"
 }
 case object NoAnswerReportType extends ReportType{
-  val severity = "No answer"
+  val severity = "NoAnswer"
 }
 case object PendingReportType extends ReportType{
   val severity = "Applying"
@@ -81,13 +84,14 @@ object ReportType {
     if (reportTypes.isEmpty) {
       NoAnswerReportType
     } else {
-      ( reportTypes :\ (SuccessReportType : ReportType) ) {
+      ( reportTypes :\ (NotApplicableReportType : ReportType) ) {
         case (_, UnknownReportType) | (UnknownReportType, _) => UnknownReportType
         case (_, ErrorReportType) | (ErrorReportType, _) => ErrorReportType
         case (_, RepairedReportType) | (RepairedReportType, _) => RepairedReportType
         case (_, NoAnswerReportType) | (NoAnswerReportType, _) => NoAnswerReportType
         case (_, PendingReportType) | (PendingReportType, _) => PendingReportType
         case (_, SuccessReportType) | (SuccessReportType, _) => SuccessReportType
+        case (_, NotApplicableReportType) | (NotApplicableReportType, _) => NotApplicableReportType
         case _ => UnknownReportType
       }
     }
@@ -99,21 +103,12 @@ object ReportType {
 
   def apply(report : Reports) : ReportType = {
     report match {
-      case _ : ResultSuccessReport  => SuccessReportType
-      case _ : ResultErrorReport    => ErrorReportType
-      case _ : ResultRepairedReport => RepairedReportType
-      case _                        => UnknownReportType
+      case _ : ResultSuccessReport       => SuccessReportType
+      case _ : ResultErrorReport         => ErrorReportType
+      case _ : ResultRepairedReport      => RepairedReportType
+      case _ : ResultNotApplicableReport => NotApplicableReportType
+      case _                             => UnknownReportType
     }
-  }
-
-  def apply(status : String):ReportType = { status match {
-    case "Success" => SuccessReportType
-    case "Repaired" => RepairedReportType
-    case "Error" => ErrorReportType
-    case "No answer" => NoAnswerReportType
-    case "Applying" => PendingReportType
-    case _ => UnknownReportType
-  }
   }
 
   implicit def reportTypeSeverity(reportType:ReportType):String = ReportType.getSeverityFromStatus(reportType)
