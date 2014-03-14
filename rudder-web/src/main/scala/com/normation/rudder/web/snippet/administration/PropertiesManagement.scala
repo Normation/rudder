@@ -56,6 +56,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
+    case "cfagentSchedule" => cfagentScheduleConfiguration
   }
 
 
@@ -439,6 +440,89 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
+
+  def cfagentScheduleConfiguration = { xml : NodeSeq =>
+
+    var jsonSchedule = "{}"
+
+    //return a box of (interval, start hour, start min, splay)
+    def parseJsonSchedule(s: String) : Box[(Int, Int, Int, Int)] = {
+      import net.liftweb.json._
+
+
+      val json = parse(s)
+
+      val x = for {
+        JField("interval", JInt(i)) <- json
+        JField("starthour", JInt(h)) <- json
+        JField("startminute", JInt(m)) <- json
+        JField("splaytime", JInt(s)) <- json
+      } yield {
+        (i.toInt, h.toInt, m.toInt, s.toInt)
+      }
+
+      Full(x.head)
+
+    }
+
+    def submit() = {
+
+      parseJsonSchedule(jsonSchedule) match {
+        case eb:EmptyBox =>
+          val e = eb ?~! s"Error when trying to parse user data: '${jsonSchedule}'"
+          S.error("cfagentScheduleMessage", e.messageChain)
+
+        case Full((i,h,m,s)) =>
+          (for {
+            _ <- configService.set_agent_run_interval(i)
+            _ <- configService.set_agent_run_start_hour(h)
+            _ <- configService.set_agent_run_start_minute(m)
+            _ <- configService.set_agent_run_splaytime(s)
+          } yield {
+            logger.info(s"Agent schedule updated to run interval: ${i} min, start time: ${h }h ${m} min, splaytime: ${s} min")
+            "ok"
+          }) match {
+            case eb:EmptyBox =>
+              val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
+              S.error("cfagentScheduleMessage", e.messageChain)
+
+            case Full(success) =>
+              S.notice("cfagentScheduleMessage", "Agent schedule saved")
+          }
+      }
+
+      Noop
+    }
+
+
+    val transform = (for {
+      starthour <- configService.agent_run_start_hour
+      startmin  <- configService.agent_run_start_minute
+      splaytime <- configService.agent_run_splaytime
+    } yield {
+      ("ng-init",s"agentRun={'interval':${configService.agent_run_interval},'starthour':${starthour},'startminute':${startmin},'splaytime':${splaytime}}")
+    }) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when retrieving agent schedule from the database"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          logger.error("Root exception was:", ex)
+        }
+
+        (
+          "#cfagentScheduleForm" #> "Error when retrieving agent schedule from the database. Please, contact an admin or try again later"
+        )
+      case Full(initScheduleParam) =>
+        (
+            "#cfagentScheduleHidden" #> SHtml.hidden((x:String) => { jsonSchedule = x ; x}, "{{agentRun}}", initScheduleParam)
+          & "#cfagentScheduleSubmit" #> SHtml.ajaxSubmit("Submit", submit _)
+
+        )
+    }
+
+    transform.apply(xml)
+
+  }
 
 
 }
