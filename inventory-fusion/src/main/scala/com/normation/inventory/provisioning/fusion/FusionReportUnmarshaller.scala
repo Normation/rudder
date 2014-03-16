@@ -50,6 +50,7 @@ import net.liftweb.common._
 import com.normation.inventory.domain.InventoryConstants._
 import com.normation.inventory.services.provisioning._
 import org.joda.time.format.DateTimeFormatter
+import com.normation.utils.Control.sequence
 
 
 class FusionReportUnmarshaller(
@@ -179,15 +180,59 @@ class FusionReportUnmarshaller(
     } }
 
     val demuxed = demux(report)
-    val fullReport = demuxed.copy(
-       //add all VMs and software ids to node
+    val reportWithSoftwareIds = demuxed.copy(
+       //add all software ids to node
       node = demuxed.node.copy(
           softwareIds = demuxed.applications.map( _.id )
       )
     )
+
+    val fullReport = processAndAddRudderElement(reportWithSoftwareIds,doc)
+
     Full(fullReport)
   }
 
+
+
+  /**
+   * Since there is a specific rudder Tag in fusion inventory we need to process it
+   * It should be processed and add to the inventory at the end of the rootParsingExtensions are done
+   * rootparsing extensions are the data we added in the inventory before that are now handled directly by Fusion
+   */
+  def processAndAddRudderElement(report : InventoryReport, xml : NodeSeq ) : InventoryReport  = {
+
+    (xml \\ "RUDDER").headOption match {
+      case Some(rudder) =>
+        ( for {
+            uuid <- optText(rudder \ "UUID")
+            hostname <- optText(rudder \ "HOSTNAME")
+            rootUser <- optText(rudder \\ "OWNER")
+            policyServerId <- optText(rudder \\ "POLICY_SERVER_UUID")
+            agentsName <- sequence(rudder \ "AGENT")( xml => optText(xml \ "AGENT_NAME"))
+            agents <- sequence(agentsName)(AgentType.fromValue)
+            cfKeys <- sequence(rudder \ "AGENT")( xml => optText(xml \ "CFENGINE_KEY"))
+          } yield {
+            val keys = cfKeys.map{key => PublicKey(key)}
+            report.copy (
+              node = report.node.copy (
+                  main = report.node.main.copy (
+                      rootUser = rootUser
+                    , policyServerId = NodeId(policyServerId)
+                    , id = NodeId(uuid)
+                    , hostname = hostname
+                  )
+                , agentNames = agents
+                , publicKeys = keys
+              )
+            )
+        } ) match {
+          case Some(report) => report
+          case None => report
+        }
+      case None => report
+    }
+
+  }
   /**
    * This method look into all list of components to search for duplicates and remove
    * them, updating the "quantity" field accordingly.
