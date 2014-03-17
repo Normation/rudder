@@ -549,9 +549,23 @@ object RudderConfig extends Loggable {
       , restExtractorService
     )
 
-  val fixedApiService2 = nodeApiService2.copy(fixedTag = true)
+  val nodeApiService4 =
+    new NodeApiService4 (
+        fullInventoryRepository
+      , uuidGen
+      , restExtractorService
+      , restDataSerializer
+    )
 
-  val nodeApi4 = nodeApi2.copy(apiV2 = fixedApiService2)
+  val nodeApi4 = {
+    val fixedApiService2 = nodeApiService2.copy(fixedTag = true)
+    val fixedApi2 = nodeApi2.copy(apiV2 = fixedApiService2)
+    new NodeAPI4 (
+        fixedApi2
+      , nodeApiService4
+      , restExtractorService
+    )
+  }
 
   val parameterApiService2 =
     new ParameterApiService2 (
