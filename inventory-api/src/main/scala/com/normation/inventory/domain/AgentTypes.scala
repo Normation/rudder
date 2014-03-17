@@ -45,6 +45,8 @@ import com.normation.utils.HashcodeCaching
 sealed abstract class AgentType {
   def toString() : String
   def fullname() : String = "CFEngine "+this
+  // Tag used in fusion inventory ( > 2.3 )
+  val tagValue = s"cfengine-${this}".toLowerCase
   def toRulesPath() : String
 }
 
@@ -61,11 +63,15 @@ final case object COMMUNITY_AGENT extends AgentType with HashcodeCaching {
 object AgentType {
   def allValues = NOVA_AGENT :: COMMUNITY_AGENT :: Nil
 
-  def fromValue(string : String) : Box[AgentType] = {
-    string match {
-      case A_NOVA_AGENT => Full(NOVA_AGENT)
-      case A_COMMUNITY_AGENT => Full(COMMUNITY_AGENT)
-      case _ => Failure("Wrong type of value for the agent %s".format(string))
+  def fromValue(value : String) : Box[AgentType] = {
+    // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
+    def checkValue( agent : AgentType) = {
+      value == agent.toString() || value == agent.tagValue
+    }
+
+    allValues.find(checkValue)  match {
+      case None => Failure(s"Wrong type of value for the agent '${value}'")
+      case Some(agent) => Full(agent)
     }
   }
 }
