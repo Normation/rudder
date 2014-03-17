@@ -106,6 +106,7 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     // Rule APIs
     LiftRules.statelessDispatch.append(RudderConfig.apiDispatcher)
+
     // URL rewrites
     LiftRules.statefulRewrite.append {
       case RewriteRequest(ParsePath("secure" :: "administration" :: "techniqueLibraryManagement" :: activeTechniqueId :: Nil, _, _, _), GetRequest, _) =>

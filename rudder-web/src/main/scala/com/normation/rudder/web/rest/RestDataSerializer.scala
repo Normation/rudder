@@ -47,6 +47,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.web.rest.node.NodeDetailLevel
 
 
 
@@ -71,6 +72,7 @@ trait RestDataSerializer {
 
   def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue
 
+  def serializeInventory (inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue
 }
 
 case class RestDataSerializerImpl (
@@ -90,9 +92,12 @@ case class RestDataSerializerImpl (
       ~ ("osVersion"   -> nodeInfo.osVersion)
       ~ (machineTypeTag -> nodeInfo.machineType)
     )
-
   }
 
+  def serializeInventory (inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
+    val fields : Set[JField] = detailLevel.fields.map(field => JField(field ,NodeDetailLevel.allFields(field)(inventory)))
+    JObject(fields.toList)
+  }
   def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue ={
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
