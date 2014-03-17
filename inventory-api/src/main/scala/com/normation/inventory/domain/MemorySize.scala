@@ -127,9 +127,23 @@ object MemorySize {
    * It returns a string representation of the value and a string representation of the unit
    * to let it be i18n-able
    */
-  def prettyMo(m:MemorySize) = {
+  def prettyMo(m:MemorySize) : (String,String) = {
     val x = prettyPrint(m, "B" :: "kB" :: "MB" :: "GB" :: "TB" :: "PB" :: "EB" :: "ZB" :: "YB" :: Nil)
     (x._1.bigDecimal.stripTrailingZeros.toPlainString,x._2)
+  }
+
+  /**
+   * Get the size in megabyte as a Long of the MemorySize passed as parameter
+   * compared to prettyMo it always return a size in megabyte and does not display the trailing unit
+   */
+  def sizeMb(m:MemorySize) : Long = {
+    val size: BigDecimal = m.size
+    val mb = size / Ko / Ko
+    if (mb < 1) {
+      0
+    } else {
+      mb.toLong
+    }
   }
 
   /**
