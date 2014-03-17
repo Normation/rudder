@@ -64,10 +64,11 @@ import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 
 class ReportingServiceImpl(
-    confExpectedRepo    : RuleExpectedReportsRepository
-  , reportsRepository   : ReportsRepository
-  , techniqueRepository : TechniqueRepository
-  , computeCardinality  : ComputeCardinalityOfDirectiveVal
+    confExpectedRepo         : RuleExpectedReportsRepository
+  , reportsRepository        : ReportsRepository
+  , techniqueRepository      : TechniqueRepository
+  , computeCardinality       : ComputeCardinalityOfDirectiveVal
+  , getAgentRunInterval      : () => Int
 ) extends ReportingService {
 
   val logger = LoggerFactory.getLogger(classOf[ReportingServiceImpl])
@@ -204,6 +205,8 @@ class ReportingServiceImpl(
    * can reconcile in the RuleGrid the values, and display properly the success or failure, or applying
    */
   def findImmediateReportsByRules(rulesIds : Set[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]] = {
+    val agentRunInterval = getAgentRunInterval()
+
     val expectedReports = rulesIds.map { ruleId =>
       (ruleId, confExpectedRepo.findCurrentExpectedReports(ruleId))
     }
@@ -213,7 +216,7 @@ class ReportingServiceImpl(
     val nonEmptyExpected = expectedReports.map(_._2).flatten.flatten
 
     val rulesAndSerials = nonEmptyExpected.map(x => (x.ruleId, x.serial))
-    val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials)
+    val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials, agentRunInterval)
 
     // Here we go over each elements of the map [ruleId, Box[ExpectedReports], and reconcile the
     // entries with the batches
@@ -231,6 +234,7 @@ class ReportingServiceImpl(
                     , reports
                     , expected.beginDate
                     , expected.endDate
+                    , agentRunInterval
                   )
               )
           )
@@ -263,13 +267,18 @@ class ReportingServiceImpl(
    * @param reports
    * @return
    */
-  private def createLastBatchFromConfigurationReports(expectedConfigurationReports : RuleExpectedReports,
-                nodeId : Option[NodeId] = None) : ExecutionBatch = {
+  private def createLastBatchFromConfigurationReports(
+      expectedConfigurationReports : RuleExpectedReports
+    , nodeId                       : Option[NodeId] = None
+  ) : ExecutionBatch = {
+    val agentRunInterval = getAgentRunInterval()
 
     // Fetch the reports corresponding to this rule, and filter them by nodes
     val reports = reportsRepository.findLastReportByRule(
-            expectedConfigurationReports.ruleId,
-            expectedConfigurationReports.serial, nodeId)
+            expectedConfigurationReports.ruleId
+          , expectedConfigurationReports.serial
+          , nodeId
+          , agentRunInterval)
 
     // If we are only searching on a node, then we restrict the directivesonnode to this node
     val directivesOnNodes = nodeId match {
@@ -278,13 +287,15 @@ class ReportingServiceImpl(
         expectedConfigurationReports.directivesOnNodes.filter(x => x.nodeIds.contains(node)).map(x => DirectivesOnNodeExpectedReport(Seq(node), x.directiveExpectedReports))
     }
     new ConfigurationExecutionBatch(
-          expectedConfigurationReports.ruleId,
-          expectedConfigurationReports.serial,
-          directivesOnNodes,
-          reports.headOption.map(x => x.executionTimestamp).getOrElse(DateTime.now()), // this is a dummy date !
-          reports,
-          expectedConfigurationReports.beginDate,
-          expectedConfigurationReports.endDate)
+          expectedConfigurationReports.ruleId
+        , expectedConfigurationReports.serial
+        , directivesOnNodes
+        , reports.headOption.map(x => x.executionTimestamp).getOrElse(DateTime.now()) // this is a dummy date !
+        , reports
+        , expectedConfigurationReports.beginDate
+        , expectedConfigurationReports.endDate
+        , agentRunInterval
+      )
   }
 
 

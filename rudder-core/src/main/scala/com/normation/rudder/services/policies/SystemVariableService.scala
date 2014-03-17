@@ -54,23 +54,30 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.Constants
 
 trait SystemVariableService {
-  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]]
+  def getGlobalSystemVariables():  Box[Map[String, Variable]]
+
+  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule], globalSystemVariables: Map[String, Variable]): Box[Map[String, Variable]]
 }
 
 class SystemVariableServiceImpl(
-    licenseRepository               : LicenseRepository
-  , parameterizedValueLookupService : ParameterizedValueLookupService
-  , systemVariableSpecService       : SystemVariableSpecService
-  , toolsFolder                     : String
-  , cmdbEndPoint                    : String
-  , communityPort                   : Int
-  , sharedFilesFolder               : String
-  , webdavUser                      : String
-  , webdavPassword                  : String
-  , syslogPort                      : Int
-    //denybadclocks and skipIdentify are runtime properties
-  , getDenyBadClocks                : () => Box[Boolean]
-  , getSkipIdentify                 : () => Box[Boolean]
+    licenseRepository: LicenseRepository
+  , parameterizedValueLookupService: ParameterizedValueLookupService
+  , systemVariableSpecService: SystemVariableSpecService
+  , toolsFolder: String
+  , cmdbEndPoint: String
+  , communityPort: Int
+  , sharedFilesFolder: String
+  , webdavUser: String
+  , webdavPassword: String
+  , syslogPort: Int
+  //denybadclocks and skipIdentify are runtime properties
+  , getDenyBadClocks: () => Box[Boolean]
+  , getSkipIdentify: () => Box[Boolean]
+  // schedules are runtime dependencies also
+  , getAgentRunInterval: () => Int
+  , getAgentRunSplaytime: () => Box[Int]
+  , getAgentRunStartHour: () => Box[Int]
+  , getAgentRunStartMinute: () => Box[Int]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -81,15 +88,66 @@ class SystemVariableServiceImpl(
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
 
+  // compute all the global system variable (so that need to be computed only once in a deployment)
+
+  def getGlobalSystemVariables():  Box[Map[String, Variable]] = {
+    logger.trace("Preparing the global system variables")
+    val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
+    val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
+
+    val interval = getAgentRunInterval()
+    val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(interval.toString)
+
+    val varAgentRunSplayTime = getProp("AGENT_RUN_SPLAYTIME", getAgentRunSplaytime)
+
+    for {
+      agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
+      agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
+      agentRunSplaytime <- getAgentRunSplaytime() ?~! "Could not retrieve the configure value for the run splay time"
+      schedule <- ComputeSchedule.computeSchedule(agentRunStartHour, agentRunStartMinute, agentRunSplaytime) ?~! "Could not compute the run schedule"
+    } yield {
+
+      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule)
+      logger.trace("Global system variables done")
+      Map(
+        (varToolsFolder.spec.name, varToolsFolder)
+      , (varCmdbEndpoint.spec.name, varCmdbEndpoint)
+      , (varSharedFilesFolder.spec.name, varSharedFilesFolder)
+      , (varCommunityPort.spec.name, varCommunityPort)
+      , (varWebdavUser.spec.name, varWebdavUser)
+      , (varWebdavPassword.spec.name, varWebdavPassword)
+      , (syslogPortConfig.spec.name, syslogPortConfig)
+      , (denyBadClocks.spec.name, denyBadClocks)
+      , (skipIdentify.spec.name, skipIdentify)
+      , (varAgentRunInterval.spec.name, varAgentRunInterval)
+      , (varAgentRunSchedule.spec.name, varAgentRunSchedule)
+      , (varAgentRunSplayTime.spec.name, varAgentRunSplayTime)
+      )
+    }
+  }
+
   // allNodeInfos has to contain ALL the node info (those of every node within Rudder)
   // for this method to work properly
-  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]): Box[Map[String, Variable]] = {
+  // The global system variables are computed before (in the method up there), and
+  // can be overriden by some node specific parameters (especially, the schedule for
+  // policy servers)
+  def getSystemVariables(
+        nodeInfo             : NodeInfo
+      , allNodeInfos         : Set[NodeInfo]
+      , groupLib             : FullNodeGroupCategory
+      , directiveLib         : FullActiveTechniqueCategory
+      , allRules             : Map[RuleId, Rule]
+      , globalSystemVariables: Map[String, Variable]): Box[Map[String, Variable]] = {
     logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
 
+    // variables that will override the global system variables
+    val overridGlobalVariable = collection.mutable.Map[String, Variable]()
+
+    // First, fetch the
     // Set the roles of the nodes
     val nodeConfigurationRoles = collection.mutable.Set[String]()
 
-    if(nodeInfo.isPolicyServer) {
+    if (nodeInfo.isPolicyServer) {
       nodeConfigurationRoles.add("policy_server")
       if (nodeInfo.id == nodeInfo.policyServerId) {
         nodeConfigurationRoles.add("root_server")
@@ -116,7 +174,6 @@ class SystemVariableServiceImpl(
     }
     val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
-
     var varClientList = systemVariableSpecService.get("CLIENTSLIST").toVariable()
 
     var varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable()
@@ -128,15 +185,13 @@ class SystemVariableServiceImpl(
 
     val clientList = collection.mutable.Set[String]()
 
-
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
-    if(nodeInfo.isPolicyServer) {
+    if (nodeInfo.isPolicyServer) {
       val allowedNodeVarSpec = SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true)
       val allowedNodeVar = SystemVariable(allowedNodeVarSpec, Seq()).copyWithSavedValues(Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}"))
 
-
-      val varNameForAllowedNetwork = "${rudder.hasPolicyServer-" + nodeInfo.id.value + "." + Constants.V_ALLOWED_NETWORK+"}"
+      val varNameForAllowedNetwork = "${rudder.hasPolicyServer-" + nodeInfo.id.value + "." + Constants.V_ALLOWED_NETWORK + "}"
       val allowedNetworkVarSpec = SystemVariableSpec(name = varNameForAllowedNetwork, description = "", multivalued = true)
       val allowedNetworkVar = SystemVariable(allowedNetworkVarSpec, Seq()).copyWithSavedValues(Seq(varNameForAllowedNetwork))
 
@@ -183,10 +238,23 @@ class SystemVariableServiceImpl(
           return e
       }
 
+      // the schedule must be the default one for policy server
+      val DEFAULT_SCHEDULE =
+      """
+        "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"
+      """
+
+      val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue("5")
+
+      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue("5")
+      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(DEFAULT_SCHEDULE)
+      overridGlobalVariable.put(varAgentRunInterval.spec.name, varAgentRunInterval)
+      overridGlobalVariable.put(varAgentRunSchedule.spec.name, varAgentRunSchedule)
+      overridGlobalVariable.put(varAgentRunSplayTime.spec.name, varAgentRunSplayTime)
 
     }
 
-    allNodeInfos.find( _.id == nodeInfo.policyServerId) match {
+    allNodeInfos.find(_.id == nodeInfo.policyServerId) match {
       case Some(policyServer) => allowConnect += policyServer.hostname
       case None =>
         val m = s"Couldn't find the policy server of node %s".format(nodeInfo.id.value)
@@ -195,49 +263,72 @@ class SystemVariableServiceImpl(
     }
 
     val varAllowConnect = systemVariableSpecService.get("ALLOWCONNECT").toVariable().copyWithSavedValues(allowConnect.toSeq)
-
-    //obtaining variable values from (failable) properties
-    def getProp[T](specName: String, getter: () => Box[T]) : SystemVariable = {
-      //try to get the user configured value, else log an error and use the default value.
-      val variable = systemVariableSpecService.get(specName).toVariable()
-
-      getter() match {
-        case Full(value) =>
-          variable.copyWithSavedValue(value.toString)
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Error when trying to get the value configured by the user for system variable '${specName}'"
-          logger.error(e.messageChain)
-          e.rootExceptionCause.foreach { ex =>
-            logger.error("Root exception cause was:" , ex)
-          }
-          variable
-      }
-    }
-
-    val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
-    val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
-
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
-    Full(Map(
+    Full(
+        globalSystemVariables ++ Map(
         (varNodeRole.spec.name, varNodeRole)
       , (varLicensesPaid.spec.name, varLicensesPaid)
-      , (varToolsFolder.spec.name, varToolsFolder)
-      , (varCmdbEndpoint.spec.name, varCmdbEndpoint)
-      , (varSharedFilesFolder.spec.name, varSharedFilesFolder)
-      , (varCommunityPort.spec.name, varCommunityPort)
+
       , (varAllowConnect.spec.name, varAllowConnect)
       , (varClientList.spec.name, varClientList)
       , (varManagedNodesId.spec.name, varManagedNodesId)
       , (varManagedNodes.spec.name, varManagedNodes)
       , (varAllowedNetworks.spec.name, varAllowedNetworks)
       , (varManagedNodesAdmin.spec.name, varManagedNodesAdmin)
-      , (varWebdavUser.spec.name, varWebdavUser)
-      , (varWebdavPassword.spec.name, varWebdavPassword)
-      , (syslogPortConfig.spec.name, syslogPortConfig)
-      , (denyBadClocks.spec.name, denyBadClocks)
-      , (skipIdentify.spec.name, skipIdentify)
-    ))
+
+      ) ++ overridGlobalVariable
+    )
+
+  }
+
+  //obtaining variable values from (failable) properties
+  private[this] def getProp[T](specName: String, getter: () => Box[T]): SystemVariable = {
+      //try to get the user configured value, else log an error and use the default value.
+      val variable = systemVariableSpecService.get(specName).toVariable()
+
+      getter() match {
+        case Full(value) =>
+          variable.copyWithSavedValue(value.toString)
+        case eb: EmptyBox =>
+          val e = eb ?~! s"Error when trying to get the value configured by the user for system variable '${specName}'"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception cause was:", ex)
+          }
+          variable
+      }
+    }
+}
+
+object ComputeSchedule {
+  def computeSchedule(
+      startHour        : Int
+    , startMinute      : Int
+    , executionInterval: Int
+  ): Box[String] = {
+
+    val minutesFreq = executionInterval % 60
+    val hoursFreq: Int = executionInterval / 60
+
+    (minutesFreq, hoursFreq) match {
+      case (m, h) if m > 0 && h > 0 => Failure(s"Agent execution interval can only be defined as minutes (less than 60) or complete hours, (${h} hours ${m} minutes is not supported)")
+      case (m, h) if h == 0 =>
+        // two cases, hour is 0, then only minutes
+
+        // let's modulate startMinutes by minutes
+        val actualStartMinute = startMinute % minutesFreq
+        val mins = Range(actualStartMinute, 60, minutesFreq) // range doesn't return the end range
+        //val mins = for ( min <- 0 to 59; if ((min%minutesFreq) == actualStartMinute) ) yield { min }
+        Full(mins.map("\"Min" + "%02d".format(_) + "\"").mkString(", "))
+
+      case _ =>
+        // hour is not 0, then we don't have minutes
+        val actualStartHour = startHour % hoursFreq
+        val hours = Range(actualStartHour, 24, hoursFreq)
+        val minutesFormat = "Min" + "%02d".format(startMinute)
+        Full(hours.map("\"Hr" + "%02d".format(_) + "." + minutesFormat + "\"").mkString(", "))
+    }
 
   }
 
