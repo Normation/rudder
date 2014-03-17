@@ -1126,6 +1126,8 @@ object RudderConfig extends Loggable {
     , configService.agent_run_splaytime
     , configService.agent_run_start_hour
     , configService.agent_run_start_minute
+    , configService.cfengine_modified_files_ttl _
+    , configService.cfengine_outputs_ttl _
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
     techniqueRepositoryImpl,

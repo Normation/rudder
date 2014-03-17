@@ -57,6 +57,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
     case "cfagentSchedule" => cfagentScheduleConfiguration
+    case "cfengineGlobalProps" => cfengineGlobalProps
   }
 
 
@@ -525,6 +526,80 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   }
 
+  def cfengineGlobalProps = { xml : NodeSeq =>
+
+    //  initial values, updated on successful submit
+    var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
+    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
+
+
+    // form values
+    var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
+    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(30).toString
+
+
+    def submit = {
+      // first, check if the content are effectively Int
+      try {
+        val intModifiedFilesTtl = Integer.parseInt(modifiedFilesTtl)
+        val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
+        configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
+        configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
+        S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
+        check()
+
+      } catch {
+        case ex:NumberFormatException =>
+
+          S.error("updateCfengineGlobalProps", ex.getMessage())
+          Noop
+      }
+
+    }
+
+    def noModif = (
+         initModifiedFilesTtl.map(_.toString == modifiedFilesTtl).getOrElse(false)
+      && initCfengineOutputsTtl.map(_.toString == cfengineOutputsTtl).getOrElse(false)
+    )
+
+    def check() = {
+      S.notice("updateCfengineGlobalProps","")
+      Run(s"""$$("#cfengineGlobalPropsSubmit").button( "option", "disabled",${noModif});""")
+    }
+
+    ( "#modifiedFilesTtl" #> {
+      initModifiedFilesTtl match {
+        case Full(value) =>
+          SHtml.ajaxText(
+              value.toString
+            , (s : String) => { modifiedFilesTtl = s; check() }
+            , ("id","modifiedFilesTtl")
+          )
+        case eb: EmptyBox =>
+          val fail = eb ?~ "there was an error while fetching value of property: 'Modified files TTL' "
+          <div class="error">{fail.msg}</div>
+        }
+      } &
+
+     "#cfengineOutputsTtl" #> {
+      initCfengineOutputsTtl match {
+        case Full(value) =>
+          SHtml.ajaxText(
+              value.toString
+            , (s : String) => { cfengineOutputsTtl = s; check() }
+            , ("id","cfengineOutputsTtl")
+          )
+        case eb: EmptyBox =>
+          val fail = eb ?~ "there was an error while fetching value of property: 'CFEngine Outputs TTL' "
+          <div class="error">{fail.msg}</div>
+        }
+      } &
+
+      "#cfengineGlobalPropsSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
 
 }
 
