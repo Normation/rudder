@@ -67,9 +67,9 @@ trait RestDataSerializer {
 
   def serializeServerInfo (srv : Srv, status : String) : JValue
 
-  def serializeNodeInfo(nodeInfo : NodeInfo, status : String) : JValue
+  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue
 
-  def serializeInventory (inventory : FullInventory, status : String) : JValue
+  def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue
 
 }
 
@@ -80,22 +80,22 @@ case class RestDataSerializerImpl (
 
   import net.liftweb.json.JsonDSL._
 
-
-
-
-  def serializeNodeInfo(nodeInfo : NodeInfo, status : String) : JValue ={
+  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue ={
+    // before API v4, we had a typo that we choose to keep to not break preexisting API users
+    val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
     (   ("id"          -> nodeInfo.id.value)
       ~ ("status"      -> status)
       ~ ("hostname"    -> nodeInfo.hostname)
       ~ ("osName"      -> nodeInfo.osName)
       ~ ("osVersion"   -> nodeInfo.osVersion)
-      ~ ("machyneType" -> nodeInfo.machineType)
+      ~ (machineTypeTag -> nodeInfo.machineType)
     )
 
   }
 
-  def serializeInventory (inventory : FullInventory, status : String) : JValue ={
-
+  def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue ={
+    // before API v4, we had a typo that we choose to keep to not break preexisting API users
+    val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
     val machineType = inventory.machine.map(_.machineType match {
       case PhysicalMachineType => "Physical"
       case VirtualMachineType(kind) => "Virtual"
@@ -106,7 +106,7 @@ case class RestDataSerializerImpl (
       ~ ("hostname"    -> inventory.node.main.hostname)
       ~ ("osName"      -> inventory.node.main.osDetails.os.name)
       ~ ("osVersion"   -> inventory.node.main.osDetails.version.toString)
-      ~ ("machyneType" -> machineType)
+      ~ (machineTypeTag -> machineType)
     )
   }
 

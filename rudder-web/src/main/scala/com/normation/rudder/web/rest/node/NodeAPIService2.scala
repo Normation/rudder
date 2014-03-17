@@ -69,13 +69,14 @@ import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.web.rest.RestDataSerializer
 
 
-class NodeApiService2 (
+case class NodeApiService2 (
     newNodeManager    : NewNodeManager
   , nodeInfoService   : NodeInfoService
   , removeNodeService : RemoveNodeService
   , uuidGen           : StringUuidGenerator
   , restExtractor     : RestExtractorService
   , restSerializer    : RestDataSerializer
+  , fixedTag          : Boolean
 ) extends Loggable {
 
   import restSerializer._
@@ -84,7 +85,7 @@ class NodeApiService2 (
     implicit val action = "listAcceptedNodes"
       nodeInfoService.getAll match {
         case Full(nodes) =>
-          val acceptedNodes = nodes.map(serializeNodeInfo(_,"accepted"))
+          val acceptedNodes = nodes.map(serializeNodeInfo(_,"accepted",fixedTag))
           toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
 
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch accepted Nodes")).msg
@@ -98,7 +99,7 @@ class NodeApiService2 (
     implicit val action = "acceptedNodeDetails"
     nodeInfoService.getNodeInfo(id) match {
       case Full(info) =>
-        val node =  serializeNodeInfo(info,"accepted")
+        val node =  serializeNodeInfo(info,"accepted",fixedTag)
         toJsonResponse(None, ( "nodes" -> JArray(List(node))))
       case eb:EmptyBox =>
         val message = (eb ?~ s"Could not find accepted Node ${id.value}").msg
@@ -164,12 +165,12 @@ class NodeApiService2 (
       for {
         info   <- nodeInfoService.getNodeInfo(id)
         remove <- removeNodeService.removeNode(info.id, modId, actor)
-      } yield { serializeNodeInfo(info,"deleted") }
+      } yield { serializeNodeInfo(info,"deleted", fixedTag) }
     }
 
    boxSequence( action match {
       case AcceptNode =>
-        ids.map(newNodeManager.accept(_, modId, actor).map(serializeInventory(_,"accepted")))
+        ids.map(newNodeManager.accept(_, modId, actor).map(serializeInventory(_,"accepted",fixedTag)))
 
       case RefuseNode =>
         ids.map(newNodeManager.refuse(_, modId, actor)).map(_.map(serializeServerInfo(_,"refused")))
