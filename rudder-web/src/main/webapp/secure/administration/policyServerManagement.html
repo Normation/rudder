@@ -273,7 +273,6 @@
       <div class="inner-portlet-header">Configure change audit logs</div>
       <div class="portlet-content">
 
-
         <div class="lift:administration.PropertiesManagement.changeMessage" id="changeMessageForm">
           <div class="intro">
             <div>
@@ -349,6 +348,43 @@ If disabled, all changes to configuration will be immediately deployed.</p>
       </div>
     </div>
     
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Configure file retention</div>
+      <div class="portlet-content">
+
+        <div class="intro">
+          <div>
+            <p>Every time Rudder modifies a file (by file editing or copying from a remote source), a copy of the overwritten file is kept under <i>/var/rudder/modified-files/</i>.<br/>
+Also, the full output from each agent run is stored in a file under <i>/var/rudder/cfengine-community/outputs/</i>.
+These files are automatically removed to save on disk space. You can configure the retention time (Time To Live) they are kept for here.</p>
+          </div>
+        </div>
+
+          <div class="lift:administration.PropertiesManagement.cfengineGlobalProps" id="cfengineGlobalPropsForm">
+            <form class="lift:form.ajax">
+              <div class="wbBaseField">
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 40%;">
+                      <span style="float:left">Number of days to retain modified files: </span>
+                      <span id="modifiedFilesTtlTooltip" />
+                    </label>
+                    <input id="modifiedFilesTtl" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <div class="wbBaseField">
+                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 40%;">
+                      <span style="float:left">Number of days to retain agent output files: </span>
+                      <span id="cfengineOutputsTtlTooltip" />
+                    </label>
+                    <input id="cfengineOutputsTtl" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
+              <lift:Msg id="updateCfengineGlobalProps">[messages]</lift:Msg>
+            </form>
+          </div>
+
+      </div>
+    </div>
     <div class="inner-portlet">
       <div class="inner-portlet-header">Clear deployment caches</div>
       <div class="portlet-content">

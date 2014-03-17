@@ -525,6 +525,69 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   }
 
+  def cfengineGlobalProps = { xml : NodeSeq =>
+
+    //  initial values, updated on successful submit
+    var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
+    var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
+
+
+    // form values
+    var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30)
+    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(30)
+
+
+    def submit = {
+      configService.set_cfengine_modified_files_ttl(modifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(modifiedFilesTtl))
+      configService.set_cfengine_outputs_ttl(cfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(cfengineOutputsTtl))
+
+      S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
+      check()
+    }
+
+    def noModif = (
+         initModifiedFilesTtl.map(_ == modifiedFilesTtl).getOrElse(30)
+      && initCfengineOutputsTtl.map(_ == cfengineOutputsTtl).getOrElse(30)
+    )
+
+    def check() = {
+      S.notice("updateCfengineGlobalProps","")
+      Run(s"""$$("#cfengineGlobalPropsSubmit").button( "option", "disabled",${noModif});""")
+    }
+
+    ( "#modifiedFilesTtl" #> {
+      initModifiedFilesTtl match {
+        case Full(value) =>
+          SHtml.ajaxText(
+              value
+            , (s : String) => { modifiedFilesTtl = s; check() }
+            , ("id","modifiedFilesTtl")
+          )
+        case eb: EmptyBox =>
+          val fail = eb ?~ "there was an error while fetching value of property: 'Modified files TTL' "
+          <div class="error">{fail.msg}</div>
+        }
+      } &
+
+     "#cfengineOutputsTtl" #> {
+      initCfengineOutputsTtl match {
+        case Full(value) =>
+          SHtml.ajaxText(
+              value
+            , (s : String) => { cfengineOutputsTtl = s; check() }
+            , ("id","cfengineOutputsTtl")
+          )
+        case eb: EmptyBox =>
+          val fail = eb ?~ "there was an error while fetching value of property: 'CFEngine Outputs TTL' "
+          <div class="error">{fail.msg}</div>
+        }
+      } &
+
+      "#cfengineGlobalPropsSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
 
 }
 

@@ -78,6 +78,9 @@ class SystemVariableServiceImpl(
   , getAgentRunSplaytime: () => Box[Int]
   , getAgentRunStartHour: () => Box[Int]
   , getAgentRunStartMinute: () => Box[Int]
+  // TTLs are runtime properties too
+  , getModifiedFilesTtl:   () => Box[Int]
+  , getCfengineOutputsTtl: () => Box[Int]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -94,6 +97,8 @@ class SystemVariableServiceImpl(
     logger.trace("Preparing the global system variables")
     val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
     val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
+    val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
+    val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
 
     val interval = getAgentRunInterval()
     val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(interval.toString)
@@ -122,6 +127,8 @@ class SystemVariableServiceImpl(
       , (varAgentRunInterval.spec.name, varAgentRunInterval)
       , (varAgentRunSchedule.spec.name, varAgentRunSchedule)
       , (varAgentRunSplayTime.spec.name, varAgentRunSplayTime)
+      , (modifiedFilesTtl.spec.name, modifiedFilesTtl)
+      , (cfengineOutputsTtl.spec.name, cfengineOutputsTtl)
       )
     }
   }

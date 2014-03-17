@@ -82,6 +82,12 @@ trait ReadConfigService {
   def agent_run_splaytime(): Box[Int]
   def agent_run_start_hour(): Box[Int]
   def agent_run_start_minute(): Box[Int]
+
+  /**
+   * CFEngine global properties
+   */
+  def cfengine_modified_files_ttl(): Box[Int]
+  def cfengine_outputs_ttl(): Box[Int]
 }
 
 /**
@@ -113,6 +119,13 @@ trait UpdateConfigService {
   def set_agent_run_splaytime(value: Int): Box[Unit]
   def set_agent_run_start_hour(value: Int): Box[Unit]
   def set_agent_run_start_minute(value: Int): Box[Unit]
+
+  /**
+   * Set CFEngine global properties
+   */
+  def set_cfengine_modified_files_ttl(value: Int): Box[Unit]
+  def set_cfengine_outputs_ttl(value: Int): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -135,6 +148,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        agent.run.splaytime=5
        agent.run.start.hour=0
        agent.run.start.minute=0
+       cfengine.global.modifiedFilesTtl=30
+       cfengine.global.outputsTtl=30
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -239,5 +254,11 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
 
   def agent_run_start_minute(): Box[Int] = get("agent_run_start_minute")
   def set_agent_run_start_minute(value: Int): Box[Unit] = save("agent_run_start_minute", value)
+
+  ///// CFEngine server /////
+  def cfengine_modified_files_ttl(): Box[Int] = get("cfengine_modified_files_ttl")
+  def set_cfengine_modified_files_ttl(value: Int): Box[Unit] = save("cfengine_modified_files_ttl", value)
+  def cfengine_outputs_ttl(): Box[Int] = get("cfengine_outputs_ttl")
+  def set_cfengine_outputs_ttl(value: Int): Box[Unit] = save("cfengine_outputs_ttl", value)
 
 }
