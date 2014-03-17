@@ -431,7 +431,7 @@ case class ConfigurationExecutionBatch(
    * We consider it is a no answer if the agent hasn't answered for twice the run interval
    */
   private[this] def getNoAnswerOrPending() : ReportType = {
-    if (beginDate.plus(agentExecutionInterval*2).isAfter(DateTime.now())) {
+    if (beginDate.plus(agentExecutionInterval*2*1000*60).isAfter(DateTime.now())) {
       PendingReportType
     } else {
       NoAnswerReportType
