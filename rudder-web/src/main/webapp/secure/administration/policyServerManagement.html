@@ -270,25 +270,24 @@
     </div>
     
     <div class="inner-portlet">
-      <div class="inner-portlet-header">Configure change messages</div>
+      <div class="inner-portlet-header">Configure change audit logs</div>
       <div class="portlet-content">
 
 
-        <div class="intro">
-          <div>
-            <p>If enabled, prompt users to enter a message explaining the reason for each configuration change they make.</p>
+        <div class="lift:administration.PropertiesManagement.changeMessage" id="changeMessageForm">
+          <div class="intro">
+            <div>
+              <p>If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
+		  	   These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in <span id="configurationRepoPath"></span></p>
+            </div>
           </div>
-        </div>
 
-        <hr class="spacer" />
-        <div class="deca">
-          <div
-            class="lift:administration.PropertiesManagement.changeMessage"
-            id="changeMessageForm">
+          <hr class="spacer" />
+          <div class="deca">
             <form class="lift:form.ajax">
             
               <div class="wbBaseField"> 
-                <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;">Enable change messages:</label><input id="enabled" type="checkbox"/>
+                <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;">Enable change audit logs:</label><input id="enabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
               <div class="wbBaseField">       

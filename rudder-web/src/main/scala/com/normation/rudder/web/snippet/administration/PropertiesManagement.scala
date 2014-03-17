@@ -84,7 +84,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
       configService.set_rudder_ui_changeMessage_explanation(explanation).foreach(updateOk => initExplanation = Full(explanation))
 
-      S.notice("updateChangeMsg","Change message configuration correctly updated")
+      S.notice("updateChangeMsg","Change audit logs configuration correctly updated")
       check()
     }
 
@@ -116,7 +116,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
 
     // Rendering
-    ( "#enabled" #> {
+    ( "#configurationRepoPath" #> RudderConfig.RUDDER_DIR_GITROOT &
+      "#enabled" #> {
         initEnabled match {
           case Full(value) =>
             SHtml.ajaxCheckbox(
@@ -126,7 +127,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               , ("class","twoCol")
             )
           case eb: EmptyBox =>
-            val fail = eb ?~ "there was an error, while fetching value of property: 'Enable change message' "
+            val fail = eb ?~ "there was an error, while fetching value of property: 'Enable change audit log' "
             <div class="error">{fail.msg}</div>
         }
       } &
@@ -192,7 +193,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
           </span>
           <div class="tooltipContent" id={tooltipid}>
-            If this option is enabled, users will be forced to enter a change message. Empty messages will not be accepted.
+            If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.
           </div>
         }.getOrElse(NodeSeq.Empty)
       } &
@@ -204,7 +205,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
           </span>
           <div class="tooltipContent" id={tooltipid}>
-            Content of the text displayed to prompt the user to enter a change message.
+            Content of the text displayed to prompt the user to enter a change audit log.
           </div>
         }.getOrElse(NodeSeq.Empty)
       } &
