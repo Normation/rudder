@@ -186,7 +186,6 @@ class FusionReportUnmarshaller(
           softwareIds = demuxed.applications.map( _.id )
       )
     )
-
     val fullReport = processAndAddRudderElement(reportWithSoftwareIds,doc)
 
     Full(fullReport)
@@ -200,17 +199,27 @@ class FusionReportUnmarshaller(
    * rootparsing extensions are the data we added in the inventory before that are now handled directly by Fusion
    */
   def processAndAddRudderElement(report : InventoryReport, xml : NodeSeq ) : InventoryReport  = {
+    // From an option and error message creates an option,
+    // transform correctly option in a for comprehension
+    def boxFromOption[T]( opt : Option[T], errorMessage : String) : Box[T] = {
+      val box :  Box[T] = opt
+      box ?~! errorMessage
+    }
 
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
         ( for {
-            uuid <- optText(rudder \ "UUID")
-            hostname <- optText(rudder \ "HOSTNAME")
-            rootUser <- optText(rudder \\ "OWNER")
-            policyServerId <- optText(rudder \\ "POLICY_SERVER_UUID")
-            agentsName <- sequence(rudder \ "AGENT")( xml => optText(xml \ "AGENT_NAME"))
+            agentsName <- sequence(rudder \ "AGENT")( xml =>
+              boxFromOption(optText(xml \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
+            )
             agents <- sequence(agentsName)(AgentType.fromValue)
-            cfKeys <- sequence(rudder \ "AGENT")( xml => optText(xml \ "CFENGINE_KEY"))
+            cfKeys <- sequence(rudder \ "AGENT")( xml =>
+             boxFromOption( optText(xml \ "CFENGINE_KEY"),"could not parse agent name (tag CFENGINE_KEY) from rudder specific inventory")
+            )
+            uuid <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
+            hostname <- boxFromOption(optText(rudder \ "HOSTNAME") ,"could not parse hostname (tag HOSTNAME) from rudder specific inventory")
+            rootUser <- boxFromOption(optText(rudder \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
+            policyServerId <- boxFromOption(optText(rudder \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
           } yield {
             val keys = cfKeys.map{key => PublicKey(key)}
             report.copy (
@@ -226,8 +235,11 @@ class FusionReportUnmarshaller(
               )
             )
         } ) match {
-          case Some(report) => report
-          case None => report
+          case Full(report) => report
+          case eb:EmptyBox =>
+            val fail = eb ?~! "could not parse rudder specific inventory"
+            logger.error(s"Error when parsing rudder specific inventory, continue but used report without those datas: ${fail.messageChain}" )
+            report
         }
       case None => report
     }
