@@ -99,7 +99,7 @@ class RuleManagement extends DispatchSnippet with SpringExtendableSnippet[RuleMa
               , "viewRules" -> { _:NodeSeq => viewRules(workflowEnabled, changeMsgEnabled) }
             )
           case  eb: EmptyBox =>
-            val e = eb ?~! "Error when getting Rudder application configuration for change message activation"
+            val e = eb ?~! "Error when getting Rudder application configuration for change audit message activation"
             logger.error(s"Error when displaying Rules : ${e.messageChain}")
             Map(
                 "head" -> { _:NodeSeq => NodeSeq.Empty }
