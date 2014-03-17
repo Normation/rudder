@@ -57,6 +57,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
     case "cfagentSchedule" => cfagentScheduleConfiguration
+    case "cfengineGlobalProps" => cfengineGlobalProps
   }
 
 
@@ -533,21 +534,32 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
 
     // form values
-    var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30)
-    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(30)
+    var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
+    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(30).toString
 
 
     def submit = {
-      configService.set_cfengine_modified_files_ttl(modifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(modifiedFilesTtl))
-      configService.set_cfengine_outputs_ttl(cfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(cfengineOutputsTtl))
+      // first, check if the content are effectively Int
+      try {
+        val intModifiedFilesTtl = Integer.parseInt(modifiedFilesTtl)
+        val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
+        configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
+        configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
+        S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
+        check()
 
-      S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
-      check()
+      } catch {
+        case ex:NumberFormatException =>
+
+          S.error("updateCfengineGlobalProps", ex.getMessage())
+          Noop
+      }
+
     }
 
     def noModif = (
-         initModifiedFilesTtl.map(_ == modifiedFilesTtl).getOrElse(30)
-      && initCfengineOutputsTtl.map(_ == cfengineOutputsTtl).getOrElse(30)
+         initModifiedFilesTtl.map(_.toString == modifiedFilesTtl).getOrElse(false)
+      && initCfengineOutputsTtl.map(_.toString == cfengineOutputsTtl).getOrElse(false)
     )
 
     def check() = {
@@ -559,7 +571,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       initModifiedFilesTtl match {
         case Full(value) =>
           SHtml.ajaxText(
-              value
+              value.toString
             , (s : String) => { modifiedFilesTtl = s; check() }
             , ("id","modifiedFilesTtl")
           )
@@ -573,7 +585,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       initCfengineOutputsTtl match {
         case Full(value) =>
           SHtml.ajaxText(
-              value
+              value.toString
             , (s : String) => { cfengineOutputsTtl = s; check() }
             , ("id","cfengineOutputsTtl")
           )
