@@ -66,7 +66,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   // find the last full run per node
   // we are not looking for older request than interval minutes
   def lastQuery(interval: Int) = s"select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '${interval} minutes') and complete = true group by nodeid"
-  def lastQueryByNode(interval: Int) = s"select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '${interval}') and nodeid = ? and complete = true group by nodeid"
+  def lastQueryByNode(interval: Int) = s"select nodeid as Node, max(date) as Time from reportsexecution where date > (now() - interval '${interval} minutes') and nodeid = ? and complete = true group by nodeid"
   def joinQuery(interval: Int) = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQuery(interval) +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1"
   def joinQueryByNode(interval: Int) = "select executiondate, nodeid, ruleId, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from RudderSysEvents join (" + lastQueryByNode(interval) +" ) as Ordering on Ordering.Node = nodeid and executionTimeStamp = Ordering.Time where 1=1";
 
