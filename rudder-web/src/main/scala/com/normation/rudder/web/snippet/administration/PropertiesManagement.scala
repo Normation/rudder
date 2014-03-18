@@ -535,7 +535,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
-    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(30).toString
+    var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
 
 
     def submit = {
