@@ -109,7 +109,7 @@ class SystemVariableServiceImpl(
       agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
       agentRunSplaytime <- getAgentRunSplaytime() ?~! "Could not retrieve the configure value for the run splay time"
-      schedule <- ComputeSchedule.computeSchedule(agentRunStartHour, agentRunStartMinute, agentRunSplaytime) ?~! "Could not compute the run schedule"
+      schedule <- ComputeSchedule.computeSchedule(agentRunStartHour, agentRunStartMinute, interval) ?~! "Could not compute the run schedule"
     } yield {
 
       val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule)
