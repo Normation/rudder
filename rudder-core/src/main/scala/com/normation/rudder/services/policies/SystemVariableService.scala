@@ -188,8 +188,6 @@ class SystemVariableServiceImpl(
     var varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable()
     var varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable()
 
-    val allowConnect = collection.mutable.Set[String]()
-
     val clientList = collection.mutable.Set[String]()
 
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
@@ -214,7 +212,6 @@ class SystemVariableServiceImpl(
 
       parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar), allNodeInfos, groupLib, directiveLib, allRules) match {
         case Full(variable) =>
-          allowConnect ++= variable.flatMap(x => x.values)
           clientList ++= variable.flatMap(x => x.values)
           varClientList = varClientList.copyWithSavedValues(clientList.toSeq)
         case Empty => logger.warn("No variable parametrized found for ${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
@@ -261,23 +258,12 @@ class SystemVariableServiceImpl(
 
     }
 
-    allNodeInfos.find(_.id == nodeInfo.policyServerId) match {
-      case Some(policyServer) => allowConnect += policyServer.hostname
-      case None =>
-        val m = s"Couldn't find the policy server of node %s".format(nodeInfo.id.value)
-        logger.error(m)
-        return Failure(m)
-    }
-
-    val varAllowConnect = systemVariableSpecService.get("ALLOWCONNECT").toVariable().copyWithSavedValues(allowConnect.toSeq)
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
     Full(
         globalSystemVariables ++ Map(
         (varNodeRole.spec.name, varNodeRole)
       , (varLicensesPaid.spec.name, varLicensesPaid)
-
-      , (varAllowConnect.spec.name, varAllowConnect)
       , (varClientList.spec.name, varClientList)
       , (varManagedNodesId.spec.name, varManagedNodesId)
       , (varManagedNodes.spec.name, varManagedNodes)
