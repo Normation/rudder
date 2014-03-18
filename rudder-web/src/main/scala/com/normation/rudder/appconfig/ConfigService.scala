@@ -149,7 +149,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        agent.run.start.hour=0
        agent.run.start.minute=0
        cfengine.modified.files.ttl=30
-       cfengine.outputs.ttl=30
+       cfengine.outputs.ttl=7
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
