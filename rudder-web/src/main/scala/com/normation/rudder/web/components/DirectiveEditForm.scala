@@ -422,7 +422,6 @@ class DirectiveEditForm(
         //check if it's a migration - old directive present with a different technique version
         val isMigration = oldDirective.map( _.techniqueVersion != directive.techniqueVersion).getOrElse(false)
 
-        logger.info(finalRem)
         val updatedDirective = directive.copy(
           parameters = parameterEditor.mapValueSeq,
           name = piName.is,
