@@ -46,11 +46,15 @@ import net.liftweb.util._
 import net.liftweb.util.Helpers._
 import net.liftweb.http.SHtml._
 import com.normation.rudder.appconfig._
+import com.normation.rudder.batch.AutomaticStartDeployment
+import com.normation.rudder.web.model.CurrentUser
 
 
 class PropertiesManagement extends DispatchSnippet with Loggable {
 
   private[this] val configService : ReadConfigService with UpdateConfigService = RudderConfig.configService
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val uuidGen = RudderConfig.stringUuidGenerator
 
   def dispatch = {
     case "changeMessage" => changeMessageConfiguration
@@ -351,6 +355,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     def submit = {
       configService.set_cfengine_server_denybadclocks(denyBadClocks).foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
       configService.set_cfengine_server_skipidentify(!noSkipIdentify).foreach(updateOk => initNoSkipIdentify = Full(noSkipIdentify))
+
+      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+      val modId = ModificationId(uuidGen.newUuid)
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
 
       S.notice("updateCfserverNetwork","Network security options correctly updated")
       check()
