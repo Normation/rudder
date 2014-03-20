@@ -56,6 +56,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen = RudderConfig.stringUuidGenerator
 
+  def startNewPolicyGeneration = {
+    val modId = ModificationId(uuidGen.newUuid)
+    asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+  }
+
   def dispatch = {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
@@ -360,9 +365,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_cfengine_server_skipidentify(!noSkipIdentify).foreach(updateOk => initNoSkipIdentify = Full(noSkipIdentify))
 
       // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-      val modId = ModificationId(uuidGen.newUuid)
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
-
+      startNewPolicyGeneration
       S.notice("updateCfserverNetwork","Network security options correctly updated")
       check()
     }
@@ -489,6 +492,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             _ <- configService.set_agent_run_start_minute(m)
             _ <- configService.set_agent_run_splaytime(s)
           } yield {
+
             logger.info(s"Agent schedule updated to run interval: ${i} min, start time: ${h }h ${m} min, splaytime: ${s} min")
             "ok"
           }) match {
@@ -497,6 +501,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
               S.error("cfagentScheduleMessage", e.messageChain)
 
             case Full(success) =>
+
+              // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+              startNewPolicyGeneration
               S.notice("cfagentScheduleMessage", "Agent schedule saved")
           }
       }
@@ -553,6 +560,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         val intCfengineOutputsTtl = Integer.parseInt(cfengineOutputsTtl)
         configService.set_cfengine_modified_files_ttl(intModifiedFilesTtl).foreach(updateOk => initModifiedFilesTtl = Full(intModifiedFilesTtl))
         configService.set_cfengine_outputs_ttl(intCfengineOutputsTtl).foreach(updateOk => initCfengineOutputsTtl = Full(intCfengineOutputsTtl))
+
+        // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+        startNewPolicyGeneration
         S.notice("updateCfengineGlobalProps","File retention settings correctly updated")
         check()
 
