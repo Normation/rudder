@@ -466,9 +466,11 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         JField("interval", JInt(i)) <- json
         JField("starthour", JInt(h)) <- json
         JField("startminute", JInt(m)) <- json
-        JField("splaytime", JInt(s)) <- json
+        JField("splayHour", JInt(sh)) <- json
+        JField("splayMinute", JInt(sm)) <- json
       } yield {
-        (i.toInt, h.toInt, m.toInt, s.toInt)
+        val splayTime = (sh.toInt * 60) + sm.toInt
+        (i.toInt, h.toInt, m.toInt, splayTime)
       }
 
       Full(x.head)
@@ -510,7 +512,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       startmin  <- configService.agent_run_start_minute
       splaytime <- configService.agent_run_splaytime
     } yield {
-      ("ng-init",s"agentRun={'interval':${configService.agent_run_interval},'starthour':${starthour},'startminute':${startmin},'splaytime':${splaytime}}")
+      val splayHour = splaytime / 60
+      val splayMinute = splaytime % 60
+      ("ng-init",s"""agentRun={ 'interval'    : ${configService.agent_run_interval}
+                              , 'starthour'   : ${starthour}
+                              , 'startminute' : ${startmin}
+                              , 'splayHour'   : ${splayHour}
+                              , 'splayMinute' : ${splayMinute}
+                              }""")
     }) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when retrieving agent schedule from the database"
@@ -525,7 +534,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       case Full(initScheduleParam) =>
         (
             "#cfagentScheduleHidden" #> SHtml.hidden((x:String) => { jsonSchedule = x ; x}, "{{agentRun}}", initScheduleParam)
-          & "#cfagentScheduleSubmit" #> SHtml.ajaxSubmit("Submit", submit _)
+          & "#cfagentScheduleSubmit" #> SHtml.ajaxSubmit("Save changes", submit _)
 
         )
     }

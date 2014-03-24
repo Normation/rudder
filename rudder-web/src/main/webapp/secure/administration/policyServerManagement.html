@@ -24,6 +24,14 @@
     width: 100px;
   }
   
+  select.twoCol {
+    width:auto
+  }
+
+  select {
+    min-width:50px
+  }
+
   .defaultButton span.ui-button-text {
     padding: 0;
 }
@@ -99,7 +107,7 @@
           <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
             <form class="lift:form.ajax">
               <div class="wbBaseField"> 
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 50%;">
+                    <label class="threeCol textight" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Require time synchronization between nodes and policy server: </span>
                       <span id="denyBadClocksTooltip" />
                     </label>
@@ -107,7 +115,7 @@
               </div>
               <hr class="spacer"/>
               <div class="wbBaseField"> 
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 50%;">
+                    <label class="threeCol textright" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Use reverse DNS lookups on nodes to reinforce authentication to policy server: </span>
                       <span id="skipIdentifyTooltip" />
                     </label>
@@ -144,33 +152,48 @@
         </div>
 
         <hr class="spacer" />
-
-
-        <div id="cfagentSchedule" class="deca, lift:administration.PropertiesManagement.cfagentSchedule" ng-app="cfagentSchedule" ng-controller="cfagentScheduleController">
-          <div>
-              <div class="wbBaseField"> 
-                <p>
-                  Run agent every: <select data-ng-model="agentRun.interval" data-ng-options="item.m as item.name for item in intervals" ng-change="onChangeInterval()"></select>
-                </p>
-                <p>
-                  First run time: 
-                  Hour: <select data-ng-model="agentRun.starthour" data-ng-options="item for item in hours()" ng-change="onChange()"></select>
-                  Minutes: <select data-ng-model="agentRun.startminute" data-ng-options="item for item in minutes()" ng-change="onChange()"></select>
-                </p>
-                <p>
-                 Maximum delay after scheduled run time (random interval, in minutes)
-                 <select data-ng-model="agentRun.splaytime" data-ng-options="item for item in splaytimes()" ng-change="onChange()"></select>
-                </p>
-                
-              </div>
-              <hr class="spacer"/>
-              <div id="cfagentScheduleForm">
-                <form class="lift:form.ajax">
-                  <input type="hidden" id="cfagentScheduleHidden"/>
-                  <input type="submit" value="[save]" id="cfagentScheduleSubmit"/>
-                  <lift:Msg id="cfagentScheduleMessage">[messages]</lift:Msg>
-                </form>
-              </div>
+        <div class="deca">
+          <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule" ng-app="cfagentSchedule" ng-controller="cfagentScheduleController">
+            <div class="wbBaseField">
+              <label class="threeCol textight" style="font-weight:bold;width:  175px;">Run agent every:</label>
+              <select class="twoCol" data-ng-model="agentRun.interval" data-ng-options="item.m as item.name for item in intervals" ng-change="onChangeInterval()"></select>
+            </div>
+            <hr class="spacer" />
+            <div class="wbBaseField">
+              <label class="threeCol textight" style="font-weight:bold;width: 100px;">First run time:</label>
+              <ul style="float:left;">
+                <li style="margin-bottom: 7px">
+                  <label style="font-weight:bold;width: 75px; float: left; "> Hour: </label>
+                  <select  data-ng-model="agentRun.starthour" data-ng-options="item for item in hours()" ng-disabled="checkHours()" ng-change="onChange()"></select>
+                </li>
+                <li>
+                  <label style="font-weight:bold;width: 75px; float:left;">Minute:</label>
+                  <select  data-ng-model="agentRun.startminute" data-ng-options="item for item in minutes()" ng-change="onChange()"></select>
+                </li>
+              </ul>
+            </div>
+            <hr class="spacer" />
+            <div class="wbBaseField">
+              <label class="threeCol textight" style="font-weight:bold;width: 400px;">Maximum delay after scheduled run time (random interval):</label>
+              <ul style="float:left;">
+                <li style="margin-bottom: 7px">
+                  <label style="font-weight:bold;width: 75px; float: left; "> Hour: </label>
+                  <select  data-ng-model="agentRun.splayHour" data-ng-options="item for item in hours()" ng-disabled="checkHours()" ng-change="onChange()"></select>
+                </li>
+                <li>
+                  <label style="font-weight:bold;width: 75px; float:left;">Minute:</label>
+                  <select  data-ng-model="agentRun.splayMinute" data-ng-options="item for item in minutes()" ng-change="onChange()"></select>
+                </li>
+              </ul>
+            </div>
+            <hr class="spacer"/>
+            <div id="cfagentScheduleForm">
+              <form class="lift:form.ajax">
+                <input type="hidden" id="cfagentScheduleHidden"/>
+                <input type="submit" value="[save]" id="cfagentScheduleSubmit"/>
+                <lift:Msg id="cfagentScheduleMessage">[messages]</lift:Msg>
+              </form>
+            </div>
           </div>
         </div>
         <script type="text/javascript">
@@ -180,7 +203,12 @@
         cfagentScheduleModule.controller("cfagentScheduleController", function($scope) {
 
           //that's mandatory....
-          $scope.agentRun = {"interval":5,"starthour":0,"startminute":0,"splaytime":0}
+          $scope.agentRun = { "interval"    : 5
+                            , "starthour"   : 0
+                            , "startminute" : 0
+                            , "splayHour"   : 0
+                            , "splayMinute" : 0
+                            }
           
           $scope.intervals = [
                                  {"m":5, "name": "5 minutes"}
@@ -194,6 +222,10 @@
                                , {"m":360, "name": "6 hours"}
                              ];
           
+          $scope.checkHours = function() {
+            return $scope.hours().length <= 1
+          }
+
           $scope.hours = function() {
             var h = []
             var i = 0
@@ -214,33 +246,6 @@
             return m;
           }
           
-          //it seems that what we really want is:
-          //1,2,3,4,5,6,7,8,9,10,15,20,30,45,60,90,120,150,180,210,240,270,300,330,360
-          //and we will likelly want to have human readable name for them.
-          
-          //so remove that one if needed
-//           $scope.splaytimes = function() {
-//             var s = [];
-//             var i = 0;
-//             while(i < $scope.agentRun.interval) {
-//               s.push(i);
-//               i = i+1;
-//             }
-//             return s;
-//           }
-          
-          $scope.splaytimes = function() {
-            var available = [0,1,2,3,4,5,6,7,8,9,10,15,20,30,45,60,90,120,150,180,210,240,270,300,330,360];
-            var s = []; 
-            var i = 0;
-            while(available[i] <= $scope.agentRun.interval) {
-              s.push(available[i]);
-              i = i+1;
-            }
-            return s;
-          }
-          
-          
           $scope.onChange = function() {
             jQuery("#cfagentScheduleMessage").empty();
           }
@@ -252,10 +257,12 @@
             if(jQuery.inArray($scope.agentRun.startminute, $scope.minutes() ) < 0 ) {
               $scope.agentRun.startminute = $scope.minutes()[0];
             }
-            if(jQuery.inArray($scope.agentRun.splaytime, $scope.splaytimes() ) < 0 ) {
-              $scope.agentRun.splaytime = $scope.splaytimes()[0];
+            if(jQuery.inArray($scope.agentRun.splayHour, $scope.hours() ) < 0 ) {
+              $scope.agentRun.splayHour = $scope.hours()[0];
             }
-
+            if(jQuery.inArray($scope.agentRun.splayMinute, $scope.minutes() ) < 0 ) {
+                $scope.agentRun.splayMinute = $scope.minutes()[0];
+            }
             $scope.onChange();
           }
           
@@ -286,15 +293,15 @@
             <form class="lift:form.ajax">
             
               <div class="wbBaseField"> 
-                <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;">Enable change audit logs:</label><input id="enabled" type="checkbox"/>
+                <label class="threeCol textight" style="font-weight:bold;width: 20%;">Enable change audit logs:</label><input id="enabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
               <div class="wbBaseField">       
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip" /></label><input id="mandatory" type="checkbox"/>
+                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip" /></label><input id="mandatory" type="checkbox"/>
               </div>
               <hr class="spacer"/>
   		      <div class="wbBaseField"> 
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
+                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
               </div>
               <hr class="spacer"/>
               <input type="submit" value="Reload" id="changeMessageSubmit"/>
@@ -329,15 +336,15 @@ If disabled, all changes to configuration will be immediately deployed.</p>
             <form class="lift:form.ajax">
             
               <div class="wbBaseField"> 
-                <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;">Enable Change Requests:</label><input id="workflowEnabled" type="checkbox"/>
+                <label class="threeCol textright" style="font-weight:bold;width: 20%;">Enable Change Requests:</label><input id="workflowEnabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
               <div class="wbBaseField">       
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"/></label><input id="selfVal" type="checkbox"/>
+                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"/></label><input id="selfVal" type="checkbox"/>
               </div>
               <hr class="spacer"/>
   		      <div class="wbBaseField"> 
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"/></label><input id="selfDep" type="checkbox"/>
+                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"/></label><input id="selfDep" type="checkbox"/>
               </div>
               <hr class="spacer"/>
               <input type="submit" value="Reload" id="workflowSubmit"/>
@@ -359,30 +366,30 @@ Also, the full output from each agent run is stored in a file under <i>/var/rudd
 These files are automatically removed to save on disk space. You can configure the retention time (Time To Live) they are kept for here.</p>
           </div>
         </div>
-
-          <div class="lift:administration.PropertiesManagement.cfengineGlobalProps" id="cfengineGlobalPropsForm">
-            <form class="lift:form.ajax">
-              <div class="wbBaseField">
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 40%;">
-                      <span style="float:left">Number of days to retain modified files: </span>
-                      <span id="modifiedFilesTtlTooltip" />
-                    </label>
-                    <input id="modifiedFilesTtl" type="text"/>
-              </div>
-              <hr class="spacer"/>
-              <div class="wbBaseField">
-                    <label class="threeCol wbBaseFieldLabel textright" style="font-weight:bold;width: 40%;">
-                      <span style="float:left">Number of days to retain agent output files: </span>
-                      <span id="cfengineOutputsTtlTooltip" />
-                    </label>
-                    <input id="cfengineOutputsTtl" type="text"/>
-              </div>
-              <hr class="spacer"/>
-              <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
-              <lift:Msg id="updateCfengineGlobalProps">[messages]</lift:Msg>
-            </form>
+          <div class="deca">
+            <div class="lift:administration.PropertiesManagement.cfengineGlobalProps" id="cfengineGlobalPropsForm">
+              <form class="lift:form.ajax">
+                <div class="wbBaseField">
+                  <label class="threeCol textight" style="font-weight:bold;width: 300px;">
+                    <span style="float:left">Number of days to retain modified files: </span>
+                    <span id="modifiedFilesTtlTooltip" />
+                  </label>
+                  <input id="modifiedFilesTtl" type="text"/>
+                </div>
+                <hr class="spacer"/>
+                <div class="wbBaseField">
+                  <label class="threeCol textright" style="font-weight:bold;width: 300px;">
+                    <span style="float:left">Number of days to retain agent output files: </span>
+                    <span id="cfengineOutputsTtlTooltip" />
+                  </label>
+                  <input id="cfengineOutputsTtl" type="text"/>
+                </div>
+                <hr class="spacer"/>
+                <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
+                <lift:Msg id="updateCfengineGlobalProps">[messages]</lift:Msg>
+              </form>
+            </div>
           </div>
-
       </div>
     </div>
     <div class="inner-portlet">
