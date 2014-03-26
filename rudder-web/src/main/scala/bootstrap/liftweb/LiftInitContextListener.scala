@@ -80,6 +80,9 @@ class LiftInitContextListener extends ContextLoaderListener {
     Logger.setup = Full(Logback.withFile(logbackFile))
     /// init all our non-spring services ///
 
+    //define system env variable for auth config
+    initSpringAuthentication()
+
     val ms = System.currentTimeMillis()
     RudderConfig.init
 
@@ -100,6 +103,34 @@ class LiftInitContextListener extends ContextLoaderListener {
   override def contextDestroyed(sce:ServletContextEvent) : Unit = {
     //nothing special to do for us, only call super
     super.contextDestroyed(sce)
+  }
+
+  private[this] def initSpringAuthentication(): Unit = {
+    import RudderProperties.{config => c}
+
+    val springConfigFile = if( c.getBoolean("rudder.auth.ldap.enable")) {
+      //define all the relevant LDAP properties as system properties
+      //so that they can be replaced in the spring xml file
+      for (
+        x <- Seq("rudder.auth.ldap.connection.url"
+                , "rudder.auth.ldap.connection.bind.dn"
+                , "rudder.auth.ldap.connection.bind.password"
+                , "rudder.auth.ldap.searchbase"
+                , "rudder.auth.ldap.filter"
+             )
+      ) {
+        System.setProperty(x, c.getString(x))
+      }
+
+      //use the LDAP auth file
+      "classpath:applicationContext-security-auth-ldap.xml"
+    } else { //use the rudder-users.xml file for authentication
+      "classpath:applicationContext-security-auth-file.xml"
+    }
+
+    System.setProperty("spring.config.security", springConfigFile)
+
+
   }
 
 }
