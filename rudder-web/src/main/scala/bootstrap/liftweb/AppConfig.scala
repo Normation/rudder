@@ -202,6 +202,11 @@ object RudderConfig extends Loggable {
 
   private[this] val filteredPasswords = scala.collection.mutable.Buffer[String]()
 
+  //the LDAP password used for authentication is not used here, but should not appear nonetheless
+  filteredPasswords += "rudder.auth.ldap.connection.bind.password"
+
+  //other values
+
   val LDAP_HOST = config.getString("ldap.host")
   val LDAP_PORT = config.getInt("ldap.port")
   val LDAP_AUTHDN = config.getString("ldap.authdn")
