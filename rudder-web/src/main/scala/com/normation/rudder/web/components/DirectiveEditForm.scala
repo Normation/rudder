@@ -43,7 +43,6 @@ import net.liftweb.util._
 import Helpers._
 import net.liftweb.http._
 import com.normation.rudder.services.policies._
-import com.normation.rudder.batch.{ AsyncDeploymentAgent, AutomaticStartDeployment }
 import com.normation.rudder.domain.eventlog.RudderEventActor
 import JE._
 import net.liftweb.common._
