@@ -111,15 +111,15 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] def lastStatus : NodeSeq = {
 
     deploymentStatus.current match {
-      case NoStatus => <span>Rules application status unavailable</span>
+      case NoStatus => <span>Policy update status unavailable</span>
       case SuccessStatus(id,start,end,configurationNodes) =>
         <span class="deploymentSuccess">
           <img src="/images/icOK.png" alt="Error" height="16" width="16" class="iconscala" />
-          Success: Rules applied at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
+          Success: Policies updated at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
         </span>
       case ErrorStatus(id,start,end,failure) =>
         {<span class="error deploymentError"><img src="/images/icfail.png" alt="Error" height="16" width="16" class="iconscala" />
-          Error: Rules not applied at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
+          Error during policy update at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
           <span class="errorscala" id="errorDetailsLink" onClick={
             """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 });
                $('#simplemodal-container').css('height', 'auto');
@@ -145,35 +145,35 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     deploymentStatus.processing match {
       case IdleDeployer =>
         <lift:authz role="deployment_write"> {
-          SHtml.ajaxButton("Regenerate now", { () =>
-            asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual regeneration") //TODO: let the user fill the cause
+          SHtml.ajaxButton("Update", { () =>
+            asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual policy update") //TODO: let the user fill the cause
             Noop
           }, ( "class" , "deploymentButton")) }
         </lift:authz>
       case Processing(id, start) =>
         <span>
-          <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
-          Generating Rules (started at {DateFormaterService.getFormatedDate(start)})
+          <img src="/images/deploying.gif" alt="Updating..." height="16" width="16" class="iconscala" />
+          Updating policies (started at {DateFormaterService.getFormatedDate(start)})
         </span>
       case ProcessingAndPendingAuto(asked, Processing(id, start), actor, logId) =>
         <span>
-          <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
-          Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
+          <img src="/images/deploying.gif" alt="Updating..." height="16" width="16" class="iconscala" />
+          Updating policies (started at {DateFormaterService.getFormatedDate(start)}). Another update is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
       case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId, cause) =>
         <span>
-          <img src="/images/deploying.gif" alt="Deploying..." height="16" width="16" class="iconscala" />
-          Generating Rules (started at {DateFormaterService.getFormatedDate(start)}). Another generation is pending since {DateFormaterService.getFormatedDate(asked)}
+          <img src="/images/deploying.gif" alt="Updating..." height="16" width="16" class="iconscala" />
+          Updating policies (started at {DateFormaterService.getFormatedDate(start)}). Another update is pending since {DateFormaterService.getFormatedDate(asked)}
         </span>
     }
   }
 
   private[this] def layout = {
     <div id="deploymentStatus">
-      <div style="font-size: 14px; font-weight: bold; margin-bottom:7px;">Deployment status</div>
+      <div style="font-size: 14px; font-weight: bold; margin-bottom:7px;">Rudder status</div>
       <lift:ignore>
-        Here come the status of the last finised deployment.
-        Status can be: no previous deployment, correctly deployed, warning, error.
+        Here come the status of the last finised policy update.
+        Status can be: no previous policy update, correctly updated, warning, error.
       </lift:ignore>
       <div id="deploymentLastStatus">
         [Here comes the status of the last finished deployement]
@@ -181,7 +181,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
       <lift:ignore>
         Here comes an indication of the current deployement.
-        May be : not deploying (a button is shown to start a deployment), deploying (give an idea of the time remaining ?), deploying + one pending
+        May be : not updating (a button is shown to start a policy update), updating (give an idea of the time remaining ?), updating + one pending
       </lift:ignore>
       <div id="deploymentProcessing">
         [Here comes the current deployment processing]
@@ -199,7 +199,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
        <br />
         <div>
           <img src="/images/icfail.png" alt="Error" height="24" width="24" class="erroricon" />
-          <h2>Deployment process was stopped due to an error:</h2>
+          <h2>Policy update process was stopped due to an error:</h2>
         </div>
         <hr class="spacer" />
         <br />

@@ -106,7 +106,7 @@ class ReportDisplayer(
                                 ).toList match {
              case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
              case _ => if (staticReportsSeq.filter(x => (x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType))).size>0) {
-                     <div>Deployment in progress</div>
+                     <div>Policy update in progress</div>
                    } else {
                      <div>All the last execution reports for this server are ok</div>
                    }
