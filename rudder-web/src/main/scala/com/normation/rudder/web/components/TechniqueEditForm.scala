@@ -368,7 +368,7 @@ class TechniqueEditForm(
             deleted <- dependencyService.cascadeDeleteTechnique(id, modId, CurrentUser.getActor, crReasonsRemovePopup.map (_.is))
             deploy <- {
               asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-              Full("Deployment request sent")
+              Full("Policy update request sent")
             }
           } yield {
             deploy
@@ -616,7 +616,7 @@ class TechniqueEditForm(
                 modId, CurrentUser.getActor, crReasonsDisablePopup.map(_.is))
       deploy <- {
         asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-        Full("Deployment request sent")
+        Full("Policy update request sent")
       }
     } yield {
       save
