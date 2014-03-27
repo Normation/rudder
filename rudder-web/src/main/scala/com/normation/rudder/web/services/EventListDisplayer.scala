@@ -347,8 +347,8 @@ class EventListDisplayer(
       case x:LoginEventLog                 => Text("User '%s' login".format(x.principal.name))
       case x:LogoutEventLog                => Text("User '%s' logout".format(x.principal.name))
       case x:BadCredentialsEventLog        => Text("User '%s' failed to login: bad credentials".format(x.principal.name))
-      case x:AutomaticStartDeployement     => Text("Automatically deploy Directive on nodes")
-      case x:ManualStartDeployement        => Text("Manually deploy Directive on nodes")
+      case x:AutomaticStartDeployement     => Text("Automatically update policies")
+      case x:ManualStartDeployement        => Text("Manually update policies")
       case x:ApplicationStarted            => Text("Rudder starts")
       case x:ModifyRule                    => crDesc(x,Text(" modified"))
       case x:DeleteRule                    => crDesc(x,Text(" deleted"))
@@ -364,8 +364,8 @@ class EventListDisplayer(
       case x:ReloadTechniqueLibrary        => Text("Technique library updated")
       case x:ModifyTechnique               => techniqueDesc(x, Text(" modified"))
       case x:DeleteTechnique               => techniqueDesc(x, Text(" deleted"))
-      case x:SuccessfulDeployment          => Text("Successful deployment")
-      case x:FailedDeployment              => Text("Failed deployment")
+      case x:SuccessfulDeployment          => Text("Successful policy update")
+      case x:FailedDeployment              => Text("Failed policy update")
       case x:ExportGroupsArchive           => Text("New groups archive")
       case x:ExportTechniqueLibraryArchive => Text("New Directive library archive")
       case x:ExportRulesArchive            => Text("New Rules archives")
@@ -808,7 +808,7 @@ class EventListDisplayer(
           case Full(SuccessStatus(id,started,ended,_)) =>
             <div class="evloglmargin">
               { addRestoreAction }
-              <h4>Successful deployment:</h4>
+              <h4>Successful policy update:</h4>
               <ul class="evlogviewpad">
                 <li><b>ID:</b>&nbsp;{id}</li>
                 <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
@@ -817,7 +817,7 @@ class EventListDisplayer(
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
-          case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
+          case Full(_) => errorMessage(Failure("Unconsistant policy update status"))
           case e:EmptyBox => errorMessage(e)
         }
         xml }
@@ -827,7 +827,7 @@ class EventListDisplayer(
           case Full(ErrorStatus(id,started,ended,failure)) =>
             <div class="evloglmargin">
               { addRestoreAction }
-              <h4>Failed deployment:</h4>
+              <h4>Failed policy update:</h4>
               <ul class="evlogviewpad">
                 <li><b>ID:</b>&nbsp;{id}</li>
                 <li><b>Start time:</b>&nbsp;{DateFormaterService.getFormatedDate(started)}</li>
@@ -837,7 +837,7 @@ class EventListDisplayer(
              { reasonHtml }
               { xmlParameters(event.id) }
             </div>
-          case Full(_) => errorMessage(Failure("Unconsistant deployment status"))
+          case Full(_) => errorMessage(Failure("Unconsistant policy update status"))
           case e:EmptyBox => errorMessage(e)
         }
         xml }

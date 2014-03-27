@@ -53,7 +53,7 @@ class RestDeploy(
 
   serve {
     case Get("api" :: "deploy" :: "reload" :: Nil, req) =>
-      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Regeneration asked by REST request")
+      asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), RestUtils.getActor(req), "Policy update asked by REST request")
       PlainTextResponse("OK")
   }
 
