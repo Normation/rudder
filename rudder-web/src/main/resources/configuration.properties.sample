@@ -435,7 +435,7 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 # When set to true, passwords in rudder-users.xml are ignored and the 
 # authentication is delegated to the LDAP server configured below. 
 # By convention, when LDAP authentication is enable, "password" field in
-# rudder-users.xml are set to "" 
+# rudder-users.xml are set to "LDAP" 
 #
 # Boolean, default to false
 #
