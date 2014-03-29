@@ -951,7 +951,7 @@ objectclass ( InventoryObjectClasses:23
 objectclass ( InventoryObjectClasses:24
   NAME 'aixNode'
   DESC 'A node running with AIX as operating system'
-  SUP node
+  SUP unixNode
   STRUCTURAL )
 
 objectclass ( InventoryObjectClasses:18
