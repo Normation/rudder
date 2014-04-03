@@ -291,6 +291,7 @@ class RuleEditForm(
                 //filter techniques without directives, and categories without technique
               , keepCategory    = category => category.allDirectives.nonEmpty
               , keepTechnique   = technique => technique.directives.nonEmpty
+              , addEditLink = true
             )
           }</ul>
         }</div> } &
@@ -775,7 +776,7 @@ class RuleEditForm(
                           <span class="tooltipable" tooltipid={tooltipid} title="">
                             <img   src="/images/icInfo.png" style="padding-left:4px"/>
                           </span>
-                          { val xml = <img   src="/images/icTools.png" style="padding-left:4px" class="noexpand"/>
+                          { val xml = <img   src="/images/icPen.png" style="padding-left:4px" class="noexpand"/>
                             SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(directive.id.value))},xml,("style","padding-left:4px"),("class","noexpand"))
                           }
                           <div class="tooltipContent" id={tooltipid}>
