@@ -154,7 +154,7 @@ class ReportDisplayer(
           val techversion = dir.techniqueVersion;
           val tooltipid = Helpers.nextFuncName
           val severity = ReportType.getSeverityFromStatus(directive.directiveReportType)
-          val directiveImage = <img   src="/images/icTools.png" style="padding-left:4px"/>
+          val directiveImage = <img   src="/images/icPen.png" style="padding-left:4px"/>
           val directiveEditLink:NodeSeq = if (!dir.isSystem)
               SHtml.a( {()=> RedirectTo("""/secure/configurationManager/directiveManagement#{"directiveId":"%s"}""".format(dir.id.value))},directiveImage,("style","padding-left:4px"))
             else
