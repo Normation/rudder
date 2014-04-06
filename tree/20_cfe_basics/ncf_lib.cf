@@ -139,6 +139,20 @@ ${section_end}"
         select_region => ncf_section_selector("${escaped_section_start}", "${escaped_section_end}");
 }
 
+# Ensure that a line is present in a section (INI-style)
+# It will create the Section if it doesn't exist yet
+bundle edit_line ensure_line_in_ini_section(section_name, line)
+{
+  insert_lines:
+    # If the section is not there, we need to insert it
+    "[${section_name}]"
+      comment  => "Insert section if it doesn't exist";
+
+    "${line}"
+      select_region => INI_section("${section_name}"),
+      comment       => "Insert line in section ${section_name}";
+}
+
 
 body select_region ncf_section_selector(section_start, section_end)
 {
