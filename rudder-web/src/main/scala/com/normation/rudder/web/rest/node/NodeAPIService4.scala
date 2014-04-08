@@ -59,7 +59,7 @@ class NodeApiService4 (
   import restSerializer._
 
   def getNodeDetails(nodeId : NodeId, detailLevel : NodeDetailLevel, state: InventoryStatus) = {
-    inventoryRepository.get(nodeId,state).map(serializeInventory(_, API2DetailLevel))
+    inventoryRepository.get(nodeId,state).map(serializeInventory(_, detailLevel))
   }
 
   def nodeDetailsWithStatus(nodeId : NodeId, detailLevel : NodeDetailLevel, state: InventoryStatus, req:Req) = {
