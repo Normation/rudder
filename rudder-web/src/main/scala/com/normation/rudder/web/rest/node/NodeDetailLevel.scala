@@ -487,7 +487,7 @@ object NodeDetailLevel {
               ( "tty"  -> process.tty ) ~
               ( "name" -> process.commandName ) ~
               ( "user" -> process.user ) ~
-              ( "started"  -> process.started.map(DateFormaterService.getFormatedDate) ) ~
+              ( "started"  -> process.started ) ~
               ( "memory"   -> process.memory ) ~
               ( "cpuUsage" -> process.cpuUsage ) ~
               ( "virtualMemory" -> process.virtualMemory ) ~
