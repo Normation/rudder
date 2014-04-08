@@ -432,7 +432,19 @@ class FusionReportUnmarshaller(
 
       val fullName = optText(xml\\"FULL_NAME").getOrElse("")
       val kernelVersion = new Version(optText(xml\\"KERNEL_VERSION").getOrElse("N/A"))
-      val servicePack = optText(xml\\"SERVICE_PACK")
+
+      // format for AIX service pack used by fusion is xx-YYWW =>
+      // First part two digit (xx) are the sp,
+      // Second part is the date of the release of the SP ( yeat and week of year
+      val aixSPPattern = "(\\d{2})-\\d{4}".r
+      val SPText = optText(xml\\"SERVICE_PACK").map{
+        // first digit can be 0, remove it by transforming in Int
+        case aixSPPattern(sp) => s"${sp.toInt}"
+        // Not matching keep value
+        case sp => sp
+      }
+      val servicePack = SPText
+
       val version = new Version(optText(xml\\"VERSION").getOrElse("N/A"))
 
       //find os type, and name
@@ -501,9 +513,26 @@ class FusionReportUnmarshaller(
           )
 
         case AixOS =>
+
+          // Aix version is stocked in HARDWARE -> OSVERSION,
+          // but we move that value in OPERATING_SYSTEM => KERNEL_VERSION (see checkKernelVersion in PreUnmarshallCheckConsistency.scala )
+          // If We are on aix we should use that value instead of the one stored in OPERATING_SYSTEM => VERSION
+
+          // aix Version format is decomposed into 3 fields: Major (M), minor(m) and Technology level (T)
+          // the format is Mmxx-TT (like 5300-12 => 5.3.12)
+          val aixVersionPattern = "(\\d)(\\d)\\d\\d-(\\d{2})".r
+          val versionText = optText(xml\\"KERNEL_VERSION").getOrElse("N/A") match {
+            case aixVersionPattern(major,minor,techLevel) =>
+            // first digit in Technology can be 0, remove it by transforming in Int
+              s"${major}.${minor}.${techLevel.toInt}"
+            // Not matching, keep value
+            case v => v
+          }
+          val aixVersion = new Version(versionText)
+
           Aix(
               fullName = fullName
-            , version = version
+            , version = aixVersion
             , servicePack = servicePack
             , kernelVersion = kernelVersion
           )
