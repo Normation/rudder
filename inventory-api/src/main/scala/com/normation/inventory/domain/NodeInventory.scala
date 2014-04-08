@@ -80,7 +80,10 @@ case class Process (
   , commandName   : Option[String]
   , cpuUsage      : Option[Float]    = None
   , memory        : Option[Float]    = None
-  , started       : Option[DateTime] = None
+    //we use a string for the date, as it's more
+    //important to have something to show to the user than to
+    //to be normalized for that field.
+  , started       : Option[String]   = None
   , tty           : Option[String]   = None
   , user          : Option[String]   = None
   , virtualMemory : Option[Int]      = None
