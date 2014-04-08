@@ -179,7 +179,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                 }.groupBy( _._1 ).mapValues( _.size).toSeq
 
               <ul>{
-                DisplayDirectiveTree.displayTree(activeTechLib, usedDirectives, None, Some(onClickActiveTechnique), Some(onClickDirective(workflowEnabled)))
+                DisplayDirectiveTree.displayTree(
+                    activeTechLib
+                  , usedDirectives
+                  , None
+                  , Some(onClickActiveTechnique)
+                  , Some(onClickDirective(workflowEnabled))
+                  , false
+                )
               }</ul>
             case (x, y) =>
 

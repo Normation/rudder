@@ -44,6 +44,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.web.model.JsTreeNode
 import net.liftweb.common.Loggable
 import net.liftweb.http.SHtml
+import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers.{ boolean2, strToSuperArrowAssoc }
@@ -57,6 +58,8 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.DirectiveId
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.S
 
 /**
  *
@@ -79,6 +82,7 @@ object DisplayDirectiveTree extends Loggable {
     , onClickCategory : Option[FullActiveTechniqueCategory => JsCmd]
     , onClickTechnique: Option[(FullActiveTechniqueCategory, FullActiveTechnique) => JsCmd]
     , onClickDirective: Option[(FullActiveTechniqueCategory, FullActiveTechnique, Directive) => JsCmd]
+    , addEditLink     : Boolean
     , keepCategory    : FullActiveTechniqueCategory => Boolean = _ => true
     , keepTechnique   : FullActiveTechnique => Boolean = _ => true
     , keepDirective   : Directive => Boolean = _ => true
@@ -190,9 +194,10 @@ object DisplayDirectiveTree extends Loggable {
 
       override def children = Nil
 
+      val htmlId = s"jsTree-${directive.id.value}"
       override val attrs = (
                   ( "rel" -> "directive") ::
-                  ( "id" -> ("jsTree-" + directive.id.value)) ::
+                  ( "id" -> htmlId) ::
                   ("class" -> List(
                         { if(directive.isEnabled) "" else "disableTreeNode" }
                     ).mkString(" ")
@@ -201,8 +206,52 @@ object DisplayDirectiveTree extends Loggable {
 
       )
 
+
+        val jsInitFunction = Script(JsRaw (s"""
+           $$('#${htmlId}').mouseover( function(e) {
+             e.stopPropagation();
+             $$('#${htmlId} .treeActions').show();
+             $$('#${htmlId} a:first').addClass("treeOver jstree-hovered");
+           } );
+
+
+           $$('#${htmlId}').hover( function(e) {
+             $$('.treeActions').hide();
+             $$('.treeOver').removeClass("treeOver jstree-hovered");
+             $$('#${htmlId} .treeActions').show();
+             $$('#${htmlId} a:first').addClass("treeOver jstree-hovered");
+           }, function(e) {
+             $$('.treeOver').removeClass("treeOver jstree-hovered");
+             $$('#${htmlId} .treeActions').hide();
+           } );
+
+           $$('#${htmlId} .treeActions').click( function(e) {
+             e.stopPropagation();
+           } );
+           """))
+
       override def body = {
         val tooltipId = Helpers.nextFuncName
+
+        val actions = {
+          if (addEditLink) {
+              <img src="/images/icPen.png" class="treeActions treeAction noRight" /> ++ Script(JsRaw(s"""
+                $$('#${htmlId} .treeActions').on("mouseup", function(e) {
+                  var url = '/secure/configurationManager/directiveManagement#{"directiveId":"${directive.id.value}"}';
+                  // If using middle button, open the link in a new tab
+                  if( e.which == 2 ) {
+                    window.open(url, '_blank');
+                  } else {
+                    // On left button button, open the link the same tab
+                    if ( e.which == 1 ) {
+                      location.href=url;
+                    }
+                  }
+                } );"""))
+          } else {
+            NodeSeq.Empty
+          }
+        }
 
         val xml  = (
                     <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" style="float:left">
@@ -214,14 +263,14 @@ object DisplayDirectiveTree extends Loggable {
                         } else {
                           NodeSeq.Empty
                         }
-                    } ++
+                    } ++ actions ++
                     <div class="tooltipContent" id={tooltipId}>
                       <h3>{directive.name}</h3>
                       <div>{directive.shortDescription}</div>
                       <div>Technique version: {directive.techniqueVersion.toString}</div>
                       <div>{s"Used in ${isAssignedTo} rules" }</div>
                       { if(!directive.isEnabled) <div>Disable</div> }
-                    </div>
+                    </div>++jsInitFunction
         )
 
         onClickDirective match {
@@ -232,7 +281,7 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml
+    displayCategory(directiveLib, "jstn_0").toXml ++ Script(JsRaw("$('.treeActions').hide();"))
 
   }
 
