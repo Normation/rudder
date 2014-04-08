@@ -141,22 +141,22 @@ object DisplayNodeGroupTree extends Loggable {
         val jsInitFunction = Script(JsRaw (s"""
            $$('#${jsId}').mouseover( function(e) {
              e.stopPropagation();
-             $$('#${jsId} .targetActions').show();
+             $$('#${jsId} .treeActions').show();
              $$('#${jsId} a:first').addClass("treeOver jstree-hovered");
            } );
 
 
            $$('#${jsId}').hover( function(e) {
-             $$('.targetActions').hide();
+             $$('.treeActions').hide();
              $$('.treeOver').removeClass("treeOver jstree-hovered");
-             $$('#${jsId} .targetActions').show();
+             $$('#${jsId} .treeActions').show();
              $$('#${jsId} a:first').addClass("treeOver jstree-hovered");
            }, function(e) {
              $$('.treeOver').removeClass("treeOver jstree-hovered");
-             $$('#${jsId} .targetActions').hide();
+             $$('#${jsId} .treeActions').hide();
            } );
 
-           $$('#${jsId} .targetActions').click( function(e) {
+           $$('#${jsId} .treeActions').click( function(e) {
              e.stopPropagation();
            } );
            """))
@@ -181,12 +181,12 @@ object DisplayNodeGroupTree extends Loggable {
         val tooltipId = Helpers.nextFuncName
         val actionButtons = {
           if (!targetActions.isEmpty) {
-            <span class="targetActions">
+            <span class="treeActions">
               { (targetActions get ("include") match {
                 case Some (include) =>
 
                   val tooltipId = Helpers.nextFuncName
-                  <img src="/images/ic_add.png" class="tooltipable targetAction" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}/>
+                  <img src="/images/ic_add.png" class="tooltipable treeAction" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}/>
                   <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div>
                 case None => NodeSeq.Empty
                 }) ++
@@ -194,7 +194,7 @@ object DisplayNodeGroupTree extends Loggable {
                   case Some (exclude) =>
 
                   val tooltipId = Helpers.nextFuncName
-                  <img src="/images/ic_remove.png" class="tooltipable targetAction" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}/>
+                  <img src="/images/ic_remove.png" class="tooltipable treeAction noRight" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}/>
                   <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div>
                   case None => NodeSeq.Empty
                 })
@@ -232,7 +232,7 @@ object DisplayNodeGroupTree extends Loggable {
 
     }
 
-    displayCategory(groupLib).toXml ++ Script(JsRaw("$('.targetActions').hide();"))
+    displayCategory(groupLib).toXml ++ Script(JsRaw("$('.treeActions').hide();"))
   }
 
   //build the tree category, filtering only category with groups
