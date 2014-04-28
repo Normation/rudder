@@ -1112,12 +1112,13 @@ object RudderConfig extends Loggable {
     , gitModificationRepository
   )
   private[this] lazy val parameterizedValueLookupService: ParameterizedValueLookupService =
-    new ParameterizedValueLookupServiceImpl(ruleValService)
+    new ParameterizedValueLookupServiceImpl()
 
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
       licenseRepository
     , parameterizedValueLookupService
     , systemVariableSpecService
+    , psMngtService
     , RUDDER_DIR_DEPENDENCIES
     , RUDDER_ENDPOINT_CMDB
     , RUDDER_COMMUNITY_PORT
@@ -1164,7 +1165,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(variableBuilderService)
 
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
-    roLdapDirectiveRepository, woLdapDirectiveRepository, asyncDeploymentAgentImpl)
+    roLdapDirectiveRepository, woLdapDirectiveRepository)
   private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {

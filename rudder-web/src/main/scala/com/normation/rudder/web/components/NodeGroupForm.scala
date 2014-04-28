@@ -114,7 +114,7 @@ class NodeGroupForm(
   private[this] val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
   private[this] var query : Option[Query] = nodeGroup.query
-  private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.getAll.map( _.filter( (x:NodeInfo) => nodeGroup.serverList.contains( x.id ) ).toSeq )
+  private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.getAll.map( _.values.filter( (x:NodeInfo) => nodeGroup.serverList.contains( x.id ) ).toSeq )
 
   private def setNodeGroupCategoryForm : Unit = {
     searchNodeComponent.set(Full(new SearchNodeComponent(
