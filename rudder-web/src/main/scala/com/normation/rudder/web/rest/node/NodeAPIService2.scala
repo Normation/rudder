@@ -85,7 +85,7 @@ case class NodeApiService2 (
     implicit val action = "listAcceptedNodes"
       nodeInfoService.getAll match {
         case Full(nodes) =>
-          val acceptedNodes = nodes.map(serializeNodeInfo(_,"accepted",fixedTag))
+          val acceptedNodes = nodes.values.map(serializeNodeInfo(_,"accepted",fixedTag))
           toJsonResponse(None, ( "nodes" -> JArray(acceptedNodes.toList)))
 
         case eb: EmptyBox => val message = (eb ?~ ("Could not fetch accepted Nodes")).msg

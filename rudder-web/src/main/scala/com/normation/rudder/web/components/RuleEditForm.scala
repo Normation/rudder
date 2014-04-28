@@ -183,7 +183,6 @@ class RuleEditForm(
   private[this] def showForm(tab :Int = 0) : NodeSeq = {
     (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos()) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos)) =>
-        val allNodeInfos = nodeInfos.map( x => (x.id -> x) ).toMap
 
         val form = {
           if(CurrentUser.checkRights(Read("rule"))) {
@@ -195,7 +194,7 @@ class RuleEditForm(
 
             (
               "#editForm" #> formContent &
-              "#details"  #> showRuleDetails(directiveLib, allNodeInfos)
+              "#details"  #> showRuleDetails(directiveLib, nodeInfos)
             ).apply(body)
 
           } else {
@@ -203,7 +202,7 @@ class RuleEditForm(
           }
         }
 
-        val ruleComplianceTabAjax = SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"), (v:String) => Replace("details",showRuleDetails(directiveLib, allNodeInfos)))._2.toJsCmd
+        val ruleComplianceTabAjax = SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"), (v:String) => Replace("details",showRuleDetails(directiveLib, nodeInfos)))._2.toJsCmd
 
         form ++
         Script(

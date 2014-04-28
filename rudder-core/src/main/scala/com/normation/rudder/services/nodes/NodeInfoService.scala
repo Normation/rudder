@@ -100,7 +100,7 @@ trait NodeInfoService {
    * missing (but the corresponding nodeInfos won't be present)
    * So it is possible that getAllIds.size > getAll.size
    */
-  def getAll() : Box[Set[NodeInfo]]
+  def getAll() : Box[Map[NodeId, NodeInfo]]
 
   /**
    * Get all "simple" node ids (i.e, all user nodes,
@@ -178,7 +178,7 @@ class NodeInfoServiceImpl(
    * missing (but the corresponding nodeInfos won't be present)
    * So it is possible that getAllIds.size > getAll.size
    */
-  def getAll() : Box[Set[NodeInfo]] = {
+  def getAll() : Box[Map[NodeId, NodeInfo]] = {
 
     /*
      * The goal of that implementation is to be quick, so we prefer to
@@ -210,9 +210,9 @@ class NodeInfoServiceImpl(
                        }
           nodeInfo <- ldapMapper.convertEntriesToNodeInfos(nodeEntry, nodeInv, machineInv.map( _.valuesFor("objectClass").toSeq))
         } yield {
-          nodeInfo
+          (nodeInfo.id, nodeInfo)
         }
-      }.toSet
+      }.toMap
     }
   }
 
