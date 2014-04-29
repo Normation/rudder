@@ -181,8 +181,6 @@ class SystemVariableServiceImpl(
     }
     val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
-    var varClientList = systemVariableSpecService.get("CLIENTSLIST").toVariable()
-
     var varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable()
     var varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable()
     var varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable()
@@ -206,17 +204,6 @@ class SystemVariableServiceImpl(
         case Empty => logger.warn(s"No variable parametrized found for ${varNameForAllowedNetwork}")
         case f: Failure =>
           val e = f ?~! s"Failure when fetching the allowed network for policy server ${nodeInfo.hostname} with id ${nodeInfo.id}"
-          logger.error(e.messageChain)
-          return e
-      }
-
-      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNodeVar), allNodeInfos, groupLib, directiveLib, allRules) match {
-        case Full(variable) =>
-          clientList ++= variable.flatMap(x => x.values)
-          varClientList = varClientList.copyWithSavedValues(clientList.toSeq)
-        case Empty => logger.warn("No variable parametrized found for ${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}")
-        case f: Failure =>
-          val e = f ?~! "Failure when fetching the policy children"
           logger.error(e.messageChain)
           return e
       }
@@ -264,7 +251,6 @@ class SystemVariableServiceImpl(
         globalSystemVariables ++ Map(
         (varNodeRole.spec.name, varNodeRole)
       , (varLicensesPaid.spec.name, varLicensesPaid)
-      , (varClientList.spec.name, varClientList)
       , (varManagedNodesId.spec.name, varManagedNodesId)
       , (varManagedNodes.spec.name, varManagedNodes)
       , (varAllowedNetworks.spec.name, varAllowedNetworks)
