@@ -415,8 +415,8 @@ class RuleGrid(
                   }
                 }
                 val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
-                <span class="tooltip tooltipable" title="" tooltipid={line.rule.id.value}>Not applied</span>
-                 <div class="tooltipContent" id={line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
+                <span class="tooltip tooltipable" title="" tooltipid={"na-"+line.rule.id.value}>Not applied</span>
+                 <div class="tooltipContent" id={"na-"+line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
             }
         case _ : ErrorLine => "N/A"
       }
