@@ -60,7 +60,6 @@ import Box._
 import net.liftweb.util.Helpers._
 import scala.xml.{Text,NodeSeq}
 import com.normation.exceptions.{BusinessException,TechnicalException}
-import com.normation.rudder.services.policies.VariableBuilderService
 import net.liftweb.json.JsonAST.JObject
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.api.ApiAccountId

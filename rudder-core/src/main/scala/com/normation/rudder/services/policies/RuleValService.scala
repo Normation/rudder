@@ -45,15 +45,69 @@ import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.sequenceEmptyable
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.domain.policies.InterpolationContext
+import com.normation.rudder.domain.policies.InterpolationContext
 
 trait RuleValService {
   def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
+
+  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]]
 }
 
 
-class RuleValServiceImpl (
-    val variableBuilderService: VariableBuilderService
+class RuleValServiceImpl(
+    interpolatedValueCompiler: InterpolatedValueCompiler
 ) extends RuleValService with Loggable {
+
+  private[this] def buildVariables(
+      variableSpecs: Seq[VariableSpec]
+    , context      : Map[String, Seq[String]]
+  ) : Box[Map[String, Variable]] = {
+
+    Full(
+      variableSpecs.map { spec =>
+        context.get(spec.name) match {
+          case None => (spec.name, spec.toVariable())
+          case Some(seqValues) =>
+            try {
+                val newVar = spec.toVariable(seqValues)
+                assert(seqValues.toSet == newVar.values.toSet)
+                (spec.name -> newVar)
+            } catch {
+              case ex: VariableException =>
+                logger.error("Error when trying to set values for variable '%s', use a default value for that variable. Erroneous values was: %s".format(spec.name, seqValues.mkString("[", " ; ", "]")))
+                (spec.name, spec.toVariable())
+            }
+        }
+      }.toMap
+    )
+  }
+
+
+
+  /*
+   * From a sequence of variable, look at the variable's value (because it's where
+   * interpolation is) and build the function that, given an interpolation context,
+   * give (on success) the string with expansion done.
+   */
+  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]] = {
+    (context:InterpolationContext) =>
+      sequence(variables) { variable =>
+        (sequence(variable.values) { value =>
+          for {
+            parsed <- interpolatedValueCompiler.compile(value) ?~! s"Error when parsing variable ${variable.spec.name}"
+            //can lead to stack overflow, no ?
+            applied <- parsed(context) ?~! s"Error when resolving interpolated variable in directive variable ${variable.spec.name}"
+          } yield {
+            applied
+          }
+        }) match {
+          case eb: EmptyBox => eb
+          case Full(seq) => Full(Variable.matchCopy(variable, seq))
+        }
+      }.map(seqVar => seqVar.map(v => (v.spec.name, v)).toMap)
+  }
+
 
   private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory) : Box[Option[DirectiveVal]]= {
     directiveLib.allDirectives.get(piId) match {
@@ -68,7 +122,7 @@ class RuleValServiceImpl (
         for {
           policyPackage <- Box(fullActiveTechnique.techniques.get(directive.techniqueVersion)) ?~! s"The required version of technique is not available for directive ${directive.name}"
           varSpecs = policyPackage.rootSection.getAllVariables ++ policyPackage.systemVariableSpecs :+ policyPackage.trackerVariableSpec
-          vared <- variableBuilderService.buildVariables(varSpecs, directive.parameters)
+          vared <- buildVariables(varSpecs, directive.parameters)
           exists <- {
             if (vared.isDefinedAt(policyPackage.trackerVariableSpec.name)) {
               Full("OK")
@@ -79,16 +133,17 @@ class RuleValServiceImpl (
           }
           trackerVariable <- vared.get(policyPackage.trackerVariableSpec.name)
           otherVars = vared - policyPackage.trackerVariableSpec.name
+          //only normal vars can be interpolated
         } yield {
             logger.trace("Creating a DirectiveVal %s from the ruleId %s".format(fullActiveTechnique.techniqueName, ruleId.value))
 
             Some(DirectiveVal(
-                policyPackage,
-                directive.id,
-                directive.priority,
-                policyPackage.trackerVariableSpec.toVariable(trackerVariable.values),
-                otherVars,
-                vared
+                policyPackage
+              , directive.id
+              , directive.priority
+              , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
+              , lookupNodeParameterization(otherVars.values.toSeq)
+              , vared
             ))
         }
     }

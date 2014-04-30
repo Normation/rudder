@@ -64,7 +64,7 @@ class RuleValServiceTest extends Specification {
   /**
    * Instanciate the services
    */
-  val ruleValService = new RuleValServiceImpl(new VariableBuilderServiceImpl())
+  val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl())
   val computeCardinality = new ComputeCardinalityOfDirectiveVal
 
   /**
@@ -195,42 +195,54 @@ class RuleValServiceTest extends Specification {
       }
 
       "the directive val should have two variables: the two corresponding to the two components" in {
-        directivesVals.head.variables.size == 2
+        directivesVals.head.variables(null) match {
+          case eb:EmptyBox => ko((eb ?~! "Error when getting variables").messageChain)
+          case Full(vars) => vars.size === 2
+        }
       }
 
       val variables = directivesVals.head.variables
       "one variable should be reportKeysVariableName(component1) -> (variable_component1 :: (variable_component1one, variable_component1two))" in {
-        val var1 = variables.get(reportKeysVariableName("component1"))
-        var1 match {
-          case None => ko(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
-          case Some(vars) =>
-            vars.values.size === 3 and
-            vars.values === Seq("variable_component1", "variable_component1one", "variable_component1two")
+        variables(null) match {
+          case eb:EmptyBox => ko("Error when parsing variable")
+          case Full(vars) => vars.get(reportKeysVariableName("component1")) match {
+            case None => ko(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
+            case Some(variable) =>
+              variable.values.size === 3 and
+              variable.values === Seq("variable_component1", "variable_component1one", "variable_component1two")
+          }
         }
       }
 
-      "the ruleVal should convert to one policyDraft" in {
-        ruleVal.open_!.toPolicyDrafts.size == 1
-      }
     }
 
     "The cardinality computed " should {
       val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
       val directivesVals = ruleVal.open_!.directiveVals
 
-      val cardinality = computeCardinality.getCardinality(directivesVals.head)
+      val cardinality = directivesVals.head.toExpandedDirectiveVal(null).map { x =>
+        computeCardinality.getCardinality(x)
+      }
 
       "return a seq of two components" in {
-        cardinality.size == 2
+        cardinality match {
+          case eb: EmptyBox => ko("error when parsing vars")
+          case Full(x) => x.size === 2
+        }
       }
 
       "first component should have 3 values" in {
-        cardinality.head.x._2.size == 3 and cardinality.head.x._3.size == 3
+        cardinality match {
+          case eb: EmptyBox => ko("error when parsing vars")
+          case Full(x) => x.head.x._2.size === 3 and x.head.x._3.size === 3
+        }
       }
 
       "components component1 should have values variable_component1, variable_component1one, variable_component1two) " in {
-
-        cardinality.filter(x => x._1 == "component1").head._2 === Seq("variable_component1", "variable_component1one", "variable_component1two")
+        cardinality match {
+          case eb: EmptyBox => ko("error when parsing vars")
+          case Full(y) => y.filter(x => x._1 == "component1").head._2 === Seq("variable_component1", "variable_component1one", "variable_component1two")
+        }
       }
     }
 
