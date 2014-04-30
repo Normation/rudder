@@ -64,7 +64,6 @@ trait SystemVariableService {
 
 class SystemVariableServiceImpl(
     licenseRepository: LicenseRepository
-  , parameterizedValueLookupService: ParameterizedValueLookupService
   , systemVariableSpecService: SystemVariableSpecService
   , policyServerManagementService: PolicyServerManagementService
   , toolsFolder: String
@@ -203,6 +202,7 @@ class SystemVariableServiceImpl(
 
       val varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(children.map(_.hostname))
       val varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable(children.map(_.id.value))
+      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 
 
