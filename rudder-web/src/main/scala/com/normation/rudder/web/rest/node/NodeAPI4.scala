@@ -66,7 +66,4 @@ class NodeAPI4 (
     }
   }
 
-
-  serve( "api" / "4" / "nodes" prefix (requestDispatch orElse apiV2.requestDispatch))
-
 }
