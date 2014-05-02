@@ -43,7 +43,7 @@ import net.liftweb.http.rest.RestHelper
 class LatestNodeAPI (
     latestApi : NodeAPI
 ) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "nodes" prefix latestApi.requestDispatch)
+    serve( "api" / "latest" / "nodes" prefix latestApi.requestDispatch)
 
 }
 

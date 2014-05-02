@@ -46,7 +46,7 @@ import net.liftweb.http.rest.RestHelper
 class LatestGroupAPI (
     latestApi : GroupAPI
 ) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "groups" prefix latestApi.requestDispatch)
+    serve( "api" / "latest" / "groups" prefix latestApi.requestDispatch)
 
 }
 
