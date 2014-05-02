@@ -46,7 +46,7 @@ import net.liftweb.http.rest.RestHelper
 class LatestDirectiveAPI (
     latestApi : DirectiveAPI
 ) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "directives" prefix latestApi.requestDispatch)
+    serve( "api" / "latest" / "directives" prefix latestApi.requestDispatch)
 
 }
 

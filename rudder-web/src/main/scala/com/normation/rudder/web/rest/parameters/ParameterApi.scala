@@ -47,7 +47,7 @@ import com.normation.rudder.domain.parameters.GlobalParameter
 class LatestParameterAPI (
     latestApi : ParameterAPI
 ) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "parameters" prefix latestApi.requestDispatch)
+    serve( "api" / "latest" / "parameters" prefix latestApi.requestDispatch)
 
 }
 

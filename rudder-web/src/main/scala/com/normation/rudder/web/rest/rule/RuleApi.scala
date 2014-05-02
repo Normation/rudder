@@ -47,7 +47,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 class LatestRuleAPI (
     latestApi : RuleAPI
 ) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "rules" prefix latestApi.requestDispatch)
+    serve( "api" / "latest" / "rules" prefix latestApi.requestDispatch)
 
 }
 

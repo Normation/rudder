@@ -44,7 +44,7 @@ import com.normation.rudder.domain.workflows.ChangeRequest
 class LatestChangeRequestAPI (
     latestApi : ChangeRequestAPI
 ) extends RestHelper with Loggable {
-    serve( "api" / "lastest" / "changeRequests" prefix latestApi.requestDispatch)
+    serve( "api" / "latest" / "changeRequests" prefix latestApi.requestDispatch)
 
 }
 
