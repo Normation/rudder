@@ -1,0 +1,41 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File remove
+# @description Remove a file if it exists
+#
+# @parameter target     File to remove
+#
+# @class_prefix file_remove
+# @class_parameter target
+# This bundle will define a class file_remove_${target}_{kept,repaired,error,ok,reached}
+
+bundle agent file_remove(target)
+{
+  vars:
+    "class_prefix" string => canonify("file_remove_${target}");
+
+  files:
+    "${target}"
+      delete        => tidy,
+      classes       => classes_generic("${class_prefix}");
+
+  methods:
+    "report" usebundle  => _logger("Remove file ${target}", "${class_prefix}");
+
+}

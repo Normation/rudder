@@ -1,0 +1,41 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File create
+# @description Create a file if it doesn't exist
+#
+# @parameter target     File to create
+#
+# @class_prefix file_create
+# @class_parameter target
+# This bundle will define a class file_create_${target}_{kept,repaired,error,ok,reached}
+
+bundle agent file_create(target)
+{
+  vars:
+    "class_prefix" string => canonify("file_create_${target}");
+
+  files:
+    "${target}"
+      create        => "true",
+      classes       => classes_generic("${class_prefix}");
+
+  methods:
+    "report" usebundle  => _logger("Create file ${target}", "${class_prefix}");
+
+}
