@@ -1,0 +1,49 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package check installed
+# @description Verify if a package is installed in any version
+#
+# @parameter package_name Name of the package to check
+#
+# @class_prefix package_check_installed
+# @class_parameter package_name
+
+# This bundle will define a class package_check_installed_${file_name}_{ok, reached, kept} if the
+# package is installed, or package_check_installed_${file_name}_{not_ok, reached, not_kept, failed} if
+# the package is not installed
+
+bundle agent package_check_installed(package_name)
+{
+  vars:
+      "class_prefix"        string => canonify("package_check_installed_${package_name}");
+      "called_class_prefix" string => canonify("package_install_${package_name}");
+
+  methods:
+      "placeholder"      usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
+
+      "success"
+        usebundle  => _classes_success("${class_prefix}"),
+        ifvarclass => "${called_class_prefix}_kept";
+
+      "failed"
+        usebundle  => _classes_failure("${class_prefix}"),
+        ifvarclass => "${called_class_prefix}_repaired";
+
+      # logger is called in the package_install_version_cmp_update bundle
+}
