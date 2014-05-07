@@ -78,7 +78,7 @@ create index expectedReportsNodes_versionId on expectedReportsNodes (nodeJoinKey
 create sequence serial START 101;
 
 CREATE TABLE RudderSysEvents (
-id integer PRIMARY KEY default nextval('serial'),
+id bigint PRIMARY KEY default nextval('serial'),
 executionDate timestamp with time zone NOT NULL, 
 nodeId text NOT NULL CHECK (nodeId <> ''),
 directiveId text NOT NULL CHECK (directiveId <> ''),
@@ -102,7 +102,7 @@ CREATE INDEX ruleId_idx on RudderSysEvents (ruleId);
 
 
 CREATE TABLE ArchivedRudderSysEvents (
-id integer PRIMARY KEY,
+id bigint PRIMARY KEY,
 executionDate timestamp with time zone NOT NULL, 
 nodeId text NOT NULL CHECK (nodeId <> ''),
 directiveId text NOT NULL CHECK (directiveId <> ''),
