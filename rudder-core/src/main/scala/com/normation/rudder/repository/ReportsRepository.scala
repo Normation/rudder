@@ -131,16 +131,16 @@ trait ReportsRepository {
 
   def deleteEntries(date : DateTime) : Box[Int]
 
-  def getHighestId : Box[Int]
+  def getHighestId : Box[Long]
 
-  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Int)]]
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Long)]]
 
-  def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]]
+  def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]]
 
   /**
    * From an id and an end date, return a list of ReportExecution, and the max ID that has been considered
    */
-  def getReportsfromId(id : Int, endDate : DateTime) : Box[(Seq[ReportExecution], Int)]
+  def getReportsfromId(id : Long, endDate : DateTime) : Box[(Seq[ReportExecution], Long)]
 
-  def getReportsWithLowestId : Box[Option[(Reports,Int)]]
+  def getReportsWithLowestId : Box[Option[(Reports,Long)]]
 }

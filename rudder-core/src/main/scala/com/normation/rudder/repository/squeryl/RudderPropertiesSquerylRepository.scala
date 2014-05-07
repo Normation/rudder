@@ -65,10 +65,10 @@ class RudderPropertiesSquerylRepository(
    * If there was no id processed, get the last report id in reports database
    * and add it to the database.
    */
-  def getReportLoggerLastId: Box[Int] = {
+  def getReportLoggerLastId: Box[Long] = {
     try {
     squerylConnectionProvider.ourTransaction {
-      rudderProperties.lookup("reportLoggerLastId").map(_.value.toInt)
+      rudderProperties.lookup("reportLoggerLastId").map(_.value.toLong)
       }
     } catch {
       case e : Exception => logger.error("could not fetch last id from the database, cause is %s".format(e.getMessage()))
@@ -80,7 +80,7 @@ class RudderPropertiesSquerylRepository(
    * Update the last id processed by the non compliant report logger
    * If not present insert it
    */
-   def updateReportLoggerLastId(newId: Int) : Box[Int] = {
+   def updateReportLoggerLastId(newId: Long) : Box[Long] = {
     try{
     val updated = squerylConnectionProvider.ourTransaction {
       update(rudderProperties)(l =>
@@ -90,7 +90,7 @@ class RudderPropertiesSquerylRepository(
     }
     if (updated == 0){
       logger.warn("last id not present in database, create it with value %d".format(newId))
-      createReportLoggerLastId(newId).map(_.value.toInt)
+      createReportLoggerLastId(newId).map(_.value.toLong)
     } else
       Full(newId)
     } catch {
@@ -102,7 +102,7 @@ class RudderPropertiesSquerylRepository(
   /**
    * add a new line containing the last id processed by the report logger
    */
-  private[this] def createReportLoggerLastId(currentId : Int) : Box[RudderProperty] =
+  private[this] def createReportLoggerLastId(currentId : Long) : Box[RudderProperty] =
     try{
       Full(squerylConnectionProvider.ourTransaction {
         rudderProperties.insert(RudderProperty("reportLoggerLastId",currentId.toString))
