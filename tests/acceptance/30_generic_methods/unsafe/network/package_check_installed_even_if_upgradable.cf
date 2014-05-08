@@ -27,12 +27,24 @@ bundle agent init
     "package_name" string => "rudder-techniques";
     "c_package_name" string => canonify("${package_name}");
 
+    debian::
+      "package_info_cmd" string => "/usr/bin/dpkg -l ${init.package_name}";
+    rhel::
+      "package_info_cmd" string => "/bin/rpm -q ${init.package_name}";
+
     debian_7::
       "repo_file_1" string => "/etc/apt/sources.list.d/ncf-tests1.list";
       "repo_file_2" string => "/etc/apt/sources.list.d/ncf-tests2.list";
     centos_6::
       "repo_file_1" string => "/etc/yum.repos.d/ncf-tests1.repo";
       "repo_file_2" string => "/etc/yum.repos.d/ncf-tests2.repo";
+
+    # Do this once the methods below have been run
+    pass_two::
+      "package_info" string => execresult("${package_info_cmd}", "noshell");
+
+  classes:
+    "pass_two" expression => "any";
 
   methods:
     # First set up repos to download an *old* version of the test package
@@ -84,9 +96,20 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "suffix" slist => { "ok", "not_ok", "repaired", "kept", "error", "reached" };
+      "suffix" slist => { "ok", "not_ok", "repaired", "kept", "error", "reached" };
+
+      # Read in info about the package now to confirm it hasn't changed during the test
+      "package_info" string => execresult("${init.package_info_cmd}", "noshell");
+
   classes:
-      "ok" expression => "package_check_installed_${init.c_package_name}_ok.package_check_installed_${init.c_package_name}_reached.!package_check_installed_${init.c_package_name}_not_ok.!package_check_installed_${init.c_package_name}_repaired";
+      # Make sure the package is actually installed
+      "package_installed_ok" expression => returnszero("${init.package_info_cmd}", "noshell");
+
+      # Compare the package info we got now to what we had before running the test, to make sure this didn't change anything
+      "package_info_ok" expression => strcmp("${init.package_info}", "${package_info}");
+
+
+      "ok" expression => "package_installed_ok.package_info_ok.package_check_installed_${init.c_package_name}_ok.package_check_installed_${init.c_package_name}_reached.!package_check_installed_${init.c_package_name}_not_ok.!package_check_installed_${init.c_package_name}_repaired";
 
   methods:
       "clean up repo file 1" usebundle => file_remove("${init.repo_file_1}");

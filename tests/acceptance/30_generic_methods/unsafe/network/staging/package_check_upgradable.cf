@@ -36,6 +36,18 @@ bundle agent init
       "repo_file_1" string => "/etc/yum.repos.d/ncf-tests1.repo";
       "repo_file_2" string => "/etc/yum.repos.d/ncf-tests2.repo";
 
+    debian::
+      "package_info_cmd" string => "/usr/bin/dpkg -l ${init.package_name}";
+    rhel::
+      "package_info_cmd" string => "/bin/rpm -q ${init.package_name}";
+
+    # Do this once the methods below have been run
+    pass_two::
+      "package_info" string => execresult("${package_info_cmd}", "noshell");
+
+  classes:
+    "pass_two" expression => "any";
+
   methods:
     # First set up repos to download an *old* version of the test package
     any::
@@ -86,8 +98,18 @@ bundle agent test
 
 bundle agent check
 {
+  vars:
+      # Read in info about the package now to confirm it hasn't changed during the test
+      "package_info" string => execresult("${init.package_info_cmd}", "noshell");
+
   classes:
-      "ok" expression => "!package_install_${init.c_package_name}_kept.package_check_installed_${init.c_package_name}_reached.!package_check_installed_${init.c_package_name}_not_ok.package_check_installed_${init.c_package_name}_repaired";
+      # Make sure the package is actually installed
+      "package_installed_ok" expression => returnszero("${init.package_info_cmd}", "noshell");
+
+      # Compare the package info we got now to what we had before running the test, to make sure this didn't change anything
+      "package_info_ok" expression => strcmp("${init.package_info}", "${package_info}");
+
+      "ok" expression => "package_installed_ok.package_info_ok.!package_install_${init.c_package_name}_kept.package_check_installed_${init.c_package_name}_reached.!package_check_installed_${init.c_package_name}_not_ok.package_check_installed_${init.c_package_name}_repaired";
 
   methods:
       "clean up repo file 1" usebundle => file_remove("${init.repo_file_1}");
