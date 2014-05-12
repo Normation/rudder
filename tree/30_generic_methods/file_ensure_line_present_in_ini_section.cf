@@ -16,29 +16,29 @@
 #
 #####################################################################################
 
-# @name File ensure lines in section
+# @name File ensure lines in INI section
 # @description This is a bundle to ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
 # @parameter file File name to edit
-# @parameter section Section where the lines should be added
-# @parameter content_tab Array containing all the entries to add in the file ( tab[section][option]="option_content" )
+# @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
+# @parameter line Line to ensure is present inside the section
 #
-# @class_prefix file_ensure_lines_in_section_present
+# @class_prefix file_ensure_lines_present_in_ini_section
 # @class_parameter file
 #
-# This bundle will define a class file_ensure_lines_in_section_present_${file}_{kept,repaired,error,ok,reached}
+# This bundle will define a class file_ensure_lines_present_in_ini_section_${file}_{kept,repaired,error,ok,not_ok,reached}
 
-bundle agent file_ensure_lines_in_section_present(file, section, content_tab)
+bundle agent file_ensure_lines_present_in_ini_section(file, section, line)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_lines_in_section_present_${file}");
+      "class_prefix" string => canonify("file_ensure_lines_present_in_ini_section_${file}");
 
   files:
       "${file}"
         create        => "true",
-        edit_line     => manage_variable_values_ini("${content_tab}", "${section}"),
+        edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
         edit_defaults => no_backup,
-	classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"

@@ -1,6 +1,11 @@
 #######################################################
 #
-# Test checking if a line is present in a file
+# Test checking if a line is present in a file, from an
+# empty file. Fails currently because of CFEngine bug
+# https://cfengine.com/dev/issues/2281
+# Trying to add a space at the section creation solves
+# partially the issue, but it will insert content after
+# the space, which may not be what we need
 #
 #######################################################
 
@@ -27,7 +32,7 @@ bundle agent init
     "file_canon"      string => canonify("${file}");
     "section"         string => "test";
 
-    "options[test][option]" string => "content";
+    "line"            string => "content";
 
 }
 
@@ -36,7 +41,7 @@ bundle agent init
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_lines_in_section_present("${init.file}", "${init.section}", "init.options");
+    "ph1" usebundle => file_ensure_lines_present_in_section("${init.file}", "${init.section}", "${init.line}");
 }
 
 #######################################################
@@ -44,14 +49,14 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "line_exists_test" string => "/bin/grep -Pzo \"^\\[${init.section}\\]\\\\noption=${init.options[test][option]}$\" \"${init.file}\"";
+    "line_exists_test" string => "/bin/grep -Pzo \"^\\[${init.section}\\]\\\\n${init.line}$\" \"${init.file}\"";
 
   classes:
     # By default, file_ensure_lines_in_section_present should create the file if it doesn't exist
     "file_exists" expression => fileexists("${init.file}");
     "line_exists" expression => returnszero("${line_exists_test}", "noshell");
 
-    "ok"          expression => "file_exists.line_exists.file_ensure_lines_in_section_present_${init.file_canon}_ok.!file_ensure_lines_in_section_present_${init.file_canon}_error";
+    "ok"          expression => "file_exists.line_exists.file_ensure_lines_present_in_ini_section_${init.file_canon}_ok.!file_ensure_lines_present_in_ini_section_${init.file_canon}_error";
 
   reports:
     ok::
