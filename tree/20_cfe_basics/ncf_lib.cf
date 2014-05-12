@@ -102,14 +102,12 @@ SuSE::
  package_changes => "bulk";
  package_list_command => "/bin/rpm -qa --queryformat \"i | repos | %{name} | %{version}-%{release} | %{arch}\n\"";
  # set it to "0" to avoid caching of list during upgrade
- package_list_update_command => "/usr/bin/zypper list-updates";
- package_list_update_ifelapsed => "0";
- package_patch_list_command => "/usr/bin/zypper patches";
+ package_list_update_command => "/usr/bin/zypper refresh";
+ package_list_update_ifelapsed => "240"; # 4 hours
  package_installed_regex => "i.*";
  package_list_name_regex    => "[^|]+\|[^|]+\|\s+([^\s]+).*";
  package_list_version_regex => "[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
  package_list_arch_regex    => "[^|]+\|[^|]+\|[^|]+\|[^|]+\|\s+([^\s]+).*";
- package_patch_installed_regex => ".*Installed.*|.*Not Applicable.*";
  package_patch_name_regex    => "[^|]+\|\s+([^\s]+).*";
  package_patch_version_regex => "[^|]+\|[^|]+\|\s+([^\s]+).*";
  package_name_convention => "$(name)";
@@ -139,23 +137,6 @@ redhat::
  package_patch_command => "/usr/bin/yum -y update";
  package_delete_command => "/bin/rpm -e --nodeps --allmatches";
  package_verify_command => "/bin/rpm -V";
-
-# package_changes => "bulk";
-# package_list_command => "/usr/bin/yum list installed";
-# package_patch_list_command => "/usr/bin/yum check-update";
-# package_list_name_regex    => "([^.]+).*";
-# package_list_version_regex => "[^\s]\s+([^\s]+).*";
-# package_list_arch_regex    => "[^.]+\.([^\s]+).*";
-# package_installed_regex => ".*(installed|\s+@).*";
-# package_name_convention => "$(name).$(arch)";
-# package_list_update_ifelapsed => "240";
-# package_patch_installed_regex => "^\s.*";
-# package_patch_name_regex    => "([^.]+).*";
-# package_patch_version_regex => "[^\s]\s+([^\s]+).*";
-# package_patch_arch_regex    => "[^.]+\.([^\s]+).*";
-# package_add_command => "/usr/bin/yum -y install";
-# package_delete_command => "/bin/rpm -e --nodeps";
-# package_verify_command => "/bin/rpm -V";
 
 debian::
  package_changes => "bulk";
