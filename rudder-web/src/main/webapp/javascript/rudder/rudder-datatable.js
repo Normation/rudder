@@ -373,7 +373,7 @@ function createComponentTable (gridId, data, level, contextPath) {
  *   , "callback" : Function to when clicking on compliance percent [ Function ]
  *   }
  */
-function createDirectiveTable (gridId,data, level, contextPath) {
+function createDirectiveTable (gridId,data, level, contextPath, refresh) {
 	
 	var columns = [
 	               {   "sWidth": "75%" 
@@ -445,7 +445,7 @@ function createDirectiveTable (gridId,data, level, contextPath) {
 	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
 	  };	
 
-  createTable(gridId,data,columns, params, contextPath);
+  createTable(gridId,data,columns, params, contextPath, refresh);
 
   createTooltip();
 }
