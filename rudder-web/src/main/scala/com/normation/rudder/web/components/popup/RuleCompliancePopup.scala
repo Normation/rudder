@@ -46,8 +46,12 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.SHtml
 import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JE.JsObj
+import net.liftweb.http.js.JE.JsArray
+import net.liftweb.http.js.JE.Str
 import net.liftweb.http.S
 import net.liftweb.common._
+import com.normation.rudder.web.services.ComplianceData
 
 /**
  *  That popup Display the compliance of a Rule by Node starting from different Scope ( Directive, Component, or a specific value)
@@ -55,66 +59,114 @@ import net.liftweb.common._
 
 
 
-class RuleCompliancePopup(rule:Rule) extends Loggable {
+class RuleCompliancePopup(
+    rule         :Rule
+  , directiveLib : FullActiveTechniqueCategory
+  , allNodeInfos : Map[NodeId, NodeInfo]
+) extends Loggable {
 
   val htmlId_rulesGridZone = "rules_grid_zone"
   val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
 
+  val complianceData = ComplianceData(rule,directiveLib,allNodeInfos)
+
   import RuleCompliancePopup._
+
   /**
-   * Create the popup
+   * Display the popup
    */
-  def showPopup(directiveStatus: RuleStatusReport, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]) : JsCmd = {
-    val popupHtml = createPopup(directiveStatus, directiveLib, allNodeInfos)
+  def showPopup(directiveStatus: RuleStatusReport) : JsCmd = {
+    val popupHtml = createPopup(directiveStatus)
     SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
-        JsRaw("""
-            $('.dataTables_filter input').attr("placeholder", "Search");
-            """
-        ) //&  initJsCallBack(tableId)
+        JsRaw("""$('.dataTables_filter input').attr("placeholder", "Search");""")
     ) &
     JsRaw( s""" createPopup("${htmlId_modalReportsPopup}")""")
   }
 
   /**
-   * We need to have a Popup with all the ComponentValueRuleStatusReports for
-   * cases when differents nodes have differents values
+   * Create popup content
    */
-  def showPopup(
-      componentStatus : ComponentValueRuleStatusReport
-    , cptStatusReports: Seq[ComponentValueRuleStatusReport]
-    , directiveLib    : FullActiveTechniqueCategory
-    , allNodeInfos    : Map[NodeId, NodeInfo]
-  ) : JsCmd = {
+  private[this] def createPopup(directiveByNode: RuleStatusReport) : NodeSeq = {
 
-    val popupHtml = createPopup(componentStatus, cptStatusReports, directiveLib, allNodeInfos)
+    (
+      "#innerContent" #> {
+        val xml = directiveByNode match {
+          case d:DirectiveRuleStatusReport =>
+            <div>
+              <ul>
+                <li> <b>Rule:</b> {rule.name}</li>
+                <li><b>Directive:</b> {directiveName(d.directiveId)}</li>
+              </ul>
+            </div>
+          case c:ComponentRuleStatusReport =>
+            <div>
+              <ul>
+                <li> <b>Rule:</b> {rule.name}</li>
+                <li><b>Directive:</b> {directiveName(c.directiveId)}</li>
+                <li><b>Component:</b> {c.component}</li>
+              </ul>
+            </div>
+          case v@ComponentValueRuleStatusReport(directiveId,component,value,unexpanded,_,_) =>
+            <div>
+              <ul>
+                <li> <b>Rule:</b> {rule.name}</li>
+                <li><b>Directive:</b> {directiveName(directiveId)}</li>
+                <li><b>Component:</b> {component}</li>
+                <li><b>Value:</b> {v.key}</li>
+              </ul>
+            </div>
+          }
+        val directiveId = getDirectiveIdFromReport(directiveByNode)
+        val tab = showReportsByType(directiveByNode, directiveId)
 
-    SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
-        JsRaw("""
-            $('.dataTables_filter input').attr("placeholder", "Search");
-            """
-        ) //&  initJsCallBack(tableId)
-    ) &
-    JsRaw( s""" createPopup("${htmlId_modalReportsPopup}")""")
+        xml++tab
+      }
+    ).apply(popupXml)
   }
 
-   ///////////////// Compliance detail popup/////////////////////////
-
-
-    /**
-   * Unfold the report to (Seq[ComponentValueRuleStatusReport], DirectiveId)
+  /**
+   * treat reports
+   *  - show them in the node compliance table
+   *  - compute missing/unexpected/unkown table and show them in a specific table
    */
-  def getComponentValueRule(report: RuleStatusReport): (Seq[ComponentValueRuleStatusReport], DirectiveId) = {
-    report match {
-      case DirectiveRuleStatusReport(directiveId, components, _) =>
-        (components.flatMap(_.componentValues), directiveId)
-      case ComponentRuleStatusReport(directiveId, component, values, _) =>
-        (values, directiveId)
-      case value: ComponentValueRuleStatusReport =>
-        (Seq(value), value.directiveid)
-    }
+  def showReportsByType(
+      reports: RuleStatusReport
+    , directiveId : DirectiveId
+  ) : NodeSeq = {
+    val optDirective = directiveLib.allDirectives.get(directiveId)
+    val (techName, techVersion) = optDirective.map { case (fat, d) => (fat.techniqueName.value, d.techniqueVersion.toString) }.getOrElse(("Unknown Technique", "N/A"))
+    val missing = reports.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size == 0)
+    val unexpected = reports.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size != 0)
+
+    val xml = (
+         showNodeComplianceTable(reports) ++
+         showMissingReports(missing, "missing", 1, techName, techVersion) ++
+         showUnexpectedReports(unexpected, "unexpected", 2, techName, techVersion)
+    )
+    xml
   }
 
+  ///////////////// Compliance table by node and detail /////////////////////////
+
+  /**
+   * reports are displayed in cascaded dataTables
+   * Parameters:
+   *  reports : the reports we need to show
+   */
+  private[this] def showNodeComplianceTable (
+      reports: RuleStatusReport
+  ): NodeSeq = {
+
+    val data = complianceData.getNodeComplianceDetails(reports)
+
+    <table id="reportsDetailGrid" cellspacing="0" style="clear:both"/>
+    <br/> ++
+    Script(JsRaw(s"""createNodeComplianceTable("reportsDetailGrid",${data.json.toJsCmd},1,"${S.contextPath}");"""))
+
+  }
+
+  ///////////////// Show reports in Missing/unexepected/unknown status /////////////////////////
 
   def showMissingReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String): NodeSeq = {
     def showMissingReport(report: (String, String)): NodeSeq = {
@@ -154,298 +206,10 @@ class RuleCompliancePopup(rule:Rule) extends Loggable {
       NodeSeq.Empty
   }
 
-  /*
-   * reports are displayed in cascaded dataTables
-   * Parameters:
-   *  reports : the reports we need to show
-   *  GridId  : the dataTable name
-   *  tabid   : an identifier to ease javascript
-   *  message : Message to display on top of the dataTable
-   *
-   */
-  private[this] def showReports(reports: Seq[MessageReport], gridId: String, tabid: Int, allNodeInfos: Map[NodeId, NodeInfo], message: String = ""): NodeSeq = {
-
-    /*
-     * Show report about a node
-     * Parameters :
-     * nodeId, Seq[componentName,value, unexpandedValue,reportsMessage, reportType)
-     */
-    def showNodeReport(nodeReport: (NodeId, Seq[(String, String, Option[String], List[String], ReportType)])): NodeSeq = {
-      allNodeInfos.get(nodeReport._1) match {
-        case Some(nodeInfo) => {
-          val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(nodeReport._2.map(_._5)))
-          ("#node *" #>
-            <span class="unfoldable">
-              { nodeInfo.hostname }
-              {
-                val xml = <img src="/images/icDetails.png" style="margin-bottom:-3px" class="noexpand"/>
-                SHtml.a({ () => RedirectTo("""/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(nodeReport._1.value)) }, xml, ("style", "padding-left:4px"), ("class", "noexpand"))
-              }
-            </span> &
-            "#status *" #> <center>{ getDisplayStatusFromSeverity(status) }</center> &
-            "#status [class+]" #> status &
-            "#details *" #> showComponentReport(nodeReport._2))(reportLineXml)
-        }
-        case None =>
-          logger.error("An error occured when trying to load node %s".format(nodeReport._1.value))
-          <div class="error">Node with ID "{ nodeReport._1.value }" is invalid</div>
-      }
-    }
-
-      /* Show the detail of a Component
-       * Seq[componentName,value, unexpandedValue,reportsMessage, reportType)
-       */
-    def showComponentReport(componentReports: (Seq[(String, String, Option[String], List[String], ReportType)])): NodeSeq = {
-      <table id={ Helpers.nextFuncName } cellspacing="0" style="display:none" class=" noMarginGrid tablewidth ">
-        <thead>
-          <tr class="head tablewidth">
-            <th class="emptyTd"><span/></th>
-            <th>Component<span/></th>
-            <th>Status<span/></th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            val components = componentReports.map(_._1).distinct
-
-            val valueReports = components.map(tr => (tr, componentReports.filter(_._1 == tr).map(rep => (rep._2, rep._3, rep._4, rep._5))))
-            valueReports.flatMap { report =>
-              val status = ReportType.getSeverityFromStatus(ReportType.getWorseType(report._2.map(_._4)))
-              ("#component *" #> report._1 &
-                "#status *" #> <center>{ getDisplayStatusFromSeverity(status) }</center> &
-                "#status [class+]" #> status &
-                "#details *" #> showValueReport(report._2))(messageLineXml)
-            }
-          }
-        </tbody>
-      </table>
-    }
-
-    /*
-     * Show the details of a Value
-     * Seq [ value, unexpandedValue,reportsMessage, reportType)
-     */
-    def showValueReport(valueReport: (Seq[(String, Option[String], List[String], ReportType)])): NodeSeq = {
-      <table id={ Helpers.nextFuncName } cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
-        <thead>
-          <tr class="head tablewidth">
-            <th class="emptyTd"><span/></th>
-            <th>Value<span/></th>
-            <th>Message<span/></th>
-            <th>Status<span/></th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            valueReport.flatMap { report =>
-              val status = ReportType.getSeverityFromStatus(report._4)
-              ("#value *" #> {
-                report._2 match {
-                  case None => Text(report._1)
-                  case Some(unexpanded) if unexpanded == report._1 => Text(report._1)
-                  case Some(unexpanded) =>
-                    val tooltipid = Helpers.nextFuncName
-                    <div>
-                      <span>{ report._1 }</span>
-                      <span class="tooltipable" tooltipid={ tooltipid } title="">
-                        <img src="/images/icInfo.png" style="padding-left:4px"/>
-                      </span>
-                      <div class="tooltipContent" id={ tooltipid }>
-                        Value <b>{ report._1 }</b> was expanded from the entry <b>{ unexpanded }</b>
-                      </div>
-                    </div>
-                }
-              } &
-                "#status *" #> <center>{ getDisplayStatusFromSeverity(status) }</center> &
-                "#status [class+]" #> status &
-                "#message *" #> <ul>{ report._3.map(msg => <li>{ msg }</li>) }</ul>)(messageValueLineXml)
-            }
-          }
-        </tbody>
-      </table>
-    }
 
 
-    ///// actual code for showReports methods /////
 
-    if (reports.size > 0) {
-      val nodes = reports.map(_.report.node).distinct
-      val datas = nodes.map(node => {
-        val report = reports.filter(_.report.node == node).map(report => (report.component, report.value, report.unexpandedValue, report.report.message, report.report.reportType))
-        (node, report)
-      })
-      val innerJsFun = """
-              var componentTab = $(this.fnGetNodes());
-              componentTab.each( function () {
-                $(this).unbind();
-                $(this).click( function (e) {
-                  if ($(e.target).hasClass('noexpand'))
-                    return false;
-                  var nTr = this;
-                  var i = $.inArray( nTr, anOpen%1$s );
-                    if ( i === -1 ) {
-                    $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-                    var nDetailsRow = Otable2.fnOpen( nTr, fnFormatDetails(Otable2, nTr), 'details' );
-                    $('div.innerDetails table', nDetailsRow).dataTable({
-                      "asStripeClasses": [ 'color1', 'color2' ],
-                      "bAutoWidth": false,
-                      "bFilter" : false,
-                      "bPaginate" : false,
-                      "bLengthChange": false,
-                      "bInfo" : false,
-                      "sPaginationType": "full_numbers",
-                      "bJQueryUI": true,
-                      "aaSorting": [[ 1, "asc" ]],
-                      "aoColumns": [
-                        { "sWidth": "40px", "bSortable": false },
-                        { "sWidth": "110px" },
-                        { "sWidth": "210px" },
-                        { "sWidth": "50px" , "bSortable": false},
-                      ]
-                    } );
-                    $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-                    $('td.details', nDetailsRow).attr("colspan",4);
-                    $('div.innerDetails table', nDetailsRow).attr("style","");
-                    $('div.innerDetails', nDetailsRow).slideDown(300);
-                      updatePopup();
-                    anOpen%1$s.push( nTr );
-                    createTooltip();
-                    }
-                    else {
-                    $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-                    $('div.innerDetails', $(nTr).next()[0]).slideUp( 300,function () {
-                      oTable%1$s.fnClose( nTr );
-                      anOpen%1$s.splice( i, 1 );
-                      updatePopup();
-                    } );
-                  }
-                } ); } )""".format(tabid, S.contextPath)
-
-      val jsFun = """
-            var tab = $($('#%2$s').dataTable().fnGetNodes());
-            tab.each( function () {
-              $(this).unbind();
-              $(this).click( function (e) {
-                if ($(e.target).hasClass('noexpand'))
-                  return false;
-                var nTr = this;
-                var i = $.inArray( nTr, anOpen%1$s );
-                if ( i === -1 ) {
-                  $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-                  var fnData = oTable%1$s.fnGetData( nTr );
-                  var nDetailsRow = oTable%1$s.fnOpen( nTr, fnFormatDetails%1$s(oTable%1$s, nTr), 'details' );
-                  var Otable2 = $('div.innerDetails table:first', nDetailsRow).dataTable({
-                    "asStripeClasses": [ 'color1', 'color2' ],
-                    "bAutoWidth": false,
-                    "bFilter" : false,
-                    "bPaginate" : false,
-                    "bLengthChange": false,
-                    "bInfo" : false,
-                    "sPaginationType": "full_numbers",
-                    "bJQueryUI": true,
-                    "aaSorting": [[ 1, "asc" ]],
-                    "aoColumns": [
-                      { "sWidth": "20px", "bSortable": false },
-                      { "sWidth": "350px" },
-                      { "sWidth": "50px" },
-                      { "sWidth": "10px", "bSortable": false  , "bVisible":false }
-                    ],
-                 "fnDrawCallback" : function( oSettings ) {%4$s}
-                  } );
-                  $('div.innerDetails table:first', nDetailsRow).attr("style","");
-                  $('div.innerDetails', nDetailsRow).slideDown(300);
-                      updatePopup();
-                  $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
-                  anOpen%1$s.push( nTr );
-                }
-                else {
-                   $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-                    $('div.innerDetails', $(nTr).next()[0]).slideUp(300, function () {
-                    oTable%1$s.fnClose( nTr );
-                    anOpen%1$s.splice( i, 1 );
-                      updatePopup();
-                  } );
-                }
-          } );} );""".format(tabid, gridId + "Grid", S.contextPath, innerJsFun)
-      ("#reportLine" #> datas.flatMap(showNodeReport(_))).apply(reportsGridXml(gridId, message)) ++
-        /* Sorry about the Javascript
-         * but we need to have dynamic definition of those datatables
-         * As we need to have several dynamic datables, we have to add a specific identifier, the tabid
-         * Everything is based what has been done for the previous dataTable
-         */
-        Script(JsRaw("""
-            function fnFormatDetails( oTable, nTr ) {
-              var fnData = oTable.fnGetData( nTr );
-              var oTable2 = fnData[fnData.length-1];
-              var sOut ='<div class="innerDetails">'+oTable2+'</div>';
-              return sOut;
-            }
-
-            function fnFormatDetails%1$s( oTable, nTr ) {
-              var fnData = oTable.fnGetData( nTr );
-              var oTable2 = fnData[fnData.length-1]
-              var sOut ='<div class="innerDetails">'+oTable2+'</div>';
-              return sOut;
-            }
-            var anOpen%1$s = [];
-             var oTable%1$s = $('#%2$s').dataTable({
-               "asStripeClasses": [ 'color1', 'color2' ],
-               "bAutoWidth": false,
-               "bFilter" : true,
-               "bPaginate" : true,
-               "bLengthChange": true,
-               "sPaginationType": "full_numbers",
-               "bStateSave": true,
-               "sCookiePrefix": "Rudder_DataTables_",
-               "bJQueryUI": true,
-               "oLanguage": {
-                 "sSearch": ""
-               },
-               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-               "aaSorting": [[ 1, "asc" ]],
-               "aoColumns": [
-                 { "sWidth": "378px" },
-                 { "sWidth": "50px" },
-                 { "sWidth": "10px","bSortable": false  , "bVisible":false}
-               ],
-               "fnDrawCallback" : function( oSettings ) {%3$s}
-             } );
-                """.format(tabid, gridId + "Grid", jsFun)))
-    } else
-      NodeSeq.Empty
-  }
-
-  /**
-   * convert the componentvaluesrules to componentValueRule and Directive
-   * Checks as well that all componentvaluesrules belong to the same directive
-   */
-  def getComponentValueRule(entries: Seq[ComponentValueRuleStatusReport]): Box[(Seq[ComponentValueRuleStatusReport], DirectiveId)] = {
-    entries.map(x => x.directiveid).distinct match {
-      case seq if seq.size == 0 => Failure("Not enough ComponentValueRuleStatusReport")
-      case seq if seq.size == 1 => Full((entries, seq.head))
-      case seq => logger.error("Too many DirectiveIds fot a specific componentValueRule %s".format(seq)); Failure("Too many DirectiveIds fot a specific componentValueRule %s".format(seq))
-    }
-  }
-
-  def showReportsByType(reports: Seq[ComponentValueRuleStatusReport], directiveId : DirectiveId, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): NodeSeq = {
-    val optDirective = directiveLib.allDirectives.get(directiveId)
-    val (techName, techVersion) = optDirective.map { case (fat, d) => (fat.techniqueName.value, d.techniqueVersion.toString) }.getOrElse(("Unknown Technique", "N/A"))
-   // val error = reports.flatMap(report => report.processMessageReport(_.reportType == ErrorReportType))
-    val missing = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size == 0))
-    val unexpected = reports.flatMap(report => report.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size != 0))
-   // val repaired = reports.flatMap(report => report.processMessageReport(_.reportType == RepairedReportType))
-   // val success = reports.flatMap(report => report.processMessageReport(_.reportType == SuccessReportType))
-    val all = reports.flatMap(report => report.processMessageReport(report => true))
-
-    val xml = (
-         showReports(all, "report", 0, allNodeInfos) ++ showMissingReports(missing, "missing", 1, techName, techVersion)
-      ++ showUnexpectedReports(unexpected, "unexpected", 2, techName, techVersion, allNodeInfos)
-    )
-    xml
-  }
-
-  def showUnexpectedReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String, allNodeInfos: Map[NodeId, NodeInfo]): NodeSeq = {
+  def showUnexpectedReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String): NodeSeq = {
     def showUnexpectedReport(report: MessageReport): NodeSeq = {
       allNodeInfos.get(report.report.node) match {
         case Some(nodeInfo) => {
@@ -465,8 +229,6 @@ class RuleCompliancePopup(rule:Rule) extends Loggable {
           <div class="error">Node with ID "{ report.report.node.value }" is invalid</div>
       }
     }
-
-
 
     if (reports.size > 0) {
       ("#reportLine" #> reports.flatMap(showUnexpectedReport(_))).apply(unexpectedGridXml(gridId)) ++
@@ -499,74 +261,20 @@ class RuleCompliancePopup(rule:Rule) extends Loggable {
       NodeSeq.Empty
   }
 
+  private[this] def directiveName(id:DirectiveId) = directiveLib.allDirectives.get(id).map( _._2.name ).getOrElse("can't find directive name")
 
-    private[this] def directiveName(id:DirectiveId, directiveLib: FullActiveTechniqueCategory) = directiveLib.allDirectives.get(id).map( _._2.name ).getOrElse("can't find directive name")
-
-    private[this] def createPopup(directiveByNode: RuleStatusReport, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]) : NodeSeq = {
-
-    (
-      "#innerContent" #> {
-        val xml = directiveByNode match {
-          case d:DirectiveRuleStatusReport =>
-            <div>
-              <ul>
-                <li> <b>Rule:</b> {rule.name}</li>
-                <li><b>Directive:</b> {directiveName(d.directiveId, directiveLib)}</li>
-              </ul>
-            </div>
-          case c:ComponentRuleStatusReport =>
-            <div>
-              <ul>
-                <li> <b>Rule:</b> {rule.name}</li>
-                <li><b>Directive:</b> {directiveName(c.directiveid, directiveLib)}</li>
-                <li><b>Component:</b> {c.component}</li>
-              </ul>
-            </div>
-          case ComponentValueRuleStatusReport(directiveId,component,value,unexpanded,_,_) =>
-            <div>
-              <ul>
-                <li> <b>Rule:</b> {rule.name}</li>
-                <li><b>Directive:</b> {directiveName(directiveId, directiveLib)}</li>
-                <li><b>Component:</b> {component}</li>
-                <li><b>Value:</b> {value}</li>
-              </ul>
-            </div>
-          }
-        val (reports, directiveId) = getComponentValueRule(directiveByNode)
-        val tab = showReportsByType(reports, directiveId, directiveLib, allNodeInfos)
-
-        xml++tab
-      }
-    ).apply(popupXml)
-  }
-
-  private[this] def createPopup(
-      componentStatus : ComponentValueRuleStatusReport
-    , cptStatusReports: Seq[ComponentValueRuleStatusReport]
-    , directiveLib    : FullActiveTechniqueCategory
-    , allNodeInfos    : Map[NodeId, NodeInfo]
-  ): NodeSeq = {
-    (
-      "#innerContent" #> {
-        val xml = <div>
-                    <ul>
-                      <li><b>Rule:</b> { rule.name }</li>
-                      <li><b>Directive:</b> { directiveName(componentStatus.directiveid, directiveLib) }</li>
-                      <li><b>Component:</b> { componentStatus.component }</li>
-                      <li><b>Value:</b> { componentStatus.unexpandedComponentValue.getOrElse(componentStatus.componentValue) }</li>
-                    </ul>
-                  </div>
-        val tab = getComponentValueRule(cptStatusReports) match {
-          case e: EmptyBox => <div class="error">Could not retrieve information from reporting</div>
-          case Full((reports, directiveId)) => showReportsByType(reports, directiveId, directiveLib, allNodeInfos)
-        }
-        xml ++ tab
-      }).apply(popupXml)
-  }
-
-
-  def getDisplayStatusFromSeverity(severity: String) : String = {
-    S.?(s"reports.severity.${severity}")
+  /**
+   * Get directive id from a report
+   */
+  def getDirectiveIdFromReport (report: RuleStatusReport): DirectiveId = {
+    report match {
+      case DirectiveRuleStatusReport(directiveId,_, _) =>
+        directiveId
+      case component : ComponentRuleStatusReport =>
+        component.directiveId
+      case value: ComponentValueRuleStatusReport =>
+        value.directiveId
+    }
   }
 
 }
@@ -595,49 +303,6 @@ object RuleCompliancePopup {
 
 
   // Reporting templates
-
-  private def reportsGridXml(id: String = "reports", message: String = ""): NodeSeq = {
-    <center><b>{ message }</b></center>
-    <table id={ id + "Grid" } cellspacing="0" style="clear:both">
-      <thead>
-        <tr class="head">
-          <th>Node<span/></th>
-          <th>Status<span/></th>
-          <th style="border-left:0;"></th>
-        </tr>
-      </thead>
-      <tbody>
-        <div id="reportLine"/>
-      </tbody>
-    </table>
-    <br/>
-  }
-
-  private val reportLineXml: NodeSeq = {
-    <tr class="cursor">
-      <td id="node" class="listopen"></td>
-      <td id="status"></td>
-      <td id="details"/>
-    </tr>
-  }
-  private val messageLineXml: NodeSeq = {
-    <tr class="cursor">
-      <td class="emptyTd"/>
-      <td id="component" class="listopen"></td>
-      <td id="status"></td>
-      <td id="details"></td>
-    </tr>
-  }
-
-  private val messageValueLineXml: NodeSeq = {
-    <tr>
-      <td class="emptyTd"/>
-      <td id="value"></td>
-      <td id="message"></td>
-      <td id="status"></td>
-    </tr>
-  }
-
 
   // Unknown reports templates
 

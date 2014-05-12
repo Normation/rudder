@@ -976,8 +976,8 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.exists(x => x.directiveReportType == PendingReportType)
     }
     "have one success, and one pending node, in the component detail of the rule" in {
-      (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.size == 2) &&
-      (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.reports.exists(x => x.node == NodeId("one") && x.reportType == SuccessReportType))
+      (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.nodesReport.size == 2) &&
+      (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.nodesReport.exists(x => x.node == NodeId("one") && x.reportType == SuccessReportType))
     }
   }
 

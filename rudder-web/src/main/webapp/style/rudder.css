@@ -536,7 +536,7 @@ a.warning {
 #contenu table td img, #contenu table th img {
    float: none;
    margin: 0;
-   padding: 2px 0 0 0;
+   padding: 4px 0 0 0;
 }
 .openDetail {
    border: none;
@@ -610,7 +610,7 @@ div#Detail {
 }
 
 .dataTables_length {
-  width:35%;
+  width:27%;
   float:left;
 }
 
@@ -682,7 +682,7 @@ div#Detail {
 
 .dataTables_info {
   float: left;
-  width: 30%;
+  width: 27%;
   padding: 3px 0px 3px 0px;
 }
 
