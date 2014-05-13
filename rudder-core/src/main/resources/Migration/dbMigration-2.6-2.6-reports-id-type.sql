@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2014 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,20 +32,11 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
 
-import net.liftweb.common.Box
+-- Migration script to update type used for id in active reports table
+-- Caution, can be quite slow on large database
 
-trait RudderPropertiesRepository {
+ALTER TABLE ruddersysevents ALTER COLUMN id TYPE bigint;
 
-  /**
-   * Get the last report id processed by the non compliant report Logger.
-   */
-  def getReportLoggerLastId: Box[Long]
 
-  /**
-   * Update or create (if needed the last id processed by the non compliant report logger
-   */
-  def updateReportLoggerLastId(newId: Long) : Box[Long]
-
-}
+ 
