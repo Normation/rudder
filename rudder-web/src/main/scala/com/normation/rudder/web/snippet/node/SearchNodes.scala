@@ -113,7 +113,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       , query
       , srvList
       , () => Noop
-      , showNodeDetails
+      , Some(showNodeDetails)
       , groupPage = false
     )
     searchNodeComponent.set(Full(sc))
@@ -290,9 +290,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * @param s
    * @return
    */
-  private def showNodeDetails(s:String) : JsCmd = {
-    val arr = s.split("\\|")
-    val nodeId = arr(1)
+  private def showNodeDetails(nodeId:String) : JsCmd = {
     SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display()) &
     updateLocationHash(nodeId) &
     JsRaw("""scrollToElement("serverDetails");""".format(nodeId))
