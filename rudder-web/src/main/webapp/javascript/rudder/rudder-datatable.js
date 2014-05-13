@@ -554,11 +554,84 @@ function createNodeComplianceTable (gridId,data, level, contextPath, refresh) {
 	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
 	  };	
 
-  createTable(gridId,data,columns, params, contextPath, refresh, contextPath);
+  createTable(gridId, data, columns, params, contextPath, refresh);
 
   createTooltip();
 }
 
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "name" : Node hostname [String]
+ *   , "id" : Node id [String]
+ *   , "machineType" : Node machine type [String]
+ *   , "osName" : Node OS name [String]
+ *   , "osVersion" : Node OS version [ String ]
+ *   , "servicePack" : Node OS service pack [ String ]
+ *   , "lastReport" : Last report received about that node [ String ]
+ *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
+ *   }
+ */
+function createNodeTable(gridId, data, contextPath, refresh) {
+
+    var columns = [
+        {   "sWidth": "30%"
+          , "mDataProp": "name"
+          , "sTitle": "Node name"
+          , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+              var editLink = $("<a />");
+              if ("callback" in oData) {
+                editLink.click(function(e) { oData.callback(); e.stopPropagation();});
+                editLink.attr("href","javascript://");
+              } else {
+                editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+              }
+              var editIcon = $("<img />");
+              editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
+              editLink.append(editIcon);
+              editLink.addClass("reportIcon");
+
+              $(nTd).append(editLink);
+            }
+        }
+      , {   "sWidth": "10%"
+          , "mDataProp": "machineType"
+          , "sTitle": "Machine type"
+        }
+      , {   "sWidth": "20%"
+          , "mDataProp": "osName"
+          , "sTitle": "OS name"
+        }
+      , {   "sWidth": "10%"
+          , "mDataProp": "osVersion"
+          , "sTitle": "OS version"
+        }
+      , {   "sWidth": "10%"
+          , "mDataProp": "servicePack"
+          , "sTitle": "OS SP"
+        }
+      , {   "sWidth": "20%"
+          , "mDataProp": "lastReport"
+          , "sTitle": "Last seen"
+        }
+    ];
+
+    var params = {
+        "bFilter" : true
+      , "bPaginate" : true
+      , "bLengthChange": true
+      , "sPaginationType": "full_numbers"
+      , "bStateSave": true
+      , "sCookiePrefix": "Rudder_DataTables_"
+      , "oLanguage": {
+          "sSearch": ""
+      }
+      , "aaSorting": [[ 0, "asc" ]]
+      , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+    };
+
+    createTable(gridId,data, columns, params, contextPath, refresh);
+
+}
 
 function refreshTable (gridId, data, level) {
   var table = $('#'+gridId).dataTable();
@@ -609,7 +682,6 @@ function createInnerTable(myTable, level, createFunction, contextPath) {
     } );
   } );
 }
-
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
 function createTable(gridId,data,columns, customParams, contextPath, refresh) {

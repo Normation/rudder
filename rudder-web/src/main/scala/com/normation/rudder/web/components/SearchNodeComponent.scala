@@ -76,7 +76,7 @@ class SearchNodeComponent(
   , _query           : Option[Query]
   , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
-  , onClickCallback  : (String) => JsCmd = { (x:String) => Noop } // this callback is used when we click on an element in the grid
+  , onClickCallback  : Option[(String) => JsCmd] = None // this callback is used when we click on an element in the grid
   , onSearchCallback : (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
@@ -283,7 +283,7 @@ class SearchNodeComponent(
     def showQueryAndGridContent() : NodeSeq = {
       bind("content",searchNodes,
         "query" -> {x:NodeSeq => displayQuery(x)},
-        "gridResult" -> srvGrid.display(Seq(), "serverGrid") // we need to set something, or IE moans
+        "gridResult" -> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
       )
     }
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
@@ -296,10 +296,12 @@ class SearchNodeComponent(
    * @return
    */
   def ajaxGridRefresh() : JsCmd = {
+
       val grid = gridResult
       JE.JsRaw("""$("#serverGrid_info").remove();""") &
       JE.JsRaw("""$("#serverGrid_length").remove();""") &
-      SetHtml("gridResult", grid._1) & grid._2 & activateButtonOnChange
+      activateButtonOnChange &
+      SetHtml("gridResult", srvGrid.tableXml("serverGrid")) & grid
 
   }
 
@@ -317,18 +319,16 @@ class SearchNodeComponent(
   /**
    * From the computed result, return the NodeSeq corresponding to the grid, plus the initialisation JS
    */
-  def gridResult : (NodeSeq, JsCmd) = {
+  def gridResult : JsCmd = {
     // Ideally this would just check the size first ?
     srvList match {
       case Full(seq) =>
-        (srvGrid.display(seq, "serverGrid"),
-        srvGrid.initJs("serverGrid", onClickCallback,groupPage))
+        srvGrid.initJs("serverGrid", seq, onClickCallback)
 
       case Empty =>
-        (srvGrid.display(Seq(), "serverGrid"),
-        srvGrid.initJs("serverGrid", onClickCallback,groupPage))
+        srvGrid.initJs("serverGrid", Seq(), onClickCallback)
 
-      case f@Failure(_,_,_) => (<div><h4>Error</h4>{f.messageChain}</div>, Noop)
+      case f@Failure(_,_,_) => Noop
     }
   }
 

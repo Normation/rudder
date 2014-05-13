@@ -56,7 +56,7 @@ class Nodes extends StatefulSnippet with Loggable {
           logger.error(fail.msg)
           Seq()
     }
-    srvGrid.displayAndInit(nodes, "nodes", ((nodeId:String) => RedirectTo(s"""/secure/nodeManager/searchNodes#{\"nodeId\":\"${nodeId.split("\\|")(1)}\"}""")))
+    srvGrid.displayAndInit(nodes, "nodes")
   }
 
 }

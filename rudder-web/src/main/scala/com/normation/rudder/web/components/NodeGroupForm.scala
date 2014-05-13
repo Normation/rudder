@@ -122,7 +122,7 @@ class NodeGroupForm(
       , query
       , srvList
       , onSearchCallback = saveButtonCallBack
-      , onClickCallback  = { id => onClickCallBack(id) }
+      , onClickCallback  = Some({ id => onClickCallBack(id) })
       , saveButtonId     = saveButtonId
       , groupPage        = false
     )))
@@ -133,14 +133,9 @@ class NodeGroupForm(
         $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
   }
 
-  private[this] def onClickCallBack(s:String) : JsCmd = {
-    s.split("\\|").toList match {
-      case _ :: id :: _ =>
-        SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(id), rootCategory)).display(true)) &
-        createPopup("nodeDetailsPopup")
-
-      case _ => Alert("Error when trying to display node details: received bad parameter for node ID: %s".format(s))
-    }
+  private[this] def onClickCallBack(nodeId:String) : JsCmd = {
+    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), rootCategory)).display(true)) &
+    createPopup("nodeDetailsPopup")
   }
 
   setNodeGroupCategoryForm
