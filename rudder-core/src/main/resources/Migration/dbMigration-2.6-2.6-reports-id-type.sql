@@ -36,7 +36,44 @@
 -- Migration script to update type used for id in active reports table
 -- Caution, can be quite slow on large database
 
-ALTER TABLE ruddersysevents ALTER COLUMN id TYPE bigint;
+BEGIN;
+
+ALTER TABLE ruddersysevents RENAME TO old_ruddersysevents;
+
+DROP INDEX nodeid_idx;
+DROP INDEX executionTimeStamp_idx;
+DROP INDEX composite_node_execution_idx;
+DROP INDEX component_idx;
+DROP INDEX keyValue_idx;
+DROP INDEX ruleId_idx;
+
+CREATE TABLE ruddersysevents (
+id bigint PRIMARY KEY default nextval('serial'),
+executionDate timestamp with time zone NOT NULL,
+nodeId text NOT NULL CHECK (nodeId <> ''),
+directiveId text NOT NULL CHECK (directiveId <> ''),
+ruleId text NOT NULL CHECK (ruleId <> ''),
+serial integer NOT NULL,
+component text NOT NULL CHECK (component <> ''),
+keyValue text,
+executionTimeStamp timestamp with time zone NOT NULL,
+eventType varchar(64),
+policy text,
+msg text
+);
 
 
- 
+CREATE INDEX nodeid_idx on ruddersysevents (nodeId);
+CREATE INDEX executionTimeStamp_idx on ruddersysevents (executionTimeStamp);
+CREATE INDEX composite_node_execution_idx on ruddersysevents (nodeId, executionTimeStamp);
+CREATE INDEX component_idx on ruddersysevents (component);
+CREATE INDEX keyValue_idx on ruddersysevents (keyValue);
+CREATE INDEX ruleId_idx on ruddersysevents (ruleId);
+
+
+COMMIT;
+
+INSERT INTO ruddersysevents SELECT * FROM old_ruddersysevents;
+
+DROP TABLE old_ruddersysevents;
+
