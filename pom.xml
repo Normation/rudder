@@ -283,7 +283,7 @@ limitations under the License.
     <jodatime-version>2.3</jodatime-version>
     <jodaconvert-version>1.5</jodaconvert-version>
     <commons-io-version>2.4</commons-io-version>
-    <specs2-version>1.14</specs2-version>
+    <specs2-version>2.3.11</specs2-version>
     <spring-version>3.1.4.RELEASE</spring-version>
     <spring-security-version>3.1.4.RELEASE</spring-security-version>
     <squeryl-version>0.9.5-6</squeryl-version>
