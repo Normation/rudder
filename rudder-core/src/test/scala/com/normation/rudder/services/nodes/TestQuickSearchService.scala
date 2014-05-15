@@ -61,7 +61,7 @@ class TestQuickSearchService extends QuickSearchServiceSpec {
         case eb:EmptyBox =>
           val e = eb ?~! "test1 failed"
           e.exceptionChain.foreach( t => logger.error(t) )
-          failure(e.messageChain)
+          ko(e.messageChain)
         case Full(res) => res must have size(1)
       }
     }
@@ -71,7 +71,7 @@ class TestQuickSearchService extends QuickSearchServiceSpec {
         case eb:EmptyBox =>
           val e = eb ?~! "test1 failed"
           e.exceptionChain.foreach( t => logger.debug(t) )
-          failure(e.messageChain)
+          ko(e.messageChain)
         case Full(res) => res must have size(8)
       }
     }
@@ -81,7 +81,7 @@ class TestQuickSearchService extends QuickSearchServiceSpec {
         case Full(res) => res must have size(0)
         case eb:EmptyBox =>
           val e = eb ?~"QuichSearch lookup failed"
-          failure(e.messageChain)
+          ko(e.messageChain)
       }
     }
   }
