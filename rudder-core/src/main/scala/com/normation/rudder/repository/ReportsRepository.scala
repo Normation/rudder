@@ -122,9 +122,9 @@ trait ReportsRepository {
 
   def deleteEntries(date : DateTime) : Box[Int]
 
-  def getHighestId : Box[Long]
+  def getHighestId : Box[Int]
 
-  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Long)]]
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Int)]]
 
-  def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]]
+  def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]]
 }

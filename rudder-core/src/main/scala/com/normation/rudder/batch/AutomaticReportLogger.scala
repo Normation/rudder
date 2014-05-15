@@ -147,13 +147,13 @@ class AutomaticReportLogger(
     }
 
 
-    def updateLastId(newId : Long) : Unit = {
+    def updateLastId(newId : Int) : Unit = {
       propertyRepository.updateReportLoggerLastId(newId) match {
         case f:Full[_]    =>
           lastId = f
         case eb:EmptyBox  =>
           logger.error("could not update last id with id %d, retry now".format(newId),eb)
-          updateLastId(newId)
+          updateLastId(newId : Int)
       }
     }
 
