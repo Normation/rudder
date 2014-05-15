@@ -16,22 +16,22 @@
 #
 #####################################################################################
 
-# @name File ensure lines in INI section
+# @name File ensure line in INI section
 # @description This is a bundle to ensure that a line is present in a section in a specific location. The objective of this method is to handle INI-style files.
 #
 # @parameter file File name to edit
 # @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
 # @parameter line Line to ensure is present inside the section
 #
-# @class_prefix file_ensure_lines_present_in_ini_section
+# @class_prefix file_ensure_line_present_in_ini_section
 # @class_parameter file
 #
-# This bundle will define a class file_ensure_lines_present_in_ini_section_${file}_{kept,repaired,error,ok,not_ok,reached}
+# This bundle will define a class file_ensure_line_present_in_ini_section_${file}_{kept,repaired,error,ok,not_ok,reached}
 
-bundle agent file_ensure_lines_present_in_ini_section(file, section, line)
+bundle agent file_ensure_line_present_in_ini_section(file, section, line)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_lines_present_in_ini_section_${file}");
+      "class_prefix" string => canonify("file_ensure_line_present_in_ini_section_${file}");
 
   files:
       "${file}"
@@ -42,5 +42,5 @@ bundle agent file_ensure_lines_present_in_ini_section(file, section, line)
 
   methods:
       "report"
-        usebundle  => _logger("Insert line(s) ${lines} into ${file}", "${class_prefix}");
+        usebundle  => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
 }
