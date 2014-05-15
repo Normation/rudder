@@ -346,7 +346,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
      }
   }
 
-  def getHighestId : Box[Long] = {
+  def getHighestId : Box[Int] = {
     val query = "select id from RudderSysEvents order by id desc limit 1"
     try {
       jdbcTemplate.query(query,IdMapper).toSeq match {
@@ -360,7 +360,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
-  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Long)]] = {
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Int)]] = {
     val query = "%s and (%s) order by executiondate desc limit 100".format(idQuery,kinds.map("eventtype='%s'".format(_)).mkString(" or "))
       try {
         Full(jdbcTemplate.query(query,ReportsWithIdMapper).toSeq)
@@ -370,7 +370,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
         Failure("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
       }
   }
-  def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]] = {
+  def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]] = {
     if (lower>=upper)
       Empty
     else{
@@ -412,14 +412,14 @@ object DatabaseSizeMapper extends RowMapper[Long] {
         rs.getLong("size")
     }
 }
-object IdMapper extends RowMapper[Long] {
-   def mapRow(rs : ResultSet, rowNum: Int) : Long = {
-        rs.getLong("id")
+object IdMapper extends RowMapper[Int] {
+   def mapRow(rs : ResultSet, rowNum: Int) : Int = {
+        rs.getInt("id")
     }
 }
 
-object ReportsWithIdMapper extends RowMapper[(Reports,Long)] {
-  def mapRow(rs : ResultSet, rowNum: Int) : (Reports,Long) = {
+object ReportsWithIdMapper extends RowMapper[(Reports,Int)] {
+  def mapRow(rs : ResultSet, rowNum: Int) : (Reports,Int) = {
     (ReportsMapper.mapRow(rs, rowNum),IdMapper.mapRow(rs, rowNum))
     }
 }
