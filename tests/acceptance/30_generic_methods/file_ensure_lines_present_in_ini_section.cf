@@ -50,7 +50,7 @@ ${line}";
 bundle agent test
 {
   methods:
-    "ph1" usebundle => file_ensure_lines_present_in_ini_section("${init.file}", "${init.section}", "${init.line}");
+    "ph1" usebundle => file_ensure_line_present_in_ini_section("${init.file}", "${init.section}", "${init.line}");
 }
 
 #######################################################
@@ -63,7 +63,7 @@ bundle agent check
   classes:
     "line_exists" expression => returnszero("${line_exists_test}", "noshell");
 
-    "ok"          expression => "line_exists.file_ensure_lines_present_in_ini_section_${init.file_canon}_ok.!file_ensure_lines_present_in_ini_section_${init.file_canon}_error";
+    "ok"          expression => "line_exists.file_ensure_line_present_in_ini_section_${init.file_canon}_ok.!file_ensure_line_present_in_ini_section_${init.file_canon}_error";
 
   reports:
     ok::
