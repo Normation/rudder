@@ -43,7 +43,6 @@ import JsCmds._
 import JE._
 import scala.xml.NodeSeq
 import collection.mutable.Buffer
-import com.normation.rudder.services.servers.PolicyServerManagementService
 import com.normation.utils.NetUtils.isValidNetwork
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.web.model.CurrentUser

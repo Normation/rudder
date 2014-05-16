@@ -75,7 +75,6 @@ trait PolicyServerManagementService {
 class PolicyServerManagementServiceImpl(
     roDirectiveRepository: RoDirectiveRepository
   , woDirectiveRepository: WoDirectiveRepository
-  , asyncDeploymentAgent : AsyncDeploymentAgent
 ) extends PolicyServerManagementService with Loggable {
 
   /**
@@ -113,8 +112,6 @@ class PolicyServerManagementServiceImpl(
       msg = Some("Automatic update of system directive due to modification of accepted networks ")
       saved <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)
     } yield {
-      //ask for a new policy deployment
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
       networks
     }
   }

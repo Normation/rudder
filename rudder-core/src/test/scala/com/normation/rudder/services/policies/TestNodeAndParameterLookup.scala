@@ -63,14 +63,14 @@ class TestNodeAndParameterLookup extends Specification {
 
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
-  val lookupService = new ParameterizedValueLookupServiceImpl(null)
+  val lookupService = new ParameterizedValueLookupServiceImpl()
 
 
   def lookup(
       nodeId: NodeId
     , variables: Seq[Variable]
     , parameters: Set[ParameterForConfiguration]
-    , allNodes:Set[NodeInfo]
+    , allNodes:Map[NodeId, NodeInfo]
   )(test:Seq[Seq[String]] => Example) : Example  = {
     lookupService.lookupNodeParameterization(nodeId, variables, parameters, allNodes) match {
       case eb:EmptyBox =>
@@ -170,49 +170,49 @@ class TestNodeAndParameterLookup extends Specification {
 
   "A single parameter" should {
     "be replaced by its value" in {
-      lookup(id1, Seq(var1), Set(fooParam), Set(node1))( values =>
+      lookup(id1, Seq(var1), Set(fooParam), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
       )
     }
 
     "understand if its value is a parameter" in {
-      lookup(id1, Seq(recurVariable), Set(fooParam, recurParam), Set(node1))( values =>
+      lookup(id1, Seq(recurVariable), Set(fooParam, recurParam), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
       )
     }
 
     "correctly escape regex special chars" in {
-      lookup(id1, Seq(dangerVariable), Set(dangerousChars), Set(node1))( values =>
+      lookup(id1, Seq(dangerVariable), Set(dangerousChars), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq(badChars)))
       )
     }
 
     "match when inputs are on multiline" in {
-      lookup(id1, Seq(multilineInputVariable), Set(fooParam), Set(node1))( values =>
+      lookup(id1, Seq(multilineInputVariable), Set(fooParam), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq("=\r= \nfooValue =\n=")))
       )
     }
 
     "throws an error when the curly brace after ${rudder. is not closed" in {
-      lookupService.lookupNodeParameterization(id1, Seq(badUnclosed), Set(), Set(node1)) must beEqualTo(
+      lookupService.lookupNodeParameterization(id1, Seq(badUnclosed), Set(), Map(node1.id -> node1)) must beEqualTo(
         Failure("Can not replace parameters in value '== ${rudder.param.foo ==' because a curly brace is not closed")
       )
     }
 
     "throws an error when the part after ${rudder.} is empty" in {
-      lookupService.lookupNodeParameterization(id1, Seq(badEmptyRudder), Set(), Set(node1)) must beEqualTo(
+      lookupService.lookupNodeParameterization(id1, Seq(badEmptyRudder), Set(), Map(node1.id -> node1)) must beEqualTo(
         Failure("Can not replace parameters in value '== ${rudder.} ==' because accessor '.' is not recognized")
       )
     }
 
     "throws an error when the part after ${rudder.} is not recognised" in {
-      lookupService.lookupNodeParameterization(id1, Seq(badUnknown), Set(fooParam), Set(node1)) must beEqualTo(
+      lookupService.lookupNodeParameterization(id1, Seq(badUnknown), Set(fooParam), Map(node1.id -> node1)) must beEqualTo(
         Failure("Can not replace parameters in value '== ${rudder.foo} ==' because accessor '.foo' is not recognized")
       )
     }
 
     "not match when parameter names are splited on multiple lines" in {
-      lookupService.lookupNodeParameterization(id1, Seq(multilineParamVariable), Set(fooParam), Set(node1)) must beEqualTo(
+      lookupService.lookupNodeParameterization(id1, Seq(multilineParamVariable), Set(fooParam), Map(node1.id -> node1)) must beEqualTo(
         Failure("Can not replace parameters in value '== ${rudder.\rparam.\nfoo} ==' because accessors contains spaces")
       )
     }
@@ -221,12 +221,12 @@ class TestNodeAndParameterLookup extends Specification {
 
   "A double parameter" should {
     "be replaced by its value" in {
-      lookup(id1, Seq(var1_double), Set(fooParam, barParam), Set(node1))( values =>
+      lookup(id1, Seq(var1_double), Set(fooParam, barParam), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValuebarValue ==")))
       )
     }
     "accept space between values" in {
-      lookup(id1, Seq(var1_double_space), Set(fooParam, barParam), Set(node1))( values =>
+      lookup(id1, Seq(var1_double_space), Set(fooParam, barParam), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue contains barValue ==")))
       )
     }
@@ -235,7 +235,7 @@ class TestNodeAndParameterLookup extends Specification {
 
   "Node parameters" should {
     "be correclty replaced by their values" in  {
-      lookup(id1, Seq(var2), Set(), Set(node1, root))( values =>
+      lookup(id1, Seq(var2), Set(), Map(node1.id -> node1, root.id -> root))( values =>
         values must containTheSameElementsAs(
             Seq(Seq(
                 s"a${id1.value})"
@@ -253,13 +253,13 @@ class TestNodeAndParameterLookup extends Specification {
 
   "Case" should {
     "not matter in the path" in {
-      lookup(id1, Seq(pathCaseInsensitive), Set(fooParam), Set(node1))( values =>
+      lookup(id1, Seq(pathCaseInsensitive), Set(fooParam), Map(node1.id -> node1))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
       )
     }
 
     "matter for parameter names" in {
-      lookupService.lookupNodeParameterization(id1, Seq(paramNameCaseSensitive), Set(), Set(node1)) must beEqualTo(
+      lookupService.lookupNodeParameterization(id1, Seq(paramNameCaseSensitive), Set(), Map(node1.id -> node1)) must beEqualTo(
         Failure("Unknow parametrized value : == ${rudder.param.Foo} ==")
       )
     }

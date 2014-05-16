@@ -38,13 +38,14 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.inventory.domain.NodeId
 
 trait RuleApplicationStatusService {
     def isApplied(
       rule        : Rule
     , groupLib    : FullNodeGroupCategory
     , directiveLib: FullActiveTechniqueCategory
-    , allNodeInfos: Set[NodeInfo]
+    , allNodeInfos: Map[NodeId, NodeInfo]
   ) : ApplicationStatus
 }
 
@@ -58,7 +59,7 @@ class RuleApplicationStatusServiceImpl extends RuleApplicationStatusService {
       rule        : Rule
     , groupLib    : FullNodeGroupCategory
     , directiveLib: FullActiveTechniqueCategory
-    , allNodeInfos: Set[NodeInfo]
+    , allNodeInfos: Map[NodeId, NodeInfo]
   ) : ApplicationStatus = {
 
     if(rule.isEnabled) {
