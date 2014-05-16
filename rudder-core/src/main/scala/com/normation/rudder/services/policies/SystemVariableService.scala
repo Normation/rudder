@@ -210,7 +210,8 @@ class SystemVariableServiceImpl(
 
       // Find the "policy children" of this policy server
       // thanks to the allNodeInfos, this is super easy
-      val children = allNodeInfos.filter(_.policyServerId == nodeInfo.id).toSeq
+      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
+      val children = allNodeInfos.filter(_.policyServerId == nodeInfo.id).toSeq.sortBy( _.id.value )
       varManagedNodes = varManagedNodes.copyWithSavedValues(children.map(_.hostname))
       varManagedNodesId = varManagedNodesId.copyWithSavedValues(children.map(_.id.value))
 
@@ -220,7 +221,8 @@ class SystemVariableServiceImpl(
 
       parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedUserVar), allNodeInfos, groupLib, directiveLib, allRules) match {
         case Full(variable) =>
-          varManagedNodesAdmin = varManagedNodesAdmin.copyWithSavedValues(variable.flatMap(x => x.values).distinct)
+          //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
+          varManagedNodesAdmin = varManagedNodesAdmin.copyWithSavedValues(variable.flatMap(x => x.values).distinct.sorted)
         case Empty =>
           logger.warn(s"There were no variable parametrized found for ${varNameForAdminUsers}, which means that the configuration of Policy Server with Rudder ID ${nodeInfo.id.value} is probably incorrect. Please run again the rudder-init.sh script, or the script used to add a Relay Server")
         case f: Failure =>
