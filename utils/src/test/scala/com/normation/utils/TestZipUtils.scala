@@ -135,7 +135,7 @@ class TestZipUtils extends Specification with Loggable {
     "with names 'some-dir/', 'some-dir/bar.txt', 'some-dir/foo.txt', 'some-dir/a-subdirectory/'\n,"+
     "'some-dir/b-subdirectory/', 'some-dir/b-subdirectory/a-file.pdf, 'some-dir/b-subdirectory/b-file.pdf'" in {
       val l = zip2.entries.toList
-      l.map( _.getName ) must haveTheSameElementsAs(List("some-dir/", "some-dir/bar.txt", "some-dir/foo.txt", "some-dir/a-subdirectory/", "some-dir/b-subdirectory/", "some-dir/b-subdirectory/a-file.pdf", "some-dir/b-subdirectory/b-file.pdf"))
+      l.map( _.getName ) must contain(exactly(List("some-dir/", "some-dir/bar.txt", "some-dir/foo.txt", "some-dir/a-subdirectory/", "some-dir/b-subdirectory/", "some-dir/b-subdirectory/a-file.pdf", "some-dir/b-subdirectory/b-file.pdf"):_*))
     }
 
     "'some-dir/b-subdirectory/a-file.pdf' has size 8442" in {
