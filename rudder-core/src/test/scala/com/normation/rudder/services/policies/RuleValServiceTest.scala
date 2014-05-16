@@ -202,9 +202,9 @@ class RuleValServiceTest extends Specification {
       "one variable should be reportKeysVariableName(component1) -> (variable_component1 :: (variable_component1one, variable_component1two))" in {
         val var1 = variables.get(reportKeysVariableName("component1"))
         var1 match {
-          case None => failure(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
+          case None => ko(s"Excepted variable variable_component1, but got nothing. The variables are ${variables}")
           case Some(vars) =>
-            vars.values.size == 3 &&
+            vars.values.size === 3 and
             vars.values === Seq("variable_component1", "variable_component1one", "variable_component1two")
         }
       }
@@ -225,7 +225,7 @@ class RuleValServiceTest extends Specification {
       }
 
       "first component should have 3 values" in {
-        cardinality.head.x._2.size == 3 && cardinality.head.x._3.size == 3
+        cardinality.head.x._2.size == 3 and cardinality.head.x._3.size == 3
       }
 
       "components component1 should have values variable_component1, variable_component1one, variable_component1two) " in {
