@@ -88,7 +88,7 @@ class DetectChangeInNodeConfiguration extends Loggable {
     }
 
     logger.trace(s"Checking changes in node '${targetConfig.nodeInfo.id.value}'")
-    currentOpt match {
+    val changedRuleIds = currentOpt match {
       case None =>
         //what do we do if we don't have a cache for the node ? All the target rules are "changes" ?
         logger.trace("`-> No node configuration cache availabe for that node")
@@ -160,6 +160,9 @@ class DetectChangeInNodeConfiguration extends Loggable {
           }
         }
     }
+
+    logger.trace(s"`-> change rules for node ${targetConfig.nodeInfo.id.value}: [${changedRuleIds.map( _.value).mkString(", ")}]")
+    changedRuleIds
   }
 
 }
