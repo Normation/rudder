@@ -59,6 +59,7 @@ import scala.xml.Elem
 import org.specs2.specification.Fragments
 import org.specs2.specification.Step
 import java.sql.Timestamp
+import org.specs2.matcher.XmlMatchers
 
 case class MigEx102(msg:String) extends Exception(msg)
 
@@ -78,7 +79,7 @@ case class MigEx102(msg:String) extends Exception(msg)
  * That database should be empty to avoid table name collision.
  */
 @RunWith(classOf[JUnitRunner])
-class TestDbMigration_2_3 extends DBCommon {
+class TestDbMigration_2_3 extends DBCommon with XmlMatchers {
 
   lazy val migration = new EventLogsMigration_2_3(
       jdbcTemplate = jdbcTemplate
@@ -176,7 +177,7 @@ CREATE TEMP TABLE EventLog (
           (l.severity == severity must beTrue) and
           (l.data must be_==/(data))
 
-        case x => failure("Bad TestLog (no id): " + x)
+        case x => ko("Bad TestLog (no id): " + x)
       }
     }
 
@@ -193,7 +194,7 @@ CREATE TEMP TABLE EventLog (
  * That database should be empty to avoid table name collision.
  */
 @RunWith(classOf[JUnitRunner])
-class TestDbMigration_2_3b extends DBCommon {
+class TestDbMigration_2_3b extends DBCommon with XmlMatchers {
 
 
   lazy val migration = new EventLogsMigration_2_3(
@@ -277,10 +278,10 @@ CREATE TEMP TABLE MigrationEventLog(
         case Full(MigrationSuccess(i)) =>
            i must beEqualTo(logs3WithId.size)
         case Full(x) =>
-          failure("Migration not working, found result: " + x)
+          ko("Migration not working, found result: " + x)
         case eb:EmptyBox =>
           val e = eb ?~! "Migration not working"
-          failure(e.messageChain)
+          ko(e.messageChain)
       }
     }
 
@@ -305,7 +306,7 @@ CREATE TEMP TABLE MigrationEventLog(
           (l.severity == severity must beTrue) and
           (l.data must be_==/(data))
 
-        case x => failure("Bad TestLog (no id): " + x)
+        case x => ko("Bad TestLog (no id): " + x)
       }
     }
   }
