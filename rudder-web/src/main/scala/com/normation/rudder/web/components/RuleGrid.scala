@@ -66,6 +66,9 @@ import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
 import net.liftweb.json.JObject
 import net.liftweb.json.JField
+import net.liftweb.http.js.JE.JsArray
+import com.normation.rudder.web.services.JsTableLine
+import com.normation.rudder.web.services.JsTableData
 
 
 
@@ -73,6 +76,7 @@ object RuleGrid {
   def staticInit =
     <head>
       <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
+      <script type="text/javascript" language="javascript" src="/javascript/rudder/rudder-datatable.js"></script>
       <style type="text/css">
         #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
         .greenCompliance {{ background-color: #CCFFCC }}
@@ -81,6 +85,7 @@ object RuleGrid {
         .noCompliance   {{ background-color:#BBAAAA; }}
         .applyingCompliance {{ background-color:#CCCCCC; }}
         .compliance {{ text-align: center; }}
+        .statusCell {{font-weight:bold}}
       </style>
     </head>
 }
@@ -93,6 +98,23 @@ class RuleGrid(
   , showCheckboxColumn:Boolean = true
   , directiveApplication : Option[DirectiveApplicationManagement] = None
 ) extends DispatchSnippet with Loggable {
+
+  private[this] sealed trait Line { val rule:Rule }
+
+
+  private[this] case class OKLine(
+      rule             : Rule
+    , compliance       : Option[ComplianceLevel]
+    , applicationStatus: ApplicationStatus
+    , trackerVariables : Seq[(Directive,ActiveTechnique,Technique)]
+    , targets          : Set[RuleTargetInfo]
+  ) extends Line with HashcodeCaching
+
+  private[this] case class ErrorLine(
+      rule:Rule
+    , trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]]
+    , targets:Box[Set[RuleTargetInfo]]
+  ) extends Line with HashcodeCaching
 
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
@@ -183,7 +205,7 @@ class RuleGrid(
     , popup       : Boolean = false
     , linkCompliancePopup:Boolean = true
   ) : NodeSeq = {
-    showRulesDetails(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib) match {
+    getRulesTableData(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get information about rules"
         logger.error(e.messageChain)
@@ -199,340 +221,268 @@ class RuleGrid(
         </div>
 
 
-      case Full(xml) =>
-        val tableVar = jsVarNameForId(htmlId_rulesGridId)
+      case Full(tableData) =>
         val onLoad =
           s"""
-      /* Event handler function */
-       ${tableVar} = $$('#${htmlId_rulesGridId}').dataTable({
-        "asStripeClasses": [ 'color1', 'color2' ],
-        "bAutoWidth": false,
-        "bFilter" : true,
-        "bPaginate" : true,
-        "bLengthChange": true,
-        "sPaginationType": "full_numbers",
-        "bJQueryUI": true,
-        "bStateSave": true,
-        "sCookiePrefix": "Rudder_DataTables_",
-        "oLanguage": {
-          "sZeroRecords": "No matching rules!",
-          "sSearch": ""
-        },
-        "aaSorting": [[ ${ if (showCheckboxColumn) 1 else 0}, "asc" ]],
-        "aoColumns": [${ if(showCheckboxColumn) """
-          { "sWidth": "30px" , "bSortable" : false},""" else "" }
-          { "sWidth": "90px" },
-          { "sWidth": "120px"  },
-          { "sWidth": "60px" },
-          { "sWidth": "40px"  }${ if(!popup) """,
-          { "sWidth": "20px", "bSortable" : false }""" else "" }
-        ],
-        "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-      });
-      $$('.dataTables_filter input').attr("placeholder", "Search");
+      var allcheckboxCallback = function(checked) { ${SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean))}};
+      createRuleTable ("${htmlId_rulesGridId}", ${tableData.json.toJsCmd}, ${showCheckboxColumn}, ${popup}, allcheckboxCallback, "${S.contextPath}");
       createTooltip();
-          createTooltiptr();
-          $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
-          """
-
-
-    (
-        <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
-            <div id={htmlId_reportsPopup} ></div>
-          </div>
-          <table id={htmlId_rulesGridId} class="display" cellspacing="0">
-            <thead>
-              <tr class="head">
-                { if(showCheckboxColumn) <th>{SHtml.ajaxCheckbox(false, value => selectAllVisibleRules(value))}</th> else NodeSeq.Empty }
-                <th>Name</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th>Compliance</th>
-                { if (!popup) <th/> else NodeSeq.Empty }
-              </tr>
-            </thead>
-            <tbody>
-            {xml}
-            </tbody>
-          </table>
-          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
-            <div id={htmlId_rulesGridId +"_paginate_area"}></div>
-          </div>
+      createTooltiptr();
+      $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
+      $$('#${htmlId_rulesGridWrapper} thead tr').addClass("head");
+      """
+    ( <div id={htmlId_rulesGridZone}>
+        <div id={htmlId_modalReportsPopup} class="nodisplay">
+          <div id={htmlId_reportsPopup} ></div>
         </div>
+        <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>
+        <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
+          <div id={htmlId_rulesGridId +"_paginate_area"}></div>
+        </div>
+      </div>
     ) ++
-     Script(JsRaw(s"var ${tableVar};") &     //pop-ups for multiple Directives
-      JsRaw( """var openMultiPiPopup = function(popupid) {
-          createPopup(popupid);
-          createTooltip();
-          createTooltiptr();
-     }""") &
- OnLoad(JsRaw(onLoad)))
+    Script(OnLoad(JsRaw(onLoad)))
 
-  }
+    }
   }
 
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-  private[this] def showRulesDetails(
+  /*
+   * Get Data to use in the datatable for all Rules
+   * First: transform all Rules to Lines
+   * Second: Transform all of those lines into javascript datas to send in the function
+   */
+  private[this] def getRulesTableData(
       popup:Boolean
     , rules:Seq[Rule]
     , linkCompliancePopup:Boolean
     , allNodeInfos: Box[Map[NodeId, NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]) : Box[NodeSeq] = {
-    sealed trait Line { val rule:Rule }
-
-    // we compute beforehand the compliance, so that we have a single big query
-    // to the database
-    val complianceMap = computeCompliances(rules.toSet)
-
-    case class OKLine(
-        rule             : Rule
-      , compliance       : Option[ComplianceLevel]
-      , applicationStatus: ApplicationStatus
-      , trackerVariables : Seq[(Directive,ActiveTechnique,Technique)]
-      , targets          : Set[RuleTargetInfo]
-    ) extends Line with HashcodeCaching
-
-    case class ErrorLine(
-        rule:Rule,
-        trackerVariables: Box[Seq[(Directive,ActiveTechnique,Technique)]],
-        targets:Box[Set[RuleTargetInfo]]
-    ) extends Line with HashcodeCaching
-
-
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////////// actual start of the logic of the grid displaying /////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
-    def displayGridLines(directivesLib: FullActiveTechniqueCategory, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo]) : NodeSeq = {
-    //for each rule, get all the required info and display them
-    val lines:Seq[Line] = rules.map { rule =>
-
-      val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] =
-        sequence(rule.directiveIds.toSeq) { id =>
-          directivesLib.allDirectives.get(id) match {
-            case Some((activeTechnique, directive)) =>
-              techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
-                case None => Failure("Can not find Technique for activeTechnique with name %s referenced in Rule with ID %s".format(activeTechnique.techniqueName, rule.id))
-                case Some(technique) => Full((directive, activeTechnique.toActiveTechnique, technique))
-              }
-            case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-                val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")
-                logger.debug(error.messageChain, error)
-                error
-            }
-        }
-
-      val targetsInfo = sequence(rule.targets.toSeq) {
-        case json:CompositeRuleTarget =>
-          val ruleTargetInfo = RuleTargetInfo(json,"","",true,false)
-          Full(ruleTargetInfo)
-
-        case target =>
-          groupsLib.allTargets.get(target) match {
-            case Some(t) => Full(t.toTargetInfo)
-            case None => Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
-          }
-      }.map(x => x.toSet)
-
-      (trackerVariables, targetsInfo) match {
-        case (Full(seq), Full(targets)) =>
-          val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
-          val compliance =  applicationStatus match {
-            case _:NotAppliedStatus => Full(None)
-            case _ => complianceMap.getOrElse(rule.id, Failure(s"Error when getting compliance for Rule ${rule.name}"))
-          }
-          compliance match {
-            case e:EmptyBox => ErrorLine(rule, trackerVariables, targetsInfo)
-            case Full(value) => OKLine(rule, value, applicationStatus, seq, targets)
-          }
-        case (x,y) =>
-          if(rule.isEnabledStatus) {
-          //the Rule has some error, try to disactivate it
-            //and be sure to not get a Rules from a modification pop-up, because we don't want to commit changes along
-            //with the disable.
-            //it's only a try, so it may fails, we won't try again
-            (for {
-              r <- roRuleRepository.get(rule.id)
-              _ <- woRuleRepository.update(r.copy(isEnabledStatus=false), ModificationId(uuidGen.newUuid), RudderEventActor,
-            Some("Rule automatically disabled because it contains error (bad target or bad directives)"))
-            } yield {
-              logger.warn(s"Disabling rule '${rule.name}' (ID: '${rule.id.value}') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.")
-              x match {
-                case f: Failure => logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' directive problem: " + f.messageChain)
-                case _ => //
-              }
-              y match {
-                case f: Failure => logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
-                case _ => //
-              }
-            }) match {
-              case eb: EmptyBox =>
-                val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
-                logger.warn(e.messageChain)
-                e.rootExceptionCause.foreach { ex =>
-                  logger.warn("Exception was: ", ex)
-                }
-              case _ => //ok
-            }
-          }
-          ErrorLine(rule, x, y)
-      }
-    }
-
-      def status(line: Line) =
-        line match {
-          case line : OKLine =>
-            line.applicationStatus match {
-              case FullyApplied => Text("In application")
-              case PartiallyApplied(seq) =>
-                val tooltipId = Helpers.nextFuncName
-                val why = seq.map { case (at, d) => "Policy " + d.name + " disabled" }.mkString(", ")
-                <span class="tooltip tooltipable" title="" tooltipid={tooltipId}>Partially applied</span>
-                <div class="tooltipContent" id={tooltipId}><h3>Reason(s)</h3><div>{why}</div></div>
-              case x:NotAppliedStatus =>
-                val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
-                val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
-                val conditions = {
-                  Seq(
-                      ( line.rule.isEnabled            , "rule disabled" )
-                    , ( line.trackerVariables.size > 0 , "No policy defined")
-                    , ( isAllTargetsEnabled            , "Group disabled")
-                    , ( nodeSize!=0                    , "Empty groups")
-                  ) ++
-                  line.trackerVariables.flatMap {
-                    case (directive, activeTechnique,_) =>
-                      Seq(
-                          ( directive.isEnabled , "Directive " + directive.name + " disabled")
-                        , ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
-                      )
-                  }
-                }
-                val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
-                <span class="tooltip tooltipable" title="" tooltipid={"na-"+line.rule.id.value}>Not applied</span>
-                 <div class="tooltipContent" id={"na-"+line.rule.id.value}><h3>Reason(s)</h3><div>{why}</div></div>
-            }
-        case _ : ErrorLine => "N/A"
-      }
-
-      def compliance(line:Line) = {
-        line match {
-          case line : OKLine => buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
-          case _ => <td class="compliance noCompliance"> N/A</td>
-        }
-      }
-
-
-
-    //now, build html lines
-      lines.flatMap { line =>
-        val tooltipId = Helpers.nextFuncName
-        val descriptionTooltip = {
-          if(line.rule.shortDescription.size > 0){
-            <div class="tooltipContent" id={tooltipId}>
-              <h3>{line.rule.name}</h3>
-              <div>{line.rule.shortDescription}</div>
-            </div>
-           } else {
-             NodeSeq.Empty
-           }
-        }
-
-        val editButton = {
-          if (!popup) {
-            <td class="parametersTd">{
-              detailsCallbackLink match {
-                case None => Text("No parameters")
-                case Some(callback) =>
-                  SHtml.ajaxButton(
-                      "Edit"
-                    , () =>  callback(line.rule,"showEditForm")
-                    , ("class", "smallButton")
-                  )
-              }
-            }
-            </td>
-          } else {
-            NodeSeq.Empty
-          }
-        }
-
-        val checkBoxColumn = {
-          directiveApplication match {
-            case Some(directiveApplication) =>
-              def check(value : Boolean) : JsCmd= {
-                directiveApplication.checkRule(line.rule.id, value) match {
-                  case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
-                    JsRaw(s"""
-                      ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
-                      ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
-                      ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
-                    """)
-                  }
-              }
-              val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
-              val xml = SHtml.ajaxCheckbox(isApplying, check _, ("id",line.rule.id.value+"Checkbox"))
-              <td>{xml}</td>
-            case None => NodeSeq.Empty
-          }
-        }
-
-        val cssClass = {
-          val disabled = {
-            if (line.rule.isEnabled)
-              ""
-            else
-             "disabledRule"
-          }
-
-          val error =
-            line match{
-              case _:ErrorLine => " error"
-              case _ => ""
-            }
-
-          s"tooltipabletr ${disabled} ${error}"
-        }
-
-        val xml =
-        <tr tooltipid={tooltipId} class={cssClass} title="" id={line.rule.id.value}>
-          { checkBoxColumn }
-          <td>
-            { if(popup) {
-                <a href={"""/secure/configurationManager/ruleManagement#{"ruleId":"%s"}""".format(line.rule.id.value)}>{detailsLink(line.rule, line.rule.name)}</a>
-              } else {
-                detailsLink(line.rule, line.rule.name)
-            } }
-          </td>
-          <td>
-            { categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error") }
-          </td>
-          <td>
-            <b>{ status(line) }</b>
-          </td>
-          { compliance(line) }
-          { editButton }
-        </tr>
-
-
-        descriptionTooltip ++ xml
-
-      }
-    }
+    , directiveLib: Box[FullActiveTechniqueCategory]) : Box[JsTableData[RuleLine]] = {
 
     for {
       directivesLib <- directiveLib
       groupsLib     <- groupLib
       nodes         <- allNodeInfos
     } yield {
-      displayGridLines(directivesLib, groupsLib, nodes)
+      val lines = for {
+         line <- convertRulesToLines(directivesLib, groupsLib, nodes)
+      } yield {
+        getRuleData(line, groupsLib, nodes)
+      }
+      JsTableData(lines)
     }
+
+  }
+
+
+  /*
+   * Convert Rules to Data used in Datatables Lines
+   */
+  private[this] def convertRulesToLines (
+      directivesLib: FullActiveTechniqueCategory
+    , groupsLib: FullNodeGroupCategory
+    , nodes: Map[NodeId, NodeInfo]
+  ) : List[Line] = { rules.toList.map {
+    rule =>
+    // we compute beforehand the compliance, so that we have a single big query
+    // to the database
+    val complianceMap = computeCompliances(rules.toSet)
+
+    val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] = {
+      sequence(rule.directiveIds.toSeq) { id =>
+        directivesLib.allDirectives.get(id) match {
+          case Some((activeTechnique, directive)) =>
+            techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
+              case None =>
+                Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName} referenced in Rule with ID ${rule.id.value}")
+              case Some(technique) =>
+                Full((directive, activeTechnique.toActiveTechnique, technique))
+            }
+          case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
+            val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")
+            logger.debug(error.messageChain, error)
+            error
+        }
+      }
+    }
+
+    val targetsInfo = sequence(rule.targets.toSeq) {
+      case json:CompositeRuleTarget =>
+        val ruleTargetInfo = RuleTargetInfo(json,"","",true,false)
+        Full(ruleTargetInfo)
+      case target =>
+        groupsLib.allTargets.get(target) match {
+          case Some(t) =>
+            Full(t.toTargetInfo)
+          case None =>
+            Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
+        }
+     }.map(x => x.toSet)
+
+     (trackerVariables, targetsInfo) match {
+       case (Full(seq), Full(targets)) =>
+         val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
+         val compliance =  applicationStatus match {
+           case _:NotAppliedStatus =>
+             Full(None)
+           case _ =>
+             complianceMap.getOrElse(rule.id, Failure(s"Error when getting compliance for Rule ${rule.name}"))
+         }
+         compliance match {
+           case e:EmptyBox =>
+             ErrorLine(rule, trackerVariables, targetsInfo)
+           case Full(value) =>
+             OKLine(rule, value, applicationStatus, seq, targets)
+         }
+       case (x,y) =>
+         if(rule.isEnabledStatus) {
+           //the Rule has some error, try to disable it
+           //and be sure to not get a Rules from a modification pop-up, because we don't want to commit changes along
+           //with the disable.
+           //it's only a try, so it may fails, we won't try again
+           ( for {
+             r <- roRuleRepository.get(rule.id)
+             _ <- woRuleRepository.update(
+                      r.copy(isEnabledStatus=false)
+                    , ModificationId(uuidGen.newUuid)
+                    , RudderEventActor
+                    , Some("Rule automatically disabled because it contains error (bad target or bad directives)")
+                  )
+           } yield {
+             logger.warn(s"Disabling rule '${rule.name}' (ID: '${rule.id.value}') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.")
+             x match {
+               case f: Failure =>
+                 logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' directive problem: " + f.messageChain)
+               case _ => // Directive Ok!
+             }
+             y match {
+                  case f: Failure =>
+                    logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
+                  case _ => // Group Ok!
+             }
+           } ) match {
+             case eb: EmptyBox =>
+               val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
+               logger.warn(e.messageChain)
+               e.rootExceptionCause.foreach { ex =>
+                 logger.warn("Exception was: ", ex)
+               }
+             case _ => //ok
+           }
+         }
+         ErrorLine(rule, x, y)
+      }
+    }
+  }
+
+
+  /*
+   * Generates Data for a line of the table
+   */
+  private[this]  def getRuleData (line:Line, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo]) : RuleLine = {
+
+    // Status is the state of the Rule, defined as a string
+    // reasons are the the reasons why a Rule is disabled
+    val (status,reasons) : (String,Option[String]) =
+      line match {
+        case line : OKLine =>
+          line.applicationStatus match {
+            case FullyApplied => ("In application",None)
+            case PartiallyApplied(seq) =>
+              val why = seq.map { case (at, d) => "Directive " + d.name + " disabled" }.mkString(", ")
+              ("Partially applied", Some(why))
+            case x:NotAppliedStatus =>
+              val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
+              val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
+              val conditions = {
+                Seq( ( line.rule.isEnabled            , "Rule disabled" )
+                   , ( line.trackerVariables.size > 0 , "No policy defined")
+                   , ( isAllTargetsEnabled            , "Group disabled")
+                   , ( nodeSize!=0                    , "Empty groups")
+                ) ++
+                line.trackerVariables.flatMap {
+                  case (directive, activeTechnique,_) =>
+                    Seq( ( directive.isEnabled , "Directive " + directive.name + " disabled")
+                       , ( activeTechnique.isEnabled, "Technique for '" + directive.name + "' disabled")
+                    )
+                }
+              }
+              val why =  conditions.collect { case (ok, label) if(!ok) => label }.mkString(", ")
+              ("Not applied", Some(why))
+          }
+        case _ : ErrorLine => ("N/A",None)
+    }
+
+    // Compliance percent and class to apply to the td
+    val (complianceClass,compliancePercent) = {
+      line match {
+        case line : OKLine => buildComplianceChart(line.compliance)
+        case _ => ("noCompliance","N/A")
+      }
+    }
+
+    // Is the ruple applying a Directive and callback associated to the checkbox
+    val (applying,checkboxCallback) = {
+      directiveApplication match {
+        case Some(directiveApplication) =>
+          def check(value : Boolean) : JsCmd= {
+            directiveApplication.checkRule(line.rule.id, value) match {
+              case DirectiveApplicationResult(rules,completeCategories,indeterminate) =>
+              JsRaw(s"""
+                ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",false); """).mkString("\n")}
+                ${completeCategories.map(c => s"""$$('#${c.value}Checkbox').prop("checked",${value}); """).mkString("\n")}
+                ${indeterminate.map(c => s"""$$('#${c.value}Checkbox').prop("indeterminate",true); """).mkString("\n")}
+              """)
+            }
+          }
+          val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
+          val ajax = SHtml.ajaxCall(JsVar("checked"), bool => check (bool.toBoolean))
+          val callback = AnonFunc("checked",ajax)
+          (isApplying,Some(callback))
+        case None => (false,None)
+      }
+    }
+
+    // Css to add to the whole line
+    val cssClass = {
+      val disabled = if (line.rule.isEnabled) {
+        ""
+      } else {
+        "disabledRule"
+      }
+
+      val error = line match {
+        case _:ErrorLine => " error"
+        case _ => ""
+      }
+
+      s"tooltipabletr ${disabled} ${error}"
+    }
+
+    val category = categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error")
+
+    // Callback to use on links, parameter define the tab to open "showForm" for compliance, "showEditForm" to edit form
+    val callback = for {
+      callback <- detailsCallbackLink
+      ajax = SHtml.ajaxCall(JsVar("action"), (s: String) => callback(line.rule,s))
+    } yield {
+      AnonFunc("action",ajax)
+    }
+
+    RuleLine (
+        line.rule.name
+      , line.rule.id
+      , line.rule.shortDescription
+      , applying
+      , category
+      , status
+      , compliancePercent
+      , complianceClass
+      , cssClass
+      , callback
+      , checkboxCallback
+      , reasons
+   )
 
   }
 
@@ -550,42 +500,81 @@ class RuleGrid(
     }
   }
 
-  private[this] def detailsLink(rule:Rule, text:String) : NodeSeq = {
-    detailsCallbackLink match {
-      case None => Text(text)
-      case Some(callback) => SHtml.a( () => callback(rule,"showForm"), Text(text))
-    }
-  }
-
-  private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean) : NodeSeq = {
-
-    val (complianceClass,content) =
+  private[this] def buildComplianceChart(level:Option[ComplianceLevel]) : (String,String) = {
       level match {
-        case None => ("noCompliance",Text("N/A"))
-        case Some(Applying) => ("applyingCompliance",Text("Applying"))
-        case Some(NoAnswer) => ("noCompliance",Text("No answer"))
+        case None => ("noCompliance","N/A")
+        case Some(Applying) => ("applyingCompliance","Applying")
+        case Some(NoAnswer) => ("noCompliance","No answer")
         case Some(Compliance(percent)) =>
           val complianceClass =  if (percent <= 10 ) "redCompliance"
             else if(percent >= 90) "greenCompliance"
               else "orangeCompliance"
           val text = percent.toString + "%"
-          val res = if(linkCompliancePopup)
-            detailsLink(rule, text)
-          else Text(text)
-          (complianceClass,res)
-      }
-    ("td [class+]" #> complianceClass&
-     "td *+" #> content ) apply <td class="compliance"/>
-  }
 
+          (complianceClass,text)
+      }
+  }
+}
+
+  /*
+   *   Javascript object containing all data to create a line in the DataTable
+   *   { "name" : Rule name [String]
+   *   , "id" : Rule id [String]
+   *   , "description" : Rule (short) description [String]
+   *   , "applying": Is the rule applying the Directive, used in Directive page [Boolean]
+   *   , "category" : Rule category [String]
+   *   , "status" : Status of the Rule, "enabled", "disabled" or "N/A" [String]
+   *   , "compliance" : Percent of compliance of the Rule [String]
+   *   , "complianceClass" : Class to apply on the compliance td [String]
+   *   , "trClass" : Class to apply on the whole line (disabled ?) [String]
+   *   , "callback" : Function to use when clicking on one of the line link, takes a parameter to define which tab to open, not always present[ Function ]
+   *   , "checkboxCallback": Function used when clicking on the checkbox to apply/not apply the Rule to the directive, not always present [ Function ]
+   *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
+   *   }
+   */
+case class RuleLine (
+    name             : String
+  , id               : RuleId
+  , description      : String
+  , applying         : Boolean
+  , category         : String
+  , status           : String
+  , compliance       : String
+  , complianceClass  : String
+  , trClass          : String
+  , callback         : Option[AnonFunc]
+  , checkboxCallback : Option[AnonFunc]
+  , reasons          : Option[String]
+) extends JsTableLine {
+
+    /* Would love to have a reflexive way to generate that map ...  */
+    override val json  = {
+
+      val reasonField =  reasons.map(r => ( "reasons" -> Str(r)))
+
+      val cbCallbackField = checkboxCallback.map(cb => ( "checkboxCallback" -> cb))
+
+      val callbackField = callback.map(cb => ( "callback" -> cb))
+
+      val optFields : Seq[(String,JsExp)]= reasonField.toSeq ++ cbCallbackField ++ callbackField
+
+      val base = JsObj(
+          ( "name", name )
+        , ( "id", id.value )
+        , ( "description", description )
+        , ( "applying",  applying )
+        , ( "category", category )
+        , ( "status", status )
+        , ( "compliance", compliance )
+        , ( "complianceClass", complianceClass )
+        , ( "trClass", trClass )
+      )
+
+      base +* JsObj(optFields:_*)
+    }
 }
 sealed trait ComplianceLevel
-
-
 case object Applying extends ComplianceLevel
 case object NoAnswer extends ComplianceLevel
 case class Compliance(val percent:Int) extends ComplianceLevel with HashcodeCaching
-
-
-
 

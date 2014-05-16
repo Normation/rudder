@@ -149,6 +149,11 @@ div.intro div ul {
 form a {
    color: #f79d10;
 }
+
+form table a {
+   color: black;
+}
+
 form h2 {
    padding: 0 10px;
    font-size: 1.2em;
@@ -2024,7 +2029,10 @@ color: #FF0000 !important;
 
 .smallButton {
   width: 40px !important;
-  height: 22px !important;
+  margin-top: 0 !important;
+  margin-down: 0 !important;
+  padding-top: 2px !important;
+  padding-down: 2px !important;
   font-size : 11px !important;
   font-weight:100 !important;
 }
