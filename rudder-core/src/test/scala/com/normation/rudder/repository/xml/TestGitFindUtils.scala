@@ -117,47 +117,47 @@ class TestGitFindUtils extends Specification with Loggable {
 
   "the walk" should {
     "return all results when no filter provided" in {
-      list(Nil,Nil) must haveTheSameElementsAs(allPaths)
+      list(Nil,Nil) must contain(exactly(allPaths:_*))
     }
 
     "return all results when all dir are provided as filter" in {
-      list(List("a", "b", "x"),Nil) must haveTheSameElementsAs(allPaths)
+      list(List("a", "b", "x"),Nil) must contain(exactly(allPaths:_*))
     }
 
     "return all results when all extension are provided" in {
-      list(Nil,List("pdf", "txt", "plop")) must haveTheSameElementsAs(allPaths)
+      list(Nil,List("pdf", "txt", "plop")) must contain(exactly(allPaths:_*))
     }
 
     "return only files under a when filter for 'a'" in {
-      list(List("a"),Nil) must haveTheSameElementsAs(allDirA)
+      list(List("a"),Nil) must contain(exactly(allDirA:_*))
     }
 
     "return only files under a when filter for a/" in {
-      list(List("a/"),Nil) must haveTheSameElementsAs(allDirA)
+      list(List("a/"),Nil) must contain(exactly(allDirA:_*))
     }
 
     "return only files under a when filter for a/a" in {
-      list(List("a/a"),Nil) must haveTheSameElementsAs(allDirAA)
+      list(List("a/a"),Nil) must contain(exactly(allDirAA:_*))
     }
 
     "return only files under a when filter for 'b'" in {
-      list(List("b"),Nil) must haveTheSameElementsAs(allDirB)
+      list(List("b"),Nil) must contain(exactly(allDirB:_*))
     }
 
     "return both files under 'a' and 'b'" in {
-      list(List("a", "b"), Nil) must haveTheSameElementsAs(allDirA ++ allDirB)
+      list(List("a", "b"), Nil) must contain(exactly(allDirA ++ allDirB:_*))
     }
 
     "return all .txt" in {
-      list(Nil, List(".txt")) must haveTheSameElementsAs(allTxt)
+      list(Nil, List(".txt")) must contain(exactly(allTxt:_*))
     }
 
     "return all .txt and .pdf" in {
-      list(Nil, List(".txt", "pdf")) must haveTheSameElementsAs(allTxt ++ allPdf)
+      list(Nil, List(".txt", "pdf")) must contain(exactly(allTxt ++ allPdf:_*))
     }
 
     "return x/f.txt/f.txt" in {
-      list(List("x"), List(".txt")) must haveTheSameElementsAs(allDirX)
+      list(List("x"), List(".txt")) must contain(exactly(allDirX:_*))
     }
 
     "return nothing" in {
@@ -165,11 +165,11 @@ class TestGitFindUtils extends Specification with Loggable {
     }
 
     "ignore empty path" in {
-      list(List("x", ""), Nil) must haveTheSameElementsAs(allDirX)
+      list(List("x", ""), Nil) must contain(exactly(allDirX:_*))
     }
 
     "ignore empty extension" in {
-      list(Nil, List("txt", "")) must haveTheSameElementsAs(allTxt)
+      list(Nil, List("txt", "")) must contain(exactly(allTxt:_*))
     }
 
   }
