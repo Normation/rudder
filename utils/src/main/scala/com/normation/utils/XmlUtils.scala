@@ -78,7 +78,7 @@ object XmlUtils {
       doc <- try {
                Full(XML.load(is))
              } catch {
-               case e: SAXParseException =>0
+               case e: SAXParseException =>
                  Failure(s"Unexpected issue with the XML file ${name}: ${e.getMessage}", Full(e), Empty)
                case e: java.net.MalformedURLException =>
                  Failure("XML file not found: " + name, Full(e), Empty)
