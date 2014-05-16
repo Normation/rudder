@@ -237,7 +237,7 @@ object DisplayDirectiveTree extends Loggable {
           if (addEditLink) {
               <img src="/images/icPen.png" class="treeActions treeAction noRight" /> ++ Script(JsRaw(s"""
                 $$('#${htmlId} .treeActions').on("mouseup", function(e) {
-                  var url = '/secure/configurationManager/directiveManagement#{"directiveId":"${directive.id.value}"}';
+                  var url = '${S.contextPath}/secure/configurationManager/directiveManagement#{"directiveId":"${directive.id.value}"}';
                   // If using middle button, open the link in a new tab
                   if( e.which == 2 ) {
                     window.open(url, '_blank');
