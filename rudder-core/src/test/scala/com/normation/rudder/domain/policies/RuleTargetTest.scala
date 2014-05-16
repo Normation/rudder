@@ -25,17 +25,18 @@ class RuleTargetTest extends Specification with Loggable {
   val allNodeIds = nodeIds + NodeId("root")
   val nodes = allNodeIds.map {
     id =>
-      NodeInfo (
-        id, s"Node-${id}"
-      , "" ,"" ,"" ,"" ,""
-      , None, Nil, DateTime.now
-      , "", Seq(), NodeId("root")
-      , "", DateTime.now
-      , false, false, false
+      (
+        id
+      , NodeInfo (
+          id, s"Node-${id}"
+        , "" ,"" ,"" ,"" ,""
+        , None, Nil, DateTime.now
+        , "", Seq(), NodeId("root")
+        , "", DateTime.now
+        , false, false, false
+      )
     )
-  }
-
-
+  }.toMap
 
   val g1 = NodeGroup (
     NodeGroupId("1"), "Empty group", "", None, false, Set(), true

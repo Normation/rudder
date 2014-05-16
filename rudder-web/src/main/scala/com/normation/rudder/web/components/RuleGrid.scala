@@ -177,7 +177,7 @@ class RuleGrid(
   }
 
   def rulesGrid(
-      allNodeInfos: Box[Set[NodeInfo]]
+      allNodeInfos: Box[Map[NodeId, NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
     , directiveLib: Box[FullActiveTechniqueCategory]
     , popup       : Boolean = false
@@ -279,7 +279,7 @@ class RuleGrid(
       popup:Boolean
     , rules:Seq[Rule]
     , linkCompliancePopup:Boolean
-    , allNodeInfos: Box[Set[NodeInfo]]
+    , allNodeInfos: Box[Map[NodeId, NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
     , directiveLib: Box[FullActiveTechniqueCategory]) : Box[NodeSeq] = {
     sealed trait Line { val rule:Rule }
@@ -310,7 +310,7 @@ class RuleGrid(
 
 
 
-    def displayGridLines(directivesLib: FullActiveTechniqueCategory, groupsLib: FullNodeGroupCategory, nodes: Set[NodeInfo]) : NodeSeq = {
+    def displayGridLines(directivesLib: FullActiveTechniqueCategory, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo]) : NodeSeq = {
     //for each rule, get all the required info and display them
     val lines:Seq[Line] = rules.map { rule =>
 
@@ -423,7 +423,7 @@ class RuleGrid(
 
       def compliance(line:Line) = {
         line match {
-          case line : OKLine => buildComplianceChart(line.compliance, line.rule, linkCompliancePopup, nodes)
+          case line : OKLine => buildComplianceChart(line.compliance, line.rule, linkCompliancePopup)
           case _ => <td class="compliance noCompliance"> N/A</td>
         }
       }
@@ -557,7 +557,7 @@ class RuleGrid(
     }
   }
 
-  private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean, allNodes: Set[NodeInfo]) : NodeSeq = {
+  private[this] def buildComplianceChart(level:Option[ComplianceLevel], rule: Rule, linkCompliancePopup:Boolean) : NodeSeq = {
 
     val (complianceClass,content) =
       level match {

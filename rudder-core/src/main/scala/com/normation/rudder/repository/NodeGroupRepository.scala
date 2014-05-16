@@ -160,13 +160,13 @@ final case class FullNodeGroupCategory(
   /**
    * Return all node ids that match the set of target.
    */
-  def getNodeIds(targets: Set[RuleTarget], allNodeInfos: Set[NodeInfo]) : Set[NodeId] = {
-    val allNodeIds = allNodeInfos.map(_.id)
+  def getNodeIds(targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]) : Set[NodeId] = {
+    val allNodeIds = allNodeInfos.keySet
     (Set[NodeId]()/:targets) {
       case (nodes, t:NonGroupRuleTarget) =>
         t match {
-          case AllTarget => return allNodeInfos.map( _.id )
-          case AllTargetExceptPolicyServers => nodes ++ allNodeInfos.collect { case(n) if(!n.isPolicyServer) => n.id }
+          case AllTarget => return allNodeIds
+          case AllTargetExceptPolicyServers => nodes ++ allNodeInfos.collect { case(k,n) if(!n.isPolicyServer) => n.id }
           case PolicyServerTarget(nodeId) => nodes + nodeId
         }
       //here, if we don't find the group, we consider it's an error in the

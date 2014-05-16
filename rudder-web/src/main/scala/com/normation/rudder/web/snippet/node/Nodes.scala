@@ -51,7 +51,7 @@ class Nodes extends StatefulSnippet with Loggable {
 
   def table(html:NodeSeq)= {
     val nodes = nodeInfoService.getAll match {
-      case Full(infos) => infos.toSeq
+      case Full(infos) => infos.values.toSeq
       case eb:EmptyBox => val fail = eb?~ s"could not find Nodes "
           logger.error(fail.msg)
           Seq()

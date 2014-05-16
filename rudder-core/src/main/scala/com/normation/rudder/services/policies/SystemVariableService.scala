@@ -52,17 +52,21 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.Constants
+import com.normation.rudder.services.servers.PolicyServerManagementService
 
 trait SystemVariableService {
   def getGlobalSystemVariables():  Box[Map[String, Variable]]
 
-  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Set[NodeInfo], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule], globalSystemVariables: Map[String, Variable]): Box[Map[String, Variable]]
+
+
+  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], globalSystemVariables: Map[String, Variable]): Box[Map[String, Variable]]
 }
 
 class SystemVariableServiceImpl(
     licenseRepository: LicenseRepository
   , parameterizedValueLookupService: ParameterizedValueLookupService
   , systemVariableSpecService: SystemVariableSpecService
+  , policyServerManagementService: PolicyServerManagementService
   , toolsFolder: String
   , cmdbEndPoint: String
   , communityPort: Int
@@ -135,20 +139,17 @@ class SystemVariableServiceImpl(
 
   // allNodeInfos has to contain ALL the node info (those of every node within Rudder)
   // for this method to work properly
+
   // The global system variables are computed before (in the method up there), and
   // can be overriden by some node specific parameters (especially, the schedule for
   // policy servers)
   def getSystemVariables(
         nodeInfo             : NodeInfo
-      , allNodeInfos         : Set[NodeInfo]
-      , groupLib             : FullNodeGroupCategory
-      , directiveLib         : FullActiveTechniqueCategory
-      , allRules             : Map[RuleId, Rule]
-      , globalSystemVariables: Map[String, Variable]): Box[Map[String, Variable]] = {
-    logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
+      , allNodeInfos         : Map[NodeId, NodeInfo]
+      , globalSystemVariables: Map[String, Variable]
+  ): Box[Map[String, Variable]] = {
 
-    // variables that will override the global system variables
-    val overridGlobalVariable = collection.mutable.Map[String, Variable]()
+    logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
 
     // First, fetch the
     // Set the roles of the nodes
@@ -181,55 +182,29 @@ class SystemVariableServiceImpl(
     }
     val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
-    var varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable()
-    var varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable()
-    var varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable()
-    var varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable()
+    val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
+      case eb:EmptyBox =>
+        //log ?
+        Seq()
+      case Full(nets) => nets
+    }
 
-    val clientList = collection.mutable.Set[String]()
+    val varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable(authorizedNetworks)
+
 
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
-    if (nodeInfo.isPolicyServer) {
-      val allowedNodeVarSpec = SystemVariableSpec(name = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}", description = "", multivalued = true)
-      val allowedNodeVar = SystemVariable(allowedNodeVarSpec, Seq()).copyWithSavedValues(Seq("${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.hostname}"))
-
-      val varNameForAllowedNetwork = "${rudder.hasPolicyServer-" + nodeInfo.id.value + "." + Constants.V_ALLOWED_NETWORK + "}"
-      val allowedNetworkVarSpec = SystemVariableSpec(name = varNameForAllowedNetwork, description = "", multivalued = true)
-      val allowedNetworkVar = SystemVariable(allowedNetworkVarSpec, Seq()).copyWithSavedValues(Seq(varNameForAllowedNetwork))
-
-      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedNetworkVar), allNodeInfos, groupLib, directiveLib, allRules) match {
-        case Full(variable) =>
-          varAllowedNetworks = varAllowedNetworks.copyWithSavedValues(variable.flatMap(x => x.values))
-        case Empty => logger.warn(s"No variable parametrized found for ${varNameForAllowedNetwork}")
-        case f: Failure =>
-          val e = f ?~! s"Failure when fetching the allowed network for policy server ${nodeInfo.hostname} with id ${nodeInfo.id}"
-          logger.error(e.messageChain)
-          return e
-      }
+    val policyServerVars = if (nodeInfo.isPolicyServer) {
 
       // Find the "policy children" of this policy server
       // thanks to the allNodeInfos, this is super easy
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-      val children = allNodeInfos.filter(_.policyServerId == nodeInfo.id).toSeq.sortBy( _.id.value )
-      varManagedNodes = varManagedNodes.copyWithSavedValues(children.map(_.hostname))
-      varManagedNodesId = varManagedNodesId.copyWithSavedValues(children.map(_.id.value))
+      val children = allNodeInfos.filter{ case(k,v) => v.policyServerId == nodeInfo.id }.values.toSeq.sortBy( _.id.value )
 
-      val varNameForAdminUsers = "${rudder.hasPolicyServer-" + nodeInfo.id.value + ".target.admin}"
-      val allowedUserVarSpec = SystemVariableSpec(name = varNameForAdminUsers, description = "", multivalued = true)
-      val allowedUserVar = SystemVariable(allowedUserVarSpec, Seq()).copyWithSavedValues(Seq(varNameForAdminUsers))
+      val varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(children.map(_.hostname))
+      val varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable(children.map(_.id.value))
+      val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 
-      parameterizedValueLookupService.lookupRuleParameterization(Seq(allowedUserVar), allNodeInfos, groupLib, directiveLib, allRules) match {
-        case Full(variable) =>
-          //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
-          varManagedNodesAdmin = varManagedNodesAdmin.copyWithSavedValues(variable.flatMap(x => x.values).distinct.sorted)
-        case Empty =>
-          logger.warn(s"There were no variable parametrized found for ${varNameForAdminUsers}, which means that the configuration of Policy Server with Rudder ID ${nodeInfo.id.value} is probably incorrect. Please run again the rudder-init.sh script, or the script used to add a Relay Server")
-        case f: Failure =>
-          val e = f ?~! "Failure when fetching the list of administrators of managed nodes"
-          logger.error(e.messageChain)
-          return e
-      }
 
       // the schedule must be the default one for policy server
       val DEFAULT_SCHEDULE =
@@ -238,27 +213,31 @@ class SystemVariableServiceImpl(
       """
 
       val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue("5")
-
       val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue("5")
       val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(DEFAULT_SCHEDULE)
-      overridGlobalVariable.put(varAgentRunInterval.spec.name, varAgentRunInterval)
-      overridGlobalVariable.put(varAgentRunSchedule.spec.name, varAgentRunSchedule)
-      overridGlobalVariable.put(varAgentRunSplayTime.spec.name, varAgentRunSplayTime)
 
+      Map(
+          varManagedNodes.spec.name -> varManagedNodes
+        , varManagedNodesId.spec.name -> varManagedNodesId
+        , varManagedNodesAdmin.spec.name -> varManagedNodesAdmin
+        , varAgentRunInterval.spec.name -> varAgentRunInterval
+        , varAgentRunSchedule.spec.name -> varAgentRunSchedule
+        , varAgentRunSplayTime.spec.name -> varAgentRunSplayTime
+      )
+    } else {
+      Map()
     }
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
     Full(
-        globalSystemVariables ++ Map(
-        (varNodeRole.spec.name, varNodeRole)
-      , (varLicensesPaid.spec.name, varLicensesPaid)
-      , (varManagedNodesId.spec.name, varManagedNodesId)
-      , (varManagedNodes.spec.name, varManagedNodes)
-      , (varAllowedNetworks.spec.name, varAllowedNetworks)
-      , (varManagedNodesAdmin.spec.name, varManagedNodesAdmin)
-
-      ) ++ overridGlobalVariable
+         globalSystemVariables
+      ++ Map(
+             (varNodeRole.spec.name, varNodeRole)
+           , (varLicensesPaid.spec.name, varLicensesPaid)
+           , (varAllowedNetworks.spec.name, varAllowedNetworks)
+         )
+      ++ policyServerVars
     )
 
   }
