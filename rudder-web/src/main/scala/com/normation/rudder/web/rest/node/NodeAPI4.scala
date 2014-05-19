@@ -53,7 +53,7 @@ class NodeAPI4 (
 ) extends RestHelper with NodeAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  val v4Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
    case Get(id :: Nil, req) if id != "pending" => {
       restExtractor.extractNodeDetailLevel(req.params) match {
@@ -65,5 +65,8 @@ class NodeAPI4 (
       }
     }
   }
+
+  // Node API Version 4 fallback to Node api2 if request is not handled in V4
+  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v4Dispatch orElse apiV2.requestDispatch
 
 }
