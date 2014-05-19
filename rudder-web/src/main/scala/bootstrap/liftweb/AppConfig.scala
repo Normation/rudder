@@ -39,7 +39,6 @@ import com.normation.inventory.services.core._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.services._
 import com.normation.rudder.batch._
-import com.normation.rudder.services.policies.ParameterizedValueLookupServiceImpl
 import com.normation.rudder.services.nodes._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.queries._
@@ -1111,12 +1110,10 @@ object RudderConfig extends Loggable {
     , asyncDeploymentAgentImpl
     , gitModificationRepository
   )
-  private[this] lazy val parameterizedValueLookupService: ParameterizedValueLookupService =
-    new ParameterizedValueLookupServiceImpl()
+
 
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
       licenseRepository
-    , parameterizedValueLookupService
     , systemVariableSpecService
     , psMngtService
     , RUDDER_DIR_DEPENDENCIES
@@ -1162,7 +1159,8 @@ object RudderConfig extends Loggable {
     service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logRepository))
     service
   }
-  private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(variableBuilderService)
+  private[this] lazy val interpolationCompiler = new InterpolatedValueCompilerImpl()
+  private[this] lazy val ruleValService: RuleValService = new RuleValServiceImpl(interpolationCompiler)
 
   private[this] lazy val psMngtService: PolicyServerManagementService = new PolicyServerManagementServiceImpl(
     roLdapDirectiveRepository, woLdapDirectiveRepository)
@@ -1173,7 +1171,6 @@ object RudderConfig extends Loggable {
           roLdapRuleRepository,
           woLdapRuleRepository,
           ruleValService,
-          parameterizedValueLookupService,
           systemVariableService,
           nodeConfigurationServiceImpl,
           nodeInfoServiceImpl,
@@ -1182,7 +1179,10 @@ object RudderConfig extends Loggable {
           roNodeGroupRepository,
           roDirectiveRepository,
           ruleApplicationStatusImpl,
-          roParameterServiceImpl)
+          roParameterServiceImpl,
+          interpolationCompiler
+
+    )
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation)
     techniqueRepositoryImpl.registerCallback(
