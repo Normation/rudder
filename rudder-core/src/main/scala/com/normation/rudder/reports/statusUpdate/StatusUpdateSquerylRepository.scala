@@ -50,11 +50,11 @@ class StatusUpdateSquerylRepository (
   import StatusUpdate._
 
 
-  def getExecutionStatus : Box[Option[(Int,DateTime)]] = {
+  def getExecutionStatus : Box[Option[(Long,DateTime)]] = {
     getValue(executionStatus)
   }
 
-  private def getValue(key : String) : Box[Option[(Int,DateTime)]] = {
+  private def getValue(key : String) : Box[Option[(Long,DateTime)]] = {
     try {
       sessionProvider.ourSession {
         val q = from(statusTable)(entry =>
@@ -79,11 +79,11 @@ class StatusUpdateSquerylRepository (
   }
 
 
-  def setExecutionStatus(newId : Int, reportsDate : DateTime) : Box[UpdateEntry] = {
+  def setExecutionStatus(newId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
     setValue(executionStatus, newId, reportsDate)
   }
 
-  private def setValue(key : String, reportId : Int, reportsDate : DateTime) : Box[UpdateEntry] = {
+  private def setValue(key : String, reportId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
     try {
       sessionProvider.ourTransaction {
         val timeStamp = new Timestamp(reportsDate.getMillis)
@@ -109,7 +109,7 @@ class StatusUpdateSquerylRepository (
 
 case class UpdateEntry(
     @Column("key")    key    : String,
-    @Column("lastid") lastId : Int,
+    @Column("lastid") lastId : Long,
     @Column("date")   date   : Timestamp
 ) extends KeyedEntity[String]  {
 	def id = key
