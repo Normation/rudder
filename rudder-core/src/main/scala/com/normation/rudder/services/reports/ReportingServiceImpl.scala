@@ -52,7 +52,6 @@ import com.normation.rudder.domain.reports.bean._
 import com.normation.rudder.services.reports._
 import com.normation.rudder.repository._
 import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.rudder.domain.reports.DirectiveExpectedReports
 import com.normation.rudder.domain.reports.ReportComponent
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
@@ -62,6 +61,7 @@ import com.normation.utils.Control._
 import scala.collection.mutable.Buffer
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
 import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
+import com.normation.rudder.domain.policies.ExpandedDirectiveVal
 
 class ReportingServiceImpl(
     confExpectedRepo         : RuleExpectedReportsRepository
@@ -312,7 +312,7 @@ class ComputeCardinalityOfDirectiveVal {
    * Component, ComponentValues(expanded), ComponentValues (unexpanded))
    *
    */
-  def getCardinality(container : DirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
+  def getCardinality(container : ExpandedDirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
       val boundingVar = container.trackerVariable.spec.boundingVariable.getOrElse(container.trackerVariable.spec.name)

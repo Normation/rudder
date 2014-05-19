@@ -34,21 +34,28 @@
 
 package com.normation.rudder.services.policies
 
+import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.runner._
 import org.specs2.mutable._
-import net.liftweb.common._
-import com.normation.cfclerk.domain.InputVariable
+import org.specs2.specification._
 import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.inventory.domain.NodeId
-import org.joda.time.DateTime
-import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.cfclerk.domain.Variable
-import org.specs2.specification.Example
-import org.specs2.execute.Pending
+import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.policies.InterpolationContext
 import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
+import net.liftweb.common._
+import com.normation.utils.Control.sequence
+import com.normation.rudder.domain.policies.InterpolationContext
+import com.normation.rudder.domain.policies.InterpolationContext
+import com.normation.rudder.domain.policies.InterpolationContext
+import scala.collection.immutable.TreeMap
+//for treemap ordering
+import InterpolationContext._
+
 
 
 /**
@@ -63,62 +70,8 @@ class TestNodeAndParameterLookup extends Specification {
 
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
-  val lookupService = new ParameterizedValueLookupServiceImpl()
-
-
-  def lookup(
-      nodeId: NodeId
-    , variables: Seq[Variable]
-    , parameters: Set[ParameterForConfiguration]
-    , allNodes:Map[NodeId, NodeInfo]
-  )(test:Seq[Seq[String]] => Example) : Example  = {
-    lookupService.lookupNodeParameterization(nodeId, variables, parameters, allNodes) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error in test"
-        val ex = e ?~! e.rootExceptionCause.map( _.getMessage ).openOr("(not caused by an other exception)")
-        failure(ex.messageChain)
-      case Full(res) => test(res.map( _.values ))
-    }
-  }
-
-
-
-  //two variables
-  val var1 = InputVariableSpec("var1", "").toVariable(Seq("== ${rudder.param.foo} =="))
-  val var1_double = InputVariableSpec("var1_double", "").toVariable(Seq("== ${rudder.param.foo}${rudder.param.bar} =="))
-  val var1_double_space = InputVariableSpec("var1_double_space", "").toVariable(Seq("== ${rudder.param.foo} contains ${rudder.param.bar} =="))
-
-  val pathCaseInsensitive = InputVariableSpec("pathCaseInsensitive", "").toVariable(Seq("== ${RudDer.paRam.foo} =="))
-
-  val paramNameCaseSensitive = InputVariableSpec("paramNameCaseSensitive", "").toVariable(Seq("== ${rudder.param.Foo} =="))
-
-  val recurVariable = InputVariableSpec("recurParam", "").toVariable(Seq("== ${rudder.param.recurToFoo} =="))
-
-  val dangerVariable = InputVariableSpec("danger", "").toVariable(Seq("${rudder.param.danger}"))
-
-  val multilineParamVariable = InputVariableSpec("multiParam", "").toVariable(Seq("== ${rudder.\rparam.\nfoo} =="))
-  val multilineInputVariable = InputVariableSpec("multiInput", "").toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
-
-  val var2 = InputVariableSpec("var1", "", multivalued = true).toVariable(Seq(
-      "a${rudder.node.id})"
-    , "=${rudder.node.hostname}/"
-    , ".${rudder.node.admin}]"
-    , "$${rudder.node.policyserver.id}|"
-    , "{${rudder.node.policyserver.hostname}&"
-    , "!${rudder.node.policyserver.admin}^"
-  ))
-
-
-  val badEmptyRudder = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.} =="))
-  val badUnclosed = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.param.foo =="))
-  val badUnknown = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.foo} =="))
-
-  val fooParam = ParameterForConfiguration(ParameterName("foo"), "fooValue")
-  val barParam = ParameterForConfiguration(ParameterName("bar"), "barValue")
-  val recurParam = ParameterForConfiguration(ParameterName("recurToFoo"), """${rudder.param.foo}""")
-
-  val badChars = """$¹ ${plop} (foo) \$ @ %plop & \\ | $[xas]^"""
-  val dangerousChars = ParameterForConfiguration(ParameterName("danger"), badChars)
+  val compiler = new InterpolatedValueCompilerImpl()
+  val lookupService = new RuleValServiceImpl(compiler)
 
   val id1 = NodeId("node1")
   val hostname1 = "node1.localhost"
@@ -168,65 +121,340 @@ class TestNodeAndParameterLookup extends Specification {
     , isPolicyServer= true
   )
 
+  val context = InterpolationContext(
+        parameters      = Map()
+      , nodeInfo        = node1
+      , policyServerInfo= root
+        //environment variable for that server
+      , nodeContext     = Map()
+  )
+
+
+  def lookup(
+      variables: Seq[Variable]
+    , context: InterpolationContext
+  )(test:Seq[Seq[String]] => Example) : Example  = {
+    lookupService.lookupNodeParameterization(variables)(context) match {
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error in test"
+        val ex = e ?~! e.rootExceptionCause.map( _.getMessage ).openOr("(not caused by an other exception)")
+        failure(ex.messageChain)
+      case Full(res) => test(res.values.map( _.values ).toSeq)
+    }
+  }
+
+
+
+  //two variables
+  val var1 = InputVariableSpec("var1", "").toVariable(Seq("== ${rudder.param.foo} =="))
+  val var1_double = InputVariableSpec("var1_double", "").toVariable(Seq("== ${rudder.param.foo}${rudder.param.bar} =="))
+  val var1_double_space = InputVariableSpec("var1_double_space", "").toVariable(Seq("== ${rudder.param.foo} contains ${rudder.param.bar} =="))
+
+  val pathCaseInsensitive = InputVariableSpec("pathCaseInsensitive", "").toVariable(Seq("== ${RudDer.paRam.foo} =="))
+
+  val paramNameCaseSensitive = InputVariableSpec("paramNameCaseSensitive", "").toVariable(Seq("== ${rudder.param.Foo} =="))
+
+  val recurVariable = InputVariableSpec("recurParam", "").toVariable(Seq("== ${rudder.param.recurToFoo} =="))
+
+  val dangerVariable = InputVariableSpec("danger", "").toVariable(Seq("${rudder.param.danger}"))
+
+  val multilineParamVariable = InputVariableSpec("multiParam", "").toVariable(Seq("== ${rudder.\rparam.\nfoo} =="))
+  val multilineInputVariable = InputVariableSpec("multiInput", "").toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
+
+  val var2 = InputVariableSpec("var1", "", multivalued = true).toVariable(Seq(
+      "a${rudder.node.id})"
+    , "=${rudder.node.hostname}/"
+    , ".${rudder.node.admin}]"
+    , "$${rudder.node.policyserver.id}|"
+    , "{${rudder.node.policyserver.hostname}&"
+    , "!${rudder.node.policyserver.admin}^"
+  ))
+
+
+  val badEmptyRudder = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.} =="))
+  val badUnclosed = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.param.foo =="))
+  val badUnknown = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.foo} =="))
+
+  val fooParam = ParameterForConfiguration(ParameterName("foo"), "fooValue")
+  val barParam = ParameterForConfiguration(ParameterName("bar"), "barValue")
+  val recurParam = ParameterForConfiguration(ParameterName("recurToFoo"), """${rudder.param.foo}""")
+
+  val badChars = """$¹ ${plop} (foo) \$ @ %plop & \\ | $[xas]^"""
+  val dangerousChars = ParameterForConfiguration(ParameterName("danger"), badChars)
+
+  def p(params: ParameterForConfiguration*): Map[ParameterName, InterpolationContext => Box[String]] = {
+    sequence(params.toSeq) { param =>
+      for {
+        p <- compiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+      } yield {
+        (param.name, p)
+      }
+    }.map{seq =>
+      Map(seq:_*)
+   } match {
+      case Full(m) => m
+      case eb: EmptyBox =>
+        throw new RuntimeException((eb ?~! "Error when parsing parameters for interpolated variables").messageChain)
+    }
+  }
+
+  /**
+   * Test that the parser correctly parse strings
+   * to the expected AST
+   */
+  "Parsing values" should {
+    import compiler.{failure => fff, _}
+
+    //in case of success, test for the result
+    def test[T](r: ParseResult[T], result: Any) = r match {
+      case NoSuccess(msg, x) => ko(msg)
+      case Success(x, remaining) =>  x === result
+    }
+
+    "parse (multiline) plain text" in {
+      val s = """some vars chars with \z \n plop foo"""
+      test(parseAll(plainString, s), CharSeq(s))
+    }
+
+    "parse a rudder param variable" in {
+      test(parseAll(interpol, """${rudder.param.foo}"""), Param("foo"))
+    }
+
+    "parse a rudder node variable" in {
+      test(parseAll(interpol, """${rudder.node.foo.bar.baz}"""), NodeAccessor(List("foo", "bar", "baz")))
+    }
+
+    "parse text and variable and text" in {
+      val s1 = "plj jmoji h imj "
+      val s2 = " alkjf fm ^{i àié${rudde ut ùt "
+      test(parseAll(all, s1+"${rudder.node.policyserver.id}"+s2), List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2)))
+    }
+
+    "parse (multiline) text and variable and text" in {
+      val s1 = "plj jmoji \n h \timj "
+      val s2 = " alkjf \n\rfm ^{i àié${rudde ut ùt "
+      test(parseAll(all, s1+"${rudder.node.policyserver.id}"+s2), List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2)))
+    }
+  }
+
+
+  /**
+   * Test that the interpretation of an AST is
+   * correctly done (with forged interpretation contexts)
+   */
+  "Interpretation of a parsed interpolated string" should {
+
+    def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
+
+    val nodeId = compileAndGet("${rudder.node.uuid}")
+    val policyServerId = compileAndGet("${rudder.node.id}")
+    val paramVar = compileAndGet("${rudder.node.uuid}")
+
+    "know for the 6 node & policy server param" in {
+
+      //build a triplet: accessor, interpolation function, expected
+      def comp(accessor:String, expected:String) = (
+          accessor
+        , compileAndGet(s"$${rudder.node.${accessor}}")
+        , expected
+      )
+
+
+      //map of server.param -> AST
+      val accessors = List(
+          comp("id", context.nodeInfo.id.value)
+        , comp("hostname", context.nodeInfo.hostname)
+        , comp("admin", context.nodeInfo.localAdministratorAccountName)
+        , comp("policyserver.id", context.policyServerInfo.id.value)
+        , comp("policyserver.hostname", context.policyServerInfo.hostname)
+        , comp("policyserver.admin", context.policyServerInfo.localAdministratorAccountName)
+      )
+
+      accessors must contain( (x:(String, InterpolationContext => Box[String], String)) => x._2(context) match {
+        case eb:EmptyBox => ko((eb ?~! s"Error when evaluating context for accessor ${x._1} with expected result '${x._3}'").messageChain)
+        case Full(result) => result === x._3
+      }).forall
+    }
+
+    "raise an error for an unknow accessor" in {
+      val badAccessor = "rudder.node.foo"
+      compiler.compile("${"+badAccessor+"}") match {
+        case eb:EmptyBox => ko((eb?~!"Error when parsing interpolated value").messageChain)
+        case Full(i) => i(context) match {
+          case Full(res) => ko(s"When interpreted, an unkown accessor '${badAccessor}' should yield an error")
+          case Empty => ko("Unknown accessor should yield a real Failure, not an Empty")
+          case f:Failure => 1 === 1 //here, ok(...) leads to a typing error
+        }
+      }
+    }
+
+
+    "correctly interpret simple param" in {
+      val res = "p1 replaced"
+      val i = compileAndGet("${rudder.param.p1}")
+      val c = context.copy(parameters = Map(
+          (ParameterName("p1"), (i:InterpolationContext) => Full(res))
+      ))
+      i(c) must beEqualTo(Full(res))
+    }
+
+    "no care of case in nodes names" in {
+      val i = compileAndGet("${rudder.node.HoStNaMe}")
+      i(context) must beEqualTo(Full("node1.localhost"))
+    }
+
+    "DO care of case in param names" in {
+      val i = compileAndGet("${rudder.param.xX}")
+      val c = context.copy(parameters = Map(
+          //test all combination
+          (ParameterName("XX"), (i:InterpolationContext) => Full("bad"))
+        , (ParameterName("Xx"), (i:InterpolationContext) => Full("bad"))
+        , (ParameterName("xx"), (i:InterpolationContext) => Full("bad"))
+      ))
+      i(c) match {
+        case Full(_) => ko("No, case must matter!")
+        case Empty => ko("No, we should have a failure")
+        case Failure(m,_,_) => m must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
+      }
+    }
+
+    "fails on missing param in context" in {
+      val res = "p1 replaced"
+      val i = compileAndGet("${rudder.param.p1}")
+      i(context) match {
+        case Full(_) => ko("The parameter should not have been found")
+        case Empty => ko("Real Failure are expected, not Empty")
+        case f:Failure => 1 === 1 //ok(...) leads to type error
+      }
+    }
+
+    "correcly replace parameter with interpolated values" in {
+      val res = "p1 replaced with p2 value"
+      val i = compileAndGet("${rudder.param.p1}")
+      val p1value = compileAndGet("${rudder.param.p2}")
+      val c = context.copy(parameters = Map(
+          (ParameterName("p1"), p1value)
+        , (ParameterName("p2"), (i:InterpolationContext) => Full(res))
+      ))
+      i(c) must beEqualTo(Full(res))
+    }
+
+    "correctly replace maxDepth-1 parameter with interpolated values" in {
+      val res = "p1 replaced with p2 value"
+      val i = compileAndGet("${rudder.param.p1}")
+      val p1value = compileAndGet("${rudder.param.p2}")
+      val p2value = compileAndGet("${rudder.param.p3}")
+      val p3value = compileAndGet("${rudder.param.p4}")
+      val c = context.copy(parameters = Map(
+          (ParameterName("p1"), p1value)
+        , (ParameterName("p2"), p2value)
+        , (ParameterName("p3"), p3value)
+        , (ParameterName("p4"), (i:InterpolationContext) => Full(res))
+      ))
+
+      (compiler.maxEvaluationDepth == 5) and
+      (i(c) must beEqualTo(Full(res)))
+    }
+
+    "fails to replace maxDepth parameter with interpolated values" in {
+      val res = "p1 replaced with p2 value"
+      val i = compileAndGet("${rudder.param.p1}")
+      val p1value = compileAndGet("${rudder.param.p2}")
+      val p2value = compileAndGet("${rudder.param.p3}")
+      val p3value = compileAndGet("${rudder.param.p4}")
+      val p4value = compileAndGet("${rudder.param.p5}")
+      val c = context.copy(parameters = Map(
+          (ParameterName("p1"), p1value)
+        , (ParameterName("p2"), p2value)
+        , (ParameterName("p3"), p3value)
+        , (ParameterName("p4"), p3value)
+        , (ParameterName("p5"), (i:InterpolationContext) => Full(res))
+      ))
+
+      (compiler.maxEvaluationDepth == 5) and
+      (i(c) match {
+        case Full(_) => ko("Was expecting an error due to too deep evaluation")
+        case Empty => ko("Was expecting an error due to too deep evaluation")
+        case f:Failure => 1 === 1 //ok(...) does not type check
+      })
+    }
+
+    "fails to replace recurring parameter value" in {
+      val i = compileAndGet("${rudder.param.p1}")
+      val c = context.copy(parameters = Map(
+          (ParameterName("p1"), i)
+      ))
+
+      i(c) match {
+        case Full(_) => ko("Was expecting an error due to too deep evaluation")
+        case Empty => ko("Was expecting an error due to too deep evaluation")
+        case f:Failure => 1 === 1 //ok(...) does not type check
+      }
+    }
+
+  }
+
+
   "A single parameter" should {
     "be replaced by its value" in {
-      lookup(id1, Seq(var1), Set(fooParam), Map(node1.id -> node1))( values =>
+      lookup(Seq(var1), context.copy(parameters =  p(fooParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
       )
     }
 
     "understand if its value is a parameter" in {
-      lookup(id1, Seq(recurVariable), Set(fooParam, recurParam), Map(node1.id -> node1))( values =>
+      lookup(Seq(recurVariable), context.copy(parameters = p(fooParam, recurParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
       )
     }
 
     "correctly escape regex special chars" in {
-      lookup(id1, Seq(dangerVariable), Set(dangerousChars), Map(node1.id -> node1))( values =>
+      lookup(Seq(dangerVariable), context.copy(parameters = p(dangerousChars)))( values =>
         values must containTheSameElementsAs(Seq(Seq(badChars)))
       )
     }
 
     "match when inputs are on multiline" in {
-      lookup(id1, Seq(multilineInputVariable), Set(fooParam), Map(node1.id -> node1))( values =>
+      lookup(Seq(multilineInputVariable), context.copy(parameters = p(fooParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("=\r= \nfooValue =\n=")))
       )
     }
 
-    "throws an error when the curly brace after ${rudder. is not closed" in {
-      lookupService.lookupNodeParameterization(id1, Seq(badUnclosed), Set(), Map(node1.id -> node1)) must beEqualTo(
-        Failure("Can not replace parameters in value '== ${rudder.param.foo ==' because a curly brace is not closed")
+    "fails when the curly brace after ${rudder. is not closed" in {
+      lookupService.lookupNodeParameterization(Seq(badUnclosed))(context) must beEqualTo(
+        Failure("""Error when parsing variable empty""",Empty,Full(Failure("""Error when parsing value "== ${rudder.param.foo ==", error message is: `}' expected but ` ' found""")))
       )
     }
 
-    "throws an error when the part after ${rudder.} is empty" in {
-      lookupService.lookupNodeParameterization(id1, Seq(badEmptyRudder), Set(), Map(node1.id -> node1)) must beEqualTo(
-        Failure("Can not replace parameters in value '== ${rudder.} ==' because accessor '.' is not recognized")
+    "fails when the part after ${rudder.} is empty" in {
+      lookupService.lookupNodeParameterization(Seq(badEmptyRudder))(context) must beEqualTo(
+        Failure("""Error when parsing variable empty""",Empty,Full(Failure("""Error when parsing value "== ${rudder.} ==", error message is: string matching regex `(?iu)\Qparam\E' expected but `}' found""")))
       )
     }
 
-    "throws an error when the part after ${rudder.} is not recognised" in {
-      lookupService.lookupNodeParameterization(id1, Seq(badUnknown), Set(fooParam), Map(node1.id -> node1)) must beEqualTo(
-        Failure("Can not replace parameters in value '== ${rudder.foo} ==' because accessor '.foo' is not recognized")
+    "fails when the part after ${rudder.} is not recognised" in {
+      lookupService.lookupNodeParameterization(Seq(badUnknown))(context.copy(parameters = p(fooParam))) must beEqualTo(
+        Failure("""Error when parsing variable empty""",Empty,Full(Failure("""Error when parsing value "== ${rudder.foo} ==", error message is: string matching regex `(?iu)\Qparam\E' expected but `f' found""")))
       )
     }
 
     "not match when parameter names are splited on multiple lines" in {
-      lookupService.lookupNodeParameterization(id1, Seq(multilineParamVariable), Set(fooParam), Map(node1.id -> node1)) must beEqualTo(
-        Failure("Can not replace parameters in value '== ${rudder.\rparam.\nfoo} ==' because accessors contains spaces")
+      lookupService.lookupNodeParameterization(Seq(multilineParamVariable))(context.copy(parameters = p(fooParam))) must beEqualTo(
+        Failure("""Error when parsing variable multiParam""",Empty,Full(Failure("Error when parsing value \"== ${rudder.\rparam.\nfoo} ==\", error message is: string matching regex `(?iu)\\Qparam\\E' expected but `\r' found",Empty,Empty)))
       )
     }
 
   }
 
+
   "A double parameter" should {
     "be replaced by its value" in {
-      lookup(id1, Seq(var1_double), Set(fooParam, barParam), Map(node1.id -> node1))( values =>
+      lookup(Seq(var1_double), context.copy(parameters = p(fooParam, barParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValuebarValue ==")))
       )
     }
     "accept space between values" in {
-      lookup(id1, Seq(var1_double_space), Set(fooParam, barParam), Map(node1.id -> node1))( values =>
+      lookup(Seq(var1_double_space), context.copy(parameters = p(fooParam, barParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue contains barValue ==")))
       )
     }
@@ -235,7 +463,7 @@ class TestNodeAndParameterLookup extends Specification {
 
   "Node parameters" should {
     "be correclty replaced by their values" in  {
-      lookup(id1, Seq(var2), Set(), Map(node1.id -> node1, root.id -> root))( values =>
+      lookup(Seq(var2), context)( values =>
         values must containTheSameElementsAs(
             Seq(Seq(
                 s"a${id1.value})"
@@ -253,14 +481,18 @@ class TestNodeAndParameterLookup extends Specification {
 
   "Case" should {
     "not matter in the path" in {
-      lookup(id1, Seq(pathCaseInsensitive), Set(fooParam), Map(node1.id -> node1))( values =>
+      lookup(Seq(pathCaseInsensitive), context.copy(parameters = p(fooParam)))( values =>
         values must containTheSameElementsAs(Seq(Seq("== fooValue ==")))
       )
     }
 
     "matter for parameter names" in {
-      lookupService.lookupNodeParameterization(id1, Seq(paramNameCaseSensitive), Set(), Map(node1.id -> node1)) must beEqualTo(
-        Failure("Unknow parametrized value : == ${rudder.param.Foo} ==")
+      lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive))(context) must beEqualTo(
+        Failure(
+            "Error when resolving interpolated variable in directive variable paramNameCaseSensitive"
+          , Empty
+          , Full(Failure("Error when trying to interpolate a variable: Rudder parameter not found: 'Foo'",Empty,Empty))
+        )
       )
     }
   }
