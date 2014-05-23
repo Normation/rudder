@@ -370,7 +370,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
      }
   }
 
-  def getHighestId : Box[Int] = {
+  def getHighestId : Box[Long] = {
     val query = "select id from RudderSysEvents order by id desc limit 1"
     try {
       jdbcTemplate.query(query,IdMapper).toSeq match {
@@ -384,7 +384,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
-  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Int)]] = {
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Long)]] = {
     val query = "%s and (%s) order by executiondate desc limit 100".format(idQuery,kinds.map("eventtype='%s'".format(_)).mkString(" or "))
       try {
         Full(jdbcTemplate.query(query,ReportsWithIdMapper).toSeq)
@@ -395,7 +395,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       }
   }
 
-  def getReportsWithLowestId : Box[Option[(Reports,Int)]] = {
+  def getReportsWithLowestId : Box[Option[(Reports,Long)]] = {
     jdbcTemplate.query(s"${idQuery} order by id asc limit 1",
           ReportsWithIdMapper).toSeq match {
       case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
@@ -407,10 +407,10 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
   /**
    * From an id and an end date, return a list of ReportExecution, and the max ID that has been considered
    */
-  def getReportsfromId(id : Int, endDate : DateTime) : Box[(Seq[ReportExecution], Int)] = {
+  def getReportsfromId(id : Long, endDate : DateTime) : Box[(Seq[ReportExecution], Long)] = {
     // we first have to fetch the max id
     val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
-    val array = Buffer[AnyRef](new java.lang.Integer(id), new Timestamp(endDate.getMillis))
+    val array = Buffer[AnyRef](new java.lang.Long(id), new Timestamp(endDate.getMillis))
     for {
       maxId <-
                 try {
@@ -432,7 +432,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
                     Failure(e.getMessage())
                 }
       reports <- {
-                  val arrayReports = Buffer[AnyRef](new java.lang.Integer(id), new java.lang.Integer(maxId), new java.lang.Integer(id), new java.lang.Integer(maxId))
+                  val arrayReports = Buffer[AnyRef](new java.lang.Long(id), new java.lang.Long(maxId), new java.lang.Long(id), new java.lang.Long(maxId))
                   try {
                     Full(jdbcTemplate.query(fetchExecutions ,arrayReports.toArray[AnyRef], ReportsExecutionMapper).toSeq)
                   } catch {
@@ -447,7 +447,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
-  def getErrorReportsBeetween(lower : Int, upper:Int,kinds:List[String]) : Box[Seq[Reports]] = {
+  def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]] = {
     if (lower>=upper)
       Empty
     else{
@@ -489,14 +489,14 @@ object DatabaseSizeMapper extends RowMapper[Long] {
         rs.getLong("size")
     }
 }
-object IdMapper extends RowMapper[Int] {
-   def mapRow(rs : ResultSet, rowNum: Int) : Int = {
-        rs.getInt("id")
+object IdMapper extends RowMapper[Long] {
+   def mapRow(rs : ResultSet, rowNum: Int) : Long = {
+        rs.getLong("id")
     }
 }
 
-object ReportsWithIdMapper extends RowMapper[(Reports,Int)] {
-  def mapRow(rs : ResultSet, rowNum: Int) : (Reports,Int) = {
+object ReportsWithIdMapper extends RowMapper[(Reports,Long)] {
+  def mapRow(rs : ResultSet, rowNum: Int) : (Reports,Long) = {
     (ReportsMapper.mapRow(rs, rowNum),IdMapper.mapRow(rs, rowNum))
     }
 }

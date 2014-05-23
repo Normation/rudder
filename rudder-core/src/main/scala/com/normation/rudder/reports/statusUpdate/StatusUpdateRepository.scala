@@ -42,8 +42,8 @@ import net.liftweb.common.Box
  */
 trait StatusUpdateRepository {
 
-  def getExecutionStatus : Box[Option[(Int,DateTime)]]
+  def getExecutionStatus : Box[Option[(Long,DateTime)]]
 
-  def setExecutionStatus (newId : Int, reportsDate : DateTime) : Box[UpdateEntry]
+  def setExecutionStatus (newId : Long, reportsDate : DateTime) : Box[UpdateEntry]
 
 }
