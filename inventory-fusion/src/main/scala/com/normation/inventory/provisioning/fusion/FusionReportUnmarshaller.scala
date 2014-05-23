@@ -316,7 +316,7 @@ class FusionReportUnmarshaller(
        * ARCHNAME : architecture type.
        *      Ex: "x86_64-linux-gnu-thread-multi"
        * VMSYSTEM : The virtualization technologie used if the machine is a virtual machine.
-       *      Can be: Physical (default), Xen, VirtualBox, Virtual Machine, VMware, QEMU, SolarisZone
+       *      Can be: Physical (default), Xen, VirtualBox, Virtual Machine, VMware, QEMU, SolarisZone, Aix LPAR
        *
        * MEMORY : RAM for that OS
        *      Ex: "512"
@@ -392,6 +392,7 @@ class FusionReportUnmarshaller(
         case "vmware" => report.machine.copy(machineType = VirtualMachineType(VMWare) )
         case "qemu" => report.machine.copy(machineType = VirtualMachineType(QEmu) )
         case "solariszone" => report.machine.copy(machineType = VirtualMachineType(SolarisZone) )
+        case "aix_lpar" => report.machine.copy(machineType = VirtualMachineType(AixLPAR) )
         case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
     }

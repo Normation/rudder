@@ -832,6 +832,13 @@ objectclass ( InventoryObjectClasses:80:5
   SUP VirtualMachine
   AUXILIARY )
 
+objectclass ( InventoryObjectClasses:80:6
+  NAME 'aixLpar'
+  DESC 'An LPAR partition on AIX'
+  SUP VirtualMachine
+  AUXILIARY )
+
+
 objectclass ( InventoryObjectClasses:4
   NAME 'physicalElement'
   DESC 'A physical element, ie a component of a machine (network card, memory slots, etc)'
