@@ -75,15 +75,16 @@ class SystemVariableServiceImpl(
   , syslogPort: Int
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
-  , getSkipIdentify: () => Box[Boolean]
+  , getSkipIdentify : () => Box[Boolean]
   // schedules are runtime dependencies also
-  , getAgentRunInterval: () => Int
-  , getAgentRunSplaytime: () => Box[Int]
-  , getAgentRunStartHour: () => Box[Int]
+  , getAgentRunInterval   : () => Int
+  , getAgentRunSplaytime  : () => Box[Int]
+  , getAgentRunStartHour  : () => Box[Int]
   , getAgentRunStartMinute: () => Box[Int]
   // TTLs are runtime properties too
-  , getModifiedFilesTtl:   () => Box[Int]
-  , getCfengineOutputsTtl: () => Box[Int]
+  , getModifiedFilesTtl             : () => Box[Int]
+  , getCfengineOutputsTtl           : () => Box[Int]
+  , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -107,6 +108,8 @@ class SystemVariableServiceImpl(
     val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(interval.toString)
 
     val varAgentRunSplayTime = getProp("AGENT_RUN_SPLAYTIME", getAgentRunSplaytime)
+
+    val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
 
     for {
       agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
@@ -132,6 +135,7 @@ class SystemVariableServiceImpl(
       , (varAgentRunSplayTime.spec.name, varAgentRunSplayTime)
       , (modifiedFilesTtl.spec.name, modifiedFilesTtl)
       , (cfengineOutputsTtl.spec.name, cfengineOutputsTtl)
+      , (storeAllCentralizedLogsInFile.spec.name, storeAllCentralizedLogsInFile)
       )
     }
   }

@@ -392,6 +392,37 @@ These files are automatically removed to save on disk space. You can configure t
           </div>
       </div>
     </div>
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Logging</div>
+      <div class="portlet-content">
+
+        <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
+          <div class="intro">
+            <div>
+              <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
+            </div>
+          </div>
+
+          <hr class="spacer" />
+	      <div class="deca">
+
+            <form class="lift:form.ajax">
+              <div class="wbBaseField">
+                    <label class="threeCol textight" style="font-weight:bold;width: 40%;">
+                      <span style="float:left">Log all reports received to /var/log/rudder/reports/all.log: </span>
+                    </label>
+                    <input id="storeAllLogsOnFile" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
+              <lift:Msg id="loggingConfiguration">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="inner-portlet">
       <div class="inner-portlet-header">Clear policy caches</div>
       <div class="portlet-content">
