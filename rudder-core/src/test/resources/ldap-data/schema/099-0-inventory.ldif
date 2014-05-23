@@ -246,10 +246,23 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.13
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.14
+  NAME 'environmentVariable'
+  DESC 'List of environnement variable'
+  EQUALITY caseExactMatch
+  SUBSTR caseExactSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.300.15
+  NAME 'process'
+  DESC 'List of processes'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 #
 # A node can have some complex "logical" elements: 
 # * network interfaces
 # * file systems
+# * vm
 #
 ### network interfaces
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.200.1
@@ -317,6 +330,54 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.9
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   EQUALITY integerMatch
   ORDERING integerOrderingMatch )
+### VM
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.200.42
+  NAME 'virtualMachineUuid'
+  DESC 'vm unique identifier'
+  SUP elementName )
+### VM attributes
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.10
+  NAME 'vmType'
+  DESC 'kind of VM'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.11
+  NAME 'subsystem'
+  DESC 'VM susbsystem'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.12
+  NAME 'vmOwner'
+  DESC 'VM owner'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.13
+  NAME 'vmName'
+  DESC 'VM name'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.14
+  NAME 'vmStatus'
+  DESC 'VM status'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.15
+  NAME 'vmCpu'
+  DESC 'VM cpu'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.400.16
+  NAME 'vmMemory'
+  DESC 'process virtual memory'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
 #
 # A machine can have some complex "physicale" elements: 
 # * bios
@@ -396,9 +457,9 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.200.5
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.9
   NAME 'cpuSpeed'
   DESC 'CPU speed, in mhz'
-  EQUALITY caseIgnoreMatch
-  SUBSTR caseIgnoreSubstringsMatch
-  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
+  EQUALITY integerMatch
+  ORDERING integerOrderingMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.27 )
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.10
   NAME 'cpuStepping'
   DESC 'Number of CPU mode to reduce speed'
@@ -407,7 +468,43 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.10
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{16} )
 attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.11
   NAME 'cpuFamily'
-  DESC 'Family name of the CPU'
+  DESC 'Family number of the CPU'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.12
+  NAME 'cpuCore'
+  DESC 'Number of cores'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.13
+  NAME 'cpuThread'
+  DESC 'Number of threads'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.14
+  NAME 'cpuFamilyName'
+  DESC 'family name of the CPU'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.15
+  NAME 'cpuArchitecture'
+  DESC 'Achitecture of CPU'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.16
+  NAME 'cpuID'
+  DESC 'CPU ID'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.17
+  NAME 'cpuExternalClock'
+  DESC 'Number of cores'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
@@ -416,25 +513,25 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.200.6
   NAME 'memorySlotNumber'
   DESC 'Slot number of a ram chipset'
   SUP elementName )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.12
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.18
   NAME 'memoryCapacity'
   DESC 'A memory capacity (ram, video, etc)'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.13
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.19
   NAME 'memoryCaption'
   DESC 'Information about a memory chip'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.14
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.20
   NAME 'memorySpeed'
   DESC 'Speed of a memory chipset'
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.15
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.21
   NAME 'memoryType'
   DESC 'Memory type'
   EQUALITY caseIgnoreMatch
@@ -460,7 +557,7 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.200.10
   NAME 'storageName'
   DESC 'Name of a storage element (hard drive, etc)'
   SUP elementName )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.16
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.22
   NAME 'storageSize'
   DESC 'The size of a storage unit'
   EQUALITY caseIgnoreMatch
@@ -471,13 +568,13 @@ attributeTypes: ( 1.3.6.1.4.1.35061.1.1.200.11
   NAME 'videoCardName'
   DESC 'Name of a video card'
   SUP elementName )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.17
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.23
   NAME 'videoChipset'
   DESC 'Information '
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
-attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.18
+attributeTypes: ( 1.3.6.1.4.1.35061.1.1.500.24
   NAME 'videoResolution'
   DESC 'Max resolution for a video chipset'
   EQUALITY caseIgnoreMatch
@@ -585,6 +682,11 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.80
   DESC 'A Qemu VM'
   SUP VirtualMachine
   AUXILIARY )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.80
+  NAME 'aixLpar'
+  DESC 'An LPAR partition on AIX'
+  SUP VirtualMachine
+  AUXILIARY )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.4
   NAME 'physicalElement'
   DESC 'A physical element, ie a component of a machine (network card, memory slots, etc)'
@@ -632,7 +734,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.10
   SUP physicalElement
   STRUCTURAL
   MUST ( cpuName )
-  MAY ( cpuSpeed $ cpuStepping $ cpuFamily ) )
+  MAY ( cpuSpeed $ cpuStepping $ cpuFamily $ cpuCore $ cpuThread $ cpuFamilyName $ cpuArchitecture $ cpuID $ cpuExternalClock ) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.11
   NAME 'slotPhysicalElement'
   DESC 'A slot for external cards'
@@ -663,7 +765,8 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.14
   software $  localAccountName $ osServicePack $
   nodeTechniques $ ram $ swap $ confirmed $
   inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
-  osArchitectureType $ lastLoggedUser $ lastLoggedUserTime ) )
+  osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
+  environmentVariable $ process ) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.15
   NAME 'windowsNode'
   DESC 'A node running Microsoft Windows as an operating system'
@@ -678,6 +781,16 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.16
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.17
   NAME 'linuxNode'
   DESC 'A node running GNU/Linux as an operating system'
+  SUP unixNode
+  STRUCTURAL )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.23
+  NAME 'solarisNode'
+  DESC 'A node running with Solaris as operating system'
+  SUP unixNode
+  STRUCTURAL )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.24
+  NAME 'aixNode'
+  DESC 'A node running with AIX as operating system'
   SUP unixNode
   STRUCTURAL )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.18
@@ -710,6 +823,13 @@ objectClasses: ( 1.3.6.1.4.1.35061.1.2.21
   MUST ( softwareId )
   MAY ( cn $ description $ releaseDate $ editor $ softwareVersion $
   licenseExpirationDate $ licenseName $ licenseProductId $ licenseProductKey ) )
+objectClasses: ( 1.3.6.1.4.1.35061.1.2.22
+  NAME 'virtualMachineLogicalElement'
+  DESC 'A VM installed on that node'
+  SUP logicalElement
+  STRUCTURAL
+  MUST ( virtualMachineUuid )
+  MAY (  vmType $ subsystem $ vmOwner $ vmName $ vmStatus $ vmCpu $ vmMemory ) )
 objectClasses: ( 1.3.6.1.4.1.35061.1.2.31
   NAME 'dynGroup'
   DESC 'Auxiliary objectClass to turn any entry into a dynamic group'
