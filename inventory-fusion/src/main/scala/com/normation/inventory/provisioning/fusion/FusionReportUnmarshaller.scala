@@ -234,10 +234,14 @@ class FusionReportUnmarshaller(
    * merge them when it's the case.
    */
   private[this] def demuxSameInterfaceDifferentIp(report: InventoryReport) : InventoryReport = {
-    val nets = report.node.networks.groupBy( _.name ).map { case (interface, ips) =>
-      val referenceInterface = ips.head //we have at least one due to the groupBy
-
-      referenceInterface.copy(ifAddresses = ips.flatMap( _.ifAddress ) )
+    val nets = report.node.networks.groupBy( _.name ).map { case (interface, networks) =>
+      val referenceInterface = networks.head //we have at least one due to the groupBy
+      val ips = networks.flatMap( _.ifAddress )
+      val uniqIps = ips.distinct
+      if(uniqIps.size < ips.size) {
+        logger.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
+      }
+      referenceInterface.copy(ifAddresses = uniqIps )
     }.toSeq
 
     report.copy(node = report.node.copy(networks = nets))
