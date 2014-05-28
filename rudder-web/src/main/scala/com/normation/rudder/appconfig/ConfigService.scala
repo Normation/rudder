@@ -88,6 +88,11 @@ trait ReadConfigService {
    */
   def cfengine_modified_files_ttl(): Box[Int]
   def cfengine_outputs_ttl(): Box[Int]
+
+  /**
+   * Logging properties
+   */
+  def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
 }
 
 /**
@@ -126,6 +131,11 @@ trait UpdateConfigService {
   def set_cfengine_modified_files_ttl(value: Int): Box[Unit]
   def set_cfengine_outputs_ttl(value: Int): Box[Unit]
 
+  /**
+   * Logging properties
+   */
+  def set_rudder_store_all_centralized_logs_in_file(value: Boolean): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -150,6 +160,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        agent.run.start.minute=0
        cfengine.modified.files.ttl=30
        cfengine.outputs.ttl=7
+       rudder.store.all.centralized.logs.in.file=true
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -260,5 +271,11 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def set_cfengine_modified_files_ttl(value: Int): Box[Unit] = save("cfengine_modified_files_ttl", value)
   def cfengine_outputs_ttl(): Box[Int] = get("cfengine_outputs_ttl")
   def set_cfengine_outputs_ttl(value: Int): Box[Unit] = save("cfengine_outputs_ttl", value)
+
+  /**
+   * Logging properties
+   */
+  def rudder_store_all_centralized_logs_in_file(): Box[Boolean] = get("rudder_store_all_centralized_logs_in_file")
+  def set_rudder_store_all_centralized_logs_in_file(value: Boolean) = save("rudder_store_all_centralized_logs_in_file", value)
 
 }

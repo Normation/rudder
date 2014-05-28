@@ -67,6 +67,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "denyBadClocks" => cfserverNetworkConfiguration
     case "cfagentSchedule" => cfagentScheduleConfiguration
     case "cfengineGlobalProps" => cfengineGlobalProps
+    case "loggingConfiguration" => loggingConfiguration
   }
 
 
@@ -627,6 +628,55 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       }
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
+
+  def loggingConfiguration = { xml : NodeSeq =>
+
+    //  initial values, updated on successfull submit
+    var initStoreAllCentralizedLogsInFile = configService.rudder_store_all_centralized_logs_in_file
+
+    // form values
+    var storeAllCentralizedLogsInFile  = initStoreAllCentralizedLogsInFile.getOrElse(false)
+
+    def submit = {
+      configService.set_rudder_store_all_centralized_logs_in_file(storeAllCentralizedLogsInFile).foreach(updateOk => initStoreAllCentralizedLogsInFile = Full(storeAllCentralizedLogsInFile))
+
+      // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      S.notice("loggingConfiguration", storeAllCentralizedLogsInFile match {
+        case true  => "Logging will be enabled during the next agent run on this server (5 minutes maximum)"
+        case false => "Logging will be disabled during the next agent run on this server (5 minutes maximum)"
+        })
+      check()
+    }
+
+    def noModif = (
+         initStoreAllCentralizedLogsInFile.map(_ == storeAllCentralizedLogsInFile).getOrElse(false)
+    )
+
+    def check() = {
+      S.notice("loggingConfiguration","")
+      Run(s"""$$("#loggingConfigurationSubmit").button( "option", "disabled",${noModif});""")
+    }
+
+    ( "#storeAllLogsOnFile" #> {
+      initStoreAllCentralizedLogsInFile match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value
+            , (b : Boolean) => { storeAllCentralizedLogsInFile = b; check() }
+            , ("id","storeAllLogsOnFile")
+          )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Store all centralized logs in file' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+      "#loggingConfigurationSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
+
 
 }
 
