@@ -676,14 +676,17 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
      * - update caches
      */
     val updated = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, cache)
-    val fsWrite0   =  DateTime.now.getMillis
+    val writtingTime = Some(DateTime.now)
+    val fsWrite0   =  writtingTime.get.getMillis
 
     for {
       written    <- nodeConfigurationService.writeTemplate(rootNodeId, updated, allNodeConfigs)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} millisec.")
-      cached     <- nodeConfigurationService.cacheNodeConfiguration(allNodeConfigs.filterKeys(updated.contains(_)).values.toSet)
+      //before caching, update the timestamp for last written time
+      toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet.map( (x:NodeConfiguration) => x.copy(writtenDate = writtingTime))
+      cached     <- nodeConfigurationService.cacheNodeConfiguration(toCache)
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
       _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} millisec.")
     } yield {
