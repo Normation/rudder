@@ -353,6 +353,12 @@ limitations under the License.
       <artifactId>specs2_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.ow2.asm</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     
     <!-- 
