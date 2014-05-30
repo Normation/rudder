@@ -1,3 +1,37 @@
+/*
+*************************************************************************************
+* Copyright 2014 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
 
 /* Create Rule table
  *
@@ -16,7 +50,7 @@
  *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
  *   }
  */
-function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallback, contextPath) {
+function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallback, contextPath, refresh) {
 
   // Define which columns should be sorted by default
   var sortingDefault;
@@ -184,20 +218,28 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
     columns.push(actions);
   }
 
-  createTable(gridId,data,columns, sortingDefault);
+  createTable(gridId,data,columns, sortingDefault, contextPath, refresh);
 
   createTooltip();
-
+  
   // Add callback to checkbox column
   $("#checkAll").prop("checked", false);
   $("#checkAll").click( function () {
       var checked = $("#checkAll").prop("checked");
       allCheckboxCallback(checked);
   } );
+  
+}
+
+
+function refreshTable (gridId, data) {
+  var table = $('#'+gridId).dataTable();
+  table.fnClearTable();
+  table.fnAddData(data);
 }
 
 // Create a table from its id, data, columns, maybe the last one need to be all specific attributes, but for now only sorting
-function createTable(gridId,data,columns, sortingDefault) {
+function createTable(gridId,data,columns, sortingDefault, contextPath, refresh) {
   $('#'+gridId).dataTable(
     { "asStripeClasses": [ 'color1', 'color2' ]
     , "bAutoWidth": false
@@ -215,8 +257,21 @@ function createTable(gridId,data,columns, sortingDefault) {
     , "aaData": data
     , "aaSorting": [[ sortingDefault, "asc" ]]
     , "aoColumns": columns
-    , "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
     }
   );
+  $('#'+gridId+' thead tr').addClass("head");
+  var refreshButton = $("<button><img src='"+contextPath+"/images/icRefresh.png'/></button>");
+  refreshButton.button();
+  refreshButton.attr("title","Refresh");
+  refreshButton.click( function() { refresh(); } );
+  refreshButton.addClass("refreshButton");
+  $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshButton);
+  $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({
+	  show: { effect: "none", delay: 0 }
+    , hide: { effect: "none",  delay: 0 }
+    , position: { my: "left+40 bottom-10", collision: "flipfit" }
+  } );
   $('.dataTables_filter input').attr("placeholder", "Search");
+  $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
 }
