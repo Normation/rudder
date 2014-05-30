@@ -105,6 +105,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
         </exclusion>
       </exclusions>
     </dependency> 
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
+      <version>${lift-version}</version>
+    </dependency>  
   
   </dependencies>
 </project>

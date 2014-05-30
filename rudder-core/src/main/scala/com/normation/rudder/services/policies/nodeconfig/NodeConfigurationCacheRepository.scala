@@ -232,7 +232,7 @@ class LdapNodeConfigurationCacheRepository(
 
   import net.liftweb.json._
   import net.liftweb.json.Serialization.{read, write}
-  implicit val formats = Serialization.formats(NoTypeHints)
+  implicit val formats = Serialization.formats(NoTypeHints) ++ net.liftweb.json.ext.JodaTimeSerializers.all
 
   /*
    * Logic: there is only one object that contains all node config cache.
