@@ -69,6 +69,7 @@ import net.liftweb.json.JField
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.rudder.web.services.JsTableData
+import net.liftweb.http.js.JE.AnonFunc
 
 
 
@@ -222,27 +223,53 @@ class RuleGrid(
 
 
       case Full(tableData) =>
-        val onLoad =
-          s"""
-      var allcheckboxCallback = function(checked) { ${SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean))}};
-      createRuleTable ("${htmlId_rulesGridId}", ${tableData.json.toJsCmd}, ${showCheckboxColumn}, ${popup}, allcheckboxCallback, "${S.contextPath}");
-      createTooltip();
-      createTooltiptr();
-      $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
-      $$('#${htmlId_rulesGridWrapper} thead tr').addClass("head");
-      """
-    ( <div id={htmlId_rulesGridZone}>
-        <div id={htmlId_modalReportsPopup} class="nodisplay">
-          <div id={htmlId_reportsPopup} ></div>
-        </div>
-        <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>
-        <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
-          <div id={htmlId_rulesGridId +"_paginate_area"}></div>
-        </div>
-      </div>
-    ) ++
-    Script(OnLoad(JsRaw(onLoad)))
 
+        // Build refresh function for Rule grid
+        val refresh =  AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
+          ( for {
+              rules        <- roRuleRepository.getAll(false)
+              nodeInfo     = getAllNodeInfos()
+              groupLib     = getFullNodeGroupLib()
+              directiveLib = getFullDirectiveLib()
+              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+            } yield {
+              JsRaw(s"""refreshTable("${htmlId_rulesGridId}",${newData.json.toJsCmd});""")
+            }
+          ) match {
+            case Full(cmd) => cmd
+            case eb:EmptyBox =>
+              val fail = eb ?~! ("an error occured during data update")
+              logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
+              JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");""")
+          }
+        } ))
+
+        val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
+        val onLoad =
+          s"""createRuleTable (
+                  "${htmlId_rulesGridId}"
+                , ${tableData.json.toJsCmd}
+                , ${showCheckboxColumn}
+                , ${popup}
+                , ${allcheckboxCallback.toJsCmd}
+                , "${S.contextPath}"
+                , ${refresh.toJsCmd}
+              );
+              createTooltip();
+              createTooltiptr();
+              $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
+          """
+        <div id={htmlId_rulesGridZone}>
+          <span class="error" id="ruleTableError"></span>
+          <div id={htmlId_modalReportsPopup} class="nodisplay">
+            <div id={htmlId_reportsPopup} ></div>
+          </div>
+          <table id={htmlId_rulesGridId} class="display" cellspacing="0"> </table>
+          <div class={htmlId_rulesGridId +"_pagination, paginatescala"} >
+            <div id={htmlId_rulesGridId +"_paginate_area"}></div>
+          </div>
+        </div> ++
+        Script(OnLoad(JsRaw(onLoad)))
     }
   }
 
@@ -265,7 +292,7 @@ class RuleGrid(
       nodes         <- allNodeInfos
     } yield {
       val lines = for {
-         line <- convertRulesToLines(directivesLib, groupsLib, nodes)
+         line <- convertRulesToLines(directivesLib, groupsLib, nodes, rules.toList)
       } yield {
         getRuleData(line, groupsLib, nodes)
       }
@@ -282,7 +309,8 @@ class RuleGrid(
       directivesLib: FullActiveTechniqueCategory
     , groupsLib: FullNodeGroupCategory
     , nodes: Map[NodeId, NodeInfo]
-  ) : List[Line] = { rules.toList.map {
+    , rules : List[Rule]
+  ) : List[Line] = { rules.map {
     rule =>
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
