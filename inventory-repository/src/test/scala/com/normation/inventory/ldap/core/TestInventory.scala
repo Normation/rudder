@@ -132,7 +132,7 @@ class TestInventory extends Specification {
       , status
       , PhysicalMachineType
       , Some(s"name for ${name}")
-      , None, None, None
+      , None, None, None, None, None
       , Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil, Nil
     )
   //shortcut to create a node with the name has ID and the given machine, in the
