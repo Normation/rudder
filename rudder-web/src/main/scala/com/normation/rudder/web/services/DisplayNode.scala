@@ -346,8 +346,10 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         <div class="tablepadding">
           <b>Hostname:</b> {sm.node.main.hostname}<br/>
           <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
+          <b>Manufacturer:</b> {sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}<br/>
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
+          <b>System Serial Number:</b> {sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}<br/>
         </div>
 
       <h4 class="tablemargin">Operating system details</h4>
