@@ -102,8 +102,9 @@ class DitQueryData(dit:InventoryDit) {
       Criterion(A_MACHINE_UUID, StringComparator),
       Criterion(A_NAME, StringComparator),
       Criterion(A_DESCRIPTION, StringComparator),
-      Criterion(A_MB_UUID, StringComparator)
-      //TODO : physical ?
+      Criterion(A_MB_UUID, StringComparator),
+      Criterion(A_MANUFACTURER, StringComparator),
+      Criterion(A_SERIAL_NUMBER, StringComparator)
     )),
     ObjectCriterion(OC_MEMORY, peObjectCriterion.criteria ++ Seq(
       Criterion(A_MEMORY_SLOT_NUMBER, LongComparator),
