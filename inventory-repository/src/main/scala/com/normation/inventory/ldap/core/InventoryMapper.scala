@@ -133,6 +133,7 @@ class InventoryMapper(
     e.setOpt(elt.editor,      A_EDITOR,       {x:SoftwareEditor => x.name})
     e.setOpt(elt.releaseDate, A_RELEASE_DATE, {x:DateTime => GeneralizedTime(x).toString})
     e.setOpt(elt.version,     A_SOFT_VERSION, {x:Version => x.value})
+
     e
   }
 
@@ -144,6 +145,7 @@ class InventoryMapper(
       version     = e(A_SOFT_VERSION).map(v => new Version(v))
       releaseDate = e.getAsGTime(A_RELEASE_DATE) map { _.dateTime }
       editor      = e(A_EDITOR) map { x => new SoftwareEditor(x) }
+
     } yield {
       Bios( name, desc, version, editor, releaseDate, quantity )
     }
@@ -414,6 +416,9 @@ class InventoryMapper(
     root.setOpt(machine.inventoryDate,A_INVENTORY_DATE,{x:DateTime => GeneralizedTime(x).toString})
     root.setOpt(machine.receiveDate,A_RECEIVE_DATE,{x:DateTime => GeneralizedTime(x).toString})
     root.setOpt(machine.name,A_NAME,{x:String => x})
+    root.setOpt(machine.manufacturer,A_MANUFACTURER, {x:Manufacturer => x.name})
+    root.setOpt(machine.systemSerialNumber,A_SERIAL_NUMBER, {x:String => x})
+
 
     val tree = LDAPTree(root)
     //now, add machine elements as children
@@ -492,17 +497,20 @@ class InventoryMapper(
 
   def machineFromTree(tree:LDAPTree) : Box[MachineInventory] = {
     for {
-      dit <- ditService.getDit(tree.root().dn)
-      inventoryStatus = ditService.getInventoryStatus(dit)
-      id <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn) ?~! "Missing required ID attribute"
-      machineType <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet) ?~! "Can not find machine types"
-      name = tree.root()(A_NAME)
-      mbUuid = tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
-      inventoryDate = tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
-      receiveDate = tree.root.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
+      dit                <- ditService.getDit(tree.root().dn)
+      inventoryStatus    = ditService.getInventoryStatus(dit)
+      id                 <- dit.MACHINES.MACHINE.idFromDN(tree.root.dn) ?~! "Missing required ID attribute"
+      machineType        <- machineTypeFromObjectClasses(tree.root().valuesFor(A_OC).toSet) ?~! "Can not find machine types"
+      name               = tree.root()(A_NAME)
+      mbUuid             = tree.root()(A_MB_UUID) map { x => MotherBoardUuid(x) }
+      inventoryDate      = tree.root.getAsGTime(A_INVENTORY_DATE).map { _.dateTime }
+      receiveDate        = tree.root.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
+      manufacturer       = tree.root()(A_MANUFACTURER).map(m => new Manufacturer(m))
+      systemSerialNumber = tree.root()(A_SERIAL_NUMBER)
       //now, get all subentries
     } yield {
-      val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate, receiveDate )
+      val m = MachineInventory(id,inventoryStatus,machineType,name,mbUuid,inventoryDate, receiveDate
+                               , manufacturer, systemSerialNumber)
       //map subentries and return result
       (m /: tree.children()) { case (m,(rdn,t)) => mapAndAddMachineElement(t.root(),m) }
     }

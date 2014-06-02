@@ -159,20 +159,22 @@ case object PhysicalMachineType extends MachineType with HashcodeCaching
 
 
 case class MachineInventory(
-    id            : MachineUuid
-  , status        : InventoryStatus
-  , machineType   : MachineType
-  , name          : Option[String] = None
-  , mbUuid        : Option[MotherBoardUuid] = None
-  , inventoryDate : Option[DateTime] = None
-  , receiveDate   : Option[DateTime] = None
-  , bios          : Seq[Bios] = Nil
-  , controllers   : Seq[Controller] = Nil
-  , memories      : Seq[MemorySlot] = Nil
-  , ports         : Seq[Port] = Nil
-  , processors    : Seq[Processor] = Nil
-  , slots         : Seq[Slot] = Nil
-  , sounds        : Seq[Sound] = Nil
-  , storages      : Seq[Storage] = Nil
-  , videos        : Seq[Video] = Nil
+    id                : MachineUuid
+  , status            : InventoryStatus
+  , machineType       : MachineType
+  , name              : Option[String] = None
+  , mbUuid            : Option[MotherBoardUuid] = None
+  , inventoryDate     : Option[DateTime] = None
+  , receiveDate       : Option[DateTime] = None
+  , manufacturer      : Option[Manufacturer] = None
+  , systemSerialNumber: Option[String] = None
+  , bios              : Seq[Bios] = Nil
+  , controllers       : Seq[Controller] = Nil
+  , memories          : Seq[MemorySlot] = Nil
+  , ports             : Seq[Port] = Nil
+  , processors        : Seq[Processor] = Nil
+  , slots             : Seq[Slot] = Nil
+  , sounds            : Seq[Sound] = Nil
+  , storages          : Seq[Storage] = Nil
+  , videos            : Seq[Video] = Nil
 ) extends HashcodeCaching

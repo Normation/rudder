@@ -249,7 +249,7 @@ object LDAPConstants {
       may = Set(A_DESCRIPTION,A_SERIAL_NUMBER,"seeAlso","owner","ou","o","l"))
   OC +=(OC_MACHINE, sup = OC(OC_DEVICE),
       must = Set(A_MACHINE_UUID),
-      may = Set(A_MB_UUID))
+      may = Set(A_MB_UUID,A_MANUFACTURER,A_SERIAL_NUMBER))
 
   OC +=(OC_PM)
   OC +=(OC_VM)

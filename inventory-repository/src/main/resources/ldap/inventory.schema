@@ -788,7 +788,8 @@ objectclass ( InventoryObjectClasses:1
   DESC 'A container for servers, ie a physical machine or a virtual machine'
   SUP device
   MUST ( machineId )
-  MAY ( cn $ description $ motherBoardUuid $ confirmed $ inventoryDate $ receiveDate ) )
+  MAY ( cn $ description $ motherBoardUuid $ confirmed $ inventoryDate $ receiveDate $
+        manufacturer $ componentSerialNumber) )
 
 objectclass ( InventoryObjectClasses:2
   NAME 'physicalMachine'

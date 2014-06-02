@@ -135,7 +135,34 @@ class FusionReportUnmarshaller(
       )
     }
 
+     /**
+      * Insert bios, manufacturer and system serial in the inventory
+      * If Manufacturer or System Serial Number is already defined, skip them and write
+      * a warn log
+      */
+      def addBiosInfosIntoReport(
+          bios              : Option[Bios]
+        , manufacturer      : Option[Manufacturer]
+        , systemSerialNumber: Option[String]) : Unit = {
+        bios.foreach {x => report = report.copy( machine = report.machine.copy( bios = x +: report.machine.bios ) ) }
 
+        manufacturer.foreach{ x =>
+          report.machine.manufacturer match {
+            case None => // can update the manufacturer
+              report = report.copy(machine = report.machine.copy(manufacturer = Some(x)))
+            case Some(existingManufacturer) => //cannot update it
+              logger.warn(s"Duplicate Machine Manufacturer definition in the inventory: s{existingManufacturer} is the current value, skipping the other value ${x}")
+          }
+        }
+        systemSerialNumber.foreach{ x =>
+          report.machine.systemSerialNumber match {
+            case None => // can update the System Serial Number
+              report = report.copy(machine = report.machine.copy(systemSerialNumber = Some(x)))
+            case Some(existingSystemSerialNumber) => //cannot update it
+              logger.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
+          }
+        }
+      } 
 
     /*
      * and now, actually parse !
@@ -145,7 +172,8 @@ class FusionReportUnmarshaller(
       case "CONTENT" => for( elt <- e.head.child ) { elt.label match {
         case "ACCESSLOG"   => processAccessLog(elt).foreach(x => report = report.copy ( node = report.node.copy( inventoryDate = Some(x) ), machine = report.machine.copy ( inventoryDate = Some(x) ) ))
         case "BATTERIES"   => //TODO not sure about that
-        case "BIOS"        => processBios(elt).foreach {x => report = report.copy( machine = report.machine.copy( bios = x +: report.machine.bios ) ) }
+        case "BIOS"        => val (bios, manufacturer, systemSerialNumber) = processBios(elt)
+                              addBiosInfosIntoReport(bios, manufacturer, systemSerialNumber)
         case "CONTROLLERS" => processController(elt).foreach { x => report = report.copy( machine = report.machine.copy( controllers = x +: report.machine.controllers ) ) }
         case "CPUS"        => processCpu(elt).foreach { x => report = report.copy( machine = report.machine.copy( processors = x +: report.machine.processors ) ) }
         case "DRIVES"      => processFileSystem(elt).foreach { x => report = report.copy( node = report.node.copy( fileSystems = x +: report.node.fileSystems ) ) }
@@ -626,8 +654,21 @@ class FusionReportUnmarshaller(
       , editor = optText(s\"PUBLISHER").map(e => new SoftwareEditor(e))
     )
 
-  def processBios(b : NodeSeq) : Option[Bios] = {
-    optText(b\"SMODEL") match {
+  /**
+   * Process the bios, and return its, plus the system manufacturer and the system serial number
+   */
+  def processBios(b : NodeSeq) : (Option[Bios], Option[Manufacturer], Option[String]) = {
+    // Fetching the manufacturer. It should be in SMANUFACTURER, except if it is
+    // empty, or the value is "Not available". In these case, the correct entry is MMANUFACTURER
+    val systemManufacturer = (optText(b\"SMANUFACTURER") match {
+      case None => optText(b\"MMANUFACTURER")
+      case Some("Not available") => optText(b\"MMANUFACTURER")
+      case Some(text) => Some(text)
+    }).map(m => new Manufacturer(m))
+
+    val systemSerialNumber = optText(b\"SSN")
+
+    val bios = optText(b\"SMODEL") match {
       case None =>
         logger.debug("Ignoring entry Bios because SMODEL is empty")
         logger.debug(b)
@@ -648,6 +689,8 @@ class FusionReportUnmarshaller(
           , version = optText(b\"BVERSION").map(v => new Version(v) )
         ))
     }
+
+    (bios, systemManufacturer, systemSerialNumber)
   }
 
   def processController(c: NodeSeq) : Option[Controller] = {
