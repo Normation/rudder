@@ -641,6 +641,9 @@ case class ComponentValueRuleStatusReport(
 
   override val nodesreport = reports
 
+  // Key of the component, get the unexpanded value if it exists or else the component value
+  val key = unexpandedComponentValue.getOrElse(componentValue)
+
   def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport] ={
     reports.filter(filter).map(MessageReport(_,component,componentValue, unexpandedComponentValue))
   }
