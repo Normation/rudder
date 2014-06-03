@@ -66,7 +66,10 @@ class RuleCompliance (
 ) extends Loggable {
 
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val categoryService  = RudderConfig.ruleCategoryService
+  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
+  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private[this] val roRuleRepository = RudderConfig.roRuleRepository
+  private[this] val categoryService      = RudderConfig.ruleCategoryService
 
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
@@ -107,14 +110,38 @@ class RuleCompliance (
          <table id="reportsGrid" cellspacing="0">  </table>
         </div> ++
         Script(JsRaw(s"""
-          createDirectiveTable("reportsGrid",${data},1,"${S.contextPath}");
+          createDirectiveTable("reportsGrid",${data},1,"${S.contextPath}",${refresh().toJsCmd});
           createTooltip();
         """))
       }
   }
 
-}
+  def refresh() = {
+     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
+        val result : Box[String] = for {
+            optReports <- reportingService.findImmediateReportsByRule(rule.id)
+            updatedRule <- roRuleRepository.get(rule.id)
+            updatedNodes <- getAllNodeInfos().map(_.toMap)
+            updatedDirectives <- getFullDirectiveLib()
+        } yield {
+          val complianceData = ComplianceData(updatedRule,directiveLib,allNodeInfos)
 
+          optReports match {
+            case Some(reports) =>
+              val directivesReport=reports.getRuleStatus().filter(dir => updatedRule.directiveIds.contains(dir.directiveId))
+              complianceData.getDirectivesComplianceDetails(directivesReport).json.toJsCmd
+
+            case _ => "[]"
+          }
+        }
+
+        JsRaw(s"""refreshTable("reportsGrid",${result.getOrElse("[]")});
+               createTooltip();""")
+     })
+
+     AnonFunc("",ajaxCall)
+  }
+}
 
 object RuleCompliance {
 
