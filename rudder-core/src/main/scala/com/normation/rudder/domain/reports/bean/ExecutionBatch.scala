@@ -468,7 +468,7 @@ case class ConfigurationExecutionBatch(
                       , componentValue
                       , unexpandedComponentValue
                       , cptValueReportType
-                      , reports.flatMap(_.reports)
+                      , reports.flatMap(_.nodesReport)
                     )
                   }
                 case None =>
@@ -480,7 +480,7 @@ case class ConfigurationExecutionBatch(
                       , componentValue
                       , unexpandedComponentValue
                       , cptValueReportType
-                      , reports.flatMap(_.reports)
+                      , reports.flatMap(_.nodesReport)
                     )
                   }
               }
@@ -611,12 +611,14 @@ case class NodeReport (
 
 sealed trait RuleStatusReport {
 
-  def nodesreport  : Seq[NodeReport]
+  def nodesReport  : Seq[NodeReport]
+
+  def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport]
 
   def computeCompliance : Option[Int] = {
-    if (nodesreport.size>0){
-      val reportsSize = nodesreport.size.toDouble
-      Some((nodesreport.map(report => report.reportType match {
+    if (nodesReport.size>0){
+      val reportsSize = nodesReport.size.toDouble
+      Some((nodesReport.map(report => report.reportType match {
         case SuccessReportType => 1
         case NotApplicableReportType    => 1
         case _                 => 0
@@ -631,43 +633,45 @@ sealed trait RuleStatusReport {
 }
 
 case class ComponentValueRuleStatusReport(
-    directiveid         : DirectiveId
+    directiveId         : DirectiveId
   , component           : String
   , componentValue      : String
   , unexpandedComponentValue : Option[String]
   , cptValueReportType  : ReportType
-  , reports             : Seq[NodeReport]
+  , nodesReport             : Seq[NodeReport]
 ) extends RuleStatusReport {
 
-  override val nodesreport = reports
+
+  // Key of the component, get the unexpanded value if it exists or else the component value
+  val key = unexpandedComponentValue.getOrElse(componentValue)
 
   def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport] ={
-    reports.filter(filter).map(MessageReport(_,component,componentValue, unexpandedComponentValue))
+    nodesReport.filter(filter).map(MessageReport(_,component,componentValue, unexpandedComponentValue))
   }
 }
 
 case class ComponentRuleStatusReport (
-    directiveid         : DirectiveId
+    directiveId         : DirectiveId
   , component           : String
   , componentValues     : Seq[ComponentValueRuleStatusReport]
   , componentReportType : ReportType
 ) extends RuleStatusReport {
 
-  override val nodesreport = componentValues.flatMap(_.nodesreport)
+  override val nodesReport = componentValues.flatMap(_.nodesReport)
 
   // since we have "exploded" ComponentValue, we need to regroup them
-  override def computeCompliance =
+  override def computeCompliance = {
    if (componentValues.size>0){
      // we need to group the compliances per unexpandedComponentValue
      val aggregatedComponents = componentValues.groupBy { entry => entry.unexpandedComponentValue.getOrElse(entry.componentValue)}.map { case (key, entries) =>
        val severity = ReportType.getWorseType(entries.map(_.cptValueReportType))
        ComponentValueRuleStatusReport(
-             entries.head.directiveid // can't fail because we are in a groupBy
+             entries.head.directiveId // can't fail because we are in a groupBy
            , entries.head.component  // can't fail because we are in a groupBy
            , key
            , None
            , severity
-           , entries.flatMap(_.reports)
+           , entries.flatMap(_.nodesReport)
           )
      }
      Some((aggregatedComponents.map(_.computeCompliance.getOrElse(0))
@@ -675,6 +679,11 @@ case class ComponentRuleStatusReport (
    }
     else
       None
+  }
+
+  def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport] = {
+    componentValues.flatMap( value => value.processMessageReport(filter))
+  }
 }
 
 case class DirectiveRuleStatusReport(
@@ -683,7 +692,7 @@ case class DirectiveRuleStatusReport(
   , directiveReportType  : ReportType
 ) extends RuleStatusReport {
 
-  override val nodesreport = components.flatMap(_.nodesreport)
+  override val nodesReport = components.flatMap(_.nodesReport)
 
   override def computeCompliance =
    if (components.size>0){
@@ -692,6 +701,10 @@ case class DirectiveRuleStatusReport(
    }
     else
       None
+
+  def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport] = {
+    components.flatMap( component => component.processMessageReport(filter))
+  }
 }
 
 

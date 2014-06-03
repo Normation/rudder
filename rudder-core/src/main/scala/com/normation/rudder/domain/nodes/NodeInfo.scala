@@ -38,12 +38,11 @@ import com.normation.inventory.domain.AgentType
 import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.ServerRole
 
 /**
  * A NodeInfo is a read only object containing the information that will be
  * always useful about a node
- * @author Nicolas CHARLES
- *
  */
 case class NodeInfo(
     id            : NodeId
@@ -64,4 +63,9 @@ case class NodeInfo(
   , isBroken      : Boolean
   , isSystem      : Boolean
   , isPolicyServer: Boolean
+  //for now, isPolicyServer and server role ARE NOT
+  //dependant. So EXPECTS inconsistencies.
+  //TODO: remove isPolicyServer, and pattern match on
+  //      on role everywhere.
+  , serverRoles   : Set[ServerRole]
 ) extends HashcodeCaching

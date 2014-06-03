@@ -66,7 +66,15 @@
 .overflow_auto {
   overflow: auto;
 }
-div.innerDetails { display: none }
+
+div.innerDetails {
+	display: none; 
+    background : #DEDEDE;
+}
+
+div.innerDetails.level1 {
+  padding-left:5%;
+}
 
 /**********************************
  * Node details
@@ -509,6 +517,14 @@ td {
   border-top: 1px solid #ababab;
 }
 
+td.center {
+ text-align : center;
+}
+
+td.right {
+ text-align : right;
+}
+
 .warning {
    color: #c00;
 }
@@ -520,7 +536,7 @@ a.warning {
 #contenu table td img, #contenu table th img {
    float: none;
    margin: 0;
-   padding: 2px 0 0 0;
+   padding: 4px 0 0 0;
 }
 .openDetail {
    border: none;
@@ -594,7 +610,7 @@ div#Detail {
 }
 
 .dataTables_length {
-  width:35%;
+  width:27%;
   float:left;
 }
 
@@ -666,7 +682,7 @@ div#Detail {
 
 .dataTables_info {
   float: left;
-  width: 30%;
+  width: 27%;
   padding: 3px 0px 3px 0px;
 }
 
@@ -738,6 +754,9 @@ table.noMarginGrid {
   background-image: url('../images/forward_enabled.jpg');
 }
 
+.reportIcon {
+  padding-left: 6px !important;
+}
 
 /********************
 * Directive display
