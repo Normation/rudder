@@ -80,7 +80,7 @@ class SearchNodeComponent(
   , onSearchCallback : (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
-)extends DispatchSnippet {
+)extends DispatchSnippet with Loggable {
   import SearchNodeComponent._
 
   //our local copy of things we work on
@@ -301,7 +301,7 @@ class SearchNodeComponent(
       JE.JsRaw("""$("#serverGrid_info").remove();""") &
       JE.JsRaw("""$("#serverGrid_length").remove();""") &
       activateButtonOnChange &
-      SetHtml("gridResult", srvGrid.tableXml("serverGrid")) & grid
+       grid
 
   }
 
@@ -323,12 +323,15 @@ class SearchNodeComponent(
     // Ideally this would just check the size first ?
     srvList match {
       case Full(seq) =>
-        srvGrid.initJs("serverGrid", seq, onClickCallback)
+        val refresh = srvGrid.refreshData(() => seq, onClickCallback, "serverGrid")
+        JsRaw(s"""(${refresh.toJsCmd}());""")
 
       case Empty =>
-        srvGrid.initJs("serverGrid", Seq(), onClickCallback)
+        Noop
 
-      case f@Failure(_,_,_) => Noop
+      case f@Failure(_,_,_) =>
+        logger.error(s"Could not update node table result cause is: ${f.msg}" )
+        Noop
     }
   }
 

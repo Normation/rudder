@@ -462,6 +462,7 @@ function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, grid
 
 	if ("false"==status) {
 		$('#'+buttonId).button( "option", "disabled", true );
+        $('#'+gridId).removeClass("desactivatedGrid");
 	} else {
 		activateButtonDeactivateGrid(buttonId, gridId);
   }
