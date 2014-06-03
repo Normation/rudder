@@ -99,6 +99,7 @@ class TestNodeAndParameterLookup extends Specification {
     , isBroken      = false
     , isSystem      = false
     , isPolicyServer= true
+    , serverRoles   = Set()
   )
   val root = NodeInfo(
       id            = rootId
@@ -119,6 +120,7 @@ class TestNodeAndParameterLookup extends Specification {
     , isBroken      = false
     , isSystem      = false
     , isPolicyServer= true
+    , serverRoles   = Set()
   )
 
   val context = InterpolationContext(

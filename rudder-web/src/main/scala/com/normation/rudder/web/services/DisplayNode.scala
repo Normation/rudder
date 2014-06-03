@@ -392,28 +392,37 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
   // Display the role of the node
   private def displayServerRole(sm:FullInventory, inventoryStatus : InventoryStatus) : NodeSeq = {
     val nodeId = sm.node.main.id
-    if(isRootNode(nodeId)) {
-      <span><b>Role: </b>Rudder root server</span><br/>
-    } else {
-      inventoryStatus match {
-        case AcceptedInventory =>
-          val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
-          nodeInfoBox match {
-            case Full(nodeInfo) =>
-              nodeInfo.isPolicyServer match {
-                case true => <span><b>Role: </b>Rudder relay server</span><br/>
-                case false => <span><b>Role: </b>Rudder node</span><br/>
+    inventoryStatus match {
+      case AcceptedInventory =>
+        val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
+        nodeInfoBox match {
+          case Full(nodeInfo) =>
+            if(nodeInfo.isPolicyServer) {
+              if(isRootNode(nodeId) ) {
+                val roles = if(nodeInfo.serverRoles.isEmpty) {
+                  ""
+                } else {
+                  nodeInfo.serverRoles.map(_.value).mkString(" (", ", ", ")")
+                }
+
+                <span><b>Role: </b>Rudder server{roles})</span><br/>
+
+              } else { //server relay, don't take care of nodes
+                <span><b>Role: </b>Rudder relay server</span><br/>
               }
-            case eb:EmptyBox =>
-              val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
-              logger.error(e.messageChain)
-              <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
-          }
-        case RemovedInventory =>
-          <span><b>Role: </b>Deleted node</span><br/>
-        case PendingInventory =>
-          <span><b>Role: </b>Pending node</span><br/>
-      }
+            } else {
+              <span><b>Role: </b>Rudder node</span><br/>
+            }
+
+          case eb:EmptyBox =>
+            val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
+            logger.error(e.messageChain)
+            <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
+        }
+      case RemovedInventory =>
+        <span><b>Role: </b>Deleted node</span><br/>
+      case PendingInventory =>
+        <span><b>Role: </b>Pending node</span><br/>
     }
   }
 
