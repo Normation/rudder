@@ -144,8 +144,9 @@ class LDAPEntityMapper(
       date        <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~!
                       "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
       osVersion   = inventoryEntry(A_OS_VERSION).getOrElse("N/A")
-      osName  = inventoryEntry(A_OS_NAME).getOrElse("N/A")
+      osName      = inventoryEntry(A_OS_NAME).getOrElse("N/A")
       servicePack = inventoryEntry(A_OS_SERVICE_PACK)
+      serverRoles = inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
     } yield {
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
@@ -170,6 +171,7 @@ class LDAPEntityMapper(
         , nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false)
         , nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         , nodeEntry.isA(OC_POLICY_SERVER_NODE)
+        , serverRoles
       )
     }
   }

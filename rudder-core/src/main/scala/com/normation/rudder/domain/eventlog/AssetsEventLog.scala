@@ -182,7 +182,7 @@ object NodeEventLog {
         <creationDate>{node.creationDate}</creationDate>
         <isBroken>{node.isBroken}</isBroken>
         <isSystem>{node.isSystem}</isSystem>
-        <isPolicyServer>{node.id.value=="root"}</isPolicyServer>
+        <isPolicyServer>{node.isPolicyServer}</isPolicyServer>
       </node>
     )
   }
