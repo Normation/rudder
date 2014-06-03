@@ -1,0 +1,78 @@
+###############################################################################
+# Copyright 2014 Normation SAS
+###############################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as
+# published by the Free Software Foundation, either version 3 of the
+# License, or (at your option) any later version.
+#
+# In accordance with the terms of section 7 (7. Additional Terms.) of
+# the GNU Affero GPL v3, the copyright holders add the following
+# Additional permissions:
+# Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+# Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+# licence, when you create a Related Module, this Related Module is
+# not considered as a part of the work and may be distributed under the
+# license agreement of your choice.
+# A "Related Module" means a set of sources files including their
+# documentation that, without modification of the Source Code, enables
+# supplementary functions or services in addition to those offered by
+# the Software.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+#
+###############################################################################
+
+# This file creates all the necessary entries in LDAP Directory for server roles
+
+# Create the special rule targe for all servers with at least one role
+dn: ruleTarget=special:all_servers_with_role,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_servers_with_role
+cn: All nodes with a Server role
+description: All nodes that have at least one Server role defined
+isEnabled: TRUE
+isSystem: TRUE
+
+# Create the technique for the server roles
+dn: activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: server-roles
+activeTechniqueId: server_roles
+acceptationTimestamp: {"1.0":"20140603124328.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: directiveId=server-roles-directive,activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: server-roles-directive
+techniqueVersion: 0:1.0
+cn: Server Roles
+description: Server Roles - Technical
+isEnabled: TRUE
+isSystem: TRUE
+directivePriority: 0
+
+# Create the rule for the server with at least a role
+dn: ruleId=server-roles,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
+objectClass: top
+ruleId: server-roles
+ruleTarget: special:all_servers_with_role
+directiveId: server-roles-directive
+cn: Rudder system policy: Server roles
+description: Server roles
+isEnabled: TRUE
+isSystem: TRUE
+longDescription: This rule configures the nodes that have Server Roles defined
+serial: 0
