@@ -54,6 +54,7 @@ import com.normation.utils.{StringUuidGenerator,StringUuidGeneratorImpl}
 import java.io.File
 import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
+import com.normation.inventory.provisioning.fusion.RudderServerRoleParsing
 
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
@@ -127,6 +128,7 @@ class AppConfig {
             RudderRootUserParsing ::
             RudderAgentNameParsing ::
             RudderHostnameParsing ::
+            RudderServerRoleParsing ::
             Nil
         )
         , contentParsingExtensions = (

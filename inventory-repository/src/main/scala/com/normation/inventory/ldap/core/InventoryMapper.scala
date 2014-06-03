@@ -710,6 +710,8 @@ class InventoryMapper(
       ditService.getDit(status).MACHINES.MACHINE.dn(id).toString
     }.toSeq:_*)
     root +=! (A_ACCOUNT, server.accounts:_*)
+    root +=! (A_SERVER_ROLE, server.serverRoles.toSeq.map(_.value):_*)
+
     val tree = LDAPTree(root)
     //now, add machine elements as children
     server.networks.foreach { x => tree.addChild(entryFromNetwork(x, dit, server.main.id)) }
@@ -859,6 +861,7 @@ class InventoryMapper(
       receiveDate = entry.getAsGTime(A_RECEIVE_DATE).map { _.dateTime }
       accounts = entry.valuesFor(A_ACCOUNT).toSeq
       serverIps = entry.valuesFor(A_LIST_OF_IP).toSeq
+      serverRoles = entry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       main = NodeSummary(id,inventoryStatus,rootUser,hostname, osDetails, NodeId(policyServerId))
     } yield {
       NodeInventory(
@@ -880,6 +883,7 @@ class InventoryMapper(
          , accounts
          , ev
          , process
+         , serverRoles = serverRoles
          )
     }
   }

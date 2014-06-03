@@ -32,48 +32,75 @@
 *************************************************************************************
 */
 
-package com.normation.inventory.provisioning
-package fusion
+package com.normation.inventory.provisioning.fusion
 
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
+import org.junit.runner._
+import org.specs2.mutable._
+import org.specs2.runner._
 import com.normation.utils.StringUuidGeneratorImpl
-import scala.xml.XML
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import java.io.File
-
-@RunWith(classOf[BlockJUnit4ClassRunner])
-class TestReportParsing {
-
-  val parser = new FusionReportUnmarshaller(
-      new StringUuidGeneratorImpl()
-  )
+import net.liftweb.common._
+import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.ServerRole
 
 
+/**
+ * A simple test class to check that the demo data file is up to date
+ * with the schema (there may still be a desynchronization if both
+ * demo-data, test data and test schema for UnboundID are not synchronized
+ * with OpenLDAP Schema).
+ */
+@RunWith(classOf[JUnitRunner])
+class TestReportParsing extends Specification {
 
-  @Test
-  def testTwoIpsForEth0() {
 
-    val is = this.getClass.getClassLoader.getResourceAsStream("fusion-report/centos-with-two-ip-for-one-interface.ocs")
-    assertNotNull(is)
 
-    val report = parser.fromXml("report", is) match {
-      case Full(e) => e
-      case eb:EmptyBox =>
-        val e = eb ?~! "Parsing error"
-        e.rootExceptionCause match {
-          case Full(ex) => throw new Exception(e.messageChain, ex)
-          case _ => throw new Exception(e.messageChain)
-        }
+
+  private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
+    def parse(reportRelativePath: String): InventoryReport = {
+      import java.net.URL
+      val url = this.getClass.getClassLoader.getResource(reportRelativePath)
+      if(null == url) throw new NullPointerException(s"Resource with relative path '${reportRelativePath}' is null (missing resource? Spelling? Permissions?)")
+
+      val is = url.openStream()
+
+      val report = parser.fromXml("report", is) match {
+        case Full(e) => e
+        case eb:EmptyBox =>
+          val e = eb ?~! "Parsing error"
+          e.rootExceptionCause match {
+            case Full(ex) => throw new Exception(e.messageChain, ex)
+            case _ => throw new Exception(e.messageChain)
+          }
+      }
+      is.close()
+      report
     }
+  }
 
-    assertTrue("We should have two IPs for eth0",
-      report.node.networks.find( _.name == "eth0").get.ifAddresses.size == 2
+
+  "Machine with two ips for one interfaces" should {
+
+    val parser = new FusionReportUnmarshaller(
+        new StringUuidGeneratorImpl()
     )
+    val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
 
+    "lead to a node with two ips for eth0" in {
+      report.node.networks.find( _.name == "eth0").get.ifAddresses.size must beEqualTo(2)
+    }
+  }
+
+  "A node with Rudder roles" should {
+
+    val parser = new FusionReportUnmarshaller(
+        new StringUuidGeneratorImpl
+      , rootParsingExtensions = RudderServerRoleParsing ::Nil
+    )
+    val report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")
+
+    "correctly add roles"in {
+      report.node.serverRoles must contain(exactly(ServerRole("magikal_node")))
+    }
   }
 
 }

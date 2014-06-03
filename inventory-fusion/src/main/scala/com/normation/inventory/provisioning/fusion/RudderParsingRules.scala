@@ -238,6 +238,20 @@ object RudderHostnameParsing extends FusionReportParsingExtension {
   }
 }
 
+/**
+* <SERVER_ROLES>
+*    <SERVER_ROLE>
+*/
+object RudderServerRoleParsing extends FusionReportParsingExtension {
+  override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "SERVER_ROLES" }
+  override def apply(x:(Node,InventoryReport)) : InventoryReport = {
+    x._2.copy( node = x._2.node.copy( serverRoles = x._2.node.serverRoles ++ processServerRoles(x._1) ) )
+  }
 
+  //parse the sub list of SERVER_ROLE, ignore other elements
+  def processServerRoles(xml:NodeSeq) : Seq[ServerRole] = {
+    (xml \ "SERVER_ROLE").flatMap(e => optText(e).map(ServerRole(_)))
+  }
+}
 
 

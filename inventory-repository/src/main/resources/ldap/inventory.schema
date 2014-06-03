@@ -315,6 +315,15 @@ attributetype ( InventoryAttributes:300.15
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
 
+# prefix that one with rudder to avoid
+# name clashes with windows schema / server-role attribute
+attributetype ( InventoryAttributes:300.16
+  NAME 'rudderServerRole'
+  DESC 'List of rudder server role (rudder-webapp, etc)'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+
 #
 # A node can have some complex "logical" elements: 
 # * network interfaces
@@ -929,7 +938,7 @@ objectclass ( InventoryObjectClasses:14
         nodeTechniques $ ram $ swap $ confirmed $
         inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
         osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
-        environmentVariable $ process ) )
+        environmentVariable $ process $ rudderServerRole) )
 
 objectclass ( InventoryObjectClasses:15
   NAME 'windowsNode'
