@@ -66,7 +66,15 @@
 .overflow_auto {
   overflow: auto;
 }
-div.innerDetails { display: none }
+
+div.innerDetails {
+	display: none; 
+    background : #DEDEDE;
+}
+
+div.innerDetails.level1 {
+  padding-left:5%;
+}
 
 /**********************************
  * Node details
@@ -509,6 +517,14 @@ td {
   border-top: 1px solid #ababab;
 }
 
+td.center {
+ text-align : center;
+}
+
+td.right {
+ text-align : right;
+}
+
 .warning {
    color: #c00;
 }
@@ -738,6 +754,9 @@ table.noMarginGrid {
   background-image: url('../images/forward_enabled.jpg');
 }
 
+.reportIcon {
+  padding-left: 6px !important;
+}
 
 /********************
 * Directive display

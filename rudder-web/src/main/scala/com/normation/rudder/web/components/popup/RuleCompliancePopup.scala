@@ -375,6 +375,13 @@ class RuleCompliancePopup(rule:Rule) extends Loggable {
          * Everything is based what has been done for the previous dataTable
          */
         Script(JsRaw("""
+            function fnFormatDetails( oTable, nTr ) {
+              var fnData = oTable.fnGetData( nTr );
+              var oTable2 = fnData[fnData.length-1];
+              var sOut ='<div class="innerDetails">'+oTable2+'</div>';
+              return sOut;
+            }
+
             function fnFormatDetails%1$s( oTable, nTr ) {
               var fnData = oTable.fnGetData( nTr );
               var oTable2 = fnData[fnData.length-1]
