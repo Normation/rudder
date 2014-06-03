@@ -266,6 +266,7 @@ case class Windows(
 
 
 
+
 case class NodeSummary(
     id : NodeId
   , status:InventoryStatus
@@ -277,6 +278,7 @@ case class NodeSummary(
   //ipss
 ) extends HashcodeCaching
 
+final case class ServerRole(value: String) extends HashcodeCaching
 
 case class NodeInventory(
     main                 : NodeSummary
@@ -300,6 +302,19 @@ case class NodeInventory(
   , vms                  : Seq[VirtualMachine]      = Seq()
   , networks             : Seq[Network]             = Seq()
   , fileSystems          : Seq[FileSystem]          = Seq()
+    /*
+     * I'm deeply splited on that. On one hand, I would really like to
+     * let anything Rudder specific apart from LDAP inventory.
+     * So I would really like to have here a "nodeAttributes" property, with a JSON like
+     * content, that could be easily extendable by user (adding their own information in
+     * inventory in a semi-structured way) and totally independant from Rudder Logic.
+     * The rudder logic ("does the node have a rudder server role ? what is it ? what is implies ?
+     * how is it model ? etc etc) will live in the Rudder project, and it would be a compelling
+     * argument to have a more interesting Node structure there, independant from the inventory.
+     * On the other hand, it is MUCH more simpler for now to just have a Seq of roles.
+     * So, let's start little until we know what we want exactly.
+     */
+  , serverRoles          : Set[ServerRole]          = Set()
 ) extends HashcodeCaching {
 
   /**A copy of the node with the updated main.

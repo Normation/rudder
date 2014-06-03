@@ -1,0 +1,5228 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<REQUEST>
+  <CONTENT>
+<VMS>
+</VMS>
+<USERSLIST>
+<USER>mail</USER>
+<USER>lp</USER>
+<USER>landscape</USER>
+<USER>statd</USER>
+<USER>www-data</USER>
+<USER>man</USER>
+<USER>list</USER>
+<USER>games</USER>
+<USER>sshd</USER>
+<USER>ubuntu</USER>
+<USER>gnats</USER>
+<USER>puppet</USER>
+<USER>bin</USER>
+<USER>uucp</USER>
+<USER>sys</USER>
+<USER>backup</USER>
+<USER>nicolas</USER>
+<USER>vagrant</USER>
+<USER>sync</USER>
+<USER>messagebus</USER>
+<USER>news</USER>
+<USER>irc</USER>
+<USER>nobody</USER>
+<USER>proxy</USER>
+<USER>libuuid</USER>
+<USER>syslog</USER>
+<USER>whoopsie</USER>
+<USER>daemon</USER>
+<USER>foofoo</USER>
+</USERSLIST>
+    <ACCESSLOG>
+      <LOGDATE>2014-06-03 11:22:20</LOGDATE>
+    </ACCESSLOG>
+    <BIOS>
+      <ASSETTAG />  <BDATE>12/01/2006</BDATE>
+      <BMANUFACTURER>innotek GmbH</BMANUFACTURER>
+      <BVERSION>VirtualBox</BVERSION>
+      <MMANUFACTURER>Oracle Corporation</MMANUFACTURER>
+      <MMODEL>VirtualBox</MMODEL>
+      <MSN>0</MSN>
+      <SKUNUMBER />  <SMANUFACTURER>innotek GmbH</SMANUFACTURER>
+      <SMODEL>VirtualBox</SMODEL>
+      <SSN>0</SSN>
+    </BIOS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Graphics Adapter</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Graphics Adapter</NAME>
+      <PCICLASS>0300</PCICLASS>
+      <PCIID>80ee:beef</PCIID>
+      <PCISLOT>00:02.0</PCISLOT>
+      <TYPE>VGA compatible controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <DRIVER>e1000</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82540EM Gigabit Ethernet Controller</NAME>
+      <PCICLASS>0200</PCICLASS>
+      <PCIID>8086:100e</PCIID>
+      <PCISLOT>00:03.0</PCISLOT>
+      <REV>02</REV>
+      <TYPE>Ethernet controller</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>VirtualBox Guest Service</CAPTION>
+      <MANUFACTURER>InnoTek Systemberatung GmbH</MANUFACTURER>
+      <NAME>VirtualBox Guest Service</NAME>
+      <PCICLASS>0880</PCICLASS>
+      <PCIID>80ee:cafe</PCIID>
+      <PCISLOT>00:04.0</PCISLOT>
+      <TYPE>System peripheral</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82371AB/EB/MB PIIX4 ACPI</CAPTION>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82371AB/EB/MB PIIX4 ACPI</NAME>
+      <PCICLASS>0680</PCICLASS>
+      <PCIID>8086:7113</PCIID>
+      <PCISLOT>00:07.0</PCISLOT>
+      <REV>08</REV>
+      <TYPE>Bridge</TYPE>
+    </CONTROLLERS>
+    <CONTROLLERS>
+      <CAPTION>82540EM Gigabit Ethernet Controller</CAPTION>
+      <DRIVER>e1000</DRIVER>
+      <MANUFACTURER>Intel Corporation</MANUFACTURER>
+      <NAME>82540EM Gigabit Ethernet Controller</NAME>
+      <PCICLASS>0200</PCICLASS>
+      <PCIID>8086:100e</PCIID>
+      <PCISLOT>00:08.0</PCISLOT>
+      <REV>02</REV>
+      <TYPE>Ethernet controller</TYPE>
+    </CONTROLLERS>
+    <CPUS>
+      <CORE>1</CORE>
+      <FAMILYNUMBER>6</FAMILYNUMBER>
+      <MANUFACTURER>Intel</MANUFACTURER>
+      <MODEL>60</MODEL>
+      <NAME>Intel(R) Core(TM) i7-4700MQ CPU @ 2.40GHz</NAME>
+      <SPEED>2400</SPEED>
+      <STEPPING>3</STEPPING>
+      <THREAD>1</THREAD>
+    </CPUS>
+    <DRIVES>
+      <FILESYSTEM>ext4</FILESYSTEM>
+      <FREE>37180</FREE>
+      <SERIAL>37513b2e-0dda-4715-b07e-6ad1b455e6bb</SERIAL>
+      <TOTAL>40284</TOTAL>
+      <TYPE>/</TYPE>
+      <VOLUMN>/dev/sda1</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>devtmpfs</FILESYSTEM>
+      <FREE>236</FREE>
+      <TOTAL>236</TOTAL>
+      <TYPE>/dev</TYPE>
+      <VOLUMN>udev</VOLUMN>
+    </DRIVES>
+    <DRIVES>
+      <FILESYSTEM>vboxsf</FILESYSTEM>
+      <FREE>240327</FREE>
+      <TOTAL>351888</TOTAL>
+      <TYPE>/vagrant</TYPE>
+      <VOLUMN>/vagrant</VOLUMN>
+    </DRIVES>
+    <ENVS>
+      <KEY>HOME</KEY>
+      <VAL>/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_GID</KEY>
+      <VAL>1001</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LC_ALL</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LESSOPEN</KEY>
+      <VAL>| /usr/bin/lesspipe %s</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>MAIL</KEY>
+      <VAL>/var/mail/root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PWD</KEY>
+      <VAL>/var/rudder</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LANG</KEY>
+      <VAL>C</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USER</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LOGNAME</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>DEBIAN_FRONTEND</KEY>
+      <VAL>noninteractive</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>USERNAME</KEY>
+      <VAL>root</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LESSCLOSE</KEY>
+      <VAL>/usr/bin/lesspipe %s %s</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHLVL</KEY>
+      <VAL>1</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>_</KEY>
+      <VAL>/var/rudder/cfengine-community/bin/cf-agent</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>PATH</KEY>
+      <VAL>/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/var/rudder/cfengine-community/bin</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>LS_COLORS</KEY>
+      <VAL>rs=0:di=01;34:ln=01;36:mh=00:pi=40;33:so=01;35:do=01;35:bd=40;33;01:cd=40;33;01:or=40;31;01:su=37;41:sg=30;43:ca=30;41:tw=30;42:ow=34;42:st=37;44:ex=01;32:*.tar=01;31:*.tgz=01;31:*.arj=01;31:*.taz=01;31:*.lzh=01;31:*.lzma=01;31:*.tlz=01;31:*.txz=01;31:*.zip=01;31:*.z=01;31:*.Z=01;31:*.dz=01;31:*.gz=01;31:*.lz=01;31:*.xz=01;31:*.bz2=01;31:*.bz=01;31:*.tbz=01;31:*.tbz2=01;31:*.tz=01;31:*.deb=01;31:*.rpm=01;31:*.jar=01;31:*.war=01;31:*.ear=01;31:*.sar=01;31:*.rar=01;31:*.ace=01;31:*.zoo=01;31:*.cpio=01;31:*.7z=01;31:*.rz=01;31:*.jpg=01;35:*.jpeg=01;35:*.gif=01;35:*.bmp=01;35:*.pbm=01;35:*.pgm=01;35:*.ppm=01;35:*.tga=01;35:*.xbm=01;35:*.xpm=01;35:*.tif=01;35:*.tiff=01;35:*.png=01;35:*.svg=01;35:*.svgz=01;35:*.mng=01;35:*.pcx=01;35:*.mov=01;35:*.mpg=01;35:*.mpeg=01;35:*.m2v=01;35:*.mkv=01;35:*.webm=01;35:*.ogm=01;35:*.mp4=01;35:*.m4v=01;35:*.mp4v=01;35:*.vob=01;35:*.qt=01;35:*.nuv=01;35:*.wmv=01;35:*.asf=01;35:*.rm=01;35:*.rmvb=01;35:*.flc=01;35:*.avi=01;35:*.fli=01;35:*.flv=01;35:*.gl=01;35:*.dl=01;35:*.xcf=01;35:*.xwd=01;35:*.yuv=01;35:*.cgm=01;35:*.emf=01;35:*.axv=01;35:*.anx=01;35:*.ogv=01;35:*.ogx=01;35:*.aac=00;36:*.au=00;36:*.flac=00;36:*.mid=00;36:*.midi=00;36:*.mka=00;36:*.mp3=00;36:*.mpc=00;36:*.ogg=00;36:*.ra=00;36:*.wav=00;36:*.axa=00;36:*.oga=00;36:*.spx=00;36:*.xspf=00;36:</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_USER</KEY>
+      <VAL>vagrant</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SHELL</KEY>
+      <VAL>/bin/bash</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>TERM</KEY>
+      <VAL>xterm</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_COMMAND</KEY>
+      <VAL>/bin/su</VAL>
+    </ENVS>
+    <ENVS>
+      <KEY>SUDO_UID</KEY>
+      <VAL>1001</VAL>
+    </ENVS>
+    <HARDWARE>
+      <ARCHNAME>x86_64-linux-thread-multi</ARCHNAME>
+      <CHASSIS_TYPE>Other</CHASSIS_TYPE>
+      <CHECKSUM>131071</CHECKSUM>
+      <DATELASTLOGGEDUSER>Tue Jun  3 09:27</DATELASTLOGGEDUSER>
+      <DEFAULTGATEWAY>10.0.2.2</DEFAULTGATEWAY>
+      <DESCRIPTION>x86_64/00-00-00 01:57:33</DESCRIPTION>
+      <DNS>10.0.2.3</DNS>
+      <ETIME>1</ETIME>
+      <IPADDR>10.0.2.15/192.168.42.11</IPADDR>
+      <LASTLOGGEDUSER>vagrant</LASTLOGGEDUSER>
+      <MEMORY>490</MEMORY>
+      <NAME>node1</NAME>
+      <OSCOMMENTS>#60~precise1-Ubuntu SMP Fri May 16 00:18:00 UTC 2014</OSCOMMENTS>
+      <OSNAME>Ubuntu 12.04.4 LTS</OSNAME>
+      <OSVERSION>3.8.0-41-generic</OSVERSION>
+      <PROCESSORN>1</PROCESSORN>
+      <PROCESSORS>2400</PROCESSORS>
+      <PROCESSORT>Intel(R) Core(TM) i7-4700MQ CPU @ 2.40GHz</PROCESSORT>
+      <SWAP>0</SWAP>
+      <USERDOMAIN />  <USERID>vagrant</USERID>
+      <UUID>883EC5E5-5614-4F4F-881C-AE2AF8952DF4</UUID>
+      <VMSYSTEM>VirtualBox</VMSYSTEM>
+      <WINPRODID />  <WORKGROUP>normation.com</WORKGROUP>
+    </HARDWARE>
+    <INPUTS>
+      <CAPTION>AT Translated Set 2 keyboard</CAPTION>
+      <DESCRIPTION>AT Translated Set 2 keyboard</DESCRIPTION>
+      <TYPE>sysrq</TYPE>
+    </INPUTS>
+    <INPUTS>
+      <CAPTION>ImExPS/2 Generic Explorer Mouse</CAPTION>
+      <DESCRIPTION>ImExPS/2 Generic Explorer Mouse</DESCRIPTION>
+      <TYPE>Pointing</TYPE>
+    </INPUTS>
+    <MONITORS />
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS>127.0.0.1</IPADDRESS>
+      <IPMASK>255.0.0.0</IPMASK>
+      <IPSUBNET>127.0.0.0</IPSUBNET>
+      <MACADDR>00:00:00:00:00:00</MACADDR>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>lo</DESCRIPTION>
+      <IPADDRESS6>::1</IPADDRESS6>
+      <IPMASK6>fff0::</IPMASK6>
+      <IPSUBNET6>::</IPSUBNET6>
+      <MACADDR>00:00:00:00:00:00</MACADDR>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>1</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth0</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS>10.0.2.15</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>10.0.2.0</IPSUBNET>
+      <MACADDR>08:00:27:78:80:ba</MACADDR>
+      <PCISLOT>0000:00:03.0</PCISLOT>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth0</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS6>fe80::a00:27ff:fe78:80ba</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:78:80:ba</MACADDR>
+      <PCISLOT>0000:00:03.0</PCISLOT>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth1</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS>192.168.42.11</IPADDRESS>
+      <IPMASK>255.255.255.0</IPMASK>
+      <IPSUBNET>192.168.42.0</IPSUBNET>
+      <MACADDR>08:00:27:54:a8:db</MACADDR>
+      <PCISLOT>0000:00:08.0</PCISLOT>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <NETWORKS>
+      <DESCRIPTION>eth1</DESCRIPTION>
+      <DRIVER>e1000</DRIVER>
+      <IPADDRESS6>fe80::a00:27ff:fe54:a8db</IPADDRESS6>
+      <IPMASK6>ffff:ffff:ffff:ffff::</IPMASK6>
+      <IPSUBNET6>fe80::</IPSUBNET6>
+      <MACADDR>08:00:27:54:a8:db</MACADDR>
+      <PCISLOT>0000:00:08.0</PCISLOT>
+      <SLAVES></SLAVES>
+      <STATUS>Up</STATUS>
+      <VIRTUALDEV>0</VIRTUALDEV>
+    </NETWORKS>
+    <OPERATINGSYSTEM>
+      <FULL_NAME>Ubuntu 12.04.4 LTS</FULL_NAME>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>3.8.0-41-generic</KERNEL_VERSION>
+      <NAME>Ubuntu</NAME>
+      <VERSION>12.04</VERSION>
+    </OPERATINGSYSTEM>
+    <PROCESSES>
+      <CMD>/sbin/init</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.4</MEM>
+      <PID>1</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>24448</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthreadd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>2</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksoftirqd/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>3</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:0H]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>5</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u:0H]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>7</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[migration/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>8</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_bh]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>9</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rcu_sched]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>10</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[watchdog/0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>11</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[cpuset]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>12</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khelper]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>13</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kdevtmpfs]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>14</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[netns]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>15</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[bdi-default]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>16</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kintegrityd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>17</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kblockd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>18</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ata_sff]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>19</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khubd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>20</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[md]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>21</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[devfreq_wq]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>22</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:1]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>23</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[khungtaskd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>24</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kswapd0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>25</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ksmd]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>26</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[fsnotify_mark]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>27</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ecryptfs-kthrea]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>28</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[crypto]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>29</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kthrotld]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>40</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[binder]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>42</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[deferwq]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>61</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[charger_manager]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>62</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[scsi_eh_0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>192</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u:2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>200</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/u:3]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>201</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:1H]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>248</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[flush-8:0]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>249</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[jbd2/sda1-8]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>258</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[ext4-dio-unwrit]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>259</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>upstart-udev-bridge --daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>362</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>17240</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/udevd --daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>371</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>21692</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[iprt]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>423</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kpsmoused]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>451</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[kworker/0:2]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>467</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>rpcbind -w</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>725</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>19208</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>upstart-socket-bridge --daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>769</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>15196</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/udevd --daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>773</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>21688</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/udevd --daemon</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>799</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>21688</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[rpciod]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>825</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>dbus-daemon --system --fork --activation=upstart</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>826</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>102</USER>
+      <VIRTUALMEMORY>23824</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>[nfsiod]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>854</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>0</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>rpc.statd -L</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>883</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>statd</USER>
+      <VIRTUALMEMORY>21512</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>rpc.idmapd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>895</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>27612</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty -8 38400 tty4</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>959</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>tty4</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12940</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty -8 38400 tty5</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>964</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>tty5</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12940</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty -8 38400 tty2</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>969</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>tty2</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12940</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty -8 38400 tty3</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>970</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>tty3</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12940</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty -8 38400 tty6</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>972</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>tty6</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12940</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>acpid -c /etc/acpi/events -s /var/run/acpid.socket</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>986</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>4336</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>cron</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>987</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>19120</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>atd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.0</MEM>
+      <PID>989</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>daemon</USER>
+      <VIRTUALMEMORY>16916</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>whoopsie</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.8</MEM>
+      <PID>995</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>whoopsie</USER>
+      <VIRTUALMEMORY>189732</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/VBoxService</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1008</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>146516</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/sbin/getty -8 38400 tty1</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1070</PID>
+      <STARTED>2014-06-03 09:24</STARTED>
+      <TTY>tty1</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>12940</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>dhclient3 -e IF_METRIC=100 -pf /var/run/dhclient.eth0.pid -lf /var/lib/dhcp/dhclient.eth0.leases -1 eth0</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>1420</PID>
+      <STARTED>2014-06-03 09:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>7272</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/usr/sbin/sshd -D</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.5</MEM>
+      <PID>1546</PID>
+      <STARTED>2014-06-03 09:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>50044</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-serverd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.6</MEM>
+      <PID>1855</PID>
+      <STARTED>2014-06-03 09:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>37204</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-execd</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.6</MEM>
+      <PID>1883</PID>
+      <STARTED>2014-06-03 09:25</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>104736</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant [priv]</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.7</MEM>
+      <PID>1906</PID>
+      <STARTED>2014-06-03 09:27</STARTED>
+      <TTY>?</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>75512</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sshd: vagrant@pts/0</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.3</MEM>
+      <PID>1997</PID>
+      <STARTED>2014-06-03 09:27</STARTED>
+      <TTY>?</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>75512</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>-bash</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>1.4</MEM>
+      <PID>1998</PID>
+      <STARTED>2014-06-03 09:27</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>vagrant</USER>
+      <VIRTUALMEMORY>25028</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sudo su</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.3</MEM>
+      <PID>2099</PID>
+      <STARTED>2014-06-03 09:28</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>39736</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>su</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>2100</PID>
+      <STARTED>2014-06-03 09:28</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>39532</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>bash</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.4</MEM>
+      <PID>2101</PID>
+      <STARTED>2014-06-03 09:28</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>19696</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>rsyslogd -c5</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.3</MEM>
+      <PID>2738</PID>
+      <STARTED>2014-06-03 10:01</STARTED>
+      <TTY>?</TTY>
+      <USER>syslog</USER>
+      <VIRTUALMEMORY>190156</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/var/rudder/cfengine-community/bin/cf-agent -KIDforce_inventory</CMD>
+      <CPUUSAGE>76.0</CPUUSAGE>
+      <MEM>2.2</MEM>
+      <PID>6068</PID>
+      <STARTED>2014-06-03 11:22</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>46356</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/bin/sh /opt/rudder/bin/run-inventory --local=/var/rudder/tmp/inventory --scan-homedirs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>6116</PID>
+      <STARTED>2014-06-03 11:22</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>4408</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>/opt/rudder/bin/perl -I /opt/rudder/lib/perl5 /opt/rudder/bin/fusioninventory-agent --config=none --local=/var/rudder/tmp/inventory --scan-homedirs</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>6.1</MEM>
+      <PID>6120</PID>
+      <STARTED>2014-06-03 11:22</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>70500</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>sh -c ps aux 2&gt;/dev/null</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.1</MEM>
+      <PID>6127</PID>
+      <STARTED>2014-06-03 11:22</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>4408</VIRTUALMEMORY>
+    </PROCESSES>
+    <PROCESSES>
+      <CMD>ps aux</CMD>
+      <CPUUSAGE>0.0</CPUUSAGE>
+      <MEM>0.2</MEM>
+      <PID>6128</PID>
+      <STARTED>2014-06-03 11:22</STARTED>
+      <TTY>pts/0</TTY>
+      <USER>root</USER>
+      <VIRTUALMEMORY>15284</VIRTUALMEMORY>
+    </PROCESSES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>query and manipulate user account information</COMMENTS>
+      <FILESIZE>316</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>accountsservice</NAME>
+      <VERSION>0.6.15-2ubuntu9.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Advanced Configuration and Power Interface event daemon</COMMENTS>
+      <FILESIZE>156</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>acpid</NAME>
+      <VERSION>1:2.0.10-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>add and remove users and groups</COMMENTS>
+      <FILESIZE>568</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>adduser</NAME>
+      <VERSION>3.113ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>User-space parser utility for AppArmor</COMMENTS>
+      <FILESIZE>1056</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apparmor</NAME>
+      <VERSION>2.7.102-0ubuntu3.9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>automatically generate crash reports for debugging</COMMENTS>
+      <FILESIZE>976</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apport</NAME>
+      <VERSION>2.0.1-0ubuntu17.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>symptom scripts for apport</COMMENTS>
+      <FILESIZE>75</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apport-symptoms</NAME>
+      <VERSION>0.16.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>commandline package manager</COMMENTS>
+      <FILESIZE>3179</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt</NAME>
+      <VERSION>0.8.16~exp12ubuntu10.16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>https download transport for APT</COMMENTS>
+      <FILESIZE>173</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-transport-https</NAME>
+      <VERSION>0.8.16~exp12ubuntu10.16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>package managment related utility programs</COMMENTS>
+      <FILESIZE>552</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-utils</NAME>
+      <VERSION>0.8.16~exp12ubuntu10.16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>maintenance and search tools for a Xapian index of Debian packages</COMMENTS>
+      <FILESIZE>334</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>apt-xapian-index</NAME>
+      <VERSION>0.44ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>terminal-based package manager (terminal interface only)</COMMENTS>
+      <FILESIZE>7064</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>aptitude</NAME>
+      <VERSION>0.6.6-1ubuntu1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Delayed job execution and batch processing</COMMENTS>
+      <FILESIZE>177</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>at</NAME>
+      <VERSION>3.1.13-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Set of lenses needed by libaugeas0 to parse config files</COMMENTS>
+      <FILESIZE>754</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>augeas-lenses</NAME>
+      <VERSION>0.10.0-0ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Debian base system miscellaneous files</COMMENTS>
+      <FILESIZE>419</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>base-files</NAME>
+      <VERSION>6.5ubuntu6.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Debian base system master password and group files</COMMENTS>
+      <FILESIZE>165</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>base-passwd</NAME>
+      <VERSION>3.5.24</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU Bourne Again SHell</COMMENTS>
+      <FILESIZE>1416</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bash</NAME>
+      <VERSION>4.2-2ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>programmable completion for the bash shell</COMMENTS>
+      <FILESIZE>640</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bash-completion</NAME>
+      <VERSION>1:1.3-1ubuntu8.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The GNU bc arbitrary precision calculator language</COMMENTS>
+      <FILESIZE>265</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bc</NAME>
+      <VERSION>1.06.95-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Version of &apos;host&apos; bundled with BIND 9.X</COMMENTS>
+      <FILESIZE>171</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bind9-host</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU assembler, linker and binary utilities</COMMENTS>
+      <FILESIZE>8516</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>binutils</NAME>
+      <VERSION>2.22-6ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>collection of more utilities from FreeBSD</COMMENTS>
+      <FILESIZE>540</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsdmainutils</NAME>
+      <VERSION>8.2.3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Basic utilities from 4.4BSD-Lite</COMMENTS>
+      <FILESIZE>196</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bsdutils</NAME>
+      <VERSION>1:2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Informational list of build-essential packages</COMMENTS>
+      <FILESIZE>37</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>build-essential</NAME>
+      <VERSION>11.5ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Standalone shell setup for initramfs</COMMENTS>
+      <FILESIZE>363</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>busybox-initramfs</NAME>
+      <VERSION>1:1.18.5-1ubuntu4.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Standalone rescue shell with tons of builtin utilities</COMMENTS>
+      <FILESIZE>1873</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>busybox-static</NAME>
+      <VERSION>1:1.18.5-1ubuntu4.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>powerful, text based window manager and shell multiplexer</COMMENTS>
+      <FILESIZE>418</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>byobu</NAME>
+      <VERSION>5.17-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>high-quality block-sorting file compressor - utilities</COMMENTS>
+      <FILESIZE>114</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>bzip2</NAME>
+      <VERSION>1.0.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Common CA certificates</COMMENTS>
+      <FILESIZE>409</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ca-certificates</NAME>
+      <VERSION>20130906ubuntu0.12.04.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Init scripts for cloud instances</COMMENTS>
+      <FILESIZE>539</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-init</NAME>
+      <VERSION>0.6.3-0ubuntu1.13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>automatically resize the root partition on first boot</COMMENTS>
+      <FILESIZE>46</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-initramfs-growroot</NAME>
+      <VERSION>0.4ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>boot off a rescue volume rather than root filesystem</COMMENTS>
+      <FILESIZE>46</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-initramfs-rescuevol</NAME>
+      <VERSION>0.4ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>cloud image management utilities</COMMENTS>
+      <FILESIZE>131</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cloud-utils</NAME>
+      <VERSION>0.25-0ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Suggest installation of packages in interactive bash sessions</COMMENTS>
+      <FILESIZE>85</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>command-not-found</NAME>
+      <VERSION>0.2.46ubuntu6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Set of data files for command-not-found.</COMMENTS>
+      <FILESIZE>2911</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>command-not-found-data</NAME>
+      <VERSION>0.2.46ubuntu6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>console font and keymap setup program</COMMENTS>
+      <FILESIZE>1522</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>console-setup</NAME>
+      <VERSION>1.70ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU core utilities</COMMENTS>
+      <FILESIZE>5496</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>coreutils</NAME>
+      <VERSION>8.13-3ubuntu3.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU cpio -- a program to manage archives of files</COMMENTS>
+      <FILESIZE>328</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cpio</NAME>
+      <VERSION>2.11-7ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU C preprocessor (cpp)</COMMENTS>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cpp</NAME>
+      <VERSION>4:4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU C preprocessor</COMMENTS>
+      <FILESIZE>11490</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cpp-4.6</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>wireless Central Regulatory Domain Agent</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>crda</NAME>
+      <VERSION>1.1.2-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>process scheduling daemon</COMMENTS>
+      <FILESIZE>301</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>cron</NAME>
+      <VERSION>3.0pl1-120ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Get a file from an HTTP, HTTPS or FTP server</COMMENTS>
+      <FILESIZE>344</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>curl</NAME>
+      <VERSION>7.22.0-3ubuntu4.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>POSIX-compliant shell</COMMENTS>
+      <FILESIZE>215</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dash</NAME>
+      <VERSION>0.5.7-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>simple interprocess messaging system (daemon and utilities)</COMMENTS>
+      <FILESIZE>931</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dbus</NAME>
+      <VERSION>1.4.18-1ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Debian configuration management system</COMMENTS>
+      <FILESIZE>609</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf</NAME>
+      <VERSION>1.5.42ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>full internationalization support for debconf</COMMENTS>
+      <FILESIZE>1075</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf-i18n</NAME>
+      <VERSION>1.5.42ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>debconf utilities</COMMENTS>
+      <FILESIZE>141</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debconf-utils</NAME>
+      <VERSION>1.5.42ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Miscellaneous utilities specific to Debian</COMMENTS>
+      <FILESIZE>218</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>debianutils</NAME>
+      <VERSION>4.2.1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>File comparison utilities</COMMENTS>
+      <FILESIZE>444</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>diffutils</NAME>
+      <VERSION>1:3.2-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Dynamic Kernel Module Support Framework</COMMENTS>
+      <FILESIZE>340</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dkms</NAME>
+      <VERSION>2.2.0.3-1ubuntu3.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>SMBIOS/DMI table decoder</COMMENTS>
+      <FILESIZE>153</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dmidecode</NAME>
+      <VERSION>2.11-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The Linux Kernel Device Mapper userspace library</COMMENTS>
+      <FILESIZE>158</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dmsetup</NAME>
+      <VERSION>2:1.02.48-4ubuntu7.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Clients provided with BIND</COMMENTS>
+      <FILESIZE>362</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dnsutils</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>utilities for making and checking MS-DOS FAT filesystems</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dosfstools</NAME>
+      <VERSION>3.0.12-1ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Debian package management system</COMMENTS>
+      <FILESIZE>5932</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dpkg</NAME>
+      <VERSION>1.16.1.2ubuntu7.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Debian package development tools</COMMENTS>
+      <FILESIZE>1162</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>dpkg-dev</NAME>
+      <VERSION>1.16.1.2ubuntu7.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>ext2/ext3/ext4 file system libraries</COMMENTS>
+      <FILESIZE>370</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>e2fslibs</NAME>
+      <VERSION>1.42-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>ext2/ext3/ext4 file system utilities</COMMENTS>
+      <FILESIZE>2326</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>e2fsprogs</NAME>
+      <VERSION>1.42-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>classic UNIX line editor</COMMENTS>
+      <FILESIZE>127</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ed</NAME>
+      <VERSION>1.5-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>ejects CDs and operates CD-Changers under Linux</COMMENTS>
+      <FILESIZE>152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>eject</NAME>
+      <VERSION>2.1.5+deb1+cvs20081104-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>managing cloud instances for Eucalyptus</COMMENTS>
+      <FILESIZE>843</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>euca2ools</NAME>
+      <VERSION>2.0.0~bzr516-0ubuntu3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>collect and display facts about the system</COMMENTS>
+      <FILESIZE>210</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>facter</NAME>
+      <VERSION>1.6.5-1ubuntu1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>tool for simulating superuser privileges</COMMENTS>
+      <FILESIZE>313</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fakeroot</NAME>
+      <VERSION>1.18.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Determines file type using &quot;magic&quot; numbers</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>file</NAME>
+      <VERSION>5.09-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>utilities for finding files--find, xargs</COMMENTS>
+      <FILESIZE>832</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>findutils</NAME>
+      <VERSION>4.4.2-4ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>generic font configuration library - support binaries</COMMENTS>
+      <FILESIZE>446</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fontconfig</NAME>
+      <VERSION>2.8.0-3ubuntu9.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>generic font configuration library - configuration</COMMENTS>
+      <FILESIZE>294</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fontconfig-config</NAME>
+      <VERSION>2.8.0-3ubuntu9.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Fonts with the same metrics as Times, Arial and Courier</COMMENTS>
+      <FILESIZE>2106</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fonts-liberation</NAME>
+      <VERSION>1.07.0-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Ubuntu Font Family Linux console fonts, sans-serif monospace</COMMENTS>
+      <FILESIZE>58</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fonts-ubuntu-font-family-console</NAME>
+      <VERSION>0.80-0ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Make recovery more user-friendly</COMMENTS>
+      <FILESIZE>67</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>friendly-recovery</NAME>
+      <VERSION>0.2.25</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>classical file transfer client</COMMENTS>
+      <FILESIZE>176</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ftp</NAME>
+      <VERSION>0.17-25</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Filesystem in Userspace</COMMENTS>
+      <FILESIZE>156</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>fuse</NAME>
+      <VERSION>2.8.6-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU C++ compiler</COMMENTS>
+      <FILESIZE>34</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>g++</NAME>
+      <VERSION>4:4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU C++ compiler</COMMENTS>
+      <FILESIZE>14161</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>g++-4.6</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU C compiler</COMMENTS>
+      <FILESIZE>41</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc</NAME>
+      <VERSION>4:4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU C compiler</COMMENTS>
+      <FILESIZE>15677</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-4.6</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GCC, the GNU Compiler Collection (base package)</COMMENTS>
+      <FILESIZE>194</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gcc-4.6-base</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>IP lookup command line tools that use the GeoIP library (country database)</COMMENTS>
+      <FILESIZE>6881</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>geoip-database</NAME>
+      <VERSION>20111220-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU Internationalization utilities for the base system</COMMENTS>
+      <FILESIZE>368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gettext-base</NAME>
+      <VERSION>0.18.1.1-5ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Introspection data for GLib, GObject, Gio and GModule</COMMENTS>
+      <FILESIZE>575</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gir1.2-glib-2.0</NAME>
+      <VERSION>1.32.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU privacy guard - a free PGP replacement</COMMENTS>
+      <FILESIZE>1940</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gnupg</NAME>
+      <VERSION>1.4.11-3ubuntu2.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU privacy guard - signature verification tool</COMMENTS>
+      <FILESIZE>436</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gpgv</NAME>
+      <VERSION>1.4.11-3ubuntu2.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools</COMMENTS>
+      <FILESIZE>901</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>graphviz</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU grep, egrep and fgrep</COMMENTS>
+      <FILESIZE>608</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grep</NAME>
+      <VERSION>2.10-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU troff text-formatting system (base system components)</COMMENTS>
+      <FILESIZE>2779</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>groff-base</NAME>
+      <VERSION>1.21-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GRand Unified Bootloader (common files)</COMMENTS>
+      <FILESIZE>5048</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-common</NAME>
+      <VERSION>1.99-21ubuntu3.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GRUB gfxpayload blacklist</COMMENTS>
+      <FILESIZE>47</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-gfxpayload-lists</NAME>
+      <VERSION>0.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GRand Unified Bootloader, version 2 (PC/BIOS version)</COMMENTS>
+      <FILESIZE>464</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-pc</NAME>
+      <VERSION>1.99-21ubuntu3.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GRand Unified Bootloader, version 2 (PC/BIOS binaries)</COMMENTS>
+      <FILESIZE>1895</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub-pc-bin</NAME>
+      <VERSION>1.99-21ubuntu3.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GRand Unified Bootloader (common files for version 2)</COMMENTS>
+      <FILESIZE>140</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>grub2-common</NAME>
+      <VERSION>1.99-21ubuntu3.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU compression utilities</COMMENTS>
+      <FILESIZE>219</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>gzip</NAME>
+      <VERSION>1.4-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>tune hard disk parameters for high performance</COMMENTS>
+      <FILESIZE>260</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>hdparm</NAME>
+      <VERSION>9.37-0ubuntu3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>utility to set/show the host name or domain name</COMMENTS>
+      <FILESIZE>116</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>hostname</NAME>
+      <VERSION>3.06ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>high level tools to configure network interfaces</COMMENTS>
+      <FILESIZE>186</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ifupdown</NAME>
+      <VERSION>0.7~beta2ubuntu11.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Standalone GNU Info documentation browser</COMMENTS>
+      <FILESIZE>370</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>info</NAME>
+      <VERSION>4.13a.dfsg.1-8ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>tools for generating an initramfs</COMMENTS>
+      <FILESIZE>363</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initramfs-tools</NAME>
+      <VERSION>0.99ubuntu13.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>binaries used by initramfs-tools</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initramfs-tools-bin</NAME>
+      <VERSION>0.99ubuntu13.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>scripts for initializing and shutting down the system</COMMENTS>
+      <FILESIZE>223</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>initscripts</NAME>
+      <VERSION>2.88dsf-13.10ubuntu11.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tool to organize boot sequence using LSB init.d script dependencies</COMMENTS>
+      <FILESIZE>221</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>insserv</NAME>
+      <VERSION>1.14.0-2.1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Manage installed documentation in info format</COMMENTS>
+      <FILESIZE>218</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>install-info</NAME>
+      <VERSION>4.13a.dfsg.1-8ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>networking and traffic control tools</COMMENTS>
+      <FILESIZE>982</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iproute</NAME>
+      <VERSION>20111117-1ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>administration tools for packet filtering and NAT</COMMENTS>
+      <FILESIZE>1430</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iptables</NAME>
+      <VERSION>1.4.12-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tools to test the reachability of network hosts</COMMENTS>
+      <FILESIZE>140</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iputils-ping</NAME>
+      <VERSION>3:20101006-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tools to trace the network path to a remote host</COMMENTS>
+      <FILESIZE>102</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iputils-tracepath</NAME>
+      <VERSION>3:20101006-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Daemon to balance interrupts for SMP systems</COMMENTS>
+      <FILESIZE>93</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>irqbalance</NAME>
+      <VERSION>0.56-1ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>ISC DHCP client</COMMENTS>
+      <FILESIZE>733</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>isc-dhcp-client</NAME>
+      <VERSION>4.1.ESV-R4-0ubuntu5.9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>common files used by all the isc-dhcp* packages</COMMENTS>
+      <FILESIZE>673</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>isc-dhcp-common</NAME>
+      <VERSION>4.1.ESV-R4-0ubuntu5.9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>ISO language, territory, currency, script codes and their translations</COMMENTS>
+      <FILESIZE>13099</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>iso-codes</NAME>
+      <VERSION>3.31-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>next generation service orchestration system</COMMENTS>
+      <FILESIZE>2866</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>juju</NAME>
+      <VERSION>0.5+bzr531-0ubuntu1.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux console font and keytable utilities</COMMENTS>
+      <FILESIZE>996</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>kbd</NAME>
+      <VERSION>1.15.2-3ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>system-wide keyboard preferences</COMMENTS>
+      <FILESIZE>2172</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>keyboard-configuration</NAME>
+      <VERSION>1.70ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>small utilities built with klibc for early boot</COMMENTS>
+      <FILESIZE>367</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>klibc-utils</NAME>
+      <VERSION>1.5.25-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Internationalization support for MIT Kerberos</COMMENTS>
+      <FILESIZE>1516</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>krb5-locales</NAME>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The Landscape administration system client</COMMENTS>
+      <FILESIZE>117</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>landscape-client</NAME>
+      <VERSION>13.07.3-0ubuntu0.12.04</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The Landscape administration system client - Common files</COMMENTS>
+      <FILESIZE>1013</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>landscape-common</NAME>
+      <VERSION>13.07.3-0ubuntu0.12.04</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Language selector for Ubuntu</COMMENTS>
+      <FILESIZE>2610</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>language-selector-common</NAME>
+      <VERSION>0.79.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>attempt to detect a laptop</COMMENTS>
+      <FILESIZE>56</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>laptop-detect</NAME>
+      <VERSION>0.13.7ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>pager program similar to more</COMMENTS>
+      <FILESIZE>324</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>less</NAME>
+      <VERSION>444-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>query and manipulate user account information - shared libraries</COMMENTS>
+      <FILESIZE>106</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaccountsservice0</NAME>
+      <VERSION>0.6.15-2ubuntu9.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Access control list shared library</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libacl1</NAME>
+      <VERSION>2.2.51-5ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>module to find differences between files</COMMENTS>
+      <FILESIZE>160</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libalgorithm-diff-perl</NAME>
+      <VERSION>1.19.02-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>module to find differences between files (XS accelerated)</COMMENTS>
+      <FILESIZE>87</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libalgorithm-diff-xs-perl</NAME>
+      <VERSION>0.04-2build2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Perl module for three-way merge of textual data</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libalgorithm-merge-perl</NAME>
+      <VERSION>0.08-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>deb package format runtime library</COMMENTS>
+      <FILESIZE>822</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapt-inst1.4</NAME>
+      <VERSION>0.8.16~exp12ubuntu10.16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>package managment runtime library</COMMENTS>
+      <FILESIZE>2964</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libapt-pkg4.12</NAME>
+      <VERSION>0.8.16~exp12ubuntu10.16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - ASN.1 library</COMMENTS>
+      <FILESIZE>797</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libasn1-8-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Extended attribute shared library</COMMENTS>
+      <FILESIZE>56</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libattr1</NAME>
+      <VERSION>1:2.4.46-5ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Augeas bindings for the Ruby language</COMMENTS>
+      <FILESIZE>62</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaugeas-ruby1.8</NAME>
+      <VERSION>0.3.0-1.1ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Augeas configuration editing library and API</COMMENTS>
+      <FILESIZE>391</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libaugeas0</NAME>
+      <VERSION>0.10.0-0ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>BIND9 Shared Library used by BIND</COMMENTS>
+      <FILESIZE>100</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbind9-80</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>block device id library</COMMENTS>
+      <FILESIZE>249</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libblkid1</NAME>
+      <VERSION>2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Boost.Iostreams Library</COMMENTS>
+      <FILESIZE>165</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libboost-iostreams1.46.1</NAME>
+      <VERSION>1.46.1-7ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>utility functions from BSD systems - shared library</COMMENTS>
+      <FILESIZE>125</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbsd0</NAME>
+      <VERSION>0.3.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>high-quality block-sorting file compressor library - runtime</COMMENTS>
+      <FILESIZE>113</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libbz2-1.0</NAME>
+      <VERSION>1.0.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Embedded GNU C Library: Binaries</COMMENTS>
+      <FILESIZE>3479</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc-bin</NAME>
+      <VERSION>2.15-0ubuntu10.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Embedded GNU C Library: Development binaries</COMMENTS>
+      <FILESIZE>372</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc-dev-bin</NAME>
+      <VERSION>2.15-0ubuntu10.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Embedded GNU C Library: Shared libraries</COMMENTS>
+      <FILESIZE>10417</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc6</NAME>
+      <VERSION>2.15-0ubuntu10.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Embedded GNU C Library: Development Libraries and Header Files</COMMENTS>
+      <FILESIZE>11602</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libc6-dev</NAME>
+      <VERSION>2.15-0ubuntu10.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The Cairo 2D vector graphics library</COMMENTS>
+      <FILESIZE>1375</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcairo2</NAME>
+      <VERSION>1.10.2-6.1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>An alternate POSIX capabilities library</COMMENTS>
+      <FILESIZE>50</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap-ng0</NAME>
+      <VERSION>0.6.6-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>support for getting/setting POSIX.1e capabilities</COMMENTS>
+      <FILESIZE>56</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcap2</NAME>
+      <VERSION>1:2.22-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools - cdt library</COMMENTS>
+      <FILESIZE>116</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcdt4</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools - cgraph library</COMMENTS>
+      <FILESIZE>178</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcgraph5</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Perl module that automatically generates accessors</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libclass-accessor-perl</NAME>
+      <VERSION>0.34-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>report the search path for a class&apos;s ISA tree</COMMENTS>
+      <FILESIZE>55</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libclass-isa-perl</NAME>
+      <VERSION>0.36-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>common error description library</COMMENTS>
+      <FILESIZE>97</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcomerr2</NAME>
+      <VERSION>1.42-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Multi-protocol file transfer library (OpenSSL)</COMMENTS>
+      <FILESIZE>546</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcurl3</NAME>
+      <VERSION>7.22.0-3ubuntu4.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Multi-protocol file transfer library (GnuTLS)</COMMENTS>
+      <FILESIZE>526</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcurl3-gnutls</NAME>
+      <VERSION>7.22.0-3ubuntu4.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>high-level terminal interface library for C++ (runtime files)</COMMENTS>
+      <FILESIZE>1072</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libcwidget3</NAME>
+      <VERSION>0.5.16-3.1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Double-array trie library</COMMENTS>
+      <FILESIZE>73</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdatrie1</NAME>
+      <VERSION>0.2.5-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Berkeley v5.1 Database Libraries [runtime]</COMMENTS>
+      <FILESIZE>1536</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdb5.1</NAME>
+      <VERSION>5.1.25-11build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>simple interprocess messaging system (library)</COMMENTS>
+      <FILESIZE>362</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdbus-1-3</NAME>
+      <VERSION>1.4.18-1ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>simple interprocess messaging system (GLib-based shared library)</COMMENTS>
+      <FILESIZE>226</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdbus-glib-1-2</NAME>
+      <VERSION>0.98-1ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The Linux Kernel Device Mapper userspace library</COMMENTS>
+      <FILESIZE>201</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdevmapper1.02.1</NAME>
+      <VERSION>2:1.02.48-4ubuntu7.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>DNS Shared Library used by BIND</COMMENTS>
+      <FILESIZE>1609</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdns81</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Dpkg perl modules</COMMENTS>
+      <FILESIZE>1256</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdpkg-perl</NAME>
+      <VERSION>1.16.1.2ubuntu7.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Userspace interface to intel-specific kernel DRM services -- runtime</COMMENTS>
+      <FILESIZE>190</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm-intel1</NAME>
+      <VERSION>2.4.46-1ubuntu0.0.0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Userspace interface to nouveau-specific kernel DRM services -- runtime</COMMENTS>
+      <FILESIZE>87</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm-nouveau1a</NAME>
+      <VERSION>2.4.46-1ubuntu0.0.0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Userspace interface to radeon-specific kernel DRM services -- runtime</COMMENTS>
+      <FILESIZE>111</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm-radeon1</NAME>
+      <VERSION>2.4.46-1ubuntu0.0.0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Userspace interface to kernel DRM services -- runtime</COMMENTS>
+      <FILESIZE>102</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libdrm2</NAME>
+      <VERSION>2.4.46-1ubuntu0.0.0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>BSD editline and history libraries</COMMENTS>
+      <FILESIZE>182</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libedit2</NAME>
+      <VERSION>2.11-20080614-3ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>library to read and write ELF files</COMMENTS>
+      <FILESIZE>164</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libelf1</NAME>
+      <VERSION>0.152-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>High-level library for managing Debian package information</COMMENTS>
+      <FILESIZE>359</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libept1.4.12</NAME>
+      <VERSION>1.0.6~exp1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Asynchronous event notification library</COMMENTS>
+      <FILESIZE>313</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libevent-2.0-5</NAME>
+      <VERSION>2.0.16-stable-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>XML parsing C library - runtime library</COMMENTS>
+      <FILESIZE>383</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libexpat1</NAME>
+      <VERSION>2.0.1-7.2ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Foreign Function Interface library runtime</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libffi6</NAME>
+      <VERSION>3.0.11~rc1-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>generic font configuration library - runtime</COMMENTS>
+      <FILESIZE>425</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfontconfig1</NAME>
+      <VERSION>2.8.0-3ubuntu9.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 font encoding library</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfontenc1</NAME>
+      <VERSION>1:1.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>FreeType 2 font engine, shared library files</COMMENTS>
+      <FILESIZE>811</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfreetype6</NAME>
+      <VERSION>2.4.8-1ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Free Implementation of the Unicode BiDi algorithm</COMMENTS>
+      <FILESIZE>196</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfribidi0</NAME>
+      <VERSION>0.19.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Filesystem in Userspace (library)</COMMENTS>
+      <FILESIZE>305</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libfuse2</NAME>
+      <VERSION>2.8.6-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>conservative garbage collector for C and C++</COMMENTS>
+      <FILESIZE>254</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgc1c2</NAME>
+      <VERSION>1:7.1-8ubuntu0.12.04.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GCC support library</COMMENTS>
+      <FILESIZE>119</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcc1</NAME>
+      <VERSION>1:4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>LGPL Crypto library - runtime library</COMMENTS>
+      <FILESIZE>586</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgcrypt11</NAME>
+      <VERSION>1.5.0-3ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GD Graphics Library version 2 (without XPM support)</COMMENTS>
+      <FILESIZE>624</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgd2-noxpm</NAME>
+      <VERSION>2.0.36~rc1~dfsg-6ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU dbm database routines (runtime version)</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgdbm3</NAME>
+      <VERSION>1.8.3-10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>non-DNS IP-to-country resolver library</COMMENTS>
+      <FILESIZE>303</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgeoip1</NAME>
+      <VERSION>1.4.8+dfsg-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Library for handling GObject introspection data (runtime library)</COMMENTS>
+      <FILESIZE>252</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgirepository-1.0-1</NAME>
+      <VERSION>1.32.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>free implementation of the OpenGL API -- DRI modules</COMMENTS>
+      <FILESIZE>15582</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgl1-mesa-dri</NAME>
+      <VERSION>8.0.4-0ubuntu0.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GLib library of C routines</COMMENTS>
+      <FILESIZE>3751</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libglib2.0-0</NAME>
+      <VERSION>2.32.4-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Multiprecision arithmetic library</COMMENTS>
+      <FILESIZE>486</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgmp10</NAME>
+      <VERSION>2:5.0.2+dfsg-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU TLS library - runtime library</COMMENTS>
+      <FILESIZE>1052</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgnutls26</NAME>
+      <VERSION>2.12.14-5ubuntu3.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GCC OpenMP (GOMP) support library</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgomp1</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>library for common error values and messages in GnuPG components</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpg-error0</NAME>
+      <VERSION>1.10-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>General Purpose Mouse - shared library</COMMENTS>
+      <FILESIZE>78</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgpm2</NAME>
+      <VERSION>1.20.4-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools - graph library</COMMENTS>
+      <FILESIZE>146</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgraph4</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>MIT Kerberos runtime libraries - krb5 GSS-API Mechanism</COMMENTS>
+      <FILESIZE>331</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgssapi-krb5-2</NAME>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - GSSAPI support library</COMMENTS>
+      <FILESIZE>323</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgssapi3-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>mechanism-switch gssapi library</COMMENTS>
+      <FILESIZE>83</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgssglue1</NAME>
+      <VERSION>0.3-4ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools - gvc library</COMMENTS>
+      <FILESIZE>1249</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgvc5</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools - gvpr library</COMMENTS>
+      <FILESIZE>568</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libgvpr1</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - crypto library</COMMENTS>
+      <FILESIZE>284</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhcrypto4-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - Base library</COMMENTS>
+      <FILESIZE>130</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libheimbase1-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - NTLM support library</COMMENTS>
+      <FILESIZE>94</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libheimntlm0-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - X509 support library</COMMENTS>
+      <FILESIZE>373</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libhx509-5-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 Inter-Client Exchange library</COMMENTS>
+      <FILESIZE>137</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libice6</NAME>
+      <VERSION>2:1.0.7-2build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU Libidn library, implementation of IETF IDN specifications</COMMENTS>
+      <FILESIZE>347</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libidn11</NAME>
+      <VERSION>1.23-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Emulate IO::File interface for in-core strings</COMMENTS>
+      <FILESIZE>72</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libio-string-perl</NAME>
+      <VERSION>1.08-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>ISC Shared Library used by BIND</COMMENTS>
+      <FILESIZE>390</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisc83</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Command Channel Library used by BIND</COMMENTS>
+      <FILESIZE>80</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisccc80</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Config File Handling Library used by BIND</COMMENTS>
+      <FILESIZE>178</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libisccfg82</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Wireless tools - library</COMMENTS>
+      <FILESIZE>85</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libiw30</NAME>
+      <VERSION>30~pre9-5ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>IJG JPEG compliant runtime library.</COMMENTS>
+      <FILESIZE>308</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjpeg-turbo8</NAME>
+      <VERSION>1.1.90+svn733-0ubuntu4.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Independent JPEG Group&apos;s JPEG runtime library (dependency package)</COMMENTS>
+      <FILESIZE>26</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjpeg8</NAME>
+      <VERSION>8c-2ubuntu7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>JavaScript library for dynamic web applications</COMMENTS>
+      <FILESIZE>381</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libjs-jquery</NAME>
+      <VERSION>1.7.1-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>MIT Kerberos runtime libraries - Crypto Library</COMMENTS>
+      <FILESIZE>236</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libk5crypto3</NAME>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux Key Management Utilities (library)</COMMENTS>
+      <FILESIZE>51</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkeyutils1</NAME>
+      <VERSION>1.5.2-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>minimal libc subset for use with initramfs</COMMENTS>
+      <FILESIZE>127</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libklibc</NAME>
+      <VERSION>1.5.25-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - libraries</COMMENTS>
+      <FILESIZE>643</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkrb5-26-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>MIT Kerberos runtime libraries</COMMENTS>
+      <FILESIZE>959</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkrb5-3</NAME>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>MIT Kerberos runtime libraries - Support library</COMMENTS>
+      <FILESIZE>110</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libkrb5support0</NAME>
+      <VERSION>1.10+dfsg~beta1-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>OpenLDAP libraries</COMMENTS>
+      <FILESIZE>494</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libldap-2.4-2</NAME>
+      <VERSION>2.4.28-1.1ubuntu4.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Low-Level Virtual Machine (LLVM), runtime library</COMMENTS>
+      <FILESIZE>21966</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libllvm3.0</NAME>
+      <VERSION>3.0-4ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>module using libc functions for internationalization in Perl</COMMENTS>
+      <FILESIZE>92</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblocale-gettext-perl</NAME>
+      <VERSION>1.05-7build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>support binaries for and cli utilities based on liblockfile</COMMENTS>
+      <FILESIZE>70</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblockfile-bin</NAME>
+      <VERSION>1.09-3ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>NFS-safe locking library</COMMENTS>
+      <FILESIZE>56</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblockfile1</NAME>
+      <VERSION>1.09-3ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Lightweight Resolver Library used by BIND</COMMENTS>
+      <FILESIZE>120</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblwres80</NAME>
+      <VERSION>1:9.8.1.dfsg.P1-4ubuntu0.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>XZ-format compression library</COMMENTS>
+      <FILESIZE>303</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>liblzma5</NAME>
+      <VERSION>5.1.1alpha+20110809-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>File type determination library using &quot;magic&quot; numbers</COMMENTS>
+      <FILESIZE>2383</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmagic1</NAME>
+      <VERSION>5.09-2ubuntu0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>block device id library</COMMENTS>
+      <FILESIZE>248</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmount1</NAME>
+      <VERSION>2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>multiple precision complex floating-point library</COMMENTS>
+      <FILESIZE>118</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmpc2</NAME>
+      <VERSION>0.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>multiple precision floating-point computation</COMMENTS>
+      <FILESIZE>747</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libmpfr4</NAME>
+      <VERSION>3.1.0-3ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>shared libraries for terminal handling</COMMENTS>
+      <FILESIZE>471</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncurses5</NAME>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>shared libraries for terminal handling (wide character support)</COMMENTS>
+      <FILESIZE>527</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libncursesw5</NAME>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Not Erik&apos;s Windowing Toolkit - text mode windowing with slang</COMMENTS>
+      <FILESIZE>184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnewt0.52</NAME>
+      <VERSION>0.52.11-2ubuntu10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Netfilter netlink library</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnfnetlink0</NAME>
+      <VERSION>1.0.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>NFS idmapping library</COMMENTS>
+      <FILESIZE>119</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnfsidmap2</NAME>
+      <VERSION>0.25-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>NIH D-Bus Bindings Library</COMMENTS>
+      <FILESIZE>68</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnih-dbus1</NAME>
+      <VERSION>1.0.3-4ubuntu9.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>NIH Utility Library</COMMENTS>
+      <FILESIZE>145</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnih1</NAME>
+      <VERSION>1.0.3-4ubuntu9.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>library for dealing with netlink sockets</COMMENTS>
+      <FILESIZE>146</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnl-3-200</NAME>
+      <VERSION>3.2.3-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>library for dealing with netlink sockets - generic netlink</COMMENTS>
+      <FILESIZE>59</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnl-genl-3-200</NAME>
+      <VERSION>3.2.3-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>nss module providing fallback resolution for the current hostname</COMMENTS>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libnss-myhostname</NAME>
+      <VERSION>0.3-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Library for loading and coordinating access to PKCS#11 modules - runtime</COMMENTS>
+      <FILESIZE>115</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libp11-kit0</NAME>
+      <VERSION>0.12-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Pluggable Authentication Modules for PAM</COMMENTS>
+      <FILESIZE>773</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-modules</NAME>
+      <VERSION>1.1.3-7ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Pluggable Authentication Modules for PAM - helper binaries</COMMENTS>
+      <FILESIZE>202</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-modules-bin</NAME>
+      <VERSION>1.1.3-7ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Runtime support for the PAM library</COMMENTS>
+      <FILESIZE>296</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam-runtime</NAME>
+      <VERSION>1.1.3-7ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Pluggable Authentication Modules library</COMMENTS>
+      <FILESIZE>223</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpam0g</NAME>
+      <VERSION>1.1.3-7ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Layout and rendering of internationalized text</COMMENTS>
+      <FILESIZE>1045</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpango1.0-0</NAME>
+      <VERSION>1.30.0-0ubuntu3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>parse Debian changelogs and output them in other formats</COMMENTS>
+      <FILESIZE>232</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libparse-debianchangelog-perl</NAME>
+      <VERSION>1.2.0-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>disk partition manipulator - shared library</COMMENTS>
+      <FILESIZE>571</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libparted0debian1</NAME>
+      <VERSION>2.3-8ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rich set of graph drawing tools - pathplan library</COMMENTS>
+      <FILESIZE>124</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpathplan4</NAME>
+      <VERSION>2.26.3-10ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>system interface for user-level packet capture</COMMENTS>
+      <FILESIZE>283</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcap0.8</NAME>
+      <VERSION>1.1.1-10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux PCI Utilities (shared library)</COMMENTS>
+      <FILESIZE>110</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpci3</NAME>
+      <VERSION>1:3.1.8-2ubuntu6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Generic PCI access library for X</COMMENTS>
+      <FILESIZE>75</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpciaccess0</NAME>
+      <VERSION>0.12.902-1ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Perl 5 Compatible Regular Expression Library - runtime files</COMMENTS>
+      <FILESIZE>441</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcre3</NAME>
+      <VERSION>8.12-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Middleware to access a smart card using PC/SC (library)</COMMENTS>
+      <FILESIZE>86</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpcsclite1</NAME>
+      <VERSION>1.7.4-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>pipeline manipulation library</COMMENTS>
+      <FILESIZE>88</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpipeline1</NAME>
+      <VERSION>1.2.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>pixel-manipulation library for X and cairo</COMMENTS>
+      <FILESIZE>656</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpixman-1-0</NAME>
+      <VERSION>0.30.2-1ubuntu0.0.0.0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>graphical boot animation and logger - shared libraries</COMMENTS>
+      <FILESIZE>279</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libplymouth2</NAME>
+      <VERSION>0.8.2-2ubuntu31.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>PNG library - runtime</COMMENTS>
+      <FILESIZE>305</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpng12-0</NAME>
+      <VERSION>1.2.46-3ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>PolicyKit Authorization API</COMMENTS>
+      <FILESIZE>151</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpolkit-gobject-1-0</NAME>
+      <VERSION>0.104-1ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>lib for parsing cmdline parameters</COMMENTS>
+      <FILESIZE>128</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpopt0</NAME>
+      <VERSION>1.16-3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Shared Python runtime library (version 2.7)</COMMENTS>
+      <FILESIZE>3063</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libpython2.7</NAME>
+      <VERSION>2.7.3-0ubuntu3.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GCC Quad-Precision Math Library</COMMENTS>
+      <FILESIZE>246</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libquadmath0</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU readline and history libraries, run-time libraries</COMMENTS>
+      <FILESIZE>346</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libreadline5</NAME>
+      <VERSION>5.2-11</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU readline and history libraries, run-time libraries</COMMENTS>
+      <FILESIZE>384</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libreadline6</NAME>
+      <VERSION>6.2-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - roken support library</COMMENTS>
+      <FILESIZE>157</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libroken18-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>toolkit for RTMP streams (shared library)</COMMENTS>
+      <FILESIZE>143</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>librtmp0</NAME>
+      <VERSION>2.4~20110711.gitc28f1bab-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Transitional package for libruby1.8</COMMENTS>
+      <FILESIZE>32</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libruby</NAME>
+      <VERSION>4.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Libraries necessary to run Ruby 1.8</COMMENTS>
+      <FILESIZE>6204</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libruby1.8</NAME>
+      <VERSION>1.8.7.352-2ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Cyrus SASL - authentication abstraction library</COMMENTS>
+      <FILESIZE>191</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsasl2-2</NAME>
+      <VERSION>2.1.25.dfsg1-3ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Cyrus SASL - pluggable authentication modules</COMMENTS>
+      <FILESIZE>228</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsasl2-modules</NAME>
+      <VERSION>2.1.25.dfsg1-3ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>SELinux runtime shared libraries</COMMENTS>
+      <FILESIZE>189</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libselinux1</NAME>
+      <VERSION>2.1.0-4.1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Interface of shadow password for Ruby 1.8</COMMENTS>
+      <FILESIZE>76</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libshadow-ruby1.8</NAME>
+      <VERSION>1.4.1-8build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>type-safe Signal Framework for C++ - runtime</COMMENTS>
+      <FILESIZE>83</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsigc++-2.0-0c2a</NAME>
+      <VERSION>2.2.10-0ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>S-Lang programming library - runtime version</COMMENTS>
+      <FILESIZE>1530</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libslang2</NAME>
+      <VERSION>2.2.4-3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 Session Management library</COMMENTS>
+      <FILESIZE>77</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsm6</NAME>
+      <VERSION>2:1.2.0-2build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>SQLite 3 shared library</COMMENTS>
+      <FILESIZE>770</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsqlite3-0</NAME>
+      <VERSION>3.7.9-2ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>command-line interface parsing library</COMMENTS>
+      <FILESIZE>109</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libss2</NAME>
+      <VERSION>1.42-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>SSL shared libraries</COMMENTS>
+      <FILESIZE>2921</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libssl1.0.0</NAME>
+      <VERSION>1.0.1-4ubuntu5.13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU Standard C++ Library v3</COMMENTS>
+      <FILESIZE>1190</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libstdc++6</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU Standard C++ Library v3 (development files)</COMMENTS>
+      <FILESIZE>10601</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libstdc++6-4.6-dev</NAME>
+      <VERSION>4.6.3-1ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>module for assigning a new name to referenced sub</COMMENTS>
+      <FILESIZE>72</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libsub-name-perl</NAME>
+      <VERSION>0.05-1build2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>switch statement for Perl</COMMENTS>
+      <FILESIZE>74</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libswitch-perl</NAME>
+      <VERSION>2.16-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Manage ASN.1 structures (runtime)</COMMENTS>
+      <FILESIZE>142</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtasn1-3</NAME>
+      <VERSION>2.10-1ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>get display widths of characters on the terminal</COMMENTS>
+      <FILESIZE>75</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-charwidth-perl</NAME>
+      <VERSION>0.04-7build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>converts between character sets in Perl</COMMENTS>
+      <FILESIZE>85</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-iconv-perl</NAME>
+      <VERSION>1.7-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>internationalized substitute of Text::Wrap</COMMENTS>
+      <FILESIZE>68</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtext-wrapi18n-perl</NAME>
+      <VERSION>0.06-7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Data files for Thai language support library</COMMENTS>
+      <FILESIZE>595</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libthai-data</NAME>
+      <VERSION>0.1.16-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Thai language support library</COMMENTS>
+      <FILESIZE>98</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libthai0</NAME>
+      <VERSION>0.1.16-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>collection of modules to manipulate date/time information</COMMENTS>
+      <FILESIZE>248</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtimedate-perl</NAME>
+      <VERSION>1.2000-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>shared low-level terminfo library for terminal handling</COMMENTS>
+      <FILESIZE>436</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtinfo5</NAME>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>transport-independent RPC library</COMMENTS>
+      <FILESIZE>272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtirpc1</NAME>
+      <VERSION>0.2.2-5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tokyo Cabinet Database Libraries [runtime]</COMMENTS>
+      <FILESIZE>634</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libtokyocabinet8</NAME>
+      <VERSION>1.4.37-6.1build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>udev library</COMMENTS>
+      <FILESIZE>200</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libudev0</NAME>
+      <VERSION>175-0ubuntu9.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>userspace USB programming library</COMMENTS>
+      <FILESIZE>73</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libusb-0.1-4</NAME>
+      <VERSION>2:0.1.12-20</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>userspace USB programming library</COMMENTS>
+      <FILESIZE>108</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libusb-1.0-0</NAME>
+      <VERSION>2:1.0.9~rc3-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Universally Unique ID library</COMMENTS>
+      <FILESIZE>110</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libuuid1</NAME>
+      <VERSION>2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Heimdal Kerberos - stringprep implementation</COMMENTS>
+      <FILESIZE>229</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libwind0-heimdal</NAME>
+      <VERSION>1.6~git20120311.dfsg.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Wietse Venema&apos;s TCP wrappers library</COMMENTS>
+      <FILESIZE>148</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libwrap0</NAME>
+      <VERSION>7.6.q-21</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 client-side library</COMMENTS>
+      <FILESIZE>1480</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libx11-6</NAME>
+      <VERSION>2:1.4.99.1-0ubuntu2.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>X11 client-side library</COMMENTS>
+      <FILESIZE>1525</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libx11-data</NAME>
+      <VERSION>2:1.4.99.1-0ubuntu2.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Search engine library</COMMENTS>
+      <FILESIZE>2368</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxapian22</NAME>
+      <VERSION>1.2.8-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 authorisation library</COMMENTS>
+      <FILESIZE>54</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxau6</NAME>
+      <VERSION>1:1.0.6-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 Athena Widget library</COMMENTS>
+      <FILESIZE>505</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxaw7</NAME>
+      <VERSION>2:1.0.9-3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X C Binding, render extension</COMMENTS>
+      <FILESIZE>83</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb-render0</NAME>
+      <VERSION>1.8.1-1ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X C Binding, shm extension</COMMENTS>
+      <FILESIZE>49</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb-shm0</NAME>
+      <VERSION>1.8.1-1ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X C Binding</COMMENTS>
+      <FILESIZE>175</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcb1</NAME>
+      <VERSION>1.8.1-1ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 Composite extension library</COMMENTS>
+      <FILESIZE>55</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxcomposite1</NAME>
+      <VERSION>1:0.4.3-2build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 damaged region extension library</COMMENTS>
+      <FILESIZE>52</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxdamage1</NAME>
+      <VERSION>1:1.1.3-2build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 Display Manager Control Protocol library</COMMENTS>
+      <FILESIZE>67</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxdmcp6</NAME>
+      <VERSION>1:1.1.0-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 miscellaneous extension library</COMMENTS>
+      <FILESIZE>133</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxext6</NAME>
+      <VERSION>2:1.3.0-3ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 miscellaneous &apos;fixes&apos; extension library</COMMENTS>
+      <FILESIZE>62</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxfixes3</NAME>
+      <VERSION>1:5.0-4ubuntu4.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 font rasterisation library</COMMENTS>
+      <FILESIZE>313</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxfont1</NAME>
+      <VERSION>1:1.4.4-1ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>FreeType-based font drawing library for X</COMMENTS>
+      <FILESIZE>135</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxft2</NAME>
+      <VERSION>2.2.0-3ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 keyboard file manipulation library</COMMENTS>
+      <FILESIZE>189</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxkbfile1</NAME>
+      <VERSION>1:1.0.7-1ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNOME XML library</COMMENTS>
+      <FILESIZE>1750</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxml2</NAME>
+      <VERSION>2.7.8.dfsg-5.1ubuntu4.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 miscellaneous utility library</COMMENTS>
+      <FILESIZE>147</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxmu6</NAME>
+      <VERSION>2:1.1.0-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 miscellaneous micro-utility library</COMMENTS>
+      <FILESIZE>61</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxmuu1</NAME>
+      <VERSION>2:1.1.0-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 pixmap library</COMMENTS>
+      <FILESIZE>115</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxpm4</NAME>
+      <VERSION>1:3.5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 RandR extension library</COMMENTS>
+      <FILESIZE>84</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxrandr2</NAME>
+      <VERSION>2:1.3.2-2ubuntu0.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X Rendering Extension client library</COMMENTS>
+      <FILESIZE>85</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxrender1</NAME>
+      <VERSION>1:0.9.6-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 toolkit intrinsics library</COMMENTS>
+      <FILESIZE>457</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libxt6</NAME>
+      <VERSION>1:1.1.1-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Fast YAML 1.1 parser and emitter library</COMMENTS>
+      <FILESIZE>166</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libyaml-0-2</NAME>
+      <VERSION>0.1.4-2ubuntu0.12.04.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Multi threaded C bindings for zookeeper</COMMENTS>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>libzookeeper-mt2</NAME>
+      <VERSION>3.3.5+dfsg1-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Firmware for Linux kernel drivers</COMMENTS>
+      <FILESIZE>49547</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-firmware</NAME>
+      <VERSION>1.79.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Generic Linux kernel image and headers</COMMENTS>
+      <FILESIZE>27</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-generic-lts-raring</NAME>
+      <VERSION>3.8.0.41.41</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Header files related to Linux kernel version 3.2.0</COMMENTS>
+      <FILESIZE>55034</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-headers-3.2.0-63</NAME>
+      <VERSION>3.2.0-63.95</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux kernel headers for version 3.2.0 on 64 bit x86 SMP</COMMENTS>
+      <FILESIZE>11077</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-headers-3.2.0-63-generic</NAME>
+      <VERSION>3.2.0-63.95</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Header files related to Linux kernel version 3.8.0</COMMENTS>
+      <FILESIZE>58788</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-headers-3.8.0-41</NAME>
+      <VERSION>3.8.0-41.60~precise1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux kernel headers for version 3.8.0 on 64 bit x86 SMP</COMMENTS>
+      <FILESIZE>11768</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-headers-3.8.0-41-generic</NAME>
+      <VERSION>3.8.0-41.60~precise1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Generic Linux kernel headers</COMMENTS>
+      <FILESIZE>32</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-headers-generic</NAME>
+      <VERSION>3.2.0.63.75</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Generic Linux kernel headers</COMMENTS>
+      <FILESIZE>27</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-headers-generic-lts-raring</NAME>
+      <VERSION>3.8.0.41.41</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux kernel image for version 3.8.0 on 64 bit x86 SMP</COMMENTS>
+      <FILESIZE>175032</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-image-3.8.0-41-generic</NAME>
+      <VERSION>3.8.0-41.60~precise1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Generic Linux kernel image</COMMENTS>
+      <FILESIZE>27</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-image-generic-lts-raring</NAME>
+      <VERSION>3.8.0.41.41</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux Kernel Headers for development</COMMENTS>
+      <FILESIZE>3086</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>linux-libc-dev</NAME>
+      <VERSION>3.2.0-63.95</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>common files for locale support</COMMENTS>
+      <FILESIZE>9152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>locales</NAME>
+      <VERSION>2.13+git20120306-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Programs for locking and unlocking files and mailboxes</COMMENTS>
+      <FILESIZE>77</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lockfile-progs</NAME>
+      <VERSION>0.1.16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>system login tools</COMMENTS>
+      <FILESIZE>1048</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>login</NAME>
+      <VERSION>1:4.1.4.2+svn3283-3ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Log rotation utility</COMMENTS>
+      <FILESIZE>184</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>logrotate</NAME>
+      <VERSION>3.7.8-6ubuntu5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Linux Standard Base 4.0 init script functionality</COMMENTS>
+      <FILESIZE>75</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsb-base</NAME>
+      <VERSION>4.0-0ubuntu20.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Linux Standard Base version reporting utility</COMMENTS>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsb-release</NAME>
+      <VERSION>4.0-0ubuntu20.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>information about hardware configuration</COMMENTS>
+      <FILESIZE>712</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lshw</NAME>
+      <VERSION>02.15-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>List open files</COMMENTS>
+      <FILESIZE>452</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>lsof</NAME>
+      <VERSION>4.81.dfsg.1-1build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tracks runtime library calls in dynamically linked programs</COMMENTS>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ltrace</NAME>
+      <VERSION>0.5.3-2.1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>An utility for Directing compilation.</COMMENTS>
+      <FILESIZE>316</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>make</NAME>
+      <VERSION>3.81-8.1ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>creates device files in /dev</COMMENTS>
+      <FILESIZE>126</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>makedev</NAME>
+      <VERSION>2.3.1-89ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>on-line manual pager</COMMENTS>
+      <FILESIZE>1736</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>man-db</NAME>
+      <VERSION>2.6.1-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Manual pages about using a GNU/Linux system</COMMENTS>
+      <FILESIZE>821</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>manpages</NAME>
+      <VERSION>3.35-0.1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Manual pages about using GNU/Linux for development</COMMENTS>
+      <FILESIZE>1699</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>manpages-dev</NAME>
+      <VERSION>3.35-0.1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>a pattern scanning and text processing language</COMMENTS>
+      <FILESIZE>197</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mawk</NAME>
+      <VERSION>1.3.3-17</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>thorough real-mode memory tester</COMMENTS>
+      <FILESIZE>2404</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>memtest86+</NAME>
+      <VERSION>4.20-1.1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>MIME files &apos;mime.types&apos; &amp; &apos;mailcap&apos;, and support programs</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mime-support</NAME>
+      <VERSION>3.51-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>quickly find files on the filesystem based on their name</COMMENTS>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mlocate</NAME>
+      <VERSION>0.23.1-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>tools for managing Linux kernel modules</COMMENTS>
+      <FILESIZE>332</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>module-init-tools</NAME>
+      <VERSION>3.16-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tools for mounting and manipulating filesystems</COMMENTS>
+      <FILESIZE>422</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mount</NAME>
+      <VERSION>2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>filesystem mounting tool</COMMENTS>
+      <FILESIZE>241</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mountall</NAME>
+      <VERSION>2.36.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Full screen ncurses traceroute tool</COMMENTS>
+      <FILESIZE>124</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>mtr-tiny</NAME>
+      <VERSION>0.80-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Transitional package to ensure multiarch compatibility</COMMENTS>
+      <FILESIZE>202</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>multiarch-support</NAME>
+      <VERSION>2.15-0ubuntu10.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>small, friendly text editor inspired by Pico</COMMENTS>
+      <FILESIZE>604</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>nano</NAME>
+      <VERSION>2.2.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>basic terminal type definitions</COMMENTS>
+      <FILESIZE>345</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-base</NAME>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>terminal-related programs and man pages</COMMENTS>
+      <FILESIZE>493</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ncurses-bin</NAME>
+      <VERSION>5.9-4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The NET-3 networking toolkit</COMMENTS>
+      <FILESIZE>724</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>net-tools</NAME>
+      <VERSION>1.60-24.1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Basic TCP/IP networking system</COMMENTS>
+      <FILESIZE>75</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>netbase</NAME>
+      <VERSION>4.47ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>TCP/IP swiss army knife</COMMENTS>
+      <FILESIZE>168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>netcat-openbsd</NAME>
+      <VERSION>1.89-4ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>NFS support files common to client and server</COMMENTS>
+      <FILESIZE>705</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>nfs-common</NAME>
+      <VERSION>1:1.2.5-3ubuntu3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>read/write NTFS driver for FUSE</COMMENTS>
+      <FILESIZE>1422</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ntfs-3g</NAME>
+      <VERSION>1:2012.1.15AR.1-1ubuntu1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>client for setting system time from NTP servers</COMMENTS>
+      <FILESIZE>239</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ntpdate</NAME>
+      <VERSION>1:4.2.6.p3+dfsg-1ubuntu3.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>secure shell (SSH) client, for secure access to remote machines</COMMENTS>
+      <FILESIZE>2278</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-client</NAME>
+      <VERSION>1:5.9p1-5ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>secure shell (SSH) server, for secure access from remote machines</COMMENTS>
+      <FILESIZE>807</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssh-server</NAME>
+      <VERSION>1:5.9p1-5ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Secure Socket Layer (SSL) binary and related cryptographic tools</COMMENTS>
+      <FILESIZE>901</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>openssl</NAME>
+      <VERSION>1.0.1-4ubuntu5.13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>utility to detect other OSes on a set of drives</COMMENTS>
+      <FILESIZE>130</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>os-prober</NAME>
+      <VERSION>1.51ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>disk partition manipulator</COMMENTS>
+      <FILESIZE>188</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>parted</NAME>
+      <VERSION>2.3-8ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>change and administer password and group data</COMMENTS>
+      <FILESIZE>2084</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>passwd</NAME>
+      <VERSION>1:4.1.4.2+svn3283-3ubuntu5.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Apply a diff file to an original</COMMENTS>
+      <FILESIZE>218</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>patch</NAME>
+      <VERSION>2.6.1-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux PCI Utilities</COMMENTS>
+      <FILESIZE>1042</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pciutils</NAME>
+      <VERSION>1:3.1.8-2ubuntu6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Larry Wall&apos;s Practical Extraction and Report Language</COMMENTS>
+      <FILESIZE>17078</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl</NAME>
+      <VERSION>5.14.2-6ubuntu2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>minimal Perl system</COMMENTS>
+      <FILESIZE>4774</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl-base</NAME>
+      <VERSION>5.14.2-6ubuntu2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Core Perl modules</COMMENTS>
+      <FILESIZE>14086</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>perl-modules</NAME>
+      <VERSION>5.14.2-6ubuntu2.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>graphical boot animation and logger - main package</COMMENTS>
+      <FILESIZE>442</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>plymouth</NAME>
+      <VERSION>0.8.2-2ubuntu31.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>graphical boot animation and logger - ubuntu-logo theme</COMMENTS>
+      <FILESIZE>77</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>plymouth-theme-ubuntu-text</NAME>
+      <VERSION>0.8.2-2ubuntu31.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Vote for your favourite packages automatically</COMMENTS>
+      <FILESIZE>192</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>popularity-contest</NAME>
+      <VERSION>1.53ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Common utils and configs for power management</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>powermgmt-base</NAME>
+      <VERSION>1.31</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Point-to-Point Protocol (PPP) - daemon</COMMENTS>
+      <FILESIZE>1172</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ppp</NAME>
+      <VERSION>2.4.5-5ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>A text menu based utility for configuring ppp</COMMENTS>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pppconfig</NAME>
+      <VERSION>2.3.18+nmu3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>configures PPPoE/ADSL connections</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>pppoeconf</NAME>
+      <VERSION>1.20ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>/proc file system utilities</COMMENTS>
+      <FILESIZE>668</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>procps</NAME>
+      <VERSION>1:3.2.8-11ubuntu6.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>utilities that use the proc file system</COMMENTS>
+      <FILESIZE>228</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>psmisc</NAME>
+      <VERSION>22.15-2ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Centralized configuration management - agent startup and compatibility scripts</COMMENTS>
+      <FILESIZE>337</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>puppet</NAME>
+      <VERSION>2.7.11-1ubuntu2.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Centralized configuration management</COMMENTS>
+      <FILESIZE>3346</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>puppet-common</NAME>
+      <VERSION>2.7.11-1ubuntu2.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>interactive high-level object-oriented language (default version)</COMMENTS>
+      <FILESIZE>658</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python</NAME>
+      <VERSION>2.7.3-0ubuntu2.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>apport crash report handling library</COMMENTS>
+      <FILESIZE>476</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-apport</NAME>
+      <VERSION>2.0.1-0ubuntu17.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Python interface to libapt-pkg</COMMENTS>
+      <FILESIZE>714</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-apt</NAME>
+      <VERSION>0.8.3ubuntu7.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python interface to libapt-pkg (locales)</COMMENTS>
+      <FILESIZE>208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-apt-common</NAME>
+      <VERSION>0.8.3ubuntu7.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python interface to Amazon&apos;s Web Services</COMMENTS>
+      <FILESIZE>2620</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-boto</NAME>
+      <VERSION>2.2.2-0ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>universal character encoding detector</COMMENTS>
+      <FILESIZE>578</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-chardet</NAME>
+      <VERSION>2.0.1-2build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>text-based template engine and Python code generator</COMMENTS>
+      <FILESIZE>818</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-cheetah</NAME>
+      <VERSION>2.4.4-2ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>simple but powerful config file reader and writer for Python</COMMENTS>
+      <FILESIZE>1527</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-configobj</NAME>
+      <VERSION>4.7.2+ds-3build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>cryptographic algorithms and protocols for Python</COMMENTS>
+      <FILESIZE>1193</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-crypto</NAME>
+      <VERSION>2.4.1-1ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>powerful extensions to the standard datetime module</COMMENTS>
+      <FILESIZE>232</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-dateutil</NAME>
+      <VERSION>1.5-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>simple interprocess messaging system (Python interface)</COMMENTS>
+      <FILESIZE>413</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-dbus</NAME>
+      <VERSION>1.0.0-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>main loop integration development files for python-dbus</COMMENTS>
+      <FILESIZE>62</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-dbus-dev</NAME>
+      <VERSION>1.0.0-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python modules to work with Debian-related data formats</COMMENTS>
+      <FILESIZE>263</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-debian</NAME>
+      <VERSION>0.1.21ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU dbm database support for Python</COMMENTS>
+      <FILESIZE>78</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-gdbm</NAME>
+      <VERSION>2.7.3-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Python 2.x bindings for gobject-introspection libraries</COMMENTS>
+      <FILESIZE>861</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-gi</NAME>
+      <VERSION>3.2.2-1~precise</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python interface to GnuPG (GPG)</COMMENTS>
+      <FILESIZE>113</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-gnupginterface</NAME>
+      <VERSION>0.3.2-9.1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>comprehensive HTTP client library written for Python</COMMENTS>
+      <FILESIZE>208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-httplib2</NAME>
+      <VERSION>0.7.2-1ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>store and access your passwords safely</COMMENTS>
+      <FILESIZE>207</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-keyring</NAME>
+      <VERSION>0.9.2-0ubuntu0.12.04.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Launchpad web services client library</COMMENTS>
+      <FILESIZE>276</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-launchpadlib</NAME>
+      <VERSION>1.9.12-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>client for lazr.restful-based web services</COMMENTS>
+      <FILESIZE>246</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-lazr.restfulclient</NAME>
+      <VERSION>0.12.0-1ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>library for parsing, manipulating, and generating URIs</COMMENTS>
+      <FILESIZE>125</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-lazr.uri</NAME>
+      <VERSION>1.0.3-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>a crypto and SSL toolkit for Python</COMMENTS>
+      <FILESIZE>850</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-m2crypto</NAME>
+      <VERSION>0.21.1-2ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>minimal subset of the Python language (default version)</COMMENTS>
+      <FILESIZE>159</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-minimal</NAME>
+      <VERSION>2.7.3-0ubuntu2.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>A NEWT module for Python</COMMENTS>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-newt</NAME>
+      <VERSION>0.52.11-2ubuntu10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python library implementing of the OAuth protocol</COMMENTS>
+      <FILESIZE>91</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-oauth</NAME>
+      <VERSION>1.0.1-3build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Python wrapper around the OpenSSL library</COMMENTS>
+      <FILESIZE>416</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-openssl</NAME>
+      <VERSION>0.12-1ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>A Python interface to the PAM library</COMMENTS>
+      <FILESIZE>79</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pam</NAME>
+      <VERSION>0.4.2-12.2ubuntu4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Make ssh v2 connections with Python</COMMENTS>
+      <FILESIZE>7023</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-paramiko</NAME>
+      <VERSION>1.7.7.1-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Package Discovery and Resource Access using pkg_resources</COMMENTS>
+      <FILESIZE>175</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pkg-resources</NAME>
+      <VERSION>0.6.24-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python library to handle problem reports</COMMENTS>
+      <FILESIZE>157</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-problem-report</NAME>
+      <VERSION>2.0.1-0ubuntu17.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>ASN.1 library for Python</COMMENTS>
+      <FILESIZE>229</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pyasn1</NAME>
+      <VERSION>0.0.11a-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Python bindings to libcurl</COMMENTS>
+      <FILESIZE>210</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pycurl</NAME>
+      <VERSION>7.19.0-4ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python interface to Graphviz&apos;s dot</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pydot</NAME>
+      <VERSION>1.0.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python parsing module</COMMENTS>
+      <FILESIZE>3075</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-pyparsing</NAME>
+      <VERSION>1.5.2-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>pyserial - module encapsulating access for the serial port</COMMENTS>
+      <FILESIZE>374</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-serial</NAME>
+      <VERSION>2.5-2.1build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>simple, fast, extensible JSON encoder/decoder for Python</COMMENTS>
+      <FILESIZE>353</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-simplejson</NAME>
+      <VERSION>2.3.2-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>manage the repositories that you install software from</COMMENTS>
+      <FILESIZE>208</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-software-properties</NAME>
+      <VERSION>0.82.7.7</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>automated rebuilding support for Python modules</COMMENTS>
+      <FILESIZE>155</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-support</NAME>
+      <VERSION>1.0.14ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Event-based framework for internet applications (dependency package)</COMMENTS>
+      <FILESIZE>56</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted</NAME>
+      <VERSION>11.1.0-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Event-based framework for internet applications</COMMENTS>
+      <FILESIZE>144</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-bin</NAME>
+      <VERSION>11.1.0-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Twisted SSH Implementation</COMMENTS>
+      <FILESIZE>1263</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-conch</NAME>
+      <VERSION>1:11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Event-based framework for internet applications</COMMENTS>
+      <FILESIZE>5517</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-core</NAME>
+      <VERSION>11.1.0-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Documentation generator with HTML and LaTeX support</COMMENTS>
+      <FILESIZE>448</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-lore</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>SMTP, IMAP and POP protocol implementation</COMMENTS>
+      <FILESIZE>948</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-mail</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>DNS protocol implementation with client and server</COMMENTS>
+      <FILESIZE>399</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-names</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>NNTP protocol implementation with client and server</COMMENTS>
+      <FILESIZE>167</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-news</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Process management, including an inetd server</COMMENTS>
+      <FILESIZE>152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-runner</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>HTTP protocol implementation together with clients and servers</COMMENTS>
+      <FILESIZE>1716</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-web</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Chat and Instant Messaging</COMMENTS>
+      <FILESIZE>1046</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-twisted-words</NAME>
+      <VERSION>11.1.0-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Twisted-based Asynchronous Libraries for Amazon Web Services</COMMENTS>
+      <FILESIZE>575</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-txaws</NAME>
+      <VERSION>0.2-0ubuntu10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Twisted-based Asynchronous Libraries for Apache Zookeeper.</COMMENTS>
+      <FILESIZE>374</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-txzookeeper</NAME>
+      <VERSION>0.9.5-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Python library for navigating WADL files</COMMENTS>
+      <FILESIZE>167</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-wadllib</NAME>
+      <VERSION>1.3.0-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Xapian search engine interface for Python</COMMENTS>
+      <FILESIZE>1341</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-xapian</NAME>
+      <VERSION>1.2.8-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>YAML parser and emitter for Python</COMMENTS>
+      <FILESIZE>477</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-yaml</NAME>
+      <VERSION>3.10-2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Python bindings for zookeeper</COMMENTS>
+      <FILESIZE>112</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-zookeeper</NAME>
+      <VERSION>3.3.5+dfsg1-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Interfaces for Python</COMMENTS>
+      <FILESIZE>563</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python-zope.interface</NAME>
+      <VERSION>3.6.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Interactive high-level object-oriented language (version 2.7)</COMMENTS>
+      <FILESIZE>8779</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python2.7</NAME>
+      <VERSION>2.7.3-0ubuntu3.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Minimal subset of the Python language (version 2.7)</COMMENTS>
+      <FILESIZE>5484</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>python2.7-minimal</NAME>
+      <VERSION>2.7.3-0ubuntu3.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>GNU readline and history libraries, common files</COMMENTS>
+      <FILESIZE>107</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>readline-common</NAME>
+      <VERSION>6.2-8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>name server information handler</COMMENTS>
+      <FILESIZE>237</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>resolvconf</NAME>
+      <VERSION>1.63ubuntu16</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>converts RPC program numbers into universal addresses</COMMENTS>
+      <FILESIZE>152</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rpcbind</NAME>
+      <VERSION>0.2.0-7ubuntu1.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>fast, versatile, remote (and local) file-copying tool</COMMENTS>
+      <FILESIZE>638</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rsync</NAME>
+      <VERSION>3.0.9-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>reliable system and kernel logging daemon</COMMENTS>
+      <FILESIZE>1207</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rsyslog</NAME>
+      <VERSION>5.8.6-1ubuntu8.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Transitional package for ruby1.8</COMMENTS>
+      <FILESIZE>36</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ruby</NAME>
+      <VERSION>4.8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Interpreter of object-oriented scripting language Ruby 1.8</COMMENTS>
+      <FILESIZE>362</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ruby1.8</NAME>
+      <VERSION>1.8.7.352-2ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Header files for compiling extension modules for the Ruby 1.8</COMMENTS>
+      <FILESIZE>2260</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ruby1.8-dev</NAME>
+      <VERSION>1.8.7.352-2ubuntu1.4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>package management framework for Ruby libraries/applications</COMMENTS>
+      <FILESIZE>3501</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rubygems</NAME>
+      <VERSION>1.8.15-1ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Configuration management and audit tool - agent</COMMENTS>
+      <FILESIZE>81452</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>rudder-agent</NAME>
+      <VERSION>2.10.0-precise0</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>terminal multiplexor with VT100/ANSI terminal emulation</COMMENTS>
+      <FILESIZE>1052</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>screen</NAME>
+      <VERSION>4.0.3-14ubuntu8</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The GNU sed stream editor</COMMENTS>
+      <FILESIZE>296</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sed</NAME>
+      <VERSION>4.2.1-9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Utilities for sensible alternative selection</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sensible-utils</NAME>
+      <VERSION>0.0.6ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>SGML infrastructure and SGML catalog file support</COMMENTS>
+      <FILESIZE>148</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sgml-base</NAME>
+      <VERSION>1.26+nmu1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>securely retrieve an SSH public key and install it locally</COMMENTS>
+      <FILESIZE>53</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ssh-import-id</NAME>
+      <VERSION>2.10-0ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>A system call tracer</COMMENTS>
+      <FILESIZE>396</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>strace</NAME>
+      <VERSION>4.5.20-2.3ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Provide limited super user privileges to specific users</COMMENTS>
+      <FILESIZE>996</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sudo</NAME>
+      <VERSION>1.8.3p1-1ubuntu3.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>System-V-like runlevel change mechanism</COMMENTS>
+      <FILESIZE>232</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sysv-rc</NAME>
+      <VERSION>2.88dsf-13.10ubuntu11.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>System-V-like utilities</COMMENTS>
+      <FILESIZE>260</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>sysvinit-utils</NAME>
+      <VERSION>2.88dsf-13.10ubuntu11.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>GNU version of the tar archiving utility</COMMENTS>
+      <FILESIZE>720</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tar</NAME>
+      <VERSION>1.26-4ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Tool for selecting tasks for installation on Debian systems</COMMENTS>
+      <FILESIZE>240</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tasksel</NAME>
+      <VERSION>2.88ubuntu9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Official tasks used for installation of Debian systems</COMMENTS>
+      <FILESIZE>136</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tasksel-data</NAME>
+      <VERSION>2.88ubuntu9</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Wietse Venema&apos;s TCP wrapper utilities</COMMENTS>
+      <FILESIZE>132</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tcpd</NAME>
+      <VERSION>7.6.q-21</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>command-line network traffic analyzer</COMMENTS>
+      <FILESIZE>1040</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tcpdump</NAME>
+      <VERSION>4.2.1-1ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The telnet client</COMMENTS>
+      <FILESIZE>204</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>telnet</NAME>
+      <VERSION>0.17-36build1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The GNU time program for measuring cpu resource usage</COMMENTS>
+      <FILESIZE>148</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>time</NAME>
+      <VERSION>1.7-23.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>terminal multiplexer</COMMENTS>
+      <FILESIZE>516</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tmux</NAME>
+      <VERSION>1.6-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Vera font family derivate with additional characters</COMMENTS>
+      <FILESIZE>2806</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ttf-dejavu-core</NAME>
+      <VERSION>2.33-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>transitional dummy package</COMMENTS>
+      <FILESIZE>31</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ttf-liberation</NAME>
+      <VERSION>1.07.0-2ubuntu0.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>time zone and daylight-saving time data</COMMENTS>
+      <FILESIZE>1664</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>tzdata</NAME>
+      <VERSION>2014c-0ubuntu0.12.04</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>GnuPG keys of the Ubuntu archive</COMMENTS>
+      <FILESIZE>46</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ubuntu-keyring</NAME>
+      <VERSION>2011.11.21.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Minimal core of Ubuntu</COMMENTS>
+      <FILESIZE>57</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ubuntu-minimal</NAME>
+      <VERSION>1.267.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>The Ubuntu standard system</COMMENTS>
+      <FILESIZE>57</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ubuntu-standard</NAME>
+      <VERSION>1.267.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Update Configuration File: preserve user changes to config files.</COMMENTS>
+      <FILESIZE>272</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ucf</NAME>
+      <VERSION>3.0025+nmu2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>rule-based device node and kernel event manager</COMMENTS>
+      <FILESIZE>1000</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>udev</NAME>
+      <VERSION>175-0ubuntu9.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>program for managing a Netfilter firewall</COMMENTS>
+      <FILESIZE>678</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ufw</NAME>
+      <VERSION>0.31.1-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>automatic installation of security upgrades</COMMENTS>
+      <FILESIZE>224</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>unattended-upgrades</NAME>
+      <VERSION>0.76ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>manage release upgrades</COMMENTS>
+      <FILESIZE>1196</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>update-manager-core</NAME>
+      <VERSION>1:0.156.14.13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Files shared between update-notifier and other packages</COMMENTS>
+      <FILESIZE>1944</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>update-notifier-common</NAME>
+      <VERSION>0.119ubuntu8.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>event-based init daemon</COMMENTS>
+      <FILESIZE>1020</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>upstart</NAME>
+      <VERSION>1.5-0ubuntu7.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Read required files in advance</COMMENTS>
+      <FILESIZE>124</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>ureadahead</NAME>
+      <VERSION>0.100.0-12</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Linux USB utilities</COMMENTS>
+      <FILESIZE>661</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>usbutils</NAME>
+      <VERSION>1:005-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Miscellaneous system utilities</COMMENTS>
+      <FILESIZE>1559</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>util-linux</NAME>
+      <VERSION>2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>runtime components for the Universally Unique ID library</COMMENTS>
+      <FILESIZE>141</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>uuid-runtime</NAME>
+      <VERSION>2.20.1-1ubuntu3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Vi IMproved - enhanced vi editor</COMMENTS>
+      <FILESIZE>2013</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim</NAME>
+      <VERSION>2:7.3.429-2ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Vi IMproved - Common files</COMMENTS>
+      <FILESIZE>295</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-common</NAME>
+      <VERSION>2:7.3.429-2ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Vi IMproved - Runtime files</COMMENTS>
+      <FILESIZE>22306</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-runtime</NAME>
+      <VERSION>2:7.3.429-2ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Vi IMproved - enhanced vi editor - compact version</COMMENTS>
+      <FILESIZE>826</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>vim-tiny</NAME>
+      <VERSION>2:7.3.429-2ubuntu2.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>x86 virtualization solution - guest addition module source for dkms</COMMENTS>
+      <FILESIZE>3292</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>virtualbox-guest-dkms</NAME>
+      <VERSION>4.1.12-dfsg-2ubuntu0.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>x86 virtualization solution - non-X11 guest utilities</COMMENTS>
+      <FILESIZE>1713</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>virtualbox-guest-utils</NAME>
+      <VERSION>4.1.12-dfsg-2ubuntu0.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>x86 virtualization solution - X11 guest utilities</COMMENTS>
+      <FILESIZE>5116</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>virtualbox-guest-x11</NAME>
+      <VERSION>4.1.12-dfsg-2ubuntu0.6</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>WWW browsable pager with excellent tables/frames support</COMMENTS>
+      <FILESIZE>2088</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>w3m</NAME>
+      <VERSION>0.5.3-5ubuntu1.1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>retrieves files from the web</COMMENTS>
+      <FILESIZE>600</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wget</NAME>
+      <VERSION>1.13.4-2ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Displays user-friendly dialog boxes from shell scripts</COMMENTS>
+      <FILESIZE>91</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>whiptail</NAME>
+      <VERSION>0.52.11-2ubuntu10</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Ubuntu crash database submission daemon</COMMENTS>
+      <FILESIZE>104</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>whoopsie</NAME>
+      <VERSION>0.1.34</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Tools for manipulating Linux Wireless Extensions</COMMENTS>
+      <FILESIZE>324</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wireless-tools</NAME>
+      <VERSION>30~pre9-5ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>client support for WPA and WPA2 (IEEE 802.11i)</COMMENTS>
+      <FILESIZE>1222</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>wpasupplicant</NAME>
+      <VERSION>0.7.3-6ubuntu2.2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>X Window System (X.Org) infrastructure</COMMENTS>
+      <FILESIZE>489</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>x11-common</NAME>
+      <VERSION>1:7.6+12ubuntu2</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X11 XKB utilities</COMMENTS>
+      <FILESIZE>528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>x11-xkb-utils</NAME>
+      <VERSION>7.6+4</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X authentication utility</COMMENTS>
+      <FILESIZE>96</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xauth</NAME>
+      <VERSION>1:1.0.6-1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>standard fonts for X</COMMENTS>
+      <FILESIZE>8280</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xfonts-base</NAME>
+      <VERSION>1:1.0.3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>Encodings for X.Org fonts</COMMENTS>
+      <FILESIZE>668</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xfonts-encodings</NAME>
+      <VERSION>1:1.0.4-1ubuntu1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>X Window System font utility programs</COMMENTS>
+      <FILESIZE>528</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xfonts-utils</NAME>
+      <VERSION>1:7.6+1</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>X Keyboard Extension (XKB) configuration data</COMMENTS>
+      <FILESIZE>3017</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xkb-data</NAME>
+      <VERSION>2.5-1ubuntu1.5</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>XML infrastructure and XML catalog file support</COMMENTS>
+      <FILESIZE>260</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xml-core</NAME>
+      <VERSION>0.13</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>common files used by various X servers</COMMENTS>
+      <FILESIZE>1454</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xserver-common</NAME>
+      <VERSION>2:1.11.4-0ubuntu10.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>Xorg X server - core server</COMMENTS>
+      <FILESIZE>4168</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xserver-xorg-core</NAME>
+      <VERSION>2:1.11.4-0ubuntu10.14</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>all</ARCH>
+      <COMMENTS>XZ-format compression utilities - compatibility commands</COMMENTS>
+      <FILESIZE>163</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xz-lzma</NAME>
+      <VERSION>5.1.1alpha+20110809-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>XZ-format compression utilities</COMMENTS>
+      <FILESIZE>388</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>xz-utils</NAME>
+      <VERSION>5.1.1alpha+20110809-3</VERSION>
+    </SOFTWARES>
+    <SOFTWARES>
+      <ARCH>amd64</ARCH>
+      <COMMENTS>compression library - runtime</COMMENTS>
+      <FILESIZE>156</FILESIZE>
+      <FROM>deb</FROM>
+      <NAME>zlib1g</NAME>
+      <VERSION>1:1.2.3.4.dfsg-3ubuntu4</VERSION>
+    </SOFTWARES>
+    <STORAGES>
+      <DESCRIPTION>SATA</DESCRIPTION>
+      <FIRMWARE>10 </FIRMWARE>
+      <MANUFACTURER>VBOX HARDDISK</MANUFACTURER>
+      <MODEL>VBOX HARDDISK</MODEL>
+      <NAME>sda</NAME>
+      <SERIALNUMBER>VBde1cec0b-a6bc4c4c</SERIALNUMBER>
+      <TYPE>disk</TYPE>
+    </STORAGES>
+    <USERS>
+      <LOGIN>vagrant</LOGIN>
+    </USERS>
+    <VERSIONCLIENT>FusionInventory-Agent_v2.2.2</VERSIONCLIENT>
+  </CONTENT>
+  <DEVICEID>node1-2014-06-03-09-28-51</DEVICEID>
+<UUID>32e45242-5571-4d9b-87ae-07b02b6f8fff</UUID>
+<USER>root</USER>
+<AGENTSNAME>
+<AGENTNAME>Community</AGENTNAME>
+</AGENTSNAME>
+<MACHINEID>883EC5E5-5614-4F4F-881C-AE2AF8952DF4</MACHINEID>
+<CFKEY>-----BEGIN RSA PUBLIC KEY-----
+MIIBCAKCAQEAu5x5s5caUo0YUkhq7DcFi8NQGvFSQGgwpUAAaLvccLr/k2slWP2y
+7QWgYckQCFmML4G+K1BZx2zbMaM9JEy62dSHDe8vmZalxxLmB2uSbPKOHxQZhysx
+gbHq2yOzMIupBLnsrwzOFLQ0G9eHviVHOCFTArErnqUOeHegqdBMcKCnRP/AWbug
+YmR8qH7RdnX6NHsUkX+0d+JTARQwX0Jo9XyXwSoFm1gqzbLoNqVSCxsTAOlzwd86
+obFgkI+lNr7SvWYhmZlvRrZBqDmVwPo+rzirbRLONYLk1gpe8LApqpW/t1DwSBId
+81FuOlrlezKWgEVA7QIARGTWIfOBK7BMyQIBIw==
+-----END RSA PUBLIC KEY-----</CFKEY>
+<HOSTNAME>node1.rudder.local</HOSTNAME>
+<SERVER_ROLES>
+<SERVER_ROLE>magikal_node</SERVER_ROLE>
+</SERVER_ROLES>
+<PROCESSORS>
+	<PROCESSOR>
+		<VENDOR>GenuineIntel</VENDOR>
+		<FAMILY>6</FAMILY>
+		<MODEL>60</MODEL>
+		<NAME>Intel(R) Core(TM) i7-4700MQ CPU @ 2.40GHz</NAME>
+		<STEPPING>3</STEPPING>
+		<FREQUENCY>2390.789</FREQUENCY>
+	</PROCESSOR>
+</PROCESSORS>
+<POLICY_SERVER>root</POLICY_SERVER>
+
+  <QUERY>INVENTORY</QUERY>
+</REQUEST>
