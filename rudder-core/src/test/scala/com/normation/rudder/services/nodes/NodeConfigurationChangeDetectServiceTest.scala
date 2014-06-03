@@ -143,6 +143,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
   , isBroken      = false
   , isSystem      = false
   , isPolicyServer= false
+  , serverRoles   = Set()
   )
 
   private val nodeInfo2 = nodeInfo.copy(name = "name2")
