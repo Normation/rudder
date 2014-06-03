@@ -105,11 +105,12 @@ class SrvGrid(
    * @param callback : Optionnal callback to use on node, if missing, replaced by a link to that node
    */
   def displayAndInit(
-      nodes:Seq[NodeInfo]
-    , tableId:String
+      nodes    : Seq[NodeInfo]
+    , tableId  : String
     , callback : Option[String => JsCmd] = None
+    , refreshNodes : Option[ () => Seq[NodeInfo]] = None
    ) : NodeSeq = {
-    tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback)))
+    tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback,refreshNodes)))
   }
 
   /**
@@ -117,11 +118,28 @@ class SrvGrid(
    * takes the id of the table as param
    * the nodes to compute the datas
    * and the optionnal callback
-   *
    */
-  def initJs(tableId:String,nodes:Seq[NodeInfo], callback : Option[String => JsCmd]) : JsCmd = {
+  def initJs(
+      tableId  : String
+    , nodes    : Seq[NodeInfo]
+    , callback : Option[String => JsCmd]
+    , refreshNodes : Option[ () => Seq[NodeInfo]]
+  ) : JsCmd = {
 
-    val data = {
+    val data = getTableData(nodes,callback)
+
+    val refresh = refreshNodes.map(refreshData(_,callback,tableId).toJsCmd).getOrElse("undefined")
+
+    JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh});""")
+
+   }
+
+
+  def getTableData (
+      nodes    : Seq[NodeInfo]
+    , callback : Option[String => JsCmd]
+  ) = {
+
       val lines = for {
         node <- nodes
         lastReport = roReportExecutionsRepository.getNodeLastExecution(node.id)
@@ -131,9 +149,19 @@ class SrvGrid(
       JsTableData(lines.toList)
     }
 
-    JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}");""")
+  def refreshData (
+      refreshNodes : () => Seq[NodeInfo]
+    , callback : Option[String => JsCmd]
+    , tableId: String
+  ) = {
+     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
+       val nodes = refreshNodes()
+       val data = getTableData(nodes,callback)
+       JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd});""")
+     } )
 
-   }
+     AnonFunc("",ajaxCall)
+  }
 
   /**
    * Html templace of the table, id is in parameter
