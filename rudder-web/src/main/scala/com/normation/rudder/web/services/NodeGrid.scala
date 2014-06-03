@@ -259,4 +259,3 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
     }
   }
 }
-

@@ -56,6 +56,7 @@ import com.normation.rudder.repository.ReportsRepository
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
+import com.normation.rudder.reports.execution.ReportExecution
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -99,155 +100,100 @@ class SrvGrid(
 
   /**
    * Display and init the display for the list of server
-   * @param servers : a SEQ of the WBSrv to be shown
+   * @param servers : a sequence of the node to show
    * @param tableId : the id of the table
-   * @param columns : a list of supplementary column to add in the grid,
-   * where the _1 is the header, and the (server => NodeSeq)
-   *    is the content of the column
-   * @param aoColumns : the aoColumns field in the datatable for the extra columns
-   * @param searchable : true if the table is searchable
-   * @param paginate : true if the table should show pagination controls
-   * @return
+   * @param callback : Optionnal callback to use on node, if missing, replaced by a link to that node
    */
   def displayAndInit(
-      servers:Seq[NodeInfo]
+      nodes:Seq[NodeInfo]
     , tableId:String
-    , callback : String => JsCmd = x => Noop
-    , isGroupPage : Boolean = false
+    , callback : Option[String => JsCmd] = None
    ) : NodeSeq = {
-    display(servers, tableId) ++
-    Script(initJs(tableId, callback,isGroupPage))
+    tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback)))
   }
 
-  /*
-   * Init Javascript for the table with ID 'tableId'
+  /**
+   * Initialize the table by javascript
+   * takes the id of the table as param
+   * the nodes to compute the datas
+   * and the optionnal callback
    *
    */
-  def initJs(tableId:String,callback : String => JsCmd,isGroupPage:Boolean) : JsCmd = {
+  def initJs(tableId:String,nodes:Seq[NodeInfo], callback : Option[String => JsCmd]) : JsCmd = {
 
-    val sizes = if (isGroupPage)
-        Seq(210,60,60,60,40,115) //545px width
-      else
-        Seq(225,125,100,100,75,125) // 750px width
-    JsRaw("""
-        var #table_var#;
-        /* Formating function for row details */
-        function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" class="sgridbph"/>';
-          return sOut;
-        }
-      """.replaceAll("#table_var#",jsVarNameForId(tableId))
-    ) & OnLoad(
+    val data = {
+      val lines = for {
+        node <- nodes
+        lastReport = roReportExecutionsRepository.getNodeLastExecution(node.id)
+      } yield {
+        NodeLine(node,lastReport, callback)
+      }
+      JsTableData(lines.toList)
+    }
 
-        JsRaw(s"""
-          /* Event handler function */
-          ${jsVarNameForId(tableId)} = $$('#${tableId}').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter"  : true,
-            "bPaginate": true,
-            "bLengthChange": true,
-            "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
-            "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "bJQueryUI": true,
-            "aaSorting": [[ 0, "asc" ]],
-            "aoColumns": [${sizes.map(size => s""" { "sWidth": "${size}" }""").mkString(",")}],
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-          });
-          $$('.dataTables_filter input').attr("placeholder", "Search");
-          """
-        ) &
-
-        initJsCallBack(tableId, callback)
-    )
+    JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}");""")
 
    }
 
   /**
-   * Initialize JS callback bound to the servername item
-   * You will have to do that for line added after table
-   * initialization.
+   * Html templace of the table, id is in parameter
    */
-  def initJsCallBack(tableId:String, callback : (String) => JsCmd) : JsCmd = {
-      JsRaw("""$("#serverName", #table_var#.fnGetNodes() ).each( function () {
-              var td = $(this);
-          td.click( function () {
-              var id = td.attr("serverid");
-              var jsid = td.attr("jsuuid");
-              var ajaxParam = jsid + "|" + id;
-              %s;
-          } );
-        })
-      """.format(
-          SHtml.ajaxCall(JsVar("ajaxParam"), x => callback(x))._2.toJsCmd).replaceAll("#table_var#",
-              jsVarNameForId(tableId))
+  def tableXml(tableId:String) : NodeSeq = {
+    <table id={tableId} cellspacing="0"/>
+  }
+
+}
+
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "name" : Node hostname [String]
+ *   , "id" : Node id [String]
+ *   , "machineType" : Node machine type [String]
+ *   , "osName" : Node OS name [String]
+ *   , "osVersion" : Node OS version [ String ]
+ *   , "servicePack" : Node OS service pack [ String ]
+ *   , "lastReport" : Last report received about that node [ String ]
+ *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
+ *   }
+ */
+case class NodeLine (
+    node       : NodeInfo
+  , lastReport : Box[Option[ReportExecution]]
+  , callback   : Option[String => JsCmd]
+) extends JsTableLine {
+
+
+  val optCallback = {
+    callback.map(cb => ("callback", AnonFunc(ajaxCall(JsNull, s => cb(node.id.value)))))
+  }
+  val hostname = {
+    if (isEmpty(node.hostname)) {
+      s"(Missing name)  ${node.id.value}"
+    } else {
+      node.hostname
+    }
+  }
+
+  val lastReportValue = {
+    lastReport match {
+      case Full(exec) =>
+        exec.map(report =>  DateFormaterService.getFormatedDate(report.date)).getOrElse("Never")
+      case eb : EmptyBox =>
+        "Error While fetching node executions"
+    }
+  }
+
+  val baseFields = {
+   JsObj(
+       ( "name" -> hostname )
+     , ( "id" -> node.id.value )
+     , ( "machineType" -> node.machineType )
+     , ( "osName") -> S.?(s"os.name.${node.osName}")
+     , ( "osVersion" -> node.osVersion)
+     , ( "servicePack" -> node.servicePack.getOrElse("N/A"))
+     , ( "lastReport" ->  lastReportValue )
      )
   }
 
-  /**
-   * Build the HTML grid of server, with all its row
-   * initilialized.
-   * This method does not initialize grid's Javascript,
-   * use <code>displayAndInit</code> for that.
-   *
-   * @parameter : servers
-   *    the list of servers to display
-   * @parameter : columns
-   *    a list of supplementary column to add in the grid,
-   *    where the _1 is the header, and the (server => NodeSeq)
-   *    is the content of the column
-   */
-
-  def display(servers:Seq[NodeInfo], tableId:String) : NodeSeq = {
-    //bind the table
-    <table id={tableId} cellspacing="0">
-    <thead>
-      <tr class="head">
-        <th>Node name</th>
-        <th>Machine type</th>
-        <th>OS name</th>
-        <th>OS version</th>
-        <th>OS SP</th>
-        <th>Last seen</th>
-      </tr>
-    </thead>
-    <tbody>
-    {servers.map { server =>
-
-      (("#serverName *") #> ( if (isEmpty(server.name))
-                                s"(Missing name)  ${server.id.value}"
-                              else
-                                server.hostname ) &
-      ("#machineType *") #> server.machineType &
-      ("#osFullName *")  #> S.?(s"os.name.${server.osName}") &
-      ("#osVersion *")   #> server.osVersion &
-      ("#servicePack *") #> server.servicePack.getOrElse("N/A") &
-      ("#lastReport *")  #> { roReportExecutionsRepository.getNodeLastExecution(server.id) match {
-                                case Full(exec) =>
-                                  exec.map(report =>  DateFormaterService.getFormatedDate(report.date)).getOrElse("Never")
-                                case eb : EmptyBox => "Error While fetching node executions"
-                            } }
-      )(lineXml(server.id.value))
-    } }
-    </tbody>
-      </table>
-      <div class={tableId +"_pagination"}>
-        <div id={tableId +"_paginate_area"}></div>
-        <div id={tableId +"_filter_area"}></div>
-      </div>
-  }
-
-  private[this] def lineXml(serverId:String) =
-    <tr>
-      <td id="serverName" class="hostnamecurs" jsuuid={serverId.replaceAll("-","")} serverid={serverId}/>
-      <td id="machineType"/>
-      <td id="osFullName" />
-      <td id="osVersion"  />
-      <td id="servicePack"/>
-      <td id="lastReport" />
-   </tr>
+  val json = baseFields +* JsObj(optCallback.toSeq:_*)
 }
