@@ -251,40 +251,78 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
 /*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
- *   , "compliance" : compliance percent as String [String]
+ *   , "compliance" : compliance percent as String, not used in message popup [String]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "callback" : Function to when clicking on compliance percent [ Function ]
+ *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
+ *   , "message" : Message linked to that value, only used in message popup [ Array[String] ]
  *   }
  */
-function createComponentValueTable( gridId, data, level, contextPath) {
-	
+function createComponentValueTable (addCompliance, level, contextPath) {
+
+  var componentSize;
+  if (addCompliance) {
+	componentSize = "72.5%"; 
+  } else {
+    componentSize = "20%";
+  }
   var columns = [
-     {   "sWidth": "72.5%" 
+     {   "sWidth": componentSize
        , "mDataProp": "value"
        , "sTitle": "Value"
-     }
-   , {   "sWidth": "16.4%" 
-       , "mDataProp": "status"
-       , "sTitle": "Status"
        , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-           $(nTd).addClass("center "+oData.statusClass);
+    	   if("unexpanded" in oData) {
+    	     var tooltipIcon = $("<img />");
+             tooltipIcon.attr("src",contextPath+"/images/ic_question_14px.png");
+             tooltipIcon.addClass("reportIcon");
+             var tooltipId = oData.id+"-tooltip";
+             tooltipIcon.attr("tooltipid",tooltipId);
+             tooltipIcon.attr("title","");
+             tooltipIcon.addClass("tooltip tooltipable");
+             var toolTipContainer= $("<div>Value '<b>"+sData+"</b>' was expanded from the entry '<b>"+oData.unexpanded+"</b>'</div>");
+             toolTipContainer.addClass("tooltipContent");
+             toolTipContainer.attr("id",tooltipId);
+             $(nTd).append(tooltipIcon);
+             $(nTd).append(toolTipContainer);
+    	   }
          }
      }
-   , {   "sWidth": "11.1%" 
-       , "mDataProp": "compliance"
-       , "sTitle": "Compliance"
-       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-            var elem = $("<a></a>");
-            elem.attr("href","javascript://");
-            elem.addClass("right noExpand");
-            elem.text(sData);
-            elem.click(function() {oData.callback()});
-            $(nTd).empty();
-            $(nTd).append(elem);
-          }
-     }
    ];
+  
+  var status = {   "sWidth": "16.4%" 
+      , "mDataProp": "status"
+          , "sTitle": "Status"
+          , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+              $(nTd).addClass("center "+oData.statusClass);
+            }
+        }
+  
+  if (addCompliance) {
+
+    var compliance = {   "sWidth": "11.1%" 
+	       , "mDataProp": "compliance"
+	       , "sTitle": "Compliance"
+	       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+	            var elem = $("<a></a>");
+	            elem.attr("href","javascript://");
+	            elem.addClass("right noexpand");
+	            elem.text(sData);
+	            elem.click(function() {oData.callback()});
+	            $(nTd).empty();
+	            $(nTd).append(elem);
+	          }
+	     };
+    columns.push(status);
+    columns.push(compliance);
+  } else {
+    var message = 
+    {   "sWidth": "63.6%"
+      , "mDataProp": "message"
+    	           , "sTitle": "Message"
+    	         }
+    columns.push(message);
+    columns.push(status);
+  }
 	
   var params = {
       "bFilter" : false
@@ -294,7 +332,7 @@ function createComponentValueTable( gridId, data, level, contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
   }
 
-  createTable(gridId, data, columns, params, contextPath);
+  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();}
 
 }
 
@@ -302,18 +340,24 @@ function createComponentValueTable( gridId, data, level, contextPath) {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "component" : component name [String]
  *   , "id" : id generated about that component [String]
- *   , "compliance" : compliance percent as String [String]
+ *   , "compliance" : compliance percent as String, not used in message popup [String]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of values contained in the component [String]
- *   , "noExpand" : The line should not be expanded if all values are "None" [Boolean]
- *   , "callback" : Function to when clicking on compliance percent [ Function ]
+ *   , "details" : Details of values contained in the component [ Array of Component values ]
+ *   , "noExpand" : The line should not be expanded if all values are "None", not used in message popup [Boolean]
+ *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
  *   }
  */
-function createComponentTable (gridId, data, level, contextPath) {
+function createComponentTable (addCompliance,level, contextPath) {
   
+	var componentSize;
+	if (addCompliance) {
+		componentSize = "73.7%"; 
+	} else {
+		componentSize = "84.2%";
+	}
 	var columns = [
-	               {   "sWidth": "73.7%" 
+	               {   "sWidth": componentSize 
 	                   , "mDataProp": "component"
 	                   , "sTitle": "Component"
 	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -331,21 +375,25 @@ function createComponentTable (gridId, data, level, contextPath) {
 	                       $(nTd).addClass("center "+oData.statusClass);
 	                      }
 	                 }
-	               , {   "sWidth": "10.5%" 
-	                   , "mDataProp": "compliance"
-	                   , "sTitle": "Compliance"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                       var elem = $("<a></a>");
-	                       elem.addClass("right noExpand");
-	                       elem.attr("href","javascript://");
-	                       elem.text(sData);
-	                       elem.click(function() {oData.callback()});
-	                       $(nTd).empty();
-	                       $(nTd).append(elem);
-	                     }
-	                 }
 	               ];
 	
+	var compliance = {   "sWidth": "10.5%" 
+        , "mDataProp": "compliance"
+            , "sTitle": "Compliance"
+            , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+                var elem = $("<a></a>");
+                elem.addClass("right noexpand");
+                elem.attr("href","javascript://");
+                elem.text(sData);
+                elem.click(function() {oData.callback()});
+                $(nTd).empty();
+                $(nTd).append(elem);
+              }
+          }
+	
+	if (addCompliance) {
+		columns.push(compliance)
+	}
   var params = {
       "bFilter" : false
     , "bPaginate" : false
@@ -353,11 +401,11 @@ function createComponentTable (gridId, data, level, contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-  	    createInnerTable(this,level,createComponentValueTable, contextPath);
+  	    createInnerTable(this,level,createComponentValueTable(addCompliance ,level , contextPath));
       }
   }
 
-  createTable(gridId,data,columns, params, contextPath);
+  return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
 }
 
 /*
@@ -369,7 +417,7 @@ function createComponentTable (gridId, data, level, contextPath) {
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of components contained in the Directive [String]
+ *   , "details" : Details of components contained in the Directive [Array of Directive values ]
  *   , "callback" : Function to when clicking on compliance percent [ Function ]
  *   }
  */
@@ -383,7 +431,7 @@ function createDirectiveTable (gridId,data, level, contextPath, refresh) {
 	                        $(nTd).addClass("listopen");
 	                        
 	                        var tooltipIcon = $("<img />");
-	                        tooltipIcon.attr("src",contextPath + "/images/ic_question.png");
+	                        tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
 	                        tooltipIcon.addClass("reportIcon");
 	                        var tooltipId = oData.id+"-tooltip";
 	                        tooltipIcon.attr("tooltipid",tooltipId);
@@ -440,7 +488,7 @@ function createDirectiveTable (gridId,data, level, contextPath, refresh) {
 	      }
 	    , "aaSorting": [[ 0, "asc" ]]
 	      , "fnDrawCallback" : function( oSettings ) {
-	    	  createInnerTable(this, level, createComponentTable, contextPath);
+	    	  createInnerTable(this, level, createComponentTable(true, level, contextPath), contextPath);
 	      }
 	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
 	  };	
@@ -449,6 +497,68 @@ function createDirectiveTable (gridId,data, level, contextPath, refresh) {
 
   createTooltip();
 }
+
+
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "node" : Directive name [String]
+ *   , "id" : Rule id [String]
+ *   , "status" : Worst status of the Directive [String]
+ *   , "statusClass" : Class to use on status cell [String]
+ *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   }
+ */
+function createNodeComplianceTable (gridId,data, level, contextPath, refresh) {
+
+	var columns = [
+	               {   "sWidth": "85%" 
+	                   , "mDataProp": "node"
+	                   , "sTitle": "Node"
+	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+	                        $(nTd).addClass("listopen");
+	                      
+	                        var editLink = $("<a />");
+	                        editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+	                        var editIcon = $("<img />");
+	                        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
+	                        editLink.click(function(e) {e.stopPropagation();})
+	                        editLink.append(editIcon);
+	                        editLink.addClass("reportIcon");
+	                        
+	                        $(nTd).append(editLink);
+	                      }
+	                 }
+	               , {   "sWidth": "15%" 
+	                   , "mDataProp": "status"
+	                   , "sTitle": "Status"
+	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+	                     $(nTd).addClass("center "+oData.statusClass);
+	                   }
+	                 }
+	               ];
+
+  var params = {
+	      "bFilter" : true
+	    , "bPaginate" : true
+	    , "bLengthChange": true
+	    , "sPaginationType": "full_numbers"
+	    , "bStateSave": true
+	    , "sCookiePrefix": "Rudder_DataTables_"
+	    , "oLanguage": {
+	        "sSearch": ""
+	      }
+	    , "aaSorting": [[ 0, "asc" ]]
+	      , "fnDrawCallback" : function( oSettings ) {
+	    	  createInnerTable(this,level,createComponentTable(false,level, contextPath));
+	      }
+	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+	  };	
+
+  createTable(gridId,data,columns, params, contextPath, refresh, contextPath);
+
+  createTooltip();
+}
+
 
 function refreshTable (gridId, data, level) {
   var table = $('#'+gridId).dataTable();
@@ -484,7 +594,7 @@ function createInnerTable(myTable, level, createFunction, contextPath) {
           div.attr("id",detailsId);
           div.append(table);
           var nDetailsRow = myTable.fnOpen( this, div, 'details' );
-          var res = createFunction(tableId, fnData.details, level, contextPath);
+          var res = createFunction(tableId, fnData.details);
           $('div.dataTables_wrapper:has(table.noMarginGrid)').addClass('noMarginGrid');
           $('#'+detailsId).slideDown(300);
           anOpen.push( this );
