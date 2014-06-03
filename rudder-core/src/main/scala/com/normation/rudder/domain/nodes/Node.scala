@@ -39,8 +39,9 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * The Node is a basic object, the entry point for the application
- * @author Nicolas CHARLES
+ * The entry point for a REGISTERED node in Rudder.
+ *
+ * This is independant from inventory, and can exist without one.
  *
  */
 case class Node(id:NodeId, name:String, description:String, isBroken : Boolean, isSystem : Boolean, isPolicyServer: Boolean) extends HashcodeCaching
