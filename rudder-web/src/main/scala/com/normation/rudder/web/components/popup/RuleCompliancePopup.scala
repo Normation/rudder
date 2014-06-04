@@ -56,9 +56,6 @@ import com.normation.rudder.web.services.ComplianceData
 /**
  *  That popup Display the compliance of a Rule by Node starting from different Scope ( Directive, Component, or a specific value)
  */
-
-
-
 class RuleCompliancePopup(
     rule         :Rule
   , directiveLib : FullActiveTechniqueCategory
@@ -69,7 +66,7 @@ class RuleCompliancePopup(
   val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
 
-  val complianceData = ComplianceData(rule,directiveLib,allNodeInfos)
+  val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
   import RuleCompliancePopup._
 
@@ -158,11 +155,11 @@ class RuleCompliancePopup(
       reports: RuleStatusReport
   ): NodeSeq = {
 
-    val data = complianceData.getNodeComplianceDetails(reports)
+    val data = complianceData.getNodeComplianceDetails(reports,rule)
 
     <table id="reportsDetailGrid" cellspacing="0" style="clear:both"/>
     <br/> ++
-    Script(JsRaw(s"""createNodeComplianceTable("reportsDetailGrid",${data.json.toJsCmd},1,"${S.contextPath}");"""))
+    Script(JsRaw(s"""createNodeComplianceTable("reportsDetailGrid",${data.json.toJsCmd},"${S.contextPath}");"""))
 
   }
 

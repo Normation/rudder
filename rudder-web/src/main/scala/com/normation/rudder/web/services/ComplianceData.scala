@@ -53,12 +53,13 @@ import com.normation.rudder.web.components.popup.RuleCompliancePopup
 import com.normation.cfclerk.domain.TechniqueVersion
 
 case class ComplianceData(
-    rule : Rule
-  , directiveLib : FullActiveTechniqueCategory
+   directiveLib : FullActiveTechniqueCategory
   , allNodeInfos : Map[NodeId, NodeInfo]
 ) {
 
-  def popup = new RuleCompliancePopup(rule, directiveLib, allNodeInfos)
+  private[this] val roRuleRepository = RudderConfig.roRuleRepository
+
+  def popup(rule : Rule) = new RuleCompliancePopup(rule, directiveLib, allNodeInfos)
 
   /**
    * From a report:
@@ -69,6 +70,7 @@ case class ComplianceData(
    */
   def getNodeComplianceDetails(
       report: RuleStatusReport
+    , rule : Rule
   ) : JsTableData[NodeComplianceLine]= {
 
     // Transform report into components reports we can use
@@ -118,7 +120,7 @@ case class ComplianceData(
       nodeInfo <- allNodeInfos.get(nodeId)
     } yield {
       val severity = ReportType.getSeverityFromStatus(ReportType.getWorseType(componentReports.map(_.componentReportType)))
-      val details = getComponentsComplianceDetails(componentReports,true)
+      val details = getComponentsComplianceDetails(componentReports, rule, true)
       val status = getDisplayStatusFromSeverity(severity)
       NodeComplianceLine(
           nodeInfo
@@ -131,8 +133,45 @@ case class ComplianceData(
     JsTableData(nodeComplianceLine.toList)
   }
 
+
+  ////////////// Rule compliance ///////////
+
+  /*
+   * Get compliance details of Rule
+   */
+  def getRuleComplianceDetails (
+      reports : Seq[NodeStatusReport]
+  ) : JsTableData[RuleComplianceLine] = {
+
+    val ruleComplianceLine = for {
+      report <- reports
+      rule   <- roRuleRepository.get(report.ruleId)
+    } yield {
+      val severity = ReportType.getSeverityFromStatus(report.nodeReportType)
+      val status = getDisplayStatusFromSeverity(severity)
+      val details = getDirectivesComplianceDetails(report.directives)
+
+      RuleComplianceLine (
+          rule.name
+        , rule.id
+        , status
+        , severity
+        , details
+      )
+
+    }
+      JsTableData(ruleComplianceLine.toList)
+  }
+
+
+  //////////////// Directive Report ///////////////
+
+
+  // From Rule Point of view
   def getDirectivesComplianceDetails (
-    directivesReport: Seq[DirectiveRuleStatusReport]
+      directivesReport: Seq[DirectiveRuleStatusReport]
+    , rule : Rule
+    , includeMessage : Boolean
   ) : JsTableData[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
       directiveStatus <- directivesReport
@@ -141,9 +180,9 @@ case class ComplianceData(
       techniqueVersion = directive.techniqueVersion;
       severity   = ReportType.getSeverityFromStatus(directiveStatus.directiveReportType)
       status     = getDisplayStatusFromSeverity(directiveStatus.directiveReportType)
-      components = getComponentsComplianceDetails (directiveStatus.components,false)
+      components = getComponentsComplianceDetails (directiveStatus.components, rule,includeMessage)
     } yield {
-      val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup.showPopup(directiveStatus))
+      val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup(rule).showPopup(directiveStatus))
       val callback = AnonFunc("",ajaxCall)
 
       DirectiveComplianceLine (
@@ -151,22 +190,56 @@ case class ComplianceData(
         , directive.id
         , techniqueName
         , techniqueVersion : TechniqueVersion
-        , buildComplianceChart(directiveStatus)
+        , Some(buildComplianceChart(directiveStatus))
         , status
         , severity
         , components
-        , callback
+        , Some(callback)
       )
     }
 
     JsTableData(directivesComplianceData.toList)
   }
 
+  // From Node Point of view
+  def getDirectivesComplianceDetails (
+    directivesReport: Seq[DirectiveStatusReport]
+  ) : JsTableData[DirectiveComplianceLine] = {
+    val directivesComplianceData = for {
+      directiveStatus <- directivesReport
+      (fullActiveTechnique, directive) <- directiveLib.allDirectives.get(directiveStatus.directiveId)
+      techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
+      techniqueVersion = directive.techniqueVersion;
+      severity   = ReportType.getSeverityFromStatus(directiveStatus.directiveReportType)
+      status     = getDisplayStatusFromSeverity(directiveStatus.directiveReportType)
+      components = getComponentsComplianceDetails (directiveStatus.components)
+    } yield {
+
+      DirectiveComplianceLine (
+          directive.name
+        , directive.id
+        , techniqueName
+        , techniqueVersion : TechniqueVersion
+        , None
+        , status
+        , severity
+        , components
+        , None
+      )
+    }
+
+    JsTableData(directivesComplianceData.toList)
+  }
+  //////////////// Component Report ///////////////
+
+
+  // From Rule Point of view
   /*
    * Get compliance details of Components of a Directive
    */
   def getComponentsComplianceDetails (
       components : Seq[ComponentRuleStatusReport]
+    , rule : Rule
     , includeMessage : Boolean
   ) : JsTableData[ComponentComplianceLine] = {
 
@@ -175,13 +248,13 @@ case class ComplianceData(
       severity  = ReportType.getSeverityFromStatus(component.componentReportType)
       id        = Helpers.nextFuncName
       status    = getDisplayStatusFromSeverity(severity)
-      values    = getValuesComplianceDetails (component.componentValues,includeMessage)
+      values    = getValuesComplianceDetails (component.componentValues, rule,includeMessage)
     } yield {
       val (optCallback, optNoExpand, optCompliance) = {
         if (includeMessage) {
           (None,None,None)
         } else {
-          val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup.showPopup(component))
+          val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup(rule).showPopup(component))
           val compliance =  buildComplianceChart(component)
           val callback = AnonFunc("",ajaxCall)
           // do not display details of the components if there is no value to display (all equals to None)
@@ -205,12 +278,44 @@ case class ComplianceData(
       JsTableData(componentsComplianceData.toList)
   }
 
+  // From Node Point of view
+  def getComponentsComplianceDetails (
+      components : Seq[ComponentStatusReport]
+  ) : JsTableData[ComponentComplianceLine] = {
 
+    val componentsComplianceData = for {
+      component <- components
+      severity  = ReportType.getSeverityFromStatus(component.componentReportType)
+      id        = Helpers.nextFuncName
+      status    = getDisplayStatusFromSeverity(severity)
+      values    = getValuesComplianceDetails (component.componentValues)
+    } yield {
+
+      ComponentComplianceLine (
+          component.component
+        , id
+        , None
+        , status
+        , severity
+        , values
+        , None
+        , None
+      )
+
+    }
+      JsTableData(componentsComplianceData.toList)
+  }
+
+  //////////////// Value Report ///////////////
+
+
+  // From Rule Point of view
   /*
    * Get compliance details of Value of a Component
    */
   def getValuesComplianceDetails (
       values : Seq[ComponentValueRuleStatusReport]
+    , rule : Rule
     , includeMessage : Boolean
   ) : JsTableData[ValueComplianceLine] = {
     val valuesComplianceData = for {
@@ -230,7 +335,7 @@ case class ComplianceData(
           val messages = component.componentValues.flatMap(_.nodesReport.flatMap(_.message))
           (None, None, Some(messages.toList))
         } else {
-          val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup.showPopup(component))
+          val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup(rule).showPopup(component))
           val compliance =  buildComplianceChart(component)
           val callback = AnonFunc("",ajaxCall)
           // do not display details of the components if there is no value to display (all equals to None)
@@ -245,6 +350,30 @@ case class ComplianceData(
         , severity
         , optCallback
         , optMessage
+      )
+    }
+
+    JsTableData(valuesComplianceData.toList)
+  }
+
+  // From Node Point of view
+  def getValuesComplianceDetails (
+      values : Seq[ComponentValueStatusReport]
+  ) : JsTableData[ValueComplianceLine] = {
+    val valuesComplianceData = for {
+      value <- values
+      severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
+      status = getDisplayStatusFromSeverity(severity)
+    } yield {
+      val key = value.unexpandedComponentValue.getOrElse(value.componentValue)
+      val message = Some(value.message)
+      ValueComplianceLine(
+          key
+        , None
+        , status
+        , severity
+        , None
+        , message
       )
     }
 
@@ -353,13 +482,13 @@ case class ComponentComplianceLine (
  *   Javascript object containing all data to create a line in the DataTable
  *   { "directive" : Directive name [String]
  *   , "id" : Rule id [String]
- *   , "compliance" : compliance percent as String [String]
+ *   , "compliance" : compliance percent as String, not used in message popup [String]
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "details" : Details of components contained in the Directive [Array of Directive values ]
- *   , "callback" : Function to when clicking on compliance percent [ Function ]
+ *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
  *   }
  */
 case class DirectiveComplianceLine (
@@ -367,25 +496,33 @@ case class DirectiveComplianceLine (
   , id               : DirectiveId
   , techniqueName    : String
   , techniqueVersion : TechniqueVersion
-  , compliance       : String
+  , compliance       : Option[String]
   , status           : String
   , statusClass      : String
   , details          : JsTableData[ComponentComplianceLine]
-  , callback         : AnonFunc
+  , callback         : Option[AnonFunc]
 ) extends JsTableLine {
-  val json = {
+
+  val complianceField =  compliance.map(r => ( "compliance" -> Str(r)))
+
+  val callbackField = callback.map(cb => ( "callback" -> cb))
+
+  val optFields : Seq[(String,JsExp)]= complianceField.toSeq  ++ callbackField
+
+  val baseFields =  {
     JsObj (
         ( "directive"        -> directive )
       , ( "id"               -> id.value )
-      , ( "compliance"       -> compliance )
       , ( "techniqueName"    -> techniqueName )
       , ( "techniqueVersion" -> techniqueVersion.toString )
       , ( "status"           -> status )
       , ( "statusClass"      -> statusClass )
       , ( "details"          -> details.json )
-      , ( "callback"         -> callback )
     )
   }
+
+  val json = baseFields +* JsObj(optFields:_*)
+
 }
 
 /*
@@ -409,6 +546,33 @@ case class NodeComplianceLine (
       , ( "status" -> status )
       , ( "statusClass" -> statusClass )
       , ( "id" -> nodeInfo.id.value )
+      , ( "details" -> details.json )
+    )
+  }
+}
+
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "rule" : Rule name [String]
+ *   , "id" : Rule id [String]
+ *   , "status" : Worst status of the Directive [String]
+ *   , "statusClass" : Class to use on status cell [String]
+ *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   }
+ */
+case class RuleComplianceLine (
+    name        : String
+  , id          : RuleId
+  , status      : String
+  , statusClass : String
+  , details     : JsTableData[DirectiveComplianceLine]
+) extends JsTableLine {
+  val json = {
+    JsObj (
+        ( "rule" ->  name )
+      , ( "status" -> status )
+      , ( "statusClass" -> statusClass )
+      , ( "id" -> id.value )
       , ( "details" -> details.json )
     )
   }

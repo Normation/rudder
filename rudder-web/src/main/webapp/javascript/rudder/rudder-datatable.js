@@ -258,14 +258,27 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
  *   , "message" : Message linked to that value, only used in message popup [ Array[String] ]
  *   }
  */
-function createComponentValueTable (addCompliance, level, contextPath) {
+function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
 
-  var componentSize;
-  if (addCompliance) {
-	componentSize = "72.5%"; 
-  } else {
-    componentSize = "20%";
-  }
+	if (isTopLevel) {
+		var statusWidth = "16.4%";
+		var complianceWidth = "11.1%";
+		if (addCompliance) {
+			var componentSize = "72.5%";
+		} else {
+			var componentSize = "20%";
+			var messageWidth = "63.6%";
+		}
+	} else {
+		var statusWidth = "17.6%";
+		var complianceWidth = "11.8%";
+		if (addCompliance) {
+			var componentSize = "70.6%";
+		} else {
+			var componentSize = "20%";
+			var messageWidth = "62.4%";
+		}
+	}
   var columns = [
      {   "sWidth": componentSize
        , "mDataProp": "value"
@@ -289,37 +302,39 @@ function createComponentValueTable (addCompliance, level, contextPath) {
      }
    ];
   
-  var status = {   "sWidth": "16.4%" 
-      , "mDataProp": "status"
-          , "sTitle": "Status"
-          , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-              $(nTd).addClass("center "+oData.statusClass);
-            }
-        }
+  var status = {
+      "sWidth": statusWidth
+    , "mDataProp": "status"
+    , "sTitle": "Status"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+    	$(nTd).addClass("center "+oData.statusClass);
+      }
+  }
   
   if (addCompliance) {
 
-    var compliance = {   "sWidth": "11.1%" 
-	       , "mDataProp": "compliance"
-	       , "sTitle": "Compliance"
-	       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	            var elem = $("<a></a>");
-	            elem.attr("href","javascript://");
-	            elem.addClass("right noexpand");
-	            elem.text(sData);
-	            elem.click(function() {oData.callback()});
-	            $(nTd).empty();
-	            $(nTd).append(elem);
-	          }
-	     };
+    var compliance = {
+        "sWidth": complianceWidth
+      , "mDataProp": "compliance"
+      , "sTitle": "Compliance"
+	  , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+		  var elem = $("<a></a>");
+		  elem.attr("href","javascript://");
+		  elem.addClass("right noexpand");
+		  elem.text(sData);
+		  elem.click(function() {oData.callback()});
+		  $(nTd).empty();
+		  $(nTd).append(elem);
+	    }
+    };
     columns.push(status);
     columns.push(compliance);
   } else {
-    var message = 
-    {   "sWidth": "63.6%"
+    var message = {
+        "sWidth": messageWidth
       , "mDataProp": "message"
-    	           , "sTitle": "Message"
-    	         }
+      , "sTitle": "Message"
+    }
     columns.push(message);
     columns.push(status);
   }
@@ -348,13 +363,24 @@ function createComponentValueTable (addCompliance, level, contextPath) {
  *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
  *   }
  */
-function createComponentTable (addCompliance,level, contextPath) {
+function createComponentTable (isTopLevel, addCompliance, contextPath) {
   
-	var componentSize;
-	if (addCompliance) {
-		componentSize = "73.7%"; 
+	if (isTopLevel) {
+		var statusWidth = "15.8%";
+		var complianceWidth = "10.5%";
+		if (addCompliance) {
+			var componentSize = "73.7%";
+		} else {
+			var componentSize = "84.2%";
+		}
 	} else {
-		componentSize = "84.2%";
+		var statusWidth = "16.8%";
+		var complianceWidth = "11.1%";
+		if (addCompliance) {
+			var componentSize = "72.4%";
+		} else {
+			var componentSize = "82.6%";
+		}
 	}
 	var columns = [
 	               {   "sWidth": componentSize 
@@ -368,7 +394,7 @@ function createComponentTable (addCompliance,level, contextPath) {
 	                	    }
 	                      }
 	                 }
-	               , {   "sWidth": "15.8%" 
+	               , {   "sWidth": statusWidth 
 	                   , "mDataProp": "status"
 	                   , "sTitle": "Status"
 	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -377,19 +403,20 @@ function createComponentTable (addCompliance,level, contextPath) {
 	                 }
 	               ];
 	
-	var compliance = {   "sWidth": "10.5%" 
-        , "mDataProp": "compliance"
-            , "sTitle": "Compliance"
-            , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-                var elem = $("<a></a>");
-                elem.addClass("right noexpand");
-                elem.attr("href","javascript://");
-                elem.text(sData);
-                elem.click(function() {oData.callback()});
-                $(nTd).empty();
-                $(nTd).append(elem);
-              }
-          }
+	var compliance = {
+	    "sWidth": complianceWidth
+      , "mDataProp": "compliance"
+      , "sTitle": "Compliance"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+    	  var elem = $("<a></a>");
+    	  elem.addClass("right noexpand");
+    	  elem.attr("href","javascript://");
+    	  elem.text(sData);
+    	  elem.click(function() {oData.callback()});
+    	  $(nTd).empty();
+    	  $(nTd).append(elem);
+         }
+	}
 	
 	if (addCompliance) {
 		columns.push(compliance)
@@ -401,7 +428,7 @@ function createComponentTable (addCompliance,level, contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-  	    createInnerTable(this,level,createComponentValueTable(addCompliance ,level , contextPath));
+  	    createInnerTable(this, createComponentValueTable(isTopLevel, addCompliance, contextPath));
       }
   }
 
@@ -421,10 +448,28 @@ function createComponentTable (addCompliance,level, contextPath) {
  *   , "callback" : Function to when clicking on compliance percent [ Function ]
  *   }
  */
-function createDirectiveTable (gridId,data, level, contextPath, refresh) {
+function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
+	
+	if (isTopLevel) {
+		var statusWidth = "15%";
+		var complianceWidth = "10%";
+		if (addCompliance) {
+			var directiveWidth = "75%";
+		} else {
+			var directiveWidth = "85%";
+		}
+	} else {
+		var statusWidth = "15.8%";
+		var complianceWidth = "10.5%";
+		if (addCompliance) {
+			var directiveWidth = "73.7%";
+		} else {
+			var directiveWidth = "82.2%";
+		}
+	}
 	
 	var columns = [
-	               {   "sWidth": "75%" 
+	               {   "sWidth": directiveWidth 
 	                   , "mDataProp": "directive"
 	                   , "sTitle": "Directive"
 	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -454,25 +499,99 @@ function createDirectiveTable (gridId,data, level, contextPath, refresh) {
 	                        $(nTd).append(editLink);
 	                      }
 	                 }
-	               , {   "sWidth": "15%" 
+	               , {   "sWidth": statusWidth
 	                   , "mDataProp": "status"
 	                   , "sTitle": "Status"
 	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
 	                     $(nTd).addClass("center "+oData.statusClass);
 	                   }
 	                 }
-	               , {   "sWidth": "10%" 
-	                   , "mDataProp": "compliance"
-	                   , "sTitle": "Compliance"
+	               ];
+
+  var compliance = {
+		"sWidth": complianceWidth
+      , "mDataProp": "compliance"
+      , "sTitle": "Compliance"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+    	  var elem = $("<a></a>");
+    	  elem.addClass("right noExpand");
+    	  elem.attr("href","javascript://");
+    	  elem.text(sData);
+    	  elem.click(function() {oData.callback()});
+    	  $(nTd).empty();
+    	  $(nTd).append(elem);
+        }
+      }
+  
+  if (addCompliance) {
+	  columns.push(compliance)
+  }
+	  
+  var params = {
+	      "bFilter" : isTopLevel
+	    , "bPaginate" : isTopLevel
+	    , "bLengthChange": isTopLevel
+	    , "bInfo" : isTopLevel
+	    , "sPaginationType": "full_numbers"
+	    , "aaSorting": [[ 0, "asc" ]]
+	      , "fnDrawCallback" : function( oSettings ) {
+	    	  createInnerTable(this, createComponentTable(isTopLevel, addCompliance, contextPath), contextPath);
+	      }
+	  };	
+
+   if (isTopLevel) {
+     var sDom = {
+         "sDom" : '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+       , "oLanguage": {
+	       "sSearch": ""
+         }
+     };
+     $.extend(params,sDom);
+   }
+  
+  return function (gridId, data, refresh) {
+	  
+    createTable(gridId, data, columns, params, contextPath, refresh);
+
+    createTooltip();
+  }
+}
+
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "rule" : Rule name [String]
+ *   , "id" : Rule id [String]
+ *   , "status" : Worst status of the Directive [String]
+ *   , "statusClass" : Class to use on status cell [String]
+ *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   }
+ */
+function createRuleComplianceTable (gridId, data, contextPath, refresh) {
+	
+	var columns = [
+	               {   "sWidth": "85%" 
+	                   , "mDataProp": "rule"
+	                   , "sTitle": "Rule"
 	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                       var elem = $("<a></a>");
-	                       elem.addClass("right noExpand");
-	                       elem.attr("href","javascript://");
-	                       elem.text(sData);
-	                       elem.click(function() {oData.callback()});
-	                       $(nTd).empty();
-	                       $(nTd).append(elem);
-	                     }
+	                        $(nTd).addClass("listopen");
+	                        
+	                        var editLink = $("<a />");
+	                        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
+	                        var editIcon = $("<img />");
+	                        editIcon.attr("src",contextPath + "/images/icPen.png");
+	                        editLink.click(function(e) {e.stopPropagation();})
+	                        editLink.append(editIcon);
+	                        editLink.addClass("reportIcon");
+	                        
+	                        $(nTd).append(editLink);
+	                      }
+	                 }
+	               , {   "sWidth": "15%" 
+	                   , "mDataProp": "status"
+	                   , "sTitle": "Status"
+	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+	                     $(nTd).addClass("center "+oData.statusClass);
+	                   }
 	                 }
 	               ];
 
@@ -488,14 +607,13 @@ function createDirectiveTable (gridId,data, level, contextPath, refresh) {
 	      }
 	    , "aaSorting": [[ 0, "asc" ]]
 	      , "fnDrawCallback" : function( oSettings ) {
-	    	  createInnerTable(this, level, createComponentTable(true, level, contextPath), contextPath);
+	    	  createInnerTable(this, createDirectiveTable(false, false, contextPath), contextPath);
 	      }
 	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
 	  };	
 
   createTable(gridId,data,columns, params, contextPath, refresh);
 
-  createTooltip();
 }
 
 
@@ -508,7 +626,7 @@ function createDirectiveTable (gridId,data, level, contextPath, refresh) {
  *   , "details" : Details of components contained in the Directive [Array of Component values ]
  *   }
  */
-function createNodeComplianceTable (gridId,data, level, contextPath, refresh) {
+function createNodeComplianceTable (gridId, data, contextPath, refresh) {
 
 	var columns = [
 	               {   "sWidth": "85%" 
@@ -549,7 +667,7 @@ function createNodeComplianceTable (gridId,data, level, contextPath, refresh) {
 	      }
 	    , "aaSorting": [[ 0, "asc" ]]
 	      , "fnDrawCallback" : function( oSettings ) {
-	    	  createInnerTable(this,level,createComponentTable(false,level, contextPath));
+	    	  createInnerTable(this,createComponentTable(true, false, contextPath));
 	      }
 	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
 	  };	
@@ -633,7 +751,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
 
 }
 
-function refreshTable (gridId, data, level) {
+function refreshTable (gridId, data) {
   var table = $('#'+gridId).dataTable();
   table.fnClearTable();
   table.fnAddData(data);
@@ -644,7 +762,7 @@ function refreshTable (gridId, data, level) {
 /*
  * Function to define opening of an inner table
  */
-function createInnerTable(myTable, level, createFunction, contextPath) {
+function createInnerTable(myTable,  createFunction, contextPath) {
   var plusTd = $(myTable.fnGetNodes());
   plusTd.each( function () {
     $(this).unbind();
@@ -663,7 +781,7 @@ function createInnerTable(myTable, level, createFunction, contextPath) {
           table.attr("cellspacing",0);
           table.addClass("noMarginGrid");
           var div = $("<div></div>");
-          div.addClass("innerDetails level"+level);
+          div.addClass("innerDetails");
           div.attr("id",detailsId);
           div.append(table);
           var nDetailsRow = myTable.fnOpen( this, div, 'details' );
