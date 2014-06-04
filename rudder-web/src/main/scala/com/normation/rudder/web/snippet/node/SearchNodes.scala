@@ -64,13 +64,38 @@ import com.normation.rudder.domain.queries.Or
 import com.normation.rudder.services.queries.CmdbQueryParser
 import bootstrap.liftweb.RudderConfig
 
-//////////////////////////////////////////////////////////////////////
-//        Actual snippet implementation
-//////////////////////////////////////////////////////////////////////
+
+/**
+ *
+ * Snippet that handle the "searchNodes" page.
+ *
+ * Two main feature:
+ * - diplay details of a node
+ * - search for nodes based on a query
+ *
+ * Node details are ALWAYS load via Ajax (see parseHashtag method).
+ * Hashtag modification are detected with the hashchange" events,
+ * supported since ie8/ff3.6/chrome5/safari5 - as to say,
+ * immemorial times (see http://caniuse.com/hashchange for details)
+ *
+ */
+
+
+object SearchNodes {
+  private val serverPortletPath = List("templates-hidden", "server", "server_details")
+  private val serverPortletTemplateFile =  Templates(serverPortletPath) match {
+    case Empty | Failure(_,_,_) =>
+      throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
+    case Full(n) => n
+  }
+  private val serverDetailsTemplate = chooseTemplate("detail","server",serverPortletTemplateFile)
+  private val searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
+}
 
 class SearchNodes extends StatefulSnippet with Loggable {
-  val lock = new Object
-  private[this] val quickSearchService = RudderConfig.quickSearchService
+
+  import SearchNodes._
+
   private[this] val queryParser = RudderConfig.cmdbQueryParser
   private[this] val getFullGroupLibrary = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
 
@@ -83,6 +108,38 @@ class SearchNodes extends StatefulSnippet with Loggable {
       val e = eb ?~! "Major error: can not get the node group library"
       logger.error(e.messageChain)
       throw new Exception(e.messageChain)
+  }
+
+  val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
+
+
+  var srvList : Box[Seq[NodeInfo]] = Empty
+
+  setNodeGroupCategoryForm(None)
+
+  var dispatch : DispatchIt = {
+    case "showQuery" => searchNodeComponent.is match {
+      case Full(component) => { _ => component.buildQuery }
+      case _ => { _ => <div>The component is not set</div><div></div> }
+    }
+    case "head" => head _
+    case "createGroup" => createGroup _
+  }
+
+  var activateSubmitButton = true
+
+
+  def head(html:NodeSeq) : NodeSeq = {
+    import net.liftweb.json._
+    import net.liftweb.json.JsonDSL._
+
+    { <head>
+      <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
+      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery-ui-i18n.js"></script>
+      {Script(parseHashtag()) ++ Script(OnLoad(JsRaw("""parseHashtag();
+          $(window).on('hashchange',function(){ parseHashtag() });
+      """)))}
+    </head> } ++ ShowNodeDetailsFromNode.staticInit
   }
 
   private[this] def setCreationPopup(query : Option[Query], serverList : Box[Seq[NodeInfo]]) : Unit = {
@@ -105,10 +162,13 @@ class SearchNodes extends StatefulSnippet with Loggable {
       )))
   }
 
-  val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
-
   private[this] def setNodeGroupCategoryForm(query:Option[Query]) : SearchNodeComponent = {
-     val sc = new SearchNodeComponent(
+    def showNodeDetails(nodeId:String) : JsCmd = {
+      updateLocationHash(nodeId) &
+      JsRaw("""scrollToElement("serverDetails");""".format(nodeId))
+    }
+
+    val sc = new SearchNodeComponent(
         "htmlIdCategory"
       , query
       , srvList
@@ -118,95 +178,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
     )
     searchNodeComponent.set(Full(sc))
     sc
-  }
-
-  var srvList : Box[Seq[NodeInfo]] = Empty
-
-  setNodeGroupCategoryForm(None)
-
-  // The portlet for the server detail
-  private def serverPortletPath = List("templates-hidden", "server", "server_details")
-  private def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
-    case Full(n) => n
-  }
-  private def serverPortletTemplate = chooseTemplate("server","portlet",serverPortletTemplateFile)
-  private def serverDetailsTemplate = chooseTemplate("detail","server",serverPortletTemplateFile)
-  private def searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
-
-  // the container for the server selected
-//  var currentSelectedNode = Option.empty[NodeInfo]
-
-
-  var dispatch : DispatchIt = {
-    case "showQuery" => searchNodeComponent.is match {
-      case Full(component) => { _ => component.buildQuery }
-      case _ => { _ => <div>The component is not set</div><div></div> }
-    }
-    case "head" => head _
-    case "createGroup" => createGroup _
-    case "serverPorlet" => serverPortlet _
-  }
-
-
-  var activateSubmitButton = true
-
-  def head(html:NodeSeq) : NodeSeq = {
-    import net.liftweb.json._
-    import net.liftweb.json.JsonDSL._
-
-    { <head>
-      <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
-      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery-ui-i18n.js"></script>
-      {Script(OnLoad(parseJsArg()))}
-    </head> } ++ ShowNodeDetailsFromNode.staticInit
-  }
-
-
-  /**
-   * Display the server portlet
-   * @param html
-   * @return
-   */
-  def serverPortlet(html:NodeSeq) : NodeSeq = {
-    def buildQuery(current: String, limit: Int): Seq[String] = {
-      quickSearchService.lookup(current,20) match {
-        case Full(seq) => seq.map(nodeInfo => "%s [%s]".format(nodeInfo.hostname, nodeInfo.id.value))
-        case e:EmptyBox => {
-          logger.error("Error in quicksearch",e)
-          Seq()
-        }
-      }
-    }
-
-    /*
-     * parse the return of the text show in autocomplete, build
-     * in buildQuery ( hostname name [uuuid] )
-     */
-    def parse(s:String) : JsCmd = {
-      val regex = """.+\[(.+)\]""".r
-      s match {
-        case regex(id) =>
-          SetHtml("serverDetails", (new ShowNodeDetailsFromNode(NodeId(id), groupLibrary).display())) &
-          updateLocationHash(id)
-        case _ =>
-          Alert("No server was selected")
-      }
-    }
-
-    bind("server", serverPortletTemplate,
-        "quicksearch" -> AutoCompleteAutoSubmit("", buildQuery _, { s:String => parse(s) },
-            ("style" -> "width:300px"),
-            ("placeholder" -> "Search")),
-        /*"quicksearchSubmit" -> SHtml.ajaxSubmit("OK", { () =>
-           nodeId match {
-             case Some(id) => SetHtml("serverDetails", (new ShowNodeDetailsFromNode(id).display) )
-             case None => Alert("No server was selected")
-           }
-        } ),*/
-         "details" -> NodeSeq.Empty
-     )
   }
 
   def createGroup(html:NodeSeq) : NodeSeq = {
@@ -221,7 +192,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    *
    * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
    */
-  private[this] def parseJsArg(): JsCmd = {
+  private[this] def parseHashtag(): JsCmd = {
     def displayDetails(nodeId:String) = {
       SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
     }
@@ -241,23 +212,23 @@ class SearchNodes extends StatefulSnippet with Loggable {
       }
     }
 
-    JsRaw("""
-        var hash = null;
-        try {
-          hash = JSON.parse(window.location.hash.substring(1));
-        } catch(e) {
-          hash = {}
+    JsRaw(s"""
+        var parseHashtag = function() {
+          var hash = null;
+          try {
+            hash = JSON.parse(window.location.hash.substring(1));
+          } catch(e) {
+            hash = {}
+          }
+          if( hash.nodeId != null && hash.nodeId.length > 0) {
+            ${SHtml.ajaxCall(JsVar("hash","nodeId"), displayDetails _ )._2.toJsCmd}
+          }
+          if( hash.query != null && JSON.stringify(hash.query).length > 0) {
+            ${SHtml.ajaxCall(JsRaw("JSON.stringify(hash.query)"), executeQuery _ )._2.toJsCmd}
+          }
         }
-        if( hash.nodeId != null && hash.nodeId.length > 0) {
-          %s;
-        }
-        if( hash.query != null && JSON.stringify(hash.query).length > 0) {
-          %s;
-        }
-    """.format(
-        SHtml.ajaxCall(JsVar("hash","nodeId"), displayDetails _ )._2.toJsCmd
-      , SHtml.ajaxCall(JsRaw("JSON.stringify(hash.query)"), executeQuery _ )._2.toJsCmd
-    ))
+    """
+    )
   }
 
 
@@ -281,19 +252,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
       case eb:EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
     }
-  }
-
-
-
-  /**
-   * This method tale the values from the JS call (variable in the td), and display the node details from it
-   * @param s
-   * @return
-   */
-  private def showNodeDetails(nodeId:String) : JsCmd = {
-    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display()) &
-    updateLocationHash(nodeId) &
-    JsRaw("""scrollToElement("serverDetails");""".format(nodeId))
   }
 
   private def updateLocationHash(nodeId:String) =

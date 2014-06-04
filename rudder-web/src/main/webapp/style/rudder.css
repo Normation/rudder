@@ -2599,12 +2599,38 @@ tr.unfoldable {
 }
 
 /***********************************
- * Quicksearch
+ * Quick search
 ************************************/
 
-.quicksearch {
+.quickSearch {
   text-align: center;
   margin-top: 5px;	
+}
+
+.topQuickSearch {
+  float: right;
+  margin-right: 10px;
+  margin-top: -3px;
+}
+
+.topQuickSearch .ac_input {
+  width:200px;
+  font-size:10px;
+  background: url("../images/icMagnify.png") no-repeat scroll left center white;
+  padding: 5px 3px 5px 30px;
+}
+
+.topQuickSearch .ac_input:focus {
+  width:400px;
+}
+  
+
+.topQuickSearchResults ul li {
+  font-size: 10px;
+}
+
+div.topQuickSearchResults.ac_results {
+  width: 404px !important;  
 }
 
 /***********************************
