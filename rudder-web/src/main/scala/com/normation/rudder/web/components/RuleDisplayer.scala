@@ -147,7 +147,6 @@ class RuleDisplayer (
   }
 
 
-  private[this] def rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq()))
 
   def viewRules : NodeSeq = {
 
@@ -161,7 +160,7 @@ class RuleDisplayer (
     val ruleGrid = {
       new RuleGrid(
           "rules_grid_zone"
-        , rules
+        , Seq()
         , callbackLink
         , directive.isDefined
         , directive
@@ -195,7 +194,7 @@ class RuleDisplayer (
         <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
         <hr class="spacer"/>
       </div>
-      {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) }
+      {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) ++ Script(OnLoad(ruleGrid.refresh().applied)) }
     </div>
 
   }
@@ -297,21 +296,22 @@ class RuleDisplayer (
     * Create the delete popup
     */
     private[this] def showDeleteCategoryPopup(category : RuleCategory) : JsCmd = {
-    val popupHtml =
-      ruleCategoryTree match {
-        case Full(ruleCategoryTree) =>
-          creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules.toList))
-        case eb:EmptyBox =>
-          // Should not happen, the function will be called only if the rootCategory is Set
-          val fail = eb ?~! "Could not get root category"
-          val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
-          logger.error(msg)
-          <div style="padding:10px;">
+      val popupHtml =
+        ruleCategoryTree match {
+          case Full(ruleCategoryTree) =>
+            val rules = directive.map(_.rules).getOrElse(ruleRepository.getAll().openOr(Seq())).toList
+            creationPopup(Some(category), ruleCategoryTree).deletePopupContent(category.canBeDeleted(rules))
+          case eb:EmptyBox =>
+            // Should not happen, the function will be called only if the rootCategory is Set
+            val fail = eb ?~! "Could not get root category"
+            val msg = s"An error occured while fetching Rule categories , cause is ${fail.messageChain}"
+            logger.error(msg)
+            <div style="padding:10px;">
             <div class="error">{msg}</div>
           </div>
-     }
-    SetHtml(htmlId_popup, popupHtml) &
-    JsRaw( s""" createPopup("${htmlId_popup}") """)
+       }
+      SetHtml(htmlId_popup, popupHtml) &
+      JsRaw( s""" createPopup("${htmlId_popup}") """)
     }
 
 }

@@ -199,6 +199,27 @@ class RuleGrid(
     }
   }
 
+
+  // Build refresh function for Rule grid
+  def refresh(popup:Boolean = false, linkCompliancePopup:Boolean = true) =  AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
+          ( for {
+              rules        <- roRuleRepository.getAll(false)
+              nodeInfo     = getAllNodeInfos()
+              groupLib     = getFullNodeGroupLib()
+              directiveLib = getFullDirectiveLib()
+              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+            } yield {
+              JsRaw(s"""refreshTable("${htmlId_rulesGridId}",${newData.json.toJsCmd});""")
+            }
+          ) match {
+            case Full(cmd) => cmd
+            case eb:EmptyBox =>
+              val fail = eb ?~! ("an error occured during data update")
+              logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
+              JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");""")
+          }
+        } ))
+
   def rulesGrid(
       allNodeInfos: Box[Map[NodeId, NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
@@ -224,25 +245,6 @@ class RuleGrid(
 
       case Full(tableData) =>
 
-        // Build refresh function for Rule grid
-        val refresh =  AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
-          ( for {
-              rules        <- roRuleRepository.getAll(false)
-              nodeInfo     = getAllNodeInfos()
-              groupLib     = getFullNodeGroupLib()
-              directiveLib = getFullDirectiveLib()
-              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
-            } yield {
-              JsRaw(s"""refreshTable("${htmlId_rulesGridId}",${newData.json.toJsCmd});""")
-            }
-          ) match {
-            case Full(cmd) => cmd
-            case eb:EmptyBox =>
-              val fail = eb ?~! ("an error occured during data update")
-              logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
-              JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");""")
-          }
-        } ))
 
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
         val onLoad =
@@ -253,7 +255,7 @@ class RuleGrid(
                 , ${popup}
                 , ${allcheckboxCallback.toJsCmd}
                 , "${S.contextPath}"
-                , ${refresh.toJsCmd}
+                , ${refresh(popup, linkCompliancePopup).toJsCmd}
               );
               createTooltip();
               createTooltiptr();
