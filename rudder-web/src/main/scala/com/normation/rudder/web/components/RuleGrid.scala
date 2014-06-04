@@ -245,7 +245,6 @@ class RuleGrid(
 
       case Full(tableData) =>
 
-
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
         val onLoad =
           s"""createRuleTable (

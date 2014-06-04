@@ -73,13 +73,17 @@ class RuleDisplayer (
 
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
-  private[this] var root : Box[RuleCategory]= {
+  def getRootCategory() = {
     directive match  {
       case Some(appManagement) =>
         Full(appManagement.rootCategory)
       case None =>
         roCategoryRepository.getRootCategory
     }
+  }
+
+  private[this] var root : Box[RuleCategory]= {
+      getRootCategory
   }
 
   def dispatch = {
@@ -89,17 +93,21 @@ class RuleDisplayer (
 
   // Update Rule displayer after a Rule has changed ( update / creation )
   def onRuleChange (selectedCategoryUpdate : RuleCategoryId)= {
-    refreshGrid & ruleCategoryTree.map(_.updateSelectedCategory(selectedCategoryUpdate)).getOrElse(Noop)
+    refreshGrid & refreshTree & ruleCategoryTree.map(_.updateSelectedCategory(selectedCategoryUpdate)).getOrElse(Noop)
   }
-
-
 
   // refresh the rule grid
   private[this] def refreshGrid = {
     SetHtml(gridId, viewRules)
   }
 
-  private[this] val ruleCategoryTree = {
+  // refresh the rule category Tree
+  private[this] def refreshTree = {
+    root = getRootCategory
+    ruleCategoryTree.map(tree => SetHtml("categoryTreeParent", viewCategories(tree))).getOrElse(Noop)
+  }
+
+  private[this] def ruleCategoryTree = {
     root.map(
       new RuleCategoryTree(
           "categoryTree"
@@ -186,14 +194,12 @@ class RuleDisplayer (
       }
     }
 
-    <div id={gridId}>
-      <div>
-        <lift:authz role="rule_write">
-          {actionButton}
-        </lift:authz>
-        <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
-        <hr class="spacer"/>
-      </div>
+    <div>
+      <lift:authz role="rule_write">
+        {actionButton}
+      </lift:authz>
+      <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
+      <hr class="spacer"/>
       {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) ++ Script(OnLoad(ruleGrid.refresh().applied)) }
     </div>
 
@@ -215,7 +221,7 @@ class RuleDisplayer (
          </div>
          <div style="float:left; width:78%;padding-left:2%;">
            <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
-           <div class="inner-portlet-content">
+           <div class="inner-portlet-content" id={gridId}>
              {viewRules}
            </div>
         </div>
