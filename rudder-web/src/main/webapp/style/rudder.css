@@ -70,10 +70,7 @@
 div.innerDetails {
 	display: none; 
     background : #DEDEDE;
-}
-
-div.innerDetails.level1 {
-  padding-left:5%;
+    padding-left:5%;
 }
 
 /**********************************

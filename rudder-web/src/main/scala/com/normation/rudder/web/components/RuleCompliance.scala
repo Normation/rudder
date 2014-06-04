@@ -93,7 +93,7 @@ class RuleCompliance (
    * when + is clicked: it gets the content of td details then process it has a datatable
    */
   def showCompliance : NodeSeq = {
-    val complianceData = ComplianceData(rule,directiveLib,allNodeInfos)
+    val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
     reportingService.findImmediateReportsByRule(rule.id) match {
       case e: EmptyBox => <div class="error">Error while fetching report information</div>
@@ -101,7 +101,7 @@ class RuleCompliance (
         val data = optReport match {
           case Some(reports) =>
             val directivesReport=reports.getRuleStatus().filter(dir => rule.directiveIds.contains(dir.directiveId))
-            val data = complianceData.getDirectivesComplianceDetails(directivesReport)
+            val data = complianceData.getDirectivesComplianceDetails(directivesReport,rule,false)
             data.json.toJsCmd
           case None => "[]"
         }
@@ -110,7 +110,7 @@ class RuleCompliance (
          <table id="reportsGrid" cellspacing="0">  </table>
         </div> ++
         Script(JsRaw(s"""
-          createDirectiveTable("reportsGrid",${data},1,"${S.contextPath}",${refresh().toJsCmd});
+          createDirectiveTable(true,true,"${S.contextPath}")("reportsGrid",${data},${refresh().toJsCmd});
           createTooltip();
         """))
       }
@@ -124,12 +124,12 @@ class RuleCompliance (
             updatedNodes <- getAllNodeInfos().map(_.toMap)
             updatedDirectives <- getFullDirectiveLib()
         } yield {
-          val complianceData = ComplianceData(updatedRule,directiveLib,allNodeInfos)
+          val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
           optReports match {
             case Some(reports) =>
               val directivesReport=reports.getRuleStatus().filter(dir => updatedRule.directiveIds.contains(dir.directiveId))
-              complianceData.getDirectivesComplianceDetails(directivesReport).json.toJsCmd
+              complianceData.getDirectivesComplianceDetails(directivesReport,updatedRule,false).json.toJsCmd
 
             case _ => "[]"
           }
