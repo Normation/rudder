@@ -213,6 +213,10 @@ class RuleGrid(
         "sPaginationType": "full_numbers",
         "bJQueryUI": true,
         "bStateSave": true,
+        "fnStateLoadParams": function (oSettings, oData) {
+           oData.oSearch.sSearch = "";
+           return false;
+        },
         "sCookiePrefix": "Rudder_DataTables_",
         "oLanguage": {
           "sZeroRecords": "No matching rules!",
