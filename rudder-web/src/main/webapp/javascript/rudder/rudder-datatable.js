@@ -231,6 +231,10 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
 		      "sZeroRecords": "No matching rules!"
 		    , "sSearch": ""
 	      }
+        , "fnStateLoadParams": function (oSettings, oData) {
+            oData.oSearch.sSearch = "";
+            return false;
+          }
 		, "aaSorting": [[ sortingDefault, "asc" ]]
 	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
 	  }
