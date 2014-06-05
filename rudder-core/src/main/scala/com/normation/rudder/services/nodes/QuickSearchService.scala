@@ -146,9 +146,9 @@ def matchNodeInfoPairs( serverPairs:Map[NodeId,LDAPEntry], allNodePairs:Map[Node
 }
 
 
-  //filter for ou=nodes based on attributes to look for in quicksearch
+  //filter for ou=nodes based on attributes to look for in quick search
   private[this] def nodeFilter(in:String) = OR( nodeAttributes.map(attr =>  SUB(attr, null, Array(in), null) ) :_* )
-  //filter for ou=severs in inventory based on attributes to look for in quicksearch
+  //filter for ou=severs in inventory based on attributes to look for in quick search
   private[this] def serverFilter(in:String, nodeIds:scala.collection.Set[NodeId]) = {
     val sub = serverAttributes.map(attr =>  SUB(attr, null, Array(in), null) )
     val otherNodes = nodeIds.map(id => EQ(A_NODE_UUID,id.value))
