@@ -336,6 +336,16 @@ function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
         "sWidth": messageWidth
       , "mDataProp": "message"
       , "sTitle": "Message"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+    		  var list = $("<ul></ul>");
+    		  for (index in sData) {
+    			  var elem = $("<li></li>");
+    			  elem.text(sData[index]);
+    			  list.append(elem);
+    		  }
+    		  $(nTd).empty();
+    		  $(nTd).append(list);
+    	  }
     }
     columns.push(message);
     columns.push(status);
