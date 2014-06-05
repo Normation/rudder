@@ -9,13 +9,18 @@
    <div class="portlet-content">
     <div class="intro">
      <div>
-       Make a quick search or a query base search.
+       Make a query base search and display node details
      </div>
     </div>
   
     <lift:node.SearchNodes.head />
   
-    <lift:node.SearchNodes.serverPorlet />
+    <div class="inner-portlet">
+      <div class="inner-portlet-content">  
+       <hr class="spacer"/> 
+       <div id="serverDetails" />
+      </div>
+    </div>
   
     <div class="inner-portlet">
      <div class="inner-portlet-header">Query based search</div>

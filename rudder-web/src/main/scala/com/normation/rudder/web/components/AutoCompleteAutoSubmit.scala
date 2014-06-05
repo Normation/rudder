@@ -223,6 +223,7 @@ class AutoCompleteAutoSubmit {
      /* merge the options that the user wants */
       val jqOptions =  ("minChars","0") ::
                        ("matchContains","true") ::
+                       ("selectFirst", "false") ::
                        Nil ::: jsonOptions
       val json = jqOptions.map(t => t._1 + ":" + t._2).mkString("{", ",", "}")
       val autocompleteOptions = JsRaw(json)
@@ -234,6 +235,7 @@ class AutoCompleteAutoSubmit {
           jQuery("#"""+hidden+"""").val(formatted);
           jQuery("#"""+hidden+"""").parents('form:first').submit();
         });
+        jQuery("#"""+id+"""").click(function() { $(this).select(); });
       });""")
 
       <span>

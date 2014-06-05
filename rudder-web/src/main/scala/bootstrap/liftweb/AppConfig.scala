@@ -1310,11 +1310,15 @@ object RudderConfig extends Loggable {
   private[this] lazy val quickSearchServiceImpl = new QuickSearchServiceImpl(
     roLdap, nodeDitImpl, acceptedNodesDitImpl, ldapEntityMapper,
     //nodeAttributes
-    Seq(LDAPConstants.A_NAME, LDAPConstants.A_NODE_UUID),
+    Seq(
+        LDAPConstants.A_NAME
+      , LDAPConstants.A_NODE_UUID
+      , LDAPConstants.A_MANUFACTURER
+      , LDAPConstants.A_LIST_OF_IP
+    ),
     //serverAttributes
     Seq(
         LDAPConstants.A_HOSTNAME
-      , LDAPConstants.A_LIST_OF_IP
       , LDAPConstants.A_OS_NAME
       , LDAPConstants.A_OS_FULL_NAME
       , LDAPConstants.A_OS_VERSION
