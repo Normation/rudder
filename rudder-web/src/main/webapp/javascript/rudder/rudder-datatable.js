@@ -32,7 +32,6 @@
 *************************************************************************************
 */
 
-
 var anOpen = [];
 
 /* Create Rule table
@@ -65,8 +64,8 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
   // Define all columns of the table
 
   // Checkbox used in check if a Directive is applied by the Rule
-  var checkbox =
-    { "mDataProp": "applying"
+  var checkbox = {
+      "mDataProp": "applying"
     , "sTitle" : "<input id='checkAll' type='checkbox'></input>"
     , "sWidth": "30px"
     , "bSortable": false
@@ -81,12 +80,12 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
-    };
+  };
 
   // Name of the rule
   // First mandatory row, so do general thing on the row ( line css, description tooltip ...)
-  var name = 
-    { "mDataProp": "name"
+  var name = {
+      "mDataProp": "name"
     , "sWidth": "90px"
     , "sTitle": "Name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -126,7 +125,7 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
-    };
+  };
 
   // Rule Category
   var category =
@@ -136,8 +135,8 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
     };
 
   // Status of the rule (disabled) add reson tooltip if needed
-  var status=
-    { "mDataProp": "status"
+  var status= {
+      "mDataProp": "status"
     , "sWidth": "60px"
     , "sTitle": "Status"
     , "sClass" : "statusCell"
@@ -162,11 +161,11 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         }
         $(nTd).prepend(elem);
       }
-    };
+  };
 
   // Compliance, with link to the edit form
-  var compliance =
-    { "mDataProp": "compliance"
+  var compliance = {
+      "mDataProp": "compliance"
     , "sWidth": "40px"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -185,11 +184,11 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         $(nTd).addClass(data.complianceClass+ " compliance");
         $(nTd).prepend(elem);
       }
-    };
+  };
 
   // Action buttons, use id a dataprop as its is always present
-  var actions =
-    { "mDataProp": "id"
+  var actions = {
+      "mDataProp": "id"
     , "sWidth": "20px"
     , "bSortable" : false
     , "sClass" : "parametersTd"
@@ -198,14 +197,14 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         var elem = $("<buton></button>");
         elem.button();
         elem.addClass("smallButton");
-        elem.click( function() { 
+        elem.click( function() {
           data.callback("showEditForm");
         } );
         elem.text("Edit");
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
-    };
+  };
 
   // Choose which columns should be included
   var columns = [];
@@ -221,35 +220,35 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
   }
 
   var params = {
-	      "bFilter" : true
-		, "bPaginate" : true
-		, "bLengthChange": true
-		, "sPaginationType": "full_numbers"
-		, "bStateSave": true
-		, "sCookiePrefix": "Rudder_DataTables_"
-		, "oLanguage": {
-		      "sZeroRecords": "No matching rules!"
-		    , "sSearch": ""
-	      }
+        "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+          "sZeroRecords": "No matching rules!"
+        , "sSearch": ""
+        }
         , "fnStateLoadParams": function (oSettings, oData) {
             oData.oSearch.sSearch = "";
             return false;
           }
-		, "aaSorting": [[ sortingDefault, "asc" ]]
-	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-	  }
-	  
+    , "aaSorting": [[ sortingDefault, "asc" ]]
+      , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+    }
+
   createTable(gridId,data,columns, params, contextPath, refresh);
-  
+
   createTooltip();
-  
+
   // Add callback to checkbox column
   $("#checkAll").prop("checked", false);
   $("#checkAll").click( function () {
       var checked = $("#checkAll").prop("checked");
       allCheckboxCallback(checked);
   } );
-  
+
 }
 
 /*
@@ -264,72 +263,71 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
  */
 function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
 
-	if (isTopLevel) {
-		var statusWidth = "16.4%";
-		var complianceWidth = "11.1%";
-		if (addCompliance) {
-			var componentSize = "72.5%";
-		} else {
-			var componentSize = "20%";
-			var messageWidth = "63.6%";
-		}
-	} else {
-		var statusWidth = "17.6%";
-		var complianceWidth = "11.8%";
-		if (addCompliance) {
-			var componentSize = "70.6%";
-		} else {
-			var componentSize = "20%";
-			var messageWidth = "62.4%";
-		}
-	}
-  var columns = [
-     {   "sWidth": componentSize
-       , "mDataProp": "value"
-       , "sTitle": "Value"
-       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-    	   if("unexpanded" in oData) {
-    	     var tooltipIcon = $("<img />");
-             tooltipIcon.attr("src",contextPath+"/images/ic_question_14px.png");
-             tooltipIcon.addClass("reportIcon");
-             var tooltipId = oData.id+"-tooltip";
-             tooltipIcon.attr("tooltipid",tooltipId);
-             tooltipIcon.attr("title","");
-             tooltipIcon.addClass("tooltip tooltipable");
-             var toolTipContainer= $("<div>Value '<b>"+sData+"</b>' was expanded from the entry '<b>"+oData.unexpanded+"</b>'</div>");
-             toolTipContainer.addClass("tooltipContent");
-             toolTipContainer.attr("id",tooltipId);
-             $(nTd).append(tooltipIcon);
-             $(nTd).append(toolTipContainer);
-    	   }
-         }
-     }
-   ];
-  
+  if (isTopLevel) {
+    var statusWidth = "16.4%";
+    var complianceWidth = "11.1%";
+    if (addCompliance) {
+      var componentSize = "72.5%";
+    } else {
+      var componentSize = "20%";
+      var messageWidth = "63.6%";
+    }
+  } else {
+    var statusWidth = "17.6%";
+    var complianceWidth = "11.8%";
+    if (addCompliance) {
+      var componentSize = "70.6%";
+    } else {
+      var componentSize = "20%";
+      var messageWidth = "62.4%";
+    }
+  }
+  var columns = [ {
+      "sWidth": componentSize
+    , "mDataProp": "value"
+    , "sTitle": "Value"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        if ("unexpanded" in oData) {
+          var tooltipIcon = $("<img />");
+          tooltipIcon.attr("src",contextPath+"/images/ic_question_14px.png");
+          tooltipIcon.addClass("reportIcon");
+          var tooltipId = oData.id+"-tooltip";
+          tooltipIcon.attr("tooltipid",tooltipId);
+          tooltipIcon.attr("title","");
+          tooltipIcon.addClass("tooltip tooltipable");
+          var toolTipContainer= $("<div>Value '<b>"+sData+"</b>' was expanded from the entry '<b>"+oData.unexpanded+"</b>'</div>");
+          toolTipContainer.addClass("tooltipContent");
+          toolTipContainer.attr("id",tooltipId);
+          $(nTd).append(tooltipIcon);
+          $(nTd).append(toolTipContainer);
+        }
+      }
+  } ];
+
   var status = {
       "sWidth": statusWidth
     , "mDataProp": "status"
     , "sTitle": "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-    	$(nTd).addClass("center "+oData.statusClass);
+        $(nTd).addClass("center "+oData.statusClass);
       }
   }
-  
+
   if (addCompliance) {
 
     var compliance = {
         "sWidth": complianceWidth
       , "mDataProp": "compliance"
       , "sTitle": "Compliance"
-	  , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-		  var elem = $("<a></a>");
-		  elem.attr("href","javascript://");
-		  elem.addClass("right noexpand");
-		  elem.text(sData);
-		  elem.click(function() {oData.callback()});
-		  $(nTd).empty();
-		  $(nTd).append(elem);
-	    }
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+          var elem = $("<a></a>");
+          elem.attr("href","javascript://");
+          elem.addClass("right noexpand");
+          elem.text(sData);
+          elem.click(function() {oData.callback()});
+          $(nTd).empty();
+          $(nTd).append(elem);
+        }
     };
     columns.push(status);
     columns.push(compliance);
@@ -342,7 +340,7 @@ function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
     columns.push(message);
     columns.push(status);
   }
-	
+
   var params = {
       "bFilter" : false
     , "bPaginate" : false
@@ -368,63 +366,63 @@ function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
  *   }
  */
 function createComponentTable (isTopLevel, addCompliance, contextPath) {
-  
-	if (isTopLevel) {
-		var statusWidth = "15.8%";
-		var complianceWidth = "10.5%";
-		if (addCompliance) {
-			var componentSize = "73.7%";
-		} else {
-			var componentSize = "84.2%";
-		}
-	} else {
-		var statusWidth = "16.8%";
-		var complianceWidth = "11.1%";
-		if (addCompliance) {
-			var componentSize = "72.4%";
-		} else {
-			var componentSize = "82.6%";
-		}
-	}
-	var columns = [
-	               {   "sWidth": componentSize 
-	                   , "mDataProp": "component"
-	                   , "sTitle": "Component"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                	    if (oData.noExpand) {
-			                  $(nTd).addClass("noExpand");
-	                	    } else {
-		                      $(nTd).addClass("listopen");
-	                	    }
-	                      }
-	                 }
-	               , {   "sWidth": statusWidth 
-	                   , "mDataProp": "status"
-	                   , "sTitle": "Status"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                       $(nTd).addClass("center "+oData.statusClass);
-	                      }
-	                 }
-	               ];
-	
-	var compliance = {
-	    "sWidth": complianceWidth
-      , "mDataProp": "compliance"
-      , "sTitle": "Compliance"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-    	  var elem = $("<a></a>");
-    	  elem.addClass("right noexpand");
-    	  elem.attr("href","javascript://");
-    	  elem.text(sData);
-    	  elem.click(function() {oData.callback()});
-    	  $(nTd).empty();
-    	  $(nTd).append(elem);
-         }
-	}
-	
-	if (addCompliance) {
-		columns.push(compliance)
-	}
+
+  if (isTopLevel) {
+    var statusWidth = "15.8%";
+    var complianceWidth = "10.5%";
+    if (addCompliance) {
+      var componentSize = "73.7%";
+    } else {
+      var componentSize = "84.2%";
+    }
+  } else {
+    var statusWidth = "16.8%";
+    var complianceWidth = "11.1%";
+    if (addCompliance) {
+      var componentSize = "72.4%";
+    } else {
+      var componentSize = "82.6%";
+    }
+  }
+  var columns = [ {
+      "sWidth": componentSize
+    , "mDataProp": "component"
+    , "sTitle": "Component"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        if (oData.noExpand) {
+          $(nTd).addClass("noExpand");
+        } else {
+          $(nTd).addClass("listopen");
+        }
+      }
+  } , {
+      "sWidth": statusWidth
+    , "mDataProp": "status"
+    , "sTitle": "Status"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("center "+oData.statusClass);
+      }
+  } ];
+
+  var compliance = {
+      "sWidth": complianceWidth
+    , "mDataProp": "compliance"
+    , "sTitle": "Compliance"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var elem = $("<a></a>");
+        elem.addClass("right noexpand");
+        elem.attr("href","javascript://");
+        elem.text(sData);
+        elem.click(function() {oData.callback()});
+        $(nTd).empty();
+        $(nTd).append(elem);
+      }
+  }
+
+  if (addCompliance) {
+    columns.push(compliance)
+  }
+
   var params = {
       "bFilter" : false
     , "bPaginate" : false
@@ -432,7 +430,7 @@ function createComponentTable (isTopLevel, addCompliance, contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-  	    createInnerTable(this, createComponentValueTable(isTopLevel, addCompliance, contextPath));
+        createInnerTable(this, createComponentValueTable(isTopLevel, addCompliance, contextPath));
       }
   }
 
@@ -453,110 +451,107 @@ function createComponentTable (isTopLevel, addCompliance, contextPath) {
  *   }
  */
 function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
-	
-	if (isTopLevel) {
-		var statusWidth = "15%";
-		var complianceWidth = "10%";
-		if (addCompliance) {
-			var directiveWidth = "75%";
-		} else {
-			var directiveWidth = "85%";
-		}
-	} else {
-		var statusWidth = "15.8%";
-		var complianceWidth = "10.5%";
-		if (addCompliance) {
-			var directiveWidth = "73.7%";
-		} else {
-			var directiveWidth = "82.2%";
-		}
-	}
-	
-	var columns = [
-	               {   "sWidth": directiveWidth 
-	                   , "mDataProp": "directive"
-	                   , "sTitle": "Directive"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                        $(nTd).addClass("listopen");
-	                        
-	                        var tooltipIcon = $("<img />");
-	                        tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
-	                        tooltipIcon.addClass("reportIcon");
-	                        var tooltipId = oData.id+"-tooltip";
-	                        tooltipIcon.attr("tooltipid",tooltipId);
-	                        tooltipIcon.attr("title","");
-	                        tooltipIcon.addClass("tooltip tooltipable");
-	                        var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
-	                        toolTipContainer.addClass("tooltipContent");
-	                        toolTipContainer.attr("id",tooltipId);
 
-	                        var editLink = $("<a />");
-	                        editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
-	                        var editIcon = $("<img />");
-	                        editIcon.attr("src",contextPath + "/images/icPen.png");
-	                        editLink.click(function(e) {e.stopPropagation();})
-	                        editLink.append(editIcon);
-	                        editLink.addClass("reportIcon");
-	                        
-	                        $(nTd).append(tooltipIcon);
-	                        $(nTd).append(toolTipContainer);
-	                        $(nTd).append(editLink);
-	                      }
-	                 }
-	               , {   "sWidth": statusWidth
-	                   , "mDataProp": "status"
-	                   , "sTitle": "Status"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                     $(nTd).addClass("center "+oData.statusClass);
-	                   }
-	                 }
-	               ];
-
-  var compliance = {
-		"sWidth": complianceWidth
-      , "mDataProp": "compliance"
-      , "sTitle": "Compliance"
-      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-    	  var elem = $("<a></a>");
-    	  elem.addClass("right noExpand");
-    	  elem.attr("href","javascript://");
-    	  elem.text(sData);
-    	  elem.click(function() {oData.callback()});
-    	  $(nTd).empty();
-    	  $(nTd).append(elem);
-        }
-      }
-  
-  if (addCompliance) {
-	  columns.push(compliance)
+  if (isTopLevel) {
+    var statusWidth = "15%";
+    var complianceWidth = "10%";
+    if (addCompliance) {
+      var directiveWidth = "75%";
+    } else {
+      var directiveWidth = "85%";
+    }
+  } else {
+    var statusWidth = "15.8%";
+    var complianceWidth = "10.5%";
+    if (addCompliance) {
+      var directiveWidth = "73.7%";
+    } else {
+      var directiveWidth = "82.2%";
+    }
   }
-	  
-  var params = {
-	      "bFilter" : isTopLevel
-	    , "bPaginate" : isTopLevel
-	    , "bLengthChange": isTopLevel
-	    , "bInfo" : isTopLevel
-	    , "sPaginationType": "full_numbers"
-	    , "aaSorting": [[ 0, "asc" ]]
-	      , "fnDrawCallback" : function( oSettings ) {
-	    	  createInnerTable(this, createComponentTable(isTopLevel, addCompliance, contextPath), contextPath);
-	      }
-	  };	
 
-   if (isTopLevel) {
-     var sDom = {
-         "sDom" : '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-       , "oLanguage": {
-	       "sSearch": ""
-         }
-     };
-     $.extend(params,sDom);
-   }
+  var columns = [ {
+     "sWidth": directiveWidth
+    , "mDataProp": "directive"
+    , "sTitle": "Directive"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("listopen");
+
+        var tooltipIcon = $("<img />");
+        tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
+        tooltipIcon.addClass("reportIcon");
+        var tooltipId = oData.id+"-tooltip";
+        tooltipIcon.attr("tooltipid",tooltipId);
+        tooltipIcon.attr("title","");
+        tooltipIcon.addClass("tooltip tooltipable");
+        var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
+        toolTipContainer.addClass("tooltipContent");
+        toolTipContainer.attr("id",tooltipId);
+
+        var editLink = $("<a />");
+        editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
+        var editIcon = $("<img />");
+        editIcon.attr("src",contextPath + "/images/icPen.png");
+        editLink.click(function(e) {e.stopPropagation();})
+        editLink.append(editIcon);
+        editLink.addClass("reportIcon");
+
+        $(nTd).append(tooltipIcon);
+        $(nTd).append(toolTipContainer);
+        $(nTd).append(editLink);
+      }
+  } , {
+      "sWidth": statusWidth
+    , "mDataProp": "status"
+    , "sTitle": "Status"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("center "+oData.statusClass);
+       }
+  } ];
   
-  return function (gridId, data, refresh) {
-	  
-    createTable(gridId, data, columns, params, contextPath, refresh);
+  var compliance = {
+      "sWidth": complianceWidth
+    , "mDataProp": "compliance"
+    , "sTitle": "Compliance"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var elem = $("<a></a>");
+        elem.addClass("right noExpand");
+        elem.attr("href","javascript://");
+        elem.text(sData);
+        elem.click(function() {oData.callback()});
+        $(nTd).empty();
+        $(nTd).append(elem);
+      }
+  }
 
+  if (addCompliance) {
+    columns.push(compliance)
+  }
+
+  var params = {
+      "bFilter" : isTopLevel
+    , "bPaginate" : isTopLevel
+    , "bLengthChange": isTopLevel
+    , "bInfo" : isTopLevel
+    , "sPaginationType": "full_numbers"
+    , "aaSorting": [[ 0, "asc" ]]
+    , "fnDrawCallback" : function( oSettings ) {
+        createInnerTable(this, createComponentTable(isTopLevel, addCompliance, contextPath), contextPath);
+      }
+  };
+
+  if (isTopLevel) {
+    var sDom = {
+        "sDom" : '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+      , "oLanguage": {
+          "sSearch": ""
+        }
+    };
+    $.extend(params,sDom);
+  }
+
+  return function (gridId, data, refresh) {
+    createTable(gridId, data, columns, params, contextPath, refresh);
     createTooltip();
   }
 }
@@ -571,55 +566,53 @@ function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
  *   }
  */
 function createRuleComplianceTable (gridId, data, contextPath, refresh) {
-	
-	var columns = [
-	               {   "sWidth": "85%" 
-	                   , "mDataProp": "rule"
-	                   , "sTitle": "Rule"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                        $(nTd).addClass("listopen");
-	                        
-	                        var editLink = $("<a />");
-	                        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
-	                        var editIcon = $("<img />");
-	                        editIcon.attr("src",contextPath + "/images/icPen.png");
-	                        editLink.click(function(e) {e.stopPropagation();})
-	                        editLink.append(editIcon);
-	                        editLink.addClass("reportIcon");
-	                        
-	                        $(nTd).append(editLink);
-	                      }
-	                 }
-	               , {   "sWidth": "15%" 
-	                   , "mDataProp": "status"
-	                   , "sTitle": "Status"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                     $(nTd).addClass("center "+oData.statusClass);
-	                   }
-	                 }
-	               ];
+
+  var columns = [ {
+      "sWidth": "85%"
+    , "mDataProp": "rule"
+    , "sTitle": "Rule"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("listopen");
+
+        var editLink = $("<a />");
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
+        var editIcon = $("<img />");
+        editIcon.attr("src",contextPath + "/images/icPen.png");
+        editLink.click(function(e) {e.stopPropagation();})
+        editLink.append(editIcon);
+        editLink.addClass("reportIcon");
+
+        $(nTd).append(editLink);
+      }
+  } , {
+      "sWidth": "15%"
+    , "mDataProp": "status"
+    , "sTitle": "Status"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("center "+oData.statusClass);
+      }
+  } ];
 
   var params = {
-	      "bFilter" : true
-	    , "bPaginate" : true
-	    , "bLengthChange": true
-	    , "sPaginationType": "full_numbers"
-	    , "bStateSave": true
-	    , "sCookiePrefix": "Rudder_DataTables_"
-	    , "oLanguage": {
-	        "sSearch": ""
-	      }
-	    , "aaSorting": [[ 0, "asc" ]]
-	      , "fnDrawCallback" : function( oSettings ) {
-	    	  createInnerTable(this, createDirectiveTable(false, false, contextPath), contextPath);
-	      }
-	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-	  };	
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+      }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "fnDrawCallback" : function( oSettings ) {
+        createInnerTable(this, createDirectiveTable(false, false, contextPath), contextPath);
+      }
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
 
   createTable(gridId,data,columns, params, contextPath, refresh);
 
 }
-
 
 /*
  *   Javascript object containing all data to create a line in the DataTable
@@ -632,49 +625,48 @@ function createRuleComplianceTable (gridId, data, contextPath, refresh) {
  */
 function createNodeComplianceTable (gridId, data, contextPath, refresh) {
 
-	var columns = [
-	               {   "sWidth": "85%" 
-	                   , "mDataProp": "node"
-	                   , "sTitle": "Node"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                        $(nTd).addClass("listopen");
-	                      
-	                        var editLink = $("<a />");
-	                        editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
-	                        var editIcon = $("<img />");
-	                        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
-	                        editLink.click(function(e) {e.stopPropagation();})
-	                        editLink.append(editIcon);
-	                        editLink.addClass("reportIcon");
-	                        
-	                        $(nTd).append(editLink);
-	                      }
-	                 }
-	               , {   "sWidth": "15%" 
-	                   , "mDataProp": "status"
-	                   , "sTitle": "Status"
-	                   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-	                     $(nTd).addClass("center "+oData.statusClass);
-	                   }
-	                 }
-	               ];
+  var columns = [ {
+      "sWidth": "85%"
+    , "mDataProp": "node"
+    , "sTitle": "Node"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("listopen");
+
+        var editLink = $("<a />");
+        editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+        var editIcon = $("<img />");
+        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
+        editLink.click(function(e) {e.stopPropagation();})
+        editLink.append(editIcon);
+        editLink.addClass("reportIcon");
+
+        $(nTd).append(editLink);
+      }
+  } , {
+      "sWidth": "15%"
+    , "mDataProp": "status"
+    , "sTitle": "Status"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass("center "+oData.statusClass);
+      }
+  } ];
 
   var params = {
-	      "bFilter" : true
-	    , "bPaginate" : true
-	    , "bLengthChange": true
-	    , "sPaginationType": "full_numbers"
-	    , "bStateSave": true
-	    , "sCookiePrefix": "Rudder_DataTables_"
-	    , "oLanguage": {
-	        "sSearch": ""
-	      }
-	    , "aaSorting": [[ 0, "asc" ]]
-	      , "fnDrawCallback" : function( oSettings ) {
-	    	  createInnerTable(this,createComponentTable(true, false, contextPath));
-	      }
-	    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-	  };	
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+      }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "fnDrawCallback" : function( oSettings ) {
+        createInnerTable(this,createComponentTable(true, false, contextPath));
+      }
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
 
   createTable(gridId, data, columns, params, contextPath, refresh);
 
@@ -695,63 +687,62 @@ function createNodeComplianceTable (gridId, data, contextPath, refresh) {
  */
 function createNodeTable(gridId, data, contextPath, refresh) {
 
-    var columns = [
-        {   "sWidth": "30%"
-          , "mDataProp": "name"
-          , "sTitle": "Node name"
-          , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-              var editLink = $("<a />");
-              if ("callback" in oData) {
-                editLink.click(function(e) { oData.callback(); e.stopPropagation();});
-                editLink.attr("href","javascript://");
-              } else {
-                editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
-              }
-              var editIcon = $("<img />");
-              editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
-              editLink.append(editIcon);
-              editLink.addClass("reportIcon");
+  var columns = [ {
+      "sWidth": "30%"
+    , "mDataProp": "name"
+    , "sTitle": "Node name"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var editLink = $("<a />");
+        if ("callback" in oData) {
+          editLink.click(function(e) { oData.callback(); e.stopPropagation();});
+          editLink.attr("href","javascript://");
+        } else {
+          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+        }
+        var editIcon = $("<img />");
+        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
+        editLink.append(editIcon);
+        editLink.addClass("reportIcon");
 
-              $(nTd).append(editLink);
-            }
-        }
-      , {   "sWidth": "10%"
-          , "mDataProp": "machineType"
-          , "sTitle": "Machine type"
-        }
-      , {   "sWidth": "20%"
-          , "mDataProp": "osName"
-          , "sTitle": "OS name"
-        }
-      , {   "sWidth": "10%"
-          , "mDataProp": "osVersion"
-          , "sTitle": "OS version"
-        }
-      , {   "sWidth": "10%"
-          , "mDataProp": "servicePack"
-          , "sTitle": "OS SP"
-        }
-      , {   "sWidth": "20%"
-          , "mDataProp": "lastReport"
-          , "sTitle": "Last seen"
-        }
-    ];
-
-    var params = {
-        "bFilter" : true
-      , "bPaginate" : true
-      , "bLengthChange": true
-      , "sPaginationType": "full_numbers"
-      , "bStateSave": true
-      , "sCookiePrefix": "Rudder_DataTables_"
-      , "oLanguage": {
-          "sSearch": ""
+        $(nTd).append(editLink);
       }
-      , "aaSorting": [[ 0, "asc" ]]
-      , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-    };
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "machineType"
+     , "sTitle": "Machine type"
+  } , {
+      "sWidth": "20%"
+    , "mDataProp": "osName"
+    , "sTitle": "OS name"
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "osVersion"
+    , "sTitle": "OS version"
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "servicePack"
+    , "sTitle": "OS SP"
+  } , {
+      "sWidth": "20%"
+    , "mDataProp": "lastReport"
+    , "sTitle": "Last seen"
+  } ];
 
-    createTable(gridId,data, columns, params, contextPath, refresh);
+  var params = {
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+    }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
+
+  createTable(gridId,data, columns, params, contextPath, refresh);
 
 }
 
@@ -760,8 +751,6 @@ function refreshTable (gridId, data) {
   table.fnClearTable();
   table.fnAddData(data);
 }
-
-
 
 /*
  * Function to define opening of an inner table
@@ -796,7 +785,7 @@ function createInnerTable(myTable,  createFunction, contextPath) {
         } else {
           $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
           $('#'+detailsId).slideUp(300, function () {
-          	myTable.fnClose( this );
+            myTable.fnClose( this );
             anOpen.splice( i, 1 );
           } );
         }
@@ -807,15 +796,15 @@ function createInnerTable(myTable,  createFunction, contextPath) {
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
 function createTable(gridId,data,columns, customParams, contextPath, refresh) {
-	
+
   var defaultParams = {
       "asStripeClasses": [ 'color1', 'color2' ]
     , "bAutoWidth": false
     , "aoColumns": columns
     , "aaData": data
     , "bJQueryUI": true
-    }
-  
+  };
+
   var params = $.extend({},defaultParams,customParams)
   $('#'+gridId).dataTable( params );
   $('#'+gridId+' thead tr').addClass("head");
@@ -827,12 +816,13 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh) {
     refreshButton.addClass("refreshButton");
     $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshButton);
   }
+
   $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({
-	  show: { effect: "none", delay: 0 }
+      show: { effect: "none", delay: 0 }
     , hide: { effect: "none",  delay: 0 }
     , position: { my: "left+40 bottom-10", collision: "flipfit" }
   } );
-  
+
   $('.dataTables_filter input').attr("placeholder", "Search");
   $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
 }
