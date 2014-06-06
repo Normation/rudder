@@ -71,18 +71,6 @@ import com.normation.rudder.web.services.DisplayNodeGroupTree
 
 object ShowNodeDetailsFromNode {
 
-  /**
-   * All pages that use that component should include the result of that
-   * method
-   */
-  def staticInit : NodeSeq = {
-    <head>
-      <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
-      <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
-    </head>
-  }
-
-
   private val htmlId_crTree = "crTree"
 
   private def serverPortletPath = List("templates-hidden", "server", "server_details")

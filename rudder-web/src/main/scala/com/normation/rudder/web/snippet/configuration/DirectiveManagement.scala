@@ -132,10 +132,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     DirectiveEditForm.staticInit ++
     (
       <head>
-        <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree">
-        </script>
-        <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree">
-        </script>
         {Script(OnLoad(parseJsArg(workflowEnabled)))}
       </head>
     )
