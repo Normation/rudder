@@ -141,6 +141,14 @@ description: All nodes known by Rudder (excluding Rudder policy servers)
 isEnabled: TRUE
 isSystem: TRUE
 
+dn: ruleTarget=special:all_servers_with_role,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_servers_with_role
+cn: All nodes with a Server role
+description: All nodes that have at least one Server role defined
+isEnabled: TRUE
+isSystem: TRUE
 
 # Active technique library
 dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
@@ -201,6 +209,27 @@ isEnabled: TRUE
 isSystem: TRUE
 directivePriority: 0
 
+# server_roles
+dn: activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: activeTechnique
+objectClass: top
+techniqueId: server-roles
+activeTechniqueId: server_roles
+acceptationTimestamp: {"1.0":"20140603124328.999Z"}
+isEnabled: TRUE
+isSystem: TRUE
+
+dn: directiveId=server-roles-directive,activeTechniqueId=server-roles,techniqueCategoryId=Rudder Internal,techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
+objectClass: directive
+objectClass: top
+directiveId: server-roles-directive
+techniqueVersion: 0:1.0
+cn: Server Roles
+description: Server Roles - Technical
+isEnabled: TRUE
+isSystem: TRUE
+directivePriority: 0
+
 #######################################################################################################################
 ## Rules
 #######################################################################################################################
@@ -220,6 +249,19 @@ description: Inventory
 isEnabled: TRUE
 isSystem: TRUE
 longDescription: This rule makes all nodes do daily self inventories
+serial: 0
+
+dn: ruleId=server-roles,ou=Rules,ou=Rudder,cn=rudder-configuration
+objectClass: rule
+objectClass: top
+ruleId: server-roles
+ruleTarget: special:all_servers_with_role
+directiveId: server-roles-directive
+cn: Rudder system policy: Server roles
+description: Server roles
+isEnabled: TRUE
+isSystem: TRUE
+longDescription: This rule configures the nodes that have Server Roles defined
 serial: 0
 
 # A demonstration rule: group "all nodes", no directive
