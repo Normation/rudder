@@ -76,8 +76,6 @@ import net.liftweb.http.js.JE.AnonFunc
 object RuleGrid {
   def staticInit =
     <head>
-      <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
-      <script type="text/javascript" language="javascript" src="/javascript/rudder/rudder-datatable.js"></script>
       <style type="text/css">
         #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
         .greenCompliance {{ background-color: #CCFFCC }}

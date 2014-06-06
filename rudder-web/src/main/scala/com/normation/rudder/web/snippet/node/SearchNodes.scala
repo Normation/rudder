@@ -134,12 +134,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
     import net.liftweb.json.JsonDSL._
 
     { <head>
-      <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.datepicker.js"></script>
-      <script type="text/javascript" src="/javascript/jquery/ui/i18n/jquery-ui-i18n.js"></script>
       {Script(parseHashtag()) ++ Script(OnLoad(JsRaw("""parseHashtag();
           $(window).on('hashchange',function(){ parseHashtag() });
       """)))}
-    </head> } ++ ShowNodeDetailsFromNode.staticInit
+    </head> }
   }
 
   private[this] def setCreationPopup(query : Option[Query], serverList : Box[Seq[NodeInfo]]) : Unit = {

@@ -150,13 +150,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Head information (JsTree dependencies,...)
    */
   def head() : NodeSeq = {
-    TechniqueEditForm.staticInit ++
-    {
-      <head>
-        <script type="text/javascript" src="/javascript/jstree/jquery.jstree.js" id="jstree"></script>
-        <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
-      </head>
-    }
+    TechniqueEditForm.staticInit
   }
 
   private[this] def setCreationPopup : Unit = {
@@ -696,7 +690,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     JsRaw( """createPopup("createActiveTechniquePopup")
      """)
   }
-  
+
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
       def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
