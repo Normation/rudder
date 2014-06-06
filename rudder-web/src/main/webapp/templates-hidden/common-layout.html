@@ -6,33 +6,39 @@
     
 
     <lift:baseUrl.display />
-    <link href="/style/rudder.css" rel="stylesheet" type="text/css" media="screen" />
-    <link href="/images/themes/ui-lightness/jquery.ui.tooltip.css" rel="stylesheet" type="text/css" />
-    <link href="/images/themes/ui-lightness/jquery.ui.all.css" rel="stylesheet" type="text/css" />
-    <link href="/style/jquery-rudder-bridge.css" rel="stylesheet" type="text/css" />
-    <link href="/images/rudder-favicon.ico" rel="icon" type="image/x-icon" />
-    <script type="text/javascript" src="/javascript/diff.js"></script>
+    
+    <link type="image/x-icon" rel="icon" href="/images/rudder-favicon.ico" />
+    
+    <link type="text/css" rel="stylesheet" href="/images/themes/ui-lightness/jquery.ui.tooltip.css" />
+    <link type="text/css" rel="stylesheet" href="/images/themes/ui-lightness/jquery.ui.all.css" />
+    <link type="text/css" rel="stylesheet" href="/style/jquery-rudder-bridge.css" />
+    <link type="text/css" rel="stylesheet" href="/style/rudder.css" media="screen" />
+    
     <script type="text/javascript" src="/javascript/jquery/jquery-1.8.3.min.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery-ui.custom.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.core.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.tooltip.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.widget.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.mouse.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.sortable.js"></script>
     <script type="text/javascript" src="/javascript/jquery/jquery.bgiframe-2.1.1.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.button.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.draggable.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.position.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.dialog.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.resizable.js"></script>
+    <script type="text/javascript" src="/javascript/jquery/jquery.corner.js"></script>
+    <script type="text/javascript" src="/javascript/jquery/jquery.simplemodal-1.4.1.js" id="simplemodal"></script>
+    <script type="text/javascript" src="/javascript/jstree/jquery.jstree.min.js" id="jstree"></script>
+    <!-- using minified version of that one leads to errors "DataTables warning (table id ...: 
+         Added data (size undefined) does not match known number of columns" errors -->
+    <script type="text/javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
+
+    <script type="text/javascript" src="/javascript/jquery/ui/minified/jquery-ui.custom.min.js"></script>
+    <script type="text/javascript" src="/javascript/jquery/ui/minified/i18n/jquery-ui-i18n.min.js"></script>
+
+    <script type="text/javascript" src="/javascript/diff.js"></script>
+    <script type="text/javascript" src="/javascript/json2.js" id="json2"></script>
+
+    <script type="text/javascript" src="/javascript/angular/angular.min.js" />
+    <script type="text/javascript" src="/javascript/angular/angular-datatables.js" />
+    <script type="text/javascript" src="/javascript/rudder/angular/groupManagement.js" id="angular-groupManagement"></script>
+    
+    
     <script type="text/javascript" src="/javascript/rudder/rudder.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.effects.core.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.effects.blind.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.effects.explode.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.tabs.js"></script>
-    <script type="text/javascript" src="/javascript/jquery/ui/jquery.ui.progressbar.js"></script>
-    <script type="text/javascript" language="javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
-    <script type="text/javascript" language="javascript" src="/javascript/rudder/rudder-datatable.js"></script>
+    <script type="text/javascript" src="/javascript/rudder/rudder-datatable.js"></script>
+    <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
+    
+    
     <script type="text/javascript">
       // <![CDATA[
       $(document).ready(function() {
@@ -42,13 +48,11 @@
       });
       // ]]>
     </script>
-    <script src="/javascript/jquery/jquery.corner.js" type="text/javascript" ></script>
     <script type="text/javascript">
       // <![CDATA[
       $(document).ready(function() {roundTabs();});
       // ]]>
     </script>
-        <script type="text/javascript" src="/javascript/jquery/jquery.simplemodal-1.4.1.js" id="simplemodal"></script>
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->

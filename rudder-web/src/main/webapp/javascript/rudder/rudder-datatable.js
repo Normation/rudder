@@ -220,7 +220,7 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
   }
 
   var params = {
-        "bFilter" : true
+      "bFilter" : true
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
@@ -229,14 +229,16 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
     , "oLanguage": {
           "sZeroRecords": "No matching rules!"
         , "sSearch": ""
+      }
+    , "fnStateLoadParams": function (oSettings, oData) {
+        if(oData.oSearch) {
+          oData.oSearch.sSearch = "";
         }
-        , "fnStateLoadParams": function (oSettings, oData) {
-            oData.oSearch.sSearch = "";
-            return false;
-          }
+        return false;
+      }
     , "aaSorting": [[ sortingDefault, "asc" ]]
-      , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
-    }
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  }
 
   createTable(gridId,data,columns, params, contextPath, refresh);
 
@@ -759,7 +761,8 @@ function createNodeTable(gridId, data, contextPath, refresh) {
 function refreshTable (gridId, data) {
   var table = $('#'+gridId).dataTable();
   table.fnClearTable();
-  table.fnAddData(data);
+  table.fnAddData(data, false);
+  table.fnDraw();
 }
 
 /*
