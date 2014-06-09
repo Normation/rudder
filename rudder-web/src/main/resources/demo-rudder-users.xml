@@ -1,106 +1,68 @@
 <!--
-Copyright 2011 Normation SAS
+  Copyright 2011-2014 Normation SAS
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Affero General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as
+  published by the Free Software Foundation, either version 3 of the
+  License, or (at your option) any later version.
 
-In accordance with the terms of section 7 (7. Additional Terms.) of
-the GNU Affero GPL v3, the copyright holders add the following
-Additional permissions:
-Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
-licence, when you create a Related Module, this Related Module is
-not considered as a part of the work and may be distributed under the
-license agreement of your choice.
-A "Related Module" means a set of sources files including their
-documentation that, without modification of the Source Code, enables
-supplementary functions or services in addition to those offered by
-the Software.
+  In accordance with the terms of section 7 (7. Additional Terms.) of
+  the GNU Affero GPL v3, the copyright holders add the following
+  Additional permissions:
+  Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+  Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+  licence, when you create a Related Module, this Related Module is
+  not considered as a part of the work and may be distributed under the
+  license agreement of your choice.
+  A "Related Module" means a set of sources files including their
+  documentation that, without modification of the Source Code, enables
+  supplementary functions or services in addition to those offered by
+  the Software.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU Affero General Public License for more details.
 
-You should have received a copy of the GNU Affero General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+  You should have received a copy of the GNU Affero General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 -->
 
-<!-- 
- The "authentication" tag can have a "hash" argument, with these allowed values: 
- "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
+<!--
+  The "authentication" tag should have a "hash" attribute, with these allowed values: 
+    "md5", "sha1", "sha256", "sha-256", "sha512", "sha-512"
 
- For example: <authentication hash="sha">
+  Not specifying the "hash" attribute means using plain text passwords, which is not
+  adviseable for security reasons.
 
- To hash passwords for this format, run these commands:
- "md5"                    read mypass; echo -n $mypass | md5sum
- "sha" or "sha1"          read mypass; echo -n $mypass | shasum
- "sha256" or "sha-256"    read mypass; echo -n $mypass | sha256sum
- "sha512" or "sha-512"    read mypass; echo -n $mypass | sha512sum
+  To create a sha512 hash of your password, please run this command:
+    read mypass; echo -n $mypass | sha512sum
 
-  After changing this file, the rudder webapp must be restarted to take changes
-  into account: /etc/init.d/jetty restart
- -->
+  The "role" tag must contain one or more of these values (comma separated), depending
+  on the what the user should be allowed to do:
+    "administrator" (all rights), "administration_only" (administration tab), "user"
+    (all nodes, configuration tab), "configuration" (configuration tab), "read_only"
+    (read everything), "compliance" (read rules), "inventory" (read nodes), "validator"
+    (can valid changes), "deployer" (can deploy changes), "workflow" (both deployer and validator)
 
-<!-- example with hash -->
-<!-- <authentication hash="sha"> -->
-<authentication>
-  <user name="jon.doe"  password="secret"  role="administrator" />
-  <user name="alex.bar" password="secret2" role="read_only"/>
-  <user name="bob.foo"  password="secret3" role="user,validator"/>
-  <!-- 
-  Authorizations
-    You must define a role attribute to every user you add.
-  A role is defined by a list of authorizations separated by commas.
-  There's two kind of authorizations : 
-  
-  Predefined authorizations
-  
-  	there's 7 predefined authorization:
-      - administrator (all rights)
-      - administration_only (all administration)
-      - user (all node, configuration)
-      - configuration(all configuration)
-      - read_only (read all)
-      - compliance(read rule)
-      - inventory (read node)
+  There is also the possibility to create "custom" roles by combining those elements:
+    type: "node", "group", "deployment", "administration", "configuration", "rule", "technique"
+    "directive", "validator", "deployer", 
+    level: "read", "write", "edit", "all" (read, write, edit)
 
-    There is three predefined roles for change request rights:
-      - validator (Can valid changes)
-      - deployer  (Can deploy changes)
-      - workflow  (Both deployer and validator)
-    The administrator role include the workflow ones
+  Example: "node_read" (can read nodes), "validator_all" (same as validator)
 
-  Custom authorizations
+  Please take a look at Rudder's documentation for additional details, either from the
+  application itself (upper right corner) or on
+  http://www.rudder-project.org/rudder-doc-latest/rudder-doc.html#user-management.
 
-    Custom authorisations are composed of two elements:
-    - A type of authorization, which define what is concerned
-        there's is 10 types, which are : node, group, deployement,
-        administration, configuration, rule, technique, directive,
-        validator and deployer.
-    - A level of authorization, 
-        levels are: read, write, edit, all(read, write, edit)
-        They are not inclusive (write and edit don't include read,)
-    a custom authorisation has a format like that "type_level" like "node_all", "group_read"
+  IMPORTANT: After changing this file, the rudder webapp must be restarted to take changes
+  into account: /etc/init.d/rudder-jetty restart
+-->
 
-  Examples
+<authentication hash="sha512">
 
-    Some predefined users :
-      <user name="jon.doe"  password="secret" role="administrator" />
-      <user name="alex.bar" password="secret2" role="read_only"/>
-      <user name="bob.foo"  password="secret3" role="user,validator"/>
+  <!-- Default credentials: admin / admin -->
+  <user name="admin" password="c7ad44cbad762a5da0a452f9e854fdc1e0e7a52a38015f23f3eab1d80b931dd472634dfac71cd34ebc35d16ab7fb8a90c81f975113d6c7538dc69dd8de9077ec" role="administrator" />
 
-    A custom user :
-      - can read everything but administration,groups and deployement
-      - can do everything about node
-
-      <user name="custom" password="custom" role="node_all,configuration_read,rule_read,rule_edit,directive_read,technique_read">
-
-    -->
-  <!--  exemple of bad lines -->
-  <!--  <user name="" password="secret2" role="administrator"/>-->
-  <!--  <user name="name" password="" role="administrator"/>-->
 </authentication>
-<!-- This file was originally made from Rudder 2.4 or later -->
