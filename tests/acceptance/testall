@@ -255,8 +255,12 @@ export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP NCF_TREE NCF_TESTS_ACCEPTANCE
     TEST_END_TIME=$(unix_seconds)
     echo "              "time=\"$(($TEST_END_TIME - $TEST_START_TIME)) seconds\"\> >> "$XMLTMP"
 
+    # Some states are output by default.cf.sub, therefore check for both TEST
+    # prefix and default.cf.sub prefix.
+    ESCAPED_TEST="$(echo "($TEST|default.cf.sub)" | sed -e 's/\./\\./g')"
+
     if [ -z "$EXPECTED_CRASH" ]; then
-      if [ $RETVAL -eq 0 ] && echo "$OUT" | grep -q -F -e "R: $TEST Pass"; then
+      if [ $RETVAL -eq 0 ] && echo "$OUT" | egrep -q -e "R: .*$ESCAPED_TEST Pass"; then
         RESULT=Pass
       else
         RESULT=FAIL
