@@ -100,11 +100,15 @@ bundle agent check
 {
   vars:
       # Read in info about the package now to confirm it hasn't changed during the test
-      "package_info" string => execresult("${init.package_info_cmd}", "noshell");
+      "package_info"
+        string     => execresult("${init.package_info_cmd}", "noshell"),
+        ifvarclass => canonify("package_install_${init.package_name}_reached");
 
   classes:
       # Make sure the package is actually installed
-      "package_installed_ok" expression => returnszero("${init.package_info_cmd}", "noshell");
+      "package_installed_ok"
+        expression => returnszero("${init.package_info_cmd}", "noshell"),
+        ifvarclass => canonify("package_install_${init.package_name}_reached");
 
       # Compare the package info we got now to what we had before running the test, to make sure this didn't change anything
       "package_info_ok" expression => strcmp("${init.package_info}", "${package_info}");

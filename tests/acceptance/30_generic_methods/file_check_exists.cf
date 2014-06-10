@@ -55,8 +55,12 @@ bundle agent check
     "file_check_exists_test1"  string => "/bin/ls \"${init.file1}\"";
 
   classes:
-    "file_check_exists_test_ok"  expression => returnszero("${file_check_exists_test}", "useshell");
-    "file_check_exists_test1_ok"  expression => returnszero("${file_check_exists_test1}", "useshell");
+    "file_check_exists_test_ok"
+      expression => returnszero("${file_check_exists_test}", "useshell"),
+      ifvarclass => canonify("file_check_exists_${init.file}_reached");
+    "file_check_exists_test1_ok"
+      expression => returnszero("${file_check_exists_test1}", "useshell"),
+      ifvarclass => canonify("file_check_exists_${init.file1}_reached");
 
     "ok"                   expression => "file_check_exists_test_ok.file_check_exists_${init.file_canon}_ok.!file_check_exists_test1_ok.!file_check_exists_${init.file1_canon}_ok.file_check_exists_${init.file_canon}_reached.file_check_exists_${init.file1_canon}_reached";
 

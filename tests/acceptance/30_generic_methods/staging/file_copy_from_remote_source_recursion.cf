@@ -58,9 +58,18 @@ bundle agent check
 
   classes:
     # By default, file_copy_from_remote_source_type_recursion should create the file if it doesn't exist
-    "permissions_test_mode_ok"  expression => returnszero("${permissions_test_mode}", "useshell");
-    "permissions_test_owner_ok" expression => returnszero("${permissions_test_owner}", "useshell");
-    "permissions_test_group_ok" expression => returnszero("${permissions_test_group}", "useshell");
+    "permissions_test_mode_ok"
+      expression => returnszero("${permissions_test_mode}", "useshell"),
+      ifvarclass => canonify("file_copy_from_remote_source_${init.destination_file}_reached");
+
+    "permissions_test_owner_ok"
+      expression => returnszero("${permissions_test_owner}", "useshell"),
+      ifvarclass => canonify("file_copy_from_remote_source_${init.destination_file}_reached");
+
+    "permissions_test_group_ok"
+      expression => returnszero("${permissions_test_group}", "useshell"),
+      ifvarclass => canonify("file_copy_from_remote_source_${init.destination_file}_reached");
+
 
     "ok"                   expression => "permissions_test_mode_ok.permissions_test_owner_ok.permissions_test_group_ok.file_copy_from_remote_source_${init.destination_file_canon}_ok.!file_copy_from_remote_source_${init.destination_file_canon}_error";
 

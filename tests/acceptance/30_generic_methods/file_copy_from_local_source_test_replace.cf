@@ -65,10 +65,10 @@ bundle agent check
   vars:
     "content_comparision"    string => "/usr/bin/diff \"${init.destination_file}\" \"${init.source_file}\"";
 
-"diff" string => execresult("${content_comparision}", "useshell");
-
   classes:
-    "ok"                 expression => returnszero("${content_comparision}", "noshell");
+    "ok"
+      expression => returnszero("${content_comparision}", "noshell"),
+      ifvarclass => canonify("file_copy_from_local_source_${init.destination_file}_reached");
 
   reports:
     ok::

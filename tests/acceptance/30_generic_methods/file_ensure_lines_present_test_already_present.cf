@@ -49,7 +49,9 @@ bundle agent check
 {
   vars:
     "line_exists_test" string => "/bin/grep \"^${init.line_to_add}$\" \"${init.file}\" | wc -l";
-    "nb_lines"         string => execresult("${line_exists_test}", "useshell");
+    "nb_lines" 
+      string     => execresult("${line_exists_test}", "useshell"),
+      ifvarclass => canonify("file_ensure_lines_present_${init.file}_reached");
 
   classes:
     # By default, file_ensure_lines_present should create the file if it doesn't exist

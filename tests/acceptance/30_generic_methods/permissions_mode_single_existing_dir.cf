@@ -57,9 +57,18 @@ bundle agent check
 
   classes:
     # By default, permissions_type_recursion should create the directory if it doesn't exist
-    "permissions_test_mode_ok"  expression => returnszero("${permissions_test_mode}", "useshell");
-    "permissions_test_owner_ok" expression => returnszero("${permissions_test_owner}", "useshell");
-    "permissions_test_group_ok" expression => returnszero("${permissions_test_group}", "useshell");
+    "permissions_test_mode_ok"
+      expression => returnszero("${permissions_test_mode}", "useshell"),
+      ifvarclass => canonify("permissions_${init.directory}_reached");
+
+    "permissions_test_owner_ok"
+      expression => returnszero("${permissions_test_owner}", "useshell"),
+      ifvarclass => canonify("permissions_${init.directory}_reached");
+
+    "permissions_test_group_ok"
+      expression => returnszero("${permissions_test_group}", "useshell"),
+      ifvarclass => canonify("permissions_${init.directory}_reached");
+
 
     "ok"                        expression => "permissions_test_mode_ok.permissions_test_owner_ok.permissions_test_group_ok.permissions_${init.directory_canon}_ok.!permissions_${init.directory_canon}_error";
 

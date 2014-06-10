@@ -53,8 +53,12 @@ bundle agent check
   classes:
     # By default, should create the file if it doesn't exist
     "file_exists"      expression => fileexists("${init.destination_file}");
-    "file_length_ok"   expression => strcmp(execresult("${file_length_check}", "useshell"), "1");
-    "file_content_ok"  expression => returnszero("${file_content_check}", "useshell");
+    "file_length_ok"
+      expression => strcmp(execresult("${file_length_check}", "useshell"), "1"),
+      ifvarclass => canonify("file_from_template_${init.destination_file}_reached");
+    "file_content_ok"
+      expression => returnszero("${file_content_check}", "useshell"),
+      ifvarclass => canonify("file_from_template_${init.destination_file}_reached");
 
     "ok"                   expression => "file_exists.file_length_ok.file_content_ok.file_from_template_${init.destination_file_canon}_ok.!file_from_template_${init.destination_file_canon}_error";
 
