@@ -46,7 +46,9 @@ bundle agent check
   classes:
     # By default, file_ensure_lines_present should create the file if it doesn't exist
     "file_exists" expression => fileexists("${init.file}");
-    "line_exists" expression => returnszero("${line_exists_test}", "noshell");
+    "line_exists" 
+       expression => returnszero("${line_exists_test}", "noshell"),
+       ifvarclass => canonify("file_ensure_lines_present_${init.file}_reached");
 
     "ok"          expression => "file_exists.line_exists.file_ensure_lines_present_${init.file_canon}_ok.!file_ensure_lines_present_${init.file_canon}_error";
 

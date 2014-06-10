@@ -61,7 +61,9 @@ bundle agent check
     "line_exists_test" string => "/usr/bin/diff \"${init.reference_file}\" \"${init.file}\"";
 
   classes:
-    "line_exists" expression => returnszero("${line_exists_test}", "noshell");
+    "line_exists"
+       expression => returnszero("${line_exists_test}", "noshell"),
+       ifvarclass => canonify("file_ensure_line_present_in_ini_section_${init.file}_reached");
 
     "ok"          expression => "line_exists.file_ensure_line_present_in_ini_section_${init.file_canon}_ok.!file_ensure_line_present_in_ini_section_${init.file_canon}_error";
 
