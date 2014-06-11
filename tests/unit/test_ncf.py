@@ -4,6 +4,7 @@ import unittest
 import ncf
 import os.path
 import subprocess
+import shutil
 
 class TestNcf(unittest.TestCase):
 
@@ -12,6 +13,10 @@ class TestNcf(unittest.TestCase):
     self.test_generic_method_file = 'test_generic_method.cf'
     self.technique_content = open(self.test_technique_file).read()
     self.generic_method_content = open(self.test_generic_method_file).read()
+    
+    self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)
+    method_calls = ncf.parse_technique_methods(self.test_technique_file)
+    self.technique_metadata['method_calls'] = method_calls
 
   def test_get_ncf_root_dir(self):
     self.assertEquals(ncf.get_root_dir(), os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../"))
@@ -169,6 +174,104 @@ class TestNcf(unittest.TestCase):
 
     number = len(ncf.get_all_techniques_filenames(alternative_path))
     self.assertEquals(number, len(metadata))
+    
+  #####################################
+  # Tests for writing/delete Techniques all metadata info
+  #####################################
+    
+  def test_generate_technique_content(self):
+    """Test if content from a valid technique generated a valid CFEngine file as expected"""
+    # Expected content of Technique
+    expected_result = []
+    expected_result.append('# @name Bla Technique for evaluation of parsingness')
+    expected_result.append('# @description This meta-Technique is a sample only, allowing for testing.')
+    expected_result.append('# @version 0.1')
+    expected_result.append('')
+    expected_result.append('bundle agent bla')
+    expected_result.append('{')
+    expected_result.append('  methods:')
+    expected_result.append('    any::')
+    expected_result.append('      "method_call" usebundle => package_install_version("${bla.apache_package_name}", "2.2.11");')
+    expected_result.append('    cfengine::')
+    expected_result.append('      "method_call" usebundle => service_start("${bla.apache_package_name}");')
+    expected_result.append('    cfengine::')
+    expected_result.append('      "method_call" usebundle => package_install("openssh-server");')
+    expected_result.append('    !cfengine::')
+    expected_result.append('      "method_call" usebundle => _logger("NA", "NA");')
+    expected_result.append('}')
 
+    # Join all lines with \n to get a pretty technique file
+    result = '\n'.join(expected_result)+"\n"
+    generated_result = ncf.generate_technique_content(self.technique_metadata)
+
+    self.assertEquals(result, generated_result)
+
+  def test_check_mandatory_keys_technique_metadata(self):
+    """Test if a broken metadata raise a correct NcfError exception"""
+
+    broken_metadata = { "description": "test", "version" : "test" }
+
+    self.assertRaises(ncf.NcfError, ncf.check_technique_metadata, broken_metadata)
+
+  def test_check_nonempty_keys_technique_metadata(self):
+    """Test if a broken metadata raise a correct NcfError exception"""
+
+    broken_metadata = { "name": "", "bundle_name" : "", "method_calls" : [] }
+
+    self.assertRaises(ncf.NcfError, ncf.check_technique_metadata, broken_metadata)
+
+
+  def test_add_default_values_technique_metadata(self):
+    """Test if a missing data in technique metadata are correctly replaced with default values"""
+
+    default_metadata = { "name": "test", "bundle_name" : "test", "method_calls" : [ { "method_name" : "test"}] }
+    technique = ncf.add_default_values_technique_metadata(default_metadata)
+
+    result = technique['description'] == "" and technique['version'] == "1.0"
+
+    self.assertTrue(result)
+
+  def test_check_mandatory_keys_method_call(self):
+    """Test if a broken metadata raise a correct NcfError exception"""
+
+    broken_method_call = { "class_context": "test" }
+
+    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, broken_method_call)
+
+  def test_check_nonempty_keys_method_call(self):
+    """Test if a broken metadata raise a correct NcfError exception"""
+
+    broken_method_call = { "method_name": "" }
+
+    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, broken_method_call)
+
+
+  def test_add_default_values_method_call(self):
+    """Test if a missing data in technique metadata are correctly replaced with default values"""
+
+    default_method_call = { "class_context": ""}
+    technique = ncf.add_default_values_technique_method_call(default_method_call)
+
+    result = technique['class_context'] == "any"
+
+    self.assertTrue(result)
+
+  def test_write_technique(self):
+    """Check if a technique file is written in the correct path from its metadata"""
+    ncf.write_technique(self.technique_metadata, os.path.realpath("write_test"))
+    result = os.path.exists(os.path.realpath(os.path.join("write_test", "50_techniques", self.technique_metadata['bundle_name'], self.technique_metadata['bundle_name']+".cf")))
+    # Clean
+    shutil.rmtree(os.path.realpath("write_test"))
+    self.assertTrue(result)
+    
+  def test_delete_technique(self):
+    """Check if a technique file is correctly deleted"""
+    ncf.write_technique(self.technique_metadata, os.path.realpath("delete_test"))
+    ncf.delete_technique(self.technique_metadata['bundle_name'], os.path.realpath("delete_test"))
+    result = not os.path.exists(os.path.realpath(os.path.join("delete_test", "50_techniques", self.technique_metadata['bundle_name'])))
+    # Clean
+    shutil.rmtree(os.path.realpath("delete_test"))
+    self.assertTrue(result)
+    
 if __name__ == '__main__':
   unittest.main()
