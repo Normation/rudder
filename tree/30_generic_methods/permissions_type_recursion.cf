@@ -44,48 +44,54 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
 
   files:
 
-    is_type_all::
-
-      "${path}"
-        create       => "false",
-        perms        => mog("${mode}", "${owner}", "${group}"),
-        depth_search => recurse("${recursion}"),
-	classes      => classes_generic("${class_prefix}");
-
     is_type_all.is_target_directory::
 
       "${path}"
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
-        depth_search => recurse("0"),
-	classes      => classes_generic("${class_prefix}");
+        depth_search => recurse_with_base("${recursion}"),
+        classes      => classes_generic("${class_prefix}");
 
-    is_type_files::
+    is_type_all.!is_target_directory::
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        classes      => classes_generic("${class_prefix}");
+
+    is_type_files.is_target_directory::
 
       "${path}"
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         depth_search => recurse("${recursion}"),
         file_select  => plain,
-	classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic("${class_prefix}");
 
-    is_type_directories::
+    is_type_files.!is_target_directory::
 
       "${path}"
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
-        depth_search => recurse("${recursion}"),
-        file_select  => dirs,
-	classes      => classes_generic("${class_prefix}");
+        file_select  => plain,
+        classes      => classes_generic("${class_prefix}");
 
     is_type_directories.is_target_directory::
 
       "${path}"
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
-        depth_search => recurse("0"),
+        depth_search => recurse_with_base("${recursion}"),
         file_select  => dirs,
-	classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic("${class_prefix}");
+
+    is_type_directories.!is_target_directory:: # This case should never happen
+
+      "${path}"
+        create       => "false",
+        perms        => mog("${mode}", "${owner}", "${group}"),
+        file_select  => dirs,
+        classes      => classes_generic("${class_prefix}");
 
   methods:
       "report"
