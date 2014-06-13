@@ -474,6 +474,32 @@ rudder.auth.ldap.filter=(&(uid={0})(objectclass=person))
 #rudder.auth.ldap.searchbase=
 #rudder.auth.ldap.filter=(&(sAMAccountName={0})(objectclass=user))
 
+
+#
+# Rudder roles definition
+#
+# Allow to define which hosts have the roles ldap, db and front when
+# using a split architecture of Rudder
+# The file containing the roles will be generated in:
+# /var/rudder/configuration-repository/inputs/rudder-server-roles.conf
+#
+# The allowed values, for each parameter are
+# - autodetect (default): the roles are automatically detected based on inventories (based on the presence of files in /opt/rudder/etc/server-roles.d/)
+# - anything else (hostname, ip, or list of hostname or ip, seperated by commas): the
+#   content that will be used inside the role file
+
+# The hosts with the ldap role
+rudder.server-roles.ldap=autodetect
+
+# The hosts with the db role
+rudder.server-roles.db=autodetect
+
+# The hosts with the front role
+rudder.server-roles.front=autodetect
+
+# The hosts with the webapp role
+rudder.server-roles.webapp=autodetect
+
 #########################
 # DEPRECATED properties #############################################################
 #########################
