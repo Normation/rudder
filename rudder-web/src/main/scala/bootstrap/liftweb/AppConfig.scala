@@ -258,6 +258,12 @@ object RudderConfig extends Loggable {
 
   val RUDDER_DEBUG_NODE_CONFIGURATION_PATH = config.getString("rudder.debug.nodeconfiguration.path")
 
+  // Roles definitions
+  val RUDDER_SERVER_ROLES_LDAP  = config.getString("rudder.server-roles.ldap")
+  val RUDDER_SERVER_ROLES_DB    = config.getString("rudder.server-roles.db")
+  val RUDDER_SERVER_ROLES_FRONT = config.getString("rudder.server-roles.front")
+  val RUDDER_SERVER_ROLES_WEBAPP= config.getString("rudder.server-roles.webapp")
+
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
   val prettyPrinter = new RudderPrettyPrinter(120, 2)
@@ -1123,6 +1129,10 @@ object RudderConfig extends Loggable {
     , RUDDER_WEBDAV_USER
     , RUDDER_WEBDAV_PASSWORD
     , RUDDER_SYSLOG_PORT
+    , RUDDER_SERVER_ROLES_LDAP
+    , RUDDER_SERVER_ROLES_DB
+    , RUDDER_SERVER_ROLES_FRONT
+    , RUDDER_SERVER_ROLES_WEBAPP
     , configService.cfengine_server_denybadclocks _
     , configService.cfengine_server_skipidentify _
     , configService.agent_run_interval
