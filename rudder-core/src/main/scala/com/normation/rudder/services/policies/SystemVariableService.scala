@@ -66,13 +66,18 @@ class SystemVariableServiceImpl(
     licenseRepository: LicenseRepository
   , systemVariableSpecService: SystemVariableSpecService
   , policyServerManagementService: PolicyServerManagementService
-  , toolsFolder: String
-  , cmdbEndPoint: String
-  , communityPort: Int
-  , sharedFilesFolder: String
-  , webdavUser: String
-  , webdavPassword: String
-  , syslogPort: Int
+  // Variables definitions
+  , toolsFolder           : String
+  , cmdbEndPoint          : String
+  , communityPort         : Int
+  , sharedFilesFolder     : String
+  , webdavUser            : String
+  , webdavPassword        : String
+  , syslogPort            : Int
+  , rudderServerRoleLdap  : String
+  , rudderServerRoleDb    : String
+  , rudderServerRoleFront : String
+  , rudderServerRoleWebapp: String
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
   , getSkipIdentify : () => Box[Boolean]
@@ -94,6 +99,21 @@ class SystemVariableServiceImpl(
   val varSharedFilesFolder = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable().copyWithSavedValue(sharedFilesFolder)
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
+
+  // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleFront
+  // if autodetect, then it is not defined, otherwise we parse it
+  val AUTODETECT_KEYWORD="autodetect"
+  def parseRoleContent(value: String) : Option[Iterable[String]] = {
+    value match {
+      case AUTODETECT_KEYWORD => None
+      case _ => Some(value.split(","))
+    }
+  }
+
+  lazy val definedRudderServerRoleLdap  = parseRoleContent(rudderServerRoleLdap)
+  lazy val definedRudderServerRoleDb    = parseRoleContent(rudderServerRoleDb)
+  lazy val definedRudderServerRoleFront = parseRoleContent(rudderServerRoleFront)
+  lazy val definedRudderServerRoleWebapp = parseRoleContent(rudderServerRoleWebapp)
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
@@ -154,22 +174,57 @@ class SystemVariableServiceImpl(
 
     logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
 
-    // First, fetch the
     // Set the roles of the nodes
-    val nodeConfigurationRoles = collection.mutable.Set[String]()
+    val nodeConfigurationRoles = collection.mutable.Set[ServerRole]() ++ nodeInfo.serverRoles
+
+
+    // Define the mapping of roles/hostnames, only if the node has a role
+    val varRoleMappingValue = if (nodeConfigurationRoles.size > 0) {
+      val allNodeInfosSet = allNodeInfos.values.toSet
+
+      val nodesWithRoleLdap = definedRudderServerRoleLdap match {
+        case Some(seq) => seq
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-inventory-endpoint"))
+      }
+
+      val nodesWithRoleDb = definedRudderServerRoleDb match {
+        case Some(seq) => seq
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-reports"))
+      }
+
+      val nodesWithRoleFront = definedRudderServerRoleFront match {
+        case Some(seq) => seq
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-front"))
+      }
+
+      val nodesWithRoleWebapp = definedRudderServerRoleWebapp match {
+        case Some(seq) => seq
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-webapp"))
+      }
+
+      writeNodesWithRole(nodesWithRoleLdap, "rudder-inventory-endpoint") +
+      writeNodesWithRole(nodesWithRoleDb, "rudder-reports") +
+      writeNodesWithRole(nodesWithRoleFront, "rudder-front") +
+      writeNodesWithRole(nodesWithRoleWebapp, "rudder-webapp")
+    } else {
+      ""
+    }
+
+    val varRudderServerRole = systemVariableSpecService.get("RUDDER_SERVER_ROLES").toVariable().copyWithSavedValue(varRoleMappingValue)
 
     if (nodeInfo.isPolicyServer) {
-      nodeConfigurationRoles.add("policy_server")
+      nodeConfigurationRoles.add(ServerRole("policy_server"))
       if (nodeInfo.id == nodeInfo.policyServerId) {
-        nodeConfigurationRoles.add("root_server")
+        nodeConfigurationRoles.add(ServerRole("root_server"))
       }
     }
 
     val varNodeRoleValue = if (nodeConfigurationRoles.size > 0) {
-      "  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x + "\" expression => \"any\";").mkString("\n")
+      "  classes: \n" + nodeConfigurationRoles.map(x => "    \"" + x.value + "\" expression => \"any\";").mkString("\n")
     } else {
       "# This node doesn't have any specific role"
     }
+
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
     // Set the licences for the Nova
@@ -240,10 +295,30 @@ class SystemVariableServiceImpl(
              (varNodeRole.spec.name, varNodeRole)
            , (varLicensesPaid.spec.name, varLicensesPaid)
            , (varAllowedNetworks.spec.name, varAllowedNetworks)
+           , (varRudderServerRole.spec.name -> varRudderServerRole)
          )
       ++ policyServerVars
     )
 
+  }
+
+  // Fetch the Set of node hostnames having specific role
+  private[this] def getNodesWithRole(
+      allNodeInfos  : Set[NodeInfo]
+    , role          : ServerRole
+  ) : Set[String] = {
+    allNodeInfos.filter(x => x.serverRoles.contains(role)).map(_.hostname)
+  }
+
+  // Formating of the roles
+  private[this] def writeNodesWithRole(
+      nodesWithRole: Iterable[String]
+    , roleName     : String
+  ) : String = {
+    nodesWithRole.size match {
+      case 0 => "" // no string, no role
+      case _ => s"${roleName}:${nodesWithRole.mkString(",")}\n"
+    }
   }
 
   //obtaining variable values from (failable) properties
