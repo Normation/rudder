@@ -488,8 +488,11 @@ rudder.auth.ldap.filter=(&(uid={0})(objectclass=person))
 # - anything else (hostname, ip, or list of hostname or ip, seperated by commas): the
 #   content that will be used inside the role file
 
-# The hosts with the ldap role
+# The hosts with the LDAP server role
 rudder.server-roles.ldap=autodetect
+
+# The hosts with the inventory endpoint role
+rudder.server-roles.inventory-endpoint=autodetect
 
 # The hosts with the db role
 rudder.server-roles.db=autodetect
