@@ -75,6 +75,7 @@ class SystemVariableServiceImpl(
   , webdavPassword        : String
   , syslogPort            : Int
   , rudderServerRoleLdap  : String
+  , rudderServerRoleInventoryEndpoint: String
   , rudderServerRoleDb    : String
   , rudderServerRoleFront : String
   , rudderServerRoleWebapp: String
@@ -114,6 +115,7 @@ class SystemVariableServiceImpl(
   lazy val definedRudderServerRoleDb    = parseRoleContent(rudderServerRoleDb)
   lazy val definedRudderServerRoleFront = parseRoleContent(rudderServerRoleFront)
   lazy val definedRudderServerRoleWebapp = parseRoleContent(rudderServerRoleWebapp)
+  lazy val definedRudderServerRoleInventoryEnpoint = parseRoleContent(rudderServerRoleInventoryEndpoint)
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
@@ -187,6 +189,11 @@ class SystemVariableServiceImpl(
         case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-ldap"))
       }
 
+      val nodesWithRoleInventoryEndpoint = definedRudderServerRoleInventoryEnpoint match {
+        case Some(seq) => seq
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-inventory-endpoint"))
+      }
+
       val nodesWithRoleDb = definedRudderServerRoleDb match {
         case Some(seq) => seq
         case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-db"))
@@ -203,6 +210,7 @@ class SystemVariableServiceImpl(
       }
 
       writeNodesWithRole(nodesWithRoleLdap, "rudder-ldap") +
+      writeNodesWithRole(nodesWithRoleInventoryEndpoint, "rudder-inventory-endpoint") +
       writeNodesWithRole(nodesWithRoleDb, "rudder-db") +
       writeNodesWithRole(nodesWithRoleFront, "rudder-front") +
       writeNodesWithRole(nodesWithRoleWebapp, "rudder-webapp")
