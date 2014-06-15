@@ -184,12 +184,12 @@ class SystemVariableServiceImpl(
 
       val nodesWithRoleLdap = definedRudderServerRoleLdap match {
         case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-inventory-endpoint"))
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-ldap"))
       }
 
       val nodesWithRoleDb = definedRudderServerRoleDb match {
         case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-reports"))
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-db"))
       }
 
       val nodesWithRoleFront = definedRudderServerRoleFront match {
@@ -202,8 +202,8 @@ class SystemVariableServiceImpl(
         case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-webapp"))
       }
 
-      writeNodesWithRole(nodesWithRoleLdap, "rudder-inventory-endpoint") +
-      writeNodesWithRole(nodesWithRoleDb, "rudder-reports") +
+      writeNodesWithRole(nodesWithRoleLdap, "rudder-ldap") +
+      writeNodesWithRole(nodesWithRoleDb, "rudder-db") +
       writeNodesWithRole(nodesWithRoleFront, "rudder-front") +
       writeNodesWithRole(nodesWithRoleWebapp, "rudder-webapp")
     } else {
