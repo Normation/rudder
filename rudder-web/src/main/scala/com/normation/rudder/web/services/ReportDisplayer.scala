@@ -85,16 +85,12 @@ class ReportDisplayer(
     case Full(n) => n
   }
 
-
-
   def reportByNodeTemplate = chooseTemplate("batches", "list", templateByNode)
   def directiveDetails = chooseTemplate("directive", "foreach", templateByNode)
 
-
-
   var staticReportsSeq : Seq[ExecutionBatch] = Seq[ExecutionBatch]()
 
-  def display(reportsSeq : Seq[ExecutionBatch], tableId:String): NodeSeq = {
+  def display(reportsSeq : Seq[ExecutionBatch], tableId:String, node : NodeInfo): NodeSeq = {
 
     staticReportsSeq = reportsSeq.filter( x => ruleRepository.get(x.ruleId).isDefined  )
     bind("lastReportGrid",reportByNodeTemplate,
@@ -111,31 +107,57 @@ class ReportDisplayer(
                      <div>All the last execution reports for this server are ok</div>
                    }
            } ),
-           "grid" -> showReportDetail(staticReportsSeq),
+           "grid" -> showReportDetail(staticReportsSeq, node),
            "missing" -> showMissingReports(staticReportsSeq),
            "unexpected" -> showUnexpectedReports(staticReportsSeq)
            )
   }
 
-  def showReportDetail(executionsBatches : Seq[ExecutionBatch]) : NodeSeq = {
-
-    val data = (for {
+  def getComplianceData(executionsBatches : Seq[ExecutionBatch]) = {
+    for {
       directiveLib <-directiveRepository.getFullDirectiveLibrary
       allNodeInfos <- getAllNodeInfos()
       reportStatus = executionsBatches.flatMap(x => x.getNodeStatus())
     } yield {
       val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
-      complianceData.getRuleComplianceDetails(reportStatus).json
+      complianceData.getRuleComplianceDetails(reportStatus)
 
-    }).getOrElse(JsArray())
+    }
+  }
+
+  def showReportDetail(executionsBatches : Seq[ExecutionBatch], node : NodeInfo) : NodeSeq = {
+
+    val data = getComplianceData(executionsBatches).map(_.json).getOrElse(JsArray())
+
 
     reportsGridXml++
         Script(JsRaw(s"""
-          createRuleComplianceTable("reportsGrid",${data.toJsCmd},"${S.contextPath}");
+          createRuleComplianceTable("reportsGrid",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node).toJsCmd});
           createTooltip();
         """))
 
+  }
+
+  def refreshReportDetail (node : NodeInfo) = {
+
+    def refreshData : Box[JsCmd] = {
+      for {
+        reports <- reportingService.findImmediateReportsByNode(node.id)
+        data <- getComplianceData(reports)
+      } yield {
+        JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd});""")
+      }
+    }
+
+    val ajaxCall = {
+      SHtml.ajaxCall(
+          JsNull
+        , (s) => refreshData.getOrElse(Noop)
+      )
+    }
+
+    AnonFunc(ajaxCall)
   }
 
   def asyncDisplay(node : NodeInfo) : NodeSeq = {
@@ -153,46 +175,8 @@ class ReportDisplayer(
   def displayReports(node : NodeInfo) : NodeSeq = {
     reportingService.findImmediateReportsByNode(node.id) match {
       case e:EmptyBox => <div class="error">Could not fetch reports information</div>
-      case Full(batches) => display(batches, "reportsGrid")
+      case Full(batches) => display(batches, "reportsGrid", node)
     }
-  }
-
-  /**
-   * show the execution batches of a unique server
-   * Ought to be the last execution of a server, so that all Directiveinstance are unique
-   * otherwise the result might be unpredictable
-   * @param batches
-   * @return
-   */
-  def displayBatches(batches :Seq[ExecutionBatch]) : NodeSeq = {
-   display(batches, "reportsGrid")
-  }
-
-  private def showBatchDetail(batch:ExecutionBatch) : NodeSeq = {
-    batch match {
-
-      case conf : ConfigurationExecutionBatch =>
-        <div class="reportsGroup">Configuration valid {conf.endDate match {
-            case None => Text("since " + conf.beginDate)
-            case Some(date) => Text("from " + conf.beginDate + " until " +date)
-          }
-        }
-         List of reports :
-          <div class="reportsList">{ batch.executionReports.flatMap( x => reportToXML(x) ) }</div>
-        </div>
-    }
-  }
-
-
-
-
-  /**
-   * Display the report in the html form
-   */
-  def reportToXML(report : TWReports) : NodeSeq = {
-    <div>
-      <span>{report.severity}, oqn the {DateFormaterService.getFormatedDate(report.executionDate)}, with the message : {report.message}</span>
-    </div>
   }
 
   def reportsGridXml : NodeSeq = {
