@@ -1,0 +1,46 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File ensure keys -> values present
+# @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
+#
+# @parameter file File name to edit
+# @parameter keys Array containing the keys (keys of the array), and values to define (values of the array)
+# @parameter separator Separator between key and value (for example "=" or " ")
+#
+# @class_prefix file_ensure_keys_values
+# @class_parameter file
+#
+# This bundle will define a class file_ensure_keys_ivalues_${file}_{kept,repaired,not_ok,ok,reached}
+
+bundle agent file_ensure_keys_values(file, keys, separator)
+{
+  vars:
+      "class_prefix" string => canonify("file_ensure_keys_values_${file}");
+
+  files:
+      "${file}"
+        create        => "true",
+        edit_line     => maintain_key_values("${keys}", "${separator}"),
+        edit_defaults => no_backup,
+        classes       => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Ensure lines in format key${separator}values into ${file}", "${class_prefix}");
+}
