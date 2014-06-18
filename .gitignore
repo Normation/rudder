@@ -1,3 +1,5 @@
+api/flask
+api/virtualenv.py
 local/*
 tests/acceptance/.succeeded/*
 tests/acceptance/summary.log
