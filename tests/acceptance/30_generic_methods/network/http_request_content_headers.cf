@@ -1,0 +1,71 @@
+#####################################################################################
+#
+# Send content to URL with specific method
+#
+#####################################################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "existant_url"          string => "http://www.ncf.io";
+    "nonexistant_url"       string => "http://www.ncf.io/testurl";
+    "canon_nonexistant_url" string => canonify("${nonexistant_url}");
+    "canon_existant_url"    string => canonify("${existant_url}");
+    "headers"               string => "Content-type: application/xml";
+    "method"                string => "POST";
+    "content"               string => "<?xml version='1.0' encoding='UTF-8'?>
+<project>
+<actions/>
+<description></description>
+<properties/>
+</project>";
+}
+
+#######################################################
+
+bundle agent test
+{
+
+  methods:
+    "ph" usebundle => http_request_content_headers("${init.method}", "${init.nonexistant_url}", "${init.content}", "${init.headers}");
+    "ph" usebundle => http_request_content_headers("${init.method}", "${init.existant_url}", "${init.content}", "${init.headers}");
+
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "non_existant_returns_ok" expression => "http_request_content_headers_${init.canon_nonexistant_url}_reached.http_request_content_headers_${init.canon_nonexistant_url}_failed";
+      "existant_returns_ok"     expression => "http_request_content_headers_${init.canon_existant_url}_reached.http_request_content_headers_${init.canon_existant_url}_repaired";
+      "ok"                      expression => "non_existant_returns_ok.existant_returns_ok";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+
+    !non_existant_returns_ok::
+      "Wrong status for ${init.nonexistant_url}";
+
+    !existant_returns_ok::
+      "Wrong status for ${init.existant_url}";
+}

@@ -1,0 +1,47 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name HTTP request sending content with headers
+# @description Perform a HTTP request on the URL, method and headers provided and send the content provided. Will return an error if the request failed.
+#
+# @parameter method Method to call the URL (POST, PUT)
+# @parameter url URL to send content to
+# @parameter content Content to send
+# @parameter headers Headers to include in the HTTP request
+
+# @class_prefix http_content_headers
+# @class_parameter url
+# This bundle will define a http_content_headers_${url}_{repaired,error,ok,reached}
+
+bundle agent http_request_content_headers(method, url, content, headers)
+{
+  vars:
+      "class_prefix" string => canonify("http_request_content_headers_${url}");
+
+  commands:
+      "/bin/echo \"${content}\" | ${paths.path[curl]}"
+        args => "${url} -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
+        contain => in_shell,
+        classes => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle  => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${class_prefix}");
+
+}
+
