@@ -153,6 +153,20 @@ bundle edit_line ensure_line_in_ini_section(section_name, line)
       comment       => "Insert line in section ${section_name}";
 }
 
+# Ensure that a line is present in an xml tag
+# Won't create the tag if not there (we don't know where to put it)
+bundle edit_line ensure_line_in_xml_tag(tag_name, line)
+{
+  vars:
+    "section_start" string => "\s*<${tag_name}>\s*";
+    "section_end" string => "\s*</${tag_name}>\s*";
+
+  insert_lines:
+    "${line}"
+      select_region => ncf_section_selector("${section_start}", "${section_end}"),
+      comment       => "Insert line in section ${tag_name}";
+}
+
 
 body select_region ncf_section_selector(section_start, section_end)
 {
