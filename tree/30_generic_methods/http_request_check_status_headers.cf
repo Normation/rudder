@@ -1,0 +1,48 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name HTTP request check status with headers
+# @description Perform a HTTP request on the URL, method and headers provided and check that the response has the expected status code (ie 200, 404, 503, etc)
+#
+# @parameter method Method to call the URL (GET, POST, PUT, DELETE)
+# @parameter url URL to query
+# @parameter expected_status Expected status code of the HTTP response
+# @parameter headers Headers to include in the HTTP request (as a string, without ')
+
+# @class_prefix http_request_check_status_headers
+# @class_parameter url
+# This bundle will define a http_request_check_status_headers_${url}_{kept,error,ok,reached}
+
+bundle agent http_request_check_status_headers(method, url, expected_status, headers)
+{
+  vars:
+      "class_prefix" string => canonify("http_request_check_status_headers_${url}");
+
+  commands:
+      "${paths.path[curl]}"
+        args => "-I -s -o /dev/null -w \"%{http_code}\" ${url} -X ${method} -H '${headers}' | /bin/grep -q ${expected_status}",
+        contain => in_shell,
+        # We don't define repaired class, as we only query and expect, so using 999 to avoid using this feature
+        classes => classes_generic_return_codes("${class_prefix}", "0", "999", "1");
+
+  methods:
+      "report"
+        usebundle  => _logger("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${class_prefix}");
+
+}
+
