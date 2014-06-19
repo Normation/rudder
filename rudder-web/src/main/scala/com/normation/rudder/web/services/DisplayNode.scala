@@ -405,7 +405,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                   nodeInfo.serverRoles.map(_.value).mkString(" (", ", ", ")")
                 }
 
-                <span><b>Role: </b>Rudder server{roles})</span><br/>
+                <span><b>Role: </b>Rudder server{roles}</span><br/>
 
               } else { //server relay, don't take care of nodes
                 <span><b>Role: </b>Rudder relay server</span><br/>
