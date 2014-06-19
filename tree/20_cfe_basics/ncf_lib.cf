@@ -97,9 +97,12 @@ have_aptitude::
 }
 
 
-# allows for not changing the system, unless the immediate class is defined
+# Don't do anything if class warn is defined, or remediate the promises
+# if immediate is defined (default action)
 body action do_if_immediate {
-  !immediate::
+  immediate::
+   action_policy => "fix";
+  warn::
    action_policy => "warn";
 }
 
