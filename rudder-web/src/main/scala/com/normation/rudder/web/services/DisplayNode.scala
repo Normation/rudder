@@ -397,23 +397,30 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
         nodeInfoBox match {
           case Full(nodeInfo) =>
-            if(nodeInfo.isPolicyServer) {
-              if(isRootNode(nodeId) ) {
-                val roles = if(nodeInfo.serverRoles.isEmpty) {
-                  ""
+
+            val kind = {
+              if(nodeInfo.isPolicyServer) {
+                if(isRootNode(nodeId) ) {
+                  "server"
                 } else {
-                  nodeInfo.serverRoles.map(_.value).mkString(" (", ", ", ")")
+                  "relay server"
                 }
-
-                <span><b>Role: </b>Rudder server{roles}</span><br/>
-
-              } else { //server relay, don't take care of nodes
-                <span><b>Role: </b>Rudder relay server</span><br/>
+              } else {
+                if (nodeInfo.serverRoles.isEmpty){
+                  "node"
+                } else {
+                  "server component"
+                }
               }
-            } else {
-              <span><b>Role: </b>Rudder node</span><br/>
             }
 
+            val roles = if (nodeInfo.serverRoles.isEmpty) {
+              ""
+            } else {
+              nodeInfo.serverRoles.map(_.value).mkString("(",", ",")")
+            }
+
+            <span><b>Role: </b>Rudder {kind} {roles}</span><br/>
           case eb:EmptyBox =>
             val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
             logger.error(e.messageChain)
