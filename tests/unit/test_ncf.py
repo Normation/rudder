@@ -261,17 +261,31 @@ class TestNcf(unittest.TestCase):
     ncf.write_technique(self.technique_metadata, os.path.realpath("write_test"))
     result = os.path.exists(os.path.realpath(os.path.join("write_test", "50_techniques", self.technique_metadata['bundle_name'], self.technique_metadata['bundle_name']+".cf")))
     # Clean
-    shutil.rmtree(os.path.realpath("write_test"))
+    shutil.rmtree(os.path.realpath(os.path.join("write_test", "50_techniques")))
     self.assertTrue(result)
     
   def test_delete_technique(self):
     """Check if a technique file is correctly deleted"""
-    ncf.write_technique(self.technique_metadata, os.path.realpath("delete_test"))
-    ncf.delete_technique(self.technique_metadata['bundle_name'], os.path.realpath("delete_test"))
-    result = not os.path.exists(os.path.realpath(os.path.join("delete_test", "50_techniques", self.technique_metadata['bundle_name'])))
+    ncf.write_technique(self.technique_metadata, os.path.realpath("write_test"))
+    ncf.delete_technique(self.technique_metadata['bundle_name'], os.path.realpath("write_test"))
+    result = not os.path.exists(os.path.realpath(os.path.join("write_test", "50_techniques", self.technique_metadata['bundle_name'])))
     # Clean
-    shutil.rmtree(os.path.realpath("delete_test"))
+    shutil.rmtree(os.path.realpath(os.path.join("write_test", "50_techniques")))
     self.assertTrue(result)
     
+  #####################################
+  # Tests for detecting hooks
+  #####################################
+
+  def test_pre_hooks(self):
+    pre_hooks = ncf.get_hooks("pre", "delete_technique", os.path.realpath("test_hooks/hooks.d"))
+    expect = [ "pre.delete_technique.commit.rpmsave.sh", "pre.delete_technique.commit.sh" ]
+    assert pre_hooks == expect
+
+  def test_post_hooks(self):
+    post_hooks = ncf.get_hooks("post",  "(write|create)_technique", "test_hooks/hooks.d")
+    expect = [ "post.create_technique.commit.exe", "post.write_technique.commit.sh" ]
+    assert post_hooks == expect
+
 if __name__ == '__main__':
   unittest.main()
