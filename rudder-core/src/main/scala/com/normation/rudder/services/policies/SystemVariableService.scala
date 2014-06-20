@@ -235,18 +235,11 @@ class SystemVariableServiceImpl(
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
-    // Set the licences for the Nova
-    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
-      licenseRepository.findLicense(nodeInfo.policyServerId) match {
-        case None =>
-          logger.warn("Caution, the policy server %s does not have a registered Nova license".format(nodeInfo.policyServerId.value))
-          throw new LicenseException("No license found for the policy server " + nodeInfo.policyServerId.value)
-        case Some(x) => x.licenseNumber.toString
-      }
-    } else {
-      "1"
+    // Check that the policy server have Nova license if the host is a Nova
+    if (nodeInfo.agentsName.contains(NOVA_AGENT) && licenseRepository.findLicense(nodeInfo.policyServerId).isEmpty) {
+      logger.warn("Caution, the policy server %s does not have a registered Nova license".format(nodeInfo.policyServerId.value))
+      throw new LicenseException("No license found for the policy server " + nodeInfo.policyServerId.value)
     }
-    val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>
@@ -301,7 +294,6 @@ class SystemVariableServiceImpl(
          globalSystemVariables
       ++ Map(
              (varNodeRole.spec.name, varNodeRole)
-           , (varLicensesPaid.spec.name, varLicensesPaid)
            , (varAllowedNetworks.spec.name, varAllowedNetworks)
            , (varRudderServerRole.spec.name -> varRudderServerRole)
          )
