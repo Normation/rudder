@@ -73,7 +73,8 @@ def get_all_techniques_filenames(alt_path = ''):
   if alt_path == '':
     filelist2 = []
   else:
-    filelist2 = get_all_cf_filenames_under_dir(alt_path + "/50_techniques")
+    path = os.path.join(alt_path,"50_techniques")
+    filelist2 = get_all_cf_filenames_under_dir(path)
   result = filelist1 + filelist2
 
   return result
