@@ -446,7 +446,7 @@ class ReportDisplayer(
      """
      var plusTd = $($('#reportsGrid').dataTable().fnGetNodes());
 
-     plusTd.each(function(i) {
+     plusTd.each(function() {
        var nTr = this.parentNode;
        var i = $.inArray( nTr, anOpen );
          if ( i != -1 ) {
