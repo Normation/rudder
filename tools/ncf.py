@@ -321,7 +321,7 @@ def add_default_values_technique_metadata(technique_metadata):
 def generate_technique_content(technique_metadata):
   """Generate technique CFEngine file as string from its metadata"""
 
-  technique = add_default_values_technique_method_call(technique_metadata)
+  technique = add_default_values_technique_metadata(technique_metadata)
 
   content = []
   for key in [ 'name', 'description', 'version' ]:
