@@ -248,9 +248,8 @@ class RuleEditForm(
   private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
 
     val maptarget = groupLib.allTargets.map{
-      case (gt,fg) => s" '${gt.target}' : '${fg.name}'"
+      case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
     }.toList.mkString("{",",","}")
-
 
     val included = ruleTarget.includedTarget.targets
     val excluded = ruleTarget.excludedTarget.targets
