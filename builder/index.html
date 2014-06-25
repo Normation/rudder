@@ -1,0 +1,216 @@
+<html ng-app="ncf">
+    <head>
+        <script src="js/angular.min.js"></script>
+
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/custom.css" rel="stylesheet">
+        <script src="js/jquery-1.11.1.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/ui-bootstrap-tpls-0.11.0.min.js"></script>
+        <script id="template/accordion/accordion-group.html" type="text/ng-template">
+          <div class="panel panel-default">
+            <div class="panel-heading" ng-click="isOpen = !isOpen">
+                <h4 class="panel-title">
+                  <a class="accordion-toggle"  accordion-transclude="heading">{{heading}}</a>
+                </h4>
+            </div>
+            <div class="panel-collapse" collapse="!isOpen">
+                <div class="panel-body" ng-transclude></div>
+            </div>
+          </div>
+        </script>
+        
+        <script type="text/ng-template" id="SaveChangesModal.html">
+          <div class="modal-header">
+            <h3 class="modal-title">Unsaved changes</h3>
+          </div>
+          <div class="modal-body">
+            Some changes made on Technique '{{technique.name}}' were not saved.
+            If you switch before saving, all your changes will be lost.
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
+            <button class="btn btn-default" ng-click="discard()">Discard Changes</button>
+            <button class="btn btn-default" ng-click="save()">Save Changes</button>
+          </div>
+        </script>
+        <script src="js/ncf.js" ></script>
+    </head>
+    <body ng-controller="ncf-builder">
+        <div role="navigation" class="navbar navbar-inverse navbar-static-top">
+            <div>
+                <div class="navbar-header">
+                    <button data-target=".navbar-ex1-collapse" data-toggle="collapse" class="navbar-toggle" type="button">
+                        <span class="sr-only">Toggle navigation</span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                        <span class="icon-bar"></span>
+                    </button>
+                    <a class="navbar-brand">ncf builder</a>
+                </div>
+                <div class="collapse navbar-collapse navbar-ex1-collapse">
+                    <ul class="nav navbar-nav">
+                        <li class="active">
+                            <a >Create and modify your own ncf technique</a>
+                        </li>
+                    </ul>
+                    <ul class="nav navbar-nav navbar-right">
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+            
+            
+        <div  class="container Override row fill" ng-if="authenticated" >
+            <div class="col-md-2 ncf_col" style=" border-right:5px #DDDDDD solid; ">
+                <div class="title">Library</div>
+                <h3 >Techniques</h3>
+                <table class="table table-hover table-condensed table-ncf" >
+                    <thead>
+                        <tr>
+                            <th colspan=2>
+                                <div class="input-group input-group-sm pull-left" style="width:55%">
+                                    <span class="input-group-addon" style="padding:2px;"><span class="glyphicon glyphicon-search"></span></span>
+                                    <input type="text" class="form-control" placeholder="Filter" ng-model="searchText.name" style="padding:2px">
+                                </div>
+                                <button ng-click="newTechnique()" class="btn btn-xs btn-default pull-right" style="height:30px;"><span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>New</button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,$index)" >
+                            <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle; padding: 0 5px">
+                                <span class="col-md-10">{{technique.name}} </span>
+                            </td>
+                            <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle">
+                                <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelected(technique), 'glyphicon-chevron-right': !isSelected(technique)}"></i>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="col-md-5 ncf_col"  ng-if="selectedTechnique"  style="border-right:5px #DDDDDD solid; padding-left: 0px;" >
+                <form class="form-horizontal editForm" name="editForm" style="margin-bottom:70px;padding-left: 15px;">
+                    <div class="title">Technique</div>
+                    <h3 >{{originalTechnique.name}}</h3>
+                    <accordion>
+                        <accordion-group ng-init="isopen = true" is-open="isopen">
+                            <accordion-heading>
+                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                                General information
+                            </accordion-heading>
+                            <div class="form-group">
+                                <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
+                                <div class="col-sm-8">
+                                    <input  type="text" id="techniqueName" class="form-control" ng-model="selectedTechnique.name" placeholder="Technique Name">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="techniqueDescription" class="col-sm-3 control-label">Description:</label>
+                                <div class="col-sm-8">
+                                    <textarea class="form-control" id="techniqueDescription" rows="2" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <strong class="col-sm-3 text-right">Version:</strong>
+                                <div class="col-sm-8">{{selectedTechnique.version}}</div>
+                            </div>
+                        </accordion-group>
+                    </accordion>
+                    <ul class="list-unstyled" >
+                        <li ng-click="selectMethod(method_call,$index)" ng-repeat="method_call in selectedTechnique.method_calls track by $index" class="panel-margin-top btn btn-block btn-default" ng-class="{'active': isSelectedMethod(method_call)}">
+                            <div class="panel-heading" style="overflow:hidden">
+                                <h4 class="panel-title">
+                                    <small class="glyphicon glyphicon-asterisk pull-left" style="margin-right: 4px;" ng-hide="isUnchangedMethod(method_call)"></small>
+                                    <span class="pull-left"> {{getMethodName(method_call)}} </span>
+                                    <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
+                                    <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin  method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
+                                    <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
+                                    <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
+                                    </h4>
+                                    <br/>
+                                    <h5 class="pull-left" style="margin-top:3px; margin-bottom:0px;" > <i class="glyphicon glyphicon-cog"></i> {{getClassPrefixValue(method_call)}}</h5><br/>
+                                    <h4 style="margin-top:4px" ><small class="pull-left" > <i class="glyphicon glyphicon-info-sign"></i> {{getMethodDescription(method_call)}}</small>
+                                </h4>
+                            </div>
+                        </li>
+                    </ul>
+                </form>
+
+                <div class="col-md-5" style="text-align: center; background-color: white; position: fixed; bottom: 0px; padding-top: 10px; border-left-width: 0px; margin-left: 0px; padding-bottom: 10px; border-top:5px #DDDDDD solid; border-right:5px #DDDDDD solid;">
+                    <div ng-click="openMethods()"  class="btn btn-default" ng-class="{'active': addNew}">
+                        <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
+                        Add methods
+                    </div>
+                    <button ng-disabled="originalTechnique === undefined" class="btn btn-default" ng-click="deleteTechnique()">Delete</button>
+                    <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default" ng-click="resetTechnique()">Reset</button>
+                    <button ng-disabled="editForm.$invalid || isUnchanged(selectedTechnique)" class="btn btn-default" ng-click="saveTechnique()">Save</button>
+                </div>
+            </div>
+
+
+
+
+            <div class="col-md-5 ncf_col"style="vertical-align:top;" ng-if="selectedMethod">
+                <div class="title">Method</div>
+                <h3 >{{getMethodName(selectedMethod)}}
+                    <button ng-disabled="isUnchangedMethod(selectedMethod)" class="btn btn-default" ng-click="resetMethod()">Reset</button>
+                </h3>
+                <accordion>
+                    <accordion-group ng-init="isopen = false" is-open="isopen">
+                        <accordion-heading>
+                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                            Conditions
+                        </accordion-heading>
+                        <div class="form-group" style="margin: 15px 10px">
+                            <label for="class_context">CFEngine class context:</label>
+                            <input  type="text" id="class_context"  class="form-control" ng-model="selectedMethod.class_context" placeholder="">
+                        </div>
+                        </accordion-group>
+                    </accordion>
+                <accordion >
+                    <accordion-group ng-init="isopen = true" is-open="isopen">
+                        <accordion-heading>
+                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                            Parameters
+                        </accordion-heading>
+                        <div class="form-group" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
+                            <label for="{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
+                            <input  type="text" id="{{$index}}"  class="form-control" ng-model="selectedMethod.args[$index]" placeholder="">
+                        </div>
+                        </accordion-group>
+                    </accordion>
+            </div>
+
+            <div class="col-md-5 ncf_col" ng-if="addNew" >
+                <div class="row">
+                    <div class="col-md-9">
+                        <div class="title">Library</div>
+                        <h3 >Generic methods</h3>
+                        <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
+                            <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}} </h4>
+                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default">
+                                <div class="panel-heading" style="overflow:hidden">
+                                    <h4 class="panel-title">
+                                        <span class="pull-left"> {{method.name}} </span>
+                                        <br/>
+                                        <small class="pull-left" style="margin-top:4px" > <i class="glyphicon glyphicon-info-sign"></i> {{method.description}}</small>
+                                    </h4>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-3" class="bs-sidebar navbar" >
+                        <ul class="nav bs-sidenav" style="position:fixed; margin-top:60px;">
+                            <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
+                                <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
