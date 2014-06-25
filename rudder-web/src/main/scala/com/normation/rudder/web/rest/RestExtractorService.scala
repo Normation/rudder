@@ -61,13 +61,14 @@ import com.normation.rudder.domain.workflows._
 import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.services.queries.JsonQueryLexer
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
   , readDirective        : RoDirectiveRepository
   , readGroup            : RoNodeGroupRepository
   , techniqueRepository  : TechniqueRepository
-  , queryParser          : CmdbQueryParser
+  , queryParser          : CmdbQueryParser with JsonQueryLexer
   , userPropertyService  : UserPropertyService
   , workflowService      : WorkflowService
 ) extends Loggable {
@@ -509,11 +510,12 @@ case class RestExtractorService (
     for {
       name        <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
       description <- extractOneValueJson(json, "description")()
-      enabled     <- extractOneValueJson(json, "enabled")( convertToBoolean)
-      dynamic     <- extractOneValueJson(json, "dynamic")( convertToBoolean)
-      query       <- extractOneValueJson(json, "query")(convertToQuery)
+      enabled     <- extractJsonBoolean(json, "enabled")
+      dynamic     <- extractJsonBoolean(json, "dynamic")
+      stringQuery <- queryParser.jsonParse(json \\ "query")
+      query       <- queryParser.parse(stringQuery)
     } yield {
-      RestGroup(name,description,query,dynamic,enabled)
+      RestGroup(name,description,Some(query),dynamic,enabled)
     }
   }
 
