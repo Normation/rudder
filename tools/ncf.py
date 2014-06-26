@@ -18,7 +18,7 @@ import sys
 # Verbose output
 VERBOSE = 0
 
-dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services" ]
+dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_knowledge", "50_techniques", "60_services", "ncf-hooks.d" ]
 
 tags = {}
 tags["common"] = ["bundle_name", "bundle_args"]
