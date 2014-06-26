@@ -93,7 +93,8 @@ class Boot extends Loggable {
 
     //exclude Rudder doc from context-path rewriting
     LiftRules.excludePathFromContextPathRewriting.default.set(() => (path:String) => {
-      path.startsWith("/rudder-doc")
+      val noRedirectPaths= "/rudder-doc" :: "/ncf" :: "/ncf-builder" :: Nil
+      noRedirectPaths.exists(path.startsWith)
     })
 
     // REST API
