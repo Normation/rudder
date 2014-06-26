@@ -351,7 +351,7 @@ function jqCheckAll( id, name )
 function correctButtons() {
 	$("button, input:submit", "form").button();
 	    
-	$("button", "").button();
+	$(":button").button();
 	    
 	$("button, input:submit, a", ".whoUser").button();
 		
