@@ -14,6 +14,7 @@ import json
 import os.path
 import shutil
 import sys
+import subprocess
 
 # Verbose output
 VERBOSE = 0
@@ -214,6 +215,7 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
   filenames = get_all_techniques_filenames(alt_path)
 
   for file in filenames:
+            
     content = open(file).read()
     try:
       metadata = parse_technique_metadata(content)
@@ -229,6 +231,26 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
 
   return all_metadata
 
+def get_hooks(prefix, action, path):
+  """Find all hooks file in directory that use the prefix and sort them"""
+  # Do not match the following extension, but all other and those that extends (ie exe)
+  filtered_extensions = "(?!ex$|example$|disable$|disabled$|rpmsave$|rpmnew$)[^\.]+$"
+
+  # Full regexp is prefix + action + hooks_name + filteredExtension
+  regexp = prefix+"\."+action+"\..*\."+filtered_extensions
+
+  files = [f for f in os.listdir(path) if re.match(regexp, f)]
+
+  return sorted(files)
+
+def execute_hooks(prefix, action, path, bundle_name):
+  """Execute all hooks prefixed by prefix.action from path, all hooks take path and bundle_name as parameter"""
+  hooks_path = os.path.join(path, "ncf-hooks.d")
+  hooks = get_hooks(prefix, action, hooks_path)
+  for hook in hooks:
+    hookfile = os.path.join(hooks_path,hook)
+    subprocess.call([hookfile,path,bundle_name])
+
 def delete_technique(technique_name, alt_path=""):
   """Delete a technique directory contained in a path"""
   if alt_path == "":
@@ -236,8 +258,13 @@ def delete_technique(technique_name, alt_path=""):
   else:
     path = alt_path
   try:
+    # Execute pre hooks
+    execute_hooks("pre", "delete_technique", path, technique_name)
+    # Delete technique file
     filename = os.path.realpath(os.path.join(path, "50_techniques", technique_name))
     shutil.rmtree(filename)
+    # Execute post hooks
+    execute_hooks("post", "delete_technique", path, technique_name)
   except Exception, e:
     message = "Could not write technique '"+technique_name+"' from path "+path+", cause is: "+str(e)
     raise NcfError(message)
@@ -248,14 +275,36 @@ def write_technique(technique_metadata, alt_path = ""):
     path = os.path.join(get_root_dir(),"tree")
   else:
     path = alt_path
+
   try:
-    filename = os.path.realpath(os.path.join(path, "50_techniques", technique_metadata['bundle_name'], technique_metadata['bundle_name']+".cf"))
+    
+    # Check if file exists
+    bundle_name = technique_metadata['bundle_name']
+    filename = os.path.realpath(os.path.join(path, "50_techniques", bundle_name, bundle_name+".cf"))
+    # Create parent directory
     if not os.path.exists(os.path.dirname(filename)):
+      # parent directory does not exist, we create the technique and its parent directory
+      action_prefix = "create"
       os.makedirs(os.path.dirname(filename))
-    file = open(filename,"w")
+    else:
+      # Parent directory exists, we modify the technique
+      action_prefix = "modify"
+
+    action = "(write|"+action_prefix+")_technique"
+
+    # Execute pre hooks
+    execute_hooks("pre", action, path, bundle_name)
+
+    # Write technique file
     content = generate_technique_content(technique_metadata)
+    file = open(filename,"w")
+    
     file.write(content)
     file.close()
+
+    # Execute post hooks
+    execute_hooks("post", action, path, bundle_name)
+
   except Exception, e:
     if not 'bundle_name' in technique_metadata:
         technique_name = ""

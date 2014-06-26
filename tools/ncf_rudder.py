@@ -27,6 +27,18 @@ def write_all_techniques_for_rudder(root_path):
      print("Error: Unable to create Rudder Technique files related to ncf Technique "+technique+", skipping... (" + str(e) + ")")
      continue
 
+def write_one_technique_for_rudder(destination_path, bundle_name):
+  write_category_xml(destination_path)
+  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')
+  if bundle_name in techniques.keys():
+    try:
+      metadata = techniques[bundle_name]
+      write_technique_for_rudder(destination_path, metadata)
+    except Exception, e:
+     print("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+" (" + str(e) + ")")
+  else:
+     print("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+", cannot find ncf Technique "+bundle_name)
+
 def get_category_xml():
   """Create a category.xml content to be inserted in the ncf root directory"""
 
@@ -222,6 +234,7 @@ def usage():
   print("Available commands:")
   print(" - canonify_expected_reports <source file> <destination file>")
   print(" - rudderify_techniques <destination path>")
+  print(" - rudderify_technique <destination path> <bundle_name>")
 
 if __name__ == '__main__':
 
@@ -233,6 +246,8 @@ if __name__ == '__main__':
     canonify_expected_reports(sys.argv[2], sys.argv[3])
   elif sys.argv[1] == "rudderify_techniques":
     write_all_techniques_for_rudder(sys.argv[2])
+  elif sys.argv[1] == "rudderify_technique":
+    write_one_technique_for_rudder(sys.argv[2],sys.argv[3])
   else:
     usage()
     exit(1)
