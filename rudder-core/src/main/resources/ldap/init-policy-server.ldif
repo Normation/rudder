@@ -63,7 +63,6 @@ cn: Rudder root policy server
 lastUpdateTimestamp: 20101026130817+0200
 nodeHostname: %%POLICY_SERVER_HOSTNAME%%
 localAdministratorAccountName: root
-#agentsName: Nova
 agentName: Community
 policyServerId: root
 isPolicyServer: TRUE
