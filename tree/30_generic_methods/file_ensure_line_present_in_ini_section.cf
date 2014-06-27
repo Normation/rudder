@@ -32,8 +32,24 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
 {
   vars:
       "class_prefix" string => canonify("file_ensure_line_present_in_ini_section_${file}");
+      "section_and_blank_line" string => "[${section}]
+";
+
+  classes:
+      # Check if the section exist: if not, a class will be raised to add it with a blank line.
+      "section_absent"  not => regline("^\[${section}\]$","${file}");
 
   files:
+      # If the section is not present in the file, firstly it will be added
+      # with a blank line in order to be catched for the lines to add after it.
+      "${file}"
+        create        => "true",
+        edit_line     => ncf_insert_block("${section_and_blank_line}"),
+        edit_defaults => no_backup,
+        ifvarclass    => "section_absent",
+        comment       => "Add section to file with a blank line";
+
+      # Add the missing lines after the section.
       "${file}"
         create        => "true",
         edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
