@@ -60,6 +60,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
+  // Define path by getting url params now
+  $scope.setPath();
+
   // Define hash location url, this will make the page scroll to the good element since we use $anchorScroll
   $scope.scroll = function(id) {
     $location.hash(id);
