@@ -14,7 +14,10 @@ import json
 import os.path
 import shutil
 import sys
-import subprocess
+import os
+
+# Additionnal path to look for cf-promises
+additional_path = ["/opt/rudder/bin","/usr/sbin","/usr/local"]
 
 # Verbose output
 VERBOSE = 0
@@ -41,7 +44,12 @@ def get_root_dir():
 def check_output(command):
     if VERBOSE == 1:
         print "VERBOSE: About to run command '" + " ".join(command) + "'"
-    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    if len(additional_path) == 0:
+      env_path = os.environ['PATH']
+    else:
+      cfpromises_path = ":".join(additional_path)
+      env_path = cfpromises_path + ":" + os.environ['PATH']
+    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env={"PATH" : env_path})
     output = process.communicate()
     retcode = process.poll()
     if retcode != 0:
