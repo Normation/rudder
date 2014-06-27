@@ -67,18 +67,18 @@ class SystemVariableServiceImpl(
   , systemVariableSpecService: SystemVariableSpecService
   , policyServerManagementService: PolicyServerManagementService
   // Variables definitions
-  , toolsFolder           : String
-  , cmdbEndPoint          : String
-  , communityPort         : Int
-  , sharedFilesFolder     : String
-  , webdavUser            : String
-  , webdavPassword        : String
-  , syslogPort            : Int
-  , rudderServerRoleLdap  : String
+  , toolsFolder              : String
+  , cmdbEndPoint             : String
+  , communityPort            : Int
+  , sharedFilesFolder        : String
+  , webdavUser               : String
+  , webdavPassword           : String
+  , syslogPort               : Int
+  , rudderServerRoleLdap     : String
   , rudderServerRoleInventoryEndpoint: String
-  , rudderServerRoleDb    : String
-  , rudderServerRoleFront : String
-  , rudderServerRoleWebapp: String
+  , rudderServerRoleDb       : String
+  , rudderServerRoleRelayTop : String
+  , rudderServerRoleWeb      : String
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
   , getSkipIdentify : () => Box[Boolean]
@@ -101,7 +101,7 @@ class SystemVariableServiceImpl(
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
 
-  // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleFront
+  // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleRelayTop
   // if autodetect, then it is not defined, otherwise we parse it
   val AUTODETECT_KEYWORD="autodetect"
   def parseRoleContent(value: String) : Option[Iterable[String]] = {
@@ -111,10 +111,10 @@ class SystemVariableServiceImpl(
     }
   }
 
-  lazy val definedRudderServerRoleLdap  = parseRoleContent(rudderServerRoleLdap)
-  lazy val definedRudderServerRoleDb    = parseRoleContent(rudderServerRoleDb)
-  lazy val definedRudderServerRoleFront = parseRoleContent(rudderServerRoleFront)
-  lazy val definedRudderServerRoleWebapp = parseRoleContent(rudderServerRoleWebapp)
+  lazy val definedRudderServerRoleLdap     = parseRoleContent(rudderServerRoleLdap)
+  lazy val definedRudderServerRoleDb       = parseRoleContent(rudderServerRoleDb)
+  lazy val definedRudderServerRoleRelayTop = parseRoleContent(rudderServerRoleRelayTop)
+  lazy val definedRudderServerRoleWeb      = parseRoleContent(rudderServerRoleWeb)
   lazy val definedRudderServerRoleInventoryEnpoint = parseRoleContent(rudderServerRoleInventoryEndpoint)
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
@@ -199,21 +199,21 @@ class SystemVariableServiceImpl(
         case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-db"))
       }
 
-      val nodesWithRoleFront = definedRudderServerRoleFront match {
+      val nodesWithRoleRelayTop = definedRudderServerRoleRelayTop match {
         case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-front"))
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-relay-top"))
       }
 
-      val nodesWithRoleWebapp = definedRudderServerRoleWebapp match {
+      val nodesWithRoleWeb = definedRudderServerRoleWeb match {
         case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-webapp"))
+        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-web"))
       }
 
       writeNodesWithRole(nodesWithRoleLdap, "rudder-ldap") +
       writeNodesWithRole(nodesWithRoleInventoryEndpoint, "rudder-inventory-endpoint") +
       writeNodesWithRole(nodesWithRoleDb, "rudder-db") +
-      writeNodesWithRole(nodesWithRoleFront, "rudder-front") +
-      writeNodesWithRole(nodesWithRoleWebapp, "rudder-webapp")
+      writeNodesWithRole(nodesWithRoleRelayTop, "rudder-relay-top") +
+      writeNodesWithRole(nodesWithRoleWeb, "rudder-web")
     } else {
       ""
     }
