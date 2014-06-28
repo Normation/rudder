@@ -262,8 +262,8 @@ object RudderConfig extends Loggable {
   val RUDDER_SERVER_ROLES_LDAP  = config.getString("rudder.server-roles.ldap")
   val RUDDER_SERVER_ROLES_INVENTORY_ENDPOINT = config.getString("rudder.server-roles.inventory-endpoint")
   val RUDDER_SERVER_ROLES_DB    = config.getString("rudder.server-roles.db")
-  val RUDDER_SERVER_ROLES_FRONT = config.getString("rudder.server-roles.front")
-  val RUDDER_SERVER_ROLES_WEBAPP= config.getString("rudder.server-roles.webapp")
+  val RUDDER_SERVER_ROLES_FRONT = config.getString("rudder.server-roles.rudder-relay-top")
+  val RUDDER_SERVER_ROLES_WEBAPP= config.getString("rudder.server-roles.web")
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"

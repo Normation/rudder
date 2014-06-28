@@ -478,7 +478,7 @@ rudder.auth.ldap.filter=(&(uid={0})(objectclass=person))
 #
 # Rudder roles definition
 #
-# Allow to define which hosts have the roles ldap, db and front when
+# Allow to define which hosts have the roles ldap, db and rudder-relay-top when
 # using a split architecture of Rudder
 # The file containing the roles will be generated in:
 # /var/rudder/configuration-repository/inputs/rudder-server-roles.conf
@@ -497,11 +497,11 @@ rudder.server-roles.inventory-endpoint=autodetect
 # The hosts with the db role
 rudder.server-roles.db=autodetect
 
-# The hosts with the front role
-rudder.server-roles.front=autodetect
+# The hosts with the rudder-relay-top role
+rudder.server-roles.rudder-relay-top=autodetect
 
 # The hosts with the webapp role
-rudder.server-roles.webapp=autodetect
+rudder.server-roles.web=autodetect
 
 #########################
 # DEPRECATED properties #############################################################
