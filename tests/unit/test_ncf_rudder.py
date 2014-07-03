@@ -19,6 +19,18 @@ class TestNcfRudder(unittest.TestCase):
     method_calls = ncf.parse_technique_methods(self.test_technique_file)
     self.technique_metadata['method_calls'] = method_calls
 
+    self.test_reporting = os.path.realpath('test_technique_reporting.cf')
+    self.reporting_content = open(self.test_reporting).read()
+    self.reporting_metadata = ncf.parse_technique_metadata(self.reporting_content)
+    reporting_method_calls = ncf.parse_technique_methods(self.test_reporting)
+    self.reporting_metadata['method_calls'] = reporting_method_calls
+
+    self.test_any_technique = os.path.realpath('test_technique_any.cf')
+    self.any_technique_content = open(self.test_any_technique).read()
+    self.any_technique_metadata = ncf.parse_technique_metadata(self.any_technique_content)
+    any_technique_method_calls = ncf.parse_technique_methods(self.test_any_technique)
+    self.any_technique_metadata['method_calls'] = any_technique_method_calls
+
     self.test_metadata_xml_file = os.path.realpath('test_metadata.xml')
     self.test_metadata_xml_content = open(self.test_metadata_xml_file).read()
 
@@ -36,6 +48,43 @@ class TestNcfRudder(unittest.TestCase):
     root_path = '/tmp/ncf_rudder_tests'
     path = ncf_rudder.get_path_for_technique(root_path, self.technique_metadata)
     self.assertEquals(os.path.join(root_path, 'bla', '0.1'), path)
+
+  def test_rudder_reporting_file(self):
+    root_path = '/tmp/ncf_rudder_tests_reporting'
+    ncf_rudder.write_technique_for_rudder(root_path, self.reporting_metadata)
+    result = os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.st")))
+    self.assertTrue(result)
+
+  def test_any_technique_reporting_file(self):
+    root_path = '/tmp/ncf_rudder_tests_any'
+    ncf_rudder.write_technique_for_rudder(root_path, self.any_technique_metadata)
+    result = not os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.st")))
+    self.assertTrue(result)
+
+  def test_rudder_reporting_content(self):
+
+    expected_result = []
+    expected_result.append('bundle agent bla_rudder_reporting')
+    expected_result.append('{')
+    expected_result.append('  methods:')
+    expected_result.append('    !(debian)::')
+    expected_result.append('      "dummy_report" usebundle => _classes_noop("service_start_apache2");')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "service_start_apache2");')
+    expected_result.append('    !(service_start_apache2_repaired)::')
+    expected_result.append('      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "package_install_openssh_server");')
+    expected_result.append('    !(!service_start_apache2_repaired.debian)::')
+    expected_result.append('      "dummy_report" usebundle => _classes_noop("command_execution__bin_date");')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "command_execution__bin_date");')
+    expected_result.append('}')
+
+    # Join all lines with \n
+    result = '\n'.join(expected_result)+"\n"
+
+    generated_result = ncf_rudder.generate_rudder_reporting(self.reporting_metadata)
+
+    self.assertEquals(result, generated_result)
+
 
   def test_category_xml_content(self):
 

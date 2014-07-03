@@ -77,13 +77,17 @@ def write_technique_for_rudder(root_path, technique):
   path = get_path_for_technique(root_path,technique)
   if not os.path.exists(path):
     os.makedirs(path)
-  write_xml_metadata_file(path,technique)
+  # We don't need to create rudder_reporting.st if all class context are any
+  include_rudder_reporting = not all(method_call['class_context'] == 'any' for method_call in technique["method_calls"])
+  write_xml_metadata_file(path,technique,include_rudder_reporting)
   write_expected_reports_file(path,technique)
+  if include_rudder_reporting:
+    write_rudder_reporting_file(path,technique)
 
-def write_xml_metadata_file(path,technique):
+def write_xml_metadata_file(path, technique, include_rudder_reporting = False):
   """ write metadata.xml file from a technique, to a path """
   file = open(os.path.realpath(os.path.join(path, "metadata.xml")),"w")
-  content = get_technique_metadata_xml(technique)
+  content = get_technique_metadata_xml(technique, include_rudder_reporting)
   file.write(content)
   file.close()
 
@@ -94,7 +98,14 @@ def write_expected_reports_file(path,technique):
   file.write(content)
   file.close()
 
-def get_technique_metadata_xml(technique_metadata):
+def write_rudder_reporting_file(path,technique):
+  """ write rudder_reporting.st file from a technique, to a path """
+  file = open(os.path.realpath(os.path.join(path, "rudder_reporting.st")),"w")
+  content = generate_rudder_reporting(technique)
+  file.write(content)
+  file.close()
+
+def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = False):
   """Get metadata xml for a technique as string"""
 
   # Get all generic methods
@@ -105,7 +116,15 @@ def get_technique_metadata_xml(technique_metadata):
   content.append('  <DESCRIPTION>'+technique_metadata['description']+'</DESCRIPTION>')
   content.append('  <BUNDLES>')
   content.append('    <NAME>'+ technique_metadata['bundle_name'] + '</NAME>')
+  if include_rudder_reporting:
+    content.append('    <NAME>'+ technique_metadata['bundle_name'] + '_rudder_reporting</NAME>')
   content.append('  </BUNDLES>')
+
+  if include_rudder_reporting:
+    content.append('  <TMLS>')
+    content.append('    <TML name="rudder_reporting"/>')
+    content.append('  </TMLS>')
+
   content.append('  <SECTIONS>')
 
   method_calls = technique_metadata["method_calls"]  
@@ -228,6 +247,44 @@ def canonify_expected_reports(expected_reports, dest):
     fields = line.strip().split(";;")
     fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1])
     dest_file.write(";;".join(fields) + "\n")
+
+
+def generate_rudder_reporting(technique):
+  """Generate complementary reporting needed for Rudder in rudder_reporting.st file"""
+  # Get all generic methods
+  generic_methods = ncf.get_all_generic_methods_metadata()
+
+  content = []
+  content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting')
+  content.append('{')
+  content.append('  methods:')
+
+  # Handle method calls
+  technique_name = technique['bundle_name']
+  # Filter calls so we only have those who are not using a any class_context
+  filter_calls = [ method_call for method_call in technique["method_calls"] if method_call['class_context'] != "any" ]
+
+  for method_call in filter_calls:
+
+    content.append('    !('+method_call['class_context']+')::')
+
+    method_name = method_call['method_name']
+    generic_method = generic_methods[method_name]
+
+    key_value = method_call["args"][generic_method["class_parameter_id"]-1]
+    key_value_canonified = re.sub("[^a-zA-Z0-9_]", "_", key_value)
+
+    class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
+
+    content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
+    content.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "'+class_prefix+'");')
+
+  content.append('}')
+
+  # Join all lines with \n to get a pretty CFEngine file
+  result =  '\n'.join(content)+"\n"
+
+  return result
 
 def usage():
   print("Usage: ncf_rudder <command> [arguments]")
