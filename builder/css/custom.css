@@ -211,3 +211,24 @@ html, body, .Override.container, .Override .ncf_col
 #techniqueDescription {
     max-width: 100%
 }
+
+.input-xs {
+    border-radius: 3px;
+    font-size: 13px;
+    height: 20px;
+    line-height: 1.5;
+    padding: 0 10px;
+}
+
+.fixed-footer {
+    text-align: center;
+    background-color: white;
+    position: fixed;
+    bottom: 0px;
+    padding-top: 10px;
+    border-left-width: 0px;
+    margin-left: 0px;
+    padding-bottom: 10px;
+    border-top:5px #DDDDDD solid;
+    border-right:5px #DDDDDD solid;
+}
