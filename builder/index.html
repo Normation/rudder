@@ -123,16 +123,25 @@
                         <li ng-click="selectMethod(method_call,$index)" ng-repeat="method_call in selectedTechnique.method_calls track by $index" class="panel-margin-top btn btn-block btn-default" ng-class="{'active': isSelectedMethod(method_call)}">
                             <div class="panel-heading" style="overflow:hidden">
                                 <h4 class="panel-title">
-                                    <small class="glyphicon glyphicon-asterisk pull-left" style="margin-right: 4px;" ng-hide="isUnchangedMethod(method_call)"></small>
-                                    <span class="pull-left"> {{getMethodName(method_call)}} </span>
+                                    <span class="pull-left"> {{getMethodName(method_call)}}
+                                        <a ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
+                                            <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
+                                        </a>
+                                    </span>
                                     <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
                                     <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin  method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
                                     <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
                                     <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
-                                    </h4>
-                                    <br/>
-                                    <h5 class="pull-left" style="margin-top:3px; margin-bottom:0px;" > <i class="glyphicon glyphicon-cog"></i> {{getClassPrefixValue(method_call)}}</h5><br/>
-                                    <h4 style="margin-top:4px" ><small class="pull-left" > <i class="glyphicon glyphicon-info-sign"></i> {{getMethodDescription(method_call)}}</small>
+                                </h4>
+                                <br style="clear:both"/>
+                                <h5 class="pull-left method-margin" >
+                                    {{getClassPrefixValue(method_call)}}
+                                </h5>
+                                <br style="clear:both"/>
+                                <h4 class="pull-left method-margin">
+                                    <small class="pull-left" >
+                                        {{getMethodDescription(method_call)}}
+                                    </small>
                                 </h4>
                             </div>
                         </li>
@@ -194,9 +203,15 @@
                             <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default">
                                 <div class="panel-heading" style="overflow:hidden">
                                     <h4 class="panel-title">
-                                        <span class="pull-left"> {{method.name}} </span>
-                                        <br/>
-                                        <small class="pull-left" style="margin-top:4px" > <i class="glyphicon glyphicon-info-sign"></i> {{method.description}}</small>
+                                        <span class="pull-left"> {{method.name}}
+                                            <a ng-href="http://www.ncf.io/pages/reference.html#{{method.bundle_name}}">
+                                                <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
+                                            </a>
+                                        </span>
+                                        <br style="clear:both"/>
+                                        <small class="pull-left method-margin" >
+                                            {{method.description}}
+                                        </small>
                                     </h4>
                                 </div>
                             </li>
