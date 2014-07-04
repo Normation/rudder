@@ -347,7 +347,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Save a technique
   $scope.saveTechnique = function() {
     if ($scope.selectedTechnique.bundle_name === undefined) {
-      var bundle_name = $scope.selectedTechnique.name.replace(/ /g,"_");
+      // Replace all non alpha numeric character (\W is [^a-zA-Z_0-9]) by _ 
+      var bundle_name = $scope.selectedTechnique.name.replace(/\W/g,"_");
       $scope.selectedTechnique.bundle_name = bundle_name;
     }
     var data = { "path" :  $scope.path, "technique" : $scope.toTechNcf($scope.selectedTechnique) }
