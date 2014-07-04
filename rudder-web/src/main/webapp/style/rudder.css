@@ -2894,4 +2894,12 @@ li.targetExcluded a{
     border: 1px solid #DDDDDD !important;
     color: #333333 !important;
 }
+
+.techniqueEditorLink {
+	float:right;
+	text-decoration:none;
+	font-weight:bold;
+	font-size:13px;
+	margin-top:-5px;
+}
 }
