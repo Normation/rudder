@@ -263,6 +263,15 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
+  $scope.getMethodBundleName = function(method_call) {
+    if (method_call.method_name in $scope.generic_methods ) {
+      return $scope.generic_methods[method_call.method_name].bundle_name;
+    } else {
+      return method_call.method_name;
+    }
+  };
+
+
   // Get the desciption of a method call in definition of the generic method
   $scope.getMethodDescription = function(method_call) {
     if (method_call.method_name in $scope.generic_methods ) {
