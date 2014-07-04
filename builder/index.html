@@ -148,7 +148,7 @@
                     </ul>
                 </form>
 
-                <div class="col-md-5" style="text-align: center; background-color: white; position: fixed; bottom: 0px; padding-top: 10px; border-left-width: 0px; margin-left: 0px; padding-bottom: 10px; border-top:5px #DDDDDD solid; border-right:5px #DDDDDD solid;">
+                <div class="col-md-5 fixed-footer">
                     <div ng-click="openMethods()"  class="btn btn-default" ng-class="{'active': addNew}">
                         <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                         Add methods
@@ -160,37 +160,63 @@
             </div>
 
 
-
-
-            <div class="col-md-5 ncf_col"style="vertical-align:top;" ng-if="selectedMethod">
-                <div class="title">Method</div>
-                <h3 >{{getMethodName(selectedMethod)}}
-                    <button ng-disabled="isUnchangedMethod(selectedMethod)" class="btn btn-default" ng-click="resetMethod()">Reset</button>
-                </h3>
-                <accordion>
-                    <accordion-group ng-init="isopen = false" is-open="isopen">
-                        <accordion-heading>
-                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
-                            Conditions
-                        </accordion-heading>
-                        <div class="form-group" style="margin: 15px 10px">
-                            <label for="class_context">CFEngine class context:</label>
-                            <input  type="text" id="class_context"  class="form-control" ng-model="selectedMethod.class_context" placeholder="">
-                        </div>
+            <div class="col-md-5 ncf_col" style="vertical-align:top; padding-left:0px;" ng-if="selectedMethod">
+                <div style="padding-left:15px;margin-bottom:95px;">
+                    <div class="title">Method</div>
+                    <h3 >{{getMethodName(selectedMethod)}}
+                        <button ng-disabled="isUnchangedMethod(selectedMethod)" class="btn btn-default" ng-click="resetMethod()">Reset</button>
+                    </h3>
+                    <accordion>
+                        <accordion-group ng-init="isopen = false" is-open="isopen">
+                            <accordion-heading>
+                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                                Conditions
+                            </accordion-heading>
+                            <div class="form-group" style="margin: 15px 10px">
+                                <label for="class_context">CFEngine class context:</label>
+                                <input  type="text" id="class_context"  class="form-control" ng-model="selectedMethod.class_context" placeholder="">
+                            </div>
+                            </accordion-group>
+                        </accordion>
+                    <accordion >
+                        <accordion-group ng-init="isopen = true" is-open="isopen">
+                            <accordion-heading>
+                                <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
+                                Parameters
+                            </accordion-heading>
+                            <div class="form-group" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
+                                <label for="{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
+                                <input  type="text" id="{{$index}}"  class="form-control" ng-model="selectedMethod.args[$index]" placeholder="">
+                            </div>
                         </accordion-group>
                     </accordion>
-                <accordion >
-                    <accordion-group ng-init="isopen = true" is-open="isopen">
-                        <accordion-heading>
-                            <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
-                            Parameters
-                        </accordion-heading>
-                        <div class="form-group" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
-                            <label for="{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
-                            <input  type="text" id="{{$index}}"  class="form-control" ng-model="selectedMethod.args[$index]" placeholder="">
+                </div>
+
+                <div class="col-md-5 fixed-footer" style="padding-top: 0; border-right:0; padding-bottom: 0;">
+                    <h4 style="text-align:left; margin-top:0px;" class="panel-title">
+                        Result classes defined by this method
+                    </h4>
+                    <form class="form-horizontal editForm" name="editForm">
+                        <div class="form-group"  style="margin-bottom:3px;margin-top:3px">
+                            <label class="col-sm-1 control-label" style="padding-top:0; font-size:13px;">Success:</label>
+                            <div class="col-sm-10" style="padding-left:25px;">
+                                <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'kept')}}" style="cursor:text">
+                            </div>
                         </div>
-                        </accordion-group>
-                    </accordion>
+                        <div class="form-group"  style="margin-bottom:3px">
+                            <label class="col-sm-1 control-label" style="padding-top:0; font-size:13px;">Repaired:</label>
+                            <div class="col-sm-10" style="padding-left:25px;">
+                                <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'repaired')}}" style="cursor:text">
+                            </div>
+                        </div>
+                        <div class="form-group" style="margin-bottom:3px">
+                            <label for="error" class="col-sm-1 control-label" style="padding-top:0; font-size:13px;">Error:</label>
+                            <div class="col-sm-10" style="padding-left:25px;">
+                                <input ng-readonly="true" type="text" id="techniqueName" class="form-control input-xs" value="{{getClassKind(selectedMethod,'error')}}" style="cursor:text">
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
 
             <div class="col-md-5 ncf_col" ng-if="addNew" >

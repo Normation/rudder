@@ -302,6 +302,14 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   }
 
+  // Get the class value generated from a class prefix and a class kind (kept,repaired,error, ...)
+  $scope.getClassKind= function(method_call,kind) {
+
+      var param = $scope.getClassPrefixValue(method_call).replace(/\W/g,"_");
+      return  $scope.getMethodBundleName(method_call)+"_"+param +"_"+kind
+  }
+
+
   // Technique actions
 
   // Remove method on specified index
