@@ -83,6 +83,7 @@ receiveDate: 19700101000000+0200
 ipHostNumber: 127.0.0.1
 agentName: Community
 publicKey: Currently not used
+rudderServerRole: rudder-web
 
 
 #######################################################################################################################
