@@ -118,13 +118,13 @@ def parse_bundlefile_metadata(content, bundle_type):
         else:
           res[tag] = match.group(1)
 
-    match = re.match("[^#]*bundle\s+agent\s+([^(]+)\(?([^)]*)\)?.*$", line)
+    match = re.match("[^#]*bundle\s+agent\s+([a-zA-Z0-9_]+)(\(([^)]+)\))?.*$", line)
     if match:
       res['bundle_name'] = match.group(1)
       res['bundle_args'] = []
 
-      if len(match.group(2)):
-        res['bundle_args'] += [x.strip() for x in match.group(2).split(',')]
+      if match.group(3) is not None and len(match.group(3)):
+        res['bundle_args'] += [x.strip() for x in match.group(3).split(',')]
 
       # Any tags should come before the "bundle agent" declaration
       break

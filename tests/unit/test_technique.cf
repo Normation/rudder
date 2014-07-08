@@ -11,8 +11,7 @@
 # @version 0.1
 #
 # Please see the online documentation for more details.
-bundle agent bla
-{
+bundle agent bla {
   vars:
     redhat::
       "apache_package_name" string => "httpd";
