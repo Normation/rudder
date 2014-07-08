@@ -68,6 +68,7 @@ import com.normation.cfclerk.services.SystemVariableSpecService
 import scala.sys.process.ProcessLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.utils.Control.boxSequence
 
 class RudderCf3PromisesFileWriterServiceImpl(
   techniqueRepository: TechniqueRepository,
@@ -115,6 +116,26 @@ class RudderCf3PromisesFileWriterServiceImpl(
   override def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[Seq[PromisesFinalMoveInfo]] = {
     val techniqueIds = allNodeConfigs.filterKeys(configToWrite.contains(_)).values.flatMap( _.getTechniqueIds ).toSet
 
+    // CFEngine will not run automatically if someone else than user can write the promise
+    def setCFEnginePermission (baseFolder:String ) : Box[String] = {
+
+      // We need to remove executable perms, then add them back only on folders (X), so no file have executable perms
+      // Then remove all permissions for group and other
+      val changePermission: scala.sys.process.ProcessBuilder = s"/usr/bin/chmod -R u-x,u+rwX,go-rwx ${baseFolder}"
+
+      // Permissions change is inside tryo, not sure if it throws exceptions, but as it interacts with IO, we cannot be sure
+      tryo { changePermission ! } match {
+        case Full(result) =>
+          if (result != 0) {
+            Failure(s"Could not change permission for base folder ${baseFolder}")
+          } else {
+            Full("OK")
+          }
+        case eb:EmptyBox =>
+          eb ?~! "cannot change permission on destination folder"
+      }
+    }
+
     for {
       templates     <- readTemplateFromFileSystem(techniqueIds)
       movedPromises <- {
@@ -143,8 +164,27 @@ class RudderCf3PromisesFileWriterServiceImpl(
                              case e: EmptyBox => return (e ?~! "Error when preparing rules for agents")
                            }
 
+
+
                          }
-                         tryo(movePromisesToFinalPosition(folders.map((x) => PromisesFinalMoveInfo(x._1.nodeInfo.id.value, x._2, x._3, x._4))))
+
+                         val moveInfo = folders.map((x) => PromisesFinalMoveInfo(x._1.nodeInfo.id.value, x._2, x._3, x._4))
+                         // Change permission on generated promise folder so CFEngine can run
+                         val permissionChanged =
+                           for {
+                             // Find all distinct generated promise folder
+                             promiseFolder <- moveInfo.map(_.newFolder).distinct
+                           } yield {
+                             setCFEnginePermission(promiseFolder)
+                           }
+
+                         boxSequence(permissionChanged) match {
+                           case Full(_) =>
+                             tryo { movePromisesToFinalPosition(moveInfo) }
+                           case eb:EmptyBox =>
+                             val fail = eb ?~! "cannot change permission on destination folder"
+                             Failure(s"Cannot move new promises to their folder, cause is: ${fail.msg}")
+                         }
                        }
       } yield {
         movedPromises
@@ -193,7 +233,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
       logger.trace("Preparing reporting information from meta technique")
       val csv = prepareReportingDataForMetaTechnique(container)
 
-      // write the promises of the current machine
+      // write the promises of the current machine and set correct permission
       for { (activeTechniqueId, preparedTemplate) <- tmls } {
         writePromisesFiles(preparedTemplate.templatesToCopy , preparedTemplate.environmentVariables , newNodeRulePath, csv)
       }
