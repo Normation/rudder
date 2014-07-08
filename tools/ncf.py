@@ -118,7 +118,7 @@ def parse_bundlefile_metadata(content, bundle_type):
         else:
           res[tag] = match.group(1)
 
-    match = re.match("[^#]*bundle\s+agent\s+([a-zA-Z0-9_]+)(\(([^)]+)\))?.*$", line)
+    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?.*$", line)
     if match:
       res['bundle_name'] = match.group(1)
       res['bundle_args'] = []
