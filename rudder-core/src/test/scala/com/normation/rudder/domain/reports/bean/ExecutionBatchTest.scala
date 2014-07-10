@@ -417,7 +417,7 @@ class ExecutionBatchTest extends Specification {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentReportType == RepairedReportType
+        , NodeId("nodeId")).reportType == RepairedReportType
     }
     "return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -433,7 +433,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").head.cptValueReportType ==  RepairedReportType
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").head.reportType ==  RepairedReportType
      }
      "return a component with the key values bar which is a success " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -443,14 +443,14 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.reportType ==  SuccessReportType
      }
 
      " with bad reports return a component globally unknwon" in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentReportType == UnknownReportType
+        , NodeId("nodeId")).reportType == UnknownReportType
      }
      "with bad reports return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -466,7 +466,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").head.cptValueReportType ==  UnknownReportType
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").head.reportType ==  UnknownReportType
      }
      "with bad reports return a component with the key values bar which is a success " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -476,7 +476,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.reportType ==  SuccessReportType
      }
 
   }
@@ -526,7 +526,7 @@ class ExecutionBatchTest extends Specification {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentReportType == RepairedReportType
+        , NodeId("nodeId")).reportType == RepairedReportType
     }
     "return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -542,14 +542,14 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == RepairedReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.reportType == RepairedReportType)
     }
 
     "with bad reports return a component globally unknown " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentReportType == UnknownReportType
+        , NodeId("nodeId")).reportType == UnknownReportType
     }
     "with bad reports return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -565,7 +565,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == UnknownReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.reportType == UnknownReportType)
     }
   }
 
@@ -613,7 +613,7 @@ class ExecutionBatchTest extends Specification {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentReportType == RepairedReportType
+        , NodeId("nodeId")).reportType == RepairedReportType
     }
     "return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -629,7 +629,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.forall(x => x.cptValueReportType == RepairedReportType)
+        , NodeId("nodeId")).componentValues.forall(x => x.reportType == RepairedReportType)
     }
   }
 
@@ -677,7 +677,7 @@ class ExecutionBatchTest extends Specification {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentReportType == RepairedReportType
+        , NodeId("nodeId")).reportType == RepairedReportType
     }
     "return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -693,7 +693,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "${sys.bla}").forall(x => x.cptValueReportType == RepairedReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "${sys.bla}").forall(x => x.reportType == RepairedReportType)
     }
     "return a component with the bar key success " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -703,13 +703,13 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.cptValueReportType == SuccessReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.reportType == SuccessReportType)
     }
     "with bad reports return a component globally unknown " in {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentReportType == UnknownReportType
+        , NodeId("nodeId")).reportType == UnknownReportType
     }
     "with bad reports return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -725,7 +725,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.cptValueReportType == SuccessReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.reportType == SuccessReportType)
     }
     "with bad reports return a component with the cfengine key as unknown " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -735,7 +735,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "${sys.bla}").forall(x => x.cptValueReportType == UnknownReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "${sys.bla}").forall(x => x.reportType == UnknownReportType)
     }
   }
 
@@ -768,27 +768,27 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
-      uniqueExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+      uniqueExecutionBatch.getNodeStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed repaired node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed error node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed unknown node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have no detailed no answer node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == NoAnswerReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
 
     "have no detailed no pending node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == PendingReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == PendingReportType).size == 0)
     }
 
     "have one detailed rule reports when we create it with one report" in {
@@ -797,27 +797,27 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed rule success directive when we create it with one success report" in {
       uniqueExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
-      uniqueExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+      uniqueExecutionBatch.getRuleStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed rule repaired directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed rule error directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed rule unknown directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have no detailed rule no answer directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
 
     "have no detailed rule no pending directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size == 0)
     }
   }
 
@@ -849,27 +849,27 @@ class ExecutionBatchTest extends Specification {
 
     "have a pending node when we create it with one wrong success report right now" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
-      uniqueExecutionBatch.getNodeStatus.head.nodeReportType == PendingReportType
+      uniqueExecutionBatch.getNodeStatus.head.reportType == PendingReportType
     }
 
     "have no detailed success node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == SuccessReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == SuccessReportType).size == 0)
     }
 
     "have no detailed repaired node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed error node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed unknown node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have no detailed no answer node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == NoAnswerReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
   }
 
@@ -904,27 +904,27 @@ class ExecutionBatchTest extends Specification {
 
     "have one unknown node when we create it with one success report" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
-      uniqueExecutionBatch.getNodeStatus.head.nodeReportType == UnknownReportType
+      uniqueExecutionBatch.getNodeStatus.head.reportType == UnknownReportType
     }
 
     "have no detailed repaired node when we create it with one extra success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed error node when we create it with  one extra success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed success node when we create it with  one extra success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == SuccessReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == SuccessReportType).size == 0)
     }
 
     "have no detailed no answer node when we create it with  one extra success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == NoAnswerReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
 
     "have no detailed no pending node when we create it with  one extra success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == PendingReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == PendingReportType).size == 0)
     }
 
     "have one rule detailed reports when we create it" in {
@@ -958,14 +958,14 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have one success node" in {
-      uniqueExecutionBatch.getNodeStatus.exists(x => x.nodeReportType == SuccessReportType)
+      uniqueExecutionBatch.getNodeStatus.exists(x => x.reportType == SuccessReportType)
     }
     "have one pending node" in {
-      uniqueExecutionBatch.getNodeStatus.exists(x => x.nodeReportType == PendingReportType)
+      uniqueExecutionBatch.getNodeStatus.exists(x => x.reportType == PendingReportType)
     }
     "have one component per node" in {
       uniqueExecutionBatch.getNodeStatus.
-            filter(x => x.nodeReportType == SuccessReportType).head.
+            filter(x => x.reportType == SuccessReportType).head.
             directives.head.components.head.componentValues.size == 1
     }
 
@@ -973,7 +973,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.size == 1
     }
     "have one pending directive" in {
-      uniqueExecutionBatch.getRuleStatus.exists(x => x.directiveReportType == PendingReportType)
+      uniqueExecutionBatch.getRuleStatus.exists(x => x.reportType == PendingReportType)
     }
     "have one success, and one pending node, in the component detail of the rule" in {
       (uniqueExecutionBatch.getRuleStatus.head.components.head.componentValues.head.nodesReport.size == 2) &&
@@ -1007,7 +1007,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.size == 1
     }
     "have one pending directive" in {
-      uniqueExecutionBatch.getRuleStatus.exists(x => x.directiveReportType == PendingReportType)
+      uniqueExecutionBatch.getRuleStatus.exists(x => x.reportType == PendingReportType)
     }
     "have one detailed rule report with a 67% compliance" in {
       uniqueExecutionBatch.getRuleStatus.head.computeCompliance must beSome(67)
@@ -1058,7 +1058,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
     }
     "have two pending directives" in {
-      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(2)
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size must beEqualTo(2)
     }
     "have detailed rule report for policy of 67%" in {
       uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(67)
@@ -1110,7 +1110,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(2)
     }
     "have two pending directives" in {
-      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(2)
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size must beEqualTo(2)
     }
     "have detailed rule report for policy of 67%" in {
       uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(67)
@@ -1161,7 +1161,7 @@ class ExecutionBatchTest extends Specification {
       uniqueExecutionBatch.getRuleStatus.size must beEqualTo(1)
     }
     "have one pending directives" in {
-      uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size must beEqualTo(1)
+      uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size must beEqualTo(1)
     }
     "have detailed rule report for policy of 33%" in {
       uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveId == new DirectiveId("policy")).head.computeCompliance must beSome(33)
@@ -1212,19 +1212,19 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       uniqueExecutionBatch.getNodeStatus.head.nodeId == NodeId("one") &&
-      uniqueExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+      uniqueExecutionBatch.getNodeStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed repaired node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed error node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed unknown node when we create it with one success report" in {
-      (uniqueExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+      (uniqueExecutionBatch.getNodeStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have one success report when we create it with one success report" in {
@@ -1236,26 +1236,26 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed rule success directive when we create it with one success report" in {
       uniqueExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
-      uniqueExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+      uniqueExecutionBatch.getRuleStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed rule repaired directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
     "have no detailed rule error directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed rule unknown directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have no detailed rule no answer directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
 
     "have no detailed rule no pending directive when we create it with one success report" in {
-      (uniqueExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+      (uniqueExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size == 0)
     }
   }
 
@@ -1295,19 +1295,19 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       sameKeyExecutionBatch.getNodeStatus.head.nodeId == NodeId("nodeId") &&
-      sameKeyExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+      sameKeyExecutionBatch.getNodeStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed repaired node when we create it with one success report" in {
-      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed error node when we create it with one success report" in {
-      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed unknown node when we create it with one success report" in {
-      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have one success report when we create it with one success report" in {
@@ -1319,26 +1319,26 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed rule success directive when we create it with one success report" in {
       sameKeyExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
-      sameKeyExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+      sameKeyExecutionBatch.getRuleStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed rule repaired directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
     "have no detailed rule error directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed rule unknown directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have no detailed rule no answer directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
 
     "have no detailed rule no pending directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size == 0)
     }
   }
   "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
@@ -1377,19 +1377,19 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       sameKeyExecutionBatch.getNodeStatus.head.nodeId == NodeId("nodeId") &&
-      sameKeyExecutionBatch.getNodeStatus.head.nodeReportType == SuccessReportType
+      sameKeyExecutionBatch.getNodeStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed repaired node when we create it with one success report" in {
-      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == RepairedReportType).size == 0)
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
 
     "have no detailed error node when we create it with one success report" in {
-      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == ErrorReportType).size == 0)
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed unknown node when we create it with one success report" in {
-      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.nodeReportType == UnknownReportType).size == 0)
+      (sameKeyExecutionBatch.getNodeStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have one success report when we create it with one success report" in {
@@ -1401,26 +1401,26 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed rule success directive when we create it with one success report" in {
       sameKeyExecutionBatch.getRuleStatus.head.directiveId == DirectiveId("policy") &&
-      sameKeyExecutionBatch.getRuleStatus.head.directiveReportType == SuccessReportType
+      sameKeyExecutionBatch.getRuleStatus.head.reportType == SuccessReportType
     }
 
     "have no detailed rule repaired directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == RepairedReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == RepairedReportType).size == 0)
     }
     "have no detailed rule error directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == ErrorReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == ErrorReportType).size == 0)
     }
 
     "have no detailed rule unknown directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == UnknownReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == UnknownReportType).size == 0)
     }
 
     "have no detailed rule no answer directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == NoAnswerReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == NoAnswerReportType).size == 0)
     }
 
     "have no detailed rule no pending directive when we create it with one success report" in {
-      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.directiveReportType == PendingReportType).size == 0)
+      (sameKeyExecutionBatch.getRuleStatus.filter(x => x.reportType == PendingReportType).size == 0)
     }
   }
 
@@ -1462,7 +1462,7 @@ class ExecutionBatchTest extends Specification {
       executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentReportType == SuccessReportType
+        , NodeId("nodeId")).reportType == SuccessReportType
     }
     "return a component with two key values " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -1478,7 +1478,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "/var/cfengine").forall(x => x.cptValueReportType == NotApplicableReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "/var/cfengine").forall(x => x.reportType == NotApplicableReportType)
     }
     "return a component with the bar key success " in {
       executionBatch.checkExpectedComponentWithReports(
@@ -1488,7 +1488,7 @@ class ExecutionBatchTest extends Specification {
        executionBatch.checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.cptValueReportType == SuccessReportType)
+        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").forall(x => x.reportType == SuccessReportType)
     }
   }
 
