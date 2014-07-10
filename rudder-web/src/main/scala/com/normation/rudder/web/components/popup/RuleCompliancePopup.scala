@@ -104,7 +104,7 @@ class RuleCompliancePopup(
                 <li><b>Component:</b> {c.component}</li>
               </ul>
             </div>
-          case v@ComponentValueRuleStatusReport(directiveId,component,value,unexpanded,_,_) =>
+          case v@ComponentValueRuleStatusReport(directiveId,component,value,unexpanded,_) =>
             <div>
               <ul>
                 <li> <b>Rule:</b> {rule.name}</li>
@@ -265,7 +265,7 @@ class RuleCompliancePopup(
    */
   def getDirectiveIdFromReport (report: RuleStatusReport): DirectiveId = {
     report match {
-      case DirectiveRuleStatusReport(directiveId,_, _) =>
+      case DirectiveRuleStatusReport(directiveId,_) =>
         directiveId
       case component : ComponentRuleStatusReport =>
         component.directiveId

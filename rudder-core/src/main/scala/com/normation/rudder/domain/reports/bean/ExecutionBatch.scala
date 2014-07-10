@@ -177,7 +177,6 @@ case class ConfigurationExecutionBatch(
           directiveStatusReport = DirectiveStatusReport(
               expectedDirective.directiveId
             , componentsStatus
-            , ReportType.getWorseType(componentsStatus.map(x => x.componentReportType))
             , Seq()
           )
 
@@ -189,7 +188,6 @@ case class ConfigurationExecutionBatch(
             nodeId
           , ruleId
           , directiveStatusReports
-          , ReportType.getWorseType(directiveStatusReports.map(x => x.directiveReportType))
           , Seq()
         )
       } yield {
@@ -221,7 +219,6 @@ case class ConfigurationExecutionBatch(
         ComponentStatusReport(
             expectedComponent.componentName
           , components
-          , getNoAnswerOrPending()
           , Nil
           , Seq()
         )
@@ -260,7 +257,6 @@ case class ConfigurationExecutionBatch(
             ComponentStatusReport(
                 expectedComponent.componentName
               , components
-              , ReportType.getWorseType(components.map(x => x.cptValueReportType))
               , purgedReports.map(_.message).toList
               , Seq()
             )
@@ -290,7 +286,6 @@ case class ConfigurationExecutionBatch(
              ComponentStatusReport(
                 expectedComponent.componentName
               , components
-              , UnknownReportType
               , unexpectedReports.map(_.message).toList
               , cpvalue
             )
@@ -460,36 +455,30 @@ case class ConfigurationExecutionBatch(
               // has to be computed there; else it has to be computed on the values level
               unexpandedComponentValue match {
                 case Some(unexpended) =>
-                  val cptValueReportType = ReportType.getWorseType(componentValueReport.map(_.cptValueReportType))
                   componentValueReport.groupBy(x => x.componentValue).map { case (componentValue, reports) =>
                     ComponentValueRuleStatusReport(
                         directiveId
                       , componentName
                       , componentValue
                       , unexpandedComponentValue
-                      , cptValueReportType
                       , reports.flatMap(_.nodesReport)
                     )
                   }
                 case None =>
                   componentValueReport.groupBy(x => x.componentValue).map { case (componentValue, reports) =>
-                    val cptValueReportType = ReportType.getWorseType(componentValueReport.map(_.cptValueReportType))
                     ComponentValueRuleStatusReport(
                         directiveId
                       , componentName
                       , componentValue
                       , unexpandedComponentValue
-                      , cptValueReportType
                       , reports.flatMap(_.nodesReport)
                     )
                   }
               }
            }.toSeq
-           val componentReportType = ReportType.getWorseType(componentReport.map(_.componentReportType))
-           ComponentRuleStatusReport(directiveId,componentName,componentValueReports,componentReportType)
+           ComponentRuleStatusReport(directiveId,componentName,componentValueReports)
         }.toSeq
-        val reportType = ReportType.getWorseType(componentReports.map(_.componentReportType))
-        DirectiveRuleStatusReport(directiveId,componentReports,reportType)
+        DirectiveRuleStatusReport(directiveId,componentReports)
       }.toSeq
   }
   /**
@@ -507,12 +496,7 @@ case class ConfigurationExecutionBatch(
          getComponentValuesRuleStatus(directiveid,id,component.groupedComponentValues,components) ++
          getUnexpectedComponentValuesRuleStatus(directiveid,id,components.flatMap(_.unexpectedCptValues))
        }
-       val reportType =   if (componentvalues.map(_.cptValueReportType).contains(UnknownReportType))
-           UnknownReportType
-         else
-           ReportType.getWorseType(componentvalues.map(_.cptValueReportType))
-
-       ComponentRuleStatusReport(directiveid,id,componentvalues,reportType)
+       ComponentRuleStatusReport(directiveid,id,componentvalues)
      }
  }
   /**
@@ -527,14 +511,12 @@ case class ConfigurationExecutionBatch(
      values.map{
        case (value, unexpanded) =>
          val componentValues = components.flatMap(_.componentValues.filter(_.componentValue==value))
-         val nodes = componentValues.map(value => NodeReport(value.nodeId,value.cptValueReportType,value.message))
-         val reports = ReportType.getWorseType(nodes.map(_.reportType))
+         val nodes = componentValues.map(value => NodeReport(value.nodeId,value.reportType,value.message))
          ComponentValueRuleStatusReport(
              directiveid
            , component
            , value
            , unexpanded
-           , reports
            , nodes)
      }
  }
@@ -549,14 +531,12 @@ case class ConfigurationExecutionBatch(
  def getUnexpectedComponentValuesRuleStatus(directiveid:DirectiveId, component:String, values:Seq[ComponentValueStatusReport]) : Seq[ComponentValueRuleStatusReport]={
      values.map{
        value =>
-         val nodes = Seq(NodeReport(value.nodeId,value.cptValueReportType,value.message))
-         val reports = value.cptValueReportType
+         val nodes = Seq(NodeReport(value.nodeId,value.reportType,value.message))
          ComponentValueRuleStatusReport(
              directiveid
            , component
            , value.componentValue
            , value.unexpandedComponentValue
-           , reports
            , nodes
          )
      }
@@ -564,16 +544,19 @@ case class ConfigurationExecutionBatch(
 
 }
 
+trait StatusReport {
+  def reportType : ReportType
+}
 /**
  * For a component value, store the report status
  */
 case class ComponentValueStatusReport(
     componentValue 		       : String
   , unexpandedComponentValue : Option[String]
-  , cptValueReportType       : ReportType
+  , reportType               : ReportType
   , message                  : List[String]
   , nodeId	                 : NodeId
-)
+) extends StatusReport
 
 /**
  * For a component, store the report status, as the worse status of the component
@@ -582,26 +565,41 @@ case class ComponentValueStatusReport(
 case class ComponentStatusReport(
     component           : String
   , componentValues     : Seq[ComponentValueStatusReport]
-  , componentReportType : ReportType
   , message             : List[String]
   , unexpectedCptValues : Seq[ComponentValueStatusReport]
-)
+) extends StatusReport {
+
+  val reportType = {
+    val reports = (componentValues ++ unexpectedCptValues).map(_.reportType)
+    ReportType.getWorseType(reports)
+  }
+}
 
 
 case class DirectiveStatusReport(
     directiveId          : DirectiveId
   , components	         : Seq[ComponentStatusReport]
-  , directiveReportType  : ReportType
   , unexpectedComponents : Seq[ComponentStatusReport] // for future use, not used yet
-)
+) extends StatusReport {
+
+  val reportType = {
+    val reports = (components ++ unexpectedComponents).map(_.reportType)
+    ReportType.getWorseType(reports)
+  }
+}
 
 case class NodeStatusReport(
     nodeId               : NodeId
   , ruleId               : RuleId
   , directives	         : Seq[DirectiveStatusReport]
-  , nodeReportType	     : ReportType
   , unexpectedDirectives : Seq[DirectiveStatusReport] // for future use, not used yet
-)
+) extends StatusReport {
+
+  val reportType = {
+    val reports = (directives ++ unexpectedDirectives).map(_.reportType)
+    ReportType.getWorseType(reports)
+  }
+}
 
 case class NodeReport (
     node       : NodeId
@@ -611,7 +609,12 @@ case class NodeReport (
 
 sealed trait RuleStatusReport {
 
-  def nodesReport  : Seq[NodeReport]
+  def nodesReport : Seq[NodeReport]
+
+  lazy val reportType = {
+    val reports = nodesReport.map(_.reportType)
+    ReportType.getWorseType(reports)
+  }
 
   def processMessageReport(filter: NodeReport => Boolean):Seq[MessageReport]
 
@@ -637,7 +640,6 @@ case class ComponentValueRuleStatusReport(
   , component           : String
   , componentValue      : String
   , unexpandedComponentValue : Option[String]
-  , cptValueReportType  : ReportType
   , nodesReport             : Seq[NodeReport]
 ) extends RuleStatusReport {
 
@@ -654,7 +656,6 @@ case class ComponentRuleStatusReport (
     directiveId         : DirectiveId
   , component           : String
   , componentValues     : Seq[ComponentValueRuleStatusReport]
-  , componentReportType : ReportType
 ) extends RuleStatusReport {
 
   override val nodesReport = componentValues.flatMap(_.nodesReport)
@@ -664,13 +665,11 @@ case class ComponentRuleStatusReport (
    if (componentValues.size>0){
      // we need to group the compliances per unexpandedComponentValue
      val aggregatedComponents = componentValues.groupBy { entry => entry.unexpandedComponentValue.getOrElse(entry.componentValue)}.map { case (key, entries) =>
-       val severity = ReportType.getWorseType(entries.map(_.cptValueReportType))
        ComponentValueRuleStatusReport(
              entries.head.directiveId // can't fail because we are in a groupBy
            , entries.head.component  // can't fail because we are in a groupBy
            , key
            , None
-           , severity
            , entries.flatMap(_.nodesReport)
           )
      }
@@ -689,7 +688,6 @@ case class ComponentRuleStatusReport (
 case class DirectiveRuleStatusReport(
     directiveId          : DirectiveId
   , components           : Seq[ComponentRuleStatusReport]
-  , directiveReportType  : ReportType
 ) extends RuleStatusReport {
 
   override val nodesReport = components.flatMap(_.nodesReport)

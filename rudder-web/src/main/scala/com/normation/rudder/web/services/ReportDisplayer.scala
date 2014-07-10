@@ -95,13 +95,13 @@ class ReportDisplayer(
     staticReportsSeq = reportsSeq.filter( x => ruleRepository.get(x.ruleId).isDefined  )
     bind("lastReportGrid",reportByNodeTemplate,
            "intro" ->  (staticReportsSeq.filter(x => (
-                               (x.getNodeStatus().exists(x => x.nodeReportType == ErrorReportType)) ||
-                               (x.getNodeStatus().exists(x => x.nodeReportType == RepairedReportType)) ||
-                               (x.getNodeStatus().exists(x => x.nodeReportType == NoAnswerReportType))
+                               (x.getNodeStatus().exists(x => x.reportType == ErrorReportType)) ||
+                               (x.getNodeStatus().exists(x => x.reportType == RepairedReportType)) ||
+                               (x.getNodeStatus().exists(x => x.reportType == NoAnswerReportType))
                         )
                                 ).toList match {
              case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
-             case _ => if (staticReportsSeq.filter(x => (x.getNodeStatus().exists(x => x.nodeReportType == PendingReportType))).size>0) {
+             case _ => if (staticReportsSeq.filter(x => (x.getNodeStatus().exists(x => x.reportType == PendingReportType))).size>0) {
                      <div>Policy update in progress</div>
                    } else {
                      <div>All the last execution reports for this server are ok</div>
@@ -228,10 +228,10 @@ class ReportDisplayer(
        * we could add more information at each level (directive name? rule name?)
        * NOTE : a missing report is an unknown report with no message
        */
-      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.nodeReportType==UnknownReportType).flatMap { reports =>
-        val techniqueComponentsReports = reports.directives.filter(_.directiveReportType==UnknownReportType).flatMap{dir =>
-          val componentsReport = dir.components.filter(_.componentReportType==UnknownReportType).flatMap{component =>
-            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.cptValueReportType==UnknownReportType&&value.message.size==0)
+      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.reportType==UnknownReportType).flatMap { reports =>
+        val techniqueComponentsReports = reports.directives.filter(_.reportType==UnknownReportType).flatMap{dir =>
+          val componentsReport = dir.components.filter(_.reportType==UnknownReportType).flatMap{component =>
+            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.reportType==UnknownReportType&&value.message.size==0)
             values.map(value => (component.component,value.componentValue))
             }
           val tech = directiveRepository.getActiveTechnique(dir.directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
@@ -318,10 +318,10 @@ class ReportDisplayer(
        * and also get technique details at directive level for each report
        * we could add more information at each level (directive name? rule name?)
        */
-      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.nodeReportType==UnknownReportType).flatMap { reports =>
-        val techniqueComponentsReports = reports.directives.filter(_.directiveReportType==UnknownReportType).flatMap{dir =>
-          val componentsReport = dir.components.filter(_.componentReportType==UnknownReportType).flatMap{component =>
-            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.cptValueReportType==UnknownReportType&&value.message.size!=0)
+      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.reportType==UnknownReportType).flatMap { reports =>
+        val techniqueComponentsReports = reports.directives.filter(_.reportType==UnknownReportType).flatMap{dir =>
+          val componentsReport = dir.components.filter(_.reportType==UnknownReportType).flatMap{component =>
+            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.reportType==UnknownReportType&&value.message.size!=0)
             values.map(value => (component.component,value.componentValue,value.message))
             }
           val tech = directiveRepository.getActiveTechnique(dir.directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
