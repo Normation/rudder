@@ -46,6 +46,7 @@ import org.apache.commons.io.FileUtils
 import java.io.File
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.internal.storage.file.FileRepository
 
 @RunWith(classOf[JUnitRunner])
 class TestGitFindUtils extends Specification with Loggable {
@@ -102,7 +103,7 @@ class TestGitFindUtils extends Specification with Loggable {
   val allDirB  = all.collect { case(d,f) if d.startsWith("b") => d+"/"+f }
   val allDirX  = List("x/f.txt/f.txt")
 
-  val db = (new FileRepositoryBuilder).setWorkTree(gitRoot).build
+  val db = ((new FileRepositoryBuilder).setWorkTree(gitRoot).build).asInstanceOf[FileRepository]
   if(!db.getConfig.getFile.exists) {
     db.create()
   }
