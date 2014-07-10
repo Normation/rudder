@@ -29,9 +29,9 @@ import com.unboundid.ldap.sdk.ChangeType
 import com.unboundid.util.ByteStringBuffer
 import com.normation.utils.HashcodeCaching
 
-case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toString) with HashcodeCaching {
+case class LDIFNoopChangeRecord(dn:DN) extends LDIFChangeRecord(dn.toString, null) with HashcodeCaching {
 
-  override def processChange(con:LDAPInterface) = new LDAPResult(0, ResultCode.NO_OPERATION)
+  override def processChange(con:LDAPInterface, includeControle:Boolean) = new LDAPResult(0, ResultCode.NO_OPERATION)
 
   override val getChangeType = ChangeType.MODIFY
 
