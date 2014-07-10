@@ -76,14 +76,14 @@ case class ComplianceData(
     // Transform report into components reports we can use
     val components : Seq[ComponentRuleStatusReport] = {
       report match {
-        case DirectiveRuleStatusReport(_, components, _) => {
+        case DirectiveRuleStatusReport(_, components) => {
           components
         }
         case component : ComponentRuleStatusReport => {
           Seq(component)
         }
         case value: ComponentValueRuleStatusReport => {
-          val component = ComponentRuleStatusReport(value.directiveId, value.component, Seq(value), value.cptValueReportType)
+          val component = ComponentRuleStatusReport(value.directiveId, value.component, Seq(value))
           Seq(component)
         }
       }
@@ -119,7 +119,7 @@ case class ComplianceData(
       (nodeId,componentReports) <- componentsByNode
       nodeInfo <- allNodeInfos.get(nodeId)
     } yield {
-      val severity = ReportType.getSeverityFromStatus(ReportType.getWorseType(componentReports.map(_.componentReportType)))
+      val severity = ReportType.getSeverityFromStatus(ReportType.getWorseType(componentReports.map(_.reportType)))
       val details = getComponentsComplianceDetails(componentReports, rule, true)
       val status = getDisplayStatusFromSeverity(severity)
       NodeComplianceLine(
@@ -147,7 +147,7 @@ case class ComplianceData(
       report <- reports
       rule   <- roRuleRepository.get(report.ruleId)
     } yield {
-      val severity = ReportType.getSeverityFromStatus(report.nodeReportType)
+      val severity = ReportType.getSeverityFromStatus(report.reportType)
       val status = getDisplayStatusFromSeverity(severity)
       val details = getDirectivesComplianceDetails(report.directives)
 
@@ -178,8 +178,8 @@ case class ComplianceData(
       (fullActiveTechnique, directive) <- directiveLib.allDirectives.get(directiveStatus.directiveId)
       techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       techniqueVersion = directive.techniqueVersion;
-      severity   = ReportType.getSeverityFromStatus(directiveStatus.directiveReportType)
-      status     = getDisplayStatusFromSeverity(directiveStatus.directiveReportType)
+      severity   = ReportType.getSeverityFromStatus(directiveStatus.reportType)
+      status     = getDisplayStatusFromSeverity(directiveStatus.reportType)
       components = getComponentsComplianceDetails (directiveStatus.components, rule,includeMessage)
     } yield {
       val ajaxCall = SHtml.ajaxCall(JsNull, (s) => popup(rule).showPopup(directiveStatus))
@@ -210,8 +210,8 @@ case class ComplianceData(
       (fullActiveTechnique, directive) <- directiveLib.allDirectives.get(directiveStatus.directiveId)
       techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       techniqueVersion = directive.techniqueVersion;
-      severity   = ReportType.getSeverityFromStatus(directiveStatus.directiveReportType)
-      status     = getDisplayStatusFromSeverity(directiveStatus.directiveReportType)
+      severity   = ReportType.getSeverityFromStatus(directiveStatus.reportType)
+      status     = getDisplayStatusFromSeverity(directiveStatus.reportType)
       components = getComponentsComplianceDetails (directiveStatus.components)
     } yield {
 
@@ -245,7 +245,7 @@ case class ComplianceData(
 
     val componentsComplianceData = for {
       component <- components
-      severity  = ReportType.getSeverityFromStatus(component.componentReportType)
+      severity  = ReportType.getSeverityFromStatus(component.reportType)
       id        = Helpers.nextFuncName
       status    = getDisplayStatusFromSeverity(severity)
       values    = getValuesComplianceDetails (component.componentValues, rule,includeMessage)
@@ -285,7 +285,7 @@ case class ComplianceData(
 
     val componentsComplianceData = for {
       component <- components
-      severity  = ReportType.getSeverityFromStatus(component.componentReportType)
+      severity  = ReportType.getSeverityFromStatus(component.reportType)
       id        = Helpers.nextFuncName
       status    = getDisplayStatusFromSeverity(severity)
       values    = getValuesComplianceDetails (component.componentValues)
@@ -326,9 +326,8 @@ case class ComplianceData(
             entries.head.directiveId // can't fail because we are in a groupBy
           , entries.head.component  // can't fail because we are in a groupBy
           , entries
-          , ReportType.getWorseType(entries.map(_.cptValueReportType))
         )
-      severity = ReportType.getSeverityFromStatus(component.componentReportType)
+      severity = ReportType.getSeverityFromStatus(component.reportType)
       status = getDisplayStatusFromSeverity(severity)
     } yield {      val (optCallback, optCompliance, optMessage) = {
         if (includeMessage) {
@@ -362,7 +361,7 @@ case class ComplianceData(
   ) : JsTableData[ValueComplianceLine] = {
     val valuesComplianceData = for {
       value <- values
-      severity = ReportType.getSeverityFromStatus(value.cptValueReportType)
+      severity = ReportType.getSeverityFromStatus(value.reportType)
       status = getDisplayStatusFromSeverity(severity)
     } yield {
       val key = value.unexpandedComponentValue.getOrElse(value.componentValue)
