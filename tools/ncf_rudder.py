@@ -109,7 +109,7 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
   """Get metadata xml for a technique as string"""
 
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata()
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')
 
   content = []
   content.append('<TECHNIQUE name="'+technique_metadata['name']+'">')
