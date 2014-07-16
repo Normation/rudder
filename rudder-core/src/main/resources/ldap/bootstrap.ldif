@@ -150,6 +150,15 @@ description: All nodes that have at least one Server role defined
 isEnabled: TRUE
 isSystem: TRUE
 
+dn: ruleTarget=special:all_nodes_without_role,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
+objectClass: specialRuleTarget
+objectClass: top
+ruleTarget: special:all_nodes_without_role
+cn: All nodes excluding Rudder server roles
+description: All nodes excluding Rudder server components
+isEnabled: TRUE
+isSystem: TRUE
+
 # Active technique library
 dn: techniqueCategoryId=Active Techniques,ou=Rudder,cn=rudder-configuration
 objectClass: techniqueCategory
