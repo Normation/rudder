@@ -155,7 +155,7 @@
                     </div>
                     <button ng-disabled="originalTechnique === undefined" class="btn btn-default" ng-click="deleteTechnique()">Delete</button>
                     <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default" ng-click="resetTechnique()">Reset</button>
-                    <button ng-disabled="editForm.$invalid || isUnchanged(selectedTechnique)" class="btn btn-default" ng-click="saveTechnique()">Save</button>
+                    <button ng-disabled="editForm.$invalid || isUnchanged(selectedTechnique) || !checkSelectedTechnique()" class="btn btn-default" ng-click="saveTechnique()">Save</button>
                 </div>
             </div>
 
