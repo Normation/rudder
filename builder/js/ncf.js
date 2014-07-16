@@ -309,6 +309,14 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       return  $scope.getMethodBundleName(method_call)+"_"+param +"_"+kind
   }
 
+  // Check if the selected technique is correct
+  // selected technique is correct if:
+  // * name is not empty
+  // * There is at least one method call
+  $scope.checkSelectedTechnique= function() {
+     var res = $scope.selectedTechnique.name != "" && $scope.selectedTechnique.method_calls.length > 0
+     return res
+  }
 
   // Technique actions
 
