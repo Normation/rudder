@@ -309,11 +309,13 @@ class RuleGrid(
     , groupsLib: FullNodeGroupCategory
     , nodes: Map[NodeId, NodeInfo]
     , rules : List[Rule]
-  ) : List[Line] = { rules.map {
-    rule =>
+  ) : List[Line] = {
+
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
     val complianceMap = computeCompliances(rules.toSet)
+
+    rules.map { rule =>
 
     val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] = {
       sequence(rule.directiveIds.toSeq) { id =>
