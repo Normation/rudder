@@ -35,7 +35,7 @@
 package com.normation.inventory.ldap.core
 
 
-import com.normation.utils.Control.bestEffort
+import com.normation.utils.Control.{bestEffort, sequence}
 import LDAPConstants.{A_CONTAINER_DN, A_NODE_UUID}
 import com.normation.inventory.services.core._
 import com.normation.inventory.domain._
@@ -54,9 +54,9 @@ trait LDAPFullInventoryRepository extends FullInventoryRepository[Seq[LDIFChange
  * Default implementation of a ServerAndMachine read write repository.
  */
 class FullInventoryRepositoryImpl(
-    inventoryDitService:InventoryDitService,
-    mapper:InventoryMapper,
-    ldap:LDAPConnectionProvider[RwLDAPConnection]
+    inventoryDitService: InventoryDitService
+  , mapper             : InventoryMapper
+  , ldap               : LDAPConnectionProvider[RwLDAPConnection]
 ) extends MachineRepository[Seq[LDIFChangeRecord]] with LDAPFullInventoryRepository with Loggable {
 
 
@@ -225,6 +225,17 @@ class FullInventoryRepositoryImpl(
       machineId
     }
   }
+
+  override def getAllNodeInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, NodeInventory]] = {
+    for {
+      con       <- ldap
+      nodeTrees <- con.getTree(inventoryDitService.getDit(inventoryStatus).NODES.dn)
+      nodes     <- sequence(nodeTrees.children.values.toSeq) { tree => mapper.nodeFromTree(tree) }
+    } yield {
+      nodes.map(n => (n.main.id, n)).toMap
+    }
+  }
+
 
   override def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory] = {
     for {

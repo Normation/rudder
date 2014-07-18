@@ -101,6 +101,7 @@ trait ReadOnlyFullInventoryRepository {
   def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory]
   def getMachineId(id:NodeId, inventoryStatus : InventoryStatus) : Box[(MachineUuid, InventoryStatus)]
 
+  def getAllNodeInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, NodeInventory]]
 }
 
 trait WriteOnlyFullInventoryRepository[R] {
