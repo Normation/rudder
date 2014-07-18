@@ -162,6 +162,7 @@ class DitQueryData(dit:InventoryDit) {
       Criterion(A_OS_KERNEL_VERSION , OrderedStringComparator),
       Criterion(A_NODE_UUID, StringComparator),
       Criterion(A_HOSTNAME, StringComparator),
+      Criterion(A_SERVER_ROLE, StringComparator),
       //Criterion(A_DESCRIPTION, StringComparator),
       Criterion(A_OS_RAM, MemoryComparator),
       Criterion(A_OS_SWAP, MemoryComparator),

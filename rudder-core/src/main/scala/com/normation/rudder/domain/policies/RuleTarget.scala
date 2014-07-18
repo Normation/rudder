@@ -89,6 +89,11 @@ final case object AllServersWithRole extends NonGroupRuleTarget {
   def r = "special:all_servers_with_role".r
 }
 
+final case object AllNodesWithoutRole extends NonGroupRuleTarget {
+  override def target = "special:all_nodes_without_role"
+  def r = target.r
+}
+
 /**
  * A composite target is a target composed of different target
  * This target is rendered as Json
@@ -262,6 +267,8 @@ object RuleTarget extends Loggable {
         Some(AllTargetExceptPolicyServers)
       case AllServersWithRole.r() =>
         Some(AllServersWithRole)
+      case AllNodesWithoutRole.r() =>
+        Some(AllNodesWithoutRole)
       case _ =>
         try {
           unserJson(parse(s))
