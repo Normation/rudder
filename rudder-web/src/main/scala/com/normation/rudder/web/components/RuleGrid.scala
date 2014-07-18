@@ -317,89 +317,89 @@ class RuleGrid(
 
     rules.map { rule =>
 
-    val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] = {
-      sequence(rule.directiveIds.toSeq) { id =>
-        directivesLib.allDirectives.get(id) match {
-          case Some((activeTechnique, directive)) =>
-            techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
-              case None =>
-                Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName} referenced in Rule with ID ${rule.id.value}")
-              case Some(technique) =>
-                Full((directive, activeTechnique.toActiveTechnique, technique))
-            }
-          case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
-            val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")
-            logger.debug(error.messageChain, error)
-            error
+      val trackerVariables: Box[Seq[(Directive, ActiveTechnique, Technique)]] = {
+        sequence(rule.directiveIds.toSeq) { id =>
+          directivesLib.allDirectives.get(id) match {
+            case Some((activeTechnique, directive)) =>
+              techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName) match {
+                case None =>
+                  Failure(s"Can not find Technique for activeTechnique with name ${activeTechnique.techniqueName} referenced in Rule with ID ${rule.id.value}")
+                case Some(technique) =>
+                  Full((directive, activeTechnique.toActiveTechnique, technique))
+              }
+            case None => //it's an error if the directive ID is defined and found but it is not attached to an activeTechnique
+              val error = Failure(s"Can not find Directive with ID '${id.value}' referenced in Rule with ID '${rule.id.value}'")
+              logger.debug(error.messageChain, error)
+              error
+          }
         }
       }
-    }
 
-    val targetsInfo = sequence(rule.targets.toSeq) {
-      case json:CompositeRuleTarget =>
-        val ruleTargetInfo = RuleTargetInfo(json,"","",true,false)
-        Full(ruleTargetInfo)
-      case target =>
-        groupsLib.allTargets.get(target) match {
-          case Some(t) =>
-            Full(t.toTargetInfo)
-          case None =>
-            Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
-        }
-     }.map(x => x.toSet)
+      val targetsInfo = sequence(rule.targets.toSeq) {
+        case json:CompositeRuleTarget =>
+          val ruleTargetInfo = RuleTargetInfo(json,"","",true,false)
+          Full(ruleTargetInfo)
+        case target =>
+          groupsLib.allTargets.get(target) match {
+            case Some(t) =>
+              Full(t.toTargetInfo)
+            case None =>
+              Failure(s"Can not find full information for target '${target}' referenced in Rule with ID '${rule.id.value}'")
+          }
+       }.map(x => x.toSet)
 
-     (trackerVariables, targetsInfo) match {
-       case (Full(seq), Full(targets)) =>
-         val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
-         val compliance =  applicationStatus match {
-           case _:NotAppliedStatus =>
-             Full(None)
-           case _ =>
-             complianceMap.getOrElse(rule.id, Failure(s"Error when getting compliance for Rule ${rule.name}"))
-         }
-         compliance match {
-           case e:EmptyBox =>
-             ErrorLine(rule, trackerVariables, targetsInfo)
-           case Full(value) =>
-             OKLine(rule, value, applicationStatus, seq, targets)
-         }
-       case (x,y) =>
-         if(rule.isEnabledStatus) {
-           //the Rule has some error, try to disable it
-           //and be sure to not get a Rules from a modification pop-up, because we don't want to commit changes along
-           //with the disable.
-           //it's only a try, so it may fails, we won't try again
-           ( for {
-             r <- roRuleRepository.get(rule.id)
-             _ <- woRuleRepository.update(
-                      r.copy(isEnabledStatus=false)
-                    , ModificationId(uuidGen.newUuid)
-                    , RudderEventActor
-                    , Some("Rule automatically disabled because it contains error (bad target or bad directives)")
-                  )
-           } yield {
-             logger.warn(s"Disabling rule '${rule.name}' (ID: '${rule.id.value}') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.")
-             x match {
-               case f: Failure =>
-                 logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' directive problem: " + f.messageChain)
-               case _ => // Directive Ok!
-             }
-             y match {
-                  case f: Failure =>
-                    logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
-                  case _ => // Group Ok!
-             }
-           } ) match {
-             case eb: EmptyBox =>
-               val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
-               logger.warn(e.messageChain)
-               e.rootExceptionCause.foreach { ex =>
-                 logger.warn("Exception was: ", ex)
-               }
-             case _ => //ok
+       (trackerVariables, targetsInfo) match {
+         case (Full(seq), Full(targets)) =>
+           val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
+           val compliance =  applicationStatus match {
+             case _:NotAppliedStatus =>
+               Full(None)
+             case _ =>
+               complianceMap.getOrElse(rule.id, Failure(s"Error when getting compliance for Rule ${rule.name}"))
            }
-         }
-         ErrorLine(rule, x, y)
+           compliance match {
+             case e:EmptyBox =>
+               ErrorLine(rule, trackerVariables, targetsInfo)
+             case Full(value) =>
+               OKLine(rule, value, applicationStatus, seq, targets)
+           }
+         case (x,y) =>
+           if(rule.isEnabledStatus) {
+             //the Rule has some error, try to disable it
+             //and be sure to not get a Rules from a modification pop-up, because we don't want to commit changes along
+             //with the disable.
+             //it's only a try, so it may fails, we won't try again
+             ( for {
+               r <- roRuleRepository.get(rule.id)
+               _ <- woRuleRepository.update(
+                        r.copy(isEnabledStatus=false)
+                      , ModificationId(uuidGen.newUuid)
+                      , RudderEventActor
+                      , Some("Rule automatically disabled because it contains error (bad target or bad directives)")
+                    )
+             } yield {
+               logger.warn(s"Disabling rule '${rule.name}' (ID: '${rule.id.value}') because it refers missing objects. Go to rule's details and save, then enable it back to correct the problem.")
+               x match {
+                 case f: Failure =>
+                   logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' directive problem: " + f.messageChain)
+                 case _ => // Directive Ok!
+               }
+               y match {
+                    case f: Failure =>
+                      logger.warn(s"Rule '${rule.name}' (ID: '${rule.id.value}' target problem: " + f.messageChain)
+                    case _ => // Group Ok!
+               }
+             } ) match {
+               case eb: EmptyBox =>
+                 val e = eb ?~! s"Error when to trying to disable the rule '${rule.name}' (ID: '${rule.id.value}') because it's data are unconsistant."
+                 logger.warn(e.messageChain)
+                 e.rootExceptionCause.foreach { ex =>
+                   logger.warn("Exception was: ", ex)
+                 }
+               case _ => //ok
+             }
+           }
+           ErrorLine(rule, x, y)
       }
     }
   }
