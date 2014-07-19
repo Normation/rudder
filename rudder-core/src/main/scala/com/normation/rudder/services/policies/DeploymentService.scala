@@ -59,6 +59,9 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import scala.collection.immutable.TreeMap
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
+import com.normation.inventory.domain.NodeInventory
+import com.normation.inventory.domain.AcceptedInventory
 
 
 
@@ -85,9 +88,10 @@ trait DeploymentService extends Loggable {
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
 
     val result = for {
-
+      //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
       allRules        <- findDependantRules() ?~! "Could not find dependant rules"
       allNodeInfos    <- getAllNodeInfos ?~! "Could not get Node Infos"
+      allInventories  <- getAllInventories ?~! "Could not get Node inventories"
       directiveLib    <- getDirectiveLibrary() ?~! "Could not get the directive library"
       groupLib        <- getGroupLibrary() ?~! "Could not get the group library"
       allParameters   <- getAllGlobalParameters ?~! "Could not get global parameters"
@@ -110,7 +114,7 @@ trait DeploymentService extends Loggable {
       _                     =  logger.debug(s"Global system variables built in ${timeGlobalSystemVar}ms, start to build new node configurations.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(ruleVals, allNodeInfos, groupLib, allParameters, globalSystemVariables) ?~! "Cannot build target configuration node"
+      config          <- buildNodeConfigurations(ruleVals, allNodeInfos, allInventories, groupLib, allParameters, globalSystemVariables) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
 
@@ -173,6 +177,7 @@ trait DeploymentService extends Loggable {
   def getDirectiveLibrary(): Box[FullActiveTechniqueCategory]
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
+  def getAllInventories(): Box[Map[NodeId, NodeInventory]]
 
   /**
    * Find all modified rules.
@@ -209,6 +214,7 @@ trait DeploymentService extends Loggable {
   def buildNodeConfigurations(
       ruleVals            : Seq[RuleVal]
     , allNodeInfos        : Map[NodeId, NodeInfo]
+    , allInventories      : Map[NodeId, NodeInventory]
     , groupLib            : FullNodeGroupCategory
     , parameters          : Seq[GlobalParameter]
     , globalSystemVariable: Map[String, Variable]
@@ -287,6 +293,7 @@ class DeploymentServiceImpl (
   , override val ruleApplicationStatusService: RuleApplicationStatusService
   , override val parameterService : RoParameterService
   , override val interpolatedValueCompiler:InterpolatedValueCompiler
+  , override val roInventoryRepository: ReadOnlyFullInventoryRepository
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -317,12 +324,14 @@ trait DeploymentService_findDependantRules_bruteForce extends DeploymentService 
   def roNodeGroupRepository: RoNodeGroupRepository
   def roDirectiveRepository: RoDirectiveRepository
   def parameterService : RoParameterService
+  def roInventoryRepository: ReadOnlyFullInventoryRepository
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true)
   override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll
   override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = roDirectiveRepository.getFullDirectiveLibrary()
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary()
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
+  override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -410,19 +419,22 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
   private[this] def buildInterpolationContext(
       nodeIds              : Set[NodeId]
     , allNodeInfos         : Map[NodeId, NodeInfo]
+    , allInventories       : Map[NodeId, NodeInventory]
     , parameters           : Map[ParameterName, InterpolationContext => Box[String]]
     , globalSystemVariables: Map[String, Variable]
   ): Map[NodeId, InterpolationContext] = {
 
     (nodeIds.flatMap { nodeId:NodeId =>
       (for {
-        nodeInfo <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
+        nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
+        inventory    <- Box(allInventories.get(nodeId)) ?~! s"Inventory for node with ID ${nodeId.value} was not found"
         policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
-        nodeContext <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables)
+        nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables)
       } yield {
         (nodeId, InterpolationContext(
                       nodeInfo
                     , policyServer
+                    , inventory
                     , nodeContext
                     , parameters
                   )
@@ -456,6 +468,7 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
   override def buildNodeConfigurations(
       ruleVals             : Seq[RuleVal]
     , allNodeInfos         : Map[NodeId, NodeInfo]
+    , allInventories       : Map[NodeId, NodeInventory]
     , groupLib             : FullNodeGroupCategory
     , parameters           : Seq[GlobalParameter]
     , globalSystemVariables: Map[String, Variable]
@@ -535,7 +548,7 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     //1.2: for each node, build the interpolation context
     //this also give us the list of actual node to consider
 
-    val interpolationContexts = buildInterpolationContext(policyDraftByNode.keySet, allNodeInfos, interpolatedParameters, globalSystemVariables)
+    val interpolationContexts = buildInterpolationContext(policyDraftByNode.keySet, allNodeInfos, allInventories, interpolatedParameters, globalSystemVariables)
 
     //1.3: build node config, binding ${rudder.parameters} parameters
 

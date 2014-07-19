@@ -41,19 +41,14 @@ import org.specs2.mutable._
 import org.specs2.specification._
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain._
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.policies.InterpolationContext
 import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.rudder.domain.policies.InterpolationContext
 import scala.collection.immutable.TreeMap
-//for treemap ordering
+import com.normation.rudder.domain.policies.InterpolationContext
 import InterpolationContext._
 
 
@@ -101,6 +96,7 @@ class TestNodeAndParameterLookup extends Specification {
     , isPolicyServer= true
     , serverRoles   = Set()
   )
+
   val root = NodeInfo(
       id            = rootId
     , name          = "root"
@@ -123,9 +119,42 @@ class TestNodeAndParameterLookup extends Specification {
     , serverRoles   = Set()
   )
 
+  val nodeInventory1: NodeInventory = NodeInventory(
+      NodeSummary(
+          node1.id
+        , AcceptedInventory
+        , node1.localAdministratorAccountName
+        , node1.hostname
+        , Linux(Debian, "test machine", new Version("1.0"), None, new Version("3.42"))
+        , root.id
+      )
+      , name                 = None
+      , description          = None
+      , ram                  = None
+      , swap                 = None
+      , inventoryDate        = None
+      , receiveDate          = None
+      , archDescription      = None
+      , lastLoggedUser       = None
+      , lastLoggedUserTime   = None
+      , agentNames           = Seq()
+      , publicKeys           = Seq()
+      , serverIps            = Seq()
+      , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
+      , softwareIds          = Seq()
+      , accounts             = Seq()
+      , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
+      , processes            = Seq()
+      , vms                  = Seq()
+      , networks             = Seq()
+      , fileSystems          = Seq()
+      , serverRoles          = Set()
+  )
+
   val context = InterpolationContext(
         parameters      = Map()
       , nodeInfo        = node1
+      , inventory       = nodeInventory1
       , policyServerInfo= root
         //environment variable for that server
       , nodeContext     = Map()
@@ -239,6 +268,7 @@ class TestNodeAndParameterLookup extends Specification {
     }
   }
 
+  def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
 
   /**
    * Test that the interpretation of an AST is
@@ -246,7 +276,6 @@ class TestNodeAndParameterLookup extends Specification {
    */
   "Interpretation of a parsed interpolated string" should {
 
-    def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
 
     val nodeId = compileAndGet("${rudder.node.uuid}")
     val policyServerId = compileAndGet("${rudder.node.id}")
@@ -300,25 +329,6 @@ class TestNodeAndParameterLookup extends Specification {
       i(c) must beEqualTo(Full(res))
     }
 
-    "no care of case in nodes names" in {
-      val i = compileAndGet("${rudder.node.HoStNaMe}")
-      i(context) must beEqualTo(Full("node1.localhost"))
-    }
-
-    "DO care of case in param names" in {
-      val i = compileAndGet("${rudder.param.xX}")
-      val c = context.copy(parameters = Map(
-          //test all combination
-          (ParameterName("XX"), (i:InterpolationContext) => Full("bad"))
-        , (ParameterName("Xx"), (i:InterpolationContext) => Full("bad"))
-        , (ParameterName("xx"), (i:InterpolationContext) => Full("bad"))
-      ))
-      i(c) match {
-        case Full(_) => ko("No, case must matter!")
-        case Empty => ko("No, we should have a failure")
-        case Failure(m,_,_) => m must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
-      }
-    }
 
     "fails on missing param in context" in {
       val res = "p1 replaced"
@@ -497,6 +507,33 @@ class TestNodeAndParameterLookup extends Specification {
         )
       )
     }
+
+    "not matter in nodes path accessor" in {
+      val i = compileAndGet("${rudder.node.HoStNaMe}")
+      i(context) must beEqualTo(Full("node1.localhost"))
+    }
+
+    "matter in environement variable name" in {
+      val i = compileAndGet("${rudder.node.env.THE_VAR}")
+      val j = compileAndGet("${rudder.node.env.THE_var}")
+      (i(context) must beEqualTo(Full("THE_VAR value!"))) and (j(context) must beEqualTo(Full("")))
+    }
+
+    "matter in param names" in {
+      val i = compileAndGet("${rudder.param.xX}")
+      val c = context.copy(parameters = Map(
+          //test all combination
+          (ParameterName("XX"), (i:InterpolationContext) => Full("bad"))
+        , (ParameterName("Xx"), (i:InterpolationContext) => Full("bad"))
+        , (ParameterName("xx"), (i:InterpolationContext) => Full("bad"))
+      ))
+      i(c) match {
+        case Full(_) => ko("No, case must matter!")
+        case Empty => ko("No, we should have a failure")
+        case Failure(m,_,_) => m must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
+      }
+    }
+
   }
 
 }
