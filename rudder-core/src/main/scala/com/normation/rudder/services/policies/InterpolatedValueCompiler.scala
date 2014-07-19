@@ -41,6 +41,7 @@ import com.normation.rudder.domain.policies.InterpolationContext
 import com.normation.utils.Control._
 import net.liftweb.common.{Failure => FailedBox, _}
 import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.inventory.domain.NodeInventory
 
 /**
  * A parser that handle parameterized value of
@@ -83,7 +84,9 @@ import com.normation.rudder.domain.parameters.ParameterName
  *   ${rudder.node.policyserver.ACCESSOR} : information about the policyserver of the node.
  *                                    ACCESSORs are the same than for ${rudder.node}
  *
- *
+ *   ${rudder.node.env.ENVIRONMENT_VARIABLE_NAME}: the value of the environment variable "ENVIRONMENT_VARIABLE_NAME"
+ *            (name case sensitive) as given in the last inventory for that node, or "" if there is no variable 
+ *            with that name was defined for that node when the inventory was done. 
  */
 trait InterpolatedValueCompiler {
 
@@ -206,15 +209,29 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   }
 
   def checkNodeAccessor(context: InterpolationContext, path: List[String]): Box[String] = {
+    def environmentVariable(node: NodeInventory, envVarName: String): String = {
+      node.environmentVariables.find( _.name == envVarName) match {
+        case None => ""
+        case Some(v) => v.value.getOrElse("")
+      }
+    }
+
+    val error = FailedBox(s"Unknow interpolated variable $${node.${path.mkString(".")}}" )
     path match {
       case Nil => FailedBox("In node interpolated variable, at least one accessor must be provided")
-      case "id" :: Nil => Full(context.nodeInfo.id.value)
-      case "hostname" :: Nil => Full(context.nodeInfo.hostname)
-      case "admin" :: Nil => Full(context.nodeInfo.localAdministratorAccountName)
-      case "policyserver" ::"id" :: Nil => Full(context.policyServerInfo.id.value)
-      case "policyserver" ::"hostname" :: Nil => Full(context.policyServerInfo.hostname)
-      case "policyserver" ::"admin" :: Nil => Full(context.policyServerInfo.localAdministratorAccountName)
-      case seq => FailedBox(s"Unknow interpolated variable $${node.${seq.mkString(".")}}" )
+      case access :: tail => access.toLowerCase :: tail match {
+        case "id" :: Nil => Full(context.nodeInfo.id.value)
+        case "hostname" :: Nil => Full(context.nodeInfo.hostname)
+        case "admin" :: Nil => Full(context.nodeInfo.localAdministratorAccountName)
+        case "policyserver" :: tail2 => tail2 match {
+          case "id" :: Nil => Full(context.policyServerInfo.id.value)
+          case "hostname" :: Nil => Full(context.policyServerInfo.hostname)
+          case "admin" :: Nil => Full(context.policyServerInfo.localAdministratorAccountName)
+          case _ => error
+        }
+        case "env" :: x :: Nil => Full(environmentVariable(context.inventory, x))
+        case seq => error
+      }
     }
   }
 
@@ -245,7 +262,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
 
   //a node path looks like: ${rudder.node.HERE.PATH}
   def nodeProp: Parser[Interpolation] = {
-    id("node") ~> "." ~> repsep(propId, ".") ^^ { seq => NodeAccessor(seq.map(_.toLowerCase)) }
+    id("node") ~> "." ~> repsep(propId, ".") ^^ { seq => NodeAccessor(seq) }
   }
 
   //a parameter looks like: ${rudder.PARAM_NAME}

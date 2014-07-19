@@ -1193,8 +1193,8 @@ object RudderConfig extends Loggable {
           roDirectiveRepository,
           ruleApplicationStatusImpl,
           roParameterServiceImpl,
-          interpolationCompiler
-
+          interpolationCompiler,
+          ldapFullInventoryRepository
     )
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation)
