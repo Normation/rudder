@@ -59,7 +59,7 @@ bundle agent check
     
     "line_exists" expression => strcmp("${nb_lines}", "1");
 
-    "ok"          expression => "file_exists.line_exists.file_ensure_lines_present_${init.file_canon}_ok.!file_ensure_lines_present_${init.file_canon}_error.file_ensure_lines_present_${init.file_canon}_kept.!file_ensure_lines_present_${init.file_canon}_repaired";
+    "ok"          expression => "file_exists.line_exists.file_enforce_content_${init.file_canon}_ok.!file_enforce_content_${init.file_canon}_error.file_enforce_content_${init.file_canon}_kept.!file_enforce_content_${init.file_canon}_repaired";
 
   reports:
     ok::
@@ -72,8 +72,8 @@ bundle agent check
       "grep command doesn't return 1 for command: ${line_exists_test}, meaning there is not exactly one line";
     cfengine::
       "the line was already there, but the kept class is not defined"
-        ifvarclass => "!file_ensure_lines_present_${init.file_canon}_kept";
+        ifvarclass => "!file_enforce_content_${init.file_canon}_kept";
 
       "the line was already there, but the repaired class is defined"
-        ifvarclass => "file_ensure_lines_present_${init.file_canon}_repaired";
+        ifvarclass => "file_enforce_content_${init.file_canon}_repaired";
 }

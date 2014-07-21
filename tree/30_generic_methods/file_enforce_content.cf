@@ -16,18 +16,30 @@
 #
 #####################################################################################
 
-# @name File ensure lines present
-# @description This is a bundle to ensure that a line is present in a specific location
+# @name File enforce content
+# @description This is a bundle to enfore the content of a file
 #
 # @parameter file  File name to edit
 # @parameter lines Line(s) to add in the file
+# @parameter enforce Enforce the file to contain only line(s) defined (true or false)
 # 
-# @class_prefix file_ensure_lines_present
+# @class_prefix file_enforce_content
 # @class_parameter file
-# This bundle will define a class file_ensure_lines_present_${file}_{kept,repaired,error,ok,reached}
+# This bundle will define a class file_enforce_content_${file}_{kept,repaired,error,ok,reached}
 
-bundle agent file_ensure_lines_present(file, lines)
+bundle agent file_enforce_content(file, lines, enforce)
 {
+  vars:
+      "class_prefix" string => canonify("file_enforce_content_${file}");
+
+  files:
+      "${file}"
+        create        => "true",
+        edit_line     => insert_lines("${lines}"),
+        edit_defaults => ncf_empty_select("${enforce}"),
+        classes       => classes_generic("${class_prefix}");
+
   methods:
-      "wrapper" usebundle  => file_enforce_content("${file}","${lines}","false");
+      "report"
+        usebundle  => _logger("Insert content ${lines} into ${file}", "${class_prefix}");
 }

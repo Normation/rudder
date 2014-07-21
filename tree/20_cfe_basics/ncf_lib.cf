@@ -208,3 +208,14 @@ body classes classes_generic_return_codes(x, kept_return_code, repaired_return_c
   repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
   promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
+
+# Enforce or not content of a file
+########################################################################
+# Same as std_defs, allowing user to specify the file erase policy     #
+########################################################################
+body edit_defaults ncf_empty_select(select)
+{
+        empty_file_before_editing => "${select}";
+        max_file_size             => "1024000";
+        edit_backup               => "false";
+}
