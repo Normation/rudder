@@ -67,8 +67,8 @@ bundle agent check
     "line_2_present_exists" expression => returnszero("${line_2_present_exists_test}", "noshell");
     "line_2_added_exists"   expression => returnszero("${line_2_added_exists_test}", "noshell");
 
-    "ok_file_1"             expression => "(line_1_present_exists.line_1_added_exists).(file_enforce_content_${init.file_1_canon}_ok.!file_enforce_content_${init.file_1_canon}_error)";
-    "ok_file_2"             expression => "(!line_2_present_exists.line_2_added_exists).(file_enforce_content_${init.file_2_canon}_ok.!file_enforce_content_${init.file_2_canon}_error)";
+    "ok_file_1"             expression => "(line_1_present_exists.line_1_added_exists).(file_ensure_lines_present_${init.file_1_canon}_ok.!file_ensure_lines_present_${init.file_1_canon}_error)";
+    "ok_file_2"             expression => "(!line_2_present_exists.line_2_added_exists).(file_ensure_lines_present_${init.file_2_canon}_ok.!file_ensure_lines_present_${init.file_2_canon}_error)";
     "ok"                    and => { "ok_file_1", "ok_file_2" };
 
   reports:

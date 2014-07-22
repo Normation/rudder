@@ -23,14 +23,14 @@
 # @parameter lines Line(s) to add in the file
 # @parameter enforce Enforce the file to contain only line(s) defined (true or false)
 # 
-# @class_prefix file_enforce_content
+# @class_prefix file_ensure_lines_present
 # @class_parameter file
-# This bundle will define a class file_enforce_content_${file}_{kept,repaired,error,ok,reached}
+# This bundle will define a class file_ensure_lines_present_${file}_{kept,repaired,error,ok,reached}
 
 bundle agent file_enforce_content(file, lines, enforce)
 {
   vars:
-      "class_prefix" string => canonify("file_enforce_content_${file}");
+      "class_prefix" string => canonify("file_ensure_lines_present_${file}");
 
   files:
       "${file}"
