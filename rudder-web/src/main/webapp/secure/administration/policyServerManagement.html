@@ -130,7 +130,37 @@
         
       </div>
     </div>
-        
+
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Configure compliance mode</div>
+      <div class="portlet-content">
+
+        <div class="lift:administration.PropertiesManagement.complianceModeConfiguration" id="complianceModeForm">
+          <div class="intro">
+            <div>
+              If enable, Rudder will work in compliance mode, assessing that each node correctly executed all required check, 
+              and only executed the expected check. 
+              When compliance is disabled, Rudder will only look for "error" and "repair" reports.
+            </div>
+          </div>
+
+          <hr class="spacer" />
+          <div class="deca">
+            <form class="lift:form.ajax">
+            
+              <div class="wbBaseField"> 
+                <label class="threeCol textight" style="font-weight:bold;width: 20%;">Enable compliance mode:</label><input id="complianceMode" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="Reload" id="complianceModeSubmit"/>
+              <lift:Msg id="complianceModeMsg">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>        
+    
+    
     <div class="inner-portlet">
       <div class="inner-portlet-header">Agent run schedule</div>
       <div class="portlet-content">
