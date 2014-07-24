@@ -2477,6 +2477,9 @@ td.NoAnswer {
 td.NotApplicable {
   background-color:#CFCFFF;
 }
+td.Missing {
+  background-color:#FFBB66;
+}
 
 td.details{
 	border:none;

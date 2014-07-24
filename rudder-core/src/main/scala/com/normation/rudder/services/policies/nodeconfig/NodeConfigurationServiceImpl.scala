@@ -36,9 +36,7 @@ package com.normation.rudder.services.policies.nodeconfig
 
 import java.io.File
 import java.io.PrintWriter
-
 import org.joda.time.DateTime
-
 import com.normation.cfclerk.domain.Cf3PolicyDraft
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
@@ -47,11 +45,11 @@ import com.normation.rudder.exceptions.TechniqueException
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.TemplateWriter
 import com.normation.utils.Control._
-
 import net.liftweb.common._
 import net.liftweb.json.NoTypeHints
 import net.liftweb.json.Serialization
 import net.liftweb.json.Serialization.writePretty
+import com.normation.rudder.domain.reports.NodeConfigId
 
 
 
@@ -304,7 +302,7 @@ class NodeConfigurationServiceImpl(
    * Write templates for node configuration that changed since the last write.
    *
    */
-  def writeTemplate(rootNodeId: NodeId, nodesToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration]) : Box[Seq[NodeConfiguration]] = {
+  def writeTemplate(rootNodeId: NodeId, nodesToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]) : Box[Seq[NodeConfiguration]] = {
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     //debug - but don't fails for debugging !
     logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
@@ -317,7 +315,7 @@ class NodeConfigurationServiceImpl(
       case _ => //nothing to do
     }
 
-    policyTranslator.writePromisesForMachines(nodesToWrite, rootNodeId, allNodeConfigs).map(_ => nodeConfigsToWrite.values.toSeq )
+    policyTranslator.writePromisesForMachines(nodesToWrite, rootNodeId, allNodeConfigs, versions).map(_ => nodeConfigsToWrite.values.toSeq )
 
   }
 

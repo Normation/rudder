@@ -36,40 +36,54 @@ package com.normation.rudder.repository.jdbc
 
 
 import javax.sql.DataSource
-import org.apache.commons.dbcp.BasicDataSource
 import net.liftweb.common.Loggable
+import java.io.Closeable
+import com.jolbox.bonecp.BoneCPConfig
+import com.jolbox.bonecp.BoneCP
+import com.jolbox.bonecp.BoneCPDataSource
 
 /**
- * A wrapper around the Squeryl default implementation to allow for several
+ * A wrapper around defaut data source provider to allow for several
  * databases connections, and still offer the multi-threading capabilities
+ *
+ * Switch to HikaryCP seems it seems to be the new kid in the bloc
+ * http://blog.trustiv.co.uk/2014/06/battle-connection-pools
  */
 class RudderDatasourceProvider(
-    driver  : String
-  , url     : String
-  , username: String
-  , password: String
+    driver     : String
+  , url        : String
+  , username   : String
+  , password   : String
+  , maxPoolSize: Int
 ) extends Loggable {
+  Class.forName(driver)
+
+  val minPoolSize = 1
+  val config = new BoneCPConfig()
+  config.setJdbcUrl(url)
+
+  config.setUsername(username)
+  config.setPassword(password)
+  config.setMinConnectionsPerPartition(minPoolSize)
+  config.setMaxConnectionsPerPartition(if(maxPoolSize < minPoolSize) minPoolSize else maxPoolSize)
+  config.setPartitionCount(1)
 
 
-  lazy val datasource = try {
+  //set parameters to test for dead connection
+  //not sure we need that, since we use JDBC4 driver, see:
+  //https://github.com/brettwooldridge/HikariCP => in page, text "connectionTestQuery"
+  config.setConnectionTestStatement("SELECT 1")
 
-    Class.forName(driver);
 
-    val pool = new BasicDataSource();
-    pool.setDriverClassName(driver)
-    pool.setUrl(url)
-    pool.setUsername(username)
-    pool.setPassword(password)
+  lazy val datasource: DataSource with Closeable = try {
 
-    //set parameters to test for dead connection
-    pool.setValidationQuery("SELECT 1")
+    val pool = new BoneCPDataSource(config)
 
     /* try to get the connection */
     val connection = pool.getConnection()
     connection.close()
 
     pool
-
   } catch {
     case e: Exception =>
       logger.error("Could not initialise the access to the database")

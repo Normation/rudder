@@ -34,38 +34,28 @@
 
 package com.normation.rudder.web.components
 
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.domain._
-import com.normation.inventory.services.core.FullInventoryRepository
-import com.normation.rudder.services.nodes._
-import com.normation.rudder.domain.nodes.{NodeGroupCategory, NodeInfo, NodeGroup}
-import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.policies.{RuleTargetInfo, GroupTarget, RuleTarget}
-import com.normation.rudder.web.model.JsTreeNode
-import com.normation.utils.Control.sequence
-import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import com.normation.rudder.domain.nodes.{NodeGroupId, NodeGroup,  NodeInfo}
-import com.normation.rudder.web.services.{LogDisplayer, ReportDisplayer, DisplayNode}
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import scala.xml.NodeSeq
+
 import com.normation.exceptions.TechnicalException
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftmodules.widgets.autocomplete._
-import com.normation.rudder.repository.RoNodeGroupRepository
-import bootstrap.liftweb.RudderConfig
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.S
+import net.liftweb.http.Templates
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsExp
+import net.liftweb.util.Helpers.bind
+import net.liftweb.util.Helpers.chooseTemplate
+import net.liftweb.util.Helpers.strToSuperArrowAssoc
 
 
 

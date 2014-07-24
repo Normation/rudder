@@ -49,7 +49,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.TargetUnion
 import com.normation.rudder.domain.policies.TargetExclusion
-import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory

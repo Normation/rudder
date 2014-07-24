@@ -34,31 +34,19 @@
 
 package com.normation.rudder.migration
 
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
-import java.sql.Driver
-import java.sql.DriverManager
-import java.io.FileInputStream
+import java.sql._
 import java.util.Properties
-import java.sql.Connection
-import java.sql.ResultSet
-import Migration_2_DATA_Other._
-import Migration_2_DATA_Group._
-import Migration_2_DATA_Directive._
-import Migration_2_DATA_Rule._
-import net.liftweb.common._
-import net.liftweb.util.Helpers
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
-import org.apache.commons.dbcp.BasicDataSource
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.RowMapper
 import scala.xml.XML
-import scala.collection.JavaConverters._
-import scala.xml.Elem
+import org.specs2.mutable.Specification
+import org.specs2.mutable.Tags
 import org.specs2.specification.Fragments
 import org.specs2.specification.Step
-import java.sql.Timestamp
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
+import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
+import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
+import net.liftweb.common.Loggable
+import scala.io.Source
 
 
 
@@ -69,21 +57,48 @@ import java.sql.Timestamp
 trait DBCommon extends Specification with Loggable with Tags {
   skipAllIf(System.getProperty("test.postgres", "true").toBoolean != true)
 
-  def sqlClean : String
-  def sqlInit : String
+  /**
+   * By default, init schema with the Rudder schema and tables, safe that
+   * everything is temporary
+   */
+  def sqlInit : String = {
+    val is = this.getClass().getClassLoader().getResourceAsStream("reportsSchema.sql")
+    val sqlText = Source.fromInputStream(is).getLines.toSeq.map(s =>
+      s
+      //using toLowerCase is safer, it will always replace create table by a temp one,
+      //but it also mean that we will not know when we won't be strict with ourselves
+         .toLowerCase
+         .replaceAll("create table", "create temp table")
+         .replaceAll("create sequence", "create temp sequence")
+         .replaceAll("alter database rudder", "alter database test")
+    ).mkString("\n")
+    is.close()
+
+    sqlText
+  }
+
+
+  /**
+   * By default, clean does nothing:
+   * - cleaning at the end is not that reliable
+   * - and everything is temporary by default.
+   *
+   * Just let the possibility to do fancy things.
+   */
+  def sqlClean : String = ""
 
   override def map(fs: =>Fragments) = (
-      Step(initDb)
-    ^ fs
-    ^ Step(cleanDb)
+      Step(initDb) ^ fs ^ Step(cleanDb)
   )
 
-  def initDb = {
+  def initDb() = {
     if(sqlInit.trim.size > 0) jdbcTemplate.execute(sqlInit)
   }
 
-  def cleanDb = {
+  def cleanDb() = {
     if(sqlClean.trim.size > 0) jdbcTemplate.execute(sqlClean)
+
+    dataSource.close
   }
 
   def now = new Timestamp(System.currentTimeMillis)
@@ -113,19 +128,16 @@ trait DBCommon extends Specification with Loggable with Tags {
 
   // init DB and repositories
   lazy val dataSource = {
-    val driver = properties.getProperty("jdbc.driverClassName")
-    Class.forName(driver);
-    val pool = new BasicDataSource()
-    pool.setDriverClassName(driver)
-    pool.setUrl(properties.getProperty("jdbc.url"))
-    pool.setUsername(properties.getProperty("jdbc.username"))
-    pool.setPassword(properties.getProperty("jdbc.password"))
-
-    /* test connection */
-    val connection = pool.getConnection()
-    connection.close()
-
-    pool
+    val config = new RudderDatasourceProvider(
+        properties.getProperty("jdbc.driverClassName")
+      , properties.getProperty("jdbc.url")
+      , properties.getProperty("jdbc.username")
+      , properties.getProperty("jdbc.password")
+        //MUST BE '1', else temp table desapear between the two connections in
+        //really funny ways
+      , 1
+    )
+    config.datasource
   }
 
   //a row mapper for TestLog

@@ -36,20 +36,19 @@ package com.normation.rudder.reports.execution
 
 import com.normation.inventory.domain.NodeId
 import org.joda.time.DateTime
+import com.normation.rudder.domain.reports.NodeConfigId
+
+
+final case class AgentRunId(
+    nodeId: NodeId
+  , date  : DateTime
+)
 
 /**
  * a mapping of reports executions
  */
-case class ReportExecution (
-    nodeId     : NodeId
-  , date       : DateTime
-  , isComplete : Boolean
-)
-
-/**
- * reports executions, without the state store, to compare between already saved and new executions
- */
-case class ReportExecutionWithoutState (
-    nodeId     : NodeId
-  , date       : DateTime
+final case class AgentRun (
+    agentRunId       : AgentRunId
+  , nodeConfigVersion: Option[NodeConfigId]
+  , isCompleted      : Boolean
 )

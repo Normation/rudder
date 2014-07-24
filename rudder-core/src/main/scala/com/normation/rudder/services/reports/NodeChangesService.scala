@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2011 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,37 +32,27 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.execution
-
-import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
+package com.normation.rudder.services.reports
 import org.joda.time.DateTime
-
+import com.normation.rudder.domain.reports.ResultRepairedReport
+import net.liftweb.common.Box
+import com.normation.rudder.repository.ReportsRepository
 
 /**
- * Service for reading or storing execution of Nodes
+ * This service is responsible to make available node changes for nodes.
+ * The hard part is on implementation, to make it efficient.
  */
-trait RoReportsExecutionRepository {
-
-  /**
-   * Find the last execution of nodes, whatever is its state.
-   */
-  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]]
+trait NodeChangesService {
+  def getChanges(notBefore: Option[DateTime] = None): Box[Seq[ResultRepairedReport]]
 }
 
 
-trait WoReportsExecutionRepository {
+class NodeChangesServiceImpl(
+    reportsRepository: ReportsRepository
+  , changesMaxAge    : Int = 30 // in days
+) extends NodeChangesService {
 
-  /**
-   * Create or update the list of execution in the execution tables
-   * Only return execution which where actually changed in backend
-   *
-   * The logic is:
-   * - a new execution (not present in backend) is inserted as provided
-   * - a existing execution can only change the completion status from
-   *   "not completed" to "completed" (i.e: a completed execution can
-   *   not be un-completed).
-   */
-  def updateExecutions(executions : Seq[AgentRun]) : Box[Seq[AgentRun]]
-
+  override def getChanges(notBefore: Option[DateTime]): Box[Seq[ResultRepairedReport]] = {
+    reportsRepository.getChangeReports(notBefore.getOrElse(DateTime.now.minusDays(changesMaxAge)))
+  }
 }

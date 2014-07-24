@@ -34,16 +34,19 @@
 
 package com.normation.rudder.batch
 
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.AllReportLogger
-import com.normation.rudder.domain.reports.bean.Reports
-import com.normation.rudder.repository._
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.repository.RudderPropertiesRepository
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.utils.UuidRegex
+
 import net.liftweb.actor._
 import net.liftweb.common._
-import com.normation.utils.UuidRegex
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.inventory.domain.NodeId
-
 
 
 /**

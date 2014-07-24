@@ -38,7 +38,7 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import scala.xml._
-import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.domain.reports._
 import net.liftweb.util.Helpers._
 import net.liftweb.util._
 import com.normation.rudder.domain.policies._
@@ -52,13 +52,13 @@ import net.liftweb.http.js.JE.Str
 import net.liftweb.http.S
 import net.liftweb.common._
 import com.normation.rudder.web.services.ComplianceData
+import com.normation.rudder.domain.reports.RuleNodeStatusReport
 
 /**
  *  That popup Display the compliance of a Rule by Node starting from different Scope ( Directive, Component, or a specific value)
  */
 class RuleCompliancePopup(
-    rule         :Rule
-  , directiveLib : FullActiveTechniqueCategory
+    directiveLib : FullActiveTechniqueCategory
   , allNodeInfos : Map[NodeId, NodeInfo]
 ) extends Loggable {
 
@@ -66,15 +66,21 @@ class RuleCompliancePopup(
   val htmlId_reportsPopup = "popup_" + htmlId_rulesGridZone
   val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
 
-  val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
   import RuleCompliancePopup._
 
   /**
    * Display the popup
    */
-  def showPopup(directiveStatus: RuleStatusReport) : JsCmd = {
-    val popupHtml = createPopup(directiveStatus)
+  def showPopup(
+      statusReport : Seq[RuleNodeStatusReport]
+    , ruleName     : String
+    , directiveId  : DirectiveId
+    , componentName: Option[String]
+    , valueName    : Option[String]
+  ) : JsCmd = {
+    val popupHtml = createPopup(statusReport, ruleName, directiveId, componentName, valueName)
+
     SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
         JsRaw("""$('.dataTables_filter input').attr("placeholder", "Filter");""")
     ) &
@@ -84,38 +90,50 @@ class RuleCompliancePopup(
   /**
    * Create popup content
    */
-  private[this] def createPopup(directiveByNode: RuleStatusReport) : NodeSeq = {
+  private[this] def createPopup(
+      statusReport : Seq[RuleNodeStatusReport]
+    , ruleName     : String
+    , directiveId  : DirectiveId
+    , componentName: Option[String]
+    , valueName    : Option[String]
+  ) : NodeSeq = {
+
+    val (techName, techVersion, directiveName) = directiveLib.allDirectives.get(directiveId).map { case(tech,dir) =>
+        (tech.techniqueName.value, dir.techniqueVersion.toString, dir.name)
+      }.getOrElse(("Unknown technique", "N/A", s"Missing name for directive with id '${directiveId.value}'"))
 
     (
       "#innerContent" #> {
-        val xml = directiveByNode match {
-          case d:DirectiveRuleStatusReport =>
+        val xml = (
             <div>
               <ul>
-                <li> <b>Rule:</b> {rule.name}</li>
-                <li><b>Directive:</b> {directiveName(d.directiveId)}</li>
+                <li><b>Rule:</b> {ruleName}</li>
+                <li><b>Directive:</b> {directiveName}</li>{(
+                  componentName match {
+                    case None => NodeSeq.Empty
+                    case Some(cn) =>
+                      <li><b>Component:</b> {cn}</li> ++ {
+                        valueName match {
+                          case None => NodeSeq.Empty
+                          case Some(vn) => <li><b>Value:</b> {vn}</li>
+                        }
+                      }
+                  }
+                )}
               </ul>
             </div>
-          case c:ComponentRuleStatusReport =>
-            <div>
-              <ul>
-                <li> <b>Rule:</b> {rule.name}</li>
-                <li><b>Directive:</b> {directiveName(c.directiveId)}</li>
-                <li><b>Component:</b> {c.component}</li>
-              </ul>
-            </div>
-          case v@ComponentValueRuleStatusReport(directiveId,component,value,unexpanded,_) =>
-            <div>
-              <ul>
-                <li> <b>Rule:</b> {rule.name}</li>
-                <li><b>Directive:</b> {directiveName(directiveId)}</li>
-                <li><b>Component:</b> {component}</li>
-                <li><b>Value:</b> {v.key}</li>
-              </ul>
-            </div>
-          }
-        val directiveId = getDirectiveIdFromReport(directiveByNode)
-        val tab = showReportsByType(directiveByNode, directiveId)
+        )
+
+        /**
+         * Filter reports by directive, component and value
+         */
+        val filteredReports = statusReport.flatMap( _.withFilteredElements(
+            dirReport => dirReport.directiveId == directiveId
+          , cptReport => componentName.fold(true)(name => cptReport.componentName == name)
+          , valReport => valueName.fold(true)(name => valReport.componentValue == name)
+        ) )
+
+        val tab = showReportsByType(directiveId, statusReport, techName, techVersion)
 
         xml++tab
       }
@@ -123,23 +141,26 @@ class RuleCompliancePopup(
   }
 
   /**
-   * treat reports
-   *  - show them in the node compliance table
+   * Build up to three tables displaying details about reports:
+   *  - show them in the main "by node" compliance table
    *  - compute missing/unexpected/unkown table and show them in a specific table
    */
   def showReportsByType(
-      reports: RuleStatusReport
-    , directiveId : DirectiveId
+      directiveId: DirectiveId
+    , reports    : Seq[RuleNodeStatusReport]
+    , techName   : String
+    , techVersion: String
   ) : NodeSeq = {
-    val optDirective = directiveLib.allDirectives.get(directiveId)
-    val (techName, techVersion) = optDirective.map { case (fat, d) => (fat.techniqueName.value, d.techniqueVersion.toString) }.getOrElse(("Unknown Technique", "N/A"))
-    val missing = reports.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size == 0)
-    val unexpected = reports.processMessageReport(nreport => nreport.reportType == UnknownReportType & nreport.message.size != 0)
+
+    val unknowns = reports.flatMap( r => r.getValues( v => v.status == UnexpectedReportType).map { case (d,c,v) => 
+      (r.nodeId, d,c,v) 
+    }  ).distinct
+    val missing = reports.flatMap( r => r.getValues( v => v.status == MissingReportType)).distinct
 
     val xml = (
-         showNodeComplianceTable(reports) ++
+         showNodeComplianceTable(directiveId, reports) ++
          showMissingReports(missing, "missing", 1, techName, techVersion) ++
-         showUnexpectedReports(unexpected, "unexpected", 2, techName, techVersion)
+         showUnexpectedReports(unknowns, "unexpected", 2, techName, techVersion)
     )
     xml
   }
@@ -152,10 +173,11 @@ class RuleCompliancePopup(
    *  reports : the reports we need to show
    */
   private[this] def showNodeComplianceTable (
-      reports: RuleStatusReport
+      directiveId: DirectiveId
+    , reports    : Seq[RuleNodeStatusReport]
   ): NodeSeq = {
 
-    val data = complianceData.getNodeComplianceDetails(reports,rule)
+    val data = ComplianceData.getRuleByNodeComplianceDetails(directiveId, reports, allNodeInfos)
 
     <table id="reportsDetailGrid" cellspacing="0" style="clear:both"/>
     <br/> ++
@@ -165,7 +187,13 @@ class RuleCompliancePopup(
 
   ///////////////// Show reports in Missing/unexepected/unknown status /////////////////////////
 
-  def showMissingReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String): NodeSeq = {
+  def showMissingReports(
+      reports         : Seq[(DirectiveId, String, ComponentValueStatusReport)]
+    , gridId          : String
+    , tabid           : Int
+    , techniqueName   : String
+    , techniqueVersion: String
+  ): NodeSeq = {
     def showMissingReport(report: (String, String)): NodeSeq = {
       ("#technique *" #> "%s (%s)".format(techniqueName, techniqueVersion) &
         "#component *" #> report._1 &
@@ -173,8 +201,9 @@ class RuleCompliancePopup(
     }
 
     if (reports.size > 0) {
-      val components: Seq[String] = reports.map(_.component).distinct
-      val missingreports = components.flatMap(component => reports.filter(_.component == component).map(report => (component, report.value))).distinct
+      val components: Seq[String] = reports.map(_._2).distinct
+      val missingreports = components.flatMap(component => reports.filter(_._2 == component).map(x => (component, x._3.componentValue))).distinct
+
       ("#reportLine" #> missingreports.flatMap(showMissingReport(_))).apply(missingGridXml(gridId)) ++
         Script(JsRaw("""
              var oTable%1$s = $('#%2$s').dataTable({
@@ -206,24 +235,30 @@ class RuleCompliancePopup(
 
 
 
-  def showUnexpectedReports(reports: Seq[MessageReport], gridId: String, tabid: Int, techniqueName: String, techniqueVersion: String): NodeSeq = {
-    def showUnexpectedReport(report: MessageReport): NodeSeq = {
-      allNodeInfos.get(report.report.node) match {
+  def showUnexpectedReports(
+      reports         : Seq[(NodeId, DirectiveId, String, ComponentValueStatusReport)]
+    , gridId          : String
+    , tabid           : Int
+    , techniqueName   : String
+    , techniqueVersion: String
+  ): NodeSeq = {
+    def showUnexpectedReport(report: (NodeId, DirectiveId, String, ComponentValueStatusReport)): NodeSeq = {
+      allNodeInfos.get(report._1) match {
         case Some(nodeInfo) => {
           ("#node *" #>
-            <a class="unfoldable" href={ """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report.report.node.value) }>
+            <a class="unfoldable" href={ """/secure/nodeManager/searchNodes#{"nodeId":"%s"}""".format(report._1.value) }>
               <span class="curspoint noexpand">
                 { nodeInfo.hostname }
               </span>
             </a> &
             "#technique *" #> "%s (%s)".format(techniqueName, techniqueVersion) &
-            "#component *" #> report.component &
-            "#value *" #> report.value &
-            "#message *" #> <ul>{ report.report.message.map(msg => <li>{ msg }</li>) }</ul>)(unexpectedLineXml)
+            "#component *" #> report._3 &
+            "#value *" #> report._4.componentValue &
+            "#message *" #> <ul>{ report._4.messages.collect{ case(msg) if(msg.message.nonEmpty) => <li>{ msg.message.get }</li>} }</ul>)(unexpectedLineXml)
         }
         case None =>
-          logger.error("An error occured when trying to load node %s".format(report.report.node.value))
-          <div class="error">Node with ID "{ report.report.node.value }" is invalid</div>
+          logger.error("An error occured when trying to load node %s".format(report._1.value))
+          <div class="error">Node with ID "{ report._1.value }" is invalid</div>
       }
     }
 
@@ -256,22 +291,6 @@ class RuleCompliancePopup(
          """.format(tabid, gridId + "Grid")))
     } else
       NodeSeq.Empty
-  }
-
-  private[this] def directiveName(id:DirectiveId) = directiveLib.allDirectives.get(id).map( _._2.name ).getOrElse("can't find directive name")
-
-  /**
-   * Get directive id from a report
-   */
-  def getDirectiveIdFromReport (report: RuleStatusReport): DirectiveId = {
-    report match {
-      case DirectiveRuleStatusReport(directiveId,_) =>
-        directiveId
-      case component : ComponentRuleStatusReport =>
-        component.directiveId
-      case value: ComponentValueRuleStatusReport =>
-        value.directiveId
-    }
   }
 
 }

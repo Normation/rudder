@@ -114,6 +114,7 @@ rudder.jdbc.driver=org.postgresql.Driver
 rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
 rudder.jdbc.username=rudder
 rudder.jdbc.password=Normation
+rudder.jdbc.maxPoolSize=25
 
 
 ###########################

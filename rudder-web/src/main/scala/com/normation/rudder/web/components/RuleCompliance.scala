@@ -41,18 +41,30 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import scala.xml._
 import net.liftweb.http._
 import net.liftweb.common._
-import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.domain.reports._
 import net.liftweb.util.Helpers._
 import net.liftweb.util.Helpers
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JE._
 import net.liftweb.http.js.JsCmd
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.web.components.popup.RuleCompliancePopup
 import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.services.ComplianceData
+
+
+
+object RuleCompliance {
+
+  private def details =
+    (for {
+      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
+    } yield {
+      chooseTemplate("component", "details", xml)
+    }) openOr Nil
+
+}
 
 /**
  *   This component display the compliance of a Rule by showing compliance of every Directive
@@ -66,11 +78,10 @@ class RuleCompliance (
 ) extends Loggable {
 
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
-  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
-  private[this] val roRuleRepository = RudderConfig.roRuleRepository
-  private[this] val categoryService      = RudderConfig.ruleCategoryService
+  private[this] val categoryService  = RudderConfig.ruleCategoryService
 
+  //fresh value when refresh
+  private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
 
@@ -90,27 +101,22 @@ class RuleCompliance (
 
   /*
    * For each table : the subtable is contained in td : details
-   * when + is clicked: it gets the content of td details then process it has a datatable
+   * when + is clicked: it gets the content of td details then process it
+   * as a datatable
    */
   def showCompliance : NodeSeq = {
-    val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
-    reportingService.findImmediateReportsByRule(rule.id) match {
+    reportingService.findDirectiveRuleStatusReportsByRule(rule.id) match {
       case e: EmptyBox => <div class="error">Error while fetching report information</div>
-      case Full(optReport) =>
-        val data = optReport match {
-          case Some(reports) =>
-            val directivesReport=reports.getRuleStatus().filter(dir => rule.directiveIds.contains(dir.directiveId))
-            val data = complianceData.getDirectivesComplianceDetails(directivesReport,rule,false)
-            data.json.toJsCmd
-          case None => "[]"
-        }
+      case Full(reports) =>
+        val data = ComplianceData.getRuleByDirectivesComplianceDetails(reports, rule, allNodeInfos, directiveLib).json.toJsCmd
+
         <div>
           <hr class="spacer" />
          <table id="reportsGrid" cellspacing="0">  </table>
         </div> ++
         Script(JsRaw(s"""
-          createDirectiveTable(true,true,"${S.contextPath}")("reportsGrid",${data},${refresh().toJsCmd});
+          createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",${data},${refresh().toJsCmd});
           createTooltip();
         """))
       }
@@ -119,20 +125,13 @@ class RuleCompliance (
   def refresh() = {
      val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
         val result : Box[String] = for {
-            optReports <- reportingService.findImmediateReportsByRule(rule.id)
+            reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
             updatedRule <- roRuleRepository.get(rule.id)
             updatedNodes <- getAllNodeInfos().map(_.toMap)
             updatedDirectives <- getFullDirectiveLib()
         } yield {
-          val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
-          optReports match {
-            case Some(reports) =>
-              val directivesReport=reports.getRuleStatus().filter(dir => updatedRule.directiveIds.contains(dir.directiveId))
-              complianceData.getDirectivesComplianceDetails(directivesReport,updatedRule,false).json.toJsCmd
-
-            case _ => "[]"
-          }
+          ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib).json.toJsCmd
         }
 
         JsRaw(s"""refreshTable("reportsGrid",${result.getOrElse("[]")});
@@ -143,13 +142,3 @@ class RuleCompliance (
   }
 }
 
-object RuleCompliance {
-
-  private def details =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentRuleEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "details", xml)
-    }) openOr Nil
-
-}
