@@ -61,6 +61,7 @@ import net.liftweb.http.Templates
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
+import org.joda.time.DateTime
 
 /**
  * Show the reports from cfengine (raw data)
@@ -71,7 +72,6 @@ class LogDisplayer(
   , ruleRepository     : RoRuleRepository
 ) {
 
-
   private val templatePath = List("templates-hidden", "node_logs_tabs")
   private def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -81,92 +81,110 @@ class LogDisplayer(
 
   private def content = chooseTemplate("logs","content",template)
 
-  private def jsVarNameForId(tableId:String) = "oTable" + tableId
-
   private val gridName = "logsGrid"
 
 
-  def asyncDisplay(nodeId : NodeId, withinPopup : Boolean) : NodeSeq = {
-      Script(OnLoad(JsRaw("""
-              | $("#%s").bind( "show", function(event, ui) {
-              | if(ui.panel.id== '%s') { %s; }
-              | });
-              """.stripMargin('|').format("node_tabs",
-            "node_logs",
-            SHtml.ajaxCall(JsRaw(""),(v:String) => SetHtml("logsDetails",display(nodeId))& initJs(withinPopup) )._2.toJsCmd
-       )))
-      )
-  }
+  def asyncDisplay(nodeId : NodeId) : NodeSeq = {
 
-  def display(nodeId : NodeId) : NodeSeq = {
-    val PIMap = mutable.Map[DirectiveId, String]()
-    val CRMap = mutable.Map[RuleId, String]()
+    val ajaxRefresh = SHtml.ajaxCall(JsRaw(""),(v:String) => refreshData(nodeId) )._2.toJsCmd
 
-    def getPIName(directiveId : DirectiveId) : String = {
-      PIMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).openOr(directiveId.value); PIMap += ( directiveId -> result); result } )
-    }
-
-    def getCRName(ruleId : RuleId) : String = {
-      CRMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).openOr(ruleId.value); CRMap += ( ruleId -> result); result } )
-    }
-
-    val lines : NodeSeq = reportRepository.findReportsByNode(nodeId, None, None, None, None).flatMap {
-          case Reports(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
-           <tr>
-            <td>{DateFormaterService.getFormatedDate(executionDate)}</td>
-            <td>{severity}</td>
-            <td>{getPIName(directiveId)}</td>
-            <td>{getCRName(ruleId)}</td>
-            <td>{component}</td>
-            <td>{if("None" == keyValue) "-" else keyValue}</td>
-            <td>{message}</td>
-           </tr>
-        }
-
-    ("tbody *" #> lines).apply(content)
-
+    Script(
+      OnLoad(
+        // set static content
+        SetHtml("logsDetails",content) &
+        // Create empty table
+        JsRaw(s"""createTechnicalLogsTable("${gridName}",[], "${S.contextPath}");""") &
+        // Load data asynchronously
+        JsRaw(s"""
+        $$("#node_tabs").bind( "show", function(event, ui) {
+          if(ui.panel.id== 'node_logs') { ${ajaxRefresh}; }
+        });"""
+    )))
   }
 
   /**
-   * If it is displayed within a popup, we only display 5 logs per page
+   * find all reports for node passed as parameter and transform them into table data
    */
-  def initJs(withinPopup: Boolean = false) : JsCmd = {
-    val extension = if (withinPopup) """"iDisplayLength": 5,""" else ""
+  def getReportsLineForNode (nodeId : NodeId) = {
+    val directiveMap = mutable.Map[DirectiveId, String]()
+    val ruleMap = mutable.Map[RuleId, String]()
 
-    JsRaw("var %s;".format(jsVarNameForId(gridName))) &
-    OnLoad(
-        JsRaw("""
-          /* Event handler function */
-          #table_var# = $('#%1$s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :true,
-            "bLengthChange": true,
-            "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
-            %2$s
-            "sPaginationType": "full_numbers",
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "bJQueryUI": true,
-            "aaSorting":[],
-            "aoColumns": [
-              { "sWidth": "120px" },
-              { "sWidth": "80px" },
-              { "sWidth": "110px" },
-              { "sWidth": "120px" },
-              { "sWidth": "100px" },
-              { "sWidth": "100px" },
-              { "sWidth": "220px" }
-            ],
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-          });
-            $('.dataTables_filter input').attr("placeholder", "Search");
-            """.format(gridName,extension, gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
+    def getDirectiveName(directiveId : DirectiveId) : String = {
+      directiveMap.get(directiveId).getOrElse({val result = directiveRepository.getDirective(directiveId).map(_.name).openOr(directiveId.value); directiveMap += ( directiveId -> result); result } )
+    }
+
+    def getRuleName(ruleId : RuleId) : String = {
+      ruleMap.get(ruleId).getOrElse({val result = ruleRepository.get(ruleId).map(x => x.name).openOr(ruleId.value); ruleMap += ( ruleId -> result); result } )
+    }
+
+    val lines = {
+      for {
+        report <- reportRepository.findReportsByNode(nodeId, None, None, None, None)
+      } yield {
+
+        val ruleName = getRuleName(report.ruleId)
+
+        val directiveName = getDirectiveName(report.directiveId)
+
+        val value = if ("None" == report.keyValue) "-" else report.keyValue
+
+        ReportLine (
+            report.executionDate
+          , report.severity
+          , ruleName
+          , directiveName
+          , report.component
+          , value
+          , report.message
         )
-    )
+      }
+    }
+
+    JsTableData(lines.toList)
+
   }
 
+  def refreshData(nodeId : NodeId) : JsCmd = {
+
+    val data = getReportsLineForNode(nodeId).json.toJsCmd
+
+    OnLoad(JsRaw(s"""refreshTable("${gridName}",${data});""")
+    )
+  }
+}
+
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "executionDate" : Date report was executed [DateTime]
+ *   , "severity" : Report severity [String]
+ *   , "ruleName" : Rule name [String]
+ *   , "directiveName": Directive name [String]
+ *   , "component" : Report component [String]
+ *   , "value" : Report value [String]
+ *   , "message" : Report message [String]
+ *   }
+ */
+case class ReportLine (
+    executionDate  : DateTime
+  , severity       : String
+  , ruleName       : String
+  , directiveName  : String
+  , component      : String
+  , value          : String
+  , message        : String
+) extends JsTableLine {
+
+    override val json  = {
+
+      JsObj(
+          ( "executionDate", DateFormaterService.getFormatedDate(executionDate) )
+        , ( "severity", severity )
+        , ( "ruleName", ruleName )
+        , ( "directiveName",  directiveName )
+        , ( "component", component )
+        , ( "value", value )
+        , ( "message", message )
+      )
+
+    }
 }
