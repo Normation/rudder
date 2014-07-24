@@ -32,36 +32,45 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.reports.bean
+package com.normation.rudder.domain.reports
+
+import org.joda.time.DateTime
+import org.slf4j.LoggerFactory
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import org.joda.time._
-import org.slf4j.{Logger,LoggerFactory}
 import com.normation.utils.HashcodeCaching
+
 /**
- * Store the reports entry from the execution
+ * Define one "line" of reports from an agent execution
+ * (so for a given run, their would be a lot of them)
+ *
+ * This is a direct mapping of what the agent actually
+ * send to the server via syslog.
+ *
  * Contains : the datetime at which it was generated, the rule/directive,
  * the server on which it has been run, the severity, and the message,
  * and the serial (id of generation), the component and its key value
- * @author Nicolas CHARLES
- *
  */
-trait Reports {
-  val executionDate      : DateTime
+sealed trait Reports {
+  val executionDate      : DateTime //the execution timestamp of that report
   val ruleId             : RuleId
   val directiveId        : DirectiveId
   val nodeId             : NodeId
   val serial             : Int
   val component          : String
-  val keyValue           : String // the key of the component
-  val executionTimestamp : DateTime
+  val keyValue           : String // component value
+  val executionTimestamp : DateTime //the start run timestamp
   val severity           : String
   val message            : String
 }
 
-sealed case class ResultSuccessReport(
+//two marker trait to split between result and log reports
+sealed trait ResultReports extends Reports
+sealed trait LogReports extends Reports
+
+final case class ResultSuccessReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -71,11 +80,11 @@ sealed case class ResultSuccessReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends ResultReports with HashcodeCaching {
   val severity = Reports.RESULT_SUCCESS
 }
 
-sealed case class ResultNotApplicableReport(
+final case class ResultNotApplicableReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -85,11 +94,11 @@ sealed case class ResultNotApplicableReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends ResultReports with HashcodeCaching {
   val severity = Reports.RESULT_NOTAPPLICABLE
 }
 
-sealed case class ResultRepairedReport(
+final case class ResultRepairedReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -99,11 +108,11 @@ sealed case class ResultRepairedReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends ResultReports with HashcodeCaching {
   val severity = Reports.RESULT_REPAIRED
 }
 
-sealed case class ResultErrorReport(
+final case class ResultErrorReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -113,12 +122,11 @@ sealed case class ResultErrorReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends ResultReports with HashcodeCaching {
   val severity = Reports.RESULT_ERROR
 }
 
-
-sealed case class LogRepairedReport(
+final case class UnknownReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -128,11 +136,25 @@ sealed case class LogRepairedReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends ResultReports with HashcodeCaching {
+  val severity = Reports.RESULT_UNKNOWN
+}
+
+final case class LogRepairedReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends LogReports with HashcodeCaching {
   val severity = Reports.LOG_REPAIRED
 }
 
-sealed case class LogWarnReport(
+final case class LogWarnReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -142,11 +164,11 @@ sealed case class LogWarnReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends LogReports with HashcodeCaching {
   val severity = Reports.LOG_WARN
 }
 
-sealed case class LogInformReport(
+final case class LogInformReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -156,11 +178,11 @@ sealed case class LogInformReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends LogReports with HashcodeCaching {
   val severity = Reports.LOG_INFO
 }
 
-sealed case class LogDebugReport(
+final case class LogDebugReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -170,11 +192,11 @@ sealed case class LogDebugReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends LogReports with HashcodeCaching {
   val severity = Reports.LOG_DEBUG
 }
 
-sealed case class LogTraceReport(
+final case class LogTraceReport(
     executionDate      : DateTime
   , ruleId             : RuleId
   , directiveId        : DirectiveId
@@ -184,64 +206,58 @@ sealed case class LogTraceReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends Reports with HashcodeCaching {
+) extends LogReports with HashcodeCaching {
   val severity = Reports.LOG_TRACE
-}
-
-sealed case class UnknownReport(
-    executionDate      : DateTime
-  , ruleId             : RuleId
-  , directiveId        : DirectiveId
-  , nodeId             : NodeId
-  , serial             : Int
-  , component          : String
-  , keyValue           : String
-  , executionTimestamp : DateTime
-  , message            : String
-) extends Reports with HashcodeCaching {
-  val severity = "Unknown"
 }
 
 object Reports {
 
   val logger = LoggerFactory.getLogger(classOf[Reports])
 
-  def factory(executionDate : DateTime, ruleId : RuleId,
-      directiveId : DirectiveId, nodeId : NodeId,  serial : Int,
-        component : String, keyValue : String,executionTimestamp : DateTime,
-        severity : String,  message : String) : Reports = {
+  def factory(
+      executionDate     : DateTime
+    , ruleId            : RuleId
+    , directiveId       : DirectiveId
+    , nodeId            : NodeId
+    , serial            : Int
+    , component         : String
+    , componentValue    : String
+    , executionTimestamp: DateTime
+    , severity          : String
+    , message           : String
+  ) : Reports = {
     severity.toLowerCase match {
       case RESULT_ERROR => new ResultErrorReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case RESULT_SUCCESS => new ResultSuccessReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case RESULT_REPAIRED => new ResultRepairedReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case RESULT_NOTAPPLICABLE => new ResultNotApplicableReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case LOG_WARN | LOG_WARNING  => new LogWarnReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case LOG_INFO | LOG_INFORM => new LogInformReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case LOG_DEBUG => new LogDebugReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case LOG_TRACE => new LogTraceReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message )
+              serial, component, componentValue, executionTimestamp, message )
 
       case _ =>
         logger.error(s"Invalid report type ${severity} for directive ${directiveId}")
         new UnknownReport(executionDate, ruleId, directiveId, nodeId,
-              serial, component, keyValue, executionTimestamp, message)
+              serial, component, componentValue, executionTimestamp, message)
     }
   }
 
@@ -252,12 +268,12 @@ object Reports {
     , nodeId             : NodeId
     , serial             : Int
     , component          : String
-    , keyValue           : String
+    , componentValue     : String
     , executionTimestamp : DateTime
     , severity           : String
     , message            : String
   ) : Reports = {
-    factory(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity,  message)
+    factory(executionDate, ruleId, directiveId, nodeId, serial, component, componentValue, executionTimestamp, severity,  message)
   }
 
   def unapply(report : Reports) = Some((report.executionDate, report.ruleId,
@@ -276,5 +292,5 @@ object Reports {
   val RESULT_NOTAPPLICABLE = "result_na"
   val RESULT_REPAIRED      = "result_repaired"
   val RESULT_ERROR         = "result_error"
-
+  val RESULT_UNKNOWN       = "Unknown"
 }

@@ -56,7 +56,7 @@ import com.normation.rudder.repository.ReportsRepository
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.reports.execution.ReportExecution
+import com.normation.rudder.reports.execution.AgentRun
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -78,8 +78,8 @@ object SrvGrid {
  * - call the display(servers) method
  */
 class SrvGrid(
-  roReportExecutionsRepository : RoReportsExecutionRepository
-) {
+  roAgentRunsRepository : RoReportsExecutionRepository
+) extends Loggable {
 
   private def templatePath = List("templates-hidden", "srv_grid")
   private def template() =  Templates(templatePath) match {
@@ -139,13 +139,21 @@ class SrvGrid(
     , callback : Option[String => JsCmd]
   ) = {
 
-      val lines = for {
-        node <- nodes
-        lastReport = roReportExecutionsRepository.getNodeLastExecution(node.id)
+      val lines = (for {
+        lastReports <- roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
       } yield {
-        NodeLine(node,lastReport, callback)
+        nodes.map(node => NodeLine(node,lastReports.get(node.id), callback))
+      }) match {
+        case eb: EmptyBox =>
+          val msg = "Error when trying to get nodes info"
+          val e = eb ?~! msg
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach(ex => logger.error(ex) )
+          Nil
+        case Full(lines) => lines.toList
       }
-      JsTableData(lines.toList)
+
+      JsTableData(lines)
     }
 
   def refreshData (
@@ -185,7 +193,7 @@ class SrvGrid(
  */
 case class NodeLine (
     node       : NodeInfo
-  , lastReport : Box[Option[ReportExecution]]
+  , lastReport : Box[Option[AgentRun]]
   , callback   : Option[String => JsCmd]
 ) extends JsTableLine {
 
@@ -204,7 +212,7 @@ case class NodeLine (
   val lastReportValue = {
     lastReport match {
       case Full(exec) =>
-        exec.map(report =>  DateFormaterService.getFormatedDate(report.date)).getOrElse("Never")
+        exec.map(report =>  DateFormaterService.getFormatedDate(report.agentRunId.date)).getOrElse("Never")
       case eb : EmptyBox =>
         "Error While fetching node executions"
     }

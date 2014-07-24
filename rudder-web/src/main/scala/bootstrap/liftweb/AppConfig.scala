@@ -75,7 +75,6 @@ import com.normation.rudder.repository.xml._
 import com.normation.rudder.repository.jdbc._
 import com.normation.rudder.repository._
 import net.liftweb.common.Loggable
-import org.apache.commons.dbcp.BasicDataSource
 import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.DeployOnTechniqueCallback
 import com.normation.rudder.services.marshalling._
@@ -232,6 +231,7 @@ object RudderConfig extends Loggable {
   val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
   val RUDDER_JDBC_PASSWORD = config.getString("rudder.jdbc.password") ; filteredPasswords += "rudder.jdbc.password"
+  val RUDDER_JDBC_MAX_POOL_SIZE = config.getInt("rudder.jdbc.maxPoolSize")
   val RUDDER_DIR_GITROOT = config.getString("rudder.dir.gitRoot")
   val RUDDER_DIR_TECHNIQUES = config.getString("rudder.dir.techniques")
   val RUDDER_BATCH_DYNGROUP_UPDATEINTERVAL = config.getInt("rudder.batch.dyngroup.updateInterval") //60 //one hour
@@ -340,8 +340,8 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  lazy val srvGrid = new SrvGrid(roReportsExecutionSquerylRepository)
-  val expectedReportRepository : RuleExpectedReportsRepository = configurationExpectedRepo
+  lazy val srvGrid = new SrvGrid(RoReportsExecutionJdbcRepository)
+  val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
   val woApiAccountRepository : WoApiAccountRepository = woLDAPApiAccountRepository
@@ -349,8 +349,8 @@ object RudderConfig extends Loggable {
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
 
-  val roReportExecutionsRepository : RoReportsExecutionRepository = roReportsExecutionSquerylRepository
-  val woReportExecutionsRepository : WoReportsExecutionRepository = woReportExecutionsSquerylRepository
+  val roAgentRunsRepository : RoReportsExecutionRepository = RoReportsExecutionJdbcRepository
+  val woAgentRunsRepository : WoReportsExecutionRepository = woAgentRunsSquerylRepository
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
 
@@ -638,6 +638,8 @@ object RudderConfig extends Loggable {
       , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper)
       , asyncWorkflowInfo
   )
+
+  lazy val recentChangesService: NodeChangesService = new NodeChangesServiceImpl(reportsRepository)
 
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -1188,7 +1190,7 @@ object RudderConfig extends Loggable {
           systemVariableService,
           nodeConfigurationServiceImpl,
           nodeInfoServiceImpl,
-          reportingServiceImpl,
+          updateExpectedReports,
           historizationService,
           roNodeGroupRepository,
           roDirectiveRepository,
@@ -1246,15 +1248,22 @@ object RudderConfig extends Loggable {
   )
 //  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
   private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(
-        configurationExpectedRepo
-      , reportsRepositoryImpl
-      , techniqueRepositoryImpl
-      , new ComputeCardinalityOfDirectiveVal()
-      , configService.agent_run_interval
+      findExpectedRepo
+    , reportsRepositoryImpl
+    , RoReportsExecutionJdbcRepository
+    , findExpectedRepo
+    , configService.agent_run_interval
+    , configService.rudder_compliance_mode
   )
-  private[this] lazy val configurationExpectedRepo = new com.normation.rudder.repository.jdbc.RuleExpectedReportsJdbcRepository(jdbcTemplate, transactionManager)
-  private[this] lazy val reportsRepositoryImpl = new com.normation.rudder.repository.jdbc.ReportsJdbcRepository(jdbcTemplate)
-  private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD)
+  private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(
+      updateExpectedRepo
+    , updateExpectedRepo
+  )
+  private[this] lazy val pgIn = new PostgresqlInClause(70)
+  private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
+  private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, transactionManager, findExpectedRepo, findExpectedRepo)
+  private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(jdbcTemplate)
+  private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   private[this] lazy val squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
   private[this] lazy val jdbcTemplate = {
     val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
@@ -1566,9 +1575,9 @@ object RudderConfig extends Loggable {
    */
 
 
-  private[this] lazy val roReportsExecutionSquerylRepository = new RoReportsExecutionSquerylRepository(squerylDatasourceProvider)
+  private[this] lazy val RoReportsExecutionJdbcRepository = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
 
-  private[this] lazy  val woReportExecutionsSquerylRepository = new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roReportsExecutionSquerylRepository )
+  private[this] lazy  val woAgentRunsSquerylRepository = new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, RoReportsExecutionJdbcRepository )
 
   val updatesEntryJdbcRepository = new StatusUpdateSquerylRepository(squerylDatasourceProvider)
 
@@ -1582,8 +1591,7 @@ object RudderConfig extends Loggable {
 
     new ReportsExecutionService(
       reportsRepository
-    , roReportsExecutionSquerylRepository
-    , woReportExecutionsSquerylRepository
+    , woAgentRunsSquerylRepository
     , updatesEntryJdbcRepository
     , max
     )

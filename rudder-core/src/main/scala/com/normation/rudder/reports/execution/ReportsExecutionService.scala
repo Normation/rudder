@@ -34,13 +34,13 @@
 
 package com.normation.rudder.reports.execution
 
-import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.domain.reports.bean._
-import com.normation.utils.HashcodeCaching
-import net.liftweb.common._
-import com.normation.rudder.reports.status.StatusUpdateRepository
 import org.joda.time.DateTime
+
 import com.normation.rudder.batch.FindNewReportsExecution
+import com.normation.rudder.reports.status.StatusUpdateRepository
+import com.normation.rudder.repository.ReportsRepository
+
+import net.liftweb.common._
 
 /**
  * That service contains most of the logic to merge
@@ -48,7 +48,6 @@ import com.normation.rudder.batch.FindNewReportsExecution
  */
 class ReportsExecutionService (
     reportsRepository      : ReportsRepository
-  , readExecutions         : RoReportsExecutionRepository
   , writeExecutions        : WoReportsExecutionRepository
   , statusUpdateRepository : StatusUpdateRepository
   , maxDays                : Int // in days
@@ -77,8 +76,8 @@ class ReportsExecutionService (
             if (reportExec.size > 0) {
 
               val maxDate = {
-                // Keep the last report date is the last report treated is after all treated in this batch
-                val maxReportsDate = reportExec.maxBy(_.date.getMillis()).date
+                // Keep the last report date if the last processed report is after all reports processed in this batch
+                val maxReportsDate = reportExec.maxBy(_.agentRunId.date.getMillis()).agentRunId.date
                 if (maxReportsDate isAfter lastReportDate) {
                   maxReportsDate
                 } else {

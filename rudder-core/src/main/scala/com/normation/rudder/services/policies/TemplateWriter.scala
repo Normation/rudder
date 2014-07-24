@@ -43,6 +43,7 @@ import com.normation.rudder.repository.LicenseRepository
 import com.normation.cfclerk.domain.PromisesFinalMoveInfo
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.domain.reports.NodeConfigId
 
 trait TemplateWriter extends Loggable {
   def licenseRepository : LicenseRepository
@@ -53,7 +54,7 @@ trait TemplateWriter extends Loggable {
    * Write the promises of all the nodes
    * @param updateBatch : the container for the server to be updated
    */
-  def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]) : Box[Seq[PromisesFinalMoveInfo]]
+  def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]) : Box[Seq[PromisesFinalMoveInfo]]
 
   def writeLicense(nodeConfiguration : NodeConfiguration, newMachineFolder:String) : Unit = {
     logger.debug("Writing licence for nodeConfiguration  " + nodeConfiguration.nodeInfo.id);

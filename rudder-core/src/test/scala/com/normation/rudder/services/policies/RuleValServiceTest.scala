@@ -65,7 +65,7 @@ class RuleValServiceTest extends Specification {
    * Instanciate the services
    */
   val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl())
-  val computeCardinality = new ComputeCardinalityOfDirectiveVal
+  val computeCardinality = ComputeCardinalityOfDirectiveVal
 
   /**
    * Create the objects for tests

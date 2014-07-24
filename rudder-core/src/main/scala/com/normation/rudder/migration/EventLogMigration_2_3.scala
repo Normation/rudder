@@ -34,34 +34,22 @@
 
 package com.normation.rudder.migration
 
-import java.sql._
-
-import java.util.Calendar
+import java.sql.PreparedStatement
 
 import scala.Option.option2Iterable
-import scala.collection.JavaConverters.asScalaBufferConverter
-import scala.xml._
+import scala.xml.Elem
+import scala.xml.NodeSeq
+import scala.xml.NodeSeq.seqToNodeSeq
 
-import org.springframework.jdbc.core.RowMapper
 import org.springframework.jdbc.core.BatchPreparedStatementSetter
 import org.springframework.jdbc.core.JdbcTemplate
-import org.squeryl.annotations.Column
-import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.KeyedEntity
-import org.squeryl.Schema
 
-import com.normation.rudder.domain.logger._
 import com.normation.rudder.domain.Constants
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.services.marshalling.TestFileFormat
-import com.normation.utils.Control._
-import com.normation.utils.XmlUtils
 
-import net.liftweb.common._
+import net.liftweb.common.Box
 import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.util.IterableFunc.itNodeSeq
-import net.liftweb.util.StringPromotable.intToStrPromo
 
 
 

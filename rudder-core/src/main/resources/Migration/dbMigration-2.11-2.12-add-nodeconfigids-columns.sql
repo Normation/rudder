@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2014 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,37 +32,19 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.execution
 
-import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
-import org.joda.time.DateTime
+-- add the columns needed to store NodeConfigId:
+-- - one in reportExectution, "nodeConfigId"
+ALTER TABLE ReportsExecution ADD COLUMN nodeConfigId text;
 
+-- - one in ExpectedReportsNode, "nodeConfigIds" (with 's')
+ALTER TABLE expectedReportsNodes ADD COLUMN nodeConfigIds text[];
 
-/**
- * Service for reading or storing execution of Nodes
- */
-trait RoReportsExecutionRepository {
-
-  /**
-   * Find the last execution of nodes, whatever is its state.
-   */
-  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]]
-}
+-- - the table for node config ids
+CREATE TABLE nodes_info (
+  node_id    text PRIMARY KEY CHECK (node_id <> '')
+  -- configs ids are a dump of json: [{"configId":"xxxx", "dateTime": "iso-date-time"} ]
+, config_ids text
+);
 
 
-trait WoReportsExecutionRepository {
-
-  /**
-   * Create or update the list of execution in the execution tables
-   * Only return execution which where actually changed in backend
-   *
-   * The logic is:
-   * - a new execution (not present in backend) is inserted as provided
-   * - a existing execution can only change the completion status from
-   *   "not completed" to "completed" (i.e: a completed execution can
-   *   not be un-completed).
-   */
-  def updateExecutions(executions : Seq[AgentRun]) : Box[Seq[AgentRun]]
-
-}
