@@ -758,6 +758,67 @@ function createNodeTable(gridId, data, contextPath, refresh) {
 
 }
 
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "executionDate" : Date report was executed [DateTime]
+ *   , "severity" : Report severity [String]
+ *   , "ruleName" : Rule name [String]
+ *   , "directiveName": Directive name [String]
+ *   , "component" : Report component [String]
+ *   , "value" : Report value [String]
+ *   , "message" : Report message [String]
+ *   }
+ */
+function createTechnicalLogsTable(gridId, data, contextPath) {
+
+  var columns = [ {
+      "sWidth": "10%"
+    , "mDataProp": "executionDate"
+    , "sTitle": "Execution date"
+  } , {
+      "sWidth": "8%"
+    , "mDataProp": "severity"
+    , "sTitle": "Severity"
+  } , {
+      "sWidth": "17%"
+    , "mDataProp": "ruleName"
+    , "sTitle": "Rule"
+  } , {
+      "sWidth": "17%"
+    , "mDataProp": "directiveName"
+    , "sTitle": "Directive"
+  } , {
+      "sWidth": "12%"
+    , "mDataProp": "component"
+    , "sTitle": "Component"
+  } , {
+      "sWidth": "12%"
+    , "mDataProp": "value"
+    , "sTitle": "Value"
+  } , {
+      "sWidth": "24%"
+    , "mDataProp": "message"
+    , "sTitle": "Message"
+  } ];
+
+  var params = {
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+    }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
+
+  createTable(gridId,data, columns, params, contextPath);
+
+}
+
 function refreshTable (gridId, data) {
   var table = $('#'+gridId).dataTable();
   table.fnClearTable();
