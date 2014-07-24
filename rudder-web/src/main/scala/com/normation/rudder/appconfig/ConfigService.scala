@@ -43,6 +43,8 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.domain.appconfig.RudderWebProperty
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -93,6 +95,16 @@ trait ReadConfigService {
    * Logging properties
    */
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
+
+
+  /**
+   * Compliance mode:
+   * - "compliance": full compliance mode, where "success" execution reports are sent
+   *   back from node to server, and taken into account for compliance reports,
+   * - "error_only": only error and repaired are going to the server.
+   */
+  def rudder_compliance_mode(): Box[ComplianceMode]
+
 }
 
 /**
@@ -136,6 +148,10 @@ trait UpdateConfigService {
    */
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean): Box[Unit]
 
+  /**
+   * Set the compliance mode
+   */
+  def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -161,6 +177,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.modified.files.ttl=30
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
+       rudder.compliance.mode=fullCompliance
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -205,6 +222,15 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
       p.map(Integer.parseInt(_))
     } catch {
       case ex:NumberFormatException => Failure(ex.getMessage)
+    }
+  }
+
+  private[this] implicit def toComplianceMode(x: Box[RudderWebProperty]) : Box[ComplianceMode] = {
+    for {
+      value <- x
+      res <- ComplianceMode.parse(value)
+    } yield {
+      res
     }
   }
 
@@ -277,5 +303,12 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean] = get("rudder_store_all_centralized_logs_in_file")
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean) = save("rudder_store_all_centralized_logs_in_file", value)
+
+  /**
+   * Compliance mode
+   *
+   */
+  def rudder_compliance_mode(): Box[ComplianceMode] = get("rudder_compliance_mode")
+  def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit] = save("rudder_compliance_mode", value)
 
 }
