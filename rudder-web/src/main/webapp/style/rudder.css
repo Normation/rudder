@@ -2902,4 +2902,7 @@ li.targetExcluded a{
 	font-size:13px;
 	margin-top:-5px;
 }
+
+.simplemodal-wrap{
+	overflow:auto !important
 }
