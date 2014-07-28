@@ -334,32 +334,42 @@ object LDAPEntry {
     , ignoreCaseOnAttributes    : Seq[String] = Seq("objectClass")
   ) : Buffer[Modification] = {
 
-     //filter out attributes with empty value
+     // The exact String match rule to use on attributes that are not in ignoreCaseOnAttributes
     val rule = com.unboundid.ldap.matchingrules.CaseExactStringMatchingRule.getInstance
-    //check what attributes to compare, setting the exact string matching rule in the middle
-    val e = LDAPEntry(targetEntry.backed.dn, targetEntry.backed.attributes.map { a =>
+
+    // Set the matching Rule on target entry
+    val target = LDAPEntry(targetEntry.backed.dn, targetEntry.backed.attributes.map { a =>
       if(ignoreCaseOnAttributes.contains(a.getName)) a
       else new Attribute(a.getName, rule, a.getValues:_*)
     })
+
+    // Set matching Rule on source entry, as of unboundID 2.3.4, it is the one used to compare data
+    val origin = LDAPEntry(sourceEntry.backed.dn, sourceEntry.backed.attributes.map { a =>
+      if(ignoreCaseOnAttributes.contains(a.getName)) a
+      else new Attribute(a.getName, rule, a.getValues:_*)
+    })
+
+    // Filter empty attributes
     val emptyAttrs = Buffer[String]()
-    for(a <- e.attributes.toSeq) {
+    for(a <- target.attributes.toSeq) {
       if(!a.hasValue) {
-        e -= a.getName //remove the attribute
+        target -= a.getName //remove the attribute
         emptyAttrs += a.getName
       }
     }
+
     val mods = if(removeMissing) { //compare all values
       //if forceKeepMissingAttributes, really compare all
       if(forceKeepMissingAttributes.isEmpty) {
-        com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed,e.backed,true,false) //false: use replace in LDIF
+        com.unboundid.ldap.sdk.Entry.diff(origin.backed,target.backed,true,false) //false: use replace in LDIF
       } else {
         //compare all attributes, safe empty attribute in targetEntry and in forceKeepMissingAttributes
         //( so that is attribute with value in e but not in targetEntry )
-        val attrs = ( sourceEntry.attributes.map( _.getName ).toSet -- forceKeepMissingAttributes ) ++ targetEntry.attributes.toSeq.map( _.getName)
-        com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed,e.backed,true,false, attrs.toSeq:_*) //false: use replace in LDIF
+        val attrs = ( origin.attributes.map( _.getName ).toSet -- forceKeepMissingAttributes ) ++ targetEntry.attributes.toSeq.map( _.getName)
+        com.unboundid.ldap.sdk.Entry.diff(origin.backed,target.backed,true,false, attrs.toSeq:_*) //false: use replace in LDIF
       }
     } else { //only compare attributes in e
-      com.unboundid.ldap.sdk.Entry.diff(sourceEntry.backed,e.backed,true,false,targetEntry.attributes.toSeq.map( _.getName):_*)
+      com.unboundid.ldap.sdk.Entry.diff(origin.backed,target.backed,true,false,targetEntry.attributes.toSeq.map( _.getName):_*)
     }
     mods
   }
