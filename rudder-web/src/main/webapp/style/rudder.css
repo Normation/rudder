@@ -2808,4 +2808,7 @@ li.targetExcluded a{
     border: 1px solid #DDDDDD !important;
     color: #333333 !important;
 }
+
+.simplemodal-wrap{
+	overflow:auto !important
 }
