@@ -391,8 +391,6 @@ def generate_technique_content(technique_metadata):
 
   # Handle method calls
   for method_call in technique["method_calls"]:
-
-    content.append('    '+method_call['class_context']+'::')
     
     # Treat each argument of the method_call
     if 'args' in method_call:
@@ -401,7 +399,8 @@ def generate_technique_content(technique_metadata):
     else:
       arg_value = ""
     
-    content.append('      "method_call" usebundle => '+method_call['method_name']+'('+arg_value+');')
+    content.append('    "method_call" usebundle => '+method_call['method_name']+'('+arg_value+'),')
+    content.append('      ifvarclass => "'+method_call['class_context']+'";')
 
   content.append('}')
 
