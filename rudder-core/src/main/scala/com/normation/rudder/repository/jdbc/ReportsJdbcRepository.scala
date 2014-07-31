@@ -60,6 +60,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
   val reportsTable = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
+  val reportsExecutionTable = "reportsexecution"
 
   val idQuery = "select id, executiondate, nodeid, ruleid, directiveid, serial, component, keyValue, executionTimeStamp, eventtype, policy, msg from ruddersysevents where 1=1 ";
 
@@ -347,7 +348,11 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
                    | delete from %s  where executionTimeStamp < '%s'
                    |]] and: [[
                    | delete from %s  where executionTimeStamp < '%s'
-                   |]]""".stripMargin.format(reportsTable,date.toString("yyyy-MM-dd"),archiveTable,date.toString("yyyy-MM-dd")))
+                   |]] and: [[
+                   | delete from %s  where date < '%s'
+                   |]]""".stripMargin.format(reportsTable, date.toString("yyyy-MM-dd")
+                                           , archiveTable, date.toString("yyyy-MM-dd")
+                                           , reportsExecutionTable, date.toString("yyyy-MM-dd")))
     try{
 
       val delete = jdbcTemplate.update("""
@@ -356,10 +361,14 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       ) + jdbcTemplate.update("""
           delete from %s  where executionTimeStamp < '%s'
           """.format(archiveTable,date.toString("yyyy-MM-dd") )
+      )+ jdbcTemplate.update("""
+          delete from %s  where date < '%s'
+          """.format(reportsExecutionTable,date.toString("yyyy-MM-dd") )
       )
 
       jdbcTemplate.execute("vacuum %s".format(reportsTable))
       jdbcTemplate.execute("vacuum full %s".format(archiveTable))
+      jdbcTemplate.execute("vacuum %s".format(reportsExecutionTable))
 
       Full(delete)
     } catch {
