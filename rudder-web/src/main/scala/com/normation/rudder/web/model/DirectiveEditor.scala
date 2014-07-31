@@ -231,7 +231,7 @@ trait SectionField extends SectionChildField {
   // for the current user (we need to figure out
   // how to specify it per user)
   def displayedByDefault : Boolean
-  // this is the user selected value : 
+  // this is the user selected value :
   // - the user may not have choosen anything, so the default applied
   // - the user want to have the section displayed
   // - the user want to have the section hidden
@@ -241,23 +241,23 @@ trait SectionField extends SectionChildField {
     case _: MultivaluedSectionField => true
     case _ => false
   }
-  
+
   /**
    * Ajax method to define the visibility status of a section
    * Takes sectionId : the id of the section as a parameter
-   * Caution : it mutates the current field 
+   * Caution : it mutates the current field
    */
   def visibilityCallBack(sectionId: String) : net.liftweb.http.GUIDJsExp = {
     SHtml.ajaxCall(
        JsRaw("")
      , (v:String) => {
             displayed = Some(!displayed.getOrElse(displayedByDefault))
-            JsRaw("""   
+            JsRaw("""
                $('#%s').toggleClass("foldedSection").toggleClass("unfoldedSection"); """.format(sectionId))
       }
    )
   }
-  
+
   /**
    * Based on the default visibility and user selected visibility,
    * returns the proper display classes
@@ -283,7 +283,7 @@ case class SectionFieldImp(
   def toClient = childFields.mkString
 
   def mapValueSeq: Map[String, Seq[String]] = values.map { case (k, v) => (k, Seq(v())) }
- 
+
   // If a section is empty, we want to hide it.
 
   override def toFormNodeSeq: NodeSeq = {
@@ -343,7 +343,7 @@ case class MultivaluedSectionField(
     case Empty => logger.error("Empty value was returned")
     case _ => //ok
   }
-  
+
   private val allSections = sections.toBuffer
 
   def toClient: String = childFields.mkString
@@ -495,14 +495,14 @@ case class MultivaluedSectionField(
       }
     }</div>
   }
-  
+
   /**
    * Command to correct display and behaviour after modifying sections
    */
   private[this] def postModificationJS() : JsExp = {
     JsRaw("""
           correctButtons();
-         
+
          """)
   }
 
@@ -530,7 +530,7 @@ case class MultivaluedSectionField(
  * configure it (fields, etc).
  *
  * If it the Technique provides expected reports, we don't show anything (for the moment)
- * 
+ *
  * @parameter Directive
  *   Directive: the Directive for witch this editor is build
  */
@@ -546,7 +546,11 @@ case class DirectiveEditor(
   )  extends HashcodeCaching {
 
 
-  def removeDuplicateSections : Unit = sectionField.removeDuplicateSections
+  // We do not remove duplicate in case of meta-technique
+  def removeDuplicateSections : Unit = providesExpectedReports match {
+    case true => Unit
+    case false => sectionField.removeDuplicateSections
+  }
 
   /**
    * Get the map of (varname, list(values)),
