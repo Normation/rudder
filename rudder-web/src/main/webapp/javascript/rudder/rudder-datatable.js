@@ -769,7 +769,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath) {
+function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
 
   var columns = [ {
       "sWidth": "10%"
@@ -815,7 +815,7 @@ function createTechnicalLogsTable(gridId, data, contextPath) {
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath);
+  createTable(gridId,data, columns, params, contextPath, refresh);
 
 }
 
