@@ -93,7 +93,7 @@ class LogDisplayer(
         // set static content
         SetHtml("logsDetails",content) &
         // Create empty table
-        JsRaw(s"""createTechnicalLogsTable("${gridName}",[], "${S.contextPath}");""") &
+        JsRaw(s"""createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh}});""") &
         // Load data asynchronously
         JsRaw(s"""
         $$("#node_tabs").bind( "show", function(event, ui) {
