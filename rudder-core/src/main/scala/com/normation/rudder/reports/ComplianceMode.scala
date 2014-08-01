@@ -43,22 +43,30 @@ import net.liftweb.common._
  * - error_only: only report for repaire and error reports.
  */
 
-sealed trait ComplianceMode
+sealed trait ComplianceMode {
+  def name: String
+}
 
-final case object FullCompliance extends ComplianceMode
-final case object ErrorOnly      extends ComplianceMode
+final case object FullCompliance extends ComplianceMode {
+  val name = "full-compliance"
+}
+final case object ChangesOnly      extends ComplianceMode {
+  val name = "changes-only"
+}
 
 
-object ComplianceMode {
+object ComplianceMode extends Loggable {
 
-  private[this] val ERROR = "erroronly"
-  private[this] val FULL  = "fullcompliance"
-
-  def parse(s: String): Box[ComplianceMode] = {
+  /*
+   * If we can't parse the compliance, default to full-compliance
+   */
+  def parse(s: String): ComplianceMode = {
     s.toLowerCase match {
-      case FULL  => Full(FullCompliance)
-      case ERROR => Full(ErrorOnly)
-      case _ => Failure(s"Unable to parse the compliance mode. I was expecting '${FULL}' or '${ERROR}' (case unsensitive) and got '${s}'")
+      case FullCompliance.name  => FullCompliance
+      case ChangesOnly.name => ChangesOnly
+      case _ =>
+        logger.error(s"Unable to parse the compliance mode. I was expecting '${FullCompliance.name}' or '${ChangesOnly.name}' (case unsensitive) and got '${s}'. Defaulting to full-compliance mode")
+        FullCompliance
     }
   }
 

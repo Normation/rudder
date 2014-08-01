@@ -53,6 +53,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.rudder.reports.ComplianceMode
 
 trait SystemVariableService {
   def getGlobalSystemVariables():  Box[Map[String, Variable]]
@@ -91,6 +92,7 @@ class SystemVariableServiceImpl(
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
+  , getComplianceMode               : () => Box[ComplianceMode]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -133,6 +135,13 @@ class SystemVariableServiceImpl(
 
     val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
 
+    val varReportMode = {
+
+      //we want an actual valide string, defined in the "name" of compliance mode object
+      getProp("RUDDER_REPORT_MODE", () => getComplianceMode().map( _.name ))
+    }
+
+
     for {
       agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
@@ -158,6 +167,7 @@ class SystemVariableServiceImpl(
       , (modifiedFilesTtl.spec.name, modifiedFilesTtl)
       , (cfengineOutputsTtl.spec.name, cfengineOutputsTtl)
       , (storeAllCentralizedLogsInFile.spec.name, storeAllCentralizedLogsInFile)
+      , (varReportMode.spec.name, varReportMode)
       )
     }
   }
@@ -290,13 +300,23 @@ class SystemVariableServiceImpl(
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
+    /*
+     * RUDDER_NODE_CONFIG_ID is a very special system variable:
+     * it must not be used to assess node config stability from
+     * run to run.
+     * So we set it to a default value and handle it specialy in
+     * RudderCf3PromisesFileWriterServiceImpl#prepareRulesForAgents
+     */
+    val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
+
     Full(
          globalSystemVariables
-      ++ Map(
-             (varNodeRole.spec.name, varNodeRole)
-           , (varAllowedNetworks.spec.name, varAllowedNetworks)
-           , (varRudderServerRole.spec.name -> varRudderServerRole)
-         )
+      ++ Seq(
+             varNodeRole
+           , varAllowedNetworks
+           , varRudderServerRole
+           , varNodeConfigVersion
+         ).map(x => (x.spec.name, x))
       ++ policyServerVars
     )
 
