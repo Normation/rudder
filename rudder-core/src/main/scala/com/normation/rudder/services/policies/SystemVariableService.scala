@@ -91,6 +91,7 @@ class SystemVariableServiceImpl(
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
+  , getComplianceMode               : () => Box[ComplianceMode]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -133,6 +134,8 @@ class SystemVariableServiceImpl(
 
     val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
 
+    val minimalReportsMode = getProp("RUDDER_MINIMAL_REPORTS", getComplianceMode.map( _ == ErrorOnly))
+    
     for {
       agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
@@ -158,6 +161,7 @@ class SystemVariableServiceImpl(
       , (modifiedFilesTtl.spec.name, modifiedFilesTtl)
       , (cfengineOutputsTtl.spec.name, cfengineOutputsTtl)
       , (storeAllCentralizedLogsInFile.spec.name, storeAllCentralizedLogsInFile)
+      , (minimalReportsMode.spec.name, minimalReportsMode)
       )
     }
   }
