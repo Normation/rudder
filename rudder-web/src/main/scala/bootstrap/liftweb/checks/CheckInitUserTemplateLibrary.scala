@@ -66,8 +66,9 @@ class CheckInitUserTemplateLibrary(
   , woDirectiveRepos   : WoDirectiveRepository
   , uuidGen            : StringUuidGenerator
   , asyncDeploymentAgent: AsyncDeploymentAgent
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
 
+  override val description = "Check initialization of User Technique Library"
 
   override def checks() : Unit = {
     ldap.foreach { con =>
