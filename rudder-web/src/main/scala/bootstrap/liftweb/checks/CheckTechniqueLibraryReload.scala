@@ -55,7 +55,9 @@ class CheckTechniqueLibraryReload(
     techniqueLibUpdater  : UpdateTechniqueLibrary
   , asyncDeploymentAgent : AsyncDeploymentAgent
   , uuidGen              : StringUuidGenerator
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
+
+  override val description = "Check for force reload of Techniques library"
 
   override def checks() : Unit = {
 

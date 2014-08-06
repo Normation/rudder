@@ -49,13 +49,8 @@ import net.liftweb.util.ControlHelpers.tryo
 
 /**
  *
- * When the application is first initialized, we want to set the
- * content of configuration-repository file to a consistant state,
- * especially for directives/rules/groups, where we want to have
- * all system categories and entities saved (else, we are going
- * to have some surprise on the first import).
- *
- * So, if a full export wasn't done until know, just do one.
+ * Check that the rules archive directory in
+ * configuration-repository exsits.
  *
  */
 class CheckRootRuleCategoryExport(
@@ -63,7 +58,9 @@ class CheckRootRuleCategoryExport(
   , categoryDirectory  : File
   , personIdentService : PersonIdentService
   , uuidGen            : StringUuidGenerator
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
+
+  override val description = "Check rules archive directory in configuration-repository"
 
   override def checks() : Unit = {
     (for {

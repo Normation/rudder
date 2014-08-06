@@ -1474,7 +1474,6 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val allChecks = new SequentialImmediateBootStrapChecks(
       new CheckDIT(pendingNodesDitImpl, acceptedNodesDitImpl, removedNodesDitImpl, rudderDitImpl, rwLdap)
-    , new CheckSystemDirectives(rudderDitImpl, roLdapRuleRepository)
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
