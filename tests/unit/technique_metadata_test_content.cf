@@ -1,0 +1,12 @@
+# @name ncf technique method argument escape test
+# @description This is a bundle to test ncf's Python lib
+# @version 0.1
+
+bundle agent content_escaping_test
+{
+  methods:
+    "method_call" usebundle => package_install_version("apache2", "2.2.11"),
+      ifvarclass => "any";
+    "method_call" usebundle => file_replace_lines("/etc/httpd/conf/httpd.conf", "ErrorLog \"/var/log/httpd/error_log\"", "ErrorLog \"/projet/logs/httpd/error_log\""),
+      ifvarclass => "redhat";
+}

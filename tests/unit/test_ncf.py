@@ -18,6 +18,16 @@ class TestNcf(unittest.TestCase):
     method_calls = ncf.parse_technique_methods(self.test_technique_file)
     self.technique_metadata['method_calls'] = method_calls
 
+    self.technique_metadata_test = { 'name': 'ncf technique method argument escape test', 'description': "This is a bundle to test ncf's Python lib", 'version': '0.1', 'bundle_name': 'content_escaping_test', 'bundle_args': [],
+        'method_calls': [
+            { 'method_name': 'package_install_version', 'args': ['apache2', '2.2.11'], 'class_context': 'any' },
+            { 'method_name': 'file_replace_lines', 'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog \"/var/log/httpd/error_log\"', 'ErrorLog "/projet/logs/httpd/error_log"'],  'class_context': 'redhat' },
+          ]
+        }
+    self.technique_metadata_test_content = os.path.realpath('technique_metadata_test_content.cf')
+    self.technique_test_expected_content = open(self.technique_metadata_test_content).read()
+
+
   def test_get_ncf_root_dir(self):
     self.assertEquals(ncf.get_root_dir(), os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../"))
 
@@ -275,6 +285,21 @@ class TestNcf(unittest.TestCase):
     # Clean
     shutil.rmtree(os.path.realpath(os.path.join("write_test", "50_techniques")))
     self.assertTrue(result)
+
+  def test_generate_technique_content(self):
+    """Check that generate_technique_content works correctly - including escaping " in arguments"""
+    content = ncf.generate_technique_content(self.technique_metadata_test)
+    self.assertEquals(self.technique_test_expected_content, content)
+
+  def test_parse_technique_methods_unescape_double_quotes(self):
+    test_parse_technique_methods_unescape_double_quotes_calls = ncf.parse_technique_methods(self.technique_metadata_test_content)
+    print test_parse_technique_methods_unescape_double_quotes_calls
+    expected_result = [
+                        { 'method_name': 'package_install_version', 'class_context': 'any', 'args': ['apache2', '2.2.11'] },
+                        { 'method_name': 'file_replace_lines', 'class_context': 'any', 'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog "/var/log/httpd/error_log"', 'ErrorLog "/projet/logs/httpd/error_log"'] }
+                      ]
+    self.assertEquals(expected_result, test_parse_technique_methods_unescape_double_quotes_calls)
+
     
   #####################################
   # Tests for detecting hooks
