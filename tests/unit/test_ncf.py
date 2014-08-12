@@ -295,7 +295,7 @@ class TestNcf(unittest.TestCase):
     test_parse_technique_methods_unescape_double_quotes_calls = ncf.parse_technique_methods(self.technique_metadata_test_content)
     expected_result = [
                         { 'method_name': 'package_install_version', 'class_context': 'any', 'args': ['apache2', '2.2.11'] },
-                        { 'method_name': 'file_replace_lines', 'class_context': 'any', 'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog "/var/log/httpd/error_log"', 'ErrorLog "/projet/logs/httpd/error_log"'] }
+                        { 'method_name': 'file_replace_lines', 'class_context': 'redhat', 'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog "/var/log/httpd/error_log"', 'ErrorLog "/projet/logs/httpd/error_log"'] }
                       ]
     self.assertEquals(expected_result, test_parse_technique_methods_unescape_double_quotes_calls)
 
@@ -313,6 +313,19 @@ class TestNcf(unittest.TestCase):
     post_hooks = ncf.get_hooks("post",  "(write|create)_technique", "test_hooks/hooks.d")
     expect = [ "post.create_technique.commit.exe", "post.write_technique.commit.sh" ]
     assert post_hooks == expect
+
+  #########################
+  # Utility methods tests
+  #########################
+
+  def test_class_context_and(self):
+    """Ensure the class_context_and method behaves as expected for various cases"""
+    self.assertEquals("b", ncf.class_context_and("any", "b"))
+    self.assertEquals("a", ncf.class_context_and("a", "any"))
+    self.assertEquals("a.b", ncf.class_context_and("a", "b"))
+    self.assertEquals("a.B", ncf.class_context_and("a", "B"))
+    self.assertEquals("(a.b).c", ncf.class_context_and("a.b", "c"))
+    self.assertEquals("(a|b).(c&d)", ncf.class_context_and("a|b", "c&d"))
 
 if __name__ == '__main__':
   unittest.main()
