@@ -148,6 +148,26 @@ def parse_bundlefile_metadata(content, bundle_type):
 
   return res
 
+def class_context_and(a, b):
+  """Concatenate two CFEngine class contexts, and simplify useless cases"""
+
+  # Add parenthesis if necessary
+  contexts = []
+  for context in [a, b]:
+    # Ignore the "any" class
+    if context == 'any':
+      continue
+    if '.' in context or '&' in context or '|' in context:
+      contexts.append('(' + context + ')')
+    else:
+      contexts.append(context)
+
+  # If nothing is left, just use the placeholder "any"
+  if len(contexts) == 0:
+    contexts.append('any')
+
+  return '.'.join(contexts)
+
 def parse_technique_methods(technique_file):
   res = []
 
@@ -169,7 +189,7 @@ def parse_technique_methods(technique_file):
 
   # Sanity check: the bundle must be of type agent
   if promises['bundles'][0]['bundleType'] != 'agent':
-    raise Exception("This bundle if not a bundle agent, aborting")
+    raise Exception("This bundle is not a bundle agent, aborting")
 
   methods_promises = [promiseType for promiseType in promises['bundles'][0]['promiseTypes'] if promiseType['name']=="methods"]
   methods = []
@@ -182,6 +202,7 @@ def parse_technique_methods(technique_file):
     for method in context['promises']:
       method_name = None
       args = None
+      promise_class_context = class_context
 
       promiser = method['promiser']
 
@@ -192,11 +213,19 @@ def parse_technique_methods(technique_file):
             args = [arg['value'].replace('\\"', '"') for arg in attribute['rval']['arguments']]
           if attribute['rval']['type'] == 'string':
             method_name = attribute['rval']['value']
+        elif attribute['lval'] == 'ifvarclass':
+          if attribute['rval']['type'] == 'string':
+            promise_class_context = class_context_and(class_context, attribute['rval']['value'])
+          if attribute['rval']['type'] == 'functionCall':
+            ifvarclass_function = attribute['rval']['name']
+            ifvarclass_args = [arg['value'].replace('\\"', '"') for arg in attribute['rval']['arguments']]
+            promise_class_context = class_context_and(class_context, ifvarclass_function + '(' + ','.join(ifvarclass_args) + ')')
+            # FIXME: This is not really valid!
 
       if args:
-        res.append({'class_context': class_context, 'method_name': method_name, 'args': args})
+        res.append({'class_context': promise_class_context, 'method_name': method_name, 'args': args})
       else:
-        res.append({'class_context': class_context, 'method_name': method_name})
+        res.append({'class_context': promise_class_context, 'method_name': method_name})
 
   return res
 
