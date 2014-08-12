@@ -189,7 +189,7 @@ def parse_technique_methods(technique_file):
         if attribute['lval'] == 'usebundle':
           if attribute['rval']['type'] == 'functionCall':
             method_name = attribute['rval']['name']
-            args = [arg['value'].replace('\"', '"') for arg in attribute['rval']['arguments']]
+            args = [arg['value'].replace('\\"', '"') for arg in attribute['rval']['arguments']]
           if attribute['rval']['type'] == 'string':
             method_name = attribute['rval']['value']
 
@@ -394,7 +394,7 @@ def generate_technique_content(technique_metadata):
     
     # Treat each argument of the method_call
     if 'args' in method_call:
-      args = ['"%s"'%re.sub(r'(?<!\)"', r'\"', arg) for arg in method_call['args'] ]
+      args = ['"%s"'%re.sub(r'(?<!\\)"', r'\\"', arg) for arg in method_call['args'] ]
       arg_value = ', '.join(args)
     else:
       arg_value = ""
