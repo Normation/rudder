@@ -293,7 +293,6 @@ class TestNcf(unittest.TestCase):
 
   def test_parse_technique_methods_unescape_double_quotes(self):
     test_parse_technique_methods_unescape_double_quotes_calls = ncf.parse_technique_methods(self.technique_metadata_test_content)
-    print test_parse_technique_methods_unescape_double_quotes_calls
     expected_result = [
                         { 'method_name': 'package_install_version', 'class_context': 'any', 'args': ['apache2', '2.2.11'] },
                         { 'method_name': 'file_replace_lines', 'class_context': 'any', 'args': ['/etc/httpd/conf/httpd.conf', 'ErrorLog "/var/log/httpd/error_log"', 'ErrorLog "/projet/logs/httpd/error_log"'] }
