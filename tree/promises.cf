@@ -33,26 +33,17 @@ bundle common inputs
       # this list contains everything that is in the 10_ncf_internals
       "ncf_internals_files"     slist => lsdir("${me.framework_path}/10_ncf_internals", ".*\.cf", "true");
 
-
-      "find_command"           string => "/usr/bin/find",
-            policy => "overridable";
-
-    darwin::
-      "find_command"           string => "/usr/local/bin/gfind",
-           comment => "This assumes 'findutils' installed via homebrew to '/usr/local/'";
-
-    any::
       # Here, we get all the generic files of the framework (basics, methods, it ops knowledge)
       # without their full path as it may break the 4K limit
       # see https://cfengine.com/dev/issues/2912
-      "generic_framework"      string => execresult("/bin/bash -c \"cd ${me.framework_path} && ${find_command} 20_cfe_basics 30_generic_methods 40_it_ops_knowledge -name '*.cf' -printf '%p\n'\"", "noshell");
+      "generic_framework"      string => execresult("${me.framework_path}/10_ncf_internals/list-compatible-inputs ${sys.cf_version} ${me.framework_path} 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "noshell");
 
       # The Techniques and Services part are choosen separatly, as we may not want to load
       # them all automatically in the future
       # This fetches the techniques cf files
-      "techniques"            string  => execresult("/bin/bash -c \"cd ${me.framework_path} && ${find_command} 50_techniques -name '*.cf' -printf '${me.framework_path}/%p\n'\"", "noshell");
+      "techniques"            string  => execresult("${me.framework_path}/10_ncf_internals/list-compatible-inputs ${sys.cf_version} ${me.framework_path} 50_techniques", "noshell");
       # This fetches the services cf files
-      "services"              string  => execresult("/bin/bash -c \"cd ${me.framework_path} && ${find_command} 60_services -name '*.cf' -printf '${me.framework_path}/%p\n'\"", "noshell");
+      "services"              string  => execresult("${me.framework_path}/10_ncf_internals/list-compatible-inputs ${sys.cf_version} ${me.framework_path} 60_services", "noshell");
 
       # We have to convert the result of the find into lists so that they can be use in the 
       # inputs list
