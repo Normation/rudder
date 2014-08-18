@@ -23,7 +23,7 @@ function findIndex(array, elem) {
 };
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic'])
 
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll) {
