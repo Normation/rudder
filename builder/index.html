@@ -35,6 +35,25 @@
             <button class="btn btn-default" ng-click="save()">Save Changes</button>
           </div>
         </script>
+        <script id="template/cloneModal.html" type="text/ng-template">
+          <form name="cloneForm">
+            <div class="modal-header">
+              <h3 class="modal-title">Clone Technique</h3>
+            </div>
+            <div class="modal-body">
+              <div class="form-group">
+                <label for="cloneName" class="control-label">New Technique name:</label>
+                <div>
+                  <input  type="text" id="cloneName" class="form-control" ng-model="technique.name" placeholder="Technique Name" required>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
+              <button ng-disabled="cloneForm.$invalid || technique.name === oldTechniqueName" class="btn btn-default" ng-click="clone()">Clone</button>
+            </div>
+          </form >
+        </script>
         <script src="js/ncf.js" ></script>
     </head>
     <body ng-controller="ncf-builder">
@@ -80,7 +99,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,$index)" >
+                        <tr  ng-repeat="technique in techniques | orderBy:'name':false | filter:searchText  track by $index" ng-click="checkSelect(technique,selectTechnique)" >
                             <td href="#" ng-class="{'active': isSelected(technique)}" style="height:100%;vertical-align:middle; padding: 0 5px">
                                 <span class="col-md-10">{{technique.name}} </span>
                             </td>
@@ -95,7 +114,10 @@
             <div class="col-md-5 ncf_col"  ng-if="selectedTechnique"  style="border-right:5px #DDDDDD solid; padding-left: 0px;" >
                 <form class="form-horizontal editForm" name="editForm" style="margin-bottom:70px;padding-left: 15px;">
                     <div class="title">Technique</div>
-                    <h3 >{{originalTechnique.name}}</h3>
+                    <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
+                        <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin" ng-click="deleteTechnique()">Delete</button>
+                        <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup)">Clone</button>
+                    </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = true" is-open="isopen">
                             <accordion-heading>
@@ -150,13 +172,12 @@
                 </form>
 
                 <div class="col-md-5 fixed-footer">
-                    <div ng-click="openMethods()"  class="btn btn-default" ng-class="{'active': addNew}">
+                    <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': addNew}">
                         <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                         Add methods
                     </div>
-                    <button ng-disabled="originalTechnique === undefined" class="btn btn-default" ng-click="deleteTechnique()">Delete</button>
-                    <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default" ng-click="resetTechnique()">Reset</button>
-                    <button ng-disabled="editForm.$invalid || isUnchanged(selectedTechnique) || !checkSelectedTechnique()" class="btn btn-default" ng-click="saveTechnique()">Save</button>
+                    <button ng-disabled="editForm.$invalid || checkSelectedTechnique()" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
+                    <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
                 </div>
             </div>
 
@@ -165,7 +186,7 @@
                 <div style="padding-left:15px;margin-bottom:95px;">
                     <div class="title">Method</div>
                     <h3 >{{getMethodName(selectedMethod)}}
-                        <button ng-disabled="isUnchangedMethod(selectedMethod)" class="btn btn-default" ng-click="resetMethod()">Reset</button>
+                        <button ng-disabled="isUnchangedMethod(selectedMethod)" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
                     </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = false" is-open="isopen">

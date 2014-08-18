@@ -97,7 +97,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   // Transform a ui technique into a valid ncf technique by removint original_index param
-  $scope.toTechNcf = function (technique) {
+  $scope.toTechNcf = function (baseTechnique) {
+    var technique = angular.copy(baseTechnique);
     var calls = technique.method_calls.map( function (method_call, method_index) {
       delete method_call.original_index;
       return method_call;
@@ -160,18 +161,19 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   // Method used to check if we can select a technique without losing changes
-  $scope.checkSelect = function(technique) {
+  $scope.checkSelect = function(technique, select) {
     // No selected technique, select technique
     if ($scope.selectedTechnique === undefined) {
-      $scope.selectTechnique(technique);
+      select(technique);
     } else {
-      // Selected technique is the same than actual selected technique, unselect it
-      if (angular.equals($scope.originalTechnique,$scope.selectedTechnique)) {
-        $scope.selectTechnique(technique);
+
+      if  ($scope.checkSelectedTechnique()) {
+        // Selected technique is the same than actual selected technique, unselect it
+        select(technique);
       } else {
         // Display popup that shanges will be lost, and possible discard them
-        $scope.selectPopup(technique);
-      }        
+        $scope.selectPopup(technique, select);
+      }
     }
   };
 
@@ -229,6 +231,11 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     return angular.equals(technique, $scope.originalTechnique);
   };
 
+  // Check if a technique has been saved,
+  $scope.isNotSaved = function() {
+    return $scope.originalTechnique.bundle_name === undefined;
+  };
+
   // Check if a method has not been changed, and if we can use reset function
   $scope.isUnchangedMethod = function(methodCall) {
     return angular.equals(methodCall, $scope.originalTechnique.method_calls[methodCall.original_index]);
@@ -240,16 +247,17 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   // Create a new technique stub
+  var newTech = {
+      "method_calls" : []
+    , "name": undefined
+    , "description": ""
+    , "version": "1.0"
+    , "bundle_name": undefined
+    , "bundle_args": []
+  };
+
   $scope.newTechnique = function() {
-    var newTech = {
-        "method_calls" : []
-      , "name": ""
-      , "description": ""
-      , "version": "1.0"
-      , "bundle_name": undefined
-      , "bundle_args": []
-    };
-    $scope.checkSelect(newTech);
+    $scope.checkSelect(newTech, $scope.selectTechnique);
   };
 
 
@@ -324,8 +332,12 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // * name is not empty
   // * There is at least one method call
   $scope.checkSelectedTechnique= function() {
-     var res = $scope.selectedTechnique.name != "" && $scope.selectedTechnique.method_calls.length > 0
-     return res
+     var res = $scope.selectedTechnique.name === undefined || $scope.selectedTechnique.name === "" || $scope.selectedTechnique.method_calls.length === 0;
+     if ($scope.selectedTechnique.isClone) {
+       return res
+     } else {
+       return res || $scope.isUnchanged($scope.selectedTechnique)
+     }
   }
 
   // Technique actions
@@ -370,27 +382,47 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       error($scope.handle_error);
   };
 
+  $scope.setBundleName = function (technique) {
+    if (technique.bundle_name === undefined) {
+      // Replace all non alpha numeric character (\W is [^a-zA-Z_0-9]) by _
+      var bundle_name = technique.name.replace(/\W/g,"_");
+      technique.bundle_name = bundle_name;
+    }
+    return technique;
+  }
+
   // Save a technique
   $scope.saveTechnique = function() {
-    if ($scope.selectedTechnique.bundle_name === undefined) {
-      // Replace all non alpha numeric character (\W is [^a-zA-Z_0-9]) by _ 
-      var bundle_name = $scope.selectedTechnique.name.replace(/\W/g,"_");
-      $scope.selectedTechnique.bundle_name = bundle_name;
-    }
-    var data = { "path" :  $scope.path, "technique" : $scope.toTechNcf($scope.selectedTechnique) }
+    // Set technique bundle name
+    $scope.setBundleName($scope.selectedTechnique);
+    // make a copy of data so we don't lose the selected technique
+    var technique = angular.copy($scope.selectedTechnique);
+    var origin_technique = angular.copy($scope.originalTechnique);
+
+    var data = { "path" :  $scope.path, "technique" : $scope.toTechNcf(technique) }
+
+    // Function to use after save is done
+    // Update selected technique if it's still the same technique
+    // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
-      $scope.selectedTechnique = $scope.toTechUI($scope.selectedTechnique);
-      var myNewTechnique = angular.copy($scope.selectedTechnique);
-      var index = findIndex($scope.techniques,$scope.originalTechnique);
+
+      // Find index of the technique in the actual tree of technique (look for original technique)
+      var index = findIndex($scope.techniques,origin_technique);
       if ( index === -1) {
-        var length = $scope.techniques.length;
-        $scope.techniques.push(myNewTechnique);
+        // Add a new techniuqe
+        $scope.techniques.push(technique);
       } else {
-        $scope.techniques[index] = myNewTechnique;
+        // modify techique in array
+        $scope.techniques[index] = technique;
       }
-      $scope.originalTechnique=angular.copy($scope.selectedTechnique);
+      // Update technique if still selected
+      if (angular.equals($scope.selectedTechnique, technique)) {
+        $scope.originalTechnique=angular.copy(technique);
+      }
     }
-    if ($scope.originalTechnique === undefined) {
+
+    // Actually save the technique through API
+    if ($scope.originalTechnique.bundle_name === undefined) {
       $http.post("/ncf/api/techniques", data).
         success(saveSuccess).
         error($scope.handle_error);
@@ -401,9 +433,13 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
-  // Popup definition
+  // Popup definitions
 
-  $scope.selectPopup = function( nextTechnique ) {
+  // Popup to know if there is some changes to save before switching of selected technique
+  // paramters:
+  // - Next technique you want to switch too
+  // - Action to perform once the technique you validate the popup
+  $scope.selectPopup = function( nextTechnique, select ) {
     var modalInstance = $modal.open({
       templateUrl: 'SaveChangesModal.html',
       controller: SaveChangesModalCtrl,
@@ -418,7 +454,26 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       if (doSave) {
         $scope.saveTechnique();
       }
-      $scope.selectTechnique(nextTechnique);
+      // run on success function
+      select(nextTechnique)
+    });
+  };
+
+  $scope.clonePopup = function() {
+
+    var modalInstance = $modal.open({
+      templateUrl: 'template/cloneModal.html',
+      controller: cloneModalCtrl,
+      resolve: {
+        technique: function () {
+          return angular.copy($scope.originalTechnique);
+        }
+      }
+    });
+
+    modalInstance.result.then(function (technique) {
+      technique.isClone = true
+      $scope.selectTechnique(technique);
     });
   };
 
@@ -427,6 +482,21 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.setPath();
 });
 
+
+var cloneModalCtrl = function ($scope, $modalInstance, technique) {
+
+  technique.bundle_name = undefined;
+  $scope.technique = technique;
+  $scope.oldTechniqueName = technique.name;
+
+  $scope.clone = function() {
+    $modalInstance.close(technique);
+  }
+
+  $scope.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+};
 
 var SaveChangesModalCtrl = function ($scope, $modalInstance, technique) {
 
