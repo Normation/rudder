@@ -290,23 +290,33 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
-  // Get the value of the argument used as a prefix value
-  $scope.getClassPrefixValue= function(method_call) {
+  // Get the value of the parameter used in generated class
+  $scope.getClassParameter= function(method_call) {
     if (method_call.method_name in $scope.generic_methods ) {
       var method = $scope.generic_methods[method_call.method_name];
-      var class_prefix = method.class_parameter;
-      var param_index = method.bundle_args.indexOf(class_prefix);
+      var class_parameter = method.class_parameter;
+      var param_index = method.bundle_args.indexOf(class_parameter);
       return method_call.args[param_index];
     } else {
       return method_call.args[0];
     }
   }
 
+  // Get the class prefix value
+  $scope.getClassPrefix= function(method_call) {
+    if (method_call.method_name in $scope.generic_methods ) {
+      var method = $scope.generic_methods[method_call.method_name];
+      return method.class_prefix;
+    } else {
+      // Not defined ... use method name
+      return method_call.method_name;
+    }
+  }
+
   // Get the class value generated from a class prefix and a class kind (kept,repaired,error, ...)
   $scope.getClassKind= function(method_call,kind) {
-
-      var param = $scope.getClassPrefixValue(method_call).replace(/\W/g,"_");
-      return  $scope.getMethodBundleName(method_call)+"_"+param +"_"+kind
+    var param = $scope.getClassParameter(method_call).replace(/\W/g,"_");
+    return  $scope.getClassPrefix(method_call)+"_"+param +"_"+kind
   }
 
   // Check if the selected technique is correct
