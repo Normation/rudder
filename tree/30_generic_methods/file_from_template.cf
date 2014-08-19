@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2014 Normation SAS
+# Copyright 2013 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,16 @@
 
 bundle agent file_from_template(source_template, destination)
 {
+  vars:
+    "class_prefix" string => canonify("file_from_template_${destination}");
+
+  files:
+    "${destination}"
+      create        => "true",
+      edit_template => "${source_template}",
+      classes       => classes_generic("${class_prefix}");
+
   methods:
-    "placeholder" usebundle => file_from_template_type("${source_template}", "${destination}", "cfengine");
+    "report" usebundle  => _logger("Build file ${destination} from template ${source_template}", "${class_prefix}");
+
 }

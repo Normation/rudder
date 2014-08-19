@@ -18,6 +18,7 @@
 
 # @name File from a mustache template
 # @description This is a bundle to build a file from a mustache template
+# @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded
 # @parameter destination     Destination file
