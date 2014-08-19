@@ -14,31 +14,31 @@ framework_path="$2"
 shift 2
 
 # commands
-find_command="/usr/bin/find"
-sed_command="/bin/sed"
-basename_command="/usr/bin/basename"
-# change commands on android
-[ -x "/system/xbin/find" ] && find_command="/system/xbin/find"
-[ -x "/system/xbin/sed" ] && sed_command="/system/xbin/sed"
-[ -x "/system/xbin/basename" ] && basename_command="/system/xbin/basename"
+find_command=`which find`
+sed_command=`which sed`
+basename_command=`which basename`
+grep_command=`which grep`
+# commands not int path on android
+[ -x "/system/xbin/find" ] && find_command="/system/xbin/find"
+[ -x "/system/xbin/sed" ] && sed_command="/system/xbin/sed"
+[ -x "/system/xbin/basename" ] && basename_command="/system/xbin/basename"
+[ -x "/system/xbin/grep" ] && basename_command="/system/xbin/grep"
 # stop if a command doesn't exist
-[ ! -x "${find_command}" -o ! -x "${sed_command}" -o ! -x "${basename_command}" ] && echo "Posix commands not found" && exit 2
+[ ! -x "${find_command}" -o ! -x "${sed_command}" -o ! -x "${basename_command}" -o ! -x "${grep_command}" ] && echo "Posix commands not found" && exit 2
 
 # split version numbers
 version_regex='\([0-9]\+\)\.\([0-9]\+\).*'
 cfengine_major=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_regex}/\\1/"`
 cfengine_minor=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_regex}/\\2/"`
 
-# Start
-cd "${framework_path}"
 # Last parameters not named to keep them as a quoted array
 for directory in "$@"
 do
-  exclude_file="${directory}/.ncf-exclude-cache"
+  exclude_file="${framework_path}/${directory}/.ncf-exclude-cache-${cfengine_version}"
   # first remove obsolete cache for exclude list
   if [ -e "${exclude_file}" ]
   then
-    newer_files=`${find_command} "${directory}" -type f -newer "${exclude_file}"`
+    newer_files=`${find_command} "${framework_path}/${directory}" -type f -newer "${exclude_file}"`
     if [ "${newer_files}" != "" ]
     then
       rm -f "${exclude_file}"
@@ -52,7 +52,7 @@ do
   else
     # sed -ne '/regex/F' prints file name when regex matches
     tag_regex='^#[ \t]\+@agent_version[ \t]\+>='
-    for file in `${find_command} "${directory}" -name '*.cf' -exec ${sed_command} -ne "/${tag_regex}${version_regex}/F" '{}' \;`
+    for file in `${find_command} "${framework_path}/${directory}" -name '*.cf' -exec ${grep_command} -l "${tag_regex}" '{}' \;`
     do
       major=`${sed_command} -ne "s/${tag_regex}${version_regex}/\\1/p" "${file}"`
       minor=`${sed_command} -ne "s/${tag_regex}${version_regex}/\\2/p" "${file}"`
@@ -69,6 +69,6 @@ do
 
   # eventually call find
   # posix compliant version of find without -printf '%p\n', it should work with darwin and aix
-  ${find_command} "${directory}" ${excludes} -name '*.cf' -print
+  ${find_command} "${framework_path}/${directory}" ${excludes} -name '*.cf' -print
 done
 
