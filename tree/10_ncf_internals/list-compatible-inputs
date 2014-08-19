@@ -31,16 +31,14 @@ version_regex='\([0-9]\+\)\.\([0-9]\+\).*'
 cfengine_major=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_regex}/\\1/"`
 cfengine_minor=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_regex}/\\2/"`
 
-# Start
-cd "${framework_path}"
 # Last parameters not named to keep them as a quoted array
 for directory in "$@"
 do
-  exclude_file="${directory}/.ncf-exclude-cache"
+  exclude_file="${framework_path}/${directory}/.ncf-exclude-cache-${cfengine_version}"
   # first remove obsolete cache for exclude list
   if [ -e "${exclude_file}" ]
   then
-    newer_files=`${find_command} "${directory}" -type f -newer "${exclude_file}"`
+    newer_files=`${find_command} "${framework_path}/${directory}" -type f -newer "${exclude_file}"`
     if [ "${newer_files}" != "" ]
     then
       rm -f "${exclude_file}"
@@ -54,7 +52,7 @@ do
   else
     # sed -ne '/regex/F' prints file name when regex matches
     tag_regex='^#[ \t]\+@agent_version[ \t]\+>='
-    for file in `${find_command} "${directory}" -name '*.cf' -exec ${grep_command} -l "${tag_regex}" '{}' \;`
+    for file in `${find_command} "${framework_path}/${directory}" -name '*.cf' -exec ${grep_command} -l "${tag_regex}" '{}' \;`
     do
       major=`${sed_command} -ne "s/${tag_regex}${version_regex}/\\1/p" "${file}"`
       minor=`${sed_command} -ne "s/${tag_regex}${version_regex}/\\2/p" "${file}"`
@@ -71,6 +69,6 @@ do
 
   # eventually call find
   # posix compliant version of find without -printf '%p\n', it should work with darwin and aix
-  ${find_command} "${directory}" ${excludes} -name '*.cf' -print
+  ${find_command} "${framework_path}/${directory}" ${excludes} -name '*.cf' -print
 done
 
