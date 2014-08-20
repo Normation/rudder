@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 # Need at least 3 parameters
 if [ "$#" -lt 3 ]
 then
@@ -35,6 +37,10 @@ cfengine_minor=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_reg
 for directory in "$@"
 do
   exclude_file="${framework_path}/${directory}/.ncf-exclude-cache-${cfengine_version}"
+
+  # ignore directory if it doesn't exist
+  if [ ! -d "${framework_path}/${directory}" ]; then continue; fi
+
   # first remove obsolete cache for exclude list
   if [ -e "${exclude_file}" ]
   then
