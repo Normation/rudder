@@ -215,8 +215,8 @@ html, body, .Override.container, .Override .ncf_col
     background-color: #E8E8E8;
 }
 
-#techniqueDescription {
-    max-width: 100%
+textarea.form-control {
+    resize:none
 }
 
 .input-xs {

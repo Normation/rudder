@@ -5,6 +5,7 @@
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/custom.css" rel="stylesheet">
         <script src="js/jquery-1.11.1.min.js"></script>
+        <script src="js/elastic.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
         <script src="js/ui-bootstrap-tpls-0.11.0.min.js"></script>
         <script id="template/accordion/accordion-group.html" type="text/ng-template">
@@ -110,7 +111,7 @@
                             <div class="form-group">
                                 <label for="techniqueDescription" class="col-sm-3 control-label">Description:</label>
                                 <div class="col-sm-8">
-                                    <textarea class="form-control" id="techniqueDescription" rows="2" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
+                                    <textarea class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
                                 </div>
                             </div>
                             <div class="form-group">
@@ -184,9 +185,9 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 Parameters
                             </accordion-heading>
-                            <div class="form-group" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
-                                <label for="{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
-                                <input  type="text" id="{{$index}}"  class="form-control" ng-model="selectedMethod.args[$index]" placeholder="">
+                            <div class="form-group method-parameter" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
+                                <label for="param-{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
+                                <textarea msd-elastic class="form-control" rows="1" id="param-{{$index}}" ng-model="selectedMethod.args[$index]" placeholder=""></textarea>
                             </div>
                         </accordion-group>
                     </accordion>
