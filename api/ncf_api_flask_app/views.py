@@ -9,6 +9,8 @@ import sys
 NCF_TOOLS_DIR = '/usr/share/ncf/tools'
 sys.path[0:0] = [NCF_TOOLS_DIR]
 
+default_path = ""
+
 import ncf
 
 def check_auth(f):
@@ -61,15 +63,19 @@ def get_auth():
   error.status_code = 401
   return  error
 
+def get_path_from_args (request):
+  """ Extract path argument from a request, if empty or missing use default one"""
+  if "path" in request.args and request.args['path'] != "":
+    return request.args['path']
+  else:
+    return default_path
+
 @app.route('/api/techniques', methods = ['GET'])
 @check_auth
 def get_techniques():
   """Get all techniques from ncf folder passed as parameter, or default ncf folder if not defined"""
   # We need to get path from url params, if not present put "" as default value
-  if "path" in request.args:
-    path = request.args['path']
-  else:
-    path = ""
+  path = get_path_from_args(request)
 
   techniques = ncf.get_all_techniques_metadata(alt_path = path)
   resp = jsonify( techniques )
@@ -80,10 +86,7 @@ def get_techniques():
 def get_generic_methods():
   """Get all generic methods from ncf folder passed as parameter, or default ncf folder if not defined"""
   # We need to get path from url params, if not present put "" as default value
-  if "path" in request.args:
-    path = request.args['path']
-  else:
-    path = ""
+  path = get_path_from_args(request)
 
   generic_methods = ncf.get_all_generic_methods_metadata(alt_path = path)
   resp = jsonify( generic_methods )
@@ -99,10 +102,10 @@ def create_technique():
   else:
     technique = request.json['technique']
 
-  if "path" in request.json:
+  if "path" in request.json and request.json['path'] != "":
     path = request.json['path']
   else:
-    path = ""
+    path = default_path
 
   try:
     ncf.write_technique(technique,path)
@@ -115,11 +118,8 @@ def create_technique():
 @app.route('/api/techniques/<string:bundle_name>', methods = ['DELETE'])
 @check_auth
 def delete_technique(bundle_name):
-    
-  if "path" in request.args:
-    path = request.args['path']
-  else:
-    path = ""
+
+  path = get_path_from_args(request)
 
   try:
     ncf.delete_technique(bundle_name,path)
