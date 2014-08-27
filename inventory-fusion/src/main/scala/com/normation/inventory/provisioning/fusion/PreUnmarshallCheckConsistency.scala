@@ -163,7 +163,9 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   }
 
   private[this] def checkOS(report:NodeSeq) : Box[NodeSeq] = {
-    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: "VERSION" :: Nil
+
+    //VERSION is not mandatory on windows, it can't be added in that list
+    val tags = "FULL_NAME" :: "KERNEL_NAME" :: "NAME" :: Nil
     for {
       tagHere <- bestEffort(tags) { tag =>
                    checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
