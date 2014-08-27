@@ -477,11 +477,50 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     });
   };
 
+  $scope.confirmPopup = function(actionName,kind,action,elem, name) {
+
+    var modalInstance = $modal.open({
+      templateUrl: 'template/confirmModal.html',
+      controller: confirmModalCtrl,
+      resolve: {
+        actionName: function() { return actionName; }
+      , kind : function() { return kind; }
+      , name : function() { return name; }
+      }
+    });
+
+    modalInstance.result.then(function () {
+        action(elem)
+    });
+  };
+
   $scope.getMethods();
   $scope.getTechniques();
   $scope.setPath();
 });
 
+var confirmModalCtrl = function ($scope, $modalInstance, actionName, kind, name) {
+
+  $scope.actionName = actionName;
+  $scope.kind = kind;
+  $scope.name = name;
+
+  $scope.displayName = function() {
+    if (name === undefined) {
+      return "this "+ kind;
+    } else {
+      return kind + " '" + name + "'"
+    }
+  };
+
+  $scope.confirm = function() {
+    $modalInstance.close();
+  };
+
+  $scope.cancel = function () {
+    $modalInstance.dismiss('cancel');
+  };
+};
 
 var cloneModalCtrl = function ($scope, $modalInstance, technique) {
 
