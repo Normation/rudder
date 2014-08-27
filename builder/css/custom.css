@@ -239,3 +239,11 @@ textarea.form-control {
     border-top:5px #DDDDDD solid;
     border-right:5px #DDDDDD solid;
 }
+
+.right-margin {
+    margin-right: 10px;
+}
+
+.top-margin {
+    margin-top: -5px;
+}
