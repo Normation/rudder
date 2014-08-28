@@ -70,19 +70,19 @@ bundle agent logger_rudder(message, class_prefix)
 
       # 4/ Array is ready, reporting time !!!
       "@@${report_data[1]}@@result_na@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error",
+        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_not_ok",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_success@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error",
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_not_ok",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_repaired@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error",
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_not_ok",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_error@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_error",
+        ifvarclass => "${class_prefix}_not_ok",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
 }

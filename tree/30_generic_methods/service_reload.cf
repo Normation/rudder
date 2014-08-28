@@ -23,7 +23,7 @@
 # 
 # @class_prefix service_reload
 # @class_parameter service_name
-# This bundle will define a class service_reload_${service_name}_{kept,repaired,error,ok,reached}
+# This bundle will define a class service_reload_${service_name}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent service_reload(service_name)
 {

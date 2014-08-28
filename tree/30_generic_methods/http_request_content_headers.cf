@@ -26,7 +26,7 @@
 
 # @class_prefix http_content_headers
 # @class_parameter url
-# This bundle will define a http_content_headers_${url}_{repaired,error,ok,reached}
+# This bundle will define a http_content_headers_${url}_{repaired,not_ok,ok,reached}
 
 bundle agent http_request_content_headers(method, url, content, headers)
 {

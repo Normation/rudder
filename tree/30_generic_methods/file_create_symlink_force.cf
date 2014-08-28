@@ -24,7 +24,7 @@
 # 
 # @class_prefix file_create_symlink
 # @class_parameter destination
-# This bundle will define a class file_create_symlink_${destination}_{kept,repaired,error,ok,reached}
+# This bundle will define a class file_create_symlink_${destination}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_create_symlink_force(source, destination)
 {

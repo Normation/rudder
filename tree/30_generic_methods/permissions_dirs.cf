@@ -26,7 +26,7 @@
 # 
 # @class_prefix permissions
 # @class_parameter path
-# This bundle will define a class permissions_${path}_{kept,repaired,error,ok,reached}
+# This bundle will define a class permissions_${path}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent permissions_dirs(path, mode, owner, group)
 {
