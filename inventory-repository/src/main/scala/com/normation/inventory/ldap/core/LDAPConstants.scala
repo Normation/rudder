@@ -183,6 +183,7 @@ object LDAPConstants {
   val A_OS_WIN_2003 = "Windows2003"
   val A_OS_WIN_2008 = "Windows2008"
   val A_OS_WIN_2008_R2 = "Windows2008R2"
+  val A_OS_WIN_2012 = "Windows2012"
   val A_OS_UNKNOWN_LINUX = "Unknown Linux version"
   val A_OS_DEBIAN = "Debian"
   val A_OS_UBUNTU = "Ubuntu"
