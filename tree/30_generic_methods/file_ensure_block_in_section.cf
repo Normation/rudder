@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File ensure block in section
-# @description This is a bundle to ensure that a section contain exactly a text block
+# @description This is a bundle to ensure that a section contains exactly a text block
 #
 # @parameter file File name to edit
 # @parameter section_start Start of the section
@@ -38,7 +38,7 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
         create        => "true",
         edit_line     => ncf_ensure_section_content("${section_start}", "${section_end}", "${block}"),
         edit_defaults => no_backup,
-	classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"

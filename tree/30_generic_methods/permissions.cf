@@ -17,12 +17,12 @@
 #####################################################################################
 
 # @name Permissions (non recursive)
-# @description Verify if a file or directory has the right permissions non recursively
+# @description Set permissions on a file or directory (non recursively)
 #
-# @parameter path Path to the file / directory
-# @parameter mode Mode to enforce
-# @parameter owner Owner to enforce
-# @parameter group Group to enforce
+# @parameter path Path to the file/directory
+# @parameter mode Mode to enforce (like "640")
+# @parameter owner Owner to enforce (like "root")
+# @parameter group Group to enforce (like "wheel")
 #
 # @class_prefix permissions
 # @class_parameter path

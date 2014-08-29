@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name File ensure lines present
-# @description This is a bundle to ensure that a line is present in a specific location
+# @description This is a bundle to ensure that one or more lines are present in a file
 #
 # @parameter file  File name to edit
 # @parameter lines Line(s) to add in the file
@@ -29,5 +29,5 @@
 bundle agent file_ensure_lines_present(file, lines)
 {
   methods:
-      "wrapper" usebundle  => file_enforce_content("${file}","${lines}","false");
+      "wrapper" usebundle  => file_enforce_content("${file}", "${lines}", "false");
 }
