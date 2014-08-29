@@ -30,12 +30,13 @@ bundle agent command_execution(command_name)
   vars:
       "class_prefix"        string => canonify("command_execution_${command_name}");
 
-  commands:
+  methods:
+      "report"
+        usebundle => _logger("Execute the command ${command_name}", "${class_prefix}"),
+        ifvarclass => "${class_prefix}_reached";
 
+  commands:
       "${command_name}"
         classes      => classes_generic("${class_prefix}");
 
-  methods:
-      "report"
-        usebundle => _logger("Execute the command ${command_name}", "${class_prefix}");
 }
