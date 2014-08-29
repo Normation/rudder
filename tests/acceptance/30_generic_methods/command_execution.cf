@@ -22,7 +22,7 @@ body common control
 bundle agent init
 {
   vars:
-    "command_name"            string => "/bin/date";
+    "command_name"            string => "/bin/date | egrep '[0-9]'";
     "canonified_command_name" string => canonify("${command_name}");
 }
 

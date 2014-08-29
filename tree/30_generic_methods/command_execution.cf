@@ -37,6 +37,7 @@ bundle agent command_execution(command_name)
 
   commands:
       "${command_name}"
+        contain      => in_shell,
         classes      => classes_generic("${class_prefix}");
 
 }
