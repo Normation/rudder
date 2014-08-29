@@ -26,7 +26,7 @@
 # @class_prefix file_ensure_line_present_in_ini_section
 # @class_parameter file
 #
-# This bundle will define a class file_ensure_line_present_in_ini_section_${file}_{kept,repaired,error,ok,not_ok,reached}
+# This bundle will define a class file_ensure_line_present_in_ini_section_${file}_{kept,repaired,not_ok,ok,not_ok,reached}
 
 bundle agent file_ensure_line_present_in_ini_section(file, section, line)
 {

@@ -26,7 +26,7 @@
 # @class_prefix file_replace_lines
 # @class_parameter file
 #
-# This bundle will define a class file_replace_lines_${file}_{kept,repaired,error,ok,reached}
+# This bundle will define a class file_replace_lines_${file}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_replace_lines(file, line, replacement)
 {

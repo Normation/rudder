@@ -26,7 +26,7 @@
 
 # @class_prefix http_request_check_status_headers
 # @class_parameter url
-# This bundle will define a http_request_check_status_headers_${url}_{kept,error,ok,reached}
+# This bundle will define a http_request_check_status_headers_${url}_{kept,not_ok,ok,reached}
 
 bundle agent http_request_check_status_headers(method, url, expected_status, headers)
 {

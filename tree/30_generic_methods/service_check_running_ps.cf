@@ -23,7 +23,7 @@
 # 
 # @class_prefix service_check_running
 # @class_parameter service_regex
-# This bundle will define a class service_check_running_${service_regex}_{kept,error}
+# This bundle will define a class service_check_running_${service_regex}_{kept,not_ok}
 
 bundle agent service_check_running_ps(service_regex)
 {

@@ -25,7 +25,7 @@
 # 
 # @class_prefix file_copy_from_local_source
 # @class_parameter destination
-# This bundle will define a class file_copy_${destination}_{kept,repaired,error,ok,reached}
+# This bundle will define a class file_copy_${destination}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_copy_from_local_source_recursion(source, destination, recursion)
 {

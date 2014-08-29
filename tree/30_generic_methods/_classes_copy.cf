@@ -24,14 +24,14 @@
 #
 # @class_prefix 
 # @class_parameter 
-# This bundle will define a class ${destination_prefix}_{kept,repaired,error,ok,reached}
-# based on ${source_prefix}_{kept,repaired,error,ok,reached}
+# This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# based on ${source_prefix}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent _classes_copy(source_prefix, destination_prefix)
 {
   vars:
       "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
-      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept" };
+      "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error" };
 
       # Copy result classes prefixes
       "${prefix}_local_destination_prefix"

@@ -23,7 +23,7 @@
 #
 # @class_prefix package_remove
 # @class_parameter package_name
-# This bundle will define a class package_remove_${package_name}_{kept,repaired,error,ok,reached}
+# This bundle will define a class package_remove_${package_name}_{kept,repaired,not_ok,ok,reached}
 #
 # Usage example:
 # methods:

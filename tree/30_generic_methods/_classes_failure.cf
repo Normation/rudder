@@ -29,7 +29,7 @@ bundle agent _classes_failure(class_prefix)
 {
   vars:
       "prefix" slist => { "repair_failed" };
-      "suffix" slist => { "not_kept", "not_ok", "not_repaired", "failed", "reached" };
+      "suffix" slist => { "not_kept", "not_ok", "not_repaired", "failed", "reached", "error" };
 
       "${prefix}_local"
         string     => "${prefix}_${class_prefix}",
