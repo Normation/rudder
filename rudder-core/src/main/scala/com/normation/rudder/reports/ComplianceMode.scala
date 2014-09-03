@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2014 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,42 +32,34 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.nodes
+package com.normation.rudder.reports
 
-import com.normation.inventory.domain.AgentType
-import org.joda.time.DateTime
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
-import com.normation.inventory.domain.ServerRole
-import com.normation.rudder.reports.ReportingConfiguration
+import net.liftweb.common._
 
 /**
- * A NodeInfo is a read only object containing the information that will be
- * always useful about a node
+ * Define level of compliance:
+ *
+ * - compliance: full compliance, check success report (historical Rudder way)
+ * - error_only: only report for repaire and error reports.
  */
-case class NodeInfo(
-    id            : NodeId
-  , name          : String
-  , description   : String
-  , hostname      : String
-  , machineType   : String
-  , osName        : String
-  , osVersion     : String
-  , servicePack   : Option[String]
-  , ips           : List[String]
-  , inventoryDate : DateTime
-  , publicKey     : String
-  , agentsName    : Seq[AgentType]
-  , policyServerId: NodeId
-  , localAdministratorAccountName: String
-  , creationDate  : DateTime
-  , isBroken      : Boolean
-  , isSystem      : Boolean
-  , isPolicyServer: Boolean
-  //for now, isPolicyServer and server role ARE NOT
-  //dependant. So EXPECTS inconsistencies.
-  //TODO: remove isPolicyServer, and pattern match on
-  //      on role everywhere.
-  , serverRoles   : Set[ServerRole]
-  , nodeReportingConfiguration: ReportingConfiguration
-) extends HashcodeCaching
+
+sealed trait ComplianceMode
+
+final case object FullCompliance extends ComplianceMode
+final case object ErrorOnly      extends ComplianceMode
+
+
+object ComplianceMode {
+
+  private[this] val ERROR = "erroronly"
+  private[this] val FULL  = "fullcompliance"
+
+  def parse(s: String): Box[ComplianceMode] = {
+    s.toLowerCase match {
+      case FULL  => Full(FullCompliance)
+      case ERROR => Full(ErrorOnly)
+      case _ => Failure(s"Unable to parse the compliance mode. I was expecting '${FULL}' or '${ERROR}' (case unsensitive) and got '${s}'")
+    }
+  }
+
+}

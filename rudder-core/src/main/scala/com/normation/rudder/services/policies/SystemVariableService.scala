@@ -288,16 +288,44 @@ class SystemVariableServiceImpl(
       Map()
     }
 
-    logger.trace("System variables for node %s done".format(nodeInfo.id.value))
+    // If we are not a policy server, and don't have default schedule, then define the scedule
+    val specificScheduleVars = if (nodeInfo.isPolicyServer) {
+      Full(Map())
+    } else {
+      nodeInfo.nodeReportingConfiguration.agentRunInterval match {
+        case None => // No custom report schedule define
+          Full(Map())
+        case Some(schedule) if schedule.overrides == false => // No custom report schedule activated
+          Full(Map())
+        case Some(schedule) if schedule.overrides == true =>
+          val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(schedule.interval.toString)
+          val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(schedule.splaytime.toString)
 
-    Full(
-         globalSystemVariables
-      ++ Map(
-             (varNodeRole.spec.name, varNodeRole)
-           , (varAllowedNetworks.spec.name, varAllowedNetworks)
-           , (varRudderServerRole.spec.name -> varRudderServerRole)
-         )
-      ++ policyServerVars
+
+
+          for {
+            schedule <- ComputeSchedule.computeSchedule(schedule.startHour, schedule.startMinute, schedule.interval) ?~! s"Could not compute the run schedule for node ${nodeInfo.id.value}"
+          } yield {
+              val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule)
+              Map(
+                   varAgentRunInterval.spec.name -> varAgentRunInterval
+                 , varAgentRunSchedule.spec.name -> varAgentRunSchedule
+                 , varAgentRunSplayTime.spec.name -> varAgentRunSplayTime
+                 )
+          }
+      }
+    }
+
+    // If the scpecific schedule fails, we says there is an error
+    specificScheduleVars.map( x =>
+               globalSystemVariables
+                ++ Map(
+                       (varNodeRole.spec.name, varNodeRole)
+                     , (varAllowedNetworks.spec.name, varAllowedNetworks)
+                     , (varRudderServerRole.spec.name -> varRudderServerRole)
+                   )
+                ++ policyServerVars
+                ++ x
     )
 
   }

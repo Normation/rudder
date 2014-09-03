@@ -68,6 +68,7 @@ import java.lang.IllegalArgumentException
 import com.normation.eventlog.ModificationId
 import java.net.InetAddress
 import org.apache.commons.net.util.SubnetUtils
+import com.normation.rudder.reports._
 
 /**
  * A trait to manage the acceptation of new node in Rudder
@@ -450,7 +451,17 @@ class AcceptFullInventoryInNodeOu(
     //TODO: that can not handle relay server
     val isPolicyServer = sm.node.main.id == sm.node.main.policyServerId
 
-    val node = Node(sm.node.main.id, name, description, false, false, isPolicyServer)
+    // put real values in it
+    val nodeReportingConfiguration = ReportingConfiguration(None)
+
+    val node = Node(
+        sm.node.main.id
+      , name
+      , description
+      , false
+      , false
+      , isPolicyServer
+      , nodeReportingConfiguration)
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
       con <- ldap
