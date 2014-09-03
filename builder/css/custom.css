@@ -247,3 +247,12 @@ textarea.form-control {
 .top-margin {
     margin-top: -5px;
 }
+
+.icon-delete {
+    color : #990000
+}
+
+.btn-delete:hover, .btn-delete:active, .btn-delete:focus{
+    color: #fff;
+    background-color: #990000;
+}

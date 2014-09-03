@@ -35,6 +35,19 @@
             <button class="btn btn-default" ng-click="save()">Save Changes</button>
           </div>
         </script>
+        </script>
+        <script type="text/ng-template" id="template/confirmModal.html">
+          <div class="modal-header">
+            <h3 class="modal-title">{{actionName}} {{kind}}</h3>
+          </div>
+          <div class="modal-body">
+            Are you sure you want to {{actionName}} {{displayName()}}?
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
+            <button class="btn btn-default btn-delete" ng-click="confirm()">{{actionName}}</button>
+          </div>
+        </script>
         <script id="template/cloneModal.html" type="text/ng-template">
           <form name="cloneForm">
             <div class="modal-header">
@@ -115,7 +128,7 @@
                 <form class="form-horizontal editForm" name="editForm" style="margin-bottom:70px;padding-left: 15px;">
                     <div class="title">Technique</div>
                     <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
-                        <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin" ng-click="deleteTechnique()">Delete</button>
+                        <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</button>
                         <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup)">Clone</button>
                     </h3>
                     <accordion>
@@ -152,7 +165,7 @@
                                         </a>
                                     </span>
                                     <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
-                                    <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin  method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
+                                    <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
                                     <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
                                     <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
                                 </h4>
