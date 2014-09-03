@@ -61,6 +61,10 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.web.components.AgentScheduleEditForm
 
 /**
  * A service used to display details about a server
@@ -81,6 +85,8 @@ object DisplayNode extends Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
+
+  private[this] val nodeRepo             = RudderConfig.woNodeRepository
 
   private[this] val templatePath = List("templates-hidden", "server_details_tabs")
   private[this] def template() =  Templates(templatePath) match {
@@ -317,8 +323,43 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     </div>
   }
 
+
+  val emptyInterval = AgentRunInterval(false, 5, 0, 0, 0)
+  def getSchedule(nodeId: NodeId) : Box[AgentRunInterval] = {
+    for {
+      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+    } yield {
+      nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(emptyInterval)
+    }
+  }
+
+  def saveSchedule(nodeId: NodeId)(schedule: AgentRunInterval) : Box[Unit] = {
+    for {
+      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      newSchedule = nodeInfo.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))
+      newNode = com.normation.rudder.domain.nodes.Node(nodeInfo.id, nodeInfo.name, nodeInfo.description, nodeInfo.isBroken, nodeInfo.isSystem, nodeInfo.isPolicyServer, newSchedule)
+      modId = ModificationId(uuidGen.newUuid)
+      user = CurrentUser.getActor
+      result <- nodeRepo.update(newNode, modId, user, None)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+    }
+  }
+
   // mimic the content of server_details/ShowNodeDetailsFromNode
   def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], inventoryStatus : InventoryStatus, salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
+
+
+
+    val nodeInfoBox = nodeInfoService.getNodeInfo(sm.node.main.id)
+
+
+    val agentScheduleEditForm = new AgentScheduleEditForm(
+        () => getSchedule(sm.node.main.id)
+      , saveSchedule(sm.node.main.id)
+      , true
+      , () => Unit
+    )
 
     { sm.node.main.status match {
           case AcceptedInventory =>
@@ -378,6 +419,11 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         <div class="tablepadding">
           <b>Administrator account:</b> {sm.node.main.rootUser}<br/>
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
+        </div>
+
+      <h4 class="tablemargin">Agent Schedule</h4>
+        <div class="tablepadding">
+          { agentScheduleEditForm.cfagentScheduleConfiguration(NodeSeq.Empty) }
         </div>
     </fieldset>
 

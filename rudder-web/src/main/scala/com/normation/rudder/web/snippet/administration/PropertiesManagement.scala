@@ -48,6 +48,8 @@ import net.liftweb.http.SHtml._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.web.components.AgentScheduleEditForm
+import com.normation.rudder.reports.AgentRunInterval
 
 
 class PropertiesManagement extends DispatchSnippet with Loggable {
@@ -455,101 +457,44 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
 
-  def cfagentScheduleConfiguration = { xml : NodeSeq =>
+  val agentScheduleEditForm = new AgentScheduleEditForm(
+      getSchedule
+    , saveSchedule
+    , false
+    , () => startNewPolicyGeneration
+  )
 
-    var jsonSchedule = "{}"
-
-    //return a box of (interval, start hour, start min, splay)
-    def parseJsonSchedule(s: String) : Box[(Int, Int, Int, Int)] = {
-      import net.liftweb.json._
-
-
-      val json = parse(s)
-
-      val x = for {
-        JField("interval", JInt(i)) <- json
-        JField("starthour", JInt(h)) <- json
-        JField("startminute", JInt(m)) <- json
-        JField("splayHour", JInt(sh)) <- json
-        JField("splayMinute", JInt(sm)) <- json
-      } yield {
-        val splayTime = (sh.toInt * 60) + sm.toInt
-        (i.toInt, h.toInt, m.toInt, splayTime)
-      }
-
-      Full(x.head)
-
-    }
-
-    def submit() = {
-
-      parseJsonSchedule(jsonSchedule) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Error when trying to parse user data: '${jsonSchedule}'"
-          S.error("cfagentScheduleMessage", e.messageChain)
-
-        case Full((i,h,m,s)) =>
-          (for {
-            _ <- configService.set_agent_run_interval(i)
-            _ <- configService.set_agent_run_start_hour(h)
-            _ <- configService.set_agent_run_start_minute(m)
-            _ <- configService.set_agent_run_splaytime(s)
-          } yield {
-
-            logger.info(s"Agent schedule updated to run interval: ${i} min, start time: ${h }h ${m} min, splaytime: ${s} min")
-            "ok"
-          }) match {
-            case eb:EmptyBox =>
-              val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
-              S.error("cfagentScheduleMessage", e.messageChain)
-
-            case Full(success) =>
-
-              // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-              startNewPolicyGeneration
-              S.notice("cfagentScheduleMessage", "Agent schedule saved")
-          }
-      }
-
-      Noop
-    }
-
-
-    val transform = (for {
+  def getSchedule() : Box[AgentRunInterval] = {
+    for {
       starthour <- configService.agent_run_start_hour
       startmin  <- configService.agent_run_start_minute
       splaytime <- configService.agent_run_splaytime
+      interval  = configService.agent_run_interval
     } yield {
-      val splayHour = splaytime / 60
-      val splayMinute = splaytime % 60
-      ("ng-init",s"""agentRun={ 'interval'    : ${configService.agent_run_interval}
-                              , 'starthour'   : ${starthour}
-                              , 'startminute' : ${startmin}
-                              , 'splayHour'   : ${splayHour}
-                              , 'splayMinute' : ${splayMinute}
-                              }""")
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when retrieving agent schedule from the database"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was:", ex)
-        }
-
-        (
-          "#cfagentScheduleForm" #> "Error when retrieving agent schedule from the database. Please, contact an admin or try again later"
-        )
-      case Full(initScheduleParam) =>
-        (
-            "#cfagentScheduleHidden" #> SHtml.hidden((x:String) => { jsonSchedule = x ; x}, "{{agentRun}}", initScheduleParam)
-          & "#cfagentScheduleSubmit" #> SHtml.ajaxSubmit("Save changes", submit _)
-
+      AgentRunInterval(
+            false
+          , interval
+          , startmin
+          , starthour
+          , splaytime
         )
     }
-
-    transform.apply(xml)
-
   }
+
+  def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+    for {
+      _ <- configService.set_agent_run_interval(schedule.interval)
+      _ <- configService.set_agent_run_start_hour(schedule.startMinute)
+      _ <- configService.set_agent_run_start_minute(schedule.startHour)
+      _ <- configService.set_agent_run_splaytime(schedule.splaytime)
+    } yield {
+      logger.info(s"Agent schedule updated to run interval: ${schedule.interval} min, start time: ${schedule.startHour} h ${schedule.startMinute} min, splaytime: ${schedule.splaytime} min")
+      "ok"
+    }
+  }
+
+  def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
+
 
   def cfengineGlobalProps = { xml : NodeSeq =>
 

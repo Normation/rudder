@@ -1,0 +1,48 @@
+<schedule:agentSchedule>
+          <div id="cfagentSchedule" ng-app="cfagentSchedule" ng-controller="cfagentScheduleController">
+            <div class="wbBaseField" id="enableSchedule">
+              <label class="threeCol textight" style="font-weight:bold;width:  175px;">Override global value:</label>
+              <input type="checkbox" data-ng-model="agentRun.overrides" ng-value="true"></input>
+            </div>
+            <div class="wbBaseField">
+              <label class="threeCol textight" style="font-weight:bold;width:  175px;">Run agent every:</label>
+              <select class="twoCol" data-ng-model="agentRun.interval" data-ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
+            </div>
+            <hr class="spacer" />
+            <div class="wbBaseField">
+              <label class="threeCol textight" style="font-weight:bold;width: 100px;">First run time:</label>
+              <ul style="float:left;">
+                <li style="margin-bottom: 7px">
+                  <label style="font-weight:bold;width: 75px; float: left; "> Hour: </label>
+                  <select  data-ng-model="agentRun.starthour" data-ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
+                </li>
+                <li>
+                  <label style="font-weight:bold;width: 75px; float:left;">Minute:</label>
+                  <select  data-ng-model="agentRun.startminute" data-ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+                </li>
+              </ul>
+            </div>
+            <hr class="spacer" />
+            <div class="wbBaseField">
+              <label class="threeCol textight" style="font-weight:bold;width: 400px;">Maximum delay after scheduled run time (random interval):</label>
+              <ul style="float:left;">
+                <li style="margin-bottom: 7px">
+                  <label style="font-weight:bold;width: 75px; float: left; "> Hours: </label>
+                  <select  data-ng-model="agentRun.splayHour" data-ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
+                </li>
+                <li>
+                  <label style="font-weight:bold;width: 75px; float:left;">Minutes:</label>
+                  <select  data-ng-model="agentRun.splayMinute" data-ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+                </li>
+              </ul>
+            </div>
+            <hr class="spacer"/>
+            <div id="cfagentScheduleForm">
+              <form class="lift:form.ajax">
+                <input type="hidden" id="cfagentScheduleHidden"/>
+                <input type="submit" value="[save]" id="cfagentScheduleSubmit"/>
+                <lift:Msg id="cfagentScheduleMessage">[messages]</lift:Msg>
+              </form>
+            </div>
+          </div>
+</schedule:agentSchedule>
