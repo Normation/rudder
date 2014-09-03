@@ -15,16 +15,28 @@ framework_path="$2"
 # see comment below on the last parameters
 shift 2
 
-# commands
-find_command=`which find`
-sed_command=`which sed`
-basename_command=`which basename`
-grep_command=`which grep`
-# commands not int path on android
-[ -x "/system/xbin/find" ] && find_command="/system/xbin/find"
-[ -x "/system/xbin/sed" ] && sed_command="/system/xbin/sed"
-[ -x "/system/xbin/basename" ] && basename_command="/system/xbin/basename"
-[ -x "/system/xbin/grep" ] && basename_command="/system/xbin/grep"
+_which() {
+  name="$1"
+  IFS_SAVE="$IFS"
+  IFS=:
+  for directory in $PATH
+  do
+    if [ -x "${directory}/${name}" ]
+    then
+      echo "${directory}/${name}"
+      break
+    fi
+  done
+  IFS="$IFS_SAVE"
+}
+
+# add busybox to path for android
+PATH="/system/xbin:${PATH}"
+# find commands
+find_command=`_which find`
+sed_command=`_which sed`
+basename_command=`_which basename`
+grep_command=`_which grep`
 # stop if a command doesn't exist
 [ ! -x "${find_command}" -o ! -x "${sed_command}" -o ! -x "${basename_command}" -o ! -x "${grep_command}" ] && echo "Posix commands not found" && exit 2
 
