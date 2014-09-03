@@ -260,6 +260,35 @@ class SystemVariableServiceImpl(
 
     val varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable(authorizedNetworks)
 
+    val agentRunParams =
+      if (nodeInfo.isPolicyServer) {
+        Full(( "5"
+             , "5"
+             , """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
+        ) )
+      } else {
+        nodeInfo.nodeReportingConfiguration.agentRunInterval match {
+          case Some(nodeRunInterval)  if nodeRunInterval.overrides.getOrElse(false) =>
+            for {
+              schedule <- ComputeSchedule.computeSchedule(nodeRunInterval.startHour, nodeRunInterval.startMinute, nodeRunInterval.interval) ?~! s"Could not compute the run schedule for node ${nodeInfo.id.value}"
+            } yield {
+              ( nodeRunInterval.interval.toString
+              , nodeRunInterval.splaytime.toString
+              , schedule
+              )
+          }
+          case _ => Empty
+        }
+      }
+    val AgentRunVariables = ( agentRunParams.map {
+      case (runInterval,splayTime,schedule) =>
+          val vars = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(runInterval) ::
+          systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(splayTime)  ::
+          systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule) ::
+          Nil
+
+          vars.map(v => v.spec.name -> v ).toMap
+    } )
 
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
@@ -277,22 +306,13 @@ class SystemVariableServiceImpl(
 
 
       // the schedule must be the default one for policy server
-      val DEFAULT_SCHEDULE =
-      """
-        "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"
-      """
 
-      val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue("5")
-      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue("5")
-      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(DEFAULT_SCHEDULE)
+
 
       Map(
           varManagedNodes.spec.name -> varManagedNodes
         , varManagedNodesId.spec.name -> varManagedNodesId
         , varManagedNodesAdmin.spec.name -> varManagedNodesAdmin
-        , varAgentRunInterval.spec.name -> varAgentRunInterval
-        , varAgentRunSchedule.spec.name -> varAgentRunSchedule
-        , varAgentRunSplayTime.spec.name -> varAgentRunSplayTime
       )
     } else {
       Map()
@@ -308,17 +328,25 @@ class SystemVariableServiceImpl(
      * RudderCf3PromisesFileWriterServiceImpl#prepareRulesForAgents
      */
     val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
+    val baseVariables = {
+      Seq(
+          varNodeRole
+        , varAllowedNetworks
+        , varRudderServerRole
+        , varNodeConfigVersion
+      ) map (x => (x.spec.name, x))
+    }
 
-    Full(
-         globalSystemVariables
-      ++ Seq(
-             varNodeRole
-           , varAllowedNetworks
-           , varRudderServerRole
-           , varNodeConfigVersion
-         ).map(x => (x.spec.name, x))
-      ++ policyServerVars
-    )
+    val variables = globalSystemVariables ++ baseVariables ++ policyServerVars
+
+    AgentRunVariables match {
+      case Full(runValues)  =>
+        Full(variables ++ runValues)
+      case Empty =>
+        Full(variables)
+      case fail: Failure =>
+        fail
+    }
 
   }
 

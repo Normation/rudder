@@ -1,0 +1,85 @@
+<schedule:agentSchedule>
+<style type="text/css">
+  select.twoCol {
+    width:auto;
+  }
+
+  select {
+    min-width:50px;
+  }
+</style>
+
+<div class="inner-portlet" id="cfagentSchedule">
+  <div class="page-title">Agent run schedule</div>
+  <div class="portlet-content"  id="agentScheduleController" ng-controller="cfagentScheduleController">
+    <div class="intro">
+      <div ng-if="globalRun === undefined">
+        <p>By default, the agent runs on all nodes every 5 minutes</p>
+        <p>
+          The high frequency enables fast response time to apply changes and state
+          assessment for high-precision drift and compliance reports.
+        </p>
+        <p>
+          You can modify this run interval below, as well as the "splay time" across nodes (a random
+          delay delay alters scheduled run time, intended to spread load across nodes).
+        </p>
+      </div>
+      <div ng-if="globalRun !== undefined">
+        <p>By default, agents on all nodes run following the same frequency defined in the global <a href="{{contextPath}}/secure/administration/policyServerManagement#cfagentSchedule">Settings</a>.</p>
+        <p>The current global setting is to run every <b>{{getIntervalValue(globalRun.interval)}}</b>, starting at <b>{{globalRun.startHour}}:{{globalRun.startMinute}}</b>, with a maximum delay after scheduled run time (random interval) of <b>{{globalRun.splayHour}}:{{globalRun.splayMinute}}</b>.</p>
+        <p>You may override this global setting just for this node below:</p>
+      </div>
+    </div>
+
+    <hr class="spacer" />
+    <div class="deca" ng-class="{'tw-bs': globalRun}">
+      <form role="form" class="form-horizontal"  ng-hide="agentRun === undefined">
+        <div class="form-group" ng-hide="globalRun === undefined">
+          <div>
+            <label for="override" class="control-label">
+              <input  id="override" ng-model="agentRun.overrides" type="checkbox"/>
+                Override global value
+            </label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="runInterval" class="col-sm-1 control-label">Run agent every:</label>
+          <div class="col-sm-1">
+            <select  class="form-control input-sm pull-left" ng-model="agentRun.interval" id="runInterval" ng-options="item.m as item.name for item in intervals" ng-disabled="overridesInterval()"  ng-change="onChangeInterval()"></select>
+          </div>
+        </div>
+        <h4>First run time</h4>
+        <div class="form-group">
+          <label class="control-label  col-sm-1" for="startHour">Hour</label>
+          <div class="col-sm-1">
+            <select class="form-control input-sm" id="startHour" ng-model="agentRun.startHour" ng-options="item for item in hours()" ng-disabled="overridesInterval() || checkHours() " ng-change="onChange()"></select>
+          </div>
+          <label for="startMinute" class=" pull-left control-label">Minute</label>
+          <div class="col-sm-1">
+            <select class="pull-left form-control input-sm"  id="startMinute" ng-model="agentRun.startMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+          </div>
+        </div>
+        <h4>Maximum delay after scheduled run time (random interval)</h4>
+        <div class="form-group">
+          <label class=" col-sm-1 control-label" for="splayHour" >Hours</label>
+          <div class="col-sm-1">
+            <select id="splayHour"  class="pull-left form-control input-sm" ng-model="agentRun.splayHour" ng-options="item for item in hours()" ng-disabled="checkHours() || overridesInterval()" ng-change="onChange()"></select>
+          </div>
+          <label class=" pull-left control-label" for="splayMinute" >Minutes</label>
+          <div class="col-sm-1">
+            <select id="splayMinute"  class="pull-left form-control input-sm" ng-model="agentRun.splayMinute" ng-options="item for item in minutes()" ng-disabled="overridesInterval()" ng-change="onChange()"></select>
+          </div>
+        </div>
+        <div class="form-group">
+          <div class="col-sm-1">
+            <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="isUnchanged()" id="cfagentScheduleSubmit">Save Changes</button>
+          </div>
+          <div id="scheduleMessage" class="pull-left">
+            <lift:Msg id="cfagentScheduleMessage">[messages]</lift:Msg>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</schedule:agentSchedule>

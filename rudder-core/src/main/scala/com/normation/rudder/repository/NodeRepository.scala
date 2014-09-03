@@ -32,42 +32,26 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports
+package com.normation.rudder.repository
 
 import net.liftweb.common._
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.archives.RuleArchiveId
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.nodes._
 
 /**
- * Define level of compliance:
- *
- * - compliance: full compliance, check success report (historical Rudder way)
- * - error_only: only report for repaired and error reports.
+ * Node Repository
+ * To update the Node Run Configuration
  */
-
-sealed trait ComplianceMode {
-  def name: String
-}
-
-final case object FullCompliance extends ComplianceMode {
-  val name = "full-compliance"
-}
-final case object ChangesOnly      extends ComplianceMode {
-  val name = "changes-only"
-}
-
-
-object ComplianceMode extends Loggable {
-
-  /*
-   * If we can't parse the compliance, default to full-compliance
+trait WoNodeRepository {
+  /**
+   * Update the node with the given ID with the given
+   * parameters.
+   *
+   * If the node is not in the repos, the method fails.
+   * If the node is a system one, the methods fails.
    */
-  def parse(s: String): ComplianceMode = {
-    s.toLowerCase match {
-      case FullCompliance.name  => FullCompliance
-      case ChangesOnly.name => ChangesOnly
-      case _ =>
-        logger.error(s"Unable to parse the compliance mode. I was expecting '${FullCompliance.name}' or '${ChangesOnly.name}' (case unsensitive) and got '${s}'. Defaulting to full-compliance mode")
-        FullCompliance
-    }
-  }
+  def update(node:Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
 
 }

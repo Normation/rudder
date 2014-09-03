@@ -34,40 +34,41 @@
 
 package com.normation.rudder.reports
 
-import net.liftweb.common._
+import com.normation.utils.HashcodeCaching
+import net.liftweb.json.JBool
 
 /**
- * Define level of compliance:
- *
- * - compliance: full compliance, check success report (historical Rudder way)
- * - error_only: only report for repaired and error reports.
+ * Class that contains all relevant information about the reporting configuration:
+ * * agent run interval
+ * * compliance mode (soon)
+ * * heartbeat (soon)
  */
+final case class ReportingConfiguration(
+    agentRunInterval : Option[AgentRunInterval]
+) extends HashcodeCaching
 
-sealed trait ComplianceMode {
-  def name: String
+final case class AgentRunInterval(
+    overrides  : Option[Boolean]
+  , interval   : Int
+  , startMinute: Int
+  , startHour  : Int
+  , splaytime  : Int
+) extends HashcodeCaching {
+
+ def json = {
+
+   val overrideValue = overrides.map(_.toString).getOrElse("null")
+   val splayHour = splaytime / 60
+   val splayMinute = splaytime % 60
+
+   s"""{ 'overrides'   : ${overrideValue}
+       , 'interval'    : ${interval}
+       , 'startHour'   : ${startHour}
+       , 'startMinute' : ${startMinute}
+       , 'splayHour'   : ${splayHour}
+       , 'splayMinute' : ${splayMinute}
+       }"""
+ }
 }
 
-final case object FullCompliance extends ComplianceMode {
-  val name = "full-compliance"
-}
-final case object ChangesOnly      extends ComplianceMode {
-  val name = "changes-only"
-}
 
-
-object ComplianceMode extends Loggable {
-
-  /*
-   * If we can't parse the compliance, default to full-compliance
-   */
-  def parse(s: String): ComplianceMode = {
-    s.toLowerCase match {
-      case FullCompliance.name  => FullCompliance
-      case ChangesOnly.name => ChangesOnly
-      case _ =>
-        logger.error(s"Unable to parse the compliance mode. I was expecting '${FullCompliance.name}' or '${ChangesOnly.name}' (case unsensitive) and got '${s}'. Defaulting to full-compliance mode")
-        FullCompliance
-    }
-  }
-
-}

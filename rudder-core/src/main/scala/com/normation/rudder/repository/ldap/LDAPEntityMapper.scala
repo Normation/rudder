@@ -72,7 +72,9 @@ import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
-
+import net.liftweb.json._
+import JsonDSL._
+import com.normation.rudder.reports._
 
 /**
  * Map objects from/to LDAPEntries
@@ -101,10 +103,55 @@ class LDAPEntityMapper(
     entry +=! (A_DESCRIPTION, node.description)
     entry +=! (A_IS_BROKEN, node.isBroken.toLDAPString)
     entry +=! (A_IS_SYSTEM, node.isSystem.toLDAPString)
+
+    node.nodeReportingConfiguration.agentRunInterval match {
+      case Some(interval) => entry +=! (A_SERIALIZED_AGENT_RUN_INTERVAL, Printer.compact(JsonAST.render(serializeAgentRunInterval(interval))))
+      case _ =>
+    }
     entry
   }
 
+  def serializeAgentRunInterval(agentInterval: AgentRunInterval) : JObject = {
+    import net.liftweb.json.JsonDSL._
+    ( "overrides"  , agentInterval.overrides ) ~
+    ( "interval"   , agentInterval.interval ) ~
+    ( "startMinute", agentInterval.startMinute ) ~
+    ( "startHour"  , agentInterval.startHour ) ~
+    ( "splaytime"  , agentInterval.splaytime )
+  }
 
+  def unserializeAgentRunInterval(value:String): AgentRunInterval = {
+    import net.liftweb.json.JsonParser._
+    implicit val formats = DefaultFormats
+
+    parse(value).extract[AgentRunInterval]
+  }
+
+  def entryToNode(e:LDAPEntry) : Box[Node] = {
+    if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
+      //OK, translate
+      for {
+        id           <- nodeDit.NODES.NODE.idFromDn(e.dn) ?~! s"Bad DN found for a Node: ${e.dn}"
+        name             = e(A_NAME).getOrElse("")
+        description      = e(A_DESCRIPTION).getOrElse("")
+        agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+      } yield {
+        Node(
+            id
+          , name
+          , description
+          , e.getAsBoolean(A_IS_BROKEN).getOrElse(false)
+          , e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+          , e.isA(OC_POLICY_SERVER_NODE)
+          , ReportingConfiguration(
+              agentRunInterval
+          )
+        )
+      }
+    } else {
+      Failure(s"The given entry is not of the expected ObjectClass ${OC_RUDDER_NODE} or ${OC_POLICY_SERVER_NODE}. Entry details: ${e}")
+    }
+  }
     //////////////////////////////    NodeInfo    //////////////////////////////
 
   val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME,A_OS_NAME,A_CONTAINER_DN, A_OS_FULL_NAME,A_OS_SERVICE_PACK,A_OS_VERSION, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
@@ -147,6 +194,9 @@ class LDAPEntityMapper(
       osName      = inventoryEntry(A_OS_NAME).getOrElse("N/A")
       servicePack = inventoryEntry(A_OS_SERVICE_PACK)
       serverRoles = inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
+      // get the ReportingConfiguration
+      agentRunInterval = nodeEntry(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+
     } yield {
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
@@ -172,10 +222,12 @@ class LDAPEntityMapper(
         , nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
         , nodeEntry.isA(OC_POLICY_SERVER_NODE)
         , serverRoles
+        , ReportingConfiguration(
+            agentRunInterval
+          )
       )
     }
   }
-
 
   /**
    * Build the ActiveTechniqueCategoryId from the given DN
