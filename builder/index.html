@@ -49,7 +49,7 @@
           </div>
         </script>
         <script id="template/cloneModal.html" type="text/ng-template">
-          <form name="cloneForm">
+          <form name="cloneForm" novalidate>
             <div class="modal-header">
               <h3 class="modal-title">Clone Technique</h3>
             </div>
@@ -62,7 +62,7 @@
               </div>
             </div>
             <div class="modal-footer">
-              <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
+              <a class="btn btn-default pull-left" ng-click="cancel()">Cancel</a>
               <button ng-disabled="cloneForm.$invalid || technique.name === oldTechniqueName" class="btn btn-default" ng-click="clone()">Clone</button>
             </div>
           </form >
@@ -125,11 +125,11 @@
             </div>
 
             <div class="col-md-5 ncf_col"  ng-if="selectedTechnique"  style="border-right:5px #DDDDDD solid; padding-left: 0px;" >
-                <form class="form-horizontal editForm" name="editForm" style="margin-bottom:70px;padding-left: 15px;">
+                <form class="form-horizontal editForm" name="editForm" style="margin-bottom:70px;padding-left: 15px;" novalidate ng-submit="!checkSelectedTechnique() && saveTechnique()">
                     <div class="title">Technique</div>
                     <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
-                        <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</button>
-                        <button ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup)">Clone</button>
+                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup)">Clone</a>
                     </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = true" is-open="isopen">
