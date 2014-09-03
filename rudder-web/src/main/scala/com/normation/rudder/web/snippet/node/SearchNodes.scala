@@ -83,7 +83,6 @@ object SearchNodes {
       throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
     case Full(n) => n
   }
-  private val serverDetailsTemplate = chooseTemplate("detail","server",serverPortletTemplateFile)
   private val searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
 }
 

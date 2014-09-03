@@ -264,7 +264,7 @@
     color: #5bc0de;
 }
 
-.tw-bs h4 {
+.tw-bs .bs-callout h4 {
 	font-size:14px;
 }
 
@@ -274,4 +274,42 @@
 
 .tw-bs .tooltipable.ruddericon:hover {
   color:#666;
+}
+
+.tw-bs .form-group, .form-group {
+  margin-bottom:5px;
+}
+
+
+.pull-left {
+	float:left !important
+}
+
+.col-sm-1 {
+    width: 8.333333%;
+    float: left;
+    min-height: 1px;
+    padding-left: 15px;
+    padding-right: 15px;
+    position: relative;
+}
+
+.form-horizontal .form-group:after,.form-horizontal .form-group:before {
+	clear:both;
+	content: " ";
+  display: table;
+}
+
+.tw-bs .control-label{
+	font-weight: normal;
+}
+
+#cfagentSchedule .control-label.col-sm-1 {
+	width:150px;
+	text-align:right;
+}
+
+#cfagentSchedule .control-label {
+  padding-left: 15px;
+  padding-right: 15px;
 }
