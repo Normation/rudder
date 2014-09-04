@@ -290,6 +290,7 @@ object RudderConfig extends Loggable {
   val roLDAPConnectionProvider: LDAPConnectionProvider[RoLDAPConnection] = roLdap
   val roRuleRepository: RoRuleRepository = roLdapRuleRepository
   val woRuleRepository: WoRuleRepository = woLdapRuleRepository
+  val woNodeRepository: WoNodeRepository = woLdapNodeRepository
   val roNodeGroupRepository: RoNodeGroupRepository = roLdapNodeGroupRepository
   val woNodeGroupRepository: WoNodeGroupRepository = woLdapNodeGroupRepository
   val techniqueRepository: TechniqueRepository = techniqueRepositoryImpl
@@ -1042,6 +1043,16 @@ object RudderConfig extends Loggable {
     , gitRuleArchiver
     , personIdentServiceImpl
     , RUDDER_AUTOARCHIVEITEMS
+  )
+
+
+  private[this] lazy val woLdapNodeRepository: WoNodeRepository = new WoLDAPNodeRepository(
+      nodeDitImpl
+    , ldapEntityMapper
+    , rwLdap
+    , ldapDiffMapper
+    , logRepository
+    , personIdentServiceImpl
   )
   private[this] lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(
       rudderDitImpl, roLdap, ldapEntityMapper, groupLibReadWriteMutex

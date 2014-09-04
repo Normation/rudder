@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2014 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,42 +32,26 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.nodes
+package com.normation.rudder.repository
 
-import com.normation.inventory.domain.AgentType
-import org.joda.time.DateTime
-import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
-import com.normation.inventory.domain.ServerRole
-import com.normation.rudder.reports.ReportingConfiguration
+import net.liftweb.common._
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.archives.RuleArchiveId
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.nodes._
 
 /**
- * A NodeInfo is a read only object containing the information that will be
- * always useful about a node
+ * Node Repository
+ * To update the Node Run Configuration
  */
-case class NodeInfo(
-    id            : NodeId
-  , name          : String
-  , description   : String
-  , hostname      : String
-  , machineType   : String
-  , osName        : String
-  , osVersion     : String
-  , servicePack   : Option[String]
-  , ips           : List[String]
-  , inventoryDate : DateTime
-  , publicKey     : String
-  , agentsName    : Seq[AgentType]
-  , policyServerId: NodeId
-  , localAdministratorAccountName: String
-  , creationDate  : DateTime
-  , isBroken      : Boolean
-  , isSystem      : Boolean
-  , isPolicyServer: Boolean
-  //for now, isPolicyServer and server role ARE NOT
-  //dependant. So EXPECTS inconsistencies.
-  //TODO: remove isPolicyServer, and pattern match on
-  //      on role everywhere.
-  , serverRoles   : Set[ServerRole]
-  , nodeReportingConfiguration: ReportingConfiguration
-) extends HashcodeCaching
+trait WoNodeRepository {
+  /**
+   * Update the node with the given ID with the given
+   * parameters.
+   *
+   * If the node is not in the repos, the method fails.
+   * If the node is a system one, the methods fails.
+   */
+  def update(node:Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[String]]
+
+}

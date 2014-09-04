@@ -12,9 +12,15 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ReportingConfiguration
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
+
+  private val emptyNodeReportingConfiguration = ReportingConfiguration(
+    None
+  )
 
   val nodeIds = (for {
     i <- 0 to 10
@@ -34,6 +40,7 @@ class RuleTargetTest extends Specification with Loggable {
         , "", Seq(), NodeId("root")
         , "", DateTime.now
         , false, false, false, Set()
+        , emptyNodeReportingConfiguration
       )
     )
   }.toMap

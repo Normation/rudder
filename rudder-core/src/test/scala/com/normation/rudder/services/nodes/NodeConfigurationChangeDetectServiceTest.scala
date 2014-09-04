@@ -50,6 +50,8 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.nodeconfig._
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ReportingConfiguration
 
 
 
@@ -124,6 +126,10 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
       cf3PolicyDraft = policyVaredOne.cf3PolicyDraft.copy(serial = 1)
   )
 
+  private val emptyNodeReportingConfiguration = ReportingConfiguration(
+    None
+  )
+
   private val nodeInfo = NodeInfo(
     id            = NodeId("name")
   , name          = "name"
@@ -144,6 +150,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
   , isSystem      = false
   , isPolicyServer= false
   , serverRoles   = Set()
+  , nodeReportingConfiguration = emptyNodeReportingConfiguration
   )
 
   private val nodeInfo2 = nodeInfo.copy(name = "name2")
