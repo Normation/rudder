@@ -145,7 +145,7 @@ class ShowNodeDetailsFromNode(
               "extraHeader" -> DisplayNode.showExtraHeader(inventory),
               "extraContent" -> DisplayNode.showExtraContent(inventory),
               "reports" -> reportDisplayer.asyncDisplay(node),
-              "logs" -> logDisplayer.asyncDisplay(node.id, withinPopup)
+              "logs" -> logDisplayer.asyncDisplay(node.id)
             )
   }
 
