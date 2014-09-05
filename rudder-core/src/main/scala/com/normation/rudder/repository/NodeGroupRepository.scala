@@ -168,8 +168,13 @@ final case class FullNodeGroupCategory(
           case AllTarget => return allNodeIds
           case AllTargetExceptPolicyServers => nodes ++ allNodeInfos.collect { case(k,n) if(!n.isPolicyServer) => n.id }
           case PolicyServerTarget(nodeId) => nodes + nodeId
-          case AllServersWithRole => nodes ++ allNodeInfos.collect { case(k,n) if(n.serverRoles.size>0) => n.id }
-          case AllNodesWithoutRole => nodes ++ allNodeInfos.collect { case(k,n) if(n.serverRoles.size == 0) => n.id }
+          case AllServersWithRole =>
+            //we have a special case for the root node that always belongs to that group, even if some weird
+            //scenario lead to the removal (or non addition) of them
+            nodes ++ allNodeInfos.collect { case(k,n) if(n.serverRoles.size>0 || n.id.value == "root") => n.id }
+          case AllNodesWithoutRole =>
+            //root policy server is never on the the group without roles, even if none are defined
+            nodes ++ allNodeInfos.collect { case(k,n) if(n.serverRoles.size == 0 && n.id.value != "root") => n.id }
         }
       //here, if we don't find the group, we consider it's an error in the
       //target recording, but don't fail, just log it.
