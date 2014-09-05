@@ -50,7 +50,7 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.ErrorOnly
+import com.normation.rudder.reports.ChangesOnly
 
 /**
  * This class manage the displaying of user configured properties.
@@ -687,7 +687,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   def complianceModeConfiguration = { xml : NodeSeq =>
     // form value, defaulted to save value
-    // the semantifc is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
+    // the semantic is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
     var complianceMode = configService.rudder_compliance_mode
 
     def submit() = {
@@ -698,13 +698,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       startNewPolicyGeneration
       S.notice("complianceModeMsg", complianceMode match {
         case Full(FullCompliance)  => "Compliance will be enabled on next agents runs on nodes"
-        case Full(ErrorOnly) => "Compliance will be disabled for next agent runs on nodes. Only errors and repaired will be reported"
+        case Full(ChangesOnly) => "Compliance will be disabled for next agent runs on nodes. Only errors and repaired will be reported"
         case eb: EmptyBox => "There was an error when updating the value of the compliance"
       })
     }
 
     def compliance(x: Boolean) : Box[ComplianceMode] = {
-      if(x) Full(FullCompliance) else Full(ErrorOnly)
+      if(x) Full(FullCompliance) else Full(ChangesOnly)
     }
 
     ( "#complianceMode" #> {
