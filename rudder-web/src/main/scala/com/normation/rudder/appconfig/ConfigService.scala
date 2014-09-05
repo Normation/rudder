@@ -228,9 +228,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   private[this] implicit def toComplianceMode(x: Box[RudderWebProperty]) : Box[ComplianceMode] = {
     for {
       value <- x
-      res <- ComplianceMode.parse(value)
     } yield {
-      res
+      ComplianceMode.parse(value)
     }
   }
 
@@ -309,6 +308,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    *
    */
   def rudder_compliance_mode(): Box[ComplianceMode] = get("rudder_compliance_mode")
-  def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit] = save("rudder_compliance_mode", value)
+  def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit] = {
+    val p = RudderWebProperty(RudderWebPropertyName("rudder_compliance_mode"), value.name, "")
+    repos.saveConfigParameter(p)
+  }
 
 }
