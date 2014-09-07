@@ -1,0 +1,50 @@
+#####################################################################################
+# Copyright 2014 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Directory check exists
+# @description Checks if a directory exists
+#
+# @parameter directory_name Full path of the directory to check
+# 
+# @class_prefix directory_check_exists
+# @class_parameter directory_name
+# This bundle will define a class directory_check_exists_${directory_name}_{ok, reached, kept} if the
+# directory exists, or directory_check_exists_${directory_name}_{not_ok, reached, not_kept, failed} if
+# the directory doesn't exists
+
+bundle agent directory_check_exists(directory_name)
+{
+  vars:
+      "class_prefix"         string => canonify("directory_check_exists_${directory_name}");
+
+  classes:
+      "directory_exists" expression => isdir("${directory_name}");
+
+  methods:
+    directory_exists::
+      "directory_exists"
+        usebundle => _classes_success("${class_prefix}");
+
+    !directory_exists::
+      "directory_dont_exists"
+        usebundle => _classes_failure("${class_prefix}");
+
+    any::
+      "report"
+        usebundle => _logger("Check if directory ${directory_name} exists", "${class_prefix}");
+}
