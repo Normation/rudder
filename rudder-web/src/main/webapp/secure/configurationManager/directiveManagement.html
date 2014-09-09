@@ -1,5 +1,5 @@
 
-<lift:surround with="menu/menu-configure" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Directives Management</title>
@@ -65,20 +65,11 @@ var clearSearchFieldTree = function(inputId, treeId) {
 <lift:configuration.DirectiveManagement.head />
 
 <div class="portlet">
-  <div class="portlet-header">Directive Management</div>
-  <div class="portlet-content">  
-    <div class="intro">
-    <lift:authz role="technique_read">
-      <div>
-        Configure Directives based on the <a href="/secure/administration/techniqueLibraryManagement"><em>Active Techniques</em></a>.
-      </div>
-      </lift:authz>
-    </div>
-    <hr class="spacer"/>
+  <div class="portlet-content">
     
     <div class="column">
       <div class="inner-portlet">
-        <div class="inner-portlet-header">Library</div>
+        <div class="inner-portlet-header">Directive Library</div>
         <div class="inner-portlet-content">
 
           <div id="activeTechniquesTree_actions_zone" style="margin:10px;">

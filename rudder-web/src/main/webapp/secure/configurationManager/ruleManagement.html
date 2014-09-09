@@ -1,5 +1,5 @@
 
-<lift:surround with="menu/menu-configure" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 
@@ -9,15 +9,7 @@
 <lift:configuration.RuleManagement.head />
 
 <div class="portlet">
-  <div class="portlet-header">Rule Management</div>
   <div class="portlet-content">
-    <div class="intro">
-    <lift:authz role="directive_read">
-      <div>
-		  Manage <em>Rules</em>, to apply previously defined <a href="/secure/configurationManager/directiveManagement"><em>Directives</em></a> to <a href="/secure/nodeManager/groups"><em>Groups</em></a> of Nodes. 
-      </div>
-      </lift:authz>
-    </div>
     <div id="viewAllRulesZone"><lift:configuration.RuleManagement.viewRules /></div>
     <hr class="spacer"/>
     <div id="editRuleZonePortlet" class="inner-portlet nodisplay">
