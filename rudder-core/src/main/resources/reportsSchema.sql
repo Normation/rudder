@@ -58,7 +58,7 @@ ALTER database rudder SET standard_conforming_strings=true;
 
 -- create the table for the reports sent
 
-CREATE sequence serial START 101;
+CREATE SEQUENCE serial START 101;
 
 CREATE TABLE RudderSysEvents (
   id                 bigint PRIMARY KEY default nextval('serial')
@@ -76,12 +76,12 @@ CREATE TABLE RudderSysEvents (
 );
 
 
-CREATE INDEX nodeid_idx                   on RudderSysEvents (nodeId);
-CREATE INDEX executionTimeStamp_idx       on RudderSysEvents (executionTimeStamp);
-CREATE INDEX composite_node_execution_idx on RudderSysEvents (nodeId, executionTimeStamp);
-CREATE INDEX component_idx                on RudderSysEvents (component);
-CREATE INDEX keyValue_idx                 on RudderSysEvents (keyValue);
-CREATE INDEX ruleId_idx                   on RudderSysEvents (ruleId);
+CREATE INDEX nodeid_idx                   ON RudderSysEvents (nodeId);
+CREATE INDEX executionTimeStamp_idx       ON RudderSysEvents (executionTimeStamp);
+CREATE INDEX composite_node_execution_idx ON RudderSysEvents (nodeId, executionTimeStamp);
+CREATE INDEX component_idx                ON RudderSysEvents (component);
+CREATE INDEX keyValue_idx                 ON RudderSysEvents (keyValue);
+CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
 
 /*
  * The table used to store archived agent execution reports. 
@@ -110,9 +110,9 @@ CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executi
  * or not. 
  */
 CREATE TABLE ReportsExecution (
-  nodeId   text NOT NULL
-, date     timestamp with time zone NOT NULL
-, complete boolean NOT NULL
+  nodeId             text NOT NULL
+, date               timestamp with time zone NOT NULL
+, complete           boolean NOT NULL
 , PRIMARY KEY(nodeId, date)
 );
 
@@ -128,13 +128,15 @@ CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 -- Create the sequences
 CREATE SEQUENCE ruleSerialId START 1;
 
+-- that sequence is used for nodeJoinKey value
 CREATE SEQUENCE ruleVersionId START 1;
+
 
 -- Create the table for the reports information
 CREATE TABLE expectedReports (
   pkId                       integer PRIMARY KEY DEFAULT nextval('ruleSerialId')
 , nodeJoinKey                integer NOT NULL
-, ruleId text                NOT NULL CHECK (ruleId <> '')
+, ruleId                     text NOT NULL CHECK (ruleId <> '')
 , serial                     integer NOT NULL
 , directiveId                text NOT NULL CHECK (directiveId <> '')
 , component                  text NOT NULL CHECK (component <> '')
@@ -167,7 +169,6 @@ CREATE INDEX expectedReportsNodes_versionId ON expectedReportsNodes (nodeJoinKey
 
 CREATE SEQUENCE eventLogIdSeq START 1;
 
-
 CREATE TABLE EventLog (
   id             integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
 , creationDate   timestamp with time zone NOT NULL DEFAULT 'now'
@@ -187,6 +188,7 @@ CREATE INDEX creationDate_idx ON EventLog (creationDate);
  * That table is used when a migration between 
  * event log format is needed. 
  */
+CREATE SEQUENCE MigrationEventLogId start 1;
 CREATE TABLE MigrationEventLog (
   id                  integer PRIMARY KEY default(nextval('MigrationEventLogId'))
 , detectionTime       timestamp with time zone NOT NULL
@@ -225,7 +227,7 @@ CREATE TABLE gitCommit(
 , modificationid text
 );
 
-create sequence ChangeRequestId start 1;
+CREATE SEQUENCE ChangeRequestId start 1;
 
 CREATE TABLE ChangeRequest(
   id        integer PRIMARY KEY default(nextval('ChangeRequestId'))
@@ -322,10 +324,10 @@ CREATE TABLE RulesDirectivesJoin (
 , PRIMARY KEY(rulePkeyId, directiveId)
 );
 
-CREATE INDEX rule_id_start on Rules (ruleId, startTime);
-CREATE INDEX rule_end on Rules (endTime);
+CREATE INDEX rule_id_start ON Rules (ruleId, startTime);
+CREATE INDEX rule_end      ON Rules (endTime);
 
-CREATE sequence NodesId START 101;
+CREATE SEQUENCE NodesId START 101;
 
 CREATE TABLE Nodes (
   id              integer PRIMARY KEY default nextval('NodesId')
@@ -336,10 +338,8 @@ CREATE TABLE Nodes (
 , endTime         timestamp with time zone
 );
 
-CREATE INDEX nodes_id_start on Nodes (nodeId, startTime);
-CREATE INDEX nodes_end on Nodes (endTime);
-
-CREATE SEQUENCE MigrationEventLogId start 1;
+CREATE INDEX nodes_id_start ON Nodes (nodeId, startTime);
+CREATE INDEX nodes_end      ON Nodes (endTime);
 
 /*
  *************************************************************************************
