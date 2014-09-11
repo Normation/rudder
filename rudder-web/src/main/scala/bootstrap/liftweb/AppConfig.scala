@@ -1189,28 +1189,41 @@ object RudderConfig extends Loggable {
     )
     agent
   }
-  private[this] lazy val newNodeManagerImpl =
-    new NewNodeManagerImpl(
-      roLdap,
-      pendingNodesDitImpl, acceptedNodesDitImpl,
-      nodeSummaryServiceImpl,
-      ldapFullInventoryRepository,
-      //the sequence of unit process to accept a new inventory
+
+  private[this] lazy val newNodeManagerImpl = {
+    //the sequence of unit process to accept a new inventory
+    val unitAcceptors =
       historizeNodeStateOnChoice ::
       addNodeToDynGroup ::
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
       acceptNodeRule ::
       acceptHostnameAndIp ::
-      Nil,
-      //the sequence of unit process to refuse a new inventory
+      Nil
+
+    //the sequence of unit process to refuse a new inventory
+    val unitRefusors =
       historizeNodeStateOnChoice ::
       unitRefuseGroup ::
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
       acceptNodeRule ::
       Nil
-  )
+
+    new NewNodeManagerImpl(
+        roLdap
+      , pendingNodesDitImpl
+      , acceptedNodesDitImpl
+      , nodeSummaryServiceImpl
+      , ldapFullInventoryRepository
+      , unitAcceptors
+      , unitRefusors
+      , inventoryHistoryLogRepository
+      , eventLogRepository
+      , asyncDeploymentAgent
+    )
+  }
+
   private[this] lazy val nodeConfigurationServiceImpl: NodeConfigurationService = new NodeConfigurationServiceImpl(
       rudderCf3PromisesFileWriterService
     , new LdapNodeConfigurationCacheRepository(rudderDit, rwLdap)
