@@ -109,7 +109,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
             { "sWidth": "40px" }
           ],
         } );
-        $$('.dataTables_filter input').attr("placeholder", "Search");
+        $$('.dataTables_filter input').attr("placeholder", "Filter");
 
         ${initFilter match {
           case Full(filter) => s"$$('#${changeRequestTableId}').dataTable().fnFilter('${filter}',1,true,false,true);"
