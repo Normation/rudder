@@ -1234,7 +1234,7 @@ object RudderConfig extends Loggable {
       , unitRefusors
       , inventoryHistoryLogRepository
       , eventLogRepository
-      , asyncDeploymentAgent
+      , asyncDeploymentAgentImpl
     )
   }
 
