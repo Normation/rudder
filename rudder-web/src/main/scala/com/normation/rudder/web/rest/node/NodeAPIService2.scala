@@ -67,6 +67,8 @@ import com.normation.inventory.domain.MachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.web.rest.RestDataSerializer
+import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 
 case class NodeApiService2 (
@@ -78,6 +80,9 @@ case class NodeApiService2 (
   , restSerializer    : RestDataSerializer
   , fixedTag          : Boolean
 ) extends Loggable {
+
+
+  val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
 
   import restSerializer._
   def listAcceptedNodes (req : Req) = {
@@ -168,16 +173,15 @@ case class NodeApiService2 (
       } yield { serializeNodeInfo(info,"deleted", fixedTag) }
     }
 
-   boxSequence( action match {
+   ( action match {
       case AcceptNode =>
-        ids.map(newNodeManager.accept(_, modId, actor).map(serializeInventory(_,"accepted",fixedTag)))
-
+        newNodeManager.accept(ids, modId, actor, "").map(_.map(serializeInventory(_,"accepted",fixedTag)))
       case RefuseNode =>
-        ids.map(newNodeManager.refuse(_, modId, actor)).map(_.map(serializeServerInfo(_,"refused")))
+        newNodeManager.refuse(ids, modId, actor, "").map(_.map(serializeServerInfo(_,"refused")))
 
       case DeleteNode =>
-        ids.map(actualNodeDeletion(_,modId,actor))
-   }).map(_.toList)
+        boxSequence(ids.map(actualNodeDeletion(_,modId,actor)))
+   } ).map(_.toList)
   }
 
   def changeNodeStatus (
