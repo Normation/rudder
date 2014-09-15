@@ -108,7 +108,7 @@ case class RequestLimits (
   val requestSizeLimit:Int
 ) extends HashcodeCaching
 
-object DefaultRequestLimits extends RequestLimits(10,1000,10,1000)
+object DefaultRequestLimits extends RequestLimits(0,0,0,0)
 
 
 /**
