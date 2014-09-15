@@ -68,6 +68,7 @@ import java.lang.IllegalArgumentException
 import com.normation.eventlog.ModificationId
 import java.net.InetAddress
 import org.apache.commons.net.util.SubnetUtils
+import com.normation.rudder.domain.eventlog._
 
 /**
  * A trait to manage the acceptation of new node in Rudder
@@ -91,6 +92,18 @@ trait NewNodeManager {
    */
   def refuse(id: NodeId, modId: ModificationId, actor:EventActor) : Box[Srv]
 
+  /**
+   * Accept a list of pending nodes in Rudder
+   */
+  def accept(ids: Seq[NodeId], modId: ModificationId, actor:EventActor, actorIp : String) : Box[Seq[FullInventory]]
+
+  /**
+   * refuse a list of pending nodes
+   * @param ids : node ids
+   * @return : the srv representations of the refused nodes
+   */
+  def refuse(id: Seq[NodeId], modId: ModificationId, actor:EventActor, actorIp : String) : Box[Seq[Srv]]
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,6 +124,9 @@ class NewNodeManagerImpl(
     override val smRepo:LDAPFullInventoryRepository,
     override val unitAcceptors:Seq[UnitAcceptInventory],
     override val unitRefusors:Seq[UnitRefuseInventory]
+  , val inventoryHistoryLogRepository : InventoryHistoryLogRepository
+  , val eventLogRepository : EventLogRepository
+  , val asyncDeploymentAgent : AsyncDeploymentAgent
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
 
 
@@ -203,9 +219,22 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def unitAcceptors:Seq[UnitAcceptInventory]
   def unitRefusors:Seq[UnitRefuseInventory]
 
+
+  def inventoryHistoryLogRepository : InventoryHistoryLogRepository
+  def eventLogRepository : EventLogRepository
+
+  def asyncDeploymentAgent : AsyncDeploymentAgent
+
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Retrieve the last inventory for the selected server
+   */
+  def retrieveLastVersions(nodeId : NodeId) : Option[DateTime] = {
+      inventoryHistoryLogRepository.versions(nodeId).flatMap(_.headOption)
+  }
 
   /**
    * Refuse one server
@@ -249,12 +278,78 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     }
   }
 
+  override def refuse(ids: Seq[NodeId], modId: ModificationId, actor:EventActor, actorIp : String) : Box[Seq[Srv]] = {
+
+    // Best effort it, starting with an empty result
+    val start : Box[Seq[Srv]] = Full(Seq())
+    ( ids :\ start ) {
+      case (id, result) =>
+
+        // Refuse the node and get the result
+        val refusal = for {
+          srvs   <- serverSummaryService.find(pendingNodesDit, id)
+          // I don't think this is possible, either we have one, either we don't have any
+          srv    <- if (srvs.size == 1) {
+                      Full(srvs.head)
+                    } else {
+                      Failure(s"Found ${srvs.size} pending nodes matching id ${id.value}: ${srvs.mkString(", ")}")
+                    }
+          refuse <- refuseOne(srv, modId, actor)
+        } yield {
+
+          // Make an event log of the refusale
+          retrieveLastVersions(srv.id) match {
+            case Some(x) =>
+              val inventoryDetails = InventoryLogDetails (
+                  nodeId           = srv.id
+                , inventoryVersion = x
+                , hostname         = srv.hostname
+                , fullOsName       = srv.osFullName
+                , actorIp          = actorIp
+              )
+              val entry = RefuseNodeEventLog.fromInventoryLogDetails(
+                  principal        = actor
+                , inventoryDetails = inventoryDetails
+              )
+
+              eventLogRepository.saveEventLog(modId, entry) match {
+                case Full(_) =>
+                  logger.debug(s"Successfully refused node '${id.value}'")
+                case _ =>
+                  logger.warn(s"Node '${id.value}' refused, but the action couldn't be logged")
+              }
+            case None =>
+              logger.warn(s"Node '${id}' refused, but couldn't find it's inventory")
+          }
+          refuse
+        }
+
+        // accumulate result
+        (refusal,result) match {
+          // Node deleted, and result ok, accumulate success
+          case (Full(srv), Full(seq)) =>
+            Full(srv +: seq)
+          // Node deleted, but there was an error before, keep error
+          case (Full(_), error) =>
+            error
+          // An error while deleting, and there was none, create a new error
+          case (eb:EmptyBox, Full(_)) =>
+            eb
+          // A new error while deleting, and there was already one, accumulate error
+          case (eb:EmptyBox, result:EmptyBox) =>
+            // That message will not be used, since we have 'Failure' and no 'Empty'
+            val error = eb ?~ "An error occured while refusing a Node"
+            result ?~! error.messageChain
+        }
+    }
+  }
+
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Accept //////////////////////////////////////
   ////////////////////////////////////////////////////////////////////////////////////
 
   private[this] def rollback(unitAcceptors:Seq[UnitAcceptInventory], rollbackOn:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
-    logger.debug("\n*****************************************************\nRollbaking\n*****************************************************")
+    logger.debug("\n*****************************************************\nRollbacking\n*****************************************************")
 
     for{
       toRollback <- unitAcceptors.reverse
@@ -291,7 +386,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     }) match {
       case Full(seq) => Full(sm)
       case e:EmptyBox => //rollback that one
-        logger.error((e ?~! "Error when trying to accept node %s. Rollbaking.".format(sm.node.main.id.value)).messageChain)
+        logger.error((e ?~! "Error when trying to accept node %s. Rollbacking.".format(sm.node.main.id.value)).messageChain)
         rollback(unitAcceptors, Seq(sm), modId, actor)
         e
     }
@@ -360,6 +455,123 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         rollback(unitAcceptors, Seq(sm), modId, actor)
         //only update results that where not already in error
         e
+    }
+  }
+
+
+  override def accept(ids: Seq[NodeId], modId: ModificationId, actor:EventActor, actorIp : String) : Box[Seq[FullInventory]] = {
+
+    // Get inventory from a nodeId
+    def getInventory(nodeId: NodeId) = {
+      smRepo.get(nodeId, PendingInventory) match {
+      case Full(x) => Full(x)
+      case eb: EmptyBox =>
+        val msg = s"Can not accept not found inventory with id '${nodeId.value}'"
+        eb ?~! msg
+      }
+    }
+
+    // validate pre acceptance for a Node, if an error occurs, stop everything on that node.
+    def passPreAccept (inventory  : FullInventory) = {
+      sequence(unitAcceptors) (
+        unitAcceptor =>
+          unitAcceptor.preAccept(Seq(inventory), modId, actor) match {
+            case Full(seq) => //ok, cool
+              logger.debug(s"Pre acceptance phase: '${unitAcceptor.name}' OK")
+              Full(seq)
+            case eb:EmptyBox => //on an error here, stop
+              val msg = s"Error when trying to execute pre-accepting for phase '${unitAcceptor.name}. Stop."
+              val e = eb ?~! msg
+              logger.error(e.messageChain)
+              e
+          }
+      )
+    }
+
+    // validate post acceptance for a Node, if an error occurs, Rollback the node acceptance
+    def passPostAccept (inventory  : FullInventory) = {
+      sequence(unitAcceptors) (
+        unitAcceptor =>
+          unitAcceptor.postAccept(Seq(inventory), modId, actor) match {
+            case Full(seq) => //ok, cool
+              logger.debug(s"Post acceptance phase: '${unitAcceptor.name}' OK")
+              Full(seq)
+            case eb:EmptyBox => //on an error here, rollback
+              val msg = s"Error when trying to execute post-accepting for phase '${unitAcceptor.name}. Rollback."
+              val e = eb ?~! msg
+              logger.error(e.messageChain)
+              rollback(unitAcceptors, Seq(inventory), modId, actor)
+              e
+          }
+      )
+    }
+
+    // Get all acceptance, we will not accumulate errors in that pass, so we can start a promise generation
+    val acceptanceResults = ids.map (
+     id =>
+       for {
+         // Get inventory og the node
+         inventory <- getInventory(id)
+         // Pre accept it
+         preAccept <- passPreAccept(inventory)
+         // Accept it
+         acceptationResults <- acceptOne(inventory, modId, actor) ?~! s"Error when trying to accept node ${id.value}"
+         log = logger.debug(s"Unit acceptors ok for '${id.value}'")
+         // Post accept it
+         postAccept <- passPostAccept(inventory)
+       } yield {
+
+         // Make an event log for acceptance
+         retrieveLastVersions(id) match {
+           case Some(x) =>
+             val inventoryDetails = InventoryLogDetails (
+                 nodeId           = id
+               , inventoryVersion = x
+               , hostname         = inventory.node.main.hostname
+               , fullOsName       = inventory.node.main.osDetails.fullName
+               , actorIp          = actorIp
+             )
+             val entry = AcceptNodeEventLog.fromInventoryLogDetails(
+                 principal        = actor
+               , inventoryDetails = inventoryDetails
+             )
+
+             eventLogRepository.saveEventLog(modId, entry) match {
+               case Full(_) =>
+                 logger.debug(s"Successfully accepted node '${id.value}'")
+               case _ =>
+                 logger.warn(s"Node '${id.value}' accepted, but the action couldn't be logged")
+             }
+
+           case None =>
+             logger.warn(s"Node '${id.value}' accepted, but couldn't find it's inventory")
+         }
+         acceptationResults
+       }
+    )
+
+    // If one node succeed, then update policies
+    if ( acceptanceResults.exists{ case Full(_) => true; case _ => false } ) {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+    }
+
+    // Transform the sequence of box into a boxed result, best effort it!
+    val start : Box[Seq[FullInventory]] = Full(Seq())
+    ( acceptanceResults :\ start ) {
+      // Node accepted, and result ok, accumulate success
+      case (Full(inv), Full(seq)) =>
+        Full(inv +: seq)
+      // Node accepted, but there was an error before, keep error
+      case (Full(_), error) =>
+        error
+      // An error while accepting, and there was none, create a new error
+      case (eb:EmptyBox, Full(_)) =>
+        eb
+      // A new error while accepting, and there was already one, accumulate error
+      case (eb:EmptyBox, result:EmptyBox) =>
+        // That message will not be used, since we have 'Failure' and no 'Empty'
+        val error = eb ?~ "An error occured while refusing a Node"
+        result ?~! error.messageChain
     }
   }
 
