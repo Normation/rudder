@@ -2,13 +2,13 @@
   <h3>Status of Rules applied to this node</h3>
   <hr class="spacer"/>
   <div class="reportsHeader">
-  <p>The table below show the current status for each Rule applied to this node, as reported by it's agent when it last ran.<br/>Each line represents one Rule, and may be in the following statuses:</p>
+  <p>The table below shows the current status for each Rule applied to this node, as reported by its agent when it last ran.<br/>Each line represents one Rule, whose status can be:</p>
   <ul>
-    <li><b>Success:</b> The system is already in the desired state. No changes were required. Compliance is attained.</li>
-    <li><b>Repaired:</b> The system was not in the desired state. Rudder applied some changes and repaired incorrect settings. The system is now in the desired state. Compliance is attained.</li>
-    <li><b>Error:</b> The system was not in the desired state. Rudder tried to apply some changes, but failed. The system could not be repaired.</li>
-    <li><b>Applying:</b> When a Rule is first applied, Rudder waits for 10 minutes for a report. During this period, the Rule's status is Applying.</li>
-    <li><b>No answer:</b> No reports were received from this node for this Rule for over 10 minutes. Compliance is unknown - the node may be non responsive, or temporarily isolated from the network.</li>
+    <li><b>Applying:</b> When a Rule is first applied or modified, Rudder waits for up to two agent runs for a report. During this period, the compliance is unknown.</li>
+    <li><b>Repaired:</b> The system was not in the desired state, and Rudder repaired incorrect settings. The Rule is considered not compliant until a <b>Success<b> report is received.</li>
+    <li><b>Success:</b> The system is already in the desired state, and no changes were required. Compliance is attained.</li>
+    <li><b>Error:</b> The system was not in the desired state, and Rudder tried to apply some changes, but failed. The Rule is not compliant, please see the Rule details for an explanation.</li>
+    <li><b>No report:</b> No reports were received from this node for this Rule for more than two agent runs. Compliance is unknown - the node may be down or unreachable.</li>
   </ul>
   </div>
   <lastReportGrid:intro/>
