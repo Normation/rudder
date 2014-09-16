@@ -37,8 +37,9 @@ find_command=`_which find`
 sed_command=`_which sed`
 basename_command=`_which basename`
 grep_command=`_which grep`
+mkdir_command=`_which mkdir`
 # stop if a command doesn't exist
-[ ! -x "${find_command}" -o ! -x "${sed_command}" -o ! -x "${basename_command}" -o ! -x "${grep_command}" ] && echo "Posix commands not found" && exit 2
+[ ! -x "${find_command}" -o ! -x "${sed_command}" -o ! -x "${basename_command}" -o ! -x "${grep_command}" -o ! -x "${mkdir_command}" ] && echo "Posix commands not found" && exit 2
 
 # split version numbers
 version_regex='\([0-9]\+\)\.\([0-9]\+\).*'
@@ -48,7 +49,17 @@ cfengine_minor=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_reg
 # Last parameters not named to keep them as a quoted array
 for directory in "$@"
 do
-  exclude_file="${framework_path}/${directory}/.ncf-exclude-cache-${cfengine_version}"
+  if [ "${NCF_CACHE_PATH}" = "" ]
+  then
+    # maintain compatibility with old callers
+    exclude_file="${framework_path}/${directory}/.ncf-exclude-cache-${cfengine_version}"
+  else
+    # take the cache directory from environment
+    exclude_basedir="${NCF_CACHE_PATH}/ncf-exclude-cache-${cfengine_version}"
+    [ -d "${exclude_basedir}" ] || ${mkdir_command} "${exclude_basedir}"
+    canonified_path=`echo "${framework_path}/${directory}" | ${sed_command} -s "s/\\//_/g"`
+    exclude_file="${exclude_basedir}/${canonified_path}"
+  fi
 
   # ignore directory if it doesn't exist
   if [ ! -d "${framework_path}/${directory}" ]; then continue; fi
