@@ -125,7 +125,9 @@ object NodeDetailLevel {
 
         ( "id"   -> inv.machine.map(_.id.value) ) ~
         ( "type" -> machineType ) ~
-        ( "provider" -> provider.map(_.name) )
+        ( "provider" -> provider.map(_.name) ) ~
+        ( "manufacturer" -> inv.machine.flatMap( _.manufacturer.map(_.name))) ~
+        ( "serialNumber" -> inv.machine.flatMap(_.systemSerialNumber))
     }
 
     val ram : InventoryToJson = ( inv : FullInventory ) => inv.node.ram.map(MemorySize.sizeMb)
