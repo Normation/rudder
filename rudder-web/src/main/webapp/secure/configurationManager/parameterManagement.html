@@ -1,14 +1,15 @@
 
-<lift:surround with="menu/menu-configure" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Parameters Management</title>
 </head>
 
-<div class="portlet">
-  <div class="portlet-header">Global Parameters</div>
   <div class="portlet-content">  
-    <div class="intro">
+      <div class="inner-portlet">
+        <lift:authz role="directive_read">
+          <div class="inner-portlet-header">List of Global Parameters</div>
+              <div class="intro">
       <div>
           <p>Here, you can create, update or delete Global Parameters.</p>
           <p>Global Parameter is a name/value pair. Once defined, you can use the name in a
@@ -23,17 +24,12 @@
            </p>
       </div>
     </div>
-    <hr class="spacer"/>
-    <div>
-      <div class="inner-portlet">
-        <lift:authz role="directive_read">
-          <div class="inner-portlet-header">List of Global Parameters</div>
+    
           <div class="inner-portlet-content">
             <div class="lift:configuration.ParameterManagement.display"/>
           </div>
         </lift:authz>
-      </div>  
-    </div>
+      </div>
     <hr class="spacer"/>
     
     <lift:authz role="directive_write">
@@ -51,6 +47,5 @@
    <div id="deletionPopup" class="nodisplay"/>
 
   <br/>
-</div>
 </lift:surround>
 

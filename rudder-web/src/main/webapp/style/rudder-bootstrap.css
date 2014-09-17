@@ -1,0 +1,217 @@
+/*
+*************************************************************************************
+* Copyright 2014 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
+.tw-bs .navbar-rudder {
+  background-image: linear-gradient(#ffa033, #ee7f00 50%, #b86200);
+  border: none;
+  font-family: sans-serif;
+  font-size: 13px;
+  font-weight:bold;
+}
+
+.tw-bs .navbar-rudder .navbar-nav > li > a, .tw-bs .navbar-rudder .navbar-nav li.dropdown > a {
+  color : #2e2d2d;
+}
+
+.tw-bs  .navbar-form {
+  padding:0;
+  font-size:13px; 
+}
+
+.tw-bs .navbar-rudder .navbar-nav > .active > a, .tw-bs .navbar-rudder .navbar-nav > .active > a:hover, .tw-bs .navbar-rudder .navbar-nav > .active > a:focus,
+.tw-bs .navbar-rudder .navbar-nav .dropdown.active > a, .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a:hover, .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a:focus {
+  background-color: #2e2d2d;
+  color: #e78f08;
+}
+
+.tw-bs .nav > li > a:hover, .tw-bs .nav > li > a:focus,
+.tw-bs .nav li.dropdown > a:hover, .tw-bs .nav li.dropdown > a:focus {
+  background-color: #2e2d2d;
+  color: #e78f08;
+  text-decoration:none;
+}
+
+.tw-bs .navbar-rudder.navbar-fixed-top {
+  border: none;
+}
+
+.tw-bs .navbar-nav li.dropdown {
+  float: left;
+}
+
+.tw-bs .navbar-nav li.dropdown > a {
+  padding: 15px;
+  line-height: 20px;
+  display:block;
+  position:relative;
+}
+
+.tw-bs .nav > li > a:hover .glyphicon, .tw-bs .nav > li > a:focus .glyphicon,
+.tw-bs .nav li.dropdown > a:hover .glyphicon, .tw-bs .nav li.dropdown > a:focus .glyphicon {
+  color: #e78f08; 
+}
+
+.tw-bs .nav > li > a:hover .badge, .tw-bs .nav > li > a:focus .badge,
+.tw-bs .nav li.dropdown > a:hover .badge, .tw-bs .nav li.dropdown > a:focus .badge {
+  background-color: #2e2d2d; 
+}
+
+
+.tw-bs a .badge {
+  background-color: #2e2d2d;
+}
+
+
+.tw-bs a .badge .glyphicon{
+  color: #eee;
+  font-size:12px;
+  top:0;
+}
+
+.tw-bs a .badge .glyphicon.glyphicon-ok{
+	color:#4f8a10;
+}
+
+.tw-bs a .badge .glyphicon.glyphicon-remove{
+  color:#d8000c;
+}
+
+
+.tw-bs .nav li.dropdown > a:hover .badge .glyphicon, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon {
+  color: #eee; 
+}
+
+.tw-bs .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-ok, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-ok {
+  color: #4f8a10; 
+}
+
+.tw-bs .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-remove, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-remove {
+  color: #d8000c; 
+}
+
+.tw-bs .navbar-nav .glyphicon {
+  color: #2e2d2d;
+}
+
+.tw-bs .form-control {
+	font-size:12px;
+}
+
+.tw-bs .navbar-form .form-control {
+	width:200px
+}
+
+.rudder_col{
+  float: left;
+  overflow: auto;
+  position: static;
+  height:100%;
+  background-color:#2e2d2d;
+  width:94%;
+  margin : 0 3%
+}
+
+
+
+* {
+  box-sizing: border-box;
+}
+
+
+.simplemodal-container {
+  box-sizing: unset;
+}
+
+.container {
+   height:100%;
+   padding:80px 0 30px;
+   margin: -90px 0 0;
+}
+
+.container:before {
+  content: '';
+  display: block;
+  float: left;
+  height: 100%;
+}
+
+.col {
+	background-color:#fff;
+  float: left;
+  overflow: auto;
+  position: static;
+  height:100%;
+  padding-left:15px;
+  padding-right:15px;
+}
+
+.col-sm {
+	width:30%;
+}
+
+
+.col-xl {
+  width:70%;
+}
+
+.fixed-footer {
+  text-align: center;
+  background-color: white;
+  position: fixed;
+  bottom: 50px;
+  padding-top: 10px;
+  border-left-width: 0px;
+  margin-left: 0px;
+  padding-bottom: 10px;
+  border-top:5px #DDDDDD solid;
+  border-right:5px #DDDDDD solid;
+  margin-left:-15px;
+  padding-left:15px;
+  padding-right:15px;
+}
+
+.directive-footer{
+	width:65.8%
+}
+
+@media (max-width:1475px) {
+  .container {
+    padding:120px 0 30px;
+    margin: -130px 0 0;
+  }
+
+  .fixed-footer {
+    bottom: 40px;
+  }
+}

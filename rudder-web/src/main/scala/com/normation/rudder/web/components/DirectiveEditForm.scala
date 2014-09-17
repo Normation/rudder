@@ -66,6 +66,7 @@ import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueVersion
 
 object DirectiveEditForm {
 
@@ -107,6 +108,7 @@ class DirectiveEditForm(
     htmlId_policyConf : String
   , technique         : Technique
   , activeTechnique   : ActiveTechnique
+  , fullActiveTechnique : FullActiveTechnique
   , val directive     : Directive
   , oldDirective      : Option[Directive]
   , workflowEnabled   : Boolean
@@ -211,6 +213,11 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
+      "#version" #> directiveVersion.toForm_! &
+      "#migrate" #> SHtml.ajaxSubmit("Migrate", () => {
+          val newDirective = directive.copy(techniqueVersion = directiveVersion.is)
+          onSuccessCallback(Left(newDirective))
+        }) &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
@@ -356,6 +363,22 @@ class DirectiveEditForm(
       override def className = "twoCol"
       override def labelClassName = "threeCol directiveInfo"
 
+    }
+
+
+
+  val versions = activeTechnique.acceptationDatetimes.keys.map(v => (v,v.toString)).toSeq
+
+
+  private[this] val directiveVersion =
+    new WBSelectObjField(
+        "Technique version"
+      , versions
+      , defaultValue = directive.techniqueVersion
+    ) {
+
+      override def className = "twoCol"
+      override def labelClassName = "threeCol directiveInfo"
     }
 
   private[this] val formTracker = {
