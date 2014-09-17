@@ -1246,15 +1246,11 @@ div.hierarchySpacer {
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background-color: #2e2d2d; 
-   margin:0;
-   padding-top:70px;
+   background-color: #2e2d2d;
    height:100%;
 }
 
 html {
-   margin:0;
-   padding:0;
    height:100%;
 }
 
@@ -1276,26 +1272,12 @@ structure
 div#prelude {
    display: none;
 }
-div#container {
-   background-color: #2e2d2d;
-   padding-bottom:40px;   /* Height of the footer */
-}
-
-#bodyContainer {
-  min-height:100%;
-  position:relative;
-}
 
 div#navigation {
    float: left;
    background-color: #1e1e1e;
    border-top-right-radius: 10px;
    border-bottom-right-radius: 10px;
-}
-div#logo {
-   padding: 5px 50px 2px 0;
-   height: 113px;
-   display: inline;
 }
 
 #deploymentLastStatus  {

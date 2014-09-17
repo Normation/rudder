@@ -58,117 +58,110 @@ var clearSearchFieldTree = function(inputId, treeId) {
   text-align: center;
 }
 
+.filterIcon {
+  margin-bottom:-3px;
+}
+
+#editForm {
+  padding-bottom:70px;
+}
+
 </style>
 
 </head>
 
 <lift:configuration.DirectiveManagement.head />
 
-<div class="portlet">
-  <div class="portlet-content">
     
-    <div class="column">
-      <div class="inner-portlet">
-        <div class="inner-portlet-header">Directive Library</div>
-        <div class="inner-portlet-content">
+<div class="col col-sm">
+  <div class="inner-portlet-header">Directive Library</div>
+  <div id="activeTechniquesTree_actions_zone" style="margin:5px 0;">
+    <img onclick="openAllNodes('#activeTechniquesTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
 
-          <div id="activeTechniquesTree_actions_zone" style="margin:10px;">
-            <span onclick="openAllNodes('#activeTechniquesTree');"><img src="/images/open-plus.png" alt="Open all categories" title="Open all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
-            <span onclick="closeAllNodes('#activeTechniquesTree');"><img src="/images/close-minus.png" alt="Close all categories" title="Close all categories" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
-            <span><input id="treeSearch" type="text" value="Search" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/></span>
-            <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
-            <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
-            <a href="/ncf-builder?path=/var/rudder/configuration-repository/ncf" class="techniqueEditorLink">
-              <input type="button" value="Open Technique editor"/>
-            </a>
-          </div>
-          <lift:configuration.DirectiveManagement.userLibrary />
+    <img onclick="closeAllNodes('#activeTechniquesTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
+
+    <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
+
+    <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+
+    <img onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+
+    <a style="float:right" href="/ncf-builder?path=/var/rudder/configuration-repository/ncf">
+      <input style="padding:0.4em 0" type="button" value="Open Technique editor"/>
+   </a>
+ </div>
+
+ <lift:configuration.DirectiveManagement.userLibrary />
+
+</div>
+
+<div class="col col-xl">
+
+  <lift:configuration.DirectiveManagement.techniqueDetails>
+    <div id="techniqueDetails"  >
+      <div class="inner-portlet-header">Technique information</div>
+      <div id="details">
+        <div id="directiveIntro">
+          The Directive <b class="directive">[Directive]</b> is based on following Technique:
         </div>
-      </div>
-    </div>
-    <div class="column">
-      <div class="inner-portlet">
-        <div class="inner-portlet-header"><span id="detailsPortletTitle">Usage</span></div>
-        <div class="inner-portlet-content">
-          <lift:configuration.DirectiveManagement.techniqueDetails>
-            <div id="techniqueDetails">
-              <div id="directiveIntro">
-                The Directive <b class="directive">[Directive]</b> is based on following Technique:
-                <br/><br/>
-              </div>
-              <div>
-                <h3><span id="techniqueName">[Technique name]</span></h3>
-              </div>
-              <br/>
-              <div>
-                <fieldset class="deca"><legend>Description</legend>
-                  <span id="techniqueDescription">[technique.description]</span>
-                </fieldset>
-              </div>
-            
-              <div class="groupDiv">
-                <fieldset class="deca"><legend>Characteristics</legend>
-                  <p id="techniqueLongDescription">[technique.longDescription]</p>
-                  <p id="isSingle">[Unique Technique]</p>
-                  <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
-                </fieldset>
-              </div>
-              
-              <fieldset class="pimversionspad"><legend>Available versions</legend>
-<!--                 <ul class="evlogviewpad"> -->
-<!--                   <li id="techniqueVersions">[here come version: date]</li> -->
-<!--                 </ul> -->
-                
-                <table id="versionTable">
-                  <thead>
-                    <tr>
-                      <th>Version</th>
-                      <th>Last updated on</th>
-                      <th>Use this version</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr id="techniqueVersions"/>
-                  </tbody>
-                
-                </table>
-                
-                <div style="text-align: center;">
-                <lift:authz role="directive_write">
-                  <button id="addButton">[Add a new instance]</button>
-                </lift:authz>
-                </div>         
-                <div id="migrate">
-                  <br/>
-                  <form>
-                    Migrate Directive to Technique version:
-                    <select><option>1.1</option><option>2.0</option></select>
-                    <input type="submit" value="Migrate" />
-                  </form>
-                </div>
-              </fieldset>
-              
-              <br/>
-            </div>
-          </lift:configuration.DirectiveManagement.techniqueDetails>       
+        <div>
+        <h3><span id="techniqueName">[Technique name]</span></h3>
         </div>
-      </div>
-    </div>
+        <br/>
+        <fieldset class="deca">
+          <legend>Description</legend>
+          <span id="techniqueDescription">[technique.description]</span>
+        </fieldset>            
+        <div class="groupDiv">
+          <fieldset class="deca">
+            <legend>Characteristics</legend>
+            <p id="techniqueLongDescription">[technique.longDescription]</p>
+            <p id="isSingle">[Unique Technique]</p>
+            <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
+          </fieldset>
+        </div>
+        <fieldset class="deca">
+            <legend>Available versions</legend>
+          <table id="versionTable">
+            <thead>
+              <tr>
+                <th>Version</th>
+                <th>Last updated on</th>
+                <th>Use this version</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr id="techniqueVersions"/>
+             </tbody>
+           </table>
+         <div style="text-align: center;">
+           <lift:authz role="directive_write">
+             <button id="addButton">[Add a new instance]</button>
+           </lift:authz>
+         </div>         
+         <div id="migrate">
+           <br/>
+           <form>
+             Migrate Directive to Technique version:
+             <select><option>1.1</option><option>2.0</option></select>
+             <input type="submit" value="Migrate" />
+           </form>
+         </div>
+       </fieldset>
+       </div>
+     </div>
+   </lift:configuration.DirectiveManagement.techniqueDetails>
     
-    <div id="createDirectivePopup" class="nodisplay">
-      <lift:ignore>
-      This div gets the content of the createDirective injected within
-      </lift:ignore>
-    </div>
-    
-    <hr class="spacer"/>
-    <a name="directiveDetails"/>
-    <div>
-      <div class="directiveDetails">
-        <lift:configuration.DirectiveManagement.showDirectiveDetails />
-      </div>
-    </div>
-  </div>
+   <div class="directiveDetails">
+     <lift:configuration.DirectiveManagement.showDirectiveDetails />
+   </div>
+</div>
+ 
+<div id="createDirectivePopup" class="nodisplay">
+  <lift:ignore>
+    This div gets the content of the createDirective injected within
+  </lift:ignore>
+</div>
   
   <div id="finishMigrationPopup" class="nodisplay">
     <div class="simplemodal-title">
@@ -197,8 +190,5 @@ var clearSearchFieldTree = function(inputId, treeId) {
     </div>
   </div>
   
-  
-  <br/>
-</div>
 </lift:surround>
 

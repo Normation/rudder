@@ -38,12 +38,9 @@
    		margin-bottom: 5px; 
     }
     
-    .cpiefsave {
-      margin-top:5px;
-    }
     
     #clone {
-      margin-top:5px;
+      margin-left:20px;
       padding-right: 40px;
       padding-left: 40px;
     }
@@ -89,9 +86,15 @@
 </component:body>
 
 <component:form>
-  <div id="editForm" class="object-details">
+  <div id="editForm">
+
+
+    <div id="directiveTitle" class="inner-portlet-header">Directive</div>
+    <div id="notifications">
+    </div>
+	
     <lift:authz role="directive_edit">
-      <div id="pendingChangeRequestNotification">
+          <div id="pendingChangeRequestNotification">
         <div class="inner-portlet-header">Pending change requests</div>
         <br />
         <div>
@@ -102,41 +105,13 @@
           </div>
         </div>
       </div>
-    <hr class="spacer"/>
-    <div class="topLevelAction">
-      <p class="clearable">
-        This is the zone for top level actions which does not take into account
-        modifications done in the edit zone.
-      </p>
+q  </lift:authz>
 
-      <div id="directiveTitle" class="inner-portlet-header">Directive</div>
-      <br/>
-      <div id="removeAction" class="twoColumns">
-      </div>
-      <div id="desactivateAction" class="twoColumns twoColumnsRight">
-      </div>
-      <button id="clone">[Clone]</button>
-      <div class="disableNotice">
-        Note: A Directive's status may be Enabled, but it will be effectively disabled
-        if the Technique it's based on is disabled.
-       </div>
-    </div>
-	</lift:authz>
-	<br/>
-    <div id="notifications">
-<!--         <ul> -->
-<!--           <li>Here comes notifications</li> -->
-<!--         </ul> -->
-      </div>
-	
-	<div id="editZone">
-		<ul id="directiveDetailsTabMenu">
-			<li><a href="#directiveInfoTab">Information</a></li>
-			<li><a href="#directiveParametersTab">Parameters</a></li>
-			<li><a href="#directiveRulesTab">Target Rules</a></li>
-		</ul>
-		<div class="tabContent" id="directiveInfoTab">
-		  <div class="inner-portlet-header">Directive information</div>
+
+		<div id="directiveInfoTab" class="unfoldedSection" onclick="$('#directiveInfo').toggle(400); $('#directiveInfoTab').toggleClass('foldedSection');$('#directiveInfoTab').toggleClass('unfoldedSection');">
+		  <div class="inner-portlet-header-lower">Directive information</div>
+		</div>
+		<div id="directiveInfo"  >
 		   <hr class="spacer" />
       	   <div id="nameField">
              Here comes the name field
@@ -152,6 +127,14 @@
            <hr class="spacer" />
            <div id="priority">
              Here come the priority field
+           </div>
+           <hr class="spacer" />
+           <div id="version">
+             Here come the version field
+           </div>
+           <hr class="spacer" />
+           <div id="migrate">
+             Here come the version field
            </div>
            <hr class="spacer" />
       	   <div class="directiveTechnicalInfo" id="showTechnical"></div>
@@ -187,24 +170,32 @@
            </div>
          <br/>
          </div>
-		<div class="tabContent" id="directiveParametersTab">
-	      <div>
-	        <div class="inner-portlet-header">Parameters</div>
-    	    <span id="parameters">Here goes the list of parameters</span>
-      	  </div>
-      	</div>
-		<div class="tabContent" id="directiveRulesTab">
-		 </div>
+		<div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
+      <div class="inner-portlet-header-lower">Parameters</div>
+    </div>
+    <div id="parameters">Here goes the list of parameters</div>
 
-	</div>
+    <div  id="ruleTargetSection" class="unfoldedSection" onclick="$('#directiveRulesTab').toggle(400); $('#ruleTargetSection').toggleClass('foldedSection');$('#ruleTargetSection').toggleClass('unfoldedSection');">
+      <div class="inner-portlet-header-lower">Target Rules</div>
+      </div>
+		<div id="directiveRulesTab">
+		 </div>
+    <hr class="spacer"/>
 
 	<lift:authz role="directive_edit">
+	<div class="fixed-footer directive-footer">
+	      <div id="removeAction" style="float:left">
+      </div>
+      <div id="desactivateAction" style="float:left; margin-left:20px;">
+      </div>
+      <button id="clone" style="float:left">[Clone]</button>
       <div class="cpiefsave">
         <button id="save">Save</button>
       </div>
+  </div>
     </lift:authz>
     <br/>
-  </div>
+    </div>
   <div id="removeActionDialog" />
   <div id="disableActionDialog" />
   <div id="confirmUpdateActionDialog" class="nodisplay"/>
