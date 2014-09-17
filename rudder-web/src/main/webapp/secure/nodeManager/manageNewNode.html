@@ -1,16 +1,16 @@
-<lift:surround with="menu/menu-node" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - New Nodes Management</title>
 </head>
 
 <div class="portlet">
- <div class="portlet-header">Accept new nodes</div>
+      <div class="inner-portlet">
+        <div class="inner-portlet-header">Accept new Nodes</div>
+          <div class="intro">
+           Accept or refuse Nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report. To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
+           </div>
  <div class="portlet-content">
- <div class="intro">
-  <div>Accept or refuse Nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report. To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
-  </div>
- </div>
    
   <lift:node.AcceptNode.head />
   <hr class="spacer"/>
@@ -69,6 +69,7 @@
   </lift:ignore>
   
  </div>
+</div>
 </div>
   
 </lift:surround>

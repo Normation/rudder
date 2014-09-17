@@ -1246,10 +1246,13 @@ div.hierarchySpacer {
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background-color: #2e2d2d; 
+   margin:0;
+   padding-top:70px;
+   height:100%;
 }
 
-html, body {
+html {
    margin:0;
    padding:0;
    height:100%;
@@ -1274,8 +1277,7 @@ div#prelude {
    display: none;
 }
 div#container {
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
-/*       padding:10px; */
+   background-color: #2e2d2d;
    padding-bottom:40px;   /* Height of the footer */
 }
 
@@ -1284,10 +1286,6 @@ div#container {
   position:relative;
 }
 
-div#contenuInfos {
-   overflow: hidden;
-   Background-color: #2E2D2D;
-}
 div#navigation {
    float: left;
    background-color: #1e1e1e;
@@ -1300,19 +1298,13 @@ div#logo {
    display: inline;
 }
 
-#deploymentStatus {
-  float:right;
-  width:200px;
-  padding:10px;
-  padding-right:25px;
-  font-size:0.9em;
-  color:white;
-}
-
 #deploymentLastStatus  {
-  margin-bottom:10px;
+  float:left
 }
 
+#deploymentProcessing {
+  float:left
+}
 div.pendingModificationStatus {
   float:right;
   width:200px;
@@ -1517,6 +1509,10 @@ menu secondaire
    border-radius: 0 0 0 0;
 }
 }
+
+.portlet {
+	border-radius: 0 !important;
+}
 *html #navigation.minimized #slickbox {
    width: 10px;
 }
@@ -1555,7 +1551,7 @@ div#slickbox {
 }
 #slickbox ul {
    width: 186px;
-   background-color: #1f1e1e;
+   background-color: #2e2d2d;
    border-bottom: 1px solid #2d2d2d;
 }
 #slickbox .niv1 a {
@@ -1619,8 +1615,8 @@ div#contenu {
    margin: 0 auto;
    position: relative;
    float: left;
-   width: 77%;
-   padding-left: 30px;
+   width: 94%;
+   padding-left: 3%;
    background-color: #2e2d2d;
 }
 #contenu h1 {
@@ -2202,7 +2198,7 @@ div#footer {
    height: 40px;
    color: #999;
    font-size: 1.3em;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background: #2e2d2d url(../images/fondBody.jpg) repeat-x top left; 
    position:absolute;
    bottom:0;
    width:100%;
@@ -2614,15 +2610,13 @@ tr.unfoldable {
 }
 
 .topQuickSearch .ac_input {
-  width:200px;
+  width:250px;
   font-size:10px;
   background: url("../images/icMagnify.png") no-repeat scroll left center white;
   padding: 5px 3px 5px 30px;
 }
 
-.topQuickSearch .ac_input:focus {
-  width:400px;
-}
+
   
 
 .topQuickSearchResults ul li {
@@ -2630,7 +2624,7 @@ tr.unfoldable {
 }
 
 div.topQuickSearchResults.ac_results {
-  width: 404px !important;  
+  width: 200px !important;  
 }
 
 /***********************************

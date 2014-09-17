@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-administration" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
   <title>Rudder - Reports database</title>
@@ -19,21 +19,6 @@
 </head>
 
   <div class="portlet">
-    <div class="portlet-header">Reports database</div>
-    <div class="portlet-content">
-
-      <div class="intro">
-        <div>
-          Rudder stores all reports received from nodes in a database.
-          These reports are used to calculate compliance for Rules applied
-          to Nodes. The database can grow quite large, and keeping older
-          reports is usually useless if you don't need to examine compliance
-          data in the past. This page enables you to archive or delete them to
-          limit disk space usage.
-        </div>
-      </div>
-      <hr class="spacer" />
-
       <div class="lift:administration.DatabaseManagement.display">
 
         <div class="inner-portlet">
@@ -198,7 +183,5 @@
         </div>
       </div>
     </div>
-    <br />
-  </div>
 </lift:surround>
 

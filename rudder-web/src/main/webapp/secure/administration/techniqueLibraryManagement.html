@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-administration" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Technique Library Management</title>
@@ -31,33 +31,14 @@ var clearSearchFieldTree = function(inputId, treeId) {
 <lift:administration.TechniqueLibraryManagement.head />
 
 <div class="portlet">
-  <div class="portlet-header">Technique Library Management</div>
   <div class="portlet-content">  
-    <div class="intro">
-      <div>
-        View available Techniques and configure your custom Directive library.
-        <lift:authz role="directive_read">
-        <br/>
-        Drag'n'drop new Techniques from Reference library to User library categories to be able to create <a href="/secure/configurationManager/directiveManagement">new Directives</a>.
-        </lift:authz>
-        <br/>
-        Drag'n'drop Techniques and categories in user library so that everything is nice and tidy.
-        <br/>
-      </div>
-      <lift:authz role="technique_edit">
-      <div>
-        <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
-          <form class="lift:form.ajax">
-            <span>Reload the last available version of the Technique library</span>
-            <input type="submit" value="Reload"/>
-            <lift:Msg id="updateLib">[messages]</lift:Msg>
-          </form>
-        </div>
-      </div>
-      </lift:authz>
-    </div>
-    <hr class="spacer"/>
     
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Technique library</div>
+      <div class="intro">
+        View available Techniques and configure your custom Directive library.
+      </div>
+    </div>
     <div class="column">
       <div class="inner-portlet">
         <div class="inner-portlet-header">Reference Technique library</div>
@@ -72,6 +53,16 @@ var clearSearchFieldTree = function(inputId, treeId) {
                 <input type="button" value="Open Technique editor"/>
             </a>
           </div>
+                <lift:authz role="technique_edit">
+      <div>
+        <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
+          <form class="lift:form.ajax">
+            <input type="submit" value="Reload"/>
+            <lift:Msg id="updateLib">[messages]</lift:Msg>
+          </form>
+        </div>
+      </div>
+      </lift:authz>
           <lift:administration.TechniqueLibraryManagement.systemLibrary />
         </div>
       </div>
@@ -87,6 +78,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
             <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
           </div>
+          
           <lift:authz role="technique_write">
           <lift:administration.TechniqueLibraryManagement.userLibraryAction />
           </lift:authz>

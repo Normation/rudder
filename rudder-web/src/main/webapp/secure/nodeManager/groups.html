@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-node" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Node Groups Management</title>
@@ -44,15 +44,7 @@ input.queryInputValue, select.queryInputValue {
 <lift:node.Groups.head />
 
 <div class="portlet">
- <div class="portlet-header">Groups</div>
  <div class="portlet-content">
-  <div class="intro">
-    <div><p>Manage Groups of Nodes. Each group can be a static list of nodes or the result of a dynamic search based on criteria from the Node's inventory.</p>
-    <p>Node Groups are used to target Rules.</p>
-    </div>
-  </div>
- 
-  <hr class="spacer"/> 
   <div class="groupDisplay">
   
     <lift:node.Groups.groupHierarchy>
