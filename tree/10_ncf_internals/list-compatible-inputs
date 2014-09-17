@@ -56,7 +56,7 @@ do
   else
     # take the cache directory from environment
     exclude_basedir="${NCF_CACHE_PATH}/ncf-exclude-cache-${cfengine_version}"
-    [ -d "${exclude_basedir}" ] || ${mkdir_command} "${exclude_basedir}"
+    [ -d "${exclude_basedir}" ] || ${mkdir_command} "${exclude_basedir}"
     canonified_path=`echo "${framework_path}/${directory}" | ${sed_command} -s "s/\\//_/g"`
     exclude_file="${exclude_basedir}/${canonified_path}"
   fi
