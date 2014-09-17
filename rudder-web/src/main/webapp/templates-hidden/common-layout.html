@@ -81,7 +81,7 @@
 <body>
 
 <div class="tw-bs">
-  <nav class="navbar navbar-rudder navbar-fixed-top" role="navigation">
+  <nav class="navbar navbar-rudder navbar-static-top" role="navigation">
     <div class="container-fluid">
       <div class="navbar-header">
         <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
@@ -124,8 +124,6 @@
   </nav>
 </div>
 
-<div id="bodyContainer">
-<div id="container">
 
 
     <!--popin Login-->
@@ -166,12 +164,12 @@
   class="ajaxloader"     
   src="/images/ajax-loader.gif"/>
   
-  <div id="contenu">
+  <div class="container">
+  <div class="rudder_col">
     <lift:bind name="content" />
-  </div>
-  <!--Fin contenu + nav-->
+    </div>
+    </div>
   <hr class="spacer" />
-</div>
 <div id="footer">
   <p>Rudder v2.3 - &copy; <a href="http://www.normation.com/">Normation</a></p>
 </div>
@@ -201,7 +199,6 @@
       </p>
     </div>
   </div>
-</div>
 </body>
 </html>
   
