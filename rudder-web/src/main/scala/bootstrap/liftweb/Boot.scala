@@ -290,7 +290,7 @@ class Boot extends Loggable {
 
 
     val rootMenu = List(
-        Menu("Home", <span>Home</span>) / "secure" / "index"
+        Menu("Home", <span>Home</span>) / "secure" / "index" >> Hidden
       , Menu("Login") / "index" >> Hidden
       , nodeManagerMenu
       , buildManagerMenu("configuration")

@@ -59,7 +59,7 @@ All text that will be modified will be put in []
 
 <component:form>
 <div id="editForm" class="object-details">
-<fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>
+<div class="inner-portlet-header">Technique details</div>
 
   <div class="groupedEditZone">
     <div class="groupDiv">
@@ -77,47 +77,31 @@ All text that will be modified will be put in []
     </div>
   </div>
 	<lift:authz role="technique_edit">
-  <fieldset class="topLevelAction" id="userTemplateAction">
-    <p class="clearable">
-      This is the zone for top level actions which does not take into account
-      modifications done in the edit zone. 
-    </p>
-    
-    <legend>Modify Technique status</legend>
-
+  <div class="topLevelAction" id="userTemplateAction">
     <div id="deleteAction" class="twoColumns">
       <button id="deleteButton">Delete</button>
     </div>
-
-    
     <div id="disableAction" class="twoColumns twoColumnsRight">
       <button id="disableButton"><span id="disableButtonLabel">[disable]</span></button>
     </div>
-    
-     
-    
     <div class="disableNotice">
-        Note: the Rule will be applied only if its status is Enabled and 
-        its Directive, Technique and target node group are all Enabled.
+        Note: Disabling a Technique also globally disable all the Directive based on it.
     </div>
     
-  </fieldset>
+  </div>
   </lift:authz>
 
   <div class="editZone">
-      <fieldset><legend>Category</legend>
-        <div>Reference category: 
-          <ul id="breadcrumpReferenceCategory">[here come the breadcrump]</ul>
-        </div>
-        <div id="clientCategoryZone">[Here come the text for the client category breadcrump]</div>
-    </fieldset>  
+    <div class="inner-portlet-header-lower">Category</div>
+    <div>Reference category: 
+      <ul id="breadcrumpReferenceCategory">[here come the breadcrump]</ul>
+    </div>
+    <div id="clientCategoryZone">[Here come the text for the client category breadcrump]</div>
 
-    <fieldset><legend>Parameters</legend>
-      <span id="templateParameters">[Here comes template parameters]</span>
-    </fieldset>
+    <div class="inner-portlet-header-lower">Parameters</div>
+    <span id="templateParameters">[Here comes template parameters]</span>
 
   </div>
-</fieldset>
 </div>
 
 </component:form>

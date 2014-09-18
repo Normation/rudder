@@ -340,11 +340,11 @@ form select.selectComparator {
 }
 
 form select.selectField {
-   width: 180px;
+   width: 220px;
 }
 
 input.queryInputValue, select.queryInputValue {
-  width:160px !important;
+  width:280px !important;
   margin: 0px !important;
   padding: 0px !important;
   
@@ -501,18 +501,6 @@ tr.color2 {
    background-color: #fff;
 }
 
-tr.eventLogDescription {
-  border-bottom: 1px solid #ABABAB;
-}
-
-.dataTables_wrapper td {
-  border-top: none;
-  border-bottom: 1px solid #ababab;
-}
-
-td {
-  border-top: 1px solid #ababab;
-}
 
 td.center {
  text-align : center;
@@ -1033,22 +1021,10 @@ padding:0 20px;
   float:right; 
   margin:10px;
 }
-table.searchNodes {
-  width: 750px;
-  margin: 0;
-}
 
-table.searchNodes tbody td.first {
-  border-left: solid 1px #ABABAB;
-}
-
-table.searchNodes tbody td.last {
-  border-right: solid 1px #ABABAB;
-}
 
 fieldset.searchNodes {
   padding:5px;
-  width: 545px;
   clear: both;
 }
 
@@ -1056,13 +1032,6 @@ fieldset.searchNodes {
   padding:8px;
   margin:5px;
   width: 550px;
-  clear: both;
-}
-
-fieldset.searchNodesAction {
-  padding:5px;
-  margin:5px;
-  width: 530px;
   clear: both;
 }
 
@@ -1087,11 +1056,6 @@ tr.query_line, .query_line td {
 .composition {
   padding: 5px 0px 0px 5px;
   margin: 0px 0px 0px 0px;
-  width: 743px;
-  vertical-align: middle;
-  border-left: solid 1px #ABABAB;
-  border-top: 1px solid #ABABAB;
-  border-right: 1px solid #ABABAB;
 }
 
 .composition span {
@@ -1103,20 +1067,10 @@ tr.query_line, .query_line td {
   text-align:left;
 }
 
-table#serverGrid {
-  width: 750px;
-  
-}
-
 table#serverGrid tbody td {
   border-left: solid 1px #ABABAB;
   border-bottom: solid 1px #ABABAB;
   border-top: 0px;
-}
-
-#serverGrid_wrapper {
-  width: 750px;
-  margin: 0;
 }
 
 #serverGrid_wrapper table {
@@ -1209,9 +1163,6 @@ fieldset.groupCategory {
 }
 
 .nodeGroupSubmitSearch {
-   width:748px;
-   border-left: 1px solid #ABABAB;
-   border-right: 1px solid #ABABAB;
    margin: 0 ;
    padding: 5px 0 5px 0;
 }
@@ -1246,12 +1197,11 @@ div.hierarchySpacer {
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background-color: #2e2d2d;
+   height:100%;
 }
 
-html, body {
-   margin:0;
-   padding:0;
+html {
    height:100%;
 }
 
@@ -1273,46 +1223,21 @@ structure
 div#prelude {
    display: none;
 }
-div#container {
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
-/*       padding:10px; */
-   padding-bottom:40px;   /* Height of the footer */
-}
 
-#bodyContainer {
-  min-height:100%;
-  position:relative;
-}
-
-div#contenuInfos {
-   overflow: hidden;
-   Background-color: #2E2D2D;
-}
 div#navigation {
    float: left;
    background-color: #1e1e1e;
    border-top-right-radius: 10px;
    border-bottom-right-radius: 10px;
 }
-div#logo {
-   padding: 5px 50px 2px 0;
-   height: 113px;
-   display: inline;
-}
-
-#deploymentStatus {
-  float:right;
-  width:200px;
-  padding:10px;
-  padding-right:25px;
-  font-size:0.9em;
-  color:white;
-}
 
 #deploymentLastStatus  {
-  margin-bottom:10px;
+  float:left
 }
 
+#deploymentProcessing {
+  float:left
+}
 div.pendingModificationStatus {
   float:right;
   width:200px;
@@ -1517,6 +1442,10 @@ menu secondaire
    border-radius: 0 0 0 0;
 }
 }
+
+.portlet {
+	border-radius: 0 !important;
+}
 *html #navigation.minimized #slickbox {
    width: 10px;
 }
@@ -1555,7 +1484,7 @@ div#slickbox {
 }
 #slickbox ul {
    width: 186px;
-   background-color: #1f1e1e;
+   background-color: #2e2d2d;
    border-bottom: 1px solid #2d2d2d;
 }
 #slickbox .niv1 a {
@@ -1619,8 +1548,8 @@ div#contenu {
    margin: 0 auto;
    position: relative;
    float: left;
-   width: 77%;
-   padding-left: 30px;
+   width: 94%;
+   padding-left: 3%;
    background-color: #2e2d2d;
 }
 #contenu h1 {
@@ -1722,7 +1651,7 @@ p img {
 }
 
 .inner-portlet {
-   margin: 7px 10px 18px 10px;
+   margin: 7px 10px 10px 10px;
    background-color: #fff;
    background:  url(../images/fondPortlet.jpg) repeat-x\9;
 }
@@ -2202,7 +2131,7 @@ div#footer {
    height: 40px;
    color: #999;
    font-size: 1.3em;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background: #2e2d2d url(../images/fondBody.jpg) repeat-x top left; 
    position:absolute;
    bottom:0;
    width:100%;
@@ -2614,15 +2543,13 @@ tr.unfoldable {
 }
 
 .topQuickSearch .ac_input {
-  width:200px;
+  width:250px;
   font-size:10px;
   background: url("../images/icMagnify.png") no-repeat scroll left center white;
   padding: 5px 3px 5px 30px;
 }
 
-.topQuickSearch .ac_input:focus {
-  width:400px;
-}
+
   
 
 .topQuickSearchResults ul li {
@@ -2630,7 +2557,7 @@ tr.unfoldable {
 }
 
 div.topQuickSearchResults.ac_results {
-  width: 404px !important;  
+  width: 200px !important;  
 }
 
 /***********************************
@@ -2796,6 +2723,7 @@ fieldset {
 
 #ajaxItemContainer {
   float:left;
+  width: 66%
 }
 
 /**

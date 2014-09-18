@@ -167,75 +167,6 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
 }
 
 /*
- * Directive management
- */
-var buildDirectiveTree = function(id, initially_select , appContext) {
-  jQuery(id).jstree({ 
-      "core" : { 
-      "animation" : 0,
-      "html_titles" : true,
-      "initially_open" : [ "jstn_0" ]
-      },
-     "ui" : { 
-        "select_limit" : 1,
-        "initially_select" : [initially_select]
-      },
-      // I set both options to -2, as I do not need depth and children count checking
-      // Those two checks may slow jstree a lot, so use only when needed
-      "max_depth" : -2,
-      "max_children" : -2,
-      "types" : {
-        "valid_children" : [ "category" ],
-          "types" : {
-            "category" : {
-              "icon" : { 
-                "image" : appContext+"/images/tree/folder_16x16.png" 
-              },
-              "valid_children" : [ "category", "template" ],
-              "select_node" : function(e) {
-            	  this.toggle_node(e);
-            	  return false;
-              }
-            },
-            "template" : {
-              "icon" : { 
-                "image" : appContext+"/images/tree/technique_16x16.png" 
-              },
-              "valid_children" : [ "directive" ],
-              "select_node" : function(e) {
-            	  this.toggle_node(e);
-            	  return true;
-              }
-            },
-            "directive" : {
-              "icon" : { 
-                "image" : appContext+"/images/tree/directive_16x16.gif" 
-              },
-              "valid_children" : "none"
-            },
-            "default" : {
-              "valid_children" : "none"
-            }
-          }
-      },
-      "search" : {
-        "case_insensitive" : true,
-        "show_only_matches": true
-      },
-      "themes" : { 
-    	  "theme" : "rudder",
-    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
-      },
-      "plugins" : [ "themes", "html_data", "ui", "types", "search" ]      
-  })
-  
-  $(id).removeClass('nodisplay');
-
-}
-
-
-
-/*
  * Rule category tree
  */
 var buildRuleCategoryTree = function(id, initially_select , appContext) {
@@ -514,7 +445,7 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
 
 
 
-var buildRulePIdepTree = function(id, initially_select, appContext) {
+var buildDirectiveTree = function(id, initially_select, appContext) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);
