@@ -340,11 +340,11 @@ form select.selectComparator {
 }
 
 form select.selectField {
-   width: 180px;
+   width: 220px;
 }
 
 input.queryInputValue, select.queryInputValue {
-  width:160px !important;
+  width:280px !important;
   margin: 0px !important;
   padding: 0px !important;
   
@@ -501,18 +501,6 @@ tr.color2 {
    background-color: #fff;
 }
 
-tr.eventLogDescription {
-  border-bottom: 1px solid #ABABAB;
-}
-
-.dataTables_wrapper td {
-  border-top: none;
-  border-bottom: 1px solid #ababab;
-}
-
-td {
-  border-top: 1px solid #ababab;
-}
 
 td.center {
  text-align : center;
@@ -1033,22 +1021,10 @@ padding:0 20px;
   float:right; 
   margin:10px;
 }
-table.searchNodes {
-  width: 750px;
-  margin: 0;
-}
 
-table.searchNodes tbody td.first {
-  border-left: solid 1px #ABABAB;
-}
-
-table.searchNodes tbody td.last {
-  border-right: solid 1px #ABABAB;
-}
 
 fieldset.searchNodes {
   padding:5px;
-  width: 545px;
   clear: both;
 }
 
@@ -1056,13 +1032,6 @@ fieldset.searchNodes {
   padding:8px;
   margin:5px;
   width: 550px;
-  clear: both;
-}
-
-fieldset.searchNodesAction {
-  padding:5px;
-  margin:5px;
-  width: 530px;
   clear: both;
 }
 
@@ -1087,11 +1056,6 @@ tr.query_line, .query_line td {
 .composition {
   padding: 5px 0px 0px 5px;
   margin: 0px 0px 0px 0px;
-  width: 743px;
-  vertical-align: middle;
-  border-left: solid 1px #ABABAB;
-  border-top: 1px solid #ABABAB;
-  border-right: 1px solid #ABABAB;
 }
 
 .composition span {
@@ -1103,20 +1067,10 @@ tr.query_line, .query_line td {
   text-align:left;
 }
 
-table#serverGrid {
-  width: 750px;
-  
-}
-
 table#serverGrid tbody td {
   border-left: solid 1px #ABABAB;
   border-bottom: solid 1px #ABABAB;
   border-top: 0px;
-}
-
-#serverGrid_wrapper {
-  width: 750px;
-  margin: 0;
 }
 
 #serverGrid_wrapper table {
@@ -1209,9 +1163,6 @@ fieldset.groupCategory {
 }
 
 .nodeGroupSubmitSearch {
-   width:748px;
-   border-left: 1px solid #ABABAB;
-   border-right: 1px solid #ABABAB;
    margin: 0 ;
    padding: 5px 0 5px 0;
 }
@@ -1700,7 +1651,7 @@ p img {
 }
 
 .inner-portlet {
-   margin: 7px 10px 18px 10px;
+   margin: 7px 10px 10px 10px;
    background-color: #fff;
    background:  url(../images/fondPortlet.jpg) repeat-x\9;
 }
@@ -2772,6 +2723,7 @@ fieldset {
 
 #ajaxItemContainer {
   float:left;
+  width: 66%
 }
 
 /**
