@@ -340,9 +340,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     currentTechniqueDetails.is match {
       case e:EmptyBox =>
         <div id={htmlId_bottomPanel}>
-        <fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>
+          <h3>Technique details</h3>
           <p>Click on a Technique to display its details</p>
-        </fieldset></div>
+        </div>
       case Full(form) => form.showForm
     }
   }

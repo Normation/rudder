@@ -91,7 +91,7 @@ class TechniqueCategoryEditForm(
 
   def showForm() : NodeSeq = {
     <div id={htmlId_form} class="object-details">
-      <fieldset class="userCategoryDetailsFieldset"><legend>Category details</legend>
+      <div class="inner-portlet-header-lower">Category details</div>
         {categoryDetailsForm}
           <div id="removeCategoryActionDialog" class="nodisplay">
             <div class="simplemodal-title">
@@ -116,8 +116,6 @@ class TechniqueCategoryEditForm(
               </div>
             </div>
           </div>
-
-      </fieldset>
     </div>
   }
 

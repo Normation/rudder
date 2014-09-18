@@ -1,14 +1,9 @@
 <lift:surround with="common-layout" at="content">
 
-<head>
-<title>Rudder - Home</title>
-</head>
+  <head>
+  <title>Rudder - Home</title>
+  </head>
 
- <h1>Welcome to Rudder</h1>
-	
-  <lift:msgs>
-  <lift:error_class>error</lift:error_class>
-  </lift:msgs>
   
   <div class="portlet">
     <div class="portlet-header">Description</div>
@@ -27,11 +22,11 @@
       </ul>
 	
     </div>
-   <br/>
-   </div>
+    <br/>
+  </div>
 
-        <div class="column">
-        <lift:authz role="node_read">
+  <div class="column">
+      <lift:authz role="node_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Node Manager</div>
           <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
@@ -44,8 +39,8 @@
             </ul>
           </div>
         </div>
-        </lift:authz>
-        <div class="portlet">
+      </lift:authz>
+      <div class="portlet">
           <div class="portlet-header">Support Desk</div>
           <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
@@ -55,10 +50,11 @@
               <li>Looking for professional assistance? <a href="http://www.normation.com" target="_blank">Normation</a>, Rudder's creator, offers <a href="https://www.normation.com/services/support-pole-expertise" target="_blank">Support</a>, <a href="https://www.normation.com/services/rudder-training" target="_blank">Training</a> and other Rudder-specific services</li>
             </ul>
           </div>
-        </div>
       </div>
-      <div class="column">
-        <lift:authz role="configuration_read">
+  </div>
+
+  <div class="column">
+      <lift:authz role="configuration_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Configuration Manager</div>
           <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
@@ -73,8 +69,8 @@
             </ul>
           </div>
         </div>
-        </lift:authz>
-        <lift:authz role="administration_read">
+      </lift:authz>
+      <lift:authz role="administration_read">
         <div class="portlet">
           <div class="portlet-header">Rudder Administration</div>
           <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
@@ -86,7 +82,7 @@
             </ul>
           </div>
         </div>
-        </lift:authz>
-      </div>
+      </lift:authz>
+  </div>
 </lift:surround>
 

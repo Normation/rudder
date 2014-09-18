@@ -1,35 +1,35 @@
 
 <lift:surround with="common-layout" at="content">
 
-<head>
+  <head>
+    <title>Rudder - Rules Management</title>
+  </head>
 
-<title>Rudder - Rules Management</title>
-</head>
+  <lift:configuration.RuleManagement.head />
 
-<lift:configuration.RuleManagement.head />
-
-<div class="portlet">
-  <div class="portlet-content">
-    <div id="viewAllRulesZone"><lift:configuration.RuleManagement.viewRules /></div>
-    <hr class="spacer"/>
-    <div id="editRuleZonePortlet" class="inner-portlet nodisplay">
-      <div class="inner-portlet-header">Rule details</div>
-      <div class="inner-portlet-content">
-        <lift:configuration.RuleManagement.editRule />  
+  <div class="portlet">
+    <div class="portlet-content">
+      <div id="viewAllRulesZone">
+        <lift:configuration.RuleManagement.viewRules />
+      </div>
+      <hr class="spacer" />
+      <div id="editRuleZonePortlet" class="inner-portlet nodisplay">
+        <div class="inner-portlet-header">Rule details</div>
+        <div class="inner-portlet-content">
+          <lift:configuration.RuleManagement.editRule />
+        </div>
       </div>
     </div>
-  </div>
 
-  <div id="createRulePopup" class="nodisplay">
-    <lift:ignore>
+    <div id="createRulePopup" class="nodisplay">
+      <lift:ignore>
       This div gets the content of the createRule injected within
     </lift:ignore>
-    <div id="createRuleContainer"/>
-  </div>
+      <div id="createRuleContainer" />
+    </div>
 
-  <div id="createRuleCategoryPopup" class="nodisplay">
+    <div id="createRuleCategoryPopup" class="nodisplay"></div>
+
   </div>
-  
-</div>
 </lift:surround>
 
