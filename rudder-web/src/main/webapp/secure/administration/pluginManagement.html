@@ -1,23 +1,18 @@
-<lift:surround with="menu/menu-administration" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Plugins Management</title>
 </head>
 
 <div class="portlet">
-  <div class="portlet-header">Plugin management</div>
-  <div class="portlet-content"> 
-   
-    <div class="intro">
-      <div>
-        Loaded plugins and their configuration.
-      </div>
-    </div>
-    <hr class="spacer"/>
-
+    <div class="inner-portlet">
+      <div class="inner-portlet-header">Plugins</div>
+      <div class="intro">
+            <p>Plugins can extend Rudder’s base functionality to add extra features. They can be either open source or proprietary (this is up to the plugin author).</p>
+            </div>
     <div class="lift:administration.PluginManagement.display">
       <div class="portlet">
-        <div class="portlet-header">[Here comes the plugins name]</div>
+        <div class="inner-portlet-header">[Here comes the plugins name]</div>
         <div class="portlet-content">
           <div class="deca">
             
@@ -35,7 +30,6 @@
       </div>
     </div>
  </div>
- <br/>
-</div>
+ </div>
 </lift:surround>
 

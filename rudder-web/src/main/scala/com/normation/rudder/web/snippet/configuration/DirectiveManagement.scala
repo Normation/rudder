@@ -167,7 +167,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   def userLibrary(workflowEnabled: Boolean): NodeSeq = {
     (
-      <div id={htmlId_activeTechniquesTree} class="nodisplay">{
+      <div id={htmlId_activeTechniquesTree}>{
           (directiveLibrary,rules) match {
             case (Full(activeTechLib), Full(allRules)) =>
               val usedDirectives = allRules.flatMap { case r =>
@@ -206,28 +206,16 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] def buildJsTree() : JsCmd = {
 
-    def isDirectiveIdValid(directiveId: String): JsCmd = {
-      directiveLibrary.flatMap( _.allDirectives.get(DirectiveId(directiveId))) match {
-        case Full((activeTechnique, directive)) =>
-          JsRaw(""" buildDirectiveTree('#%s', '%s', '%s') """
-            .format(htmlId_activeTechniquesTree, "jsTree-" + directive.id.value, S.contextPath))
-        case e:EmptyBox =>
-          JsRaw(""" buildDirectiveTree('#%s', '', '%s') """.format(htmlId_activeTechniquesTree, S.contextPath))
-      }
-    }
-
-    JsRaw("""
+    JsRaw(s"""
         var directiveId = null;
         try {
-          directiveId = JSON.parse(window.location.hash.substring(1)).directiveId ;
+          directiveId = "jsTree-" + JSON.parse(window.location.hash.substring(1)).directiveId ;
         } catch(e) {
-          directiveId = null;
+          directiveId = '';
         }
 
-        %s;
-
-    """.format(SHtml.ajaxCall(JsVar("directiveId"), isDirectiveIdValid _ )._2.toJsCmd,
-         htmlId_activeTechniquesTree))
+        buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}');
+    """)
   }
 
   def initDirectiveDetails(workflowEnabled: Boolean): NodeSeq = directiveId match {
@@ -241,10 +229,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
 
-    "#techniqueDetails" #> ( currentTechnique match {
+    "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
-        "*" #> {
-        <div id="techniqueDetails">
+        ".inner-portlet-header *" #> "Usage" &
+        "#details *" #> {
         <div class="deca">
           <p><em>Directives</em> are displayed in the tree of
           <a href="/secure/administration/techniqueLibraryManagement">
@@ -264,7 +252,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               Techniques screen
             </a>.
           </p>
-        </div>
         </div>
       }
 
@@ -474,6 +461,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, directive,None, workflowEnabled, true)
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
+          Replace(html_techniqueDetails, NodeSeq.Empty) &
           JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
         }
     ).popupContent
@@ -491,7 +479,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
 
     //update UI: Directive details
-    Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
+    SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     setRightPanelHeader(true) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
@@ -514,6 +502,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             htmlId_policyConf
           , technique
           , activeTechnique.toActiveTechnique
+          , activeTechnique
           , directive
           , oldDirective
           , workflowEnabled

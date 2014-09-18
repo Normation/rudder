@@ -1,60 +1,23 @@
-<lift:surround with="menu/menu-node" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Node Groups Management</title>
 <style>
-.composition {
-  width: 538px;
-}
-
-table#serverGrid {
-  width: 545px;
-}
-
-#serverGrid_tooManyResult {
-  width: 543px;
-}
-
-table.searchNodes {
-  width: 545px;
-}
-
-#serverGrid_wrapper {
-    width: 545px;
-}
-
 form select.selectComparator {
-   width: 100px;
+  width: 100px;
 }
-
 form select.selectField {
-   width: 130px;
+  width: 130px;
 }
-
 input.queryInputValue, select.queryInputValue {
   width:115px !important;
-}
-
-.nodeGroupSubmitSearch {
-   width:543px;
 }
 </style>
 </head>
 
 <lift:node.Groups.head />
 
-<div class="portlet">
- <div class="portlet-header">Groups</div>
- <div class="portlet-content">
-  <div class="intro">
-    <div><p>Manage Groups of Nodes. Each group can be a static list of nodes or the result of a dynamic search based on criteria from the Node's inventory.</p>
-    <p>Node Groups are used to target Rules.</p>
-    </div>
-  </div>
- 
-  <hr class="spacer"/> 
-  <div class="groupDisplay">
-  
+  <div class="col col-sm">  
     <lift:node.Groups.groupHierarchy>
       <div class="inner-portlet" style="float:left; margin-right:15px;">
         <div class="inner-portlet-header">Group hierarchy</div>
@@ -64,33 +27,22 @@ input.queryInputValue, select.queryInputValue {
               <div id="newItem">Here comes the New item Button</div>
             </lift:Authz>
           </div>
-          <fieldset style="display:inline-block;">
-            <div id="groupTree">Here comes the Groups Tree</div>
-          </fieldset>
+          <div id="groupTree">Here comes the Groups Tree</div>
           <p class="note"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
         </div>
       </div>
     </lift:node.Groups.groupHierarchy>
-    
-    <div id="ajaxItemContainer">
+  </div>
+  <div class="col col-xl">  
+    <div id="ajaxItemContainer" style="width: 100%">
       <lift:node.Groups.initRightPanel/>
-      <lift:ignore>
-        This div gets the content of the item selected in the js tree
-      </lift:ignore>
     </div>
-    
   </div>
 
-  </div>
-
+  <div class="spacer"/>    
   <div id="createGroupPopup" class="nodisplay">
-    <lift:ignore>
-      This div gets the content of the createCategoryOrGroup injected within
-    </lift:ignore>
-    <div id="createGroupContainer"/></div>
+    <div id="createGroupContainer"/>
   </div>
- 
-  
   
   <lift:node.Groups.detailsPopup/>
 </lift:surround>
