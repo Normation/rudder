@@ -25,6 +25,13 @@ class TestNcfRudder(unittest.TestCase):
     reporting_method_calls = ncf.parse_technique_methods(self.test_reporting)
     self.reporting_metadata['method_calls'] = reporting_method_calls
 
+    self.test_reporting_with_var = os.path.realpath('test_technique_with_variable.cf')
+    self.reporting_with_var_content = open(self.test_reporting_with_var).read()
+    self.reporting_with_var_metadata = ncf.parse_technique_metadata(self.reporting_with_var_content)
+    reporting_with_var_method_calls = ncf.parse_technique_methods(self.test_reporting_with_var)
+    self.reporting_with_var_metadata['method_calls'] = reporting_with_var_method_calls
+
+
     self.test_any_technique = os.path.realpath('test_technique_any.cf')
     self.any_technique_content = open(self.test_any_technique).read()
     self.any_technique_metadata = ncf.parse_technique_metadata(self.any_technique_content)
@@ -67,12 +74,15 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('bundle agent bla_rudder_reporting')
     expected_result.append('{')
     expected_result.append('  methods:')
+    expected_result.append('')
     expected_result.append('    !(debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("service_start_apache2");')
     expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "service_start_apache2");')
+    expected_result.append('')
     expected_result.append('    !(service_start_apache2_repaired)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");')
     expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "package_install_openssh_server");')
+    expected_result.append('')
     expected_result.append('    !(!service_start_apache2_repaired.debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("command_execution__bin_date");')
     expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "command_execution__bin_date");')
@@ -82,6 +92,28 @@ class TestNcfRudder(unittest.TestCase):
     result = '\n'.join(expected_result)+"\n"
 
     generated_result = ncf_rudder.generate_rudder_reporting(self.reporting_metadata)
+
+    self.assertEquals(result, generated_result)
+
+
+  def test_rudder_reporting_with_variable_content(self):
+
+
+    expected_result = []
+    expected_result.append('bundle agent Test_technique_with_variable_rudder_reporting')
+    expected_result.append('{')
+    expected_result.append('  methods:')
+    expected_result.append('')
+    expected_result.append('      "dummy_report" usebundle => _classes_noop("file_create_${sys.workdir}_module_env"),')
+    expected_result.append('                    ifvarclass => "!((directory_create_${sys.workdir}_module_repaired))";')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "file_create_${sys.workdir}_module_env"),')
+    expected_result.append('                    ifvarclass => "!((directory_create_${sys.workdir}_module_repaired))";')
+    expected_result.append('}')
+
+    # Join all lines with \n
+    result = '\n'.join(expected_result)+"\n"
+
+    generated_result = ncf_rudder.generate_rudder_reporting(self.reporting_with_var_metadata)
 
     self.assertEquals(result, generated_result)
 

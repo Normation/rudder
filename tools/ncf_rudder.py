@@ -266,18 +266,31 @@ def generate_rudder_reporting(technique):
 
   for method_call in filter_calls:
 
-    content.append('    !('+method_call['class_context']+')::')
-
     method_name = method_call['method_name']
     generic_method = generic_methods[method_name]
 
     key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    key_value_canonified = re.sub("[^a-zA-Z0-9_]", "_", key_value)
+    key_value_canonified = re.sub("[^\$\{\}\w](?![^{}]+})|\$(?!{)", "_", key_value)
+
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
 
-    content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
-    content.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "'+class_prefix+'");')
+    # Always add an empty line for readability
+    content.append('')
+
+    if not "$" in method_call['class_context']:
+      content.append('    !('+method_call['class_context']+')::')
+      content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
+      content.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "'+class_prefix+'");')
+
+    else:
+      content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'"),')
+      content.append('                    ifvarclass => "!('+method_call['class_context']+')";')
+      content.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "'+class_prefix+'"),')
+      content.append('                    ifvarclass => "!('+method_call['class_context']+')";')
+
+
+
 
   content.append('}')
 
