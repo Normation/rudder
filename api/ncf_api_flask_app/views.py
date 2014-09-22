@@ -31,11 +31,17 @@ def check_authentication_from_rudder(auth_request):
 
   return auth_response
 
+def no_authentication(auth_request):
+  """Always accept authentication request"""
+  auth_response = auth_response = jsonify( {} )
+  auth_response.status_code = 200
+
+  return auth_response
 
 def get_authentication_modules():
   """Find all available authentication modules"""
   # List of all authentication modules
-  authentication_modules = { "Rudder" : check_authentication_from_rudder }
+  authentication_modules = { "Rudder" : check_authentication_from_rudder, "None" : no_authentication }
   # Name of all available modules, should read from a file or ncf path. only Rudder available for now
   available_modules_name = ["Rudder"]
 
