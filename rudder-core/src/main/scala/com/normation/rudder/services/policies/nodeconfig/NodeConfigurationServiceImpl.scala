@@ -317,8 +317,10 @@ class NodeConfigurationServiceImpl(
       case _ => //nothing to do
     }
 
-    policyTranslator.writePromisesForMachines(nodesToWrite, rootNodeId, allNodeConfigs).map(_ => nodeConfigsToWrite.values.toSeq )
-
+    val result = policyTranslator.writePromisesForMachines(nodesToWrite, rootNodeId, allNodeConfigs).map(_ => nodeConfigsToWrite.values.toSeq )
+    policyTranslator.reloadCFEnginePromises()
+    
+    result
   }
 
 

@@ -71,19 +71,20 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.utils.Control.boxSequence
 
 class RudderCf3PromisesFileWriterServiceImpl(
-  techniqueRepository: TechniqueRepository,
-  pathComputer: PathComputer,
-  nodeInfoService: NodeInfoService,
-  val licenseRepository: LicenseRepository,
-  reportingService: ReportingService,
+  techniqueRepository      : TechniqueRepository,
+  pathComputer             : PathComputer,
+  nodeInfoService          : NodeInfoService,
+  val licenseRepository    : LicenseRepository,
+  reportingService         : ReportingService,
   systemVariableSpecService: SystemVariableSpecService,
-  systemVariableService: SystemVariableService,
-  private val toolsFolder: String,
-  private val sharesFolder: String,
-  cmdbEnpoint: String,
-  communityPort: Int,
-  communityCheckPromises: String,
-  novaCheckPromises: String
+  systemVariableService    : SystemVariableService,
+  private val toolsFolder  : String,
+  private val sharesFolder : String,
+  cmdbEnpoint              : String,
+  communityPort            : Int,
+  communityCheckPromises   : String,
+  novaCheckPromises        : String,
+  cfengineReloadPromises   : String
 ) extends Cf3PromisesFileWriterServiceImpl(
   techniqueRepository, systemVariableSpecService
 ) with TemplateWriter with Loggable {
@@ -302,6 +303,26 @@ class RudderCf3PromisesFileWriterServiceImpl(
       case _ => 0
     }
     (errorCode, out.reverse ++ err.reverse)
+  }
+  
+  /**
+   * Force cf-serverd to reload its promises 
+   * It always succeeed, even if it fails it simply delays the reloading (automatic) by the server
+   */
+  def reloadCFEnginePromises() : Unit = {
+    var out = List[String]()
+    var err = List[String]()
+    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
+    
+    val process: scala.sys.process.ProcessBuilder = (cfengineReloadPromises)
+     
+    val errorCode =  process.!(processLogger)
+    
+    if (errorCode != 0) {
+      val errorMessage = s"""Failed to reload CFEngine server promises with "command ${cfengineReloadPromises}" - cause is ${out.mkString(",")} ${err.mkString(",")}"""
+
+      logger.warn(errorMessage)
+    }
   }
 
 }
