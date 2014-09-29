@@ -206,22 +206,38 @@ class FusionReportUnmarshaller(
       box ?~! errorMessage
     }
 
+    // Check that a seq contains only one or identical values, if not fails
+    def uniqueValueInSeq[T]( seq: Seq[T], errorMessage : String) : Box[T] = {
+      seq.distinct match {
+        case entry if entry.size != 1 => Failure(errorMessage)
+        case entry if entry.size == 1 => Full(entry.head)
+      }
+    }
+
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
+        // Fetch all the agents configuration
+        val agents = for {
+             agentXML  <- (rudder \\ "AGENT")
+             agentName <- boxFromOption(optText(agentXML \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
+             agentType <- (AgentType.fromValue(agentName))
+             cfKey     <- boxFromOption( optText(agentXML \ "CFENGINE_KEY"),"could not parse agent name (tag CFENGINE_KEY) from rudder specific inventory")
+
+             rootUser  <- boxFromOption(optText(agentXML \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
+             policyServerId <- boxFromOption(optText(agentXML \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+        } yield {
+          (agentType, rootUser, policyServerId, cfKey)
+        }
+
         ( for {
-            agentsName <- sequence(rudder \ "AGENT")( xml =>
-              boxFromOption(optText(xml \ "AGENT_NAME"), "could not parse agent name (tag AGENT_NAME) from rudder specific inventory")
-            )
-            agents <- sequence(agentsName)(AgentType.fromValue)
-            cfKeys <- sequence(rudder \ "AGENT")( xml =>
-             boxFromOption( optText(xml \ "CFENGINE_KEY"),"could not parse agent name (tag CFENGINE_KEY) from rudder specific inventory")
-            )
-            uuid <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
+            uuid     <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
             hostname <- boxFromOption(optText(rudder \ "HOSTNAME") ,"could not parse hostname (tag HOSTNAME) from rudder specific inventory")
-            rootUser <- boxFromOption(optText(rudder \\ "OWNER") ,"could not parse rudder user (tag OWNER) from rudder specific inventory")
-            policyServerId <- boxFromOption(optText(rudder \\ "POLICY_SERVER_UUID") ,"could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
+            rootUser <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
+
+            policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
           } yield {
-            val keys = cfKeys.map{key => PublicKey(key)}
+            val keys = agents.map{key => PublicKey(key._4)}
+
             report.copy (
               node = report.node.copy (
                   main = report.node.main.copy (
@@ -230,7 +246,7 @@ class FusionReportUnmarshaller(
                     , id = NodeId(uuid)
                     , hostname = hostname
                   )
-                , agentNames = agents
+                , agentNames = agents.map(_._1)
                 , publicKeys = keys
               )
             )
