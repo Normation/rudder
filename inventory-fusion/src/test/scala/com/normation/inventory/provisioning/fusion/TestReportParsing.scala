@@ -47,6 +47,8 @@ import java.io.File
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.Windows
+import com.normation.inventory.domain.Windows2012
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestReportParsing {
@@ -123,4 +125,26 @@ class TestReportParsing {
     val agents = parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agentNames.toList
     assertEquals("We were expecting 0 agent because they have different policy server", Nil, agents)
   }
+  def testWindows2012Parsing() {
+
+    val is = this.getClass.getClassLoader.getResourceAsStream("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs")
+    assertNotNull(is)
+
+    val report = parser.fromXml("report", is) match {
+      case Full(e) => e
+      case eb:EmptyBox =>
+        val e = eb ?~! "Parsing error"
+        e.rootExceptionCause match {
+          case Full(ex) => throw new Exception(e.messageChain, ex)
+          case _ => throw new Exception(e.messageChain)
+        }
+    }
+
+    assertEquals("The OS must be Windows 2012"
+      , Windows2012
+      , report.node.main.osDetails.os
+    )
+
+  }
+
 }

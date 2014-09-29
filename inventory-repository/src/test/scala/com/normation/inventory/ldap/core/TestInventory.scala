@@ -346,7 +346,30 @@ class TestInventory extends Specification {
   }
 
 
-   step {
+  "Trying to add specific Windows" should {
+
+    "Allow to save and read it back" in {
+
+      val node =  NodeInventory(
+          NodeSummary(
+              NodeId("windows 2012")
+            , AcceptedInventory
+            , "administrator", "localhost", Windows(Windows2012, "foo", new Version("1.0"), None, new Version("1.0")), NodeId("root")
+          )
+        , machineId = None
+      )
+
+      repo.save(FullInventory(node, None)).isOK and {
+        val FullInventory(n, m) = repo.get(NodeId("windows 2012"), AcceptedInventory).openOrThrowException("in Test")
+        n === node
+      }
+
+    }
+
+  }
+
+
+  step {
     ldap.close
     success
   }
