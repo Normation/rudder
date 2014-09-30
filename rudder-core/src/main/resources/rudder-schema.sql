@@ -63,30 +63,28 @@ CREATE SEQUENCE seq_reports_received_id START 101;
 CREATE TABLE reports_received (
   id                 bigint PRIMARY KEY default nextval('seq_reports_received_id')
 , node_id            text NOT NULL CHECK (node_id <> '')
-, agent_run_time     timestamp with time zone NOT NULL
+, agent_run          timestamp with time zone NOT NULL
 , rule_id            text NOT NULL CHECK (rule_id <> '')
 , serial             integer NOT NULL
 , directive_id       text NOT NULL CHECK (directive_id <> '')
 , component_name     text NOT NULL CHECK (component_name <> '')
 , component_value    text
 , report_type        text
--- I thing 'policy' is identical to component_name and so propose to 
--- remove that column
-, policy             text
-
 , message            text
 -- I don't remember if it is the time when the log is sent by syslog
 -- or when it is written by the agent. I thing it's the last one
 , creation_datetime  timestamp with time zone NOT NULL
+-- We also need to store the datetime on which we received the report
+, received_datetime  timestamp with time zone NOT NULL
 );
 
 
-CREATE INDEX idx_reports_received_node_id                ON reports_received (node_id);
-CREATE INDEX idx_reports_received_agent_run_time         ON reports_received (agent_run_time);
-CREATE INDEX idx_reports_received_node_id_agent_run_time ON reports_received (node_id, agent_run_time);
-CREATE INDEX idx_reports_received_component_name         ON reports_received (component_name);
-CREATE INDEX idx_reports_received_component_value        ON reports_received (component_value);
-CREATE INDEX idx_reports_received_rule_id                ON reports_received (rule_id);
+CREATE INDEX idx_reports_received_node_id           ON reports_received (node_id);
+CREATE INDEX idx_reports_received_agent_run         ON reports_received (agent_run);
+CREATE INDEX idx_reports_received_node_id_agent_run ON reports_received (node_id, agent_run);
+CREATE INDEX idx_reports_received_component_name    ON reports_received (component_name);
+CREATE INDEX idx_reports_received_component_value   ON reports_received (component_value);
+CREATE INDEX idx_reports_received_rule_id           ON reports_received (rule_id);
 
 CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
 
@@ -95,20 +93,21 @@ CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeSta
  * The table used to store archived agent execution reports. 
  */
 CREATE TABLE reports_received_archive (
-  id                  bigint PRIMARY KEY
-, node_id             text NOT NULL CHECK (node_id <> '')
-, agent_run_datetime  timestamp with time zone NOT NULL
-, rule_id             text NOT NULL CHECK (rule_id <> '')
-, serial              integer NOT NULL
-, directive_id        text NOT NULL CHECK (directive_id <> '')
-, component_name      text NOT NULL CHECK (component_name <> '')
-, component_value     text
-, report_type         text
-, message             text
-, creation_datetime   timestamp with time zone NOT NULL
+  id                 bigint PRIMARY KEY
+, node_id            text NOT NULL CHECK (node_id <> '')
+, agent_run          timestamp with time zone NOT NULL
+, rule_id            text NOT NULL CHECK (rule_id <> '')
+, serial             integer NOT NULL
+, directive_id       text NOT NULL CHECK (directive_id <> '')
+, component_name     text NOT NULL CHECK (component_name <> '')
+, component_value    text
+, report_type        text
+, message            text
+, creation_datetime  timestamp with time zone NOT NULL
+, received_datetime  timestamp with time zone NOT NULL
 );
 
-CREATE INDEX idx_reports_received_agent_run_time ON reports_received_archive (agent_run_datetime);
+CREATE INDEX idx_reports_received_archive_agent_run ON reports_received_archive (agent_run);
 
 /*
  * That table stores the agent run execution times for each nodes. 
@@ -120,12 +119,12 @@ CREATE TABLE agent_runs (
   node_id            text NOT NULL
 , datetime           timestamp with time zone NOT NULL
 , complete           boolean NOT NULL
-, nodeConfig_id       text
-, insertion_id        bigint
-, PRIMARY KEY(node_id, timestamp)
+, nodeConfig_id      text
+, insertion_id       bigint
+, PRIMARY KEY(node_id, datetime)
 );
 
-CREATE INDEX idx_agent_runs_datetime ON agent_runs (timestamp);
+CREATE INDEX idx_agent_runs_datetime ON agent_runs (datetime);
 CREATE INDEX idx_agent_runs_insertionid ON ReportsExecution (insertion_id);
 
 
@@ -140,14 +139,12 @@ CREATE TABLE reports_received_processed (
 , datetime timestamp with time zone NOT NULL
 );
 
-
 /* 
  *************************************************************************************
  * The following tables store what Rudder expects from agent. 
  * They are used to store rules versions and corresponding expected datas. 
  *************************************************************************************
  */
-
 
 CREATE SEQUENCE seq_reports_expected_id            START 1;
 CREATE SEQUENCE seq_reports_expected_node_join_key START 1;
@@ -343,7 +340,6 @@ CREATE TABLE name_historization_join_groups_nodes (
 , node_id                      text NOT NULL CHECK (nodeid <> '')
 , PRIMARY KEY(name_historization_groups_id, node_id)
 );
-
 
 CREATE SEQUENCE seq_name_historization_directives START 101;
 
