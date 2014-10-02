@@ -30,7 +30,7 @@ bundle common me
 bundle common inputs
 {
   vars:
-      "list_compatible_inputs" string => "NCF_CACHE_PATH=${sys.workdir}/state ${me.framework_path}/10_ncf_internals/list-compatible-inputs";
+      "list_compatible_inputs" string => "NCF_CACHE_PATH=${sys.workdir}/state /bin/sh ${me.framework_path}/10_ncf_internals/list-compatible-inputs";
 
       # this list contains everything that is in the 10_ncf_internals
       "ncf_internals_files"     slist => lsdir("${me.framework_path}/10_ncf_internals", ".*\.cf", "true");
