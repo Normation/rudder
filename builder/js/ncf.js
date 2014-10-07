@@ -85,10 +85,29 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
   // Transform a ncf technique into a valid UI technique
   // Add original_index to the method call, so we can track their modification on index
+  // Handle classes so we split them into OS classes (the first one only) and advanced classes
   $scope.toTechUI = function (technique) {
     if ("method_calls" in technique) {
       var calls = technique.method_calls.map( function (method_call, method_index) {
         method_call["original_index"] = method_index;
+
+        // Handle class_context
+        // First split from .
+        var myclasses =  method_call.class_context.split(".");
+        // find os class from the first class of class_context
+        var osClass = find_os_class(myclasses[0], cfengine_OS_classes);
+        if ( $.isEmptyObject(osClass)) {
+          // first class is not an os class, class_context is only advanced class
+          method_call.advanced_class = method_call.class_context;
+        } else {
+          // We have an os class !
+          method_call.OS_class = osClass;
+          if (myclasses.length > 1) {
+            // We have more than one class, rest of the context is an advanced class
+            myclasses.splice(0,1);
+            method_call.advanced_class = myclasses.join(".");
+          }
+        }
         return method_call;
       } );
       technique.method_calls = calls;
@@ -195,6 +214,91 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
+  ////////// OS Class ////////
+
+  // Structures we will use to select our class, we can't use the big structure os_classes, we have to use simple list with angular
+
+  // List of all OS types
+  $scope.type_classes = $.map(cfengine_OS_classes,function(val,i){return val.name;});
+
+  // Build Map of all OS  by type
+  $scope.os_classes_by_type = {};
+  for (var index in cfengine_OS_classes) {
+      // for each type ...
+      var current_type = cfengine_OS_classes[index];
+      // Get all oses
+      var oses = $.map(current_type.childs, function(os,i) {
+         return os.name;
+      });
+      $scope.os_classes_by_type[current_type.name] = oses;
+  }
+
+  // Regexp used for input version fields
+  $scope.versionRegex = /^\d+$/;
+
+  // List of oses using major or minor version
+  $scope.major_OS = $.map(cfengine_OS_classes, function(v,i) { return $.map($.grep(v.childs,function(os,i2) { return os.major}), function(os,i2) {return os.name});});
+  $scope.minor_OS = $.map(cfengine_OS_classes, function(v,i) { return $.map($.grep(v.childs,function(os,i2) { return os.minor}), function(os,i2) {return os.name});});
+
+  // Functiopn to check if the os selected need major/minor versionning
+  function checkVersion (os_list) {
+    if ($scope.selectedMethod.OS_class === undefined ) {
+      return false;
+    } else {
+      return $.inArray($scope.selectedMethod.OS_class.name,os_list) >= 0;
+    }
+  }
+
+  $scope.checkMajorVersion= function( ) {
+      return checkVersion($scope.major_OS);
+  }
+
+  $scope.checkMinorVersion= function( ) {
+      return checkVersion($scope.minor_OS);
+  }
+
+  // Function used when changing os type
+  $scope.updateOSType = function() {
+    // Reset selected OS
+    $scope.selectedMethod.OS_class.name = "Any";
+    // Do other update cleaning
+    $scope.updateOSName();
+  }
+  // Function used when changing selected os
+  $scope.updateOSName = function() {
+    // Reset versions inputs
+    $scope.selectedMethod.OS_class.majorVersion = undefined;
+    $scope.selectedMethod.OS_class.minorVersion = undefined;
+    // Update class context
+    $scope.updateClassContext();
+  }
+
+  // Update class context, after a change was made on classes
+  $scope.updateClassContext = function() {
+
+    // Define os class from selected inputs
+    var os = undefined;
+
+    // do not define os if nothing was selected
+    if ( !($scope.selectedMethod.OS_class === undefined) ) {
+      // Get class from os type and selected os
+      os = getClass($scope.selectedMethod.OS_class);
+    }
+
+    if (os === undefined) {
+      // No OS selected, only use advanced OS
+      $scope.selectedMethod.class_context = $scope.selectedMethod.advanced_class;
+    } else {
+      if ($scope.selectedMethod.advanced_class === undefined || $scope.selectedMethod.advanced_class === "") {
+        // No adanced class, use only OS
+        $scope.selectedMethod.class_context = os;
+      } else {
+        // Both OS and advanced. Use class_context os.advanced
+        $scope.selectedMethod.class_context = os+"."+$scope.selectedMethod.advanced_class;
+      }
+    }
+  }
+
   // Select a method in a technique
   $scope.selectMethod = function(method_call) {
     if(angular.equals($scope.selectedMethod,method_call) ) {
@@ -202,6 +306,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     } else {
       $scope.addNew=false;
       $scope.selectedMethod=method_call;
+      $scope.updateClassContext();
     }
   };
 
