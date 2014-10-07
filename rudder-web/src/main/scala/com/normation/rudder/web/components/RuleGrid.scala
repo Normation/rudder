@@ -214,8 +214,7 @@ class RuleGrid(
         "bJQueryUI": true,
         "bStateSave": true,
         "fnStateLoadParams": function (oSettings, oData) {
-           oData.oSearch.sSearch = "";
-           return false;
+          oData.aoSearchCols[1].sSearch = "";
         },
         "sCookiePrefix": "Rudder_DataTables_",
         "oLanguage": {
