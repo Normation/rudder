@@ -296,13 +296,8 @@ class SearchNodeComponent(
    * @return
    */
   def ajaxGridRefresh() : JsCmd = {
-
-      val grid = gridResult
-      JE.JsRaw("""$("#serverGrid_info").remove();""") &
-      JE.JsRaw("""$("#serverGrid_length").remove();""") &
-      activateButtonOnChange &
-       grid
-
+    activateButtonOnChange &
+    gridResult
   }
 
 
