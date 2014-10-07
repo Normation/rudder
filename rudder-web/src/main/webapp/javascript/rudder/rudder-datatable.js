@@ -231,10 +231,7 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         , "sSearch": ""
       }
     , "fnStateLoadParams": function (oSettings, oData) {
-        if(oData.oSearch) {
-          oData.oSearch.sSearch = "";
-        }
-        return false;
+        oData.aoSearchCols[1].sSearch = "";
       }
     , "aaSorting": [[ sortingDefault, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
