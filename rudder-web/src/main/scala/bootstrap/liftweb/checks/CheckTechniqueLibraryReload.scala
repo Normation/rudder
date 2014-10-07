@@ -49,7 +49,7 @@ import com.normation.rudder.domain.eventlog.RudderEventActor
 /**
  * Check at webapp startup if Rudder Technique library has to be reloaded
  * If flag file is present then reload technique library
- * This needs to be achieved after all tasks that could modify configuration (ie: CheckDotInGenericCFEngineVariableDef or CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace)
+ * This needs to be achieved after all tasks that could modify configuration (ie: CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace)
  */
 class CheckTechniqueLibraryReload(
     techniqueLibUpdater  : UpdateTechniqueLibrary
