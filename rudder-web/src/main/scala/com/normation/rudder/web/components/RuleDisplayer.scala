@@ -214,13 +214,13 @@ class RuleDisplayer (
      case Full(ruleCategoryTree) =>
        <div style="padding:10px;">
          <div style="float:left; width: 20%; overflow:auto">
-           <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
+           <div class="page-title">Categories</div>
            <div class="inner-portlet-content" id="categoryTreeParent">
                {viewCategories(ruleCategoryTree)}
            </div>
          </div>
          <div style="float:left; width:78%;padding-left:2%;">
-           <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
+           <div class="page-title" id="categoryDisplay">Rule</div>
            <div class="inner-portlet-content" id={gridId}>
              {viewRules}
            </div>

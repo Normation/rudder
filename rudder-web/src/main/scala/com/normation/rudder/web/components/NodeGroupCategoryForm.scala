@@ -105,7 +105,7 @@ class NodeGroupCategoryForm(
     val html = SHtml.ajaxForm(
       <div class="inner-portlet groupCategoryUpdateComponent">
         <div>
-          <div class="inner-portlet-header">Category details</div>
+          <div class="page-title">Category details</div>
         </div>
         <directive:notifications />
         <hr class="spacer"/>

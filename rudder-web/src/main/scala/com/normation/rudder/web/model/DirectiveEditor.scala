@@ -298,7 +298,7 @@ case class SectionFieldImp(
     else
       <tr><td colspan="2">
         <div  id={sectionId} class={classes}>
-         <div class="inner-portlet-header-lower" onClick={methodName}>Section: { name }</div>
+         <div class="section-title" onClick={methodName}>Section: { name }</div>
           <table class="directiveSectionDef">
               { childrenXml }
           </table>
@@ -312,7 +312,7 @@ case class SectionFieldImp(
     else
       <tr><td colspan="2">
         <div>
-        <div class="inner-portlet-header-lower">Section: { name }</div>
+        <div class="section-title">Section: { name }</div>
           <table class="directiveSectionDisplay">
             <tbody>
               { childrenXml }
@@ -444,7 +444,7 @@ case class MultivaluedSectionField(
 
             val classes = "groupFieldset foldableSection " + section.visibilityClasses
             <div  id={sectionId} class={classes}>
-              <div class="inner-portlet-header-lower" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
+              <div class="section-title" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
               { showFormEntry(section, i) }
               { // showAddAnother under the last element
                 if ((i + 1) == size) {
@@ -511,7 +511,7 @@ case class MultivaluedSectionField(
           <div class="directiveGroup">{
             (allSections.map { sect =>
               <div class="groupFieldset">
-                <div class="inner-portlet-header-lower">{ "%s".format(name) }</div>
+                <div class="section-title">{ "%s".format(name) }</div>
                 <table class="directiveGroupDisplay">
                   <tbody>
                     { sect.toHtmlNodeSeq }
