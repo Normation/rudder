@@ -117,7 +117,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
             <span class="glyphicon glyphicon-remove"></span>
         }
       case _ =>
-          <img src="/images/ajax-loader.gif" height="12" width="12" />
+          <img src="/images/ajax-loader-small.gif" />
     }
 
   }
