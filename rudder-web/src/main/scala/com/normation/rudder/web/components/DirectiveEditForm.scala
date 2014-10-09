@@ -113,6 +113,7 @@ class DirectiveEditForm(
   , oldDirective      : Option[Directive]
   , workflowEnabled   : Boolean
   , onSuccessCallback : (Either[Directive,ChangeRequestId]) => JsCmd = { (Directive) => Noop }
+  , onMigrationCallback : (Directive, Option[Directive]) => JsCmd
   , onFailureCallback : () => JsCmd = { () => Noop }
   , isADirectiveCreation : Boolean = false
   , onRemoveSuccessCallBack : () => JsCmd = { () => Noop }
@@ -216,7 +217,7 @@ class DirectiveEditForm(
       "#version" #> directiveVersion.toForm_! &
       "#migrate" #> SHtml.ajaxSubmit("Migrate", () => {
           val newDirective = directive.copy(techniqueVersion = directiveVersion.is)
-          onSuccessCallback(Left(newDirective))
+          onMigrationCallback(newDirective,Some(directive))
         }) &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
