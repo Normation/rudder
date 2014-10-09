@@ -604,6 +604,7 @@ div#Detail {
 .dataTables_length select {
   padding: 1px;
   border: 1px solid #B4B3A8;
+  width: auto;
 }
 
 .dataTables_length {
