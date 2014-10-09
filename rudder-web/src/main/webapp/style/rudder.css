@@ -2836,3 +2836,16 @@ li.targetExcluded a{
 .searchNodes tr td {
 	padding: 0 5px;
 }
+
+.deprecatedTechniqueIcon {
+	margin-left : 3px;
+}
+
+#displayDeprecation {
+  margin-right:5px;
+}
+
+#displayDeprecation + label {
+  font-weight:bold;
+  font-size:14px;
+}

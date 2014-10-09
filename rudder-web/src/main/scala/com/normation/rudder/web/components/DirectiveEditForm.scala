@@ -161,6 +161,24 @@ class DirectiveEditForm(
     )(body)
   }
 
+  def migrateButton(version : => TechniqueVersion, text: String) = {
+    SHtml.ajaxSubmit(
+        text
+      , () => {
+          val newDirective = directive.copy(techniqueVersion = version)
+          onMigrationCallback(newDirective,Some(directive))
+        })
+  }
+
+  val displayDeprecationWarning = technique.deprecrationInfo match {
+    case Some(info) =>
+      ( "#deprecation-message *" #> info.message &
+        "#migrate-button *" #> migrateButton(fullActiveTechnique.techniques.keys.max,"Migrate now!")
+      )
+    case None =>
+      ("#deprecation-warning [class+]" #> "hidden" )
+  }
+
   def showDirectiveForm(): NodeSeq = {
 
     val ruleDisplayer = {
@@ -215,16 +233,14 @@ class DirectiveEditForm(
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
       "#version" #> directiveVersion.toForm_! &
-      "#migrate" #> SHtml.ajaxSubmit("Migrate", () => {
-          val newDirective = directive.copy(techniqueVersion = directiveVersion.is)
-          onMigrationCallback(newDirective,Some(directive))
-        }) &
+      "#migrate" #> migrateButton(directiveVersion.is,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
-      "#isSingle *" #> showIsSingle// &
+      "#isSingle *" #> showIsSingle &
+      displayDeprecationWarning
     )(crForm) ++
     Script(OnLoad(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
@@ -368,7 +384,15 @@ class DirectiveEditForm(
 
 
 
-  val versions = activeTechnique.acceptationDatetimes.keys.map(v => (v,v.toString)).toSeq
+  def showDeprecatedVersion (version : TechniqueVersion) = {
+    val deprecationInfo = fullActiveTechnique.techniques(version).deprecrationInfo match {
+      case Some(_) => "(deprecated)"
+      case None => ""
+    }
+    s"${version} ${deprecationInfo}"
+  }
+
+  val versions = fullActiveTechnique.techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
 
 
   private[this] val directiveVersion =

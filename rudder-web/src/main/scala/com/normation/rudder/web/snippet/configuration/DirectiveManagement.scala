@@ -63,6 +63,7 @@ import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.authorization.AuthzToRights
 import com.normation.rudder.authorization.NoRights
 import org.joda.time.DateTime
+import net.liftweb.http.js.JE.JsArray
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -228,7 +229,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
 
   def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
-
     "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
         ".page-title *" #> "Usage" &
@@ -272,7 +272,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             }
 
           case Some(technique) =>
-
             /*
              * We want to filter technique to only show the one
              * with registered acceptation date time.
@@ -292,6 +291,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   None
               }
             }.toSeq.flatten.sortBy( _._1 )
+
+
             "#directiveIntro " #> {
               currentDirectiveSettingForm.is.map { piForm =>
                 (".directive *" #> piForm.directive.name)
@@ -313,17 +314,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             "#techniqueDescription" #>  technique.description &
             "#techniqueLongDescription" #>  technique.longDescription &
             "#isSingle *" #> showIsSingle(technique) &
-            "#techniqueVersions" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled) &
-            "#migrate" #> showMigration(fullActiveTechnique, workflowEnabled) &
-            "#addButton" #> validTechniqueVersions.lastOption.map { case(v, t, time) =>
-              SHtml.ajaxButton(
-                { Text(s"Create Directive (latest version) - ${v}") },
-                { () =>  SetHtml(CreateDirectivePopup.htmlId_popup,
-                           newCreationPopup(t, fullActiveTechnique, workflowEnabled)) &
-                         JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """) },
-                  ("class", "autoWidthButton")
-                )
-            }
+            "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled)
         }
     })
   }
@@ -342,84 +333,38 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     </span>
   }
 
-  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)], workflowEnabled: Boolean) : NodeSeq = {
-    //if we are on a Policy Server, add a "in use" after the currently used version
-    val directiveVersion = currentDirectiveSettingForm.is.map {
-      form => form.directive.techniqueVersion
-    }
+  private[this] def showVersions(activeTechnique: FullActiveTechnique, validTechniques: Seq[(TechniqueVersion, Technique, DateTime)], workflowEnabled: Boolean) = {
 
-    def newDirectiveAction(technique:Technique) : NodeSeq = {
-      val rights = AuthzToRights.parseAuthz("directive_write").headOption.getOrElse(NoRights)
-      if(CurrentUser.checkRights(rights)) {
-        SHtml.ajaxButton(
-            Text("Create Directive")
-          , { () => (   SetHtml(CreateDirectivePopup.htmlId_popup,
-                         newCreationPopup(technique, activeTechnique, workflowEnabled)
-                       )
-                     & JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """)
-                     )
-
-            }
-          , ("class", "smallButton")
-          , ("style", "width: 120px !important;")
-        )
-      } else {
-        NodeSeq.Empty
+    val techniqueVersionInfo = validTechniques.map { case(v,t, timeStamp) =>
+      val isDeprecated = t.deprecrationInfo.isDefined
+      val deprecationMessage = t.deprecrationInfo.map(_.message).getOrElse("")
+      val acceptationDate = DateFormaterService.getFormatedDate(timeStamp)
+      val action = {
+        val callback = SetHtml(CreateDirectivePopup.htmlId_popup, newCreationPopup(t, activeTechnique, workflowEnabled) ) &
+                       JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """)
+        val ajax = SHtml.ajaxCall(JsNull, (s) => callback)
+        AnonFunc("",ajax)
       }
+      JsObj(
+          ( "version"           -> v.toString )
+        , ( "isDeprecated"      -> isDeprecated)
+        , ("deprecationMessage" -> deprecationMessage)
+        , ("acceptationDate"    -> acceptationDate)
+        , ( "action"            -> action)
+      )
     }
+    val dataArray = JsArray(techniqueVersionInfo.toList)
 
-    validTechniques.map { case(v,t, timeStamp) =>
-        <tr style="border: solid #666666 1px !important">
-          <td>{v.toString}</td>
-          <td>{DateFormaterService.getFormatedDate(timeStamp)} {
-              directiveVersion match {
-                case Full(x) if(x == v) => <i>(version used)</i>
-                case _ => NodeSeq.Empty
-              }
-          }</td>
-          <td>{newDirectiveAction(t)}</td>
-        </tr>
-     }
-  }
-
-  /**
-   * If there is only zero or one version, display nothing.
-   * Else, build an ajax form with the migration logic
-   */
-  private[this] def showMigration(activeTechnique: FullActiveTechnique, workflowEnabled: Boolean) = {
-
-    def onSubmitMigration(v:TechniqueVersion, directive:Directive, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean) = {
-      currentTechnique = Some((activeTechnique,v))
-      updateDirectiveSettingForm(activeTechnique, directive.copy(techniqueVersion = v), Some(directive), workflowEnabled, false)
-    }
-
-    "*" #> currentDirectiveSettingForm.is
-      .filter { _ => //do not display form when only one version is available
-        activeTechnique.techniques.size > 1
-      }
-      .map { form =>
-        "form" #> { (xml:NodeSeq) =>
-          val options = activeTechnique.techniques.keys
-            .toSeq
-            .filterNot( _ == form.directive.techniqueVersion)
-            .map( v => (v,v.toString) )
-            .reverse
-          val onSubmit =  { (v:TechniqueVersion) =>
-            onSubmitMigration(v, form.directive, activeTechnique, workflowEnabled)
-          }
-          val jsFunc = { () =>
-            //update UI: Directive details
-            Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
-            Replace(htmlId_policyConf, showDirectiveDetails) &
-            displayFinishMigrationPopup
-          }
-          (
-            "select" #> (SHtml.selectObj(options, default = Empty, onSubmit) %
-              ("style", "width:60px;")) &
-            ":submit" #> SHtml.ajaxSubmit("Migrate", jsFunc)
-          ) (SHtml.ajaxForm(xml))
-        }
-      }
+    Script(
+      OnLoad(
+        JsRaw(s"""
+          angular.bootstrap('#techniqueDetails', ['techniqueDetails']);
+          var scope = angular.element($$("#techniqueVersion")).scope();
+          scope.$$apply(function(){
+            scope.init(${dataArray.toJsCmd});
+          } );
+          createTooltip();"""
+    ) ) )
   }
 
   ///////////// finish migration pop-up ///////////////
