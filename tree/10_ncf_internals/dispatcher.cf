@@ -28,6 +28,7 @@ bundle agent dispatcher
 {
   vars:
       "services" slist => { "@{mapper.services}" };
+      "cservices[${services}]" string => canonify("${services}");
 
   classes:
       "mapper_services_exists" expression => isvariable("mapper.services");
@@ -37,7 +38,8 @@ bundle agent dispatcher
       # key 1 is the base (relative to 60_services)
       # key 2 is the service name
       # key 3 is the service version  (oldstable, stable, testing, unstable)
-      "services_array_defined" expression => regextract("(.*)/([^/]+)/([^/]+)", "${services}", "services_array_${services}");
+      "${cservices[${services}]}_array_defined" expression => regextract("(.*)/([^/]+)/([^/]+)", "${services}", "services_array_${services}");
+      "services_array_defined" expression => classmatch(".*_array_defined");
 
   methods:
     services_array_defined.dispatcher_reports_reached::
