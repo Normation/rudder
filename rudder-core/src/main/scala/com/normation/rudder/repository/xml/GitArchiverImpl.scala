@@ -249,7 +249,7 @@ class GitActiveTechniqueCategoryArchiverImpl(
       for {
         //don't forget to delete the category *directory*
         deleted  <- tryo {
-                      FileUtils.forceDelete(uptcFile.getParentFile)
+                      FileUtils.forceDelete(uptcFile)
                       logger.debug("Deleted archived technique library category: " + uptcFile.getPath)
                     }
         commited <- gitCommit match {
@@ -616,7 +616,7 @@ class GitNodeGroupArchiverImpl(
       for {
         //don't forget to delete the category *directory*
         deleted  <- tryo {
-                      FileUtils.forceDelete(ngcFile.getParentFile)
+                      FileUtils.forceDelete(ngcFile)
                       logger.debug("Deleted archived node group category: " + ngcFile.getPath)
                     }
         commited <- gitCommit match {
@@ -721,7 +721,7 @@ class GitNodeGroupArchiverImpl(
           for {
             //don't forget to delete the category *directory*
             deleted  <- tryo {
-                          FileUtils.forceDelete(ngFile.getParentFile)
+                          FileUtils.forceDelete(ngFile)
                           logger.debug("Deleted archived node group: " + ngFile.getPath)
                         }
             commited <- gitCommit match {
