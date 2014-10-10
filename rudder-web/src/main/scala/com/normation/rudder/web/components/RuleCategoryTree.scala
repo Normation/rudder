@@ -342,7 +342,7 @@ class RuleCategoryTree(
        }, xml)
     }
 
-    override def children = category.childs.filter(c => directive.map(_.isEmptyCategory(c.id)).getOrElse(true)).map(categoryNode(_))
+    override def children = category.childs.filter(c => directive.map(_.isEmptyCategory(c.id)).getOrElse(true)).sortBy(_.name.toLowerCase()).map(categoryNode(_))
 
   }
 }
