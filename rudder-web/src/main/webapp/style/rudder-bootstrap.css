@@ -96,7 +96,6 @@
 .tw-bs a .badge .glyphicon{
   color: #eee;
   font-size:12px;
-  top:0;
 }
 
 .tw-bs a .badge .glyphicon.glyphicon-ok{
@@ -214,5 +213,10 @@
   .fixed-footer {
     bottom: 40px;
   }
+}
+
+#generation-status{
+	padding-top:2px;
+	padding-bottom:4px;
 }
 
