@@ -518,11 +518,13 @@ a.warning {
    color: #c00;
    padding-left: 30px;
 }
-#contenu table td img, #contenu table th img {
+
+table.dataTable td img, table.dataTable th img {
    float: none;
    margin: 0;
    padding: 4px 0 0 0;
 }
+
 .openDetail {
    border: none;
    background: none;
