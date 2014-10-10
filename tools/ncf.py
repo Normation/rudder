@@ -151,22 +151,25 @@ def parse_bundlefile_metadata(content, bundle_type):
 def class_context_and(a, b):
   """Concatenate two CFEngine class contexts, and simplify useless cases"""
 
+  # Filter 'any' class 
+  contexts = [ context for context in [a,b] if context != "any" ]
+
+  final_contexts = []
   # Add parenthesis if necessary
-  contexts = []
-  for context in [a, b]:
-    # Ignore the "any" class
-    if context == 'any':
-      continue
-    if '.' in context or '&' in context or '|' in context:
-      contexts.append('(' + context + ')')
-    else:
-      contexts.append(context)
+  if len(contexts) > 1:
+    for context in contexts:
+      if '.' in context or '&' in context or '|' in context:
+        final_contexts.append('(' + context + ')')
+      else:
+        final_contexts.append(context)
+  else:
+    final_contexts = contexts
 
   # If nothing is left, just use the placeholder "any"
-  if len(contexts) == 0:
-    contexts.append('any')
+  if len(final_contexts) == 0:
+    final_contexts.append('any')
 
-  return '.'.join(contexts)
+  return '.'.join(final_contexts)
 
 def parse_technique_methods(technique_file):
   res = []

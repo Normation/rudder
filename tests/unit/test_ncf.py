@@ -326,6 +326,10 @@ class TestNcf(unittest.TestCase):
     self.assertEquals("a.B", ncf.class_context_and("a", "B"))
     self.assertEquals("(a.b).c", ncf.class_context_and("a.b", "c"))
     self.assertEquals("(a|b).(c&d)", ncf.class_context_and("a|b", "c&d"))
+    self.assertEquals("c&d", ncf.class_context_and("any", "c&d"))
+    self.assertEquals("c.d", ncf.class_context_and("any", "c.d"))
+    self.assertEquals("a|b", ncf.class_context_and("a|b", "any"))
+    self.assertEquals("any", ncf.class_context_and("any", "any"))
 
 if __name__ == '__main__':
   unittest.main()
