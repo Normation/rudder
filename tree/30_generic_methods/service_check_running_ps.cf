@@ -28,6 +28,7 @@
 bundle agent service_check_running_ps(service_regex)
 {
   vars:
+
       "class_prefix" string => canonify("service_check_running_${service_regex}");
 
   processes:

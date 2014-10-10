@@ -20,7 +20,7 @@
 # @description Ensure that a service is running using the appropriate method, specifying the path of the service in the ps output
 # 
 #
-# @parameter service_name Service name (as recognized by init.d, upstart, etc...)
+# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
 # @parameter service_path Service with its path, as in the output from 'ps'
 
 # @class_prefix service_ensure_running
@@ -33,8 +33,8 @@ bundle agent service_ensure_running_path(service_name, service_path)
 
     "canonified_service_name"      string => canonify("${service_name}");
     "canonified_service_path"      string => canonify("${service_path}");
-    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
-    "class_prefix"                 string => canonify("service_ensure_running_${service_name}");
+
+    "class_prefix"                 string => "service_ensure_running_${canonified_service_name}";
 
   methods:
 

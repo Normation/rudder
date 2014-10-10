@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2013 Normation SAS
+# Copyright 2013-2014 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -23,21 +23,22 @@
 # 
 # @class_prefix service_start
 # @class_parameter service_name
-# This bundle will define a class service_start_${service_name}_{kept,repaired,not_ok,ok,reached}
+# This bundle will define a class service_start_${canonified_service_name}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent service_start(service_name)
 {
   vars:
 
-    "canonified_service_name"      string => canonify("${service_name}");
-    "canonified_init_command_name" string => canonify("/etc/init.d/${service_name} start");
-    "class_prefix"                 string => canonify("service_start_${service_name}");
+    "canonified_service_name" string => canonify("${service_name}");
+
+    "class_prefix"            string => "service_start_${canonified_service_name}";
 
   methods:
 
-    # Will be replaced later with less naive conditions (using either service, upstart, ...
-    "start"      usebundle => command_execution("/etc/init.d/${service_name} start");
-    "class copy" usebundle => _classes_copy("command_execution_${canonified_init_command_name}", "${class_prefix}");
+    "start"      usebundle => service_action("${service_name}", "start");
+
+    "class copy" usebundle => _classes_copy("service_action_${canonified_service_name}", "${class_prefix}");
+
     "report"     usebundle => _logger("Start service ${service_name}", "${class_prefix}");
 
 }
