@@ -277,7 +277,7 @@ class ChangeRequestChangesForm(
             { "sWidth": "100px" }
           ],
         } );
-        $$('.dataTables_filter input').attr("placeholder", "Search"); """)
+        $$('.dataTables_filter input').attr("placeholder", "Filter"); """)
 
     ( "#crBody" #> lines).apply(CRTable) ++
     Script(

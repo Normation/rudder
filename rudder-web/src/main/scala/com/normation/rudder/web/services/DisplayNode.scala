@@ -125,7 +125,7 @@ object DisplayNode extends Loggable {
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
         });
-        $('.dataTables_filter input').attr("placeholder", "Search");
+        $('.dataTables_filter input').attr("placeholder", "Filter");
             """.format(gridId,gridDataId,gridId))
     ) match {
       case Empty => Alert("No software found for that server")
@@ -169,7 +169,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
 
-              $('.dataTables_filter input').attr("placeholder", "Search");
+              $('.dataTables_filter input').attr("placeholder", "Filter");
           | """.stripMargin('|').format(i,i)):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
@@ -194,7 +194,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
-              $('.dataTables_filter input').attr("placeholder", "Search");
+              $('.dataTables_filter input').attr("placeholder", "Filter");
            | """.stripMargin('|').format(i._1,i._2.mkString("[",",","]"),i._3,i._1)):JsCmd
         }
       } &
