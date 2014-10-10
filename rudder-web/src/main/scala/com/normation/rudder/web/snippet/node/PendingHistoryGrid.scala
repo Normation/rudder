@@ -121,7 +121,7 @@ object PendingHistoryGrid extends Loggable {
             "sPaginationType": "full_numbers",
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $('.dataTables_filter input').attr("placeholder", "Search");
+          $('.dataTables_filter input').attr("placeholder", "Filter");
           """.replaceAll("#table_var#",jsVarNameForId)
         ) & initJsCallBack(entries)
        )
