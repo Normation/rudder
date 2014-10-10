@@ -172,7 +172,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
         <li class="dropdown">
           <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
-            <span>Status</span> <span class="badge"> {statusIcon}</span><span class="caret" style="margin-left:5px"></span></a>
+            <span>Status</span> <span class="badge" id="generation-status"> {statusIcon}</span><span class="caret" style="margin-left:5px"></span></a>
           <ul class="dropdown-menu" role="menu">
             {lastStatus}
             <li>{currentStatus}</li>
