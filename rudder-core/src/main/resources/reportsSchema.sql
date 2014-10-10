@@ -35,211 +35,161 @@
 -- SQL schema for the reports data
 
 -- set the report to warnings
-set client_min_messages='warning';
+SET client_min_messages='warning';
 
 
 -- Enforce support for standart string (unescaped \)
 ALTER database rudder SET standard_conforming_strings=true;
 
--- Create the sequences
-Create SEQUENCE ruleSerialId START 1;
 
-Create SEQUENCE ruleVersionId START 1;
-
--- Create the table for the reports information
-create table expectedReports (
-	pkId integer PRIMARY KEY DEFAULT nextval('ruleSerialId'),
-	nodeJoinKey integer NOT NULL,
-	ruleId text NOT NULL CHECK (ruleId <> ''),
-	serial integer NOT NULL,
-	directiveId text NOT NULL CHECK (directiveId <> ''),
-	component text NOT NULL CHECK (component <> ''),
-	cardinality integer NOT NULL,
-	componentsValues text NOT NULL, -- this is the serialisation of the expected values 
-	unexpandedComponentsValues text, -- this is the serialisatin of the unexpanded expected values. It may be null for pre-2.6 entries
-	beginDate timestamp with time zone NOT NULL,
-	endDate timestamp with time zone
-);
-
-create index expectedReports_versionId on expectedReports (nodeJoinKey);
-create index expectedReports_serialId on expectedReports (ruleId, serial);
-
-create table expectedReportsNodes (
-	nodeJoinKey integer NOT NULL ,
-	nodeId varchar(50) NOT NULL  CHECK (nodeId <> ''),
-	primary key (nodeJoinKey, nodeId)
-);
-
-create index expectedReportsNodes_versionId on expectedReportsNodes (nodeJoinKey);
+/*
+ *************************************************************************************
+ * The following tables are used as input from agent 
+ * action. 
+ * We store execution reports, historize them, and
+ * also store each run in a dedicated tables. 
+ * 
+ * These tables are (should) be independant from
+ * rudder-the-webapp and should be directly 
+ * feeded by syslog. 
+ *************************************************************************************
+ */
 
 
 -- create the table for the reports sent
 
-create sequence serial START 101;
+CREATE SEQUENCE serial START 101;
 
 CREATE TABLE RudderSysEvents (
-id bigint PRIMARY KEY default nextval('serial'),
-executionDate timestamp with time zone NOT NULL, 
-nodeId text NOT NULL CHECK (nodeId <> ''),
-directiveId text NOT NULL CHECK (directiveId <> ''),
-ruleId text NOT NULL CHECK (ruleId <> ''),
-serial integer NOT NULL,
-component text NOT NULL CHECK (component <> ''),
-keyValue text,
-executionTimeStamp timestamp with time zone NOT NULL,
-eventType varchar(64),
-policy text,
-msg text
+  id                 bigint PRIMARY KEY default nextval('serial')
+, executionDate      timestamp with time zone NOT NULL
+, nodeId             text NOT NULL CHECK (nodeId <> '')
+, directiveId        text NOT NULL CHECK (directiveId <> '')
+, ruleId             text NOT NULL CHECK (ruleId <> '')
+, serial             integer NOT NULL
+, component          text NOT NULL CHECK (component <> '')
+, keyValue           text
+, executionTimeStamp timestamp with time zone NOT NULL
+, eventType          varchar(64)
+, policy             text
+, msg                text
 );
 
 
-create index nodeid_idx on RudderSysEvents (nodeId);
-CREATE INDEX executionTimeStamp_idx on RudderSysEvents (executionTimeStamp);
-CREATE INDEX composite_node_execution_idx on RudderSysEvents (nodeId, executionTimeStamp);
-CREATE INDEX component_idx on RudderSysEvents (component);
-CREATE INDEX keyValue_idx on RudderSysEvents (keyValue);
-CREATE INDEX ruleId_idx on RudderSysEvents (ruleId);
+CREATE INDEX nodeid_idx                   ON RudderSysEvents (nodeId);
+CREATE INDEX executionTimeStamp_idx       ON RudderSysEvents (executionTimeStamp);
+CREATE INDEX composite_node_execution_idx ON RudderSysEvents (nodeId, executionTimeStamp);
+CREATE INDEX component_idx                ON RudderSysEvents (component);
+CREATE INDEX keyValue_idx                 ON RudderSysEvents (keyValue);
+CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
 
-
+/*
+ * The table used to store archived agent execution reports. 
+ */
 CREATE TABLE ArchivedRudderSysEvents (
-id bigint PRIMARY KEY,
-executionDate timestamp with time zone NOT NULL, 
-nodeId text NOT NULL CHECK (nodeId <> ''),
-directiveId text NOT NULL CHECK (directiveId <> ''),
-ruleId text NOT NULL CHECK (ruleId <> ''),
-serial integer NOT NULL,
-component text NOT NULL CHECK (component <> ''),
-keyValue text,
-executionTimeStamp timestamp with time zone NOT NULL,
-eventType varchar(64),
-policy text,
-msg text
+  id                 bigint PRIMARY KEY
+, executionDate      timestamp with time zone NOT NULL
+, nodeId             text NOT NULL CHECK (nodeId <> '')
+, directiveId        text NOT NULL CHECK (directiveId <> '')
+, ruleId             text NOT NULL CHECK (ruleId <> '')
+, serial             integer NOT NULL
+, component          text NOT NULL CHECK (component <> '')
+, keyValue           text
+, executionTimeStamp timestamp with time zone NOT NULL
+, eventType          varchar(64)
+, policy             text
+, msg                text
 );
 
-create index executionTimeStamp_archived_idx on ArchivedRudderSysEvents (executionTimeStamp);
+CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executionTimeStamp);
 
+/*
+ * That table store the agent execution times for each nodes. 
+ * We keep the starting time of the given run and the fact 
+ * that the run completed (we got an "execution END" report) 
+ * or not. 
+ */
+CREATE TABLE ReportsExecution (
+  nodeId             text NOT NULL
+, date               timestamp with time zone NOT NULL
+, complete           boolean NOT NULL
+, PRIMARY KEY(nodeId, date)
+);
+
+CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
+
+/* 
+ *************************************************************************************
+ * The following tables store what Rudder expects from agent. 
+ * The are used to store rules versions and corresponding expected datas. 
+ *************************************************************************************
+ */
+
+-- Create the sequences
+CREATE SEQUENCE ruleSerialId START 1;
+
+-- that sequence is used for nodeJoinKey value
+CREATE SEQUENCE ruleVersionId START 1;
+
+
+-- Create the table for the reports information
+CREATE TABLE expectedReports (
+  pkId                       integer PRIMARY KEY DEFAULT nextval('ruleSerialId')
+, nodeJoinKey                integer NOT NULL
+, ruleId                     text NOT NULL CHECK (ruleId <> '')
+, serial                     integer NOT NULL
+, directiveId                text NOT NULL CHECK (directiveId <> '')
+, component                  text NOT NULL CHECK (component <> '')
+, cardinality                integer NOT NULL
+, componentsValues           text NOT NULL -- this is the serialisation of the expected values 
+, unexpandedComponentsValues text -- this is the serialisatin of the unexpanded expected values. It may be null for pre-2.6 entries
+, beginDate                  timestamp with time zone NOT NULL
+, endDate                    timestamp with time zone
+);
+
+CREATE INDEX expectedReports_versionId ON expectedReports (nodeJoinKey);
+CREATE INDEX expectedReports_serialId ON expectedReports (ruleId, serial);
+
+CREATE TABLE expectedReportsNodes (
+  nodeJoinKey integer NOT NULL 
+, nodeId      varchar(50) NOT NULL CHECK (nodeId <> '')
+, PRIMARY KEY (nodeJoinKey, nodeId)
+);
+
+CREATE INDEX expectedReportsNodes_versionId ON expectedReportsNodes (nodeJoinKey);
+
+
+/* 
+ *************************************************************************************
+ * The following tables stores "event logs", i.e logs action about user and 
+ * system event that can leads to configuration changes and are needed to allows
+ * audit track logs. 
+ *************************************************************************************
+ */
 
 CREATE SEQUENCE eventLogIdSeq START 1;
 
-
 CREATE TABLE EventLog (
-    id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq'),
-    creationDate timestamp with time zone NOT NULL DEFAULT 'now',
-    severity integer,
-    causeId integer,
-    modificationId text,
-    principal text,
-    reason text,
-    eventType varchar(64),
-    data xml
+  id             integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
+, creationDate   timestamp with time zone NOT NULL DEFAULT 'now'
+, severity       integer
+, causeId        integer
+, modificationId text
+, principal      text
+, reason         text
+, eventType      varchar(64)
+, data           xml
 ); 
 
-create index eventType_idx on EventLog (eventType);
-create index creationDate_idx on EventLog (creationDate);
+CREATE INDEX eventType_idx ON EventLog (eventType);
+CREATE INDEX creationDate_idx ON EventLog (creationDate);
 
-
-
-create sequence GroupsId START 101;
-
-
-CREATE TABLE Groups (
-id integer PRIMARY KEY default nextval('GroupsId'),
-groupId text NOT NULL CHECK (groupId <> ''),
-groupName text,
-groupDescription text,
-nodeCount int,
-groupStatus int default 2,
-startTime timestamp with time zone default now(),
-endTime timestamp with time zone
-);
-
-
-CREATE TABLE GroupsNodesJoin (
-groupPkeyId integer, -- really the id of the table Groups
-nodeId text NOT NULL CHECK (nodeid <> ''),
-PRIMARY KEY(groupPkeyId, nodeId)
-);
-
-
-create index groups_id_start on Groups (groupId, startTime);
-create index groups_end on Groups (endTime);
-
-
-create sequence directivesId START 101;
-
-
-CREATE TABLE Directives (
-id integer PRIMARY KEY default nextval('directivesId'),
-directiveId text NOT NULL CHECK (directiveId <> ''),
-directiveName text,
-directiveDescription text,
-priority integer NOT NULL,
-techniqueName text,
-techniqueVersion text,
-techniqueDescription text,
-techniqueHumanName text,
-startTime timestamp with time zone NOT NULL,
-endTime timestamp with time zone
-);
-
-
-create index directive_id_start on Directives (directiveId, startTime);
-create index directive_end on Directives (endTime);
-
-create sequence rulesId START 101;
-
-
-CREATE TABLE Rules (
-rulePkeyId integer PRIMARY KEY default nextval('rulesId'),
-ruleId text NOT NULL CHECK (ruleId <> ''),
-serial integer NOT NULL,
-name text,
-shortdescription text,
-longdescription text,
-isEnabled boolean,
-startTime timestamp with time zone NOT NULL,
-endTime timestamp with time zone
-);
-
-CREATE TABLE RulesGroupJoin (
-rulePkeyId integer, -- really the id of the table Rules
-groupId text NOT NULL CHECK (groupId <> ''),
-PRIMARY KEY(rulePkeyId, groupId)
-);
-
-CREATE TABLE RulesDirectivesJoin (
-rulePkeyId integer, -- really the id of the table Rules
-directiveId text NOT NULL CHECK (directiveId <> ''),
-PRIMARY KEY(rulePkeyId, directiveId)
-);
-
-
-create index rule_id_start on Rules (ruleId, startTime);
-create index rule_end on Rules (endTime);
-
-
-
-
-create sequence NodesId START 101;
-
-
-CREATE TABLE Nodes (
-id integer PRIMARY KEY default nextval('NodesId'),
-nodeId text NOT NULL CHECK (nodeId <> ''),
-nodeName text,
-nodeDescription text,
-startTime timestamp with time zone default now(),
-endTime timestamp with time zone
-);
-
-
-
-create index nodes_id_start on Nodes (nodeId, startTime);
-create index nodes_end on Nodes (endTime);
-
-create sequence MigrationEventLogId start 1;
-
-CREATE TABLE MigrationEventLog(
+/*
+ * That table is used when a migration between 
+ * event log format is needed. 
+ */
+CREATE SEQUENCE MigrationEventLogId start 1;
+CREATE TABLE MigrationEventLog (
   id                  integer PRIMARY KEY default(nextval('MigrationEventLogId'))
 , detectionTime       timestamp with time zone NOT NULL
 , detectedFileFormat  integer
@@ -249,18 +199,35 @@ CREATE TABLE MigrationEventLog(
 , description         text
 );
 
+
+/*
+ *************************************************************************************
+ * A table used to store generic properties related to the database and that could not
+ * go the the LDAP backend. Typically, that's property that must be updated during a 
+ * transaction or are really frequently written. 
+ *************************************************************************************
+ */
+
+
 CREATE TABLE RudderProperties(
   name text PRIMARY KEY
 , value text
 );
+
+
+/*
+ *************************************************************************************
+ * The following tables are used to manage
+ * validation workflows and change requests 
+ *************************************************************************************
+ */
 
 CREATE TABLE gitCommit(
   gitcommit text PRIMARY KEY
 , modificationid text
 );
 
-
-create sequence ChangeRequestId start 1;
+CREATE SEQUENCE ChangeRequestId start 1;
 
 CREATE TABLE ChangeRequest(
   id        integer PRIMARY KEY default(nextval('ChangeRequestId'))
@@ -276,17 +243,106 @@ CREATE TABLE Workflow(
 , state text
 );
 
-create table StatusUpdate (
-key text PRIMARY KEY,
-lastId bigint NOT NULL,
-date timestamp with time zone NOT NULL
+CREATE TABLE StatusUpdate (
+  key    text PRIMARY KEY
+, lastId bigint NOT NULL
+, date   timestamp with time zone NOT NULL
 );
 
-create table ReportsExecution (
-nodeId text NOT NULL,
-date timestamp with time zone NOT NULL,
-complete boolean NOT NULL,
-PRIMARY KEY(nodeId, date)
+
+/* 
+ *************************************************************************************
+ * The following tables stores names about object to be able to historize them
+ * and present them back to the user in a meaningful way. 
+ *************************************************************************************
+ */
+
+CREATE SEQUENCE GroupsId START 101;
+
+CREATE TABLE Groups (
+  id               integer PRIMARY KEY default nextval('GroupsId')
+, groupId          text NOT NULL CHECK (groupId <> '')
+, groupName        text
+, groupDescription text
+, nodeCount        int
+, groupStatus      int default 2
+, startTime        timestamp with time zone default now()
+, endTime          timestamp with time zone
 );
 
-create index reportsexecution_date_idx on ReportsExecution (date);
+CREATE TABLE GroupsNodesJoin (
+  groupPkeyId integer -- really the id of the table Groups
+, nodeId      text NOT NULL CHECK (nodeid <> '')
+, PRIMARY KEY(groupPkeyId, nodeId)
+);
+
+CREATE INDEX groups_id_start ON Groups (groupId, startTime);
+CREATE INDEX groups_end ON Groups (endTime);
+
+CREATE SEQUENCE directivesId START 101;
+
+CREATE TABLE Directives (
+  id                   integer PRIMARY KEY default nextval('directivesId')
+, directiveId          text NOT NULL CHECK (directiveId <> '')
+, directiveName        text
+, directiveDescription text
+, priority             integer NOT NULL
+, techniqueName        text
+, techniqueVersion     text
+, techniqueDescription text
+, techniqueHumanName   text
+, startTime            timestamp with time zone NOT NULL
+, endTime              timestamp with time zone
+);
+
+CREATE INDEX directive_id_start ON Directives (directiveId, startTime);
+CREATE INDEX directive_end ON Directives (endTime);
+
+CREATE SEQUENCE rulesId START 101;
+
+CREATE TABLE Rules (
+  rulePkeyId       integer PRIMARY KEY default nextval('rulesId')
+, ruleId           text NOT NULL CHECK (ruleId <> '')
+, serial           integer NOT NULL
+, name             text
+, shortdescription text
+, longdescription  text
+, isEnabled        boolean
+, startTime        timestamp with time zone NOT NULL
+, endTime          timestamp with time zone
+);
+
+CREATE TABLE RulesGroupJoin (
+  rulePkeyId integer -- really the id of the table Rules
+, groupId    text NOT NULL CHECK (groupId <> '')
+, PRIMARY KEY(rulePkeyId, groupId)
+);
+
+CREATE TABLE RulesDirectivesJoin (
+  rulePkeyId integer -- really the id of the table Rules
+, directiveId text NOT NULL CHECK (directiveId <> '')
+, PRIMARY KEY(rulePkeyId, directiveId)
+);
+
+CREATE INDEX rule_id_start ON Rules (ruleId, startTime);
+CREATE INDEX rule_end      ON Rules (endTime);
+
+CREATE SEQUENCE NodesId START 101;
+
+CREATE TABLE Nodes (
+  id              integer PRIMARY KEY default nextval('NodesId')
+, nodeId          text NOT NULL CHECK (nodeId <> '')
+, nodeName        text
+, nodeDescription text
+, startTime       timestamp with time zone default now()
+, endTime         timestamp with time zone
+);
+
+CREATE INDEX nodes_id_start ON Nodes (nodeId, startTime);
+CREATE INDEX nodes_end      ON Nodes (endTime);
+
+/*
+ *************************************************************************************
+ * end
+ *************************************************************************************
+ */

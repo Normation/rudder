@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-node" at="content">
+<lift:surround with="common-layout" at="content">
   
 <head>
 <title>Rudder - Upload Files</title>
@@ -6,12 +6,7 @@
 
 
 <div class="portlet">
- <div class="portlet-header">Manage uploaded files</div>
- <div class="portlet-content">  
-  <div class="intro">
-   <div>This portlet lists all the files that have been uploaded and are ready to be deployed. You can alse upload files to be deployed on nodes. 
-   </div>
-  </div> 
+ <div class="portlet-content">
   <hr class="spacer"/> 
   <lift:UploadedFiles.list form="POST">
     <table cellspacing="0" id="uploaded_files_grid">

@@ -360,7 +360,7 @@ function correctButtons() {
 	//$("button, input:submit", ".detailsUser").button();
 	//$("button, input:submit", ".popupButton").button();
 		
-	$("a", ".detailsUser").click(function() { return false; });
+	$("#logout").click(function() { return false; });
 	}
 
 function processKey(e , buttonId){

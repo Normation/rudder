@@ -151,7 +151,7 @@ class EventListDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           })
-          $('.dataTables_filter input').attr("placeholder", "Search");
+          $('.dataTables_filter input').attr("placeholder", "Filter");
           """.format(gridName,gridName).replaceAll("#table_var#",jsGridName)
         )  &
         JsRaw("""

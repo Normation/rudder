@@ -48,15 +48,22 @@ import net.liftweb.http.SHtml._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ChangesOnly
 
-
+/**
+ * This class manage the displaying of user configured properties.
+ *
+ * Methods on that classes are used in the template ""
+ */
 class PropertiesManagement extends DispatchSnippet with Loggable {
 
   private[this] val configService : ReadConfigService with UpdateConfigService = RudderConfig.configService
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen = RudderConfig.stringUuidGenerator
 
-  def startNewPolicyGeneration = {
+  def startNewPolicyGeneration() = {
     val modId = ModificationId(uuidGen.newUuid)
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
   }
@@ -68,6 +75,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "cfagentSchedule" => cfagentScheduleConfiguration
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
+    case "complianceModeConfiguration" => complianceModeConfiguration
   }
 
 
@@ -677,7 +685,48 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
+  def complianceModeConfiguration = { xml : NodeSeq =>
+    // form value, defaulted to save value
+    // the semantic is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
+    var complianceMode = configService.rudder_compliance_mode
 
+    def submit() = {
+      complianceMode.foreach(x => configService.set_rudder_compliance_mode(x))
+      complianceMode = configService.rudder_compliance_mode
+
+      // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      S.notice("complianceModeMsg", complianceMode match {
+        case Full(FullCompliance)  => "Compliance will be enabled on next agents runs on nodes"
+        case Full(ChangesOnly) => "Compliance will be disabled for next agent runs on nodes. Only errors and repaired will be reported"
+        case eb: EmptyBox => "There was an error when updating the value of the compliance"
+      })
+    }
+
+    def compliance(x: Boolean) : Box[ComplianceMode] = {
+      if(x) Full(FullCompliance) else Full(ChangesOnly)
+    }
+
+    ( "#complianceMode" #> {
+      complianceMode match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value == FullCompliance
+            , (b : Boolean) => { complianceMode = compliance(b) }
+            , ("id","complianceMode")
+          )
+        case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Rudder Compliance Mode' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+
+      "#complianceModeSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();")))
+
+  }
 }
 
 

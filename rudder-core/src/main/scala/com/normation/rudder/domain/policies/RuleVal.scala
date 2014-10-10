@@ -45,6 +45,7 @@ import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
 import scala.collection.immutable.TreeMap
+import com.normation.inventory.domain.NodeInventory
 
 /*
  * Immutable bridge between cfclerk and rudder
@@ -59,6 +60,7 @@ import scala.collection.immutable.TreeMap
 case class InterpolationContext(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
+      , inventory       : NodeInventory
         //environment variable for that server
         //must be a case insensitive Map !!!!
       , nodeContext     : TreeMap[String, Variable]
@@ -80,6 +82,7 @@ object InterpolationContext {
   def apply(
         nodeInfo        : NodeInfo
       , policyServerInfo: NodeInfo
+      , inventory       : NodeInventory
         //environment variable for that server
         //must be a case insensitive Map !!!!
       , nodeContext     : Map[String, Variable]
@@ -91,7 +94,7 @@ object InterpolationContext {
         //for ex: param a => param b => param c => ..... => param a
         //should not be evaluated
       , depth           : Int = 0
-  ) = new InterpolationContext(nodeInfo, policyServerInfo, TreeMap(nodeContext.toSeq:_*), parameters, depth)
+  ) = new InterpolationContext(nodeInfo, policyServerInfo, inventory, TreeMap(nodeContext.toSeq:_*), parameters, depth)
 }
 
 /**

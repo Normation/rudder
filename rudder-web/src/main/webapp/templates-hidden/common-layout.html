@@ -52,25 +52,79 @@
     <script type="text/javascript" src="/javascript/angular/angular.min.js" />
     <script type="text/javascript" src="/javascript/angular/angular-datatables.js" />
     <script type="text/javascript" src="/javascript/rudder/angular/groupManagement.js" id="angular-groupManagement"></script>
+  
+    
+    <link type="text/css" rel="stylesheet" href="/bootstrap-3.2.0-dist/css/tw-bs-bootstrap.css" media="screen" />
+    <script type="text/javascript" src="/bootstrap-3.2.0-dist/js/bootstrap.js" />
+    <script type="text/javascript">
+      // <![CDATA[
+      var bootstrapButton = $.fn.button.noConflict();
+      var bootstrapAlert = $.fn.alert.noConflict();
+      var bootstrapCarousel = $.fn.carousel.noConflict();
+      var bootstrapCollapse = $.fn.collapse.noConflict();
+      var bootstrapModal = $.fn.modal.noConflict();
+      var bootstrapTooltip = $.fn.tooltip.noConflict();
+      var bootstrapPopover = $.fn.popover.noConflict();
+      var bootstrapScrollspy = $.fn.scrollspy.noConflict();
+      var bootstrapTab = $.fn.tab.noConflict();
+      var bootstrapAffix = $.fn.affix.noConflict();
+      // ]]>
+    </script>
+
+
+    <link type="text/css" rel="stylesheet" href="/style/rudder-bootstrap.css" media="screen" />
     
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->
   </head>
 <body>
-<div id="bodyContainer">
-<div id="container">
 
-  <!--Infos utilisateurs-->
-  <div id="infosUser" class="lift:UserInformation.userCredentials">
-    <p class="whoUser">Welcome, <a id="openerAccount">Patrick MARTIN</a> <noscript class="error">WARNING: JavaScript must be enabled to use Rudder</noscript> </p>
-    <!--popin compte utilisateur-->
-    <div id="dialog" title="Account management">
-    <!-- TODO: Inserer le snippet account -->
+<div class="tw-bs">
+  <nav class="navbar navbar-rudder navbar-static-top" role="navigation">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+          <span class="sr-only">Toggle navigation</span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a href="/secure/"><img src="/images/logo_Rudder.png" alt="Rudder" /></a>
+      </div>
+      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+        <!-- Base Menu -->
+        <span class="lift:BootstrapMenu?linkToSelf=true;expandAll=true"></span>
+        <!-- Quick Search -->
+        <lift:QuickSearchNode.render />
+        <!-- Right Menu -->
+        <ul class="nav navbar-nav navbar-right">
+          <!-- Change request -->  
+          <lift:comet type="WorkflowInformation" name="workflowInfo" />  
+          <!-- Promise Generation -->
+          <lift:authz role="deployment_read">
+            <lift:comet type="AsyncDeployment" name="deploymentStatus" />
+          </lift:authz>
+          <!-- Manual -->
+          <li><a href="/rudder-doc">User manual</a></li>
+          <!-- User -->
+          <li class="dropdown">
+            <a href="#" class="dropdown-toggle lift:UserInformation.userCredentials"  data-toggle="dropdown">
+              <span style="margin-right:5px;" class="glyphicon glyphicon-user"></span>
+              <span id="openerAccount">[User name]</span>
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+              <li><a href="#" id="logout">Log out</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
     </div>
-    <!--Fin popin compte utilisateur-->
-    <p class="detailsUser">&nbsp;| <a id="logout">Log out</a></p>
-    <!--popin Login-->
+  </nav>
+</div>
+
+
     <div id="dialogLogOut">
       <div class="simplemodal-title">
         <h1>Log out</h1>
@@ -96,53 +150,24 @@
           </span>
         </div>
       </div>
-    </div>
     <!--Fin popin Login-->
-  <!--Fin infos utilisateurs-->  
-  
-  
-  <!-- documentation link -->
-  <div id="documentation">
-    <a href="/rudder-doc">User manual</a>
-  </div>
-  
-  <!-- top right quick search -->
-  <lift:QuickSearchNode.render />
-  
-  </div>
-  
-  <!--Début Logo-->
-  <div id="logo"> 
-    <lift:authz role="deployment_read">
-    <lift:comet type="AsyncDeployment" name="deploymentStatus" />
-    </lift:authz>
-      <lift:comet type="WorkflowInformation" name="workflowInfo" />
-    
-    <h1><a href="/secure/"><img src="/images/logoRudder.jpg" alt="Rudder" /></a></h1>
-  </div>
-  <!--Fin Logo-->
-  <!--Début Menu principal-->
-  <security:authorize access="isAnonymous()">
-  <div id="menu">
-   <lift:Menu.builder expand="false" linkToSelf="true" a:class="onMenu" li_item:class="onMenu" li_path:class="onMenu" />
-  </div>
-  </security:authorize>
-  <!--Fin Menu principal-->
 
+  
+  </div>
+  
 <img alt="" 
   id="ajax-loader" 
-  width="31px"
-  height="31px"
   class="ajaxloader"     
   src="/images/ajax-loader.gif"/>
   
-  <lift:bind name="content" />
-
-  <!--Fin contenu + nav-->
+  <div class="container">
+  <div class="rudder_col">
+    <lift:bind name="content" />
+    </div>
+    </div>
   <hr class="spacer" />
-</div>
 <div id="footer">
-  <p>Rudder v2.3 - &copy; <a href="http://www.normation.com/">Normation</a> with <a href="http://www.cfengine.com/">CFEngine</a></p>
+  <p>Rudder v2.3 - &copy; <a href="http://www.normation.com/">Normation</a></p>
 </div>
 <div id="successConfirmationDialog" class="nodisplay">
     <div class="simplemodal-title">
@@ -170,7 +195,6 @@
       </p>
     </div>
   </div>
-</div>
 </body>
 </html>
   

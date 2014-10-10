@@ -76,7 +76,7 @@ class RuleCompliancePopup(
   def showPopup(directiveStatus: RuleStatusReport) : JsCmd = {
     val popupHtml = createPopup(directiveStatus)
     SetHtml(htmlId_reportsPopup, popupHtml) & OnLoad(
-        JsRaw("""$('.dataTables_filter input').attr("placeholder", "Search");""")
+        JsRaw("""$('.dataTables_filter input').attr("placeholder", "Filter");""")
     ) &
     JsRaw( s""" createPopup("${htmlId_modalReportsPopup}")""")
   }

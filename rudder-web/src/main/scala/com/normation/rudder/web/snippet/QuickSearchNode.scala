@@ -89,16 +89,24 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
     }
 
 
-    <div class="topQuickSearch"><lift:form>{
-      AutoCompleteAutoSubmit(
+
+    val searchInput =
+      AutoCompleteAutoSubmit (
           ""
         , buildQuery _
         , { s:String => parse(s) }
           //json option, see: https://code.google.com/p/jquery-autocomplete/wiki/Options
         , ("resultsClass", "'topQuickSearchResults ac_results '") :: Nil
         , ("placeholder" -> "Search nodes")
+        ,  ("class" -> "form-control")
       )
-    }</lift:form></div>
+
+
+   <lift:form class="navbar-form navbar-left">
+        <div class="form-group">
+          {searchInput}
+        </div>
+    </lift:form>
 
   }
 }

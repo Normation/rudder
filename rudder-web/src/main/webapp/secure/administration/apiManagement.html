@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-administration" at="content">
+<lift:surround with="common-layout" at="content">
 
 <lift:administration.ApiAccounts.render>
   That gives us a JS variable with the servlet
@@ -39,15 +39,7 @@
 
 
 <div class="portlet" ng-app="accountManagement" id="accountManagement" >
-  <div class="portlet-header">API Settings</div>
   <div class="portlet-content">
-
-    <div class="intro">
-      <div>
-        <p>Configure API related properties, like allowed accounts.</p>
-      </div>
-    </div>
-
     <div class="inner-portlet">
       <div class="inner-portlet-header">Configure allowed accounts</div>
       <div class="portlet-content">

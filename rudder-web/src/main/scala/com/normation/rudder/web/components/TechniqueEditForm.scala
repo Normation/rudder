@@ -139,14 +139,6 @@ class TechniqueEditForm(
   private[this] val userPropertyService         = RudderConfig.userPropertyService
 
 
-
-//  private[this] val directives = directiveRepository.getAll() match {
-//    case Full(seq) => seq
-//    case Empty => throw new ComponentInitializationException(Failure("Error while getting the list of available Directives"))
-//    case f:Failure => throw new ComponentInitializationException(f)
-//  }
-
-
   private[this] var currentActiveTechnique = roActiveTechniqueRepository.getActiveTechnique(technique.id.name)
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
 
@@ -514,49 +506,6 @@ class TechniqueEditForm(
       }
     </span>
   }
-
-  /**
-   * Display details about a Technique.
-   * A Technique is in the context of a reference library (it's an error if the Directive
-   * template is not in it) and an user Library (it may not be in it)
-   */
-//  private def showTechnique(
-//      technique : Technique,
-//      referenceLib:TechniqueCategory,
-//      userLib:ActiveTechniqueCategory
-//  ) : NodeSeq = {
-//    <div id={htmlId_techniqueConf} class="object-details">
-//    <h3>{technique.name}</h3>
-//    <h4>{technique.description}</h4>
-//    <p>{technique.longDescription}</p>
-//
-//    <fieldset><legend>Category</legend>
-//      <div>Reference category: <a href="#" onclick="alert('TODO:goto node in tree');return false">
-//        <ul class="inline">{findBreadCrump(technique).map { cat =>
-//          <li class="inlineml">&#187; {cat.name}</li> } }
-//        </ul>
-//      </a></div>
-//      <lift:configuration.TechniqueLibraryManagement.showTechniqueUserCategory />
-//    </fieldset>
-//
-//    <fieldset><legend>Parameters</legend>
-//    {
-//      directiveEditorService.get(technique.id, DirectiveId("just-for-read-only")) match {
-//        case Full(pe) => pe.toHtml
-//        case _ => <span class="error">TODO</span>
-//      }
-//
-//    }
-//    </fieldset>
-//
-//    <span>{<input type="checkbox" name="Single" disabled="disabled" /> % {if(technique.isMultiInstance) Null else ("checked" -> "checked") } }
-//      Single</span>
-//
-//    <fieldset><legend>Actions</legend>
-//      <input type="submit" value="Delete from user library"/>
-//    </fieldset>
-//    </div>
-//  }
 
 
   /**
