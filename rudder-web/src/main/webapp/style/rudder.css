@@ -2654,6 +2654,6 @@ fieldset {
   list-style-type: disc;
 }
 
-.simplemodal-wrap{
-	overflow:auto !important
+.simplemodal-bottom {
+	height:45px;
 }
