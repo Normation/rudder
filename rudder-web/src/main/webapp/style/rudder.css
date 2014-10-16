@@ -1196,7 +1196,7 @@ div.hierarchySpacer {
    list-style: none;
 }
 body {
-   font-size: 11px;
+   font-size: 12px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
    background-color: #2e2d2d;
    height:100%;
@@ -2573,10 +2573,6 @@ div.topQuickSearchResults.ac_results {
 .treefilternodecursor{
   cursor:pointer;
   cursor:hand;
-}
-
-.treeGroupName , .treeDirective, .treeTechniqueName, .treeRuleName { 
-  font-size:0.95em; 
 }
 
 .treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
