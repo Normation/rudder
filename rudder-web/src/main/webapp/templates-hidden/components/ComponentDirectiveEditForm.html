@@ -89,13 +89,13 @@
   <div id="editForm">
 
 
-    <div id="directiveTitle" class="inner-portlet-header">Directive</div>
+    <div id="directiveTitle" class="page-title">Directive</div>
     <div id="notifications">
     </div>
 	
     <lift:authz role="directive_edit">
           <div id="pendingChangeRequestNotification">
-        <div class="inner-portlet-header">Pending change requests</div>
+        <div class="page-title">Pending change requests</div>
         <br />
         <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
@@ -109,7 +109,7 @@
 
 
 		<div id="directiveInfoTab" class="unfoldedSection" onclick="$('#directiveInfo').toggle(400); $('#directiveInfoTab').toggleClass('foldedSection');$('#directiveInfoTab').toggleClass('unfoldedSection');">
-		  <div class="inner-portlet-header-lower">Directive information</div>
+		  <div class="section-title">Directive information</div>
 		</div>
 		<div id="directiveInfo"  >
 		   <hr class="spacer" />
@@ -171,12 +171,12 @@
          <br/>
          </div>
 		<div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
-      <div class="inner-portlet-header-lower">Parameters</div>
+      <div class="section-title">Parameters</div>
     </div>
     <div id="parameters">Here goes the list of parameters</div>
 
     <div  id="ruleTargetSection" class="unfoldedSection" onclick="$('#directiveRulesTab').toggle(400); $('#ruleTargetSection').toggleClass('foldedSection');$('#ruleTargetSection').toggleClass('unfoldedSection');">
-      <div class="inner-portlet-header-lower">Target Rules</div>
+      <div class="section-title">Target Rules</div>
       </div>
 		<div id="directiveRulesTab">
 		 </div>
@@ -208,7 +208,7 @@
 </component:form>
 
 <component:informationTab>
-<div class="inner-portlet-header">Directive information</div>
+<div class="page-title">Directive information</div>
 
 
       <hr class="spacer" />
@@ -273,13 +273,13 @@
     <component:ruleTargetTab>
     <div >
       <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
-        <div class="inner-portlet-header" style="font-family:monospace; color: #999; border:0; letter-spacing:1px;'">Categories</div>
+        <div class="section-title" style="font-family:monospace; color: #999; border:0;'">Categories</div>
           <div class="inner-portlet-content" id="categoryTreeParent">
             <lift:configuration.RuleManagement.viewCategories />
           </div>
       </div>
       <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
-        <div class="inner-portlet-header" style="font-family:monospace; color: #999; border:0; letter-spacing:1px;'" id="categoryDisplay">Rules</div>
+        <div class="section-title" style="font-family:monospace; color: #999; border:0;'" id="categoryDisplay">Rules</div>
         <div class="inner-portlet-content">
           <lift:configuration.RuleManagement.viewRules />
         </div>
