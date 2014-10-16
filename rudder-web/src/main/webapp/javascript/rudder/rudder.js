@@ -113,7 +113,6 @@ function createTooltiptr() {
 function updatePopup() {
 	correctButtons();
 	$(window).trigger('resize.simplemodal');
-
 }
 
 
@@ -122,10 +121,10 @@ function callPopupWithTimeout(timeout, popupName){
 }
 
 function createPopup(popupName){
+    $("#"+popupName).addClass("simplemodal-data");
 		$("#"+popupName).modal({
             autoResize: true
 		});
-		$('#simplemodal-container').css('height', 'auto').css('width', 'auto');
 		// call Update popup to force resize of the popup and correct buttons
 		updatePopup();
 }
