@@ -97,7 +97,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
 <div class="col col-xl">
 
   <lift:configuration.DirectiveManagement.techniqueDetails>
-    <div id="techniqueDetails"  >
+    <div id="techniqueDetails" ng-app="techniqueDetails"   >
       <div class="page-title">Technique information</div>
       <div id="details">
         <div id="directiveIntro">
@@ -119,33 +119,39 @@ var clearSearchFieldTree = function(inputId, treeId) {
             <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
           </fieldset>
         </div>
-        <fieldset class="deca">
+        <fieldset class="deca" id="techniqueVersion" ng-controller="techniqueVersion">
             <legend>Available versions</legend>
           <table id="versionTable">
             <thead>
               <tr>
                 <th>Version</th>
                 <th>Last updated on</th>
-                <th>Use this version</th>
+                <lift:authz role="directive_write">
+                  <th>Use this version</th>
+                </lift:authz>
               </tr>
             </thead>
             <tbody>
-              <tr id="techniqueVersions"/>
+              <tr ng-repeat="technique in techniques" ng-hide="display(technique)">
+                <td class="tw-bs">{{technique.version}}
+                  <span ng-if="technique.isDeprecated" title="" tooltipid="version_{{$index}}" class="glyphicon glyphicon-exclamation-sign text-danger deprecatedTechniqueIcon tooltipable"></span>
+                  <div ng-if="technique.isDeprecated" class="tooltipContent" id="version_{{$index}}">
+                    <div>Deprecated: {{technique.deprecationMessage}}</div>
+                  </div>
+                </td>
+                <td>{{technique.acceptationDate}}</td>
+                <lift:authz role="directive_write">
+                  <td> <input type="button" ng-click="technique.action()" value="Create Directive" /></td>
+                </lift:authz>
+               </tr>
              </tbody>
            </table>
+           <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated" /> <label for="displayDeprecation">Display deprecated Technique versions</label>
          <div style="text-align: center;">
            <lift:authz role="directive_write">
-             <button id="addButton">[Add a new instance]</button>
+             <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with last version"/>
            </lift:authz>
          </div>         
-         <div id="migrate">
-           <br/>
-           <form>
-             Migrate Directive to Technique version:
-             <select><option>1.1</option><option>2.0</option></select>
-             <input type="submit" value="Migrate" />
-           </form>
-         </div>
        </fieldset>
        </div>
      </div>

@@ -60,6 +60,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.S
+import com.normation.cfclerk.domain.Technique
 
 /**
  *
@@ -157,7 +158,14 @@ object DisplayDirectiveTree extends Loggable {
       override def children = {
         activeTechnique.directives
           .sortBy( _.name )
-          .collect { case x if(keepDirective(x)) => displayDirective(x, localOnClickDirective) }
+          .collect {
+            case x if(keepDirective(x)) =>
+              displayDirective(
+                  x
+                , activeTechnique.techniques(x.techniqueVersion)
+                , localOnClickDirective
+              )
+          }
       }
 
       override def body = {
@@ -186,7 +194,8 @@ object DisplayDirectiveTree extends Loggable {
     }
 
     def displayDirective(
-        directive  : Directive
+        directive : Directive
+      , technique : Technique
       , onClickDirective: Option[Directive => JsCmd]
     ) : JsTreeNode = new JsTreeNode {
 
@@ -253,9 +262,19 @@ object DisplayDirectiveTree extends Loggable {
           }
         }
 
+
+        val deprecated = technique.deprecrationInfo match {
+          case Some(info) =>
+            val tooltipId = Helpers.nextFuncName
+            <span class="glyphicon glyphicon-exclamation-sign text-danger deprecatedTechniqueIcon" tooltipid={tooltipId} title=""></span>
+            <div class="tooltipContent" id={tooltipId}>
+              <div>Deprecated: {info.message}</div>
+            </div>
+          case None => NodeSeq.Empty
+        }
         val xml  = (
-                    <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" style="float:left">
-                     [{directive.techniqueVersion.toString}] {directive.name}
+                    <span class="treeDirective tooltipable tw-bs" tooltipid={tooltipId} title="" style="float:left">
+                     {deprecated} [{directive.techniqueVersion.toString}] {directive.name}
                     </span>
                     ++ {
                         if(isAssignedTo <= 0) {

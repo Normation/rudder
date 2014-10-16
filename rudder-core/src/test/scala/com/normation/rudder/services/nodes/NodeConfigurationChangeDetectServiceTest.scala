@@ -59,7 +59,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
 
 
   /* Test the change in node */
-  def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), Set(), None)
+  def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
 
   val service = new DetectChangeInNodeConfiguration()
 
