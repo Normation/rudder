@@ -2829,8 +2829,8 @@ li.targetExcluded a{
 	margin-top:-5px;
 }
 
-.simplemodal-wrap{
-	overflow:auto !important
+.simplemodal-bottom {
+	height:45px;
 }
 
 .searchNodes tr td {
