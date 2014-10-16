@@ -231,7 +231,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
     "#techniqueDetails *" #> ( currentTechnique match {
       case None =>
-        ".inner-portlet-header *" #> "Usage" &
+        ".page-title *" #> "Usage" &
         "#details *" #> {
         <div class="deca">
           <p><em>Directives</em> are displayed in the tree of

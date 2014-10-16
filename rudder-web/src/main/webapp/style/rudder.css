@@ -873,16 +873,16 @@ fieldset.techniqueDetailsFieldset {
   padding: 1px 10px 1px 10px;
 }
 
-div.foldableSection div.inner-portlet-header-lower {
+div.foldableSection div.section-title {
   cursor: pointer;
 }
 
-div.unfoldedSection div.inner-portlet-header-lower:before {
+div.unfoldedSection div.section-title:before {
   content: url("../images/tableau/flecheBasGris.png");
   padding-right: 3px;
 }
 
-div.foldedSection div.inner-portlet-header-lower:before {
+div.foldedSection div.section-title:before {
   content: url("../images/tableau/flecheDroiteGris.png");
   padding-right: 3px;
 }
@@ -892,7 +892,7 @@ div.foldedSection div.inner-portlet-header-lower:before {
   display:none;
 }
 
-.foldedSection div.inner-portlet-header-lower {
+.foldedSection div.section-title {
   display:block;
 }
 
@@ -1622,17 +1622,18 @@ p img {
    background: none;
 }
 
-.inner-portlet-header {
-  font-size: 1.3em;
+.page-title {
+  font-size: 17px;
   font-weight: bold;
   cursor: default;
   background: none;
   border-bottom: 1px solid #F79D10;
   padding: 5px 0 2px 5px;
+  text-transform:uppercase;
 }
 
-.inner-portlet-header-lower {
-  font-size: 1.3em;
+.section-title {
+  font-size: 15px;
   cursor: default;
   background: none;
   border-bottom: 1px solid #F79D10;
