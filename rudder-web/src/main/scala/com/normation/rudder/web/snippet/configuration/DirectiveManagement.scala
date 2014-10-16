@@ -88,7 +88,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Full(workflowEnabled) =>
         {
           case "head" => { _ => head(workflowEnabled) }
-          case "userLibrary" => { _ => userLibrary(workflowEnabled) }
+          case "userLibrary" => { _ => displayDirectiveLibrary(workflowEnabled) }
           case "showDirectiveDetails" => { _ => initDirectiveDetails(workflowEnabled) }
           case "techniqueDetails" => { xml =>
             techniqueDetails = initTechniqueDetails(workflowEnabled)
@@ -145,7 +145,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   private[this] def parseJsArg(workflowEnabled: Boolean): JsCmd = {
 
-    def displayDetails(directiveId:String) = displayDirectiveDetails(DirectiveId(directiveId), workflowEnabled)
+    def displayDetails(directiveId:String) = updateDirectiveForm(workflowEnabled)(Right(DirectiveId(directiveId)), None)
 
     JsRaw("""
         var directiveId = null;
@@ -165,7 +165,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * Almost same as Technique/activeTechniquesTree
    * TODO : factor out that part
    */
-  def userLibrary(workflowEnabled: Boolean): NodeSeq = {
+  def displayDirectiveLibrary(workflowEnabled: Boolean): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree}>{
           (directiveLibrary,rules) match {
@@ -221,7 +221,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def initDirectiveDetails(workflowEnabled: Boolean): NodeSeq = directiveId match {
     case Full(id) => <div id={ htmlId_policyConf } /> ++
       //Here, we MUST add a Noop because of a Lift bug that add a comment on the last JsLine.
-      Script(OnLoad(displayDirectiveDetails(DirectiveId(id), workflowEnabled) & Noop))
+      Script(OnLoad(updateDirectiveForm(workflowEnabled)(Right(DirectiveId(id)),None)))
     case _ =>  <div id={ htmlId_policyConf }></div>
   }
 
@@ -390,7 +390,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
     def onSubmitMigration(v:TechniqueVersion, directive:Directive, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean) = {
       currentTechnique = Some((activeTechnique,v))
-      updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, directive.copy(techniqueVersion = v), Some(directive), workflowEnabled, false)
+      updateDirectiveSettingForm(activeTechnique, directive.copy(techniqueVersion = v), Some(directive), workflowEnabled, false)
     }
 
     "*" #> currentDirectiveSettingForm.is
@@ -410,7 +410,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           val jsFunc = { () =>
             //update UI: Directive details
             Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
-            setRightPanelHeader(false) &
             Replace(htmlId_policyConf, showDirectiveDetails) &
             displayFinishMigrationPopup
           }
@@ -421,11 +420,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           ) (SHtml.ajaxForm(xml))
         }
       }
-  }
-
-  private[this] def setRightPanelHeader(isDirective:Boolean) : JsCmd = {
-    val title = if (isDirective) "About this Directive" else "About this Technique"
-    SetHtml("detailsPortletTitle", Text(title))
   }
 
   ///////////// finish migration pop-up ///////////////
@@ -458,7 +452,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     new CreateDirectivePopup(
         technique.name, technique.description, technique.id.version,
         onSuccessCallback = { (directive : Directive) =>
-          updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, directive,None, workflowEnabled, true)
+          updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true)
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
           Replace(html_techniqueDetails, NodeSeq.Empty) &
@@ -467,27 +461,38 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     ).popupContent
   }
 
-  private[this] def displayDirectiveDetails(directiveId: DirectiveId, workflowEnabled: Boolean): JsCmd = {
-    //Set current Directive edition component to the given value
-
+  /* Update Directive form,
+   * either from the directive Id (when it comes from the url )
+   * or from the full directive info ( callbacks, click on directive tree ...)
+   */
+  def updateDirectiveForm(workflowEnabled : Boolean)(
+      directiveInfo: Either[Directive,DirectiveId]
+    , oldDirective: Option[Directive]
+  ) = {
+    val directiveId = directiveInfo match {
+      case Left(directive) => directive.id
+      case Right(directiveId) => directiveId
+    }
     directiveLibrary.flatMap( _.allDirectives.get(directiveId)) match {
-      case Full((fullActiveTechnique, directive)) =>
-        Replace(htmlId_activeTechniquesTree, userLibrary(workflowEnabled))
-        currentTechnique = Some((fullActiveTechnique, directive.techniqueVersion))
-        updateCf3PolicyDraftInstanceSettingFormComponent(fullActiveTechnique, directive, None, workflowEnabled, false)
-      case eb: EmptyBox => currentDirectiveSettingForm.set(eb)
+      // The directive exists, update directive form
+      case Full((activeTechnique, directive)) =>
+        // In priority, use the directive passed as parameter
+        val newDirective = directiveInfo match {
+          case Left(updatedDirective) => updatedDirective
+          case _ => directive // Only the id, get it from the library
+        }
+        updateDirectiveSettingForm(activeTechnique, newDirective, oldDirective, workflowEnabled, false)
+      case eb:EmptyBox =>
+        currentDirectiveSettingForm.set(eb)
     }
 
-    //update UI: Directive details
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-    setRightPanelHeader(true) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
-        .format(directiveId.value)) &
-    JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
+    JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({'directiveId':'${directiveId.value}'})""") &
+    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
   }
 
-  private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(
+  private[this] def updateDirectiveSettingForm(
       activeTechnique     : FullActiveTechnique
     , directive           : Directive
     , oldDirective        : Option[Directive]
@@ -507,6 +512,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           , oldDirective
           , workflowEnabled
           , onSuccessCallback = directiveEditFormSuccessCallBack(workflowEnabled)
+          , onMigrationCallback = (dir,optDir) => updateDirectiveForm(workflowEnabled)(Left(dir),optDir)
           , isADirectiveCreation = isADirectiveCreation
           , onRemoveSuccessCallBack = () => onRemoveSuccessCallBack(workflowEnabled)
         )
@@ -529,26 +535,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
         updateDirectiveLibrary()
+        updateDirectiveForm(workflowEnabled)(Left(dir),None)
 
-        directiveLibrary.flatMap( _.allDirectives.get(dir.id)) match {
-          case Full((activeTechnique, directive)) => {
-            updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, dir, None, workflowEnabled, false)
-            Replace(htmlId_policyConf, showDirectiveDetails) &
-            JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
-              .format(dir.id.value)) &
-            Replace(htmlId_activeTechniquesTree, userLibrary(workflowEnabled))
-          }
-          case eb:EmptyBox => {
-            val errMsg = "Error when trying to get directive'%s' [%s] info with its " +
-                "technique context for displaying in Directive Management edit form."
-            val e = eb ?~! errMsg.format(dir.name, dir.id)
-            logger.error(e.messageChain)
-            e.rootExceptionCause.foreach { ex =>
-              logger.error("Root exception was: ", ex)
-            }
-            Alert("Error when trying to get display the page. Please, try again")
-          }
-        }
       case Right(changeRequest) => // oh, we have a change request, go to it
         RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
     }
@@ -557,7 +545,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   private[this] def onRemoveSuccessCallBack(workflowEnabled: Boolean): JsCmd = {
     updateDirectiveLibrary
     Replace(htmlId_policyConf, showDirectiveDetails) &
-    Replace(htmlId_activeTechniquesTree, userLibrary(workflowEnabled))
+    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
   }
 
   private[this] def updateDirectiveLibrary() : Unit = {
@@ -568,7 +556,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   //////////////// display trees ////////////////////////
 
   private[this] def onClickDirective(workflowEnabled: Boolean)(cat: FullActiveTechniqueCategory, at: FullActiveTechnique, directive: Directive) : JsCmd = {
-    displayDirectiveDetails(directive.id, workflowEnabled)
+    updateDirectiveForm( workflowEnabled)(Left(directive),None)
   }
 
   private[this] def onClickActiveTechnique(cat: FullActiveTechniqueCategory, fullActiveTechnique : FullActiveTechnique) : JsCmd = {
@@ -578,7 +566,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
       //Update UI
       Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
-      setRightPanelHeader(false) &
       Replace(htmlId_policyConf, showDirectiveDetails) &
       JsRaw("""correctButtons();""")
   }
