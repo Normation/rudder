@@ -529,9 +529,15 @@
 				cw = s.d.origWidth ? s.d.origWidth : $.browser.opera ? s.d.container.width() : s.getVal(badIE ? s.d.container[0].currentStyle['width'] : s.d.container.css('width'), 'w'),
 				dh = s.d.data.outerHeight(true), dw = s.d.data.outerWidth(true);
 
+			// Do not use container height and width, set them to value of data
+			ch = dh;
+			cw = dw;
+
 			s.d.origHeight = s.d.origHeight || ch;
 			s.d.origWidth = s.d.origWidth || cw;
 
+			// mh => max height, the smaller between windows height and max-height option
+			// mw => max width, the smaller between windows width and max-width option
 			// mxoh = max option height, mxow = max option width
 			var mxoh = s.o.maxHeight ? s.getVal(s.o.maxHeight, 'h') : null,
 				mxow = s.o.maxWidth ? s.getVal(s.o.maxWidth, 'w') : null,
@@ -549,7 +555,10 @@
 				}
 			}
 			else {
-				ch = s.o.autoResize && ch > mh ? mh : ch < moh ? moh : ch;
+			  // Use max height (mh) if data height superior to max height
+			  // Use min height (moh) if data height smaller
+			  // Use auto if between two bounds
+			  ch = s.o.autoResize && dh > mh ? mh : dh < moh ? moh : "auto";
 			}
 
 			// mow = min option width
@@ -563,11 +572,14 @@
 				}
 			}
 			else {
-				cw = s.o.autoResize && cw > mw ? mw : cw < mow ? mow : cw;
+			  // Use max width (mw) if data width superior to max width
+			  // Use min width (mow) if data width smaller
+			  // Use auto if between two bounds
+			  cw = s.o.autoResize && dw > mw ? mw : dw < mow ? mow : "auto";
 			}
 
 			s.d.container.css({height: ch, width: cw});
-			s.d.wrap.css({overflow: (dh > ch || dw > cw) ? 'auto' : 'visible'});
+			s.d.wrap.css({overflow: (dh > w[0] || dw > w[1]) ? 'auto' : 'visible'});
 			s.o.autoPosition && s.setPosition();
 		},
 		setPosition: function () {
