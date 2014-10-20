@@ -55,6 +55,7 @@ import net.liftweb.util.Helpers._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.domain.policies.RuleId
 
 /**
  * Display the last reports of a server
@@ -106,7 +107,7 @@ class ReportDisplayer(
   def refreshReportDetail(node : NodeInfo) = {
     def refreshData : Box[JsCmd] = {
       for {
-        reports <- reportingService.findNodeStatusReports(Set(node.id), Set())
+        reports <- reportingService.findNodeStatusReport(node.id)
         data    <- getComplianceData(node.id, reports)
       } yield {
         JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd});""")
@@ -123,33 +124,29 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
     val boxXml = (
       for {
-        reports <- reportingService.findNodeStatusReports(Set(node.id), Set())
-        rules   <- ruleRepository.getAll(true)
+        report       <- reportingService.findNodeStatusReport(node.id)
         directiveLib <- directiveRepository.getFullDirectiveLibrary
       } yield {
-        val filteredReports = reports.filter( x => rules.exists(r => r.id == x.ruleId)  )
-        val aggregated = AggregatedStatusReport(filteredReports.toSet)
 
         //what we print before all the tables
-        val nbAttention = aggregated.compliance.noAnswer + aggregated.compliance.error + aggregated.compliance.repaired
+        val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.repaired
         val intro = if(nbAttention > 0) {
-          <div>There are {nbAttention} out of {aggregated.compliance.total} reports that require our attention</div>
-        } else if(aggregated.compliance.pc_pending > 0) {
+          <div>There are {nbAttention} out of {report.compliance.total} reports that require our attention</div>
+        } else if(report.compliance.pc_pending > 0) {
           <div>Policy update in progress</div>
         } else {
           <div>All the last execution reports for this server are ok</div>
         }
 
-        val missing = getComponents(MissingReportType, filteredReports, directiveLib).distinct
-        val unexpected = getComponents(UnexpectedReportType, filteredReports, directiveLib).distinct
+        val missing = getComponents(MissingReportType, report, directiveLib).toSet
+        val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
 
         bind("lastReportGrid",reportByNodeTemplate
           , "intro"      ->  intro
-          , "grid"       -> showReportDetail(filteredReports, node)
+          , "grid"       -> showReportDetail(report, node)
           , "missing"    -> showMissingReports(missing)
           , "unexpected" -> showUnexpectedReports(unexpected)
         )
@@ -163,7 +160,7 @@ class ReportDisplayer(
   }
 
 
-  private[this] def showReportDetail(reports: Seq[RuleNodeStatusReport], node: NodeInfo): NodeSeq = {
+  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo): NodeSeq = {
     val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
 
     <table id="reportsGrid" class="fixedlayout tablewidth" cellspacing="0"></table> ++
@@ -173,7 +170,7 @@ class ReportDisplayer(
     """))
   }
 
-  private[this] def getComplianceData(nodeId: NodeId, reportStatus: Seq[RuleNodeStatusReport]) = {
+  private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport) = {
     for {
       directiveLib <- directiveRepository.getFullDirectiveLibrary
       allNodeInfos <- getAllNodeInfos()
@@ -184,7 +181,7 @@ class ReportDisplayer(
   }
 
 
-  def showMissingReports(reports:Seq[((String,String,List[String]),String,String)]) : NodeSeq = {
+  def showMissingReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
     def showMissingReport(report:((String,String, List[String]),String,String)) : NodeSeq = {
       val techniqueName =report._2
       val techniqueVersion = report._3
@@ -237,7 +234,7 @@ class ReportDisplayer(
   }
 
 
-  def showUnexpectedReports(reports:Seq[((String,String,List[String]),String,String)]) : NodeSeq = {
+  def showUnexpectedReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
     def showUnexpectedReport(report:((String,String,List[String]),String,String)) : NodeSeq = {
       val techniqueName =report._2
       val techniqueVersion = report._3
@@ -287,7 +284,7 @@ class ReportDisplayer(
   }
 
 
-  private[this] def getComponents(status: ReportType, nodeStatusReports: Seq[RuleNodeStatusReport], directiveLib: FullActiveTechniqueCategory) = {
+  private[this] def getComponents(status: ReportType, nodeStatusReports: NodeStatusReport, directiveLib: FullActiveTechniqueCategory) = {
    /*
     * Note:
     * - missing reports are unexpected without error message
@@ -299,8 +296,8 @@ class ReportDisplayer(
     * we could add more information at each level (directive name? rule name?)
     */
     for {
-      ruleNodeReport <- nodeStatusReports
-      value          <- ruleNodeReport.getValues(v => v.status == status)
+      (_, directive) <- nodeStatusReports.report.directives
+      value          <- directive.getValues(v => v.status == status)
     } yield {
       val (techName, techVersion) = directiveLib.allDirectives.get(value._1).map { case(tech,dir) =>
         (tech.techniqueName.value, dir.techniqueVersion.toString)

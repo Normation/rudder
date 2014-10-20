@@ -55,7 +55,10 @@ import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.http.LocalSnippet
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
 
-
+/**
+ * the component in charge of displaying the rule grid, with category tree
+ * and one line by rule.
+ */
 class RuleDisplayer (
     directive           : Option[DirectiveApplicationManagement]
   , gridId              : String

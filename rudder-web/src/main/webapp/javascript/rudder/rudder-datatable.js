@@ -57,7 +57,7 @@ var anOpen = [];
  */
 function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallback, contextPath, refresh) {
 
-  //base eletement for the clickable cells
+  //base element for the clickable cells
   function callbackElement(oData) {
     var elem = $("<a></a>");
     if("callback" in oData) {
@@ -144,7 +144,7 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
     , "sTitle": "Category"
     };
 
-  // Status of the rule (disabled) add reson tooltip if needed
+  // Status of the rule (disabled) add reason tooltip if needed
   var status= {
       "mDataProp": "status"
     , "sWidth": "60px"
