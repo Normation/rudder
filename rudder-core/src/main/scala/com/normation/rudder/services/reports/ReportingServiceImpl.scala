@@ -43,6 +43,8 @@ import com.normation.rudder.repository._
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.domain.reports.RuleStatusReport
+import com.normation.rudder.domain.reports.NodeStatusReport
 
 
 class ReportingServiceImpl(
@@ -56,23 +58,32 @@ class ReportingServiceImpl(
 
 
 
-  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Seq[RuleNodeStatusReport]] = {
+  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
     //on the other method
     for {
       nodeIds <- confExpectedRepo.findCurrentNodeIds(ruleId)
-      reports <- findNodeStatusReports(nodeIds, Set(ruleId))
+      reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
-      reports
+      RuleStatusReport(ruleId, reports.toIterable)
     }
   }
 
 
-
-  override def findNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Seq[RuleNodeStatusReport]] = {
-
+  override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
     for {
-      runInfos             <- getNodeRunInfos(nodeIds)
+      reports <- findRuleNodeStatusReports(Set(nodeId), Set())
+      report  =  reports.groupBy(_.nodeId).map { case(nodeId, reports) => NodeStatusReport(nodeId, reports) }.toSet
+      result  <- if(report.size == 1) Full(report.head) else Failure("Found bad number of reports for node " + nodeId)
+    } yield {
+      result
+    }
+  }
+
+
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
+    for {
+      runInfos                 <- getNodeRunInfos(nodeIds)
 
       /*
        * For node with bad or no usable config id, we need
@@ -80,21 +91,21 @@ class ReportingServiceImpl(
        * For other, we find expected reports by configId
        */
 
-      (nodesForOpenExpected
-       ,   nodesByConfigId) = runInfos.foldLeft((Set.empty[NodeId], Set.empty[NodeAndConfigId])) { case((l1,l2), (nodeId, x)) => x.configIdForExpectedReports match {
-                                  case None => (l1+nodeId, l2)
-                                  case Some(c) => (l1, l2 + NodeAndConfigId(nodeId, c))
-                                } }
-      lastExpectedReports  <- confExpectedRepo.getLastExpectedReports(nodesForOpenExpected, ruleIds)
+      ( nodesForOpenExpected
+      , nodesByConfigId      ) =  runInfos.foldLeft((Set.empty[NodeId], Set.empty[NodeAndConfigId])) { case((l1,l2), (nodeId, x)) => x.configIdForExpectedReports match {
+                                    case None => (l1+nodeId, l2)
+                                    case Some(c) => (l1, l2 + NodeAndConfigId(nodeId, c))
+                                  } }
+      lastExpectedReports      <- confExpectedRepo.getLastExpectedReports(nodesForOpenExpected, ruleIds)
 
       //get nodeConfigId for nodes not in the nodesForOpenExpected and with a config version
       byVersionExpectedReports <- confExpectedRepo.getExpectedReports(nodesByConfigId, ruleIds)
 
-      allExpected =  (byVersionExpectedReports ++ lastExpectedReports).toSeq
+      allExpected              =  (byVersionExpectedReports ++ lastExpectedReports).toSeq
 
-      nodeStatusReports <- buildNodeStatusReports(runInfos, allExpected, ruleIds)
+      nodeStatusReports        <- buildNodeStatusReports(runInfos, allExpected, ruleIds)
     } yield {
-      nodeStatusReports
+      nodeStatusReports.toSet
     }
   }
 
@@ -164,9 +175,7 @@ class ReportingServiceImpl(
 
       //we want to have nodeStatus for all asked node, not only the ones with reports
       runInfos.flatMap { case(nodeId, optRun) =>
-        ExecutionBatch.getNodeStatusReports(
-              nodeId
-            , optRun
+        ExecutionBatch.getNodeStatusReports(nodeId, optRun
             , allExpectedReports
             , reports.getOrElse(nodeId, Seq())
         )
