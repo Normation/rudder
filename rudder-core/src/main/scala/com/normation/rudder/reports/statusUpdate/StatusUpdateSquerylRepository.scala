@@ -65,7 +65,8 @@ class StatusUpdateSquerylRepository (
 
         result match {
           case Nil => Full(None)
-          case head :: Nil => Full(Some((head.lastId,new DateTime(head.date))))
+          case head :: Nil =>
+            Full(Some((head.lastId,new DateTime(head.date))))
           case _ =>
             val msg = s"Too many entry matching ${key} in table StatusUpdate "
             logger.error(msg)
@@ -83,7 +84,7 @@ class StatusUpdateSquerylRepository (
     setValue(executionStatus, newId, reportsDate)
   }
 
-  private def setValue(key : String, reportId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
+  private[this] def setValue(key : String, reportId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
     try {
       sessionProvider.ourTransaction {
         val timeStamp = new Timestamp(reportsDate.getMillis)

@@ -34,21 +34,19 @@
 
 package com.normation.rudder.web.snippet
 
-import scala.xml._
-import net.liftweb.http._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.js.JE._
-import net.liftweb.util._
-import com.normation.rudder.web.services.GetBaseUrlService
-import bootstrap.liftweb.RudderConfig
-import net.liftweb.http.js.JsCmd
-import net.liftweb.common._
-import com.normation.rudder.web.components.ShowNodeDetailsFromNode
-import net.liftmodules.widgets.autocomplete._
-import Helpers._
+import scala.xml.NodeSeq
+
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.components.AutoCompleteAutoSubmit
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds.Alert
+import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.util.Helpers.strToSuperArrowAssoc
 
 /**
  * This snippet allow to display the node "quick search" field.

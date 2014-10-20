@@ -34,35 +34,30 @@
 
 package com.normation.rudder.web.snippet.node
 
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.policies.{RuleTarget, Rule}
-import com.normation.rudder.domain.nodes.{NodeInfo, NodeGroup}
-import com.normation.rudder.services.nodes._
-import com.normation.rudder.web.services.ReportDisplayer
-import com.normation.rudder.web.services.DisplayNode
-import com.normation.rudder.web.model.JsTreeNode
-import com.normation.rudder.web.components._
-import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import com.normation.rudder.web.components.ShowNodeDetailsFromNode
-import com.normation.rudder.web.components.SearchNodeComponent
-import com.normation.utils.Control.sequence
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftmodules.widgets.autocomplete._
+import scala.xml.NodeSeq
+import scala.xml.NodeSeq.seqToNodeSeq
+
 import com.normation.exceptions.TechnicalException
-import com.normation.inventory.ldap.core.LDAPConstants.OC_NODE
-import com.normation.rudder.domain.queries.Or
-import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.web.components.SearchNodeComponent
+import com.normation.rudder.web.components.ShowNodeDetailsFromNode
+import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
+
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http.LocalSnippet
+import net.liftweb.http.SHtml
+import net.liftweb.http.SHtml.ElemAttr.pairToBasic
+import net.liftweb.http.StatefulSnippet
+import net.liftweb.http.Templates
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JE.JsVar
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers.chooseTemplate
 
 
 /**

@@ -39,6 +39,7 @@ import net.liftweb.common.Box
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.NodeConfigId
 
 trait NodeConfigurationService {
 
@@ -85,7 +86,7 @@ trait NodeConfigurationService {
    * Write the templates of ALL the given node configuration.
    * Select them carrefully!
    */
-  def writeTemplate(rootNodeId: NodeId, configToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[Seq[NodeConfiguration]]
+  def writeTemplate(rootNodeId: NodeId, configToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]): Box[Seq[NodeConfiguration]]
 
   /**
    * Look what are the node configuration updated compared to information in cache

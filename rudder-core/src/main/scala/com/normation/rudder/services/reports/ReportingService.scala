@@ -36,54 +36,25 @@ package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.RuleExpectedReports
-import com.normation.rudder.domain.policies.RuleVal
+import com.normation.rudder.domain.reports.RuleNodeStatusReport
+
 import net.liftweb.common.Box
-import com.normation.rudder.domain.reports.bean._
-import org.joda.time._
-import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
-import com.normation.rudder.domain.policies.ExpandedRuleVal
 
 /**
- * The reporting service. It is used to
- * - Save the new reports expectation date
- * - retrieve the expected reports between a time interval
- *
- * Caution, the retrieve part is only on the operation
- * @author Nicolas CHARLES
- *
+ * That service allows to retrieve status of nodes or
+ * rules.
  */
 trait ReportingService {
 
   /**
-   * Update the list of expected reports when we do a deployment
-   * For each RuleVal, we check if it was present or modified
-   * If it was present and not changed, nothing is done for it
-   * If it changed, then the previous version is closed, and the new one is opened
-
-   *
-   * @param ruleVal
-   * @return
+   * find rule status reports for a given rule.
    */
-  def updateExpectedReports(ruleVal : Seq[ExpandedRuleVal], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]]
-
+  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Seq[RuleNodeStatusReport]]
 
   /**
-   * Find the latest reports for a given rule (for all servers)
-   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
+   * Retrieve a set of node status reports given the nodes Id.
+   * Optionally restrict the set to some rules if filterByRules is non empty (else,
+   * find node status reports for all rules)
    */
-  def findImmediateReportsByRule(ruleId : RuleId) : Box[Option[ExecutionBatch]]
-
-  /**
-   * Find the latest reports for a seq of rules (for all node)
-   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
-   */
-  def findImmediateReportsByRules(rulesIds : Set[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]]
-
-  /**
-   * Find the latest (15 minutes) reports for a given node (all CR)
-   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
-   */
-  def findImmediateReportsByNode(nodeId : NodeId) :  Box[Seq[ExecutionBatch]]
-
+  def findNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]) : Box[Seq[RuleNodeStatusReport]]
 }

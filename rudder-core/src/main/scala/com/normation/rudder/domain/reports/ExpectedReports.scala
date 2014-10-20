@@ -34,19 +34,18 @@
 
 package com.normation.rudder.domain.reports
 
-import com.normation.inventory.domain.NodeId
+import org.joda.time.DateTime
+import org.joda.time.Interval
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import scala.collection._
-import org.joda.time._
-import org.joda.time.format._
+import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.NodeId
 
 
 /**
- * The representation of the database object for the expected reports for a rule
- *
- * @author Nicolas CHARLES
+ * The representation of the database object for the expected reports for
+ * a rule and a list of nodes
  *
  */
 case class RuleExpectedReports(
@@ -61,22 +60,39 @@ case class RuleExpectedReports(
 }
 
 /**
- * This class allow to have for differents nodes differents directives
+ * This class allow to have different directives for different nodes.
  * Actually, it is used in a constrainted way : same directiveId for all nodes,
- * but directives can have differents component/componentValues per Nodes
+ * but directives can have different components/componentValues per Nodes
  */
 case class DirectivesOnNodes(
-    nodeJoinKey             : Int// the version id of the rule, follows a sequence, used to join with the node table
-  , nodeIds                 : Seq[NodeId]
+    nodeJoinKey             : Int// id following a sequence used to join to the list of nodes
+  , nodeConfigurationIds    : Map[NodeId, Option[NodeConfigId]]
   , directiveExpectedReports: Seq[DirectiveExpectedReports]
 ) extends HashcodeCaching
+
+
+/**
+ * A Directive may have several components
+ */
+final case class DirectiveExpectedReports (
+    directiveId: DirectiveId
+  , components : Seq[ComponentExpectedReport]
+) extends HashcodeCaching
+
+final case class NodeAndConfigId(
+    nodeId : NodeId
+  , version: NodeConfigId
+)
 
 /**
  * The Cardinality is per Component
  */
-case class ReportComponent(
+case class ComponentExpectedReport(
     componentName             : String
   , cardinality               : Int
+
+  //TODO: change that to have a Seq[(String, Option[String]).
+  //or even better, un Seq[ExpectedValue] where expectedValue is the pair
   , componentsValues          : Seq[String]
   , unexpandedComponentsValues: Seq[String]
 ) extends HashcodeCaching {
@@ -91,21 +107,11 @@ case class ReportComponent(
   }
 }
 
-/**
- * A Directive may have several components
- */
-case class DirectiveExpectedReports (
-    directiveId: DirectiveId
-  , components : Seq[ReportComponent]
-) extends HashcodeCaching
+final case class NodeConfigId(value: String)
 
-
-/**
- * This utilitary class is used only to compare what is already saved in the
- * DB and compare it with what is to be saved
- */
-case class Comparator(
-    nodeId       : NodeId
-  , directiveId  : DirectiveId
-  , componentName: String
-)
+final case class NodeConfigVersions(
+     nodeId  : NodeId
+     //the most recent version is the head
+     //and the list can be empty
+   , versions: List[NodeConfigId]
+ )
