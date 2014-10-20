@@ -45,7 +45,6 @@
   
   <logger name="com.normation.rudder.services.queries" level="info" /> 
   
-  
   <!-- 
       if you don't want appender to be cumulative, add additivity
       parameter and set it to false: 

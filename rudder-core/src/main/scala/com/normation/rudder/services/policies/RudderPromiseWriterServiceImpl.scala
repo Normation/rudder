@@ -69,6 +69,8 @@ import scala.sys.process.ProcessLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.utils.Control.boxSequence
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.domain.reports.NodeAndConfigId
 
 class RudderCf3PromisesFileWriterServiceImpl(
   techniqueRepository: TechniqueRepository,
@@ -113,8 +115,9 @@ class RudderCf3PromisesFileWriterServiceImpl(
    * It no longer change the status of the nodeconfiguration
    * @param updateBatch : the container for the server to be updated
    */
-  override def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[Seq[PromisesFinalMoveInfo]] = {
-    val techniqueIds = allNodeConfigs.filterKeys(configToWrite.contains(_)).values.flatMap( _.getTechniqueIds ).toSet
+  override def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]): Box[Seq[PromisesFinalMoveInfo]] = {
+    val interestingNodeConfig = allNodeConfigs.filterKeys(k => configToWrite.exists(x => x == k)).values.toSeq
+    val techniqueIds = interestingNodeConfig.flatMap( _.getTechniqueIds ).toSet
 
     // CFEngine will not run automatically if someone else than user can write the promise
     def setCFEnginePermission (baseFolder:String ) : Box[String] = {
@@ -142,7 +145,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
                          // A buffer of node, promisefolder, newfolder, backupfolder
                          val folders = collection.mutable.Buffer[(NodeConfiguration, String, String, String)]()
                          // Writing the policy
-                         for (node <- allNodeConfigs.filterKeys(configToWrite.contains(_)).values.toSeq) {
+                         for (node <- interestingNodeConfig) {
                            if (node.policyDrafts.size == 0) {
                              val msg = s"Can not write promises for node ${node.nodeInfo.hostname} (id: ${node.nodeInfo.id.value}): No policy found for node"
                              logger.error(msg)
@@ -158,7 +161,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
                              case e:EmptyBox => return (e ?~! s"Error when computing the path for node  ${node.nodeInfo.hostname} (id: ${node.nodeInfo.id.value})")
                            }
 
-                           prepareRulesForAgents(baseNodePath, backupNodePath, node, rootNodeId, templates) match {
+                           prepareRulesForAgents(baseNodePath, backupNodePath, node, versions(node.nodeInfo.id), rootNodeId, templates) match {
                              case Full(x) =>
                                folders ++= x
                              case e: EmptyBox => return (e ?~! "Error when preparing rules for agents")
@@ -204,7 +207,8 @@ class RudderCf3PromisesFileWriterServiceImpl(
       baseNodePath           : String
     , backupNodePath         : String
     , node                   : NodeConfiguration
-    , rootNodeConfigurationId: NodeId
+    , nodeConfigVersion      : NodeConfigId
+    , rootNodeConfigId       : NodeId
     , templates              : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
   ): Box[Set[(NodeConfiguration, String, String, String)]] = {
 
@@ -215,10 +219,15 @@ class RudderCf3PromisesFileWriterServiceImpl(
     for (agentType <- node.nodeInfo.agentsName) {
       val varNova      = systemVariableSpecService.get("NOVA"     ).toVariable(if(agentType == NOVA_AGENT     ) Seq("true") else Seq())
       val varCommunity = systemVariableSpecService.get("COMMUNITY").toVariable(if(agentType == COMMUNITY_AGENT) Seq("true") else Seq())
+      val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
 
-      val systemVariables = node.nodeContext + (varNova.spec.name -> varNova) + (varCommunity.spec.name -> varCommunity)
+      val systemVariables = (node.nodeContext
+                            + (varNova.spec.name -> varNova)
+                            + (varCommunity.spec.name -> varCommunity)
+                            + (varNodeConfigVersion.spec.name -> varNodeConfigVersion)
+                            )
 
-      val (nodeRulePath, newNodePath, backupNodeRulePath, newNodeRulePath) = if(rootNodeConfigurationId == node.nodeInfo.id) {
+      val (nodeRulePath, newNodePath, backupNodeRulePath, newNodeRulePath) = if(rootNodeConfigId == node.nodeInfo.id) {
         (pathComputer.getRootPath(agentType), pathComputer.getRootPath(agentType) + newPostfix, pathComputer.getRootPath(agentType) + backupPostfix, pathComputer.getRootPath(agentType) + newPostfix)
       } else {
         (baseNodePath, baseNodePath + newPostfix, backupNodePath, baseNodePath + newPostfix + "/rules" + agentType.toRulesPath()) // we'll want to move the root folders

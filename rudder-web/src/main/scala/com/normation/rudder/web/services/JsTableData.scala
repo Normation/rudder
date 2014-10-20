@@ -38,6 +38,12 @@ import net.liftweb.http.js.JsExp
 import net.liftweb.http.js.JsObj
 import scala.collection.TraversableLike
 import net.liftweb.http.js.JE.JsArray
+import com.normation.rudder.domain.reports.ComplianceLevel
+import net.liftweb.http.js.JE
+import org.joda.time.DateTime
+import org.joda.time.Period
+import org.joda.time.format.PeriodFormatterBuilder
+import org.joda.time.Interval
 
 
 /*
@@ -47,6 +53,51 @@ trait JsTableLine {
 
   def json : JsObj
 
+  //transform the compliance percent to a list with a given order:
+  //pc_notapplicable, pc_success, pc_repaired, pc_error,pc_pending, pc_noAnswer,  pc_missing, pc_unknown
+  def jsCompliance(compliance: ComplianceLevel) = JsArray(
+      JE.Num(compliance.pc_notApplicable)
+    , JE.Num(compliance.pc_success)
+    , JE.Num(compliance.pc_repaired)
+    , JE.Num(compliance.pc_error)
+    , JE.Num(compliance.pc_pending)
+    , JE.Num(compliance.pc_noAnswer)
+    , JE.Num(compliance.pc_missing)
+    , JE.Num(compliance.pc_unexpected)
+  )
+
+
+  /**
+   * Prepare data to be used in the chart.
+   * Return a js object with to properties:
+   * - x: Date to display
+   * - y: changes
+   */
+  def recentChanges(data: List[(DateTime, Int)]): JsObj = {
+    //normalize datas to have at max 20 points
+    //we use a log scale for time, on 10 points,
+    //going back to
+
+
+    //a format for time like "1d 5h ago"
+    val now = DateTime.now
+    val formatter = (new PeriodFormatterBuilder()
+            .appendDays()
+            .appendSuffix(" day", " days")
+            .appendSeparator(", ")
+            .appendHours()
+            .appendSuffix(" hour ago", " hours ago")
+            .toFormatter())
+
+    val times = data.map { case(t, _) =>
+      new Interval(t, now).toPeriod.toString(formatter)
+    }
+
+    JE.JsObj(
+        ("x" -> JE.JsArray(times.map(a => JE.Str(a))))
+      , ("y" -> JE.JsArray(data.map(a => JE.Num(a._2))))
+    )
+  }
 }
 
 /*

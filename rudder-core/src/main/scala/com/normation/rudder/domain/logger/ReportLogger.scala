@@ -37,10 +37,7 @@ package com.normation.rudder.domain.logger
 import org.slf4j.LoggerFactory
 import net.liftweb.common.Logger
 import net.liftweb.common.Failure
-import com.normation.rudder.domain.reports.bean.ReportType
-import com.normation.rudder.domain.reports.bean.ErrorReportType
-import com.normation.rudder.domain.reports.bean.RepairedReportType
-import com.normation.rudder.domain.reports.bean.Reports
+import com.normation.rudder.domain.reports._
 
 object ReportLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("report")

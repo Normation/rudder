@@ -33,11 +33,7 @@
 */
 
 
-package com.normation.rudder.domain.reports.bean
-
-
-import com.normation.rudder.domain.reports.bean._
-
+package com.normation.rudder.domain.reports
 
 /**
  * List of all type of report we are expecting, as a result
@@ -50,10 +46,8 @@ import com.normation.rudder.domain.reports.bean._
  */
 
 
-trait ReportType {
-
+sealed trait ReportType {
   val severity :String
-
 }
 
 case object NotApplicableReportType extends ReportType {
@@ -68,8 +62,8 @@ case object RepairedReportType extends ReportType{
 case object ErrorReportType extends ReportType{
   val severity = "Error"
 }
-case object UnknownReportType extends ReportType{
-  val severity = "Unknown"
+case object UnexpectedReportType extends ReportType{
+  val severity = "Unexpected"
 }
 case object NoAnswerReportType extends ReportType{
   val severity = "NoAnswer"
@@ -77,24 +71,32 @@ case object NoAnswerReportType extends ReportType{
 case object PendingReportType extends ReportType{
   val severity = "Applying"
 }
+case object MissingReportType extends ReportType{
+  val severity = "Missing"
+}
 
 object ReportType {
 
-  def getWorseType(reportTypes : Seq[ReportType]) : ReportType = {
+  def getWorseType(reportTypes : Iterable[ReportType]) : ReportType = {
     if (reportTypes.isEmpty) {
       NoAnswerReportType
     } else {
       ( reportTypes :\ (NotApplicableReportType : ReportType) ) {
-        case (_, UnknownReportType) | (UnknownReportType, _) => UnknownReportType
+        case (_, UnexpectedReportType) | (UnexpectedReportType, _) => UnexpectedReportType
         case (_, ErrorReportType) | (ErrorReportType, _) => ErrorReportType
         case (_, RepairedReportType) | (RepairedReportType, _) => RepairedReportType
+        case (_, MissingReportType) | (MissingReportType, _) => MissingReportType
         case (_, NoAnswerReportType) | (NoAnswerReportType, _) => NoAnswerReportType
         case (_, PendingReportType) | (PendingReportType, _) => PendingReportType
         case (_, SuccessReportType) | (SuccessReportType, _) => SuccessReportType
         case (_, NotApplicableReportType) | (NotApplicableReportType, _) => NotApplicableReportType
-        case _ => UnknownReportType
+        case _ => UnexpectedReportType
       }
     }
+  }
+
+  def getWorseReport(reports: Seq[Reports]): ReportType = {
+    getWorseType(reports.map( apply(_) ))
   }
 
   def getSeverityFromStatus(status : ReportType) : String = {
@@ -107,7 +109,7 @@ object ReportType {
       case _ : ResultErrorReport         => ErrorReportType
       case _ : ResultRepairedReport      => RepairedReportType
       case _ : ResultNotApplicableReport => NotApplicableReportType
-      case _                             => UnknownReportType
+      case _                             => UnexpectedReportType
     }
   }
 

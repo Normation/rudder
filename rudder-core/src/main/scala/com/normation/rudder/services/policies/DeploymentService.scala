@@ -62,6 +62,13 @@ import scala.collection.immutable.TreeMap
 import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
 import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.NodeInventory
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.services.reports.ExpectedReportsUpdate
 
 
 
@@ -81,7 +88,6 @@ trait DeploymentService extends Loggable {
    *
    */
   def deploy() : Box[Set[NodeId]] = {
-
     logger.info("Start policy generation, checking updated rules")
 
     val initialTime = System.currentTimeMillis
@@ -132,17 +138,19 @@ trait DeploymentService extends Loggable {
       // Update the serial of ruleVals when there were modifications on Rules values
       // replace variables with what is really applied
       timeIncrementRuleSerial  =  (System.currentTimeMillis - beginTime)
-      _                        = logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial}ms")
+      _                        =  logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial}ms")
 
       writeTime           =  System.currentTimeMillis
+      nodeConfigVersions  =  calculateNodeConfigVersions(serialedNodes.values.toSeq)
       //second time we write something in repos: updated node configuration
-      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, serialedNodes, nodeConfigCache) ?~! "Cannot write configuration node"
+      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, serialedNodes, nodeConfigVersions, nodeConfigCache) ?~! "Cannot write configuration node"
       timeWriteNodeConfig =  (System.currentTimeMillis - writeTime)
       _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig}ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
-      expectedReports       <- setExpectedReports(ruleVals, config, updatedCrs.toMap, deletedCrs)  ?~! "Cannot build expected reports"
+      updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
+      expectedReports       <- setExpectedReports(ruleVals, config, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport}ms")
 
@@ -257,7 +265,7 @@ trait DeploymentService extends Loggable {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]]
+  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]]
 
 
   /**
@@ -266,13 +274,25 @@ trait DeploymentService extends Loggable {
    * @param ruleVal
    * @return
    */
-  def setExpectedReports(ruleVal : Seq[RuleVal], nodeConfigs: Seq[NodeConfiguration], updateCrs: Map[RuleId, Int], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]]
+  def setExpectedReports(
+      ruleVal          : Seq[RuleVal]
+    , nodeConfigs      : Seq[NodeConfiguration]
+    , versions         : Map[NodeId, NodeConfigId]
+    , updateCrs        : Map[RuleId, Int]
+    , deletedCrs       : Seq[RuleId]
+    , updatedNodeConfig: Set[NodeId]
+    , generationTime   : DateTime
+  ) : Box[Seq[RuleExpectedReports]]
 
   /**
    * Store groups and directive in the database
    */
   def historizeData(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Unit]
 
+
+  def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
+    configs.map(x => (x.nodeInfo.id, NodeConfigId(NodeConfigurationCache(x).hashCode.toString))).toMap
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,7 +306,7 @@ class DeploymentServiceImpl (
   , override val systemVarService: SystemVariableService
   , override val nodeConfigurationService : NodeConfigurationService
   , override val nodeInfoService : NodeInfoService
-  , override val reportingService : ReportingService
+  , override val reportingService : ExpectedReportsUpdate
   , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
   , override val roDirectiveRepository: RoDirectiveRepository
@@ -648,7 +668,12 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
    * Detect changes in rules and update their serial
    * Returns two seq : the updated rules, and the deleted rules
    */
-  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
+  def detectUpdatesAndIncrementRuleSerial(
+      nodes       : Seq[NodeConfiguration]
+    , cache       : Map[NodeId, NodeConfigurationCache]
+    , directiveLib: FullActiveTechniqueCategory
+    , allRules    : Map[RuleId, Rule]
+  ) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
     val firstElt = (Map[RuleId,Int](), Seq[RuleId]())
     // First, fetch the updated CRs (which are either updated or deleted)
     (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
@@ -681,7 +706,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]] = {
+  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]] = {
     /*
      * Several steps heres:
      * - look what node configuration are updated (based on their cache ?)
@@ -693,7 +718,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
     val fsWrite0   =  writtingTime.get.getMillis
 
     for {
-      written    <- nodeConfigurationService.writeTemplate(rootNodeId, updated, allNodeConfigs)
+      written    <- nodeConfigurationService.writeTemplate(rootNodeId, updated, allNodeConfigs, versions)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} millisec.")
@@ -713,8 +738,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
 
 
 trait DeploymentService_setExpectedReports extends DeploymentService {
-  def reportingService : ReportingService
-
+  def reportingService : ExpectedReportsUpdate
 
    /**
    * Update the serials in the rule vals based on the updated rule (which may be empty if nothing is updated)
@@ -722,8 +746,8 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
    * So we can have several rule with different subset of values
    */
   private[this] def updateRuleVal(
-      rulesVal : Seq[ExpandedRuleVal]
-    , rules : Map[RuleId,Int]
+      rulesVal: Seq[ExpandedRuleVal]
+    , rules   : Map[RuleId,Int]
   ) : Seq[ExpandedRuleVal] = {
     rulesVal.map(ruleVal => {
       rules.find { case(id,serial) => id == ruleVal.ruleId } match {
@@ -734,7 +758,11 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
     })
   }
 
-  private[this] def getExpandedRuleVal(ruleVals:Seq[RuleVal], nodeConfigs: Seq[NodeConfiguration]) : Seq[ExpandedRuleVal]= {
+  private[this] def getExpandedRuleVal(
+      ruleVals   :Seq[RuleVal]
+    , nodeConfigs: Seq[NodeConfiguration]
+    , versions   : Map[NodeId, NodeConfigId]
+  ) : Seq[ExpandedRuleVal]= {
     ruleVals map { rule =>
 
       val directives = (nodeConfigs.flatMap { nodeConfig =>
@@ -756,22 +784,38 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
             case _ => None
         }
 
-        expectedDirectiveValsForNode.map(d => nodeConfig.nodeInfo.id -> d.toSeq)
+        expectedDirectiveValsForNode.map(d => NodeAndConfigId(nodeConfig.nodeInfo.id, versions(nodeConfig.nodeInfo.id)) -> d.toSeq)
       })
 
       ExpandedRuleVal(
           rule.ruleId
-        ,  directives.toMap
         , rule.serial
+        , directives.toMap
       )
     }
   }
 
-  def setExpectedReports(ruleVal : Seq[RuleVal], configs: Seq[NodeConfiguration], updatedCrs:Map[RuleId, Int], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
-    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs)
+  def setExpectedReports(
+      ruleVal          : Seq[RuleVal]
+    , configs          : Seq[NodeConfiguration]
+    , versions         : Map[NodeId, NodeConfigId]
+    , updatedCrs       : Map[RuleId, Int]
+    , deletedCrs       : Seq[RuleId]
+    , updatedNodeConfig: Set[NodeId]
+    , generationTime   : DateTime
+  ) : Box[Seq[RuleExpectedReports]] = {
+    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, versions)
     val updatedRuleVal = updateRuleVal(expandedRuleVal, updatedCrs)
+    val updatedConfigIds = updatedNodeConfig.flatMap(id =>
+      //we should have all the nodeConfig for the nodeIds, but if it isn't
+      //the case, it seems safer to not try to save a new version of the nodeConfigId
+      //for that node and just ignore it.
+      configs.find( _.nodeInfo.id == id).map { x =>
+        (x.nodeInfo.id, versions(x.nodeInfo.id))
+      }
+    ).toMap
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs)
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime)
   }
 }
 

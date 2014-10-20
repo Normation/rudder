@@ -83,6 +83,9 @@ CREATE INDEX component_idx                ON RudderSysEvents (component);
 CREATE INDEX keyValue_idx                 ON RudderSysEvents (keyValue);
 CREATE INDEX ruleId_idx                   ON RudderSysEvents (ruleId);
 
+CREATE INDEX changes_executionTimeStamp_idx ON RudderSysEvents (executionTimeStamp) WHERE eventType = 'result_repaired';
+
+
 /*
  * The table used to store archived agent execution reports. 
  */
@@ -110,9 +113,10 @@ CREATE INDEX executionTimeStamp_archived_idx ON ArchivedRudderSysEvents (executi
  * or not. 
  */
 CREATE TABLE ReportsExecution (
-  nodeId             text NOT NULL
-, date               timestamp with time zone NOT NULL
-, complete           boolean NOT NULL
+  nodeId       text NOT NULL
+, date         timestamp with time zone NOT NULL
+, complete     boolean NOT NULL
+, nodeConfigId text
 , PRIMARY KEY(nodeId, date)
 );
 
@@ -151,12 +155,36 @@ CREATE INDEX expectedReports_versionId ON expectedReports (nodeJoinKey);
 CREATE INDEX expectedReports_serialId ON expectedReports (ruleId, serial);
 
 CREATE TABLE expectedReportsNodes (
-  nodeJoinKey integer NOT NULL 
-, nodeId      varchar(50) NOT NULL CHECK (nodeId <> '')
+  nodeJoinKey   integer NOT NULL 
+, nodeId        varchar(50) NOT NULL CHECK (nodeId <> '')
+  /*
+   * NodeConfigIds is an array of string  used for node 
+   * config version id. It can be null or empty to accomodate 
+   * pre-2.12 behaviour. 
+   * 
+   * The most recent version is put in first place of the
+   * array, so that in
+   * [v5, v4, v3, v2]
+   * v5 is the newest. Space will be trim in the id. 
+   * 
+   */
+, nodeConfigIds text[]
 , PRIMARY KEY (nodeJoinKey, nodeId)
 );
-
 CREATE INDEX expectedReportsNodes_versionId ON expectedReportsNodes (nodeJoinKey);
+
+
+/*
+ * We also have a table of the list of node with configId / generationDate
+ * so what we can answer the question: what is the last config id for that node ?
+ * The date helps now if we should have received report for that node. 
+ */
+CREATE TABLE nodes_info (
+  node_id    text PRIMARY KEY CHECK (node_id <> '')
+  -- configs ids are a dump of json: [{"configId":"xxxx", "dateTime": "iso-date-time"} ]
+, config_ids text
+);
+
 
 
 /* 
@@ -210,7 +238,7 @@ CREATE TABLE MigrationEventLog (
 
 
 CREATE TABLE RudderProperties(
-  name text PRIMARY KEY
+  name  text PRIMARY KEY
 , value text
 );
 

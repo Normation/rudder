@@ -40,7 +40,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.eventlog.RudderEventActor
-import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository._
 import com.normation.rudder.services.reports.ReportingService
@@ -70,6 +70,8 @@ import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.rudder.web.services.JsTableData
 import net.liftweb.http.js.JE.AnonFunc
+import com.normation.rudder.web.services.NodeComplianceLine
+import org.joda.time.DateTime
 
 
 
@@ -119,6 +121,8 @@ class RuleGrid(
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
 
+
+  private[this] val recentChanges    = RudderConfig.recentChangesService
   private[this] val reportingService = RudderConfig.reportingService
   private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
@@ -150,13 +154,13 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib()) }
+    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), recentChanges.getChanges()) }
   }
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   def rulesGridWithUpdatedInfo(popup: Boolean = false, linkCompliancePopup:Boolean = true) = {
-    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), popup, linkCompliancePopup)
+    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), recentChanges.getChanges(), popup, linkCompliancePopup)
   }
 
 
@@ -199,15 +203,17 @@ class RuleGrid(
 
 
   // Build refresh function for Rule grid
-  def refresh(popup:Boolean = false, linkCompliancePopup:Boolean = true) =  AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
+  def refresh(popup:Boolean = false, linkCompliancePopup:Boolean = true) =  {
+    AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
           ( for {
               rules        <- roRuleRepository.getAll(false)
-              nodeInfo     = getAllNodeInfos()
-              groupLib     = getFullNodeGroupLib()
-              directiveLib = getFullDirectiveLib()
-              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+              nodeInfo     =  getAllNodeInfos()
+              groupLib     =  getFullNodeGroupLib()
+              directiveLib =  getFullDirectiveLib()
+              changes      =  recentChanges.getChanges()
+              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib, changes)
             } yield {
-              JsRaw(s"""refreshTable("${htmlId_rulesGridId}",${newData.json.toJsCmd});""")
+              JsRaw(s"""refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});""")
             }
           ) match {
             case Full(cmd) => cmd
@@ -216,16 +222,18 @@ class RuleGrid(
               logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
               JsRaw(s"""$$("#ruleTableError").text("Could not refresh Rule table data cause is: ${fail.msg}");""")
           }
-        } ))
+    } ) )
+  }
 
   def rulesGrid(
       allNodeInfos: Box[Map[NodeId, NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
     , directiveLib: Box[FullActiveTechniqueCategory]
+    , changes     : Box[Seq[ResultRepairedReport]]
     , popup       : Boolean = false
     , linkCompliancePopup:Boolean = true
   ) : NodeSeq = {
-    getRulesTableData(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib) match {
+    getRulesTableData(popup, rules, linkCompliancePopup, allNodeInfos, groupLib, directiveLib, changes) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get information about rules"
         logger.error(e.messageChain)
@@ -246,7 +254,7 @@ class RuleGrid(
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
         val onLoad =
           s"""createRuleTable (
-                  "${htmlId_rulesGridId}"
+                 "${htmlId_rulesGridId}"
                 , ${tableData.json.toJsCmd}
                 , ${showCheckboxColumn}
                 , ${popup}
@@ -281,19 +289,22 @@ class RuleGrid(
       popup:Boolean
     , rules:Seq[Rule]
     , linkCompliancePopup:Boolean
-    , allNodeInfos: Box[Map[NodeId, NodeInfo]]
-    , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]) : Box[JsTableData[RuleLine]] = {
+    , allNodeInfos : Box[Map[NodeId, NodeInfo]]
+    , groupLib     : Box[FullNodeGroupCategory]
+    , directiveLib : Box[FullActiveTechniqueCategory]
+    , recentChanges: Box[Seq[ResultRepairedReport]]
+  ) : Box[JsTableData[RuleLine]] = {
 
     for {
       directivesLib <- directiveLib
       groupsLib     <- groupLib
       nodes         <- allNodeInfos
+      changes       <- recentChanges
     } yield {
       val lines = for {
          line <- convertRulesToLines(directivesLib, groupsLib, nodes, rules.toList)
       } yield {
-        getRuleData(line, groupsLib, nodes)
+        getRuleData(line, groupsLib, nodes, changes)
       }
       JsTableData(lines)
     }
@@ -306,14 +317,14 @@ class RuleGrid(
    */
   private[this] def convertRulesToLines (
       directivesLib: FullActiveTechniqueCategory
-    , groupsLib: FullNodeGroupCategory
-    , nodes: Map[NodeId, NodeInfo]
-    , rules : List[Rule]
+    , groupsLib    : FullNodeGroupCategory
+    , nodes        : Map[NodeId, NodeInfo]
+    , rules        : List[Rule]
   ) : List[Line] = {
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
-    val complianceMap = computeCompliances(rules.toSet)
+    val complianceMap = computeCompliances(nodes.keySet, rules.map( _.id).toSet)
 
     rules.map { rule =>
 
@@ -355,7 +366,13 @@ class RuleGrid(
              case _:NotAppliedStatus =>
                Full(None)
              case _ =>
-               complianceMap.getOrElse(rule.id, Failure(s"Error when getting compliance for Rule ${rule.name}"))
+               complianceMap match {
+                 case eb: EmptyBox => eb ?~! "Error when getting the compliance of rules"
+                 case Full(cm) => cm.get(rule.id) match {
+                   case None => Failure(s"Error when getting compliance for Rule ${rule.name}")
+                   case s@Some(_) => Full(s)
+                 }
+               }
            }
            compliance match {
              case e:EmptyBox =>
@@ -408,7 +425,7 @@ class RuleGrid(
   /*
    * Generates Data for a line of the table
    */
-  private[this]  def getRuleData (line:Line, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo]) : RuleLine = {
+  private[this]  def getRuleData(line:Line, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo], changes: Seq[ResultRepairedReport]) : RuleLine = {
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled
@@ -443,10 +460,13 @@ class RuleGrid(
     }
 
     // Compliance percent and class to apply to the td
-    val (complianceClass,compliancePercent) = {
+    val compliancePercent = {
       line match {
-        case line : OKLine => buildComplianceChart(line.compliance)
-        case _ => ("noCompliance","N/A")
+        case line : OKLine => line.compliance match {
+          case None => ComplianceLevel()
+          case Some(c) => c
+        }
+        case _ => ComplianceLevel()
       }
     }
 
@@ -506,7 +526,7 @@ class RuleGrid(
       , category
       , status
       , compliancePercent
-      , complianceClass
+      , changes.collect{ case c if(c.ruleId == line.rule.id ) => (c.executionTimestamp, 1) }.toList
       , cssClass
       , callback
       , checkboxCallback
@@ -515,34 +535,16 @@ class RuleGrid(
 
   }
 
-  private[this] def computeCompliances(rules: Set[Rule]) : Map[RuleId, Box[Option[ComplianceLevel]]] = {
-    reportingService.findImmediateReportsByRules(rules.map(_.id)).map { case (ruleId, entry) =>
-      (ruleId,
-          entry match {
-            case e:EmptyBox => e
-            case Full(None) => Full(Some(Applying)) // when we have a rule but nothing in the database, it means that it is currently being deployed
-            case Full(Some(x)) if (x.directivesOnNodesExpectedReports.size==0) => Full(None)
-            case Full(Some(x)) if x.getNodeStatus().exists(x => x.reportType == PendingReportType ) => Full(Some(Applying))
-            case Full(Some(x)) =>  Full(Some(new Compliance((100 * x.getNodeStatus().filter(x => (x.reportType == SuccessReportType || x.reportType == NotApplicableReportType)).size) / x.getNodeStatus().size)))
-          }
+
+  private[this] def computeCompliances(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[RuleId, ComplianceLevel]] = {
+    reportingService.findNodeStatusReports(nodeIds, ruleIds).map { _.groupBy( _.ruleId ).map { case (ruleId, nodeReports) =>
+      (
+          ruleId
+        , ComplianceLevel.sum(nodeReports.map(_.compliance))
       )
-    }
+    } }
   }
 
-  private[this] def buildComplianceChart(level:Option[ComplianceLevel]) : (String,String) = {
-      level match {
-        case None => ("noCompliance","N/A")
-        case Some(Applying) => ("applyingCompliance","Applying")
-        case Some(NoAnswer) => ("noCompliance","No answer")
-        case Some(Compliance(percent)) =>
-          val complianceClass =  if (percent <= 10 ) "redCompliance"
-            else if(percent >= 90) "greenCompliance"
-              else "orangeCompliance"
-          val text = percent.toString + "%"
-
-          (complianceClass,text)
-      }
-  }
 }
 
   /*
@@ -554,7 +556,7 @@ class RuleGrid(
    *   , "category" : Rule category [String]
    *   , "status" : Status of the Rule, "enabled", "disabled" or "N/A" [String]
    *   , "compliance" : Percent of compliance of the Rule [String]
-   *   , "complianceClass" : Class to apply on the compliance td [String]
+   *   , "recentChanges" : Array of changes to build the sparkline [Array[String]]
    *   , "trClass" : Class to apply on the whole line (disabled ?) [String]
    *   , "callback" : Function to use when clicking on one of the line link, takes a parameter to define which tab to open, not always present[ Function ]
    *   , "checkboxCallback": Function used when clicking on the checkbox to apply/not apply the Rule to the directive, not always present [ Function ]
@@ -568,16 +570,16 @@ case class RuleLine (
   , applying         : Boolean
   , category         : String
   , status           : String
-  , compliance       : String
-  , complianceClass  : String
+  , compliance       : ComplianceLevel
+  , recentChanges    : List[(DateTime, Int)]
   , trClass          : String
   , callback         : Option[AnonFunc]
   , checkboxCallback : Option[AnonFunc]
   , reasons          : Option[String]
 ) extends JsTableLine {
 
-    /* Would love to have a reflexive way to generate that map ...  */
-    override val json  = {
+  /* Would love to have a reflexive way to generate that map ...  */
+  override val json  = {
 
       val reasonField =  reasons.map(r => ( "reasons" -> Str(r)))
 
@@ -594,16 +596,15 @@ case class RuleLine (
         , ( "applying",  applying )
         , ( "category", category )
         , ( "status", status )
-        , ( "compliance", compliance )
-        , ( "complianceClass", complianceClass )
+        , ( "compliance", jsCompliance(compliance) )
+        , ( "recentChanges", recentChanges(recentChanges))
         , ( "trClass", trClass )
       )
 
       base +* JsObj(optFields:_*)
     }
 }
-sealed trait ComplianceLevel
-case object Applying extends ComplianceLevel
-case object NoAnswer extends ComplianceLevel
-case class Compliance(val percent:Int) extends ComplianceLevel with HashcodeCaching
+
+
+
 

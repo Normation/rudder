@@ -240,6 +240,7 @@ class ModificationValidationPopup(
   private[this] val woDirectiveRepository    = RudderConfig.woDirectiveRepository
   private[this] val woRuleRepository         = RudderConfig.woRuleRepository
   private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
+  private[this] val recentRepairesService    = RudderConfig.recentChangesService
 
   //fonction to read state of things
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -257,6 +258,7 @@ class ModificationValidationPopup(
   private[this] val allNodeInfos = getAllNodeInfos()
   private[this] val groupLib = getGroupLib()
   private[this] val directiveLib = getDirectiveLib()
+  private[this] val repaires = recentRepairesService.getChanges()
 
   private[this] val rules = {
     action match {
@@ -376,7 +378,7 @@ class ModificationValidationPopup(
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
         val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
-        cmp.rulesGrid(allNodeInfos, groupLib, directiveLib, popup = true,linkCompliancePopup = false)
+        cmp.rulesGrid(allNodeInfos, groupLib, directiveLib, repaires, popup = true,linkCompliancePopup = false)
     }
   }
 

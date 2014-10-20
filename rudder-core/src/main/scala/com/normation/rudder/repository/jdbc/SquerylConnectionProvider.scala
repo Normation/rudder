@@ -40,7 +40,6 @@ import org.squeryl.adapters.PostgreSqlAdapter
 import javax.sql.DataSource
 import net.liftweb.common.Loggable
 import java.sql.SQLException
-import org.apache.commons.dbcp.BasicDataSource
 
 /**
  * A wrapper around the Squeryl default implementation to allow for several
@@ -126,8 +125,9 @@ class SquerylConnectionProvider(
       try {
         if(txOk)
           c.commit
-        else
+        else {
           c.rollback
+        }
       }
       catch {
         case e:SQLException => {
