@@ -177,7 +177,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.modified.files.ttl=30
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
-       rudder.compliance.mode=fullCompliance
+       rudder.compliance.mode=full-compliance
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
