@@ -41,14 +41,16 @@ bundle agent logger_rudder(message, class_prefix)
 
       # 3/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
-        int        => getfields("^[^;]*;;${class_prefix};;.*", "${expected_reports_file}", ";;", "report_data"),
-        classes    => if_ok("report_data_read");
+        int        => getfields("^[^;]*;;${class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
+
+  classes:
+      "report_data_read" expression => isgreaterthan("${number_lines}","0");
 
   files:
 
-      # 1/ First, check if the temporary file needs to be updated (The Rudder
-      # provided expected reports file has changed). If so, expand the variables
-      # in it into a temporary file.
+      # 1/ First, check if the temporary file needs to be updated (The Rudder
+      # provided expected reports file has changed). If so, expand the variables
+      # in it into a temporary file.
       "${expected_reports_temp}"
         create        => "true",
         edit_template => "${expected_reports_source}",
@@ -58,7 +60,7 @@ bundle agent logger_rudder(message, class_prefix)
 
     logger_rudder_temp_resfile_repaired::
 
-      # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
+      # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
       # it.
       "${log_canonification_tool}"
         contain       => in_shell,
@@ -68,7 +70,7 @@ bundle agent logger_rudder(message, class_prefix)
 
     report_data_read::
 
-      # 4/ Array is ready, reporting time !!!
+      # 4/ Array is ready, reporting time !!!
       "@@${report_data[1]}@@result_na@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
         ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_not_ok.!changes_only",
         classes    => classes_generic("logger_rudder_${class_prefix}");
