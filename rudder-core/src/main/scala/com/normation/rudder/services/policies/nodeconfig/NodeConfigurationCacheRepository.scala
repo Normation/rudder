@@ -113,6 +113,8 @@ object NodeConfigurationCache {
      */
     val policyCacheValue = {
       nodeConfig.policyDrafts.map { case r:RuleWithCf3PolicyDraft =>
+        //don't take into account "overrides" in cache: having more or less
+        //ignored things must not impact the cache computation
         PolicyCache(
             r.ruleId
           , r.draftId
