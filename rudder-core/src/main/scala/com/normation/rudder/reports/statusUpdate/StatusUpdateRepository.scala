@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.status
+package com.normation.rudder.reports.statusUpdate
 
 import org.joda.time.DateTime
 import net.liftweb.common.Box

@@ -138,9 +138,10 @@ case class RuleVal(
  * A composite class, to keep the link between the applied Directive and the Rule
  */
 case class RuleWithCf3PolicyDraft private (
-    ruleId: RuleId
-  , directiveId: DirectiveId
+    ruleId        : RuleId
+  , directiveId   : DirectiveId
   , cf3PolicyDraft: Cf3PolicyDraft
+  , overrides     : Set[Cf3PolicyDraftId] //a set of other draft overriden by that one
 ) extends HashcodeCaching {
   val draftId = cf3PolicyDraft.id
 
@@ -174,6 +175,7 @@ object RuleWithCf3PolicyDraft {
           , priority = priority
           , serial = serial
       )
+    , Set()
   )
 }
 
