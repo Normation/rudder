@@ -37,7 +37,7 @@ package com.normation.rudder.reports.execution
 import org.joda.time.DateTime
 
 import com.normation.rudder.batch.FindNewReportsExecution
-import com.normation.rudder.reports.status.StatusUpdateRepository
+import com.normation.rudder.reports.statusUpdate.StatusUpdateRepository
 import com.normation.rudder.repository.ReportsRepository
 
 import net.liftweb.common._

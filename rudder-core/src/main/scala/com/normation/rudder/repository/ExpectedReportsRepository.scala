@@ -69,7 +69,7 @@ trait UpdateExpectedReportsRepository {
   def saveExpectedReports(
       ruleId                   : RuleId
     , serial                   : Int
-    , generationTime          : DateTime
+    , generationTime           : DateTime
     , directiveExpectedReports : Seq[DirectiveExpectedReports]
     , nodeConfigurationVersions: Seq[NodeAndConfigId]
   ) : Box[RuleExpectedReports]

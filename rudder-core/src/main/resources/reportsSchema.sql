@@ -169,6 +169,12 @@ CREATE TABLE expectedReportsNodes (
    * 
    */
 , nodeConfigIds text[]
+  /*
+   * Denote that the expected report is actually not expected, 
+   * because the directive is derived from an Unique Technique
+   * and an other more priorised one was chosen. 
+   */
+, overriden text
 , PRIMARY KEY (nodeJoinKey, nodeId)
 );
 CREATE INDEX expectedReportsNodes_versionId ON expectedReportsNodes (nodeJoinKey);
