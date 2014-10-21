@@ -537,14 +537,19 @@ class RuleGrid(
 
 
   private[this] def computeCompliances(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[RuleId, ComplianceLevel]] = {
-    reportingService.findNodeStatusReports(nodeIds, ruleIds).map { _.groupBy( _.ruleId ).map { case (ruleId, nodeReports) =>
-      (
-          ruleId
-        , ComplianceLevel.sum(nodeReports.map(_.compliance))
-      )
-    } }
+    for {
+      reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
+    } yield {
+      reports.groupBy( _.ruleId ).map { case (ruleId, nodeReports) =>
+        (
+            ruleId
+            //BE CAREFUL: nodeReports is a SET - and it's likelly that
+            //some compliance will be equals
+          , ComplianceLevel.sum(nodeReports.toSeq.map(_.compliance))
+        )
+      }
+    }
   }
-
 }
 
   /*

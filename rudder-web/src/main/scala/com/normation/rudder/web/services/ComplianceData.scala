@@ -148,7 +148,7 @@ case class NodeComplianceLine (
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "node"       ->  nodeInfo.hostname )
+        ( "node"       -> nodeInfo.hostname )
       , ( "compliance" -> jsCompliance(compliance))
       , ( "id"         -> nodeInfo.id.value )
       , ( "details"    -> details.json )
@@ -247,16 +247,13 @@ object ComplianceData {
    */
   def getRuleByNodeComplianceDetails(
       directiveId : DirectiveId
-    , reports     : Seq[RuleNodeStatusReport]
+    , report      : RuleStatusReport
     , allNodeInfos: Map[NodeId, NodeInfo]
   ) : JsTableData[NodeComplianceLine]= {
 
-    //sort reports by node, aggregate result
-    val aggregates = reports.groupBy( _.nodeId).map { case(nodeId, seq) => (nodeId, AggregatedStatusReport(seq.toSet)) }
-
     // Compute node compliance detail
     val nodeComplianceLine = for {
-      (nodeId, aggregate) <- aggregates
+      (nodeId, aggregate) <- report.byNodes
       nodeInfo            <- allNodeInfos.get(nodeId)
       //here, we are only interested on the report for directiveId
       directiveReport     <- aggregate.directives.get(directiveId)
@@ -280,17 +277,14 @@ object ComplianceData {
    */
   def getNodeByRuleComplianceDetails (
       nodeId      : NodeId
-    , reports     : Seq[RuleNodeStatusReport]
+    , report      : NodeStatusReport
     , allNodeInfos: Map[NodeId, NodeInfo]
     , directiveLib: FullActiveTechniqueCategory
     , rules       : Seq[Rule]
   ) : JsTableData[RuleComplianceLine] = {
 
-    //aggregate by rules
-    val aggregates = reports.filter( _.nodeId == nodeId).groupBy( _.ruleId).map { case(ruleId, seq) => (ruleId, AggregatedStatusReport(seq.toSet)) }
-
     val ruleComplianceLine = for {
-      (ruleId, aggregate) <- aggregates
+      (ruleId, aggregate) <- report.byRules
       rule                <- rules.find( _.id == ruleId )
     } yield {
       val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, None)
@@ -303,7 +297,8 @@ object ComplianceData {
       )
 
     }
-      JsTableData(ruleComplianceLine.toList)
+
+    JsTableData(ruleComplianceLine.toList)
   }
 
 
@@ -316,7 +311,7 @@ object ComplianceData {
   private[this] def buildCallback(
       allNodeInfos: Map[NodeId, NodeInfo]
     , directiveLib: FullActiveTechniqueCategory
-    , reports     : Seq[RuleNodeStatusReport]
+    , reports     : RuleStatusReport
     , ruleName    : String
   ): DirCallback = {
     (directiveId: DirectiveId) => (componentName: Option[String]) => (valueName: Option[String]) =>
@@ -328,18 +323,15 @@ object ComplianceData {
 
   // From Rule Point of view
   def getRuleByDirectivesComplianceDetails (
-      directivesReport: Seq[RuleNodeStatusReport]
+      report          : RuleStatusReport
     , rule            : Rule
     , allNodeInfos    : Map[NodeId, NodeInfo]
     , directiveLib    : FullActiveTechniqueCategory
   ) : JsTableData[DirectiveComplianceLine] = {
 
-    val callback = buildCallback(allNodeInfos, directiveLib, directivesReport, rule.name)
+    val callback = buildCallback(allNodeInfos, directiveLib, report, rule.name)
 
-    //we want to provide an aggregated view for the rule
-    val aggregated = AggregatedStatusReport(directivesReport.toSet)
-
-    getDirectivesComplianceDetails(aggregated.directives.values.toSet, directiveLib, Some(callback))
+    getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, Some(callback))
   }
 
   // From Node Point of view
@@ -349,7 +341,7 @@ object ComplianceData {
     , optCallback     : Option[DirCallback]
   ) : JsTableData[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
-      directiveStatus <- directivesReport
+      directiveStatus                  <- directivesReport
       (fullActiveTechnique, directive) <- directiveLib.allDirectives.get(directiveStatus.directiveId)
     } yield {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
