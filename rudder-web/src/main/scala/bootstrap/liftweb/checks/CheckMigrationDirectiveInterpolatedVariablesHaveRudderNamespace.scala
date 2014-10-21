@@ -81,6 +81,8 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
   , uuidGen: StringUuidGenerator
 ) extends BootstrapChecks {
 
+  override val description = "Check that directive variables use the namespace 'rudder'"
+
 
   private[this] object logger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("migration")

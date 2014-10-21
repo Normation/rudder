@@ -35,6 +35,10 @@
 package bootstrap.liftweb
 
 import javax.servlet.UnavailableException
+import org.slf4j.LoggerFactory
+import net.liftweb.common.Logger
+import org.joda.time.Duration
+import org.joda.time.format.PeriodFormatterBuilder
 
 /**
  *
@@ -49,15 +53,44 @@ import javax.servlet.UnavailableException
  * order in there execution.
  */
 trait BootstrapChecks {
+  object logger extends Logger {
+    override protected def _logger = LoggerFactory.getLogger("bootchecks")
+  }
+
+  def description: String
 
   @throws(classOf[ UnavailableException ])
   def checks() : Unit
 
 }
 
+
+
 class SequentialImmediateBootStrapChecks(checkActions:BootstrapChecks*) extends BootstrapChecks {
 
+  override val description = "Sequence of bootstrap checks"
+  val formater = new PeriodFormatterBuilder()
+    .appendMinutes()
+    .appendSuffix(" m")
+    .appendSeparator(" ")
+    .appendSeconds()
+    .appendSuffix(" s")
+    .appendSeparator(" ")
+    .appendMillis()
+    .appendSuffix(" ms")
+    .toFormatter();
+
   @throws(classOf[ UnavailableException ])
-  override def checks() : Unit = checkActions.foreach { _.checks }
+  override def checks() : Unit = checkActions.zipWithIndex.foreach { case (check,i) =>
+    val start = System.currentTimeMillis
+    val msg = if(logger.isDebugEnabled) {
+      s"[#${i}] ${check.description}"
+    } else {
+      s"${check.description}"
+    }
+    logger.info(msg)
+    check.checks
+    logger.debug(msg + s": OK in [${formater.print(new Duration(System.currentTimeMillis - start).toPeriod)}]")
+  }
 
 }

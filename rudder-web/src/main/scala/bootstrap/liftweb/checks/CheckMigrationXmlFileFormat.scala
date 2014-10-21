@@ -67,13 +67,19 @@ trait CheckMigrationXmlFileFormat extends BootstrapChecks {
 
 class CheckMigrationEventLog2_3(
   override val controler: ControlEventLogsMigration_2_3
-) extends CheckMigrationXmlFileFormat
+) extends CheckMigrationXmlFileFormat {
+    override val description = "Check event log migration format 2 -> 3"
+}
 
 class CheckMigrationXmlFileFormat3_4(
   override val controler: ControlXmlFileFormatMigration_3_4
-) extends CheckMigrationXmlFileFormat
+) extends CheckMigrationXmlFileFormat {
+    override val description = "Check event log migration format 3 -> 4"
+}
 
 class CheckMigrationXmlFileFormat4_5(
   override val controler: ControlXmlFileFormatMigration_4_5
-) extends CheckMigrationXmlFileFormat
+) extends CheckMigrationXmlFileFormat {
+    override val description = "Check event log migration format 4 -> 5"
+}
 

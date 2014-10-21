@@ -58,7 +58,9 @@ class CheckInitXmlExport(
     itemArchiveManager: ItemArchiveManager
   , personIdentService: PersonIdentService
   , uuidGen           : StringUuidGenerator
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
+
+  override val description = "Check existence of at least one archive of the configuration"
 
   override def checks() : Unit = {
     (for {

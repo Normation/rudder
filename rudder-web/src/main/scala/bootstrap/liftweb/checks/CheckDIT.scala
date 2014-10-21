@@ -58,6 +58,8 @@ class CheckDIT(
   , ldap:LDAPConnectionProvider[RwLDAPConnection]
 ) extends BootstrapChecks {
 
+  override val description = "Check mandatory DIT entries"
+
   @throws(classOf[ UnavailableException ])
   override def checks() : Unit = {
 
