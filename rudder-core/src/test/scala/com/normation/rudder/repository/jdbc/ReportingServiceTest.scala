@@ -49,11 +49,11 @@ import com.normation.rudder.domain.reports._
 import com.normation.rudder.migration.DBCommon
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.reports.status.StatusUpdateSquerylRepository
 import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.services.reports.ExpectedReportsUpdateImpl
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.repository.NodeConfigIdInfo
+import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
+import com.normation.rudder.reports.statusUpdate.StatusUpdateSquerylRepository
 
 /**
  *
