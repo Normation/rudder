@@ -68,7 +68,6 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.services.reports.ExpectedReportsUpdate
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.AgentRunIntervalService
@@ -165,7 +164,7 @@ trait DeploymentService extends Loggable {
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
       updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
-      expectedReports       <- setExpectedReports(ruleVals, config, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
+      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport}ms")
 
@@ -854,7 +853,13 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
       }
     ).toMap
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime)
+
+    //we also want to build the list of overriden directive based on unique techniques.
+    val overriden = configs.flatMap { nodeConfig =>
+      nodeConfig.policyDrafts.flatMap( x => x.overrides.map(o => UniqueOverrides(nodeConfig.nodeInfo.id, x.ruleId, x.directiveId, o)))
+    }
+
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden.toSet)
   }
 }
 
