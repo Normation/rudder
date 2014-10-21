@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.status
+package com.normation.rudder.reports.statusUpdate
 
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.Schema

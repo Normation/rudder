@@ -128,7 +128,7 @@ import com.normation.rudder.migration._
 import com.normation.rudder.web.rest.parameter._
 import com.normation.rudder.web.rest.changeRequest._
 import com.normation.rudder.reports.execution._
-import com.normation.rudder.reports.status._
+import com.normation.rudder.reports.statusUpdate._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.appconfig._
 import com.normation.rudder.rule.category._
