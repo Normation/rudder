@@ -63,6 +63,7 @@ import com.normation.rudder.repository.NodeConfigIdInfo
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon {
 
+
   //clean data base
   def cleanTables() = {
     jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
@@ -342,13 +343,13 @@ class ReportingServiceTest extends DBCommon {
           ))
       )
 
-      compareNodeStatus(result, expected)
+      compareNodeStatus(result.report.reports, expected)
     }
 
     "get r1" in {
       val r = errorOnlyReportingService.findDirectiveRuleStatusReportsByRule(RuleId("r1"))
       val result = r.openOrThrowException("'Test failled'")
-      result must beEqualTo(List())
+      result.report.reports must beEqualTo(Set())
     }
 
     "get r2" in {
@@ -400,7 +401,7 @@ class ReportingServiceTest extends DBCommon {
           ))
 
       )
-      compareNodeStatus(result, expected)
+      compareNodeStatus(result.report.reports, expected)
     }
   }
 
@@ -465,13 +466,13 @@ class ReportingServiceTest extends DBCommon {
               )
           ))
       )
-      compareNodeStatus(result, expected)
+      compareNodeStatus(result.report.reports, expected)
     }
 
     "get r1" in {
       val r = complianceReportingService.findDirectiveRuleStatusReportsByRule(RuleId("r1"))
       val result = r.openOrThrowException("'Test failled'")
-      result must beEqualTo(List())
+      result.report.reports must beEqualTo(Set())
     }
 
     "get r2" in {
@@ -509,7 +510,7 @@ class ReportingServiceTest extends DBCommon {
           ))
 
       )
-      compareNodeStatus(result, expected)
+      compareNodeStatus(result.report.reports, expected)
     }
   }
 
@@ -523,9 +524,9 @@ class ReportingServiceTest extends DBCommon {
     val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, () => 5, () => Full(ChangesOnly))
 
     "get no answer for node 0 on gen2 data" in {
-      val r = errorOnlyReportingService.findNodeStatusReports(nodes("n0"), Set())
+      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n0"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", NoAnswerReportType, List("")))
@@ -541,9 +542,9 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "report unexpected AND succes for node 1 on gen2 data, because we don't have config id no config mismatch but choose the last one and bad serial" in {
-      val r = errorOnlyReportingService.findNodeStatusReports(nodes("n1"), Set("r0"))
+      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n1"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      compareNodeStatus(result.byRules("r0").reports, Seq(
           nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v0", UnexpectedReportType, List("msg")))
@@ -556,9 +557,10 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "find the correct, older that agent frequency, last report based on configuration for node 2" in {
-      val r = errorOnlyReportingService.findNodeStatusReports(nodes("n2"), Set("r0", "r1", "r2"))
+      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n2"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      val all = result.byRules("r0").reports ++ result.byRules("r1").reports
+      compareNodeStatus(all, Seq(
           nodeStatus("n2", Some(run1), Some("n2_t1"), "r0", 1,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v0", SuccessReportType, List("msg")))
@@ -574,9 +576,10 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "find the correct last report based on last expectation for node 3" in {
-      val r = errorOnlyReportingService.findNodeStatusReports(nodes("n3"), Set("r0","r1"))
+      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n3"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      val all = result.byRules("r0").reports
+      compareNodeStatus(all, Seq(
           nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
@@ -587,9 +590,10 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "find the correct last report based on configuration for node 4" in {
-      val r = errorOnlyReportingService.findNodeStatusReports(nodes("n4"), Set("r0", "r2"))
+      val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n4"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      val all = result.byRules("r0").reports ++ result.byRules("r2").reports
+      compareNodeStatus(all, Seq(
           nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
@@ -611,9 +615,10 @@ class ReportingServiceTest extends DBCommon {
     val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, () => 5, () => Full(FullCompliance))
 
     "get pending for node 0 on gen2 data (without msg)" in {
-      val r = complianceReportingService.findNodeStatusReports(nodes("n0"), Set("r0"))
+      val r = complianceReportingService.findNodeStatusReport(NodeId("n0"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      val all = result.byRules("r0").reports
+      compareNodeStatus(all, Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
@@ -624,9 +629,9 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "report pending for node 1 even because we can find the correct reports and run1 is still yound and not expired" in {
-      val r = complianceReportingService.findNodeStatusReports(nodes("n1"), Set())
+      val r = complianceReportingService.findNodeStatusReport(NodeId("n1"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n1", None, Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
@@ -653,9 +658,10 @@ class ReportingServiceTest extends DBCommon {
      * expiration time is not spent for now.
      */
     "report 'pending' for node 2 even if we can find the correct reports and they are not expired" in {
-      val r = complianceReportingService.findNodeStatusReports(nodes("n2"), Set("r0", "r1"))
+      val r = complianceReportingService.findNodeStatusReport(NodeId("n2"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      val all = result.byRules("r0").reports
+      compareNodeStatus(all, Seq(
           nodeStatus("n2", None, Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
@@ -666,9 +672,10 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "find the correct last report based last expectation for node 3" in {
-      val r = complianceReportingService.findNodeStatusReports(nodes("n3"), Set("r0"))
+      val r = complianceReportingService.findNodeStatusReport(NodeId("n3"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      val all = result.byRules("r0").reports
+      compareNodeStatus(all, Seq(
           nodeStatus("n3", None, Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
@@ -679,9 +686,9 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "find the correct last report based on configuration for node 4" in {
-      val r = complianceReportingService.findNodeStatusReports(nodes("n4"), Set())
+      val r = complianceReportingService.findNodeStatusReport(NodeId("n4"))
       val result = r.openOrThrowException("'Test failled'")
-      compareNodeStatus(result, Seq(
+      compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
@@ -714,8 +721,8 @@ class ReportingServiceTest extends DBCommon {
    * A comparator for NodeStatusReport that allows to more
    * quickly understand what is the problem
    */
-  def compareNodeStatus(results:Seq[RuleNodeStatusReport], expecteds:Seq[RuleNodeStatusReport]) = {
-    results.sortBy(ruleNodeComparator) must containTheSameElementsAs(expecteds.sortBy(ruleNodeComparator))
+  def compareNodeStatus(results:Set[RuleNodeStatusReport], expecteds:Seq[RuleNodeStatusReport]) = {
+    results.toSeq.sortBy(ruleNodeComparator) must containTheSameElementsAs(expecteds.sortBy(ruleNodeComparator))
   }
 
   implicit def nodes(ids:String*):Set[NodeId] = ids.map( NodeId(_) ).toSet

@@ -73,7 +73,7 @@ class RuleCompliancePopup(
    * Display the popup
    */
   def showPopup(
-      statusReport : Seq[RuleNodeStatusReport]
+      statusReport : RuleStatusReport
     , ruleName     : String
     , directiveId  : DirectiveId
     , componentName: Option[String]
@@ -91,7 +91,7 @@ class RuleCompliancePopup(
    * Create popup content
    */
   private[this] def createPopup(
-      statusReport : Seq[RuleNodeStatusReport]
+      statusReport : RuleStatusReport
     , ruleName     : String
     , directiveId  : DirectiveId
     , componentName: Option[String]
@@ -127,7 +127,7 @@ class RuleCompliancePopup(
         /**
          * Filter reports by directive, component and value
          */
-        val filteredReports = statusReport.flatMap( _.withFilteredElements(
+        val filteredReports = statusReport.report.reports.flatMap( _.withFilteredElements(
             dirReport => dirReport.directiveId == directiveId
           , cptReport => componentName.fold(true)(name => cptReport.componentName == name)
           , valReport => valueName.fold(true)(name => valReport.componentValue == name)
@@ -147,15 +147,15 @@ class RuleCompliancePopup(
    */
   def showReportsByType(
       directiveId: DirectiveId
-    , reports    : Seq[RuleNodeStatusReport]
+    , reports    : RuleStatusReport
     , techName   : String
     , techVersion: String
   ) : NodeSeq = {
 
-    val unknowns = reports.flatMap( r => r.getValues( v => v.status == UnexpectedReportType).map { case (d,c,v) => 
-      (r.nodeId, d,c,v) 
-    }  ).distinct
-    val missing = reports.flatMap( r => r.getValues( v => v.status == MissingReportType)).distinct
+    val unknowns = reports.report.reports.flatMap( r => r.getValues( v => v.status == UnexpectedReportType).map { case (d,c,v) =>
+      (r.nodeId, d,c,v)
+    }  )
+    val missing = reports.report.reports.flatMap( r => r.getValues( v => v.status == MissingReportType))
 
     val xml = (
          showNodeComplianceTable(directiveId, reports) ++
@@ -174,7 +174,7 @@ class RuleCompliancePopup(
    */
   private[this] def showNodeComplianceTable (
       directiveId: DirectiveId
-    , reports    : Seq[RuleNodeStatusReport]
+    , reports    : RuleStatusReport
   ): NodeSeq = {
 
     val data = ComplianceData.getRuleByNodeComplianceDetails(directiveId, reports, allNodeInfos)
@@ -188,7 +188,7 @@ class RuleCompliancePopup(
   ///////////////// Show reports in Missing/unexepected/unknown status /////////////////////////
 
   def showMissingReports(
-      reports         : Seq[(DirectiveId, String, ComponentValueStatusReport)]
+      reports         : Set[(DirectiveId, String, ComponentValueStatusReport)]
     , gridId          : String
     , tabid           : Int
     , techniqueName   : String
@@ -201,8 +201,8 @@ class RuleCompliancePopup(
     }
 
     if (reports.size > 0) {
-      val components: Seq[String] = reports.map(_._2).distinct
-      val missingreports = components.flatMap(component => reports.filter(_._2 == component).map(x => (component, x._3.componentValue))).distinct
+      val components: Set[String] = reports.map(_._2)
+      val missingreports = components.flatMap(component => reports.filter(_._2 == component).map(x => (component, x._3.componentValue)))
 
       ("#reportLine" #> missingreports.flatMap(showMissingReport(_))).apply(missingGridXml(gridId)) ++
         Script(JsRaw("""
@@ -236,7 +236,7 @@ class RuleCompliancePopup(
 
 
   def showUnexpectedReports(
-      reports         : Seq[(NodeId, DirectiveId, String, ComponentValueStatusReport)]
+      reports         : Set[(NodeId, DirectiveId, String, ComponentValueStatusReport)]
     , gridId          : String
     , tabid           : Int
     , techniqueName   : String

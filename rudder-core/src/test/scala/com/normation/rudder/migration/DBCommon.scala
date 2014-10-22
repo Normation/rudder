@@ -55,7 +55,13 @@ import scala.io.Source
  * state for the full example (after/before class).
  */
 trait DBCommon extends Specification with Loggable with Tags {
-  skipAllIf(System.getProperty("test.postgres", "true").toBoolean != true)
+
+  System.setProperty("test.postgres", "true")
+
+  skipAllIf(System.getProperty("test.postgres", "").toLowerCase match {
+    case "true" | "1" => false
+    case _ => true
+  })
 
   /**
    * By default, init schema with the Rudder schema and tables, safe that
