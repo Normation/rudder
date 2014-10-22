@@ -36,9 +36,10 @@ package com.normation.rudder.services.reports
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.RuleNodeStatusReport
-
+import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.domain.reports.RuleStatusReport
 import net.liftweb.common.Box
+import com.normation.rudder.domain.reports.RuleNodeStatusReport
 
 /**
  * That service allows to retrieve status of nodes or
@@ -47,14 +48,20 @@ import net.liftweb.common.Box
 trait ReportingService {
 
   /**
-   * find rule status reports for a given rule.
-   */
-  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[Seq[RuleNodeStatusReport]]
-
-  /**
-   * Retrieve a set of node status reports given the nodes Id.
+   * Retrieve a set of rule/node status reports given the nodes Id.
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
-  def findNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]) : Box[Seq[RuleNodeStatusReport]]
+  def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): Box[Set[RuleNodeStatusReport]]
+
+  /**
+   * find rule status reports for a given rule.
+   */
+  def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport]
+
+  /**
+   * find node status reports for a given node. Optionaly restrict to some rule ids.
+   */
+  def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport]
+
 }

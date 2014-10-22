@@ -35,89 +35,62 @@
 package com.normation.rudder.domain.reports
 
 import org.joda.time.DateTime
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.common.Loggable
+import com.normation.rudder.repository.NodeConfigIdInfo
 
 /**
- * That file contains all the kind of status reports:
+ * That file contains all the kind of status reports for:
+ * - a message
+ * - a value
+ * - a component
+ * - a directive
+ * - a rule/node
  *
- * for a component, a directive, a node, etc.
+ * Plus aggregated version which allows to define compliance on a set
+ * of rule/node status report, with the two predefined aggregate:
+ * - by rule (for a given node)
+ * - by node (for a given rule)
  *
  */
 
-//simple data structure to hold percentages of different compliance
-//the ints are actual numbers, percents are computed with the pc_ variants
-case class ComplianceLevel(
-    pending      : Int = 0
-  , success      : Int = 0
-  , repaired     : Int = 0
-  , error        : Int = 0
-  , unexpected   : Int = 0
-  , missing      : Int = 0
-  , noAnswer     : Int = 0
-  , notApplicable: Int = 0
-) {
-
-  override def toString() = s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable}]"
-
-  val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable
-
-  private[this] def pc(i:Int) = if(total == 0) 0 else i * 100 / total
-
-  val pc_pending       = pc(pending)
-  val pc_success       = pc(success)
-  val pc_repaired      = pc(repaired)
-  val pc_error         = pc(error)
-  val pc_unexpected    = pc(unexpected)
-  val pc_missing       = pc(missing)
-  val pc_noAnswer      = pc(noAnswer)
-  val pc_notApplicable = pc(notApplicable)
-
-  def +(compliance: ComplianceLevel): ComplianceLevel = {
-    ComplianceLevel(
-        pending       = this.pending + compliance.pending
-      , success       = this.success + compliance.success
-      , repaired      = this.repaired + compliance.repaired
-      , error         = this.error + compliance.error
-      , unexpected    = this.unexpected + compliance.unexpected
-      , missing       = this.missing + compliance.missing
-      , noAnswer      = this.noAnswer + compliance.noAnswer
-      , notApplicable = this.notApplicable + compliance.notApplicable
-    )
-  }
-
-  def +(report: ReportType): ComplianceLevel = this+ComplianceLevel.compute(Seq(report))
-  def +(reports: Iterable[ReportType]): ComplianceLevel = this+ComplianceLevel.compute(reports)
-}
-
-object ComplianceLevel {
- def compute(reports: Iterable[ReportType]): ComplianceLevel = {
-    if(reports.isEmpty) { ComplianceLevel(notApplicable = 100)}
-    else reports.foldLeft(ComplianceLevel()) { case (compliance, report) =>
-      report match {
-        case NotApplicableReportType => compliance.copy(notApplicable = compliance.notApplicable + 1)
-        case SuccessReportType => compliance.copy(success = compliance.success + 1)
-        case RepairedReportType => compliance.copy(repaired = compliance.repaired + 1)
-        case ErrorReportType => compliance.copy(error = compliance.error + 1)
-        case UnexpectedReportType => compliance.copy(unexpected = compliance.unexpected + 1)
-        case MissingReportType => compliance.copy(missing = compliance.missing + 1)
-        case NoAnswerReportType => compliance.copy(noAnswer = compliance.noAnswer + 1)
-        case PendingReportType => compliance.copy(pending = compliance.pending + 1)
-      }
-    }
-  }
-
- def sum(compliances: Iterable[ComplianceLevel]): ComplianceLevel = {
-   if(compliances.isEmpty) ComplianceLevel()
-   else compliances.reduce( _ + _)
- }
-}
 
 sealed trait StatusReport {
   def compliance : ComplianceLevel
+}
+
+/**
+ * Define two aggregated view of compliance: by node (for
+ * a given rule) and by rules (for a given node).
+ */
+final class RuleStatusReport private (
+    val forRule: RuleId
+  , val report : AggregatedStatusReport
+) extends StatusReport {
+  val compliance = report.compliance
+  val byNodes: Map[NodeId, AggregatedStatusReport] = report.reports.groupBy(_.nodeId).mapValues(AggregatedStatusReport(_))
+}
+
+object RuleStatusReport {
+  def apply(ruleId: RuleId, reports: Iterable[RuleNodeStatusReport]) = {
+    new RuleStatusReport(ruleId, AggregatedStatusReport(reports.toSet.filter( _.ruleId == ruleId)))
+  }
+}
+
+final class NodeStatusReport private (
+    val forNode: NodeId
+  , val report : AggregatedStatusReport
+) extends StatusReport {
+  val compliance = report.compliance
+  val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
+}
+
+object NodeStatusReport {
+  def apply(nodeId: NodeId, reports: Iterable[RuleNodeStatusReport]) = {
+    new NodeStatusReport(nodeId, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
+  }
 }
 
 /**
@@ -125,8 +98,8 @@ sealed trait StatusReport {
  * allowing to access compound compliance for rules,
  * directives and so on
  */
-final case class AggregatedStatusReport(
-    reports: Set[RuleNodeStatusReport]
+final class AggregatedStatusReport private(
+    val reports: Set[RuleNodeStatusReport]
 ) {
   /**
    * rebuild all the trees from the available status
@@ -137,6 +110,15 @@ final case class AggregatedStatusReport(
     DirectiveStatusReport.merge(reports.toSeq.flatMap( _.directives.values))
   }
   val compliance = ComplianceLevel.sum(directives.map(_._2.compliance))
+}
+
+object AggregatedStatusReport {
+
+  def apply(reports: Iterable[RuleNodeStatusReport]) = {
+    val merged = RuleNodeStatusReport.merge(reports)
+    new AggregatedStatusReport(merged.values.toSet)
+  }
+
 }
 
 
@@ -174,6 +156,16 @@ final case class RuleNodeStatusReport(
     )
     if(dirs.isEmpty) None
     else Some(this.copy(directives = dirs))
+  }
+}
+
+object RuleNodeStatusReport {
+ def merge(reports: Iterable[RuleNodeStatusReport]): Map[(NodeId, RuleId, Int, Option[DateTime], Option[NodeConfigId]), RuleNodeStatusReport] = {
+    reports.groupBy(r => (r.nodeId, r.ruleId, r.serial, r.agentRunTime, r.configId)).map { case (id, reports) =>
+      val newDirectives = DirectiveStatusReport.merge(reports.flatMap( _.directives.values))
+
+      (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, id._5, newDirectives))
+    }.toMap
   }
 }
 

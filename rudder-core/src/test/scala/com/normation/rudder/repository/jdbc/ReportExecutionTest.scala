@@ -62,7 +62,6 @@ import net.liftweb.common.Full
 @RunWith(classOf[JUnitRunner])
 class AgentRunsTest extends DBCommon {
 
-
   //clean data base
   def cleanTables() = {
     jdbcTemplate.execute("DELETE FROM ReportsExecution;")
