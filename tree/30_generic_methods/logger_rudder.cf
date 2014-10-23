@@ -77,25 +77,133 @@ bundle agent logger_rudder(message, class_prefix)
         edit_line => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
         classes   => classes_generic("logger_rudder_final_resfile");
 
-  reports:
-
+  methods:
+    # no need to avoid normal ordering since this class is set when report is ready
     report_data_read::
 
+    # "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}"
+    # rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
+
       # 4/ Array is ready, reporting time !!!
-      "@@${report_data[1]}@@result_na@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${c_class_prefix}_noop.!${c_class_prefix}_kept.!${c_class_prefix}_repaired.!${c_class_prefix}_not_ok.!changes_only",
-        classes    => classes_generic("logger_rudder_${class_prefix}");
+      "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${c_class_prefix}", "${report_data[3]}", "${report_data[4]}", "${report_data[5]}", "${message}"),
+        classes    => classes_generic("logger_rudder_${c_class_prefix}");
 
-      "@@${report_data[1]}@@result_success@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${c_class_prefix}_kept.!${c_class_prefix}_repaired.!${c_class_prefix}_not_ok.!changes_only",
-        classes    => classes_generic("logger_rudder_${class_prefix}");
+  commands:
 
-      "@@${report_data[1]}@@result_repaired@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${c_class_prefix}_repaired.!${c_class_prefix}_not_ok",
-        classes    => classes_generic("logger_rudder_${class_prefix}");
+    logger_rudder_temp_resfile_repaired::
 
-      "@@${report_data[1]}@@result_error@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${c_class_prefix}_not_ok",
-        classes    => classes_generic("logger_rudder_${class_prefix}");
+      # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
+      # it.
+      "${log_canonification_tool}"
+        contain       => in_shell,
+        classes       => classes_generic("logger_rudder_final_resfile");
 
 }
+
+# bundle backported from rudder (prefixed with _ to avoid conflicts)
+# all this whould be removed when we put this file back to rudder
+# 
+#
+# Create and send a report to the server
+# This bundle takes 6 parameters :
+# technique_name : the name of the technique, human readable
+# status         : the status of the Component, among the following values
+#    result_success
+#    result_error
+#    result_repaired
+#    log_repaired (for logging only)
+#    log_warn     (for logging only)
+#    log_info     (for logging only)
+#    log_debug    (for logging only)
+#    log_trace    (for logging only)
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (or None if undefined)
+# message        : An explanation message understandable by a human
+#
+bundle agent _rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
+{
+  classes:
+    changes_only::
+      "send_reports" or => {
+                            strcmp("${status}", "result_error") ,
+                            strcmp("${status}", "result_repaired") ,
+                            strcmp("${status}", "log_warn") ,
+                            strcmp("${status}", "log_repaired") ,
+                           };
+
+  methods:
+    # If we need to send a report, make sure we have sent the "StartRun" message first
+    send_reports.!start_run_message_sent::
+      "Send start message" usebundle => _startExecution;
+
+  reports:
+    full_compliance|send_reports::
+      "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}";
+}
+
+#
+# Automatically create reports based on existing classes starting by
+# class_prefix (as defined by the body classes rudder_common_classes)
+# Takes 6 parameters
+# technique_name : the name of the technique, human readable
+# class_prefix   : the prefix of a set of classes to reporting on (suffixes with "kept", "repaired" or "error")
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (None if it does not exists)
+# message_prefix : The begining of an explanation message understandable by a human
+#
+bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
+{
+  methods:
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "success"
+        usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+
+      "repaired"
+        usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
+
+      "error"
+        usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        ifvarclass => "${class_prefix}_error";
+}
+
+bundle agent _startExecution
+{
+  vars:
+    second_pass:: # This is necessary to work around a CFEngine bug that causes this to be defined all the time
+      # Define a global class to show we have sent a "StartRun" report
+      "dummy_string" string => "dummy_content",
+        classes => always("start_run_message_sent");
+
+  classes:
+      # Dummy class to work around a CFEngine bug
+      "second_pass" expression => "any";
+
+  reports:
+    cfengine_3::
+      # Send the report and define a persistant class to store the last "heartbeat" time
+      "@@Common@@log_info@@&TRACKINGKEY&@@common@@StartRun@@${g.execRun}##${g.uuid}@#Start execution with config [${g.rudder_node_config_id}]"
+        classes => _rudder_always_classes_persist("heartbeat_sent", "${g.heartbeat_interval}");
+}
+
+#
+# Always define a class, with the given persist time
+# Define the class for ${persist} minutes
+#
+body classes _rudder_always_classes_persist(always, persist)
+{
+  promise_kept     => { "${always}" };
+  promise_repaired => { "${always}" };
+  repair_failed    => { "${always}" };
+  repair_denied    => { "${always}" };
+  repair_timeout   => { "${always}" };
+
+  persist_time     => "${persist}";
+}
+
