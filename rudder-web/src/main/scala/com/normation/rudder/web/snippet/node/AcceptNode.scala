@@ -92,7 +92,7 @@ class AcceptNode {
   val acceptedNodesDit     = RudderConfig.acceptedNodesDit
   val pendingNodeDit       = RudderConfig.pendingNodesDit
   val uuidGen              = RudderConfig.stringUuidGenerator
-  val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  val updateDynamicGroups = RudderConfig.updateDynamicGroups
 
   val gridHtmlId = "acceptNodeGrid"
 
@@ -207,7 +207,7 @@ class AcceptNode {
       } }
 
       if(atLeastOneAccepted) {
-        asyncDeploymentAgent ! AutomaticStartDeployment(modId, authedUser)
+        updateDynamicGroups.startManualUpdate
       }
 
     }
