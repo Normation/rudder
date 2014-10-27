@@ -72,6 +72,8 @@ class CheckSystemGroups(
   , uuidGen: StringUuidGenerator
 ) extends BootstrapChecks {
 
+  override val description = "Check that system groups 'hasPolicyServer-*' are dynamics and correct them"
+
   private[this] object logger extends Logger {
     override protected def _logger = LoggerFactory.getLogger("migration")
     val defaultErrorLogger : Failure => Unit = { f =>
