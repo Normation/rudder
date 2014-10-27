@@ -95,11 +95,12 @@ objectClass: nodeGroup
 objectClass: top
 cn: All nodes managed by root policy server
 description: All nodes known by Rudder directly connected to the root server
-isDynamic: FALSE
+isDynamic: TRUE
 nodeGroupId: hasPolicyServer-root
 nodeId: root
 isSystem: TRUE
 isEnabled: TRUE
+jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"}]}
 
 dn: ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget

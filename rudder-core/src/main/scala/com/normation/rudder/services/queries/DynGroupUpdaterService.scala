@@ -51,6 +51,8 @@ import com.normation.rudder.repository.RoNodeGroupRepository
 import com.normation.eventlog.EventActor
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.ModificationId
+import scala.util.matching.Regex
+import com.normation.rudder.domain.queries._
 
 
 /**
@@ -89,11 +91,12 @@ class DynGroupUpdaterServiceImpl(
 
 
   override def update(dynGroupId:NodeGroupId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DynGroupDiff] = {
+
     for {
       (group,_) <- roNodeGroupRepository.getNodeGroup(dynGroupId)
       isDynamic <- if(group.isDynamic) Full("OK") else Failure("Can not update a not dynamic group")
-      query <- Box(group.query) ?~! "Can not a group if its query is not defined"
-      newMembers <- queryProcessor.process(query) ?~! "Error when processing request for updating dynamic group with id %s".format(dynGroupId)
+      query <- group.query
+      newMembers <- queryProcessor.process(query) ?~! s"Error when processing request for updating dynamic group with id ${dynGroupId.value}"
       //save
       newMemberIdsSet = newMembers.map( _.id).toSet
       savedGroup <- {
@@ -103,7 +106,7 @@ class DynGroupUpdaterServiceImpl(
                       } else {
                         woNodeGroupRepository.update(newGroup, modId, actor, reason)
                       }
-                    } ?~! "Error when saving update for dynmic group '%s'".format(dynGroupId)
+                    } ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
     } yield {
       val plus = newMemberIdsSet -- group.serverList
       val minus = group.serverList -- newMemberIdsSet

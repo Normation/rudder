@@ -77,7 +77,7 @@ trait DynGroupService {
 
 class DynGroupServiceImpl(
   rudderDit: RudderDit,
-  ldap:LDAPConnectionProvider[RoLDAPConnection], 
+  ldap:LDAPConnectionProvider[RoLDAPConnection],
   mapper:LDAPEntityMapper,
   queryChecker: PendingNodesLDAPQueryChecker
 ) extends DynGroupService with Loggable {
@@ -85,11 +85,13 @@ class DynGroupServiceImpl(
   /**
    * Get all dyn groups
    */
-  private[this] val dynGroupFilter = AND(
-      IS(OC_RUDDER_NODE_GROUP),
-      EQ(A_IS_DYNAMIC, true.toLDAPString),
-      HAS(A_QUERY_NODE_GROUP)
-  )
+  private[this] val dynGroupFilter =
+    AND(
+        IS(OC_RUDDER_NODE_GROUP)
+      , EQ(A_IS_DYNAMIC, true.toLDAPString)
+      , HAS(A_QUERY_NODE_GROUP)
+    )
+
 
   /**
    * don't get back
