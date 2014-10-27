@@ -886,11 +886,6 @@ object RudderConfig extends Loggable {
     rwLdap,
     ldapEntityMapper,
     PendingInventory)
-  private[this] lazy val acceptNodeRule: UnitAcceptInventory with UnitRefuseInventory = new AcceptNodeRule(
-    "accept_new_server:add_system_configuration_rules",
-    roLdapNodeGroupRepository,
-    woLdapNodeGroupRepository,
-    AcceptedInventory)
 
   private[this] lazy val acceptHostnameAndIp: UnitAcceptInventory = new AcceptHostnameAndIp(
       "accept_new_server:check_hostname_unicity"
@@ -1197,7 +1192,6 @@ object RudderConfig extends Loggable {
       addNodeToDynGroup ::
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
-      acceptNodeRule ::
       acceptHostnameAndIp ::
       Nil
 
@@ -1207,7 +1201,6 @@ object RudderConfig extends Loggable {
       unitRefuseGroup ::
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
-      acceptNodeRule ::
       Nil
 
     new NewNodeManagerImpl(
@@ -1458,6 +1451,14 @@ object RudderConfig extends Loggable {
     , new CheckTechniqueLibraryReload(
           techniqueRepositoryImpl
         , asyncDeploymentAgent
+        , uuidGen
+      )
+    , new CheckSystemGroups (
+          rudderDitImpl
+        , roLdap
+        , ldapEntityMapper
+        , groupLibReadWriteMutex
+        , woNodeGroupRepository
         , uuidGen
       )
   )
