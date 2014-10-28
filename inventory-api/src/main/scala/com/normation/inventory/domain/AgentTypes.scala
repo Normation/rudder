@@ -66,7 +66,7 @@ object AgentType {
   def fromValue(value : String) : Box[AgentType] = {
     // Check if the value is correct compared to the agent tag name (fusion > 2.3) or its toString value (added by CFEngine)
     def checkValue( agent : AgentType) = {
-      value == agent.toString() || value == agent.tagValue
+      value.toLowerCase == agent.toString.toLowerCase || value.toLowerCase == agent.tagValue.toLowerCase
     }
 
     allValues.find(checkValue)  match {
