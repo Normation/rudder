@@ -44,6 +44,9 @@ import scala.xml.XML
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import java.io.File
+import com.normation.inventory.domain.InventoryReport
+import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.NOVA_AGENT
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class TestReportParsing {
@@ -52,15 +55,12 @@ class TestReportParsing {
       new StringUuidGeneratorImpl()
   )
 
-
-
-  @Test
-  def testTwoIpsForEth0() {
-
-    val is = this.getClass.getClassLoader.getResourceAsStream("fusion-report/centos-with-two-ip-for-one-interface.ocs")
+  //utility method to handle IS boilerplate
+  def parse(relativePath: String): InventoryReport = {
+    val is = this.getClass.getClassLoader.getResourceAsStream(relativePath)
     assertNotNull(is)
 
-    val report = parser.fromXml("report", is) match {
+    parser.fromXml("report", is) match {
       case Full(e) => e
       case eb:EmptyBox =>
         val e = eb ?~! "Parsing error"
@@ -69,11 +69,58 @@ class TestReportParsing {
           case _ => throw new Exception(e.messageChain)
         }
     }
+  }
 
+
+
+  @Test
+  def testTwoIpsForEth0() {
+    val report = parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
     assertTrue("We should have two IPs for eth0",
       report.node.networks.find( _.name == "eth0").get.ifAddresses.size == 2
     )
-
   }
 
+
+  /**
+   * Test the different cases for agent (0, 1, 2, 2 non coherent)
+   */
+  @Test
+  def test0Agent() {
+    val agents = parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agentNames.toList
+    assertEquals("We were expecting 0 agent", Nil, agents)
+  }
+
+  @Test
+  def test0bisAgent() {
+    val agents = parse("fusion-report/rudder-tag/minimal-zero-bis-agent.ocs").node.agentNames.toList
+    assertEquals("We were expecting 0 agent", Nil, agents)
+  }
+
+  @Test
+  def test1Agent() {
+    val agents = parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agentNames.toList
+    agents match {
+      case agent :: Nil =>
+        assertTrue("It's a community agent", agent == COMMUNITY_AGENT)
+      case _ => fail("Bad number of agent, expecting 1 and got " + agents.size)
+    }
+  }
+
+  @Test
+  def test2Agents() {
+    val agents = parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agentNames.toList
+    agents match {
+      case a1 :: a2 :: Nil =>
+        assertTrue("First agent is a community", a1 == COMMUNITY_AGENT)
+        assertTrue("Second agent is a nova", a2 == NOVA_AGENT)
+      case _ => fail("Bad number of agent, expecting 2 and got " + agents.size)
+    }
+  }
+
+  @Test
+  def test2AgentsFails() {
+    val agents = parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agentNames.toList
+    assertEquals("We were expecting 0 agent because they have different policy server", Nil, agents)
+  }
 }
