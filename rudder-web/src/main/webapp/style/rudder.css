@@ -792,11 +792,6 @@ table.noMarginGrid {
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
-.variableDefinition span {
-  display: table-cell;
-  padding-right: 10px;
-}
-
 .variableDefinition td {
   border-bottom:dotted 1 px lightgrey;
   
@@ -839,26 +834,6 @@ table.noMarginGrid {
 /**********************************
  *define the group/section table
  **********************************/
- 
-table.directiveSectionDef {
-  border-bottom: dotted 1px grey;
-}
-
-table.directiveSectionDisplay {
-
-}
-
-table.directiveGroupDef {
-
-}
-
-table.directiveGroupDisplay {
-
-}
-
-div.directiveGroup {
-
-}
 
 fieldset.sectionFieldset {
   padding: 1px 10px 1px 10px;
@@ -908,25 +883,20 @@ div.foldedSection div.section-title:before {
 }
 
 div.directiveDeleteGroup {
-  float:right;
-  margin-right: 5px;
-  margin-top: -10px;
+  float:left;
 }
 
 div.directiveAddGroup {
   float:right;
-  margin-right: 5px;
-  margin-top: -10px;
 }
 
 
 td.directiveVarLabel {
-  width:30%;
+  width:25%;
   margin-right:2px;
   text-align: left;
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-  vertical-align: middle;
 }
 
 td.directiveVarLabel span {
@@ -935,7 +905,7 @@ td.directiveVarLabel span {
 }
 
 td.directiveVarValue  {
-  width:50%;
+  width:70%;
   margin-right:2px;
 }
 
@@ -2851,4 +2821,8 @@ li.targetExcluded a{
 #displayDeprecation + label {
   font-weight:bold;
   font-size:14px;
+}
+
+table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
+	width:100%;
 }
