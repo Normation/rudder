@@ -215,7 +215,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           directiveId = '';
         }
 
-        buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}');
+        buildDirectiveTree('#${htmlId_activeTechniquesTree}', [ directiveId ], '${S.contextPath}', 1);
     """)
   }
 

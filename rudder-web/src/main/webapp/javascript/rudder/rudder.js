@@ -630,3 +630,22 @@ function filterTableInclude(tableId, filter, include) {
   }
 }
 
+
+var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
+var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
+var searchTree = function(inputId, treeId) {
+
+  if($(inputId).val() && $(inputId).val().length >= 3) {
+      $(treeId).jstree('search', $(inputId).val());
+  } else {
+      $(treeId).jstree('clear_search');
+  }
+  enableSubtree($(".jstree-search"));
+  return false;
+}
+var clearSearchFieldTree = function(inputId, treeId) {
+  $(inputId).val('');
+  $(treeId).jstree('clear_search');
+  return false;
+}
+

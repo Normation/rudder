@@ -3,30 +3,6 @@
 
 <head>
 <title>Rudder - Directives Management</title>
-<script type="text/javascript">
-//<![CDATA[
-var modifiedSearch = false ;
-var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
-var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
-var searchTree = function(inputId, treeId) {
-  if (modifiedSearch==true){
-	if($(inputId).val() && $(inputId).val().length >= 3) { 
-	    $(treeId).jstree('search', $(inputId).val());
-	} else {
-	    $(treeId).jstree('clear_search');
-	 }
-  }
-  enableSubtree($(".jstree-search"));
-  return false;
-}
-var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; } 
-var clearSearchFieldTree = function(inputId, treeId) { 
-  $(inputId).val('Search');
-  $(treeId).jstree('clear_search');
-  return false;
-}
-// ]]>
-</script>
 
 <style type="text/css">
 
@@ -79,7 +55,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
 
     <img onclick="closeAllNodes('#activeTechniquesTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
 
-    <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
+    <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
 
     <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
 
