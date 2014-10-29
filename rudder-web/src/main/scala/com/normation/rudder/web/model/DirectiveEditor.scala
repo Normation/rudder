@@ -441,6 +441,7 @@ case class MultivaluedSectionField(
                   NodeSeq.Empty
                 }
               }
+              <hr class="spacer"/>
             </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
         })
       }</div>
