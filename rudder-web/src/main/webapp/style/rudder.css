@@ -2809,11 +2809,7 @@ li.targetExcluded a{
 
 #displayDeprecation {
   margin-right:5px;
-}
-
-#displayDeprecation + label {
-  font-weight:bold;
-  font-size:14px;
+  margin-top : 2px;
 }
 
 table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
