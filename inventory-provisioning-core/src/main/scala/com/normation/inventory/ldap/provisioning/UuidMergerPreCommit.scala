@@ -37,19 +37,14 @@ package com.normation.inventory.ldap.provisioning
 
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.services.provisioning._
-
 import com.normation.utils.StringUuidGenerator
-
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
-
 import net.liftweb.common.{Box,Empty,Failure,Full}
-
 import org.slf4j.{Logger,LoggerFactory}
-
 import scala.collection.mutable.Buffer
-
 import UuidMergerPreCommit._
+import java.security.MessageDigest
 
 object UuidMergerPreCommit {
   val logger = LoggerFactory.getLogger(classOf[UuidMergerPreCommit])
@@ -148,21 +143,11 @@ class UuidMergerPreCommit(
         } }
     )
 
-
     /*
      * Don't forget to update:
      * - server's software if one or more softwareId changed ;
      * - server's vms is one or more vms id changed
      */
-
-    val machine = mergeMachine(report.machine) match {
-      case f@Failure(m,e,c) =>
-        logger.error("Error when merging machine. Reported message: {}. Remove machine for saving", f.messageChain)
-        return f
-      case Empty => //new machine. Use what is given as UUID, save in Pending
-        report.machine.copy(status = PendingInventory )
-      case Full(fm) =>  fm
-    }
 
     val vms = for {
       vm <- report.vms
@@ -174,38 +159,62 @@ class UuidMergerPreCommit(
       case Full(x) => x
     } }
 
-    node = mergeNode(node) match {
-      case f@Failure(m,e,c) =>
-        logger.error("Error when merging machine. Reported message: {}. Remove machine for saving", f.messageChain)
-        return f
-      case Empty => //new node. Use what is given as UUID, save in Pending
-        node.copyWithMain { m => m.copy(status = PendingInventory) }
-      case Full(s) => s
+    val (finalNode : NodeInventory,finalMachine : MachineInventory) = (mergeNode(node),mergeMachine(report.machine)) match {
+      case (fn : Failure,_) =>
+        // Error on node inventory
+        logger.error(s"Error when merging node inventory. Reported message: ${fn.messageChain}. Remove machine for saving")
+        return fn
+      case (_, fm: Failure) =>
+        // Error on machine inventory
+        logger.error(s"Error when merging machine inventory. Reported message: ${fm.messageChain}. Remove machine for saving")
+        return fm
+      case( Empty,_) =>
+        // New node, save machine and node in reporting
+        val pendingInventory = node.copyWithMain { m => m.copy(status = PendingInventory) }
+        harmonizeNodeAndMachine(pendingInventory,report.machine)
+      case (Full(node), Empty) =>
+        // Existing Node, save the machine with a new id in the same status than node
+        harmonizeNodeAndMachine(node,report.machine)
+      case (Full(node),Full(machine)) =>
+        // Existing node, with machine inventory
+        if (node.main.status == machine.status) {
+          // All Ok, keep info like this
+          (node,machine)
+        } else {
+          // Machine and node don't have the same status, update status of the machine by creating a new inventory
+          // This will not remove the previous machine inventory with bad info
+          harmonizeNodeAndMachine(node,machine)
+        }
     }
-
-    node = node.copy(
-        machineId = Some(machine.id, machine.status)
-    )
-
-    //here, set all the software Id after merge
-/*    node.softwareIds.set(softwareAndId.map(x => x._2.id.getOrElse {
-      val m = "Error when processing software ids for '%s' in report %s".format(x,report.name)
-      logger.error(m)
-      return Failure(m)
-    })) //id undefined here is an error
-*/
 
     //ok, build the merged report
     Full(InventoryReport(
       report.name,
       report.inventoryAgentDevideId,
-      node,
-      machine,
+      finalNode,
+      finalMachine,
       report.version,
       vms,
       applications,
       report.sourceReport
     ))
+  }
+
+  /**
+   * Harmonize Node and Machine inventory
+   * Generate a new id for the Machine, based on the node id
+   * Use the same status for both inventory
+   */
+  private[this] def harmonizeNodeAndMachine(node : NodeInventory, machine : MachineInventory) = {
+    val newMachineId = {
+      val md5 = MessageDigest.getInstance("MD5").digest(node.main.id.value.getBytes)
+      val id = (md5.map(0xFF & _).map { "%02x".format(_) }.foldLeft(""){_ + _}).toLowerCase
+
+      MachineUuid(s"${id.substring(0,8)}-${id.substring(8,12)}-${id.substring(12,16)}-${id.substring(16,20)}-${id.substring(20)}")
+    }
+    val newMachine = machine.copy(id = newMachineId, status = node.main.status)
+    val newNode = node.copy(machineId = Some((newMachineId,node.main.status)))
+    (newNode,newMachine)
   }
 
   protected def mergeMachine(machine:MachineInventory) : Box[MachineInventory] = {
