@@ -267,3 +267,11 @@
 .tw-bs h4 {
 	font-size:14px;
 }
+
+.tw-bs .ruddericon {
+  color:#999;
+}
+
+.tw-bs .tooltipable.ruddericon:hover {
+  color:#666;
+}

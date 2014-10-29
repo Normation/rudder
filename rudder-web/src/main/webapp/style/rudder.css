@@ -1975,13 +1975,6 @@ popin Alert
   margin-top:5px;
 }
 
-.tooltipable > .directiveVarValue {
-  background-image: url("../images/icInfo.png");
-  background-repeat: no-repeat;
-  background-position: center right;
-  padding-right: 18px;
-}
-
 #tooltip {
   position: absolute;
   z-index: 3000;
