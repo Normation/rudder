@@ -275,3 +275,7 @@
 .tw-bs .tooltipable.ruddericon:hover {
   color:#666;
 }
+
+form .tw-bs input {
+	width: auto;
+}
