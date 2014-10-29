@@ -7,6 +7,8 @@
         <script src="js/jquery-1.11.1.min.js"></script>
         <script src="js/elastic.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="js/cfengine_classes.json"></script>
+        <script src="js/class_utils.js"></script>
         <script src="js/ui-bootstrap-tpls-0.11.0.min.js"></script>
         <script id="template/accordion/accordion-group.html" type="text/ng-template">
           <div class="panel panel-default">
@@ -207,12 +209,39 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 Conditions
                             </accordion-heading>
-                            <div class="form-group" style="margin: 15px 10px">
-                                <label for="class_context">CFEngine class context:</label>
-                                <input  type="text" id="class_context"  class="form-control" ng-model="selectedMethod.class_context" placeholder="">
+                            <div class="form-group condition-form" id="os-form">
+                              <label for="os_class">Operating system:</label>
+                              <form class="form-inline" role="form">
+                                <div class="form-group">
+                                  <label for="os_class">Type:</label>
+                                  <select class="form-control" ng-change="updateOSType()" ng-model="selectedMethod.OS_class.type" ng-options="type for type in type_classes" ></select>
+                                </div>
+                                <div  class="form-group" ng-show="os_classes_by_type[selectedMethod.OS_class.type].length > 0" >
+                                  <label for="os_class">Name:</label>
+                                  <select class="form-control" ng-change="updateOSName()" ng-model="selectedMethod.OS_class.name" ng-options="os for os in os_classes_by_type[selectedMethod.OS_class.type]"></select>
+                                </div>
+                              </form>
+                              <form class="form-inline" role="form">
+                                <div class="form-group" ng-show="checkMajorVersion()">
+                                  <label for="os_class">Version (Major):</label>
+                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion"  placeholder=""></input>
+                                </div>
+                                <div class="form-group" ng-show="checkMinorVersion()">
+                                  <label for="os_class">Version (Minor):</label>
+                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder=""></input>
+                                </div>
+                              </form>
                             </div>
-                            </accordion-group>
-                        </accordion>
+                            <div class="form-group condition-form">
+                              <label for="advanced">Other CFEngine classes:</label>
+                              <input  type="text" id="advanced"  class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" placeholder="">
+                            </div>
+                            <div class="form-group condition-form">
+                              <label for="class_context">CFEngine class context:</label>
+                              <input ng-readonly="true" type="text" id="" class="form-control" ng-model="selectedMethod.class_context" style="cursor:text">
+                            </div>
+                        </accordion-group>
+                    </accordion>
                     <accordion >
                         <accordion-group ng-init="isopen = true" is-open="isopen">
                             <accordion-heading>

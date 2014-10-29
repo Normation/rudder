@@ -1,0 +1,190 @@
+// This file contains all informations about cfengine OS hard classes and helper function to manage it
+
+// A List of all avaiable cfengine OS classes. We have two level of Classes:
+// * First level "type" classes
+// * Second level "os" classes
+var cfengine_OS_classes = [
+    {   name : "Any"
+      , class : "any"
+      , childs : []
+    }
+  , {   name : "Aix"
+      , class : "aix"
+      , childs : []
+    }
+  , {   name : "Android"
+      , class : "android"
+      , childs : []
+    }
+  , {   name : "BSD"
+      , class : "(dragonfly|freebsd|netbsd|openbsd)"
+      , childs : [
+            {   name : "Any"
+              , class : "(dragonfly|freebsd|netbsd|openbsd)"
+              , childs : []
+            }
+          , {   name : "DragonFly BSD"
+              , class : "dragonfly"
+              , childs : []
+            }
+          , {   name : "FreeBSD"
+              , class : "freebsd"
+              , childs : []
+            }
+          , {   name : "Net BSD"
+              , class : "netbsd"
+              , childs : []
+            }
+          , {   name : "OpenBSD"
+              , class : "openbsd"
+              , childs : []
+            }
+        ]
+    }
+  , {   name : "HP-UX"
+      , class : "hpux"
+      , childs : []
+    }
+  , {   name : "Linux"
+      , class : "linux"
+      , childs : [
+            {   name : "Any"
+              , class : "linux"
+              , childs : []
+            }
+          , {   name : "Alpine Linux"
+              , class : "alpinelinux"
+              , childs : []
+            }
+          , {   name : "Arch Linux"
+              , class : "archlinux"
+              , childs : []
+            }
+          , {   name : "CentOS"
+              , class : "centos"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Debian (and derivatives)"
+              , class : "debian"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Fedora"
+              , class : "fedora"
+              , childs : []
+              , major : true
+              , minor : false
+            }
+          , {   name : "Gentoo"
+              , class : "gentoo"
+              , childs : []
+            }
+          , {   name : "Mandrake"
+              , class : "Mandrake"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Mandriva"
+              , class : "Mandriva"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Oracle Linux"
+              , class : "oracle"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Oracle VM Server"
+              , class : "oraclevmserver"
+              , childs : []
+              , major : true
+              , minor : false
+            }
+          , {   name : "Red Hat (and derivatives)"
+              , class : "redhat"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Red Hat Enterprise Linux"
+              , class : "(redhat_es|redhat_as|redhat_ws|redhat_s|redhat_c|redhat_w)"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Scientific Linux (SL)"
+              , class : "scientific"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Slackware"
+              , class : "slackware"
+              , childs : []
+            }
+          , {   name : "SuSE"
+              , class : "SUSE"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+          , {   name : "Ubuntu"
+              , class : "ubuntu"
+              , childs : []
+              , major : true
+              , minor : true
+            }
+        ]
+    }
+  , {   name : "Solaris"
+      , class : "solaris"
+      , childs : []
+    }
+  , {   name : "Windows"
+      , class : "windows"
+      , childs : [
+            {   name : "Any"
+              , class : "windows"
+              , childs : []
+            }
+          , {   name : "2000"
+              , class : "(Win2000|Windows_2000)"
+              , childs : []
+            }
+          , {   name : "XP"
+              , class : "(WinXP|Windows_XP)"
+              , childs : []
+            }
+          , {   name : "Server 2003"
+              , class : "(WinServer2003|Windows_Server_2003|Windows_Server_2003_R2)"
+              , childs : []
+            }
+          , {   name : "Vista"
+              , class : "Windows_Vista"
+              , childs : []
+            }
+          , {   name : "Server 2008"
+              , class : "Windows_Server_2008"
+              , childs : []
+            }
+          , {   name : "Server 2008 R2"
+              , class : "Windows_Server_2008_R2"
+              , childs : []
+            }
+          , {   name : "7"
+              , class : " Windows_7"
+              , childs : []
+            }
+          , {   name : "Server 2012"
+              , class : "Windows_Server_2012"
+              , childs : []
+            }
+        ]
+    }
+]
