@@ -445,7 +445,7 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
 
 
 
-var buildDirectiveTree = function(id, initially_select, appContext) {
+var buildDirectiveTree = function(id, initially_select, appContext, select_limit) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);
@@ -455,7 +455,7 @@ var buildDirectiveTree = function(id, initially_select, appContext) {
         "html_titles" : true
       },
       "ui" : { 
-        "select_limit" : -1,
+        "select_limit" : select_limit,
         "select_multiple_modifier" : "on", 
         "selected_parent_close" : false,
         "initially_select" : initially_select
@@ -498,11 +498,16 @@ var buildDirectiveTree = function(id, initially_select, appContext) {
           }
         }
       },
+      "search" : {
+        "case_insensitive" : true,
+        "show_only_matches": true
+      },
+
       "themes" : { 
     	  "theme" : "rudder",
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
-      "plugins" : [ "themes", "html_data", "ui", "types"]
+      "plugins" : [ "themes", "html_data", "ui", "types", "search"]
     })
 }
 
