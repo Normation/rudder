@@ -155,6 +155,26 @@ trait DirectiveField extends BaseField with SectionChildField {
 
   override def displayHtml = Text(toClient)
 
+
+  def tooltipElem = {
+    if (tooltip == "") {
+      NodeSeq.Empty
+    } else {
+      val tooltipid = Helpers.nextFuncName
+      <span class="tw-bs" ><span tooltipid={tooltipid} class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span></span>
+      <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
+    }
+  }
+
+  def display(value: NodeSeq) = {
+    <tr>
+      <td class="directiveVarLabel">
+      { displayName + { if (optional) " (optional)" else "" } }: {tooltipElem}
+      </td>
+      <td class="directiveVarValue">{ value }</td>
+    </tr>
+  }
+
   override def toFormNodeSeq = {
     toForm match {
       case Failure(m, _, _) =>
@@ -166,44 +186,12 @@ trait DirectiveField extends BaseField with SectionChildField {
           "form representation of the field was empty"
         logger.error(errorMess.format(displayName))
         NodeSeq.Empty
-      case Full(form) if tooltip == "" =>
-        <tr>
-          <td class="directiveVarLabel">
-            { displayName + { if (optional) " (optional)" else "" } }:
-          </td>
-          <td class="directiveVarValue">{ form }</td>
-        </tr>
       case Full(form) =>
-        val tooltipid = Helpers.nextFuncName
-        <tr class = "tooltipable" title="" tooltipid={tooltipid}>
-          <td class="directiveVarLabel">
-            <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
-            { displayName + { if (optional) " (optional)" else "" } }:
-          </td>
-          <td class="directiveVarValue">{ form }</td>
-        </tr>
+        display( form)
     }
   }
 
-  def toHtmlNodeSeq = {
-    if (tooltip == "") {
-      <tr>
-        <td class="directiveVarLabel">
-          { displayName + { if (optional) " (optional)" else "" } }
-        </td>
-        <td class="directiveVarValue">{ displayValue }</td>
-      </tr>
-    } else {
-      val tooltipid = Helpers.nextFuncName
-      <tr class = "tooltipable" title="" tooltipid={tooltipid}>
-        <td class="directiveVarLabel">
-      	  <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
-          { displayName + { if (optional) " (optional)" else "" } }
-        </td>
-        <td class="directiveVarValue">{ displayValue }</td>
-      </tr>
-    }
-  }
+  def toHtmlNodeSeq = display( displayValue )
 
   // This is only used when showing a PT, hence the values are the default values
   def displayValue: NodeSeq = {
