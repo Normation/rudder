@@ -323,7 +323,7 @@ class RuleEditForm(
           buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on');"""
         ) &
         //function to update list of PIs before submiting form
-        JsRaw(s"buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}');") &
+        JsRaw(s"buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', -1);") &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
     )
