@@ -489,10 +489,7 @@ case class MultivaluedSectionField(
    * Command to correct display and behaviour after modifying sections
    */
   private[this] def postModificationJS() : JsExp = {
-    JsRaw("""
-          correctButtons();
-
-         """)
+    JsRaw("""correctButtons(); createTooltip(); """)
   }
 
   override def toHtmlNodeSeq = {
