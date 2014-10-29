@@ -938,7 +938,6 @@ td.directiveVarLabel {
   text-align: left;
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-  vertical-align: middle;
 }
 
 td.directiveVarLabel span {
@@ -2906,4 +2905,8 @@ li.targetExcluded a{
 
 .simplemodal-bottom {
 	height:45px;
+}
+
+form .tw-bs input {
+  width: auto;
 }
