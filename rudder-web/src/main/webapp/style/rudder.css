@@ -2813,5 +2813,9 @@ li.targetExcluded a{
 }
 
 table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
-	width:100%;
+  width:100%;
+}
+
+form .tw-bs input {
+  width: auto;
 }

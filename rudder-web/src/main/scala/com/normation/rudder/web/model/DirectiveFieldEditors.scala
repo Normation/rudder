@@ -220,10 +220,16 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
     //
     val labels = valueslabels.map(_.label)
     val choiceHolder: ChoiceHolder[String] = SHtml.radio(valueslabels.map(_.value), Full(toClient), { x => parseClient(x) })
-    Full(<div>{
+    Full(<div class="tw-bs">{
       choiceHolder.flatMap {
         c =>
-          (<span>{ c.xhtml }&nbsp;{ valueslabels.find(x => x.value == c.key).map(_.label).getOrElse("error") }<br/></span>)
+          ( <div class="radio">
+              <label>
+                { c.xhtml }
+                { valueslabels.find(x => x.value == c.key).map(_.label).getOrElse("error")}
+              </label>
+            </div>
+          )
       }
     }</div>)
 
