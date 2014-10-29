@@ -41,6 +41,14 @@ import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
 import com.normation.inventory.domain.InventoryReport
 import com.normation.inventory.domain.ServerRole
+import scala.xml.XML
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import java.io.File
+import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.Windows
+import com.normation.inventory.domain.Windows2012
 
 
 /**
@@ -52,15 +60,11 @@ import com.normation.inventory.domain.ServerRole
 @RunWith(classOf[JUnitRunner])
 class TestReportParsing extends Specification {
 
-
-
-
   private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
     def parse(reportRelativePath: String): InventoryReport = {
       import java.net.URL
       val url = this.getClass.getClassLoader.getResource(reportRelativePath)
       if(null == url) throw new NullPointerException(s"Resource with relative path '${reportRelativePath}' is null (missing resource? Spelling? Permissions?)")
-
       val is = url.openStream()
 
       val report = parser.fromXml("report", is) match {
@@ -77,12 +81,13 @@ class TestReportParsing extends Specification {
     }
   }
 
+    val parser = new FusionReportUnmarshaller(
+        new StringUuidGeneratorImpl
+      , rootParsingExtensions = RudderServerRoleParsing ::Nil
+    )
 
   "Machine with two ips for one interfaces" should {
 
-    val parser = new FusionReportUnmarshaller(
-        new StringUuidGeneratorImpl()
-    )
     val report = parser.parse("fusion-report/centos-with-two-ip-for-one-interface.ocs")
 
     "lead to a node with two ips for eth0" in {
@@ -92,10 +97,7 @@ class TestReportParsing extends Specification {
 
   "A node with Rudder roles" should {
 
-    val parser = new FusionReportUnmarshaller(
-        new StringUuidGeneratorImpl
-      , rootParsingExtensions = RudderServerRoleParsing ::Nil
-    )
+
     val report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")
 
     "correctly add roles"in {
@@ -103,4 +105,36 @@ class TestReportParsing extends Specification {
     }
   }
 
+
+
+  "Agent in Inventory" should {
+
+    "should be empty when there is no agent" in {
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agentNames.toList
+      agents must be empty
+    }
+
+    "should have one agent when using community" in {
+    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agentNames.toList
+      agents == (COMMUNITY_AGENT :: Nil)
+    }
+
+    "should have two agent when using community and nova" in {
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agentNames.toList
+      agents == (COMMUNITY_AGENT :: NOVA_AGENT :: Nil)
+    }
+
+    "should be empty when there is two agents, using two different policy servers" in {
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agentNames.toList
+      agents must be empty
+    }
+
+  }
+
+  "Parsing Windows 2012" should {
+    "parse as windows 2012" in {
+      val os = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.osDetails.os
+      os == Windows2012
+    }
+  }
 }

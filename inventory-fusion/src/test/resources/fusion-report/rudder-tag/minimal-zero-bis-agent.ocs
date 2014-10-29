@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<REQUEST>
+  <CONTENT>
+    <OPERATINGSYSTEM>
+      <FULL_NAME>Debian GNU/Linux 5.0.8 (lenny)</FULL_NAME>
+      <KERNEL_NAME>linux</KERNEL_NAME>
+      <KERNEL_VERSION>2.6.26-2-686</KERNEL_VERSION>
+      <NAME>Debian</NAME>
+      <VERSION>5.0.8</VERSION>
+    </OPERATINGSYSTEM>
+  </CONTENT>
+    <RUDDER>
+    <!-- actually 0 agent, because that one is broken -->
+      <AGENT>
+        <AGENT_NAME>modified-files__var_cfengine_bin_cf-agent.cfsaved</AGENT_NAME>
+        <CFENGINE_KEY />  <OWNER>root</OWNER>
+        <POLICY_SERVER_HOSTNAME />  <POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+      </AGENT>
+       <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
+      <UUID>b9a71482-5030-4699-984d-b03d28bbbf36</UUID>
+    </RUDDER>
+  <QUERY>INVENTORY</QUERY>
+  <DEVICEID>foo</DEVICEID>
+</REQUEST>
