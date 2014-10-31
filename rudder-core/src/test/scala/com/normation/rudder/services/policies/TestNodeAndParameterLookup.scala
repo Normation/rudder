@@ -50,6 +50,8 @@ import com.normation.utils.Control.sequence
 import scala.collection.immutable.TreeMap
 import com.normation.rudder.domain.policies.InterpolationContext
 import InterpolationContext._
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ReportingConfiguration
 
 
 
@@ -75,6 +77,9 @@ class TestNodeAndParameterLookup extends Specification {
   val rootHostname = "root.localhost"
   val rootAdmin = "root"
 
+  private val emptyNodeReportingConfiguration = ReportingConfiguration(None)
+
+
   val node1 = NodeInfo(
       id            = id1
     , name          = "node1"
@@ -95,6 +100,7 @@ class TestNodeAndParameterLookup extends Specification {
     , isSystem      = false
     , isPolicyServer= true
     , serverRoles   = Set()
+    , emptyNodeReportingConfiguration
   )
 
   val root = NodeInfo(
@@ -117,6 +123,7 @@ class TestNodeAndParameterLookup extends Specification {
     , isSystem      = false
     , isPolicyServer= true
     , serverRoles   = Set()
+    , emptyNodeReportingConfiguration
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(

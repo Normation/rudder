@@ -35,7 +35,6 @@
 package com.normation.rudder.web.components
 
 import scala.xml.NodeSeq
-
 import com.normation.exceptions.TechnicalException
 import com.normation.inventory.domain.AcceptedInventory
 import com.normation.inventory.domain.FullInventory
@@ -44,7 +43,10 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNodeGroupTree
-
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.batch.AutomaticStartDeployment
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
@@ -53,9 +55,8 @@ import net.liftweb.http.Templates
 import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsExp
-import net.liftweb.util.Helpers.bind
-import net.liftweb.util.Helpers.chooseTemplate
-import net.liftweb.util.Helpers.strToSuperArrowAssoc
+import net.liftweb.util.Helpers._
+import com.normation.rudder.domain.nodes.Node
 
 
 
@@ -82,9 +83,59 @@ class ShowNodeDetailsFromNode(
   private[this] val serverAndMachineRepo = RudderConfig.fullInventoryRepository
   private[this] val reportDisplayer      = RudderConfig.reportDisplayer
   private[this] val logDisplayer         = RudderConfig.logDisplayer
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val nodeRepo             = RudderConfig.woNodeRepository
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val configService = RudderConfig.configService
 
   def dispatch = {
     case "display" => { _ => display(false) }
+  }
+
+   def agentScheduleEditForm = new AgentScheduleEditForm(
+        () => getSchedule
+      , saveSchedule
+      , () => Unit
+      , () => Some(getGlobalSchedule)
+    )
+
+     def getGlobalSchedule() : Box[AgentRunInterval] = {
+    for {
+      starthour <- configService.agent_run_start_hour
+      startmin  <- configService.agent_run_start_minute
+      splaytime <- configService.agent_run_splaytime
+      interval  = configService.agent_run_interval
+    } yield {
+      AgentRunInterval(
+            None
+          , interval
+          , startmin
+          , starthour
+          , splaytime
+        )
+    }
+  }
+
+  val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0)
+  def getSchedule : Box[AgentRunInterval] = {
+    for {
+      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+    } yield {
+      nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(emptyInterval)
+    }
+  }
+
+  def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+    for {
+      nodeInfo    <- nodeInfoService.getNodeInfo(nodeId)
+      newSchedule = nodeInfo.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))
+      newNode     = Node(nodeInfo.id, nodeInfo.name, nodeInfo.description, nodeInfo.isBroken, nodeInfo.isSystem, nodeInfo.isPolicyServer, newSchedule)
+      modId       = ModificationId(uuidGen.newUuid)
+      user        = CurrentUser.getActor
+      result      <- nodeRepo.update(newNode, modId, user, None)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+    }
   }
 
 
@@ -120,24 +171,21 @@ class ShowNodeDetailsFromNode(
    * @return
    */
   private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
-      bind("server", serverDetailsTemplate,
-             "header" ->
-              <div id="node_header" class="nodeheader">
-                <div class="nodeheadercontent ui-corner-top"> Node Details - {inventory.node.main.hostname}
-                 (last updated { inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}) </div>
-              </div>,
-             "jsTree" ->
+      ("#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
+       "#groupTree *" #>
               <div id={htmlId_crTree}>
                 <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node.id)}</ul>
-              </div>,
-              "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup),
-              "inventory" -> DisplayNode.show(inventory, false),
-              "extraHeader" -> DisplayNode.showExtraHeader(inventory),
-              "extraContent" -> DisplayNode.showExtraContent(inventory),
-              "reports" -> reportDisplayer.asyncDisplay(node),
-              "logs" -> logDisplayer.asyncDisplay(node.id)
-            )
+              </div> &
+       "#nodeDetails *" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
+       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
+       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
+       "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
+       "#node_parameters *" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
+       "#extraHeader" #> DisplayNode.showExtraHeader(inventory)&
+       "#extraContent" #> DisplayNode.showExtraContent(inventory)
+      ).apply(serverDetailsTemplate)
   }
+
 
   /**
    * Javascript to initialize a tree.

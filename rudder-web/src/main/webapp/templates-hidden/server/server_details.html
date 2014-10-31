@@ -11,13 +11,13 @@
       <div class="composition">
         <span><query:typeQuery/></span><br />
         <span style="margin:5px 0px 7px 0px">
-        Match the criteria below with this operand: 
+        Match the criteria below with this operand:
         <span style="margin-left:5px"><query:composition/></span>
         </span>
       </div>
-  
+
       <table class="searchNodes" id="query_lines">
-      
+
       <!-- must add an empty value to the list -->
         <query:lines>
           <line:error />
@@ -39,55 +39,59 @@
       <content:gridResult/>
   </div>
 </query:SearchNodes>
-     
+
 <lift:ignore>This part is the detail of a node</lift:ignore>
 <detail:server>
 <div id="node_tabs" class="tabs">
-	<server:header/>
+              <div id="node_header" class="nodeheader">
+                <div class="nodeheadercontent ui-corner-top"> Node Details - <span id="node_name"></span>
+                </div>
+                </div>
+
+
     <ul>
       <li><a href="#node_summary">Node summary</a></li>
       <li><a href="#node_inventory">Hardware</a></li>
-      <server:extraHeader/>
+      <span id="extraHeader"/>
       <li><a href="#node_reports">Reports</a></li>
       <li><a href="#node_logs">Technical logs</a></li>
+      <li><a href="#node_parameters">Parameters</a></li>
     </ul>
-  
-  
+
+
   <div id="node_summary">
    <div id="nodeid" class="nodeSummary">
     <table class="nomargin">
       <tr>
         <td class="crTree">
-          <fieldset class="crTree"><legend>Groups containing this node</legend>
-              <server:jsTree/>
+          <fieldset id="groupTree" class="crTree"><legend>Groups containing this node</legend>
           </fieldset>
         </td>
-        <td  class="nodeIndernal">
-          <server:nodeDetails/>
+        <td  id="nodeDetails" class="nodeIndernal">
         </td>
       </tr>
     </table>
    </div>
   </div>
-    
+
   <div id="node_inventory">
    <div id="nodeInventory">
-     <server:inventory/>
    </div>
   </div>
-  
-  <server:extraContent/>
+
+  <span id="extraContent"/>
 
   <div id="node_reports">
    <div id="reportsDetails">
-     <server:reports/>
    </div>
   </div>
 
   <div id="node_logs">
    <div id="logsDetails">
-     <server:logs/>
    </div>
+  </div>
+
+  <div id="node_parameters">
   </div>
 
 </div>
