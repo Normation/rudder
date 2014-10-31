@@ -12,6 +12,8 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ReportingConfiguration
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
@@ -34,6 +36,7 @@ class RuleTargetTest extends Specification with Loggable {
         , "", Seq(), NodeId("root")
         , "", DateTime.now
         , false, false, false, Set()
+        , ReportingConfiguration(None)
       )
     )
   }.toMap

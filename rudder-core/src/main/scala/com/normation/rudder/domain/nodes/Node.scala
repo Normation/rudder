@@ -36,7 +36,7 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
-
+import com.normation.rudder.reports.ReportingConfiguration
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -44,4 +44,12 @@ import com.normation.utils.HashcodeCaching
  * This is independant from inventory, and can exist without one.
  *
  */
-case class Node(id:NodeId, name:String, description:String, isBroken : Boolean, isSystem : Boolean, isPolicyServer: Boolean) extends HashcodeCaching
+case class Node(
+    id                    : NodeId
+  , name                  : String
+  , description           : String
+  , isBroken              : Boolean
+  , isSystem              : Boolean
+  , isPolicyServer        : Boolean
+  , nodeReportingConfiguration: ReportingConfiguration
+) extends HashcodeCaching

@@ -2819,3 +2819,19 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
 form .tw-bs input {
   width: auto;
 }
+
+#cfagentSchedule h4 {
+  margin-bottom: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+#cfagentSchedule #scheduleMessage {
+	margin:10px 0 0 15px;
+}
+
+.form-group select {
+	width: auto;
+}
