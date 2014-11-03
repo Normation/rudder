@@ -76,7 +76,6 @@ CREATE INDEX nodeid_idx                   on RudderSysEvents (nodeId);
 
 COMMIT;
 
-
 -- Move the table archivedruddersysevents
 BEGIN;
 
@@ -102,3 +101,6 @@ CREATE INDEX executionTimeStamp_archived_idx on ArchivedRudderSysEvents (executi
 
 COMMIT;
 
+-- Change the statusupdate.lastid column type to bigint too so
+-- we can store the last received report id
+ALTER TABLE statusupdate ALTER COLUMN lastid TYPE bigint;
