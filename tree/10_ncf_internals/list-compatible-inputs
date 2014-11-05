@@ -15,36 +15,14 @@ framework_path="$2"
 # see comment below on the last parameters
 shift 2
 
-_which() {
-  name="$1"
-  IFS_SAVE="$IFS"
-  IFS=:
-  for directory in $PATH
-  do
-    if [ -x "${directory}/${name}" ]
-    then
-      echo "${directory}/${name}"
-      break
-    fi
-  done
-  IFS="$IFS_SAVE"
-}
-
-# add busybox to path for android
-PATH="/system/xbin:${PATH}"
-# find commands
-find_command=`_which find`
-sed_command=`_which sed`
-basename_command=`_which basename`
-grep_command=`_which grep`
-mkdir_command=`_which mkdir`
-# stop if a command doesn't exist
-[ ! -x "${find_command}" -o ! -x "${sed_command}" -o ! -x "${basename_command}" -o ! -x "${grep_command}" -o ! -x "${mkdir_command}" ] && echo "Posix commands not found" && exit 2
+# add a default path since it is emptied by cfengine, and busybox for android
+PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/locan/sbin:/usr/local/bin:/system/xbin:${PATH}"
+export PATH
 
 # split version numbers
-version_regex='\([0-9]\+\)\.\([0-9]\+\).*'
-cfengine_major=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_regex}/\\1/"`
-cfengine_minor=`echo -n ${cfengine_version} | ${sed_command} -e "s/${version_regex}/\\2/"`
+version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
+cfengine_major=`printf ${cfengine_version} | sed -e "s/${version_regex}/\\1/"`
+cfengine_minor=`printf ${cfengine_version} | sed -e "s/${version_regex}/\\2/"`
 
 # Last parameters not named to keep them as a quoted array
 for directory in "$@"
@@ -56,8 +34,8 @@ do
   else
     # take the cache directory from environment
     exclude_basedir="${NCF_CACHE_PATH}/ncf-exclude-cache-${cfengine_version}"
-    [ -d "${exclude_basedir}" ] || ${mkdir_command} "${exclude_basedir}"
-    canonified_path=`echo "${framework_path}/${directory}" | ${sed_command} -s "s/\\//_/g"`
+    [ -d "${exclude_basedir}" ] || mkdir "${exclude_basedir}"
+    canonified_path=`echo "${framework_path}/${directory}" | sed -e "s/\\//_/g"`
     exclude_file="${exclude_basedir}/${canonified_path}"
   fi
 
@@ -67,7 +45,7 @@ do
   # first remove obsolete cache for exclude list
   if [ -e "${exclude_file}" ]
   then
-    newer_files=`${find_command} "${framework_path}/${directory}" -type f -newer "${exclude_file}"`
+    newer_files=`find "${framework_path}/${directory}" -type f -newer "${exclude_file}"`
     if [ "${newer_files}" != "" ]
     then
       rm -f "${exclude_file}"
@@ -80,12 +58,12 @@ do
     excludes=`cat "${exclude_file}"`
   else
     # sed -ne '/regex/F' prints file name when regex matches
-    tag_regex='^#[ \t]\+@agent_version[ \t]\+>='
-    for file in `${find_command} "${framework_path}/${directory}" -name '*.cf' -exec ${grep_command} -l "${tag_regex}" '{}' \;`
+    tag_regex='^#[ \t]*@agent_version[ \t]*>='
+    for file in `find "${framework_path}/${directory}" -name '*.cf' -exec grep -l "${tag_regex}" '{}' \;`
     do
-      major=`${sed_command} -ne "s/${tag_regex}${version_regex}/\\1/p" "${file}"`
-      minor=`${sed_command} -ne "s/${tag_regex}${version_regex}/\\2/p" "${file}"`
-      file_name=`${basename_command} ${file}`
+      major=`sed -ne "s/${tag_regex}${version_regex}/\\1/p" "${file}"`
+      minor=`sed -ne "s/${tag_regex}${version_regex}/\\2/p" "${file}"`
+      file_name=`basename ${file}`
       if [ "${major}" -gt "${cfengine_major}" ] || [ "${major}" -eq "${cfengine_major}" -a "${minor}" -gt "${cfengine_minor}" ]
       then
         # posix compliant syntax to exclude a file
@@ -93,11 +71,11 @@ do
       fi
 
     done  
-    echo -n "${excludes}" > "${exclude_file}"
+    printf "${excludes}" > "${exclude_file}"
   fi
 
   # eventually call find
   # posix compliant version of find without -printf '%p\n', it should work with darwin and aix
-  ${find_command} "${framework_path}/${directory}" ${excludes} -name '*.cf' -print
+  find "${framework_path}/${directory}" ${excludes} -name '*.cf' -print
 done
 
