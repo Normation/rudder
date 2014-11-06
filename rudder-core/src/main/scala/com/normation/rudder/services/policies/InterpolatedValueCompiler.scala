@@ -235,7 +235,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   //also parse full blank string, because no need to look for more case for them.
   def emptyVar: Parser[List[CharSeq]] = """(?iums)(\s)*""".r ^^ { x => List(CharSeq(x)) }
 
-  def plainString: Parser[CharSeq] = ("""(?iums)((?!\Q${rudder\E).)+""").r  ^^ { CharSeq(_) }
+  def plainString: Parser[CharSeq] = ("""(?iums)((?!\Q${rudder.\E).)+""").r  ^^ { CharSeq(_) }
 
   //identifier for step in the path or param names
   def propId: Parser[String] = """[\-_a-zA-Z0-9]+""".r
