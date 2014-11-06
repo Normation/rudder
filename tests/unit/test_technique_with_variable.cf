@@ -1,0 +1,19 @@
+# This file contains a sample meta-technique
+
+# Meta-Technique bla
+#
+#
+# @name Test_technique_with_variable
+# @description This meta-Technique is a sample only, allowing for testing.
+# @version 0.1
+#
+# Please see the online documentation for more details.
+bundle agent Test_technique_with_variable {
+  methods:
+    any::
+      "ph1" usebundle => directory_create("${sys.workdir}/module");
+      "ph2" usebundle => file_create("${sys.workdir}/module/env"),
+           ifvarclass => "(directory_create_${sys.workdir}_module_repaired)";
+
+
+}
