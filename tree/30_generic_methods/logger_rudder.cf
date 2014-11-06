@@ -38,10 +38,11 @@ bundle agent logger_rudder(message, class_prefix)
       "expected_reports_file"   string => "${expected_reports_source}.res";
 
     (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept)::
+      "c_class_prefix" string => canonify("${class_prefix}");
 
       # 3/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
-        int        => getfields("^[^;]*;;${class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
+        int        => getfields("^[^;]*;;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
@@ -72,19 +73,19 @@ bundle agent logger_rudder(message, class_prefix)
 
       # 4/ Array is ready, reporting time !!!
       "@@${report_data[1]}@@result_na@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_not_ok.!changes_only",
+        ifvarclass => "${c_class_prefix}_noop.!${c_class_prefix}_kept.!${c_class_prefix}_repaired.!${c_class_prefix}_not_ok.!changes_only",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_success@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_not_ok.!changes_only",
+        ifvarclass => "${c_class_prefix}_kept.!${c_class_prefix}_repaired.!${c_class_prefix}_not_ok.!changes_only",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_repaired@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_not_ok",
+        ifvarclass => "${c_class_prefix}_repaired.!${c_class_prefix}_not_ok",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
       "@@${report_data[1]}@@result_error@@${report_data[3]}@@${report_data[4]}@@${report_data[5]}@@${g.execRun}##${g.uuid}@#${message}"
-        ifvarclass => "${class_prefix}_not_ok",
+        ifvarclass => "${c_class_prefix}_not_ok",
         classes    => classes_generic("logger_rudder_${class_prefix}");
 
 }
