@@ -100,7 +100,7 @@ nodeGroupId: hasPolicyServer-root
 nodeId: root
 isSystem: TRUE
 isEnabled: TRUE
-jsonNodeGroupQuery: {"select":"node","composition":"And","where":[{"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"}]}
+jsonNodeGroupQuery: {"select":"nodeAndPolicyServer","composition":"And","where":[{"objectType":"node","attribute":"policyServerId","comparator":"eq","value":"root"}]}
 
 dn: ruleTarget=policyServer:root,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
 objectClass: specialRuleTarget
