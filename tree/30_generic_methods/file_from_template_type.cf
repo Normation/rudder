@@ -30,17 +30,29 @@
 
 bundle agent file_from_template_type(source_template, destination, template_type)
 {
+
   vars:
-    "class_prefix" string => canonify("file_from_template_${destination}");
+    "class_prefix"        string => canonify("file_from_template_${destination}");
+
+  classes:
+    "template_exists" expression => fileexists("${source_template}");
 
   files:
     "${destination}"
-      create        => "true",
-      edit_template => "${source_template}",
+      create          => "true",
+      edit_template   => "${source_template}",
       template_method => "${template_type}",
-      classes       => classes_generic("${class_prefix}");
+      ifvarclass      => "template_exists",
+      classes         => classes_generic("${class_prefix}");
 
   methods:
-    "report" usebundle  => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${class_prefix}");
+
+    !template_exists::
+
+      "template_absent" usebundle => _classes_failure("${class_prefix}");
+
+    any::
+
+      "report"          usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${class_prefix}");
 
 }
