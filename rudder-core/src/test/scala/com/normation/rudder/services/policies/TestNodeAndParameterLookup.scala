@@ -262,6 +262,10 @@ class TestNodeAndParameterLookup extends Specification {
       test(parseAll(interpol, """${rudder.node.foo.bar.baz}"""), NodeAccessor(List("foo", "bar", "baz")))
     }
 
+    "parse a rudder param variable with all parser" in {
+      test(parseAll(all, """${rudder.param.foo}"""), List(Param("foo")))
+    }
+
     "parse text and variable and text" in {
       val s1 = "plj jmoji h imj "
       val s2 = " alkjf fm ^{i àié${rudde ut ùt "
@@ -272,6 +276,16 @@ class TestNodeAndParameterLookup extends Specification {
       val s1 = "plj jmoji \n h \timj "
       val s2 = " alkjf \n\rfm ^{i àié${rudde ut ùt "
       test(parseAll(all, s1+"${rudder.node.policyserver.id}"+s2), List(CharSeq(s1), NodeAccessor(List("policyserver", "id")), CharSeq(s2)))
+    }
+
+    "parse a standard cfengine variable" in {
+      val s = """${bla.foo}"""
+      test(parseAll(all, s), List(CharSeq(s)))
+    }
+
+    "accept rudder_parameters variable as a plain variable" in {
+      val s = """${rudder_parameters.foo}"""
+      test(parseAll(all, s), List(CharSeq(s)))
     }
   }
 
