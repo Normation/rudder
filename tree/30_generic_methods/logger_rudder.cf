@@ -31,16 +31,21 @@ bundle agent logger_rudder(message, class_prefix)
 {
   vars:
 
-      "log_canonification_tool" string => '/bin/cat "${expected_reports_temp}" | while read line; do if echo "${line}" | grep -E "^\s*#" > /dev/null; then echo "${line}"; continue; fi; canonified=$(echo "${line}" | cut -d";" -f3 | sed "s/[^a-zA-Z0-9_]/_/g"); echo ${line} | sed -r "s/([^;]+);;[^;]+;;(.*)$/\1;;${canonified};;\2/"; done > ${expected_reports_file}';
-
       "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
       "expected_reports_temp"   string => "${expected_reports_source}.tmp";
       "expected_reports_file"   string => "${expected_reports_source}.res";
 
+    logger_rudder_temp_resfile_repaired::
+      # 2/ If the temporary file has been updated, read it to get all values in an array, and canonify the first entry
+      "dim" int => readstringarrayidx("reports", "${expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
+      "keys" slist => getindices("reports");
+
+      "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
+
     (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept)::
       "c_class_prefix" string => canonify("${class_prefix}");
 
-      # 3/ Once the final expected reports file has been expanded, read in our array
+      # 4/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
         int        => getfields("^[^;]*;;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
@@ -52,20 +57,23 @@ bundle agent logger_rudder(message, class_prefix)
       # 1/ First, check if the temporary file needs to be updated (The Rudder
       # provided expected reports file has changed). If so, expand the variables
       # in it into a temporary file.
+    !logger_rudder_temp_resfile_repaired::
       "${expected_reports_temp}"
         create        => "true",
         edit_template => "${expected_reports_source}",
         classes       => classes_generic("logger_rudder_temp_resfile");
 
-  commands:
+      # 3/ Write the final expected reports, expanded. First, empty it, then fill it
+      # (can't use edit_default empty, as we are iterating over a list)
+    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired::
+     "${expected_reports_file}"
+        create => "true",
+        edit_line => delete_lines_matching(".*");
 
-    logger_rudder_temp_resfile_repaired::
-
-      # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
-      # it.
-      "${log_canonification_tool}"
-        contain       => in_shell,
-        classes       => classes_generic("logger_rudder_final_resfile");
+      "${expected_reports_file}"
+        create    => "true",
+        edit_line => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
+        classes   => classes_generic("logger_rudder_final_resfile");
 
   reports:
 
