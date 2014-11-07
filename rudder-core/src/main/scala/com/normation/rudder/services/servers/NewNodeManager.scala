@@ -34,7 +34,7 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.rudder.batch.{AsyncDeploymentAgent,AutomaticStartDeployment}
+import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.Constants._
@@ -42,7 +42,6 @@ import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.rudder.services.queries.DynGroupService
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
@@ -126,9 +125,8 @@ class NewNodeManagerImpl(
     override val unitRefusors:Seq[UnitRefuseInventory]
   , val inventoryHistoryLogRepository : InventoryHistoryLogRepository
   , val eventLogRepository : EventLogRepository
-  , val asyncDeploymentAgent : AsyncDeploymentAgent
+  , override val updateDynamicGroups : UpdateDynamicGroups
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
-
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -223,7 +221,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def inventoryHistoryLogRepository : InventoryHistoryLogRepository
   def eventLogRepository : EventLogRepository
 
-  def asyncDeploymentAgent : AsyncDeploymentAgent
+  def updateDynamicGroups : UpdateDynamicGroups
 
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
@@ -449,6 +447,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     }) match {
       case Full(seq) => //ok, cool
         logger.debug("Accepted inventories: %s".format(sm.node.main.id.value))
+        updateDynamicGroups.startManualUpdate
         acceptationResults
       case e:EmptyBox => //on an error here, rollback all accpeted
         logger.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)
@@ -552,7 +551,7 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
 
     // If one node succeed, then update policies
     if ( acceptanceResults.exists{ case Full(_) => true; case _ => false } ) {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+      updateDynamicGroups.startManualUpdate
     }
 
     // Transform the sequence of box into a boxed result, best effort it!
@@ -705,114 +704,6 @@ class AcceptFullInventoryInNodeOu(
 
 }
 
-
-/**
- * A unit acceptor in charge to add nodes to dyn groups
- * Be carefull, that acceptor only looks for node in
- * ou=pending branch, so it MUST be executed before
- * than nodes are moved to accepted branch
- */
-class AddNodeToDynGroup(
-    override val name:String,
-    roGroupRepo: RoNodeGroupRepository,
-    woGroupRepo: WoNodeGroupRepository,
-    dynGroupService: DynGroupService,
-    inventoryStatus: InventoryStatus
-) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
-
-  var dynGroupIdByNode : Map[NodeId,Seq[NodeGroupId]] = Map()
-
-  override val fromInventoryStatus = inventoryStatus
-
-  override val toInventoryStatus = inventoryStatus
-
-  /**
-   * In the pre-accept phase, we list for all node the list of dyn group id it belongs to, and then
-   * add that node in them
-   */
-  override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = {
-    for {
-      nodeIds <- sequence(sms) { sm => Box.legacyNullTest(sm.node.main.id) }
-      map <- dynGroupService.findDynGroups(nodeIds) ?~! "Error when building the map of dynamic group to update by node"
-    } yield {
-      dynGroupIdByNode = map
-      logger.debug("Dynamic group to update (by node): %s".format(dynGroupIdByNode))
-      sms
-    }
-  }
-
-  /**
-   * Add the server node id to dyn groups it belongs to
-   * if the map does not have the node id, it just mean
-   * that that node does not match any dyngroup
-   */
-  def acceptOne(sm:FullInventory, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
-    for {
-      updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
-        for {
-          (group, _) <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
-          updatedGroup = group.copy( serverList = group.serverList + sm.node.main.id )
-          msg = Some("Automatic update of system group due to acceptation of node "+ sm.node.main.id.value)
-          saved <- {
-                     val res = if(updatedGroup.isSystem) {
-                       woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg)
-                     } else {
-                       woGroupRepo.update(updatedGroup, modId, actor, msg)
-                     }
-                     res ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
-                   }
-        } yield {
-          saved
-        }
-      }
-    } yield {
-      sm
-    }
-  }
-
-
-  /**
-   * Rollback server: remove it from the policy server group it belongs to.
-   * TODO: remove its node configuration, redeploy policies, etc.
-   */
-  def rollback(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Unit = {
-    sms.foreach { sm =>
-      (for {
-        updatetGroup <- sequence(dynGroupIdByNode.getOrElse(sm.node.main.id, Seq())) { groupId =>
-          for {
-            (group, _) <- roGroupRepo.getNodeGroup(groupId) ?~! "Can not find group with id: %s".format(groupId)
-            updatedGroup = group.copy( serverList = group.serverList.filter(x => x != sm.node.main.id ) )
-            msg = Some("Automatic update of system group due to rollback of acceptation of node "+ sm.node.main.id.value)
-            saved <- {
-                       val res = if(updatedGroup.isSystem) {
-                         woGroupRepo.updateSystemGroup(updatedGroup, modId, actor, msg)
-                       } else {
-                         woGroupRepo.update(updatedGroup, modId, actor, msg)
-                       }
-                       res ?~! "Error when trying to update dynamic group %s with member %s".format(groupId,sm.node.main.id.value)
-                     }
-          } yield {
-            saved
-          }
-        }
-      } yield {
-        sm
-      }) match {
-        case Full(_) => //ok
-        case e:EmptyBox => logger.error((e ?~! "Error when rollbacking server %s".format(sm.node.main.id.value)).messageChain)
-      }
-    }
-  }
-
-  override def postAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms)
-
-
-  //////////// refuse ////////////
-  override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
-    //nothing, special processing for all groups
-    Full(srv)
-  }
-}
 
 class RefuseGroups(
     override val name:String
