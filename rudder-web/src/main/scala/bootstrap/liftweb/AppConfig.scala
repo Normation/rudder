@@ -895,12 +895,6 @@ object RudderConfig extends Loggable {
     , psMngtService
   )
 
-  private[this] lazy val addNodeToDynGroup: UnitAcceptInventory with UnitRefuseInventory = new AddNodeToDynGroup(
-    "add_server_to_dyngroup",
-    roLdapNodeGroupRepository,
-    woLdapNodeGroupRepository,
-    dynGroupServiceImpl,
-    PendingInventory)
   private[this] lazy val historizeNodeStateOnChoice: UnitAcceptInventory with UnitRefuseInventory = new HistorizeNodeStateOnChoice(
       "accept_or_refuse_new_node:historize_inventory"
     , ldapFullInventoryRepository
@@ -1189,7 +1183,6 @@ object RudderConfig extends Loggable {
     //the sequence of unit process to accept a new inventory
     val unitAcceptors =
       historizeNodeStateOnChoice ::
-      addNodeToDynGroup ::
       acceptNodeAndMachineInNodeOu ::
       acceptInventory ::
       acceptHostnameAndIp ::
@@ -1213,7 +1206,7 @@ object RudderConfig extends Loggable {
       , unitRefusors
       , inventoryHistoryLogRepository
       , eventLogRepository
-      , asyncDeploymentAgentImpl
+      , dyngroupUpdaterBatch
     )
   }
 

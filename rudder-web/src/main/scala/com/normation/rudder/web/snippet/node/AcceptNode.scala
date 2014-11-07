@@ -74,7 +74,6 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.batch.AutomaticStartDeployment
 
 /**
  * Check for server in the pending repository and propose to
@@ -92,7 +91,6 @@ class AcceptNode {
   val acceptedNodesDit     = RudderConfig.acceptedNodesDit
   val pendingNodeDit       = RudderConfig.pendingNodesDit
   val uuidGen              = RudderConfig.stringUuidGenerator
-  val updateDynamicGroups = RudderConfig.updateDynamicGroups
 
   val gridHtmlId = "acceptNodeGrid"
 
@@ -158,7 +156,6 @@ class AcceptNode {
     }
 
     def addNodes(listNode : Seq[NodeId]) : Unit = {
-      var atLeastOneAccepted = false
 
       val modId = ModificationId(uuidGen.newUuid)
       //TODO : manage error message
@@ -176,7 +173,6 @@ class AcceptNode {
         case Full(inventory) =>
           // TODO : this will probably move to the NewNodeManager, when we'll know
           // how we handle the user
-          atLeastOneAccepted = true
           val version = retrieveLastVersions(id)
           version match {
             case Some(x) =>
@@ -205,10 +201,6 @@ class AcceptNode {
             case None => logger.warn("Node '%s'added, but couldn't find it's inventory %s".format(id.value.toString, id.value))
           }
       } }
-
-      if(atLeastOneAccepted) {
-        updateDynamicGroups.startManualUpdate
-      }
 
     }
 
