@@ -57,8 +57,9 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.js.JsExp
 import net.liftweb.util.Helpers._
 import com.normation.rudder.domain.nodes.Node
-
-
+import com.normation.plugins.ExtendableSnippet
+import com.normation.plugins.SnippetExtensionKey
+import com.normation.plugins.SpringExtendableSnippet
 
 object ShowNodeDetailsFromNode {
 
@@ -74,9 +75,9 @@ object ShowNodeDetailsFromNode {
 }
 
 class ShowNodeDetailsFromNode(
-    nodeId  : NodeId
-  , groupLib: FullNodeGroupCategory
-) extends DispatchSnippet with Loggable {
+    val nodeId : NodeId
+  , groupLib   : FullNodeGroupCategory
+) extends DispatchSnippet with SpringExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode._
 
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
@@ -88,9 +89,7 @@ class ShowNodeDetailsFromNode(
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val configService = RudderConfig.configService
 
-  def dispatch = {
-    case "display" => { _ => display(false) }
-  }
+  def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
    def agentScheduleEditForm = new AgentScheduleEditForm(
         () => getSchedule
@@ -138,8 +137,17 @@ class ShowNodeDetailsFromNode(
     }
   }
 
+  def mainDispatch = Map(
+    "displayInPopup"    -> { _:NodeSeq => privateDisplay(true)  }
+  , "displayMainWindow" -> { _:NodeSeq => privateDisplay(false) }
+  )
 
   def display(withinPopup : Boolean = false) : NodeSeq = {
+    if(withinPopup) dispatch("displayInPopup")(NodeSeq.Empty)
+    else dispatch("displayMainWindow")(NodeSeq.Empty)
+  }
+
+  private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
       case Empty =>
         <div class="error">Node with id {nodeId.value} was not found</div>
