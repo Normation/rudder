@@ -227,6 +227,7 @@ object RudderConfig extends Loggable {
   val RUDDER_COMMUNITY_PORT = config.getInt("rudder.community.port")
   val RUDDER_COMMUNITY_CHECKPROMISES_COMMAND = config.getString("rudder.community.checkpromises.command")
   val RUDDER_NOVA_CHECKPROMISES_COMMAND = config.getString("rudder.nova.checkpromises.command")
+  val RUDDER_CFENGINE_RELOAD_SERVER_COMMAND = config.getString("rudder.cfengine.reload.server.command")
   val RUDDER_JDBC_DRIVER = config.getString("rudder.jdbc.driver")
   val RUDDER_JDBC_URL = config.getString("rudder.jdbc.url")
   val RUDDER_JDBC_USERNAME = config.getString("rudder.jdbc.username")
@@ -1161,7 +1162,8 @@ object RudderConfig extends Loggable {
     RUDDER_ENDPOINT_CMDB,
     RUDDER_COMMUNITY_PORT,
     RUDDER_COMMUNITY_CHECKPROMISES_COMMAND,
-    RUDDER_NOVA_CHECKPROMISES_COMMAND)
+    RUDDER_NOVA_CHECKPROMISES_COMMAND,
+    RUDDER_CFENGINE_RELOAD_SERVER_COMMAND)
 
   //must be here because of circular dependency if in techniqueRepository
   techniqueRepositoryImpl.registerCallback(new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, woLdapDirectiveRepository))
