@@ -48,6 +48,8 @@ trait TemplateWriter extends Loggable {
   def licenseRepository : LicenseRepository
 
   def getSharesFolder() : String
+  
+  def reloadCFEnginePromises() : Unit
 
   /**
    * Write the promises of all the nodes
