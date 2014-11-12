@@ -61,8 +61,9 @@ import JE._
 import net.liftmodules.widgets.autocomplete._
 import com.normation.rudder.repository.RoNodeGroupRepository
 import bootstrap.liftweb.RudderConfig
-
-
+import com.normation.plugins.ExtendableSnippet
+import com.normation.plugins.SnippetExtensionKey
+import com.normation.plugins.SpringExtendableSnippet
 
 object ShowNodeDetailsFromNode {
 
@@ -90,8 +91,8 @@ object ShowNodeDetailsFromNode {
 }
 
 class ShowNodeDetailsFromNode(
-  nodeId:NodeId
-) extends DispatchSnippet with Loggable {
+  val nodeId:NodeId
+) extends DispatchSnippet with SpringExtendableSnippet[ShowNodeDetailsFromNode] with Loggable {
   import ShowNodeDetailsFromNode._
 
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
@@ -104,12 +105,19 @@ class ShowNodeDetailsFromNode(
   private[this] val targetService        = RudderConfig.ruleTargetService
   private[this] val dependencyService    = RudderConfig.dependencyAndDeletionService
 
-  def dispatch = {
-    case "display" => { _ => display(false) }
-  }
+  def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
+  def mainDispatch = Map(
+    "displayInPopup"    -> { _:NodeSeq => privateDisplay(true)  }
+  , "displayMainWindow" -> { _:NodeSeq => privateDisplay(false) }
+  )
 
   def display(withinPopup : Boolean = false) : NodeSeq = {
+    if(withinPopup) dispatch("displayInPopup")(NodeSeq.Empty)
+    else dispatch("displayMainWindow")(NodeSeq.Empty)
+  }
+
+  private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
       case Empty =>
         <div class="error">Node with id {nodeId.value} was not found</div>
