@@ -52,6 +52,8 @@ bundle agent logger_rudder(message, class_prefix)
   classes:
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
 
+      "keys_defined"     expression => isvariable("keys");
+
   files:
 
       # 1/ First, check if the temporary file needs to be updated (The Rudder
@@ -65,7 +67,7 @@ bundle agent logger_rudder(message, class_prefix)
 
       # 3/ Write the final expected reports, expanded. First, empty it, then fill it
       # (can't use edit_default empty, as we are iterating over a list)
-    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired::
+    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
      "${expected_reports_file}"
         create => "true",
         edit_line => delete_lines_matching(".*");
