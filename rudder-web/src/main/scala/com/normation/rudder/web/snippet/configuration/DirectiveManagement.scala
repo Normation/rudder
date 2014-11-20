@@ -400,7 +400,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true)
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
-          Replace(html_techniqueDetails, NodeSeq.Empty) &
+          SetHtml(html_techniqueDetails, NodeSeq.Empty) &
           JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
         }
     ).popupContent
