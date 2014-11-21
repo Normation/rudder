@@ -84,10 +84,15 @@ import com.normation.inventory.domain.NodeInventory
  *   ${rudder.node.policyserver.ACCESSOR} : information about the policyserver of the node.
  *                                    ACCESSORs are the same than for ${rudder.node}
  *
- *   ${rudder.node.env.ENVIRONMENT_VARIABLE_NAME}: the value of the environment variable "ENVIRONMENT_VARIABLE_NAME"
- *            (name case sensitive) as given in the last inventory for that node, or "" if there is no variable 
- *            with that name was defined for that node when the inventory was done. 
+ *  We do have all the logistic to give access to any given inventory parameter, but for now,
+ *  we still need to decide:
+ *  - how we are managing it in a generic way, i.e given any addition to the inventory, having
+ *    access to it without modifying that code (xpath like access to information from parameter
+ *    structure)
+ *  - what are the consequences in the reporting & expected reports, in particular what happen
+ *    to a parameter whose value is a list (iteration, list => string, etc)
  */
+
 trait InterpolatedValueCompiler {
 
   /**
@@ -229,7 +234,6 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
           case "admin" :: Nil => Full(context.policyServerInfo.localAdministratorAccountName)
           case _ => error
         }
-        case "env" :: x :: Nil => Full(environmentVariable(context.inventory, x))
         case seq => error
       }
     }
