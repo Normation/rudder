@@ -63,18 +63,14 @@ class ReadOnlySoftwareDAOImpl(
   }
 
   override def getSoftware(id:NodeId, inventoryStatus:InventoryStatus) : Box[Seq[Software]] = {
+    val dit = inventoryDitService.getDit(inventoryStatus)
     val server = inventoryDitService.getDit(inventoryStatus).NODES.NODE
+
     for {
       con <- ldap
       serverEntry  <- con.get(server.dn(id), A_SOFTWARE_DN)
-      softs <- sequence(serverEntry.valuesFor(A_SOFTWARE_DN).toSeq) { softDN =>
-        for {
-          e <- con.get(softDN)
-          soft <- mapper.softwareFromEntry(e)
-        } yield {
-          soft
-        }
-      }
+      softUuids <- sequence(serverEntry.valuesFor(A_SOFTWARE_DN).toSeq)(dn => dit.SOFTWARE.SOFT.idFromDN(dn))
+      softs <- getSoftware(softUuids)
     } yield {
       softs
     }
