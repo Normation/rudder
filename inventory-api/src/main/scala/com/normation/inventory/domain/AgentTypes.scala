@@ -46,7 +46,7 @@ sealed abstract class AgentType {
   def toString() : String
   def fullname() : String = "CFEngine "+this
   // Tag used in fusion inventory ( > 2.3 )
-  val tagValue = s"cfengine-${this}".toLowerCase
+  lazy val tagValue = s"cfengine-${this}".toLowerCase
   def toRulesPath() : String
 }
 
