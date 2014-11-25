@@ -56,6 +56,7 @@ import com.normation.rudder.web.components.popup.GiveReasonPopup
 import com.normation.rudder.web.services.ReasonBehavior._
 import com.normation.rudder.authorization.Write
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.eventlog.RudderEventActor
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.Box.box2Option
 import net.liftweb.common.Box.option2Box
@@ -491,7 +492,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
  def onFailureReasonPopup(srcActiveTechId : String, destCatId : String) : JsCmd = {
    val errorMessage = "Error while trying to move Active Technique with " +
-   		"requested id '%s' to category id '%s'\nPlease reload the page."
+       "requested id '%s' to category id '%s'\nPlease reload the page."
    Alert(errorMessage.format(srcActiveTechId, destCatId))
  }
 
@@ -593,7 +594,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         ) ++
         category.packageIds.map( _.name ).
           flatMap(x => treeUtilService.getPt(x,logger)).toList.
-          sortWith( treeUtilService.sortPt( _ , _ ) ).map(jsTreeNodeOf_pt( _ ) )
+          sortWith((x,y) =>  treeUtilService.sortPt(x.id.name, y.id.name ) ).map(jsTreeNodeOf_pt( _ ) )
 
       override val attrs = ( "rel" -> "category" ) :: Nil
     }
@@ -617,17 +618,58 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     /*
      * Transform a ActiveTechnique into a JsTree leaf
      */
-    def jsTreeNodeOf_upt(activeTechnique : ActiveTechnique, technique:Technique) : JsTreeNode = new JsTreeNode {
-      override def body = {
-        val tooltipid = Helpers.nextFuncName
-        SHtml.a(
-          { () => onClickTemplateNode(technique) },
-            <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span>
-            <div class="tooltipContent" id={tooltipid}><h3>{technique.name}</h3><div>{technique.description}</div></div>
-          )
+    def jsTreeNodeOf_upt(activeTechnique : ActiveTechnique, optTechnique: Option[Technique]) : JsTreeNode = {
+
+      //there is two case: the normal one, and the case where the technique is missing and
+      //we want to inform the user of the problem
+
+      optTechnique match {
+        case Some(technique) =>
+          new JsTreeNode {
+            override def body = {
+              val tooltipid = Helpers.nextFuncName
+              SHtml.a(
+                { () => onClickTemplateNode(technique) },
+                  <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span>
+                  <div class="tooltipContent" id={tooltipid}><h3>{technique.name}</h3><div>{technique.description}</div></div>
+                )
+            }
+            override def children = Nil
+            override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> technique.id.name.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+          }
+        case None =>
+
+          if(activeTechnique.isEnabled) {
+            val msg = s"Disableling active technique '${activeTechnique.id.value}' because its Technique '${activeTechnique.techniqueName.value}' was not found in the repository"
+            rwActiveTechniqueRepository.changeStatus(
+                activeTechnique.id
+              , false, ModificationId(uuidGen.newUuid)
+              , RudderEventActor
+              , Some(msg)
+            ) match {
+              case eb: EmptyBox =>
+                val e = eb ?~! s"Error when trying to disable active technique '${activeTechnique.id.value}'"
+                logger.debug(e.messageChain)
+              case Full(x) =>
+                logger.warn(msg)
+            }
+          }
+
+          new JsTreeNode {
+            override def body = {
+              val tooltipid = Helpers.nextFuncName
+              <a href="#">
+                  <span class="error treeTechniqueName tooltipable" tooltipid={tooltipid} title={activeTechnique.techniqueName.value}>{activeTechnique.techniqueName.value}</span>
+                  <div class="tooltipContent" id={tooltipid}>
+                    <h3>Missing technique {activeTechnique.techniqueName.value}</h3>
+                    <div>The technique is missing on the repository. Active technique based on it are disable until the technique is putted back on the repository</div>
+                  </div>
+              </a>
+            }
+            override def children = Nil
+            override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> activeTechnique.techniqueName.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+          }
       }
-      override def children = Nil
-      override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> technique.id.name.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
     }
 
     def onClickUserCategory() : JsCmd = {
@@ -665,8 +707,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           toList.sortWith { treeUtilService.sortActiveTechniqueCategory( _,_ ) }.
           map(jsTreeNodeOf_uptCategory(_) ) ++
         category.items.flatMap(x => treeUtilService.getActiveTechnique(x,logger)).
-          toList.sortWith( (x,y) => treeUtilService.sortPt( x._2 , y._2) ).
-          map { case (activeTechnique,technique) => jsTreeNodeOf_upt(activeTechnique,technique) }
+          toList.sortWith( (x,y) => treeUtilService.sortPt( x._1.techniqueName, y._1.techniqueName) ).
+          map { case (activeTechnique,technique) => jsTreeNodeOf_upt(activeTechnique, technique) }
     }
   }
 
@@ -696,7 +738,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     JsRaw( """createPopup("createActiveTechniquePopup")
      """)
   }
-  
+
   private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
 
       def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
