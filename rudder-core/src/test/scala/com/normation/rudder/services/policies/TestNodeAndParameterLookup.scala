@@ -534,12 +534,6 @@ class TestNodeAndParameterLookup extends Specification {
       i(context) must beEqualTo(Full("node1.localhost"))
     }
 
-    "matter in environement variable name" in {
-      val i = compileAndGet("${rudder.node.env.THE_VAR}")
-      val j = compileAndGet("${rudder.node.env.THE_var}")
-      (i(context) must beEqualTo(Full("THE_VAR value!"))) and (j(context) must beEqualTo(Full("")))
-    }
-
     "matter in param names" in {
       val i = compileAndGet("${rudder.param.xX}")
       val c = context.copy(parameters = Map(
