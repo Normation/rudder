@@ -170,7 +170,8 @@ object DisplayDirectiveTree extends Loggable {
               <h3>{technique.name}</h3>
               <div>{technique.description}</div>
             </div>
-          case None => <span class="error">No technique available for that active technique</span>
+          case None =>
+            <span class="error">The technique with id ''{activeTechnique.techniqueName}'' is missing from repository</span>
         }
 
         onClickTechnique match {
