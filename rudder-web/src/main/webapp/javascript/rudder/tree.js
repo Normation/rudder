@@ -367,6 +367,10 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
         }
       }
     },
+    "search" : {
+      "case_insensitive" : true,
+      "show_only_matches": true
+    },
     "dnd" : {
       "drop_target" : false,
       "drag_target" : false
@@ -375,7 +379,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   	  "theme" : "rudder",
   	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
     },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm" ] 
+    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search"  ] 
     });
 }
 
