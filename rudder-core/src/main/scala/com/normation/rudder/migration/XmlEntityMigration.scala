@@ -393,6 +393,7 @@ class DefaultXmlEventLogMigration(
     xmlMigration_2_3: XmlMigration_2_3
   , xmlMigration_3_4: XmlMigration_3_4
   , xmlMigration_4_5: XmlMigration_4_5
+  , xmlMigration_5_6: XmlMigration_5_6
 ) extends XmlEntityMigration {
 
   def getUpToDateXml(entity:Elem) : Box[Elem] = {
@@ -401,10 +402,11 @@ class DefaultXmlEventLogMigration(
       versionT <- Box(entity.attribute("fileFormat").map( _.text )) ?~! s"Can not migrate element with unknow fileFormat: ${entity}"
       version  <- try { Full(versionT.toFloat.toInt) } catch { case e:Exception => Failure(s"Bad version (expecting an integer or a float: '${versionT}'")}
       migrate  <- version match {
-                    case 2 => migrate2_5(entity)
-                    case 3 => migrate3_5(entity)
-                    case 4 => migrate4_5(entity)
-                    case 5 => Full(entity)
+                    case 2 => migrate2_6(entity)
+                    case 3 => migrate3_6(entity)
+                    case 4 => migrate4_6(entity)
+                    case 5 => migrate5_6(entity)
+                    case 6 => Full(entity)
                     case x => Failure(s"Can not migrate XML file with fileFormat='${version}' (expecting 2,3,4 or 5)")
                   }
     } yield {
@@ -434,20 +436,32 @@ class DefaultXmlEventLogMigration(
     }
   }
 
+  private[this] def migrate5_6(xml:Elem) : Box[Elem] = {
+      xmlMigration_5_6.other(xml)
+  }
 
-  private[this] def migrate3_5(xml:Elem) : Box[Elem] = {
+  private[this] def migrate4_6(xml:Elem) : Box[Elem] = {
     for {
-      a <- migrate3_4(xml)
-      b <- migrate4_5(a)
+      a <- migrate4_5(xml)
+      b <- migrate5_6(a)
     } yield {
       b
     }
   }
 
-  private[this] def migrate2_5(xml:Elem) : Box[Elem] = {
+  private[this] def migrate3_6(xml:Elem) : Box[Elem] = {
+    for {
+      a <- migrate3_4(xml)
+      b <- migrate4_6(a)
+    } yield {
+      b
+    }
+  }
+
+  private[this] def migrate2_6(xml:Elem) : Box[Elem] = {
     for {
       a <- migrate2_3(xml)
-      b <- migrate3_5(a)
+      b <- migrate3_6(a)
     } yield {
       b
     }

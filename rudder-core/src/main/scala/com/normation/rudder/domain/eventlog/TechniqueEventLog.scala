@@ -44,6 +44,12 @@ import com.normation.cfclerk.domain._
 import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventLogDetails
 import com.normation.rudder.domain.Constants
+import com.normation.cfclerk.services.TechniquesLibraryUpdateType
+import com.normation.cfclerk.services.TechniqueUpdated
+import com.normation.cfclerk.services.TechniqueDeleted
+import com.normation.cfclerk.services.VersionAdded
+import com.normation.cfclerk.services.VersionDeleted
+import com.normation.cfclerk.services.VersionUpdated
 
 sealed trait TechniqueEventLog extends EventLog { override final val eventLogCategory = TechniqueLogCategory }
 
@@ -59,12 +65,31 @@ object ReloadTechniqueLibrary extends EventLogFilter {
 
   override def apply(x : (EventLogType, EventLogDetails)) : ReloadTechniqueLibrary = ReloadTechniqueLibrary(x._2)
 
-  def buildDetails(TechniqueIds:Seq[TechniqueId]) : NodeSeq = EventLog.withContent {
-    <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>{ TechniqueIds.map { case TechniqueId(name, version) =>
-      <modifiedTechnique>
-        <name>{name.value}</name>
-        <version>{version.toString}</version>
-      </modifiedTechnique>
+  def buildDetails(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType]) : NodeSeq = EventLog.withContent {
+    <reloadTechniqueLibrary fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>{
+      techniqueMods.flatMap {
+        case (_, TechniqueUpdated(name, mods)) => mods.map( x => (x._2 , name, x._1))
+        case (_, TechniqueDeleted(name, vers)) => vers.map( x => (VersionDeleted, name, x ))
+      }.map {
+
+        case (VersionAdded, name, version) =>
+          <addedTechnique>
+            <name>{name.value}</name>
+            <version>{version.toString}</version>
+          </addedTechnique>
+
+        case (VersionDeleted, name, version) =>
+          <deletedTechnique>
+            <name>{name.value}</name>
+            <version>{version.toString}</version>
+          </deletedTechnique>
+
+        case (VersionUpdated, name, version) =>
+          <modifiedTechnique>
+            <name>{name.value}</name>
+            <version>{version.toString}</version>
+          </modifiedTechnique>
+
     } }</reloadTechniqueLibrary>
   }
 
