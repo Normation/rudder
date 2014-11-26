@@ -139,7 +139,7 @@ class TechniqueEditForm(
   private[this] val userPropertyService         = RudderConfig.userPropertyService
 
 
-  private[this] var currentActiveTechnique = roActiveTechniqueRepository.getActiveTechnique(technique.id.name)
+  private[this] var currentActiveTechnique = roActiveTechniqueRepository.getActiveTechnique(technique.id.name).flatMap { Box(_) }
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
 
 
@@ -533,7 +533,7 @@ class TechniqueEditForm(
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
     //find the potential WBUsreTechnique for given WBTechnique
     ( for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).flatMap(Box(_))
       crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
     } yield {
       crump.reverse

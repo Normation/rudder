@@ -138,41 +138,32 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      // First retrieve the parent category
-      activeTechniqueCategoryRepository.getActiveTechniqueCategory(new ActiveTechniqueCategoryId(categoryContainer.is)) match {
-        case Empty =>
-            logger.error("An error occurred while fetching the parent category")
-            formTracker.addFormError(error("An error occurred while fetching the parent category"))
-            onFailure & onFailureCallback()
-        case Failure(m,_,_) =>
-            logger.error("An error occurred while fetching the parent category:" + m)
-            formTracker.addFormError(error("An error occurred while fetching the parent category: " + m))
-            onFailure & onFailureCallback()
-        case Full(parent) =>
-          rwActiveTechniqueCategoryRepository.addActiveTechniqueCategory(
-              new ActiveTechniqueCategory(
-                 ActiveTechniqueCategoryId(uuidGen.newUuid),
-                 name = categoryName.is,
-                 description = categoryDescription.is,
-                 children = Nil,
-                 items = Nil
-               ),
-               parent, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("user created a new category")
-             ) match {
-               case Failure(m,_,_) =>
-                  logger.error("An error occurred while saving the category:" + m)
-                  formTracker.addFormError(error("An error occurred while saving the category:" + m))
-                  onFailure & onFailureCallback()
-               case Empty =>
-                  logger.error("An error occurred while saving the category")
-                  formTracker.addFormError(error("An error occurred while saving the category"))
-                  onFailure & onFailureCallback()
-               case Full(updatedParent) =>
-                 formTracker.clean
-                 closePopup() & onSuccessCallback()
-             }
-           }
+      rwActiveTechniqueCategoryRepository.addActiveTechniqueCategory(
+          new ActiveTechniqueCategory(
+            ActiveTechniqueCategoryId(uuidGen.newUuid),
+            name = categoryName.is,
+            description = categoryDescription.is,
+            children = Nil,
+            items = Nil
+          )
+         , ActiveTechniqueCategoryId(categoryContainer.is)
+         , ModificationId(uuidGen.newUuid)
+         , CurrentUser.getActor
+         , Some("user created a new category")
+      ) match {
+          case Failure(m,_,_) =>
+              logger.error("An error occurred while saving the category:" + m)
+              formTracker.addFormError(error("An error occurred while saving the category:" + m))
+              onFailure & onFailureCallback()
+          case Empty =>
+              logger.error("An error occurred while saving the category")
+              formTracker.addFormError(error("An error occurred while saving the category"))
+              onFailure & onFailureCallback()
+          case Full(updatedParent) =>
+             formTracker.clean
+             closePopup() & onSuccessCallback()
       }
+    }
   }
 
 
