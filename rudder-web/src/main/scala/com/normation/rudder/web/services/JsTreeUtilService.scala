@@ -71,7 +71,7 @@ class JsTreeUtilService(
     // get the Active Technique, log on error
     def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Box[(ActiveTechnique, Option[Technique])] = {
       (for {
-        activeTechnique <- directiveRepository.getActiveTechnique(id) ?~! "Error while fetching Active Technique %s".format(id)
+        activeTechnique <- directiveRepository.getActiveTechnique(id).flatMap { Box(_) } ?~! "Error while fetching Active Technique %s".format(id)
       } yield {
         (activeTechnique, techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName))
       }) match {

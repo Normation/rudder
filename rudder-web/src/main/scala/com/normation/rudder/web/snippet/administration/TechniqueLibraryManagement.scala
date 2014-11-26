@@ -370,7 +370,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
-            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
+            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)).flatMap(Box(_)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
             result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
@@ -502,7 +502,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
     for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id).flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
       updateCurrentTechniqueDetails(technique)
