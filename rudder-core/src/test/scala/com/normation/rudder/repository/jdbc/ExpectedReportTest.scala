@@ -48,6 +48,20 @@ import com.normation.rudder.domain.reports._
 import com.normation.rudder.migration.DBCommon
 import javax.sql.DataSource
 import net.liftweb.common._
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.domain.policies.ExpandedDirectiveVal
+import com.normation.rudder.domain.policies.ExpandedRuleVal
+import com.normation.cfclerk.domain.Cf3PolicyDraftId
+import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.rudder.services.policies.UniqueOverrides
+import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
 
 /**
  * Test on database.
@@ -61,9 +75,13 @@ class ExpectedReportsTest extends DBCommon {
     jdbcTemplate.execute("DELETE FROM expectedReports; DELETE FROM expectedReportsNodes;")
   }
 
-  val findReports = new FindExpectedReportsJdbcRepository(jdbcTemplate, new PostgresqlInClause(2))
+  val pgIn = new PostgresqlInClause(2)
+  val findReports = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
   val expectedReportsRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findReports, findReports)
   val slick = new SlickSchema(dataSource)
+
+  val updateExpectedService = new ExpectedReportsUpdateImpl(expectedReportsRepo, expectedReportsRepo)
+
   import slick._
 
   sequential
@@ -224,5 +242,104 @@ class ExpectedReportsTest extends DBCommon {
 
   }
 
-}
+  /*
+   * Test full updates and overrides of unique techniques
+   */
+  "Using the top update entry point" should {
+    step {
+      cleanTables
+      //reset nodeJoinKey sequence to 100
+      jdbcTemplate.execute("ALTER SEQUENCE ruleVersionId RESTART WITH 100;")
+      jdbcTemplate.execute("ALTER SEQUENCE ruleSerialId RESTART WITH 100;")
 
+    }
+
+    /*
+     * We want only one rule, with two directive, based on one
+     * unique Technique. There is also two node, one with both
+     * directive, the other with only one.
+     */
+
+    val fooSpec = InputVariableSpec("foo", "")
+    val tech = Technique(
+        TechniqueId(TechniqueName("tech"), TechniqueVersion("1.0"))
+      , "tech"
+      , "description"
+      , Seq()
+      , Seq()
+      , TrackerVariableSpec()
+      , SectionSpec("root", isComponent = true, componentKey = Some("foo"), children = Seq(fooSpec))
+      , None
+      , isMultiInstance = false
+    )
+
+    def buildDirective(id: String, priority: Int) = {
+      val vars = Map("foo" -> fooSpec.toVariable(Seq(id + "_value")))
+
+      ExpandedDirectiveVal(
+          tech
+        , DirectiveId(id)
+        , priority
+        , tech.trackerVariableSpec.toVariable()
+        , vars, vars
+      )
+    }
+    //d1 is more prioritary than d2
+    val d1 = buildDirective("d1", 0)
+    val d2 = buildDirective("d2", 5)
+
+    val n1 = NodeAndConfigId(NodeId("n1"), NodeConfigId("n1_v0"))
+    val n2 = NodeAndConfigId(NodeId("n2"), NodeConfigId("n2_v0"))
+    val r1 = RuleId("r1")
+    val serial = 42
+
+    val rule = ExpandedRuleVal(
+        r1, serial
+      , Map(n1 -> Seq(d1, d2) , n2 -> Seq(d2))
+    )
+
+    //and so, on n1, we have an override:
+    val n1_overrides = UniqueOverrides(n1.nodeId, r1, DirectiveId("d2"), Cf3PolicyDraftId("r1@@d1"))
+
+    /*
+     * And now, for the expectations
+     */
+    val genTime = DateTime.now
+    val d1_exp = DirectiveExpectedReports(DirectiveId("d1"),Seq(ComponentExpectedReport("root", 1, Seq("d1_value"), Seq("d1_value"))))
+    val d2_exp = DirectiveExpectedReports(DirectiveId("d2"),Seq(ComponentExpectedReport("root", 1, Seq("d2_value"), Seq("d2_value"))))
+    val expectedRule = RuleExpectedReports(r1, serial, Seq(
+        DirectivesOnNodes(100, Map(n1.nodeId -> Some(n1.version)), Seq(d1_exp) )
+      , DirectivesOnNodes(101, Map(n2.nodeId -> Some(n2.version)), Seq(d2_exp) )
+    ), genTime, None)
+
+    val expected = {
+      val c1 = d1_exp.components(0)
+      SlickExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+      , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
+      , """["d1_value"]""", DateTime.now, None
+      )
+    }
+
+    "Check that we have the expected info in base" in {
+      val inserted = updateExpectedService.updateExpectedReports(
+          Seq(rule)
+        , Seq()
+        , Map(n1.nodeId -> n1.version, n2.nodeId -> n2.version)
+        , genTime, Set(n1_overrides)
+      )
+
+      slickExec { implicit s =>
+        val reports =  expectedReportsTable.list
+        val nodes = expectedReportsNodesTable.list
+
+        compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
+        reports.size === 2 and compareSlickER(reports(0), expected) and
+        nodes.size === 2 and (nodes must contain(exactly(
+            SlickExpectedReportsNodes(100, "n1", List("n1_v0"))
+          , SlickExpectedReportsNodes(101, "n2", List("n2_v0"))
+        )))
+      }
+    }
+  }
+
+}

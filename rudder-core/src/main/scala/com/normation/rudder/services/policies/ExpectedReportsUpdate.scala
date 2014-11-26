@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.reports
+package com.normation.rudder.services.policies
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.ExpandedRuleVal
@@ -56,6 +56,10 @@ import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
 import org.joda.time.DateTime
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.cfclerk.domain.Cf3PolicyDraftId
+import com.normation.rudder.domain.reports.RuleExpectedReports
+import com.normation.rudder.domain.policies.ExpandedRuleVal
 
 /**
  * The purpose of that service is to handle the update of
@@ -76,15 +80,56 @@ trait ExpectedReportsUpdate {
     , deleteRules       : Seq[RuleId]
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
+    , overrides         : Set[UniqueOverrides]
   ) : Box[Seq[RuleExpectedReports]]
 
 }
 
+/**
+ * Container class to store that for a given
+ * node, for a rule and directive, all values
+ * are overriden by an other directive derived from the
+ * same unique technique
+ */
+case class UniqueOverrides(
+    nodeId: NodeId
+  , ruleId: RuleId
+  , directiveId: DirectiveId
+  , overridenBy: Cf3PolicyDraftId
+)
 
 class ExpectedReportsUpdateImpl(
     confExpectedRepo   : UpdateExpectedReportsRepository
   , nodeConfigRepo     : WoNodeConfigIdInfoRepository
 ) extends ExpectedReportsUpdate with Loggable {
+
+  /**
+   * Utilitary method that filters overriden directive by node
+   * in expandedruleval
+   */
+  private[this] def filterOverridenDirectives(
+      expandedRuleVals  : Seq[ExpandedRuleVal]
+    , overrides         : Set[UniqueOverrides]
+  ): Seq[ExpandedRuleVal] = {
+    /*
+     * Start by filtering expandedRuleVals to remove overriden
+     * directives from them.
+     */
+    val byRulesOverride = overrides.groupBy { _.ruleId }
+    expandedRuleVals.map { case rule@ExpandedRuleVal(ruleId, newSerial, configs) =>
+      byRulesOverride.get(ruleId) match {
+        case None => rule
+        case Some(overridenDirectives) =>
+          val byNodeOverride = overridenDirectives.groupBy { _.nodeId }
+          val filteredConfig = configs.map { case(i@NodeAndConfigId(nodeId, c), directives) =>
+            val toFilter = byNodeOverride.getOrElse(nodeId, Seq()).map( _.directiveId).toSet
+            (i, directives.filterNot { directive => toFilter.contains(directive.directiveId) })
+          }
+          ExpandedRuleVal(ruleId, newSerial, filteredConfig)
+      }
+    }
+  }
+
   /**
    * Update the list of expected reports when we do a deployment
    * For each RuleVal, we check if it was present or it serial changed
@@ -93,20 +138,25 @@ class ExpectedReportsUpdateImpl(
    * @param ruleVal
    * @return
    */
-  override def updateExpectedReports(expandedRuleVals : Seq[ExpandedRuleVal], deleteRules : Seq[RuleId], updatedNodeConfigs: Map[NodeId, NodeConfigId], generationTime: DateTime
+  override def updateExpectedReports(
+      expandedRuleVals  : Seq[ExpandedRuleVal]
+    , deleteRules       : Seq[RuleId]
+    , updatedNodeConfigs: Map[NodeId, NodeConfigId]
+    , generationTime    : DateTime
+    , overrides         : Set[UniqueOverrides]
 ) : Box[Seq[RuleExpectedReports]] = {
 
+    val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
     val openExepectedReports = confExpectedRepo.findAllCurrentExpectedReportsWithNodesAndSerial()
 
     // All the rule and serial. Used to know which one are to be removed
     val currentConfigurationsToRemove =  MutMap[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])]() ++ openExepectedReports
 
-
     val confToClose = MutSet[RuleId]()
     val confToCreate = Buffer[ExpandedRuleVal]()
 
     // Then we need to compare each of them with the one stored
-    for (conf@ExpandedRuleVal(ruleId, newSerial, configs) <- expandedRuleVals) {
+    for (conf@ExpandedRuleVal(ruleId, newSerial, configs) <- filteredExpandedRuleVals) {
       currentConfigurationsToRemove.get(ruleId) match {
         // non existant, add it
         case None =>
@@ -114,7 +164,7 @@ class ExpectedReportsUpdateImpl(
           confToCreate += conf
 
         case Some((serial, nodeJoinKey, nodeConfigMap)) if ((serial == newSerial)&&(configs.size > 0)) =>
-            // no change if same serial and some config appliable, that's ok, trace level
+            // no change if same serial and some config applicable, that's ok, trace level
             logger.trace(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed and cache up-to-date: nothing to do")
             // must check that their are no differents nodes in the DB than in the new reports
             // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
@@ -199,7 +249,7 @@ class ExpectedReportsUpdateImpl(
                                   }
       //we want to save updatedNodeConfiguration that were not already saved
       //in expected reports.
-      newConfigId              =  expandedRuleVals.flatMap { case ExpandedRuleVal(_, _, configs) => configs.keySet.map{case NodeAndConfigId(id,v) => (id,v)}}.toMap
+      newConfigId              =  filteredExpandedRuleVals.flatMap { case ExpandedRuleVal(_, _, configs) => configs.keySet.map{case NodeAndConfigId(id,v) => (id,v)}}.toMap
       notUpdateNodeJoinKey     =  openExepectedReports.filterKeys(k => !allClosable.contains(k)).flatMap{ case(ruleId, (serial, nodeJoinKey, mapNodes)) =>
                                     mapNodes.values.map { case NodeConfigVersions(nodeId, versions) =>
                                       val lastVersion = newConfigId(nodeId)
@@ -210,7 +260,16 @@ class ExpectedReportsUpdateImpl(
       updatedNodeConfigVersion <- confExpectedRepo.updateNodeConfigVersion(notUpdateNodeJoinKey)
       savedNodesInfos          <- nodeConfigRepo.addNodeConfigIdInfo(updatedNodeConfigs, generationTime)
     } yield {
-      createdExpectedReports
+      /*
+       * Here, we may have several expected rule for an unique rule id/serial, so we want to merge them back
+       * into sensible data
+       */
+      createdExpectedReports.groupBy( x => (x.ruleId, x.serial) ).map { case (_, seqRule) =>
+        //the only thing that may be different is the directiveOnNodes because startdate/enddate are the same for same serial
+        val don = seqRule.flatMap( _.directivesOnNodes ).distinct
+
+        seqRule(0).copy(directivesOnNodes = don)
+      }.toSeq
     }
   }
 
@@ -224,7 +283,6 @@ object ComputeCardinalityOfDirectiveVal extends Loggable {
   import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
   def getCardinality(container : ExpandedDirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
-
 
     // Computes the components values, and the unexpanded component values
     val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
