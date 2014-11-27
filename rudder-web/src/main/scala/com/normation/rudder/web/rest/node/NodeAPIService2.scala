@@ -175,7 +175,8 @@ case class NodeApiService2 (
 
    ( action match {
       case AcceptNode =>
-        newNodeManager.accept(ids, modId, actor, "").map(_.map(serializeInventory(_,"accepted",fixedTag)))
+        newNodeManager.accept(ids, modId, actor, "").map(_.map(serializeInventory(_, "accepted", fixedTag)))
+
       case RefuseNode =>
         newNodeManager.refuse(ids, modId, actor, "").map(_.map(serializeServerInfo(_,"refused")))
 

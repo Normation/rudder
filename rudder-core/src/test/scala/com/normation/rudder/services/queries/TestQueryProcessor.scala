@@ -95,7 +95,7 @@ class TestQueryProcessor extends Loggable {
   val nodeDit = new NodeDit(new DN("cn=rudder-configuration"))
   val rudderDit = new RudderDit(new DN("ou=Rudder, cn=rudder-configuration"))
 
-  val ditQueryData = new DitQueryData(DIT)
+  val ditQueryData = new DitQueryData(DIT, nodeDit)
 
   val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null)
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
@@ -469,6 +469,34 @@ class TestQueryProcessor extends Loggable {
 
 
     testQueries( q1 :: Nil)
+  }
+
+
+  /**
+   * Test environment variable and nodeProperty
+   */
+  @Test def nodeKeyValuesPairsPropertiesQueries() {
+
+    val q1 = TestQuery(
+      "q1",
+      parser("""
+      {"select":"node","composition":"And","where":[
+        {"objectType":"environmentVariable","attribute":"name.value","comparator":"eq","value":"SHELL=/bin/sh"}
+      ]}
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+    val q2 = TestQuery(
+      "q2",
+      parser("""
+      { "select":"node", "where":[
+        { "objectType":"serializedNodeProperty", "attribute":"name.value", "comparator":"eq", "value":"foo=bar" }
+      ] }
+      """).openOrThrowException("For tests"),
+      s(1) :: Nil)
+
+
+    testQueries(q1 :: q2 :: Nil)
   }
 
   @Test def unsortedQueries() {

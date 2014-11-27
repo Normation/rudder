@@ -56,6 +56,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.nodes.Node
 
 /**
  * Display the last reports of a server
@@ -89,7 +90,7 @@ class ReportDisplayer(
    * - missing reports table if such reports exists
    * - unknown reports table if such reports exists
    */
-  def asyncDisplay(node : NodeInfo) : NodeSeq = {
+  def asyncDisplay(node: Node) : NodeSeq = {
       Script(OnLoad(JsRaw("""
               | $("#%s").bind( "show", function(event, ui) {
               | if(ui.panel.id== '%s') { %s; }
@@ -104,7 +105,7 @@ class ReportDisplayer(
   /**
    * Refresh the main compliance table
    */
-  def refreshReportDetail(node : NodeInfo) = {
+  def refreshReportDetail(node : Node) = {
     def refreshData : Box[JsCmd] = {
       for {
         reports <- reportingService.findNodeStatusReport(node.id)
@@ -124,7 +125,7 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  private[this] def displayReports(node : NodeInfo) : NodeSeq = {
+  private[this] def displayReports(node : Node) : NodeSeq = {
     val boxXml = (
       for {
         report       <- reportingService.findNodeStatusReport(node.id)
@@ -160,7 +161,7 @@ class ReportDisplayer(
   }
 
 
-  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo): NodeSeq = {
+  private[this] def showReportDetail(reports: NodeStatusReport, node: Node): NodeSeq = {
     val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
 
     <table id="reportsGrid" class="fixedlayout tablewidth" cellspacing="0"></table> ++
