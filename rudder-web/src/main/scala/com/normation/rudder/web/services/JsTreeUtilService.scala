@@ -44,6 +44,7 @@ import com.normation.cfclerk.domain.TechniqueCategoryId
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueCategory
 import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.cfclerk.domain.TechniqueName
 
 /**
  * An utility service for Directive* trees.
@@ -67,14 +68,12 @@ class JsTreeUtilService(
       }
     }
 
-    // get the Active Technique, loqg on error
-    def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Option[(ActiveTechnique,Technique)] = {
+    // get the Active Technique, log on error
+    def getActiveTechnique(id : ActiveTechniqueId,logger:Logger) : Box[(ActiveTechnique, Option[Technique])] = {
       (for {
-        activeTechnique <- directiveRepository.getActiveTechnique(id) ?~! "Error while fetching Active Technique %s".format(id)
-        technique <- Box(techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)) ?~!
-              "Can not find referenced Technique '%s' in reference library".format(activeTechnique.techniqueName.value)
+        activeTechnique <- directiveRepository.getActiveTechnique(id).flatMap { Box(_) } ?~! "Error while fetching Active Technique %s".format(id)
       } yield {
-        (activeTechnique,technique)
+        (activeTechnique, techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName))
       }) match {
         case Full(pair) => Some(pair)
         case e:EmptyBox =>
@@ -133,8 +132,8 @@ class JsTreeUtilService(
       sort(x.techniqueName.value , y.techniqueName.value)
     }
 
-    def sortPt(x:Technique,y:Technique) : Boolean = {
-      sort(x.name , y.name)
+    def sortPt(x:TechniqueName, y:TechniqueName) : Boolean = {
+      sort(x.value , y.value)
     }
 
     def sortPi(x:Directive,y:Directive) : Boolean = {

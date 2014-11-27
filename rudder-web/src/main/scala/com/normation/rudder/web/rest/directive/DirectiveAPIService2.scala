@@ -212,9 +212,12 @@ case class DirectiveAPIService2 (
                 restExtractor.extractTechnique(req.params) match {
                   case Full(technique) =>
                     readDirective.getActiveTechnique(technique.id.name) match {
-                      case Full(activeTechnique) =>
+                      case Full(Some(activeTechnique)) =>
                         val baseDirective = Directive(directiveId,technique.id.version,Map(),name,"")
                         actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique)
+                      case Full(None) =>
+                        toJsonError(Some(directiveId.value), "Could not create Directive because the technique was not found")
+
                       case eb:EmptyBox =>
                         val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
                         val message = s"Could not create Directive cause is: ${fail.msg}."

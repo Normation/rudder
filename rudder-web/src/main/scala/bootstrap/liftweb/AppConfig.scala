@@ -783,10 +783,12 @@ object RudderConfig extends Loggable {
         xmlMigration_2_3
       , xmlMigration_3_4
       , xmlMigration_4_5
+      , xmlMigration_5_6
     )
   private[this] lazy val xmlMigration_2_3 = new XmlMigration_2_3()
   private[this] lazy val xmlMigration_3_4 = new XmlMigration_3_4()
   private[this] lazy val xmlMigration_4_5 = new XmlMigration_4_5()
+  private[this] lazy val xmlMigration_5_6 = new XmlMigration_5_6()
 
   private[this] lazy val eventLogDetailsServiceImpl = new EventLogDetailsServiceImpl(
       queryParser
@@ -1019,7 +1021,7 @@ object RudderConfig extends Loggable {
         roLdapDirectiveRepository
       )
 
-      techniqueRepositoryImpl.registerCallback(new SaveDirectivesOnTechniqueCallback("SaveDirectivesOnTechniqueCallback", directiveEditorServiceImpl, roLdapDirectiveRepository, repo))
+      techniqueRepositoryImpl.registerCallback(new SaveDirectivesOnTechniqueCallback("SaveDirectivesOnTechniqueCallback", 100, directiveEditorServiceImpl, roLdapDirectiveRepository, repo))
 
       repo
     }
@@ -1166,7 +1168,14 @@ object RudderConfig extends Loggable {
     RUDDER_CFENGINE_RELOAD_SERVER_COMMAND)
 
   //must be here because of circular dependency if in techniqueRepository
-  techniqueRepositoryImpl.registerCallback(new TechniqueAcceptationDatetimeUpdater("UpdatePTAcceptationDatetime", roLdapDirectiveRepository, woLdapDirectiveRepository))
+  techniqueRepositoryImpl.registerCallback(new TechniqueAcceptationUpdater(
+      "UpdatePTAcceptationDatetime"
+    , 50
+    , roLdapDirectiveRepository
+    , woLdapDirectiveRepository
+    , techniqueRepository
+    , uuidGen
+  ))
 
   private[this] lazy val techniqueRepositoryImpl = {
     val service = new TechniqueRepositoryImpl(
@@ -1174,7 +1183,6 @@ object RudderConfig extends Loggable {
       Seq(),
       uuidGen
     )
-    service.registerCallback(new LogEventOnTechniqueReloadCallback("LogEventOnPTLibUpdate", logRepository))
     service
   }
   private[this] lazy val interpolationCompiler = new InterpolatedValueCompilerImpl()
@@ -1204,7 +1212,7 @@ object RudderConfig extends Loggable {
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation)
     techniqueRepositoryImpl.registerCallback(
-        new DeployOnTechniqueCallback("DeployOnPTLibUpdate", agent)
+        new DeployOnTechniqueCallback("DeployOnPTLibUpdate", 1000, agent)
     )
     agent
   }
@@ -1460,7 +1468,17 @@ object RudderConfig extends Loggable {
     , previousMigrationController = Some(controlXmlFileFormatMigration_3_4)
   )
 
+  private[this] lazy val eventLogsMigration_5_6 = new EventLogsMigration_5_6(
+      jdbcTemplate
+    , new EventLogMigration_5_6(xmlMigration_5_6)
+    , eventLogsMigration_4_5
+  )
 
+  private[this] lazy val controlXmlFileFormatMigration_5_6 = new ControlXmlFileFormatMigration_5_6(
+      migrationEventLogRepository = migrationRepository
+    , batchMigrators              = Seq(eventLogsMigration_5_6)
+    , previousMigrationController = Some(controlXmlFileFormatMigration_4_5)
+  )
   /**
    * *************************************************
    * Bootstrap check actions
@@ -1476,7 +1494,7 @@ object RudderConfig extends Loggable {
     , new CheckInitUserTemplateLibrary(
         rudderDitImpl, rwLdap, techniqueRepositoryImpl,
         roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen, asyncDeploymentAgentImpl) //new CheckDirectiveBusinessRules()
-    , new CheckMigrationXmlFileFormat4_5(controlXmlFileFormatMigration_4_5)
+    , new CheckMigrationXmlFileFormat5_6(controlXmlFileFormatMigration_5_6)
     , new CheckInitXmlExport(itemArchiveManagerImpl, personIdentServiceImpl, uuidGen)
     , new CheckRootRuleCategoryExport (itemArchiveManager, ruleCategoriesDirectory,  personIdentServiceImpl, uuidGen)
     , new CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(roLdapDirectiveRepository, woLdapDirectiveRepository, uuidGen)
