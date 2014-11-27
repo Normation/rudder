@@ -126,7 +126,7 @@ class CheckInitUserTemplateLibrary(
             for {
               updatedParentCat <- woDirectiveRepos.addActiveTechniqueCategory(
                                       newUserPTCat
-                                    , toParentCat
+                                    , toParentCat.id
                                     , ModificationId(uuidGen.newUuid)
                                     , RudderEventActor
                                     , reason = Some("Initialize active templates library")) ?~!

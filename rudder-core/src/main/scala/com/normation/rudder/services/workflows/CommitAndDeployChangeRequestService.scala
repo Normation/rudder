@@ -518,7 +518,7 @@ class CommitAndDeployChangeRequestServiceImpl(
     def doDirectiveChange(directiveChanges:DirectiveChanges, modId: ModificationId) : Box[DirectiveId] = {
       def save(tn:TechniqueName, d:Directive, change: DirectiveChangeItem) = {
         for {
-          activeTechnique <- roDirectiveRepo.getActiveTechnique(tn)
+          activeTechnique <- roDirectiveRepo.getActiveTechnique(tn).flatMap(Box(_) ?~! s"Missing active technique with name ${tn}")
           saved           <- woDirectiveRepo.saveDirective(activeTechnique.id, d, modId, change.actor, change.reason)
         } yield {
           saved

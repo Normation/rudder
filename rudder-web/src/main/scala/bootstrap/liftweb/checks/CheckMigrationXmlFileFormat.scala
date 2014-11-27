@@ -83,3 +83,8 @@ class CheckMigrationXmlFileFormat4_5(
     override val description = "Check event log migration format 4 -> 5"
 }
 
+class CheckMigrationXmlFileFormat5_6(
+  override val controler: ControlXmlFileFormatMigration_5_6
+) extends CheckMigrationXmlFileFormat {
+    override val description = "Check event log migration format 5 -> 6"
+}
