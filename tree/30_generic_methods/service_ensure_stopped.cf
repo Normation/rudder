@@ -30,7 +30,8 @@ bundle agent service_ensure_stopped(service_name)
   vars:
 
     "canonified_service_name"      string => canonify("${service_name}");
-    "class_prefix"                 string => canonify("service_ensure_stopped_${service_name}");
+
+    "class_prefix"                 string => "service_ensure_stopped_${canonified_service_name}";
 
   methods:
 

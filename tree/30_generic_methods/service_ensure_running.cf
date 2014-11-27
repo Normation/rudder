@@ -19,7 +19,7 @@
 # @name Service ensure running
 # @description Ensure that a service is running using the appropriate method
 #
-# @parameter service_name Service name (as recognized by init.d, upstart, etc...)
+# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
 # 
 # @class_prefix service_ensure_running
 # @class_parameter service_name

@@ -19,32 +19,43 @@
 # @name Service check at boot
 # @description Check if a service is set to start at boot using the appropriate method
 #
-# @parameter service_name  Service name (as recognized by init.d, upstart, etc...)
+# @parameter service_name  Service name (as recognized by systemd, init.d, etc...)
 # 
 # @class_prefix service_check_started_at_boot
 # @class_parameter service_name
 # This bundle will define a class service_check_started_at_boot_${service_name}_{kept,ok,not_ok,failed,reached}
 #
-# Does not work (yet) on Debian systems
+# Debian systems are only supported when running systemd currently
 bundle agent service_check_started_at_boot(service_name)
 {
   vars:
-      "class_prefix"       string => canonify("service_check_started_at_boot_${service_name}");
+
+    systemctl_utility_present::
+      "command_to_check"   string => "${paths.path[systemctl]} is-enabled ${service_name}";
+
+    !systemctl_utility_present::
       "command_to_check"   string => "/sbin/chkconfig --list ${service_name} | grep -q 3:on";
-      "canonified_command" string => canonify("${command_to_check}");
+
+    any::
+
+      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_command"      string => canonify("${command_to_check}");
+
+      "class_prefix"            string => "service_check_started_at_boot_${canonified_service_name}";
 
   methods:
+
       "check_run"
         usebundle => command_execution("${command_to_check}");
 
-
       "success" usebundle => _classes_success("${class_prefix}"),
-               ifvarclass => "command_execution_${canonified_command}_repaired.!command_execution_${canonified_command}_failed";
+        ifvarclass => "command_execution_${canonified_command}_repaired.!command_execution_${canonified_command}_failed";
 
       "failure" usebundle => _classes_failure("${class_prefix}"),
-               ifvarclass => "command_execution_${canonified_command}_failed";
+        ifvarclass => "command_execution_${canonified_command}_failed";
 
     any::
+
       "reports" usebundle => _logger("Ensure that service ${service_name} is defined at boot", "${class_prefix}");
 
 }

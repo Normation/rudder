@@ -19,28 +19,36 @@
 # @name Service ensure at boot
 # @description Force a service to be started at boot
 #
-# @parameter service_name Service name (as recognized by init.d, upstart, etc...)
+# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
 #
 # @class_prefix service_ensure_started_at_boot
 # @class_parameter service_name
-# This bundle will define a class service_ensure_started_at_boot_${service_name}_{kept,repaired,not_ok,ok,reached}
+# This bundle will define a class service_ensure_started_at_boot_${canonified_service_name}_{kept,repaired,not_ok,ok,reached}
 #
-# Does not work (yet) on Debian
+# Debian systems are only supported when running systemd currently
 bundle agent service_ensure_started_at_boot(service_name)
 {
   vars:
-      "canonified_service_name"      string => canonify("${service_name}");
-      "class_prefix"                 string => canonify("service_ensure_started_at_boot_${service_name}");
 
-      "register_command"             string => "/sbin/chkconfig ${service_name} on";
-      "canonified_command"           string => canonify("${register_command}");
+    systemctl_utility_present::
+      "command_to_register" string => "${paths.path[systemctl]} enable ${service_name}";
+
+    !systemctl_utility_present::
+      "command_to_register" string => "/sbin/chkconfig ${service_name} on";
+
+    any::
+
+      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_command_name" string => canonify("${command_to_register}");
+
+      "class_prefix"            string => "service_ensure_started_at_boot_${canonified_service_name}";
 
   methods:
       "check_at_boot"
         usebundle => service_check_started_at_boot("${service_name}");
 
       "define_at_boot"
-        usebundle  => command_execution("${service_ensure_started_at_boot.register_command}"),
+        usebundle  => command_execution("${service_ensure_started_at_boot.command_to_register}"),
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_not_ok";
 
       "already defined"
@@ -48,7 +56,7 @@ bundle agent service_ensure_started_at_boot(service_name)
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_ok";
 
       "copy classes"
-        usebundle  => _classes_copy("command_execution_${canonified_command}", "${class_prefix}"),
+        usebundle  => _classes_copy("command_execution_${canonified_command_name}", "${class_prefix}"),
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_not_ok";
 
       "report"
