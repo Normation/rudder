@@ -52,6 +52,14 @@ import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.services.ComplianceData
+import org.joda.time.DateTime
+import org.joda.time.format.PeriodFormatterBuilder
+import org.joda.time.Interval
+import com.normation.rudder.web.services.ReportLine
+import com.normation.rudder.web.services.ChangeLine
+import com.normation.rudder.services.reports.NodeChanges
+import net.liftweb.http.js.JsExp
+import net.liftweb.http.js.JsObj
 
 
 
@@ -78,6 +86,7 @@ class RuleCompliance (
 ) extends Loggable {
 
   private[this] val reportingService = RudderConfig.reportingService
+  private[this] val recentChangesService = RudderConfig.recentChangesService
   private[this] val categoryService  = RudderConfig.ruleCategoryService
 
   //fresh value when refresh
@@ -106,23 +115,83 @@ class RuleCompliance (
    */
   def showCompliance : NodeSeq = {
 
-    reportingService.findDirectiveRuleStatusReportsByRule(rule.id) match {
-      case e: EmptyBox => <div class="error">Error while fetching report information</div>
-      case Full(reports) =>
-        val data = ComplianceData.getRuleByDirectivesComplianceDetails(reports, rule, allNodeInfos, directiveLib).json.toJsCmd
+    ( for {
+      reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
+      changesOnRule <- recentChangesService.getChangesByInterval().map(NodeChanges.changesOnRule(rule.id))
+    } yield {
 
-        <div>
-          <hr class="spacer" />
+        val complianceByDirective = ComplianceData.getRuleByDirectivesComplianceDetails(reports, rule, allNodeInfos, directiveLib).json
+        val complianceByNode = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos).json
+
+       // val changes = NodeChanges.changesByPeriod(changesOnRule)
+        val changesData = NodeChanges.json(changesOnRule)
+        val changesLine = ChangeLine.jsonByInterval(changesOnRule, Some(rule.name), directiveLib, allNodeInfos)
+        val changesArray = changesLine.in.toList.flatMap{case a:JsArray => a.in.toList; case _ => Nil}
+        val allChanges = JsArray(changesArray)
+       <div id="directiveComplianceSection" class="unfoldedSection" onclick="$('#directiveCompliance').toggle(400); $('#directiveComplianceSection').toggleClass('foldedSection');$('#directiveComplianceSection').toggleClass('unfoldedSection');">
+         <div class="section-title">Compliance by Directive</div>
+       </div>
+       <div id="directiveCompliance">
          <table id="reportsGrid" cellspacing="0">  </table>
+      </div>
+        <div id="nodeComplianceSection" class="unfoldedSection" onclick="$('#nodeCompliance').toggle(400); $('#nodeComplianceSection').toggleClass('foldedSection');$('#nodeComplianceSection').toggleClass('unfoldedSection');">
+         <div class="section-title">Compliance by Node</div>
+       </div>
+       <div id="nodeCompliance">
+         <table id="nodeReportsGrid" cellspacing="0">  </table>
+        </div>
+        <div id="recentChangesSection" class="unfoldedSection" onclick="$('#recentChanges').toggle(400); $('#recentChangesSection').toggleClass('foldedSection');$('#recentChangesSection').toggleClass('unfoldedSection');">
+         <div class="section-title">Recent changes</div>
+       </div>
+       <div id="recentChanges">
+         <div id="changesChart">  </div>
+          <hr class="spacer" />
+         <table id="changesGrid" cellspacing="0">  </table>
         </div> ++
         Script(JsRaw(s"""
-          createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",${data},${refresh().toJsCmd});
-          createTooltip();
-        """))
-      }
+          createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",${complianceByDirective.toJsCmd},${refresh().toJsCmd});
+          createNodeComplianceTable("nodeReportsGrid",${complianceByNode.toJsCmd},"${S.contextPath}", ${refresh(false).toJsCmd});
+          var recentChanges = ${changesData.toJsCmd};
+          var changes = ${changesLine.toJsCmd};
+          var data = recentChanges.y
+          data.splice(0,0,'Recent changes')
+          var x = recentChanges.x
+          x.splice(0,0,'x')
+          createChangesTable("changesGrid",${allChanges.toJsCmd},"${S.contextPath}");
+          c3.generate({
+              bindto : "#changesChart"
+            , data: {
+                  x: 'x'
+                , columns: [ x , data ]
+                , type: 'bar'
+                , onclick: function (d, element) {
+                    var res = changes[d.index];
+                    refreshTable("changesGrid",res);
+                  }
+              }
+            , bar: {
+                  width: {
+                      ratio: 1 // this makes bar width 50% of length between ticks
+                  }
+              }
+            , axis: {
+                  x: {
+                      type: 'categories'
+                  }
+              }
+            , grid: {
+                  x: { show: true }
+                , y: { show: true }
+              }
+          } );
+          createTooltip();"""))
+      } ) match {
+      case Full(xml) => xml
+      case _ => <div class="error">Error while fetching report information</div>
+    }
   }
 
-  def refresh() = {
+  def refresh(refreshDirectiveData : Boolean = true) = {
      val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
         val result : Box[String] = for {
             reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
@@ -130,11 +199,19 @@ class RuleCompliance (
             updatedNodes <- getAllNodeInfos().map(_.toMap)
             updatedDirectives <- getFullDirectiveLib()
         } yield {
-
-          ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib).json.toJsCmd
+          if (refreshDirectiveData) {
+            ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib).json.toJsCmd
+          } else {
+            ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos).json.toJsCmd
+          }
         }
 
-        JsRaw(s"""refreshTable("reportsGrid",${result.getOrElse("[]")});
+        val id = if (refreshDirectiveData) {
+          "reportsGrid"
+        } else {
+          "nodeReportsGrid"
+        }
+        JsRaw(s"""refreshTable("${id}",${result.getOrElse("[]")});
                createTooltip();""")
      })
 

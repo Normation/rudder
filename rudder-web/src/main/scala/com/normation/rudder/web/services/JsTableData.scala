@@ -44,12 +44,13 @@ import org.joda.time.DateTime
 import org.joda.time.Period
 import org.joda.time.format.PeriodFormatterBuilder
 import org.joda.time.Interval
+import net.liftweb.common.Loggable
 
 
 /*
  * That class represent a Line in a DataTable.
  */
-trait JsTableLine {
+trait JsTableLine extends Loggable {
 
   def json : JsObj
 
@@ -66,38 +67,6 @@ trait JsTableLine {
     , JE.Num(compliance.pc_unexpected)
   )
 
-
-  /**
-   * Prepare data to be used in the chart.
-   * Return a js object with to properties:
-   * - x: Date to display
-   * - y: changes
-   */
-  def recentChanges(data: List[(DateTime, Int)]): JsObj = {
-    //normalize datas to have at max 20 points
-    //we use a log scale for time, on 10 points,
-    //going back to
-
-
-    //a format for time like "1d 5h ago"
-    val now = DateTime.now
-    val formatter = (new PeriodFormatterBuilder()
-            .appendDays()
-            .appendSuffix(" day", " days")
-            .appendSeparator(", ")
-            .appendHours()
-            .appendSuffix(" hour ago", " hours ago")
-            .toFormatter())
-
-    val times = data.map { case(t, _) =>
-      new Interval(t, now).toPeriod.toString(formatter)
-    }
-
-    JE.JsObj(
-        ("x" -> JE.JsArray(times.map(a => JE.Str(a))))
-      , ("y" -> JE.JsArray(data.map(a => JE.Num(a._2))))
-    )
-  }
 }
 
 /*
