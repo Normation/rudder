@@ -45,27 +45,39 @@ import net.liftweb.common._
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.services.nodes.NodeInfoService
 
 
 
 
 class NodeApiService4 (
     inventoryRepository : LDAPFullInventoryRepository
+  , nodeInfoService     : NodeInfoService
   , uuidGen             : StringUuidGenerator
   , restExtractor       : RestExtractorService
   , restSerializer      : RestDataSerializer
+  , versionCompatibility: Int
 ) extends Loggable {
 
   import restSerializer._
 
-  def getNodeDetails(nodeId : NodeId, detailLevel : NodeDetailLevel, state: InventoryStatus) = {
-    inventoryRepository.get(nodeId,state).map(serializeInventory(_, detailLevel))
+  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus) = {
+    for {
+      node          <- nodeInfoService.getNode(nodeId)
+      nodeInventory <- inventoryRepository.get(nodeId,state)
+    } yield {
+      if(versionCompatibility <= 4) { //v4
+        serializeInventoryV4(node, nodeInventory, detailLevel)
+      } else {
+        serializeInventoryV5(node, nodeInventory, detailLevel)
+      }
+    }
   }
 
-  def nodeDetailsWithStatus(nodeId : NodeId, detailLevel : NodeDetailLevel, state: InventoryStatus, req:Req) = {
+  def nodeDetailsWithStatus(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = s"${state.name}NodeDetails"
-    getNodeDetails(nodeId,detailLevel,state) match {
+    getNodeDetails(nodeId, detailLevel, state) match {
         case Full(inventory) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
         case eb: EmptyBox =>
@@ -75,18 +87,18 @@ class NodeApiService4 (
   }
 
 
-  def nodeDetailsGeneric(nodeId : NodeId, detailLevel : NodeDetailLevel, req:Req) = {
+  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "nodeDetails"
-    getNodeDetails(nodeId,detailLevel,AcceptedInventory) match {
+    getNodeDetails(nodeId, detailLevel, AcceptedInventory) match {
         case Full(inventory) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
         case eb: EmptyBox =>
-          getNodeDetails(nodeId,detailLevel,PendingInventory) match {
+          getNodeDetails(nodeId, detailLevel, PendingInventory) match {
             case Full(inventory) =>
               toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
             case eb: EmptyBox =>
-              getNodeDetails(nodeId,detailLevel,RemovedInventory) match {
+              getNodeDetails(nodeId, detailLevel, RemovedInventory) match {
                 case Full(inventory) =>
                   toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
                 case eb: EmptyBox =>

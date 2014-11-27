@@ -68,7 +68,8 @@ import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.RemovedInventory
-
+import com.normation.rudder.domain.nodes.{Node => RudderNode}
+import com.normation.rudder.reports.ReportingConfiguration
 
 
 object PendingHistoryGrid extends Loggable {
@@ -216,7 +217,7 @@ object PendingHistoryGrid extends Loggable {
   }
 
 
-  def displayPastInventory(deletedNodes : Map[NodeId,Seq[EventLog]])(s : String) : JsCmd = {
+  def displayPastInventory(deletedNodes : Map[NodeId, Seq[EventLog]])(s : String) : JsCmd = {
 
     val arr = s.split("\\|")
     if (arr.length != 4) {
@@ -230,6 +231,19 @@ object PendingHistoryGrid extends Loggable {
         case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
         case Empty => Alert("No history was retrieved for the chosen date")
         case Full(sm) =>
+          //create a false node
+          val node = RudderNode(
+              id = sm.data.node.main.id
+            , name = sm.data.node.main.hostname
+            , description = ""
+            , isBroken = false
+            , isSystem = false
+            , isPolicyServer = false
+            , creationDate = new DateTime(0)
+            , nodeReportingConfiguration = ReportingConfiguration(None)
+            , properties = Seq()
+          )
+
           SetHtml(
             jsuuid,
             ( if (isAcceptLine)
@@ -237,7 +251,7 @@ object PendingHistoryGrid extends Loggable {
               else
                 NodeSeq.Empty
             ) ++
-            DisplayNode.showPannedContent(sm.data, RemovedInventory, "hist")) &
+            DisplayNode.showPannedContent(node, sm.data, RemovedInventory, "hist")) &
             DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
       }
     }

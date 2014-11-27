@@ -87,6 +87,9 @@ object RudderLDAPConstants extends Loggable {
   val A_SERIALIZED_AGENT_RUN_INTERVAL = "serializedAgentRunInterval"
 
 
+  val A_NODE_PROPERTY = "serializedNodeProperty"
+
+
   val A_PRIORITY = "directivePriority"
   val A_LONG_DESCRIPTION = "longDescription"
   val A_SERIAL = "serial"

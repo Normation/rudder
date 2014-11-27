@@ -126,12 +126,11 @@ class ShowNodeDetailsFromNode(
 
   def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
     for {
-      nodeInfo    <- nodeInfoService.getNodeInfo(nodeId)
-      newSchedule = nodeInfo.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))
-      newNode     = Node(nodeInfo.id, nodeInfo.name, nodeInfo.description, nodeInfo.isBroken, nodeInfo.isSystem, nodeInfo.isPolicyServer, newSchedule)
-      modId       = ModificationId(uuidGen.newUuid)
-      user        = CurrentUser.getActor
-      result      <- nodeRepo.update(newNode, modId, user, None)
+      node    <- nodeInfoService.getNode(nodeId)
+      newNode =  node.copy(nodeReportingConfiguration = node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule)))
+      modId   =  ModificationId(uuidGen.newUuid)
+      user    =  CurrentUser.getActor
+      result  <- nodeRepo.update(newNode, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }
@@ -148,7 +147,7 @@ class ShowNodeDetailsFromNode(
   }
 
   private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
-    nodeInfoService.getNodeInfo(nodeId) match {
+    nodeInfoService.getNode(nodeId) match {
       case Empty =>
         <div class="error">Node with id {nodeId.value} was not found</div>
       case f@Failure(_,_,_) =>
@@ -157,16 +156,16 @@ class ShowNodeDetailsFromNode(
           <p>Node with id {nodeId.value} was not found</p>
           <p>Error message was: {f.messageChain}</p>
         </div>
-      case Full(server) => // currentSelectedNode = Some(server)
-        serverAndMachineRepo.get(server.id,AcceptedInventory) match {
+      case Full(node) => // currentSelectedNode = Some(server)
+        serverAndMachineRepo.get(node.id, AcceptedInventory) match {
           case Full(sm) =>
-            bindNode(server, sm, withinPopup) ++ Script(OnLoad(
-              DisplayNode.jsInit(server.id, sm.node.softwareIds, "", Some("node_tabs")) &
+            bindNode(node, sm, withinPopup) ++ Script(OnLoad(
+              DisplayNode.jsInit(node.id, sm.node.softwareIds, "", Some("node_tabs")) &
               //reportDisplayer.initJs("reportsGrid") &
               OnLoad(buildJsTree(htmlId_crTree))
             ))
           case e:EmptyBox =>
-            val msg = "Can not find inventory details for node with ID %s".format(server.id.value)
+            val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
             logger.error(msg, e)
             <div class="error">{msg}</div>
         }
@@ -178,7 +177,7 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
+  private def bindNode(node : Node, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
       ("#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
        "#groupTree *" #>
               <div id={htmlId_crTree}>
@@ -190,7 +189,7 @@ class ShowNodeDetailsFromNode(
        "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
        "#node_parameters *" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
        "#extraHeader" #> DisplayNode.showExtraHeader(inventory)&
-       "#extraContent" #> DisplayNode.showExtraContent(inventory)
+       "#extraContent" #> DisplayNode.showExtraContent(node, inventory)
       ).apply(serverDetailsTemplate)
   }
 

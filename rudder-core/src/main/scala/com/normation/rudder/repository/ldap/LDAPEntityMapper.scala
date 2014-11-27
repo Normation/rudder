@@ -49,6 +49,7 @@ import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.{NodeDit,RudderDit}
 import com.normation.rudder.domain.servers._
 import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.nodes.JsonSerialisation._
 import com.normation.rudder.domain.queries._
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
@@ -108,8 +109,12 @@ class LDAPEntityMapper(
       case Some(interval) => entry +=! (A_SERIALIZED_AGENT_RUN_INTERVAL, Printer.compact(JsonAST.render(serializeAgentRunInterval(interval))))
       case _ =>
     }
+
+    entry +=! (A_NODE_PROPERTY, node.properties.map(x => Printer.compact(JsonAST.render(x.toLdapJson))):_* )
+
     entry
   }
+
 
   def serializeAgentRunInterval(agentInterval: AgentRunInterval) : JObject = {
     import net.liftweb.json.JsonDSL._
@@ -131,21 +136,21 @@ class LDAPEntityMapper(
     if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
       //OK, translate
       for {
-        id           <- nodeDit.NODES.NODE.idFromDn(e.dn) ?~! s"Bad DN found for a Node: ${e.dn}"
-        name             = e(A_NAME).getOrElse("")
-        description      = e(A_DESCRIPTION).getOrElse("")
-        agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+        id   <- nodeDit.NODES.NODE.idFromDn(e.dn) ?~! s"Bad DN found for a Node: ${e.dn}"
+        date <- e.getAsGTime(A_OBJECT_CREATION_DATE) ?~! s"Can not find mandatory attribute '${A_OBJECT_CREATION_DATE}' in entry"
       } yield {
         Node(
             id
-          , name
-          , description
+          , e(A_NAME).getOrElse("")
+          , e(A_DESCRIPTION).getOrElse("")
           , e.getAsBoolean(A_IS_BROKEN).getOrElse(false)
           , e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
           , e.isA(OC_POLICY_SERVER_NODE)
+          , date.dateTime
           , ReportingConfiguration(
-              agentRunInterval
-          )
+              e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+            )
+          , e.valuesFor(A_NODE_PROPERTY).map(unserializeLdapNodeProperty(_)).toSeq
         )
       }
     } else {
