@@ -74,7 +74,7 @@ class ExecutionBatchTest extends Specification {
       val info = NodeConfigIdInfo(NodeConfigId("version1"), DateTime.now.minusDays(1), None)
       val runInfo = complianceMode match {
         case FullCompliance => CheckCompliance(runTime, info)
-        case ChangesOnly => CheckChanges(runTime, info)
+        case ChangesOnly(heartbeatPeriod) => CheckChanges(runTime, info)
       }
 
       ExecutionBatch.getNodeStatusReports(nodeId, runInfo, Seq(ruleExpectedReports), reportsParam)
