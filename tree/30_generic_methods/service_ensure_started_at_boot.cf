@@ -24,8 +24,7 @@
 # @class_prefix service_ensure_started_at_boot
 # @class_parameter service_name
 # This bundle will define a class service_ensure_started_at_boot_${canonified_service_name}_{kept,repaired,not_ok,ok,reached}
-#
-# Debian systems are only supported when running systemd currently
+
 bundle agent service_ensure_started_at_boot(service_name)
 {
   vars:
@@ -33,8 +32,10 @@ bundle agent service_ensure_started_at_boot(service_name)
     systemctl_utility_present::
       "command_to_register" string => "${paths.path[systemctl]} enable ${service_name}";
 
-    !systemctl_utility_present::
-      "command_to_register" string => "/sbin/chkconfig ${service_name} on";
+    !systemctl_utility_present.chkconfig_utility_present::
+      "command_to_register" string => "${paths.path[chkconfig]} ${service_name} on";
+    !systemctl_utility_present.update_rcd_utility_present::
+      "command_to_register" string => "${paths.path[update_rcd]} ${service_name} enable";
 
     any::
 
