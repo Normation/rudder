@@ -276,7 +276,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// changes only mode /////////////////////////////////
 
   "Finding rule status reports for the change only mode" should {
-    val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, () => 5, () => Full(ChangesOnly))
+    val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, () => 5, () => Full(ChangesOnly(1)))
 
     "get r0" in {
       val r = errorOnlyReportingService.findDirectiveRuleStatusReportsByRule(RuleId("r0"))
@@ -521,7 +521,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// error only mode /////////////////////////////////
 
   "Finding node status reports for the error only mode" should {
-    val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, () => 5, () => Full(ChangesOnly))
+    val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, () => 5, () => Full(ChangesOnly(1)))
 
     "get no answer for node 0 on gen2 data" in {
       val r = errorOnlyReportingService.findNodeStatusReport(NodeId("n0"))

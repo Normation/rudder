@@ -53,6 +53,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.web.components.ComplianceModeEditForm
 
 
 /**
@@ -76,9 +77,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
     case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
+    case "complianceMode" => (xml) => complianceModeConfiguration
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
-    case "complianceModeConfiguration" => complianceModeConfiguration
     case "sendMetricsConfiguration" => sendMetricsConfiguration
   }
 
@@ -472,6 +473,12 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     , saveSchedule
     , () => startNewPolicyGeneration
   )
+  val complianceModeEditForm = new ComplianceModeEditForm(
+      () => configService.rudder_compliance_mode().map(a => (a._1,a._2,true))
+    , (complianceMode,frequency,_) => {
+          configService.set_rudder_compliance_mode(complianceMode,frequency)}
+    , () => startNewPolicyGeneration
+  )
 
   def getSchedule() : Box[AgentRunInterval] = {
     for {
@@ -503,6 +510,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
+  def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
 
   def cfengineGlobalProps = { xml : NodeSeq =>
@@ -631,50 +639,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
-  def complianceModeConfiguration = { xml : NodeSeq =>
-    // form value, defaulted to save value
-    // the semantic is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
-    var complianceMode = configService.rudder_compliance_mode
-
-    def submit() = {
-      complianceMode.foreach(x => configService.set_rudder_compliance_mode(x))
-      complianceMode = configService.rudder_compliance_mode
-
-      // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
-      S.notice("complianceModeMsg", complianceMode match {
-        case Full(FullCompliance)  => "Compliance will be enabled on next agents runs on nodes"
-        case Full(ChangesOnly) => "Compliance will be disabled for next agent runs on nodes. Only errors and repaired will be reported"
-        case eb: EmptyBox => "There was an error when updating the value of the compliance"
-      })
-    }
-
-    def compliance(x: Boolean) : Box[ComplianceMode] = {
-      if(x) Full(FullCompliance) else Full(ChangesOnly)
-    }
-
-    ( "#complianceMode" #> {
-      complianceMode match {
-        case Full(value) =>
-          SHtml.ajaxCheckbox(
-              value == FullCompliance
-            , (b : Boolean) => { complianceMode = compliance(b) }
-            , ("id","complianceMode")
-          )
-        case eb: EmptyBox =>
-            val fail = eb ?~ "there was an error while fetching value of property: 'Rudder Compliance Mode' "
-            <div class="error">{fail.msg}</div>
-        }
-      } &
-
-      "#complianceModeSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
-      }
-    ) apply (xml ++ Script(Run("correctButtons();")))
-
-  }
-
-
   def sendMetricsConfiguration = { xml : NodeSeq =>
     // form value, defaulted to save value
     // the semantic is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
@@ -691,10 +655,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         case Full(_)  => "'send server metrics' property updated"
         case eb: EmptyBox => "There was an error when updating the value of the 'send server metrics' property"
       })
-    }
-
-    def compliance(x: Boolean) : Box[ComplianceMode] = {
-      if(x) Full(FullCompliance) else Full(ChangesOnly)
     }
 
     ( "#sendMetrics" #> {

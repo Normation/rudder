@@ -36,18 +36,25 @@ package com.normation.rudder.reports
 
 import com.normation.utils.HashcodeCaching
 import net.liftweb.json.JBool
+import net.liftweb.common._
 
 /**
  * Class that contains all relevant information about the reporting configuration:
  * * agent run interval
  * * compliance mode (soon)
- * * heartbeat (soon)
+ * * heartbeat configuration
  */
-final case class ReportingConfiguration(
+final case class ReportingConfiguration (
     agentRunInterval : Option[AgentRunInterval]
+  , heartbeatConfiguration : Option[HeartbeatConfiguration]
 ) extends HashcodeCaching
 
-final case class AgentRunInterval(
+final case class HeartbeatConfiguration (
+   overrides : Boolean
+ , heartbeatPeriod : Int
+)
+
+final case class AgentRunInterval (
     overrides  : Option[Boolean]
   , interval   : Int
   , startMinute: Int
@@ -55,7 +62,7 @@ final case class AgentRunInterval(
   , splaytime  : Int
 ) extends HashcodeCaching {
 
- def json = {
+ def json() = {
 
    val overrideValue = overrides.map(_.toString).getOrElse("null")
    val splayHour = splaytime / 60
@@ -71,4 +78,34 @@ final case class AgentRunInterval(
  }
 }
 
+trait AgentRunIntervalService {
+  def getAgentRun : Box[AgentRunInterval]
+}
+
+class AgentRunIntervalServiceImpl (
+    readOverrides : () => Box[Option[Boolean]]
+  , readInterval  : () => Box[Int]
+  , readStartHour  : () => Box[Int]
+  , readStartMinute  : () => Box[Int]
+  , readSplaytime  : () => Box[Int]
+) extends AgentRunIntervalService {
+
+  override def getAgentRun : Box[AgentRunInterval] = {
+    for {
+      overrides   <- readOverrides()
+      interval    <- readInterval()
+      startHour   <- readStartHour()
+      startMinute <- readStartMinute()
+      splaytime   <- readSplaytime()
+    } yield {
+      AgentRunInterval(
+          overrides
+        , interval
+        , startHour
+        , startMinute
+        , splaytime
+      )
+    }
+  }
+}
 

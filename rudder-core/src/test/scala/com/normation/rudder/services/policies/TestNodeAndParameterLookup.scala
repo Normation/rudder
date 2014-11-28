@@ -77,7 +77,7 @@ class TestNodeAndParameterLookup extends Specification {
   val rootHostname = "root.localhost"
   val rootAdmin = "root"
 
-  private val emptyNodeReportingConfiguration = ReportingConfiguration(None)
+  private val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
 
 
   val node1 = NodeInfo(

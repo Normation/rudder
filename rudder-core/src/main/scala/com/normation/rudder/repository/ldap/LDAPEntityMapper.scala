@@ -112,6 +112,16 @@ class LDAPEntityMapper(
 
     entry +=! (A_NODE_PROPERTY, node.properties.map(x => Printer.compact(JsonAST.render(x.toLdapJson))):_* )
 
+    node.nodeReportingConfiguration.heartbeatConfiguration match {
+      case Some(heatbeatConfiguration) =>
+        val json = {
+          import net.liftweb.json.JsonDSL._
+          ( "overrides"  , heatbeatConfiguration.overrides ) ~
+          ( "heartbeatPeriod" , heatbeatConfiguration.heartbeatPeriod)
+        }
+        entry +=! (A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, Printer.compact(JsonAST.render(json)))
+      case _ => // Save nothing if missing
+    }
     entry
   }
 
@@ -132,12 +142,21 @@ class LDAPEntityMapper(
     parse(value).extract[AgentRunInterval]
   }
 
+  def unserializeNodeHeartbeatConfiguration(value:String): HeartbeatConfiguration = {
+    import net.liftweb.json.JsonParser._
+    implicit val formats = DefaultFormats
+
+    parse(value).extract[HeartbeatConfiguration]
+  }
+
   def entryToNode(e:LDAPEntry) : Box[Node] = {
     if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
       //OK, translate
       for {
         id   <- nodeDit.NODES.NODE.idFromDn(e.dn) ?~! s"Bad DN found for a Node: ${e.dn}"
         date <- e.getAsGTime(A_OBJECT_CREATION_DATE) ?~! s"Can not find mandatory attribute '${A_OBJECT_CREATION_DATE}' in entry"
+        agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+        heartbeatConf = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
       } yield {
         Node(
             id
@@ -148,7 +167,8 @@ class LDAPEntityMapper(
           , e.isA(OC_POLICY_SERVER_NODE)
           , date.dateTime
           , ReportingConfiguration(
-              e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+                agentRunInterval
+              , heartbeatConf
             )
           , e.valuesFor(A_NODE_PROPERTY).map(unserializeLdapNodeProperty(_)).toSeq
         )
@@ -201,6 +221,7 @@ class LDAPEntityMapper(
       serverRoles = inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       // get the ReportingConfiguration
       agentRunInterval = nodeEntry(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
+      heartbeatConf = nodeEntry(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
 
     } yield {
       // fetch the inventory datetime of the object
@@ -228,7 +249,8 @@ class LDAPEntityMapper(
         , nodeEntry.isA(OC_POLICY_SERVER_NODE)
         , serverRoles
         , ReportingConfiguration(
-            agentRunInterval
+              agentRunInterval
+            , heartbeatConf
           )
       )
     }

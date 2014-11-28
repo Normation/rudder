@@ -35,6 +35,7 @@
 package com.normation.rudder.reports
 
 import net.liftweb.common._
+import net.liftweb.json._
 
 /**
  * Define level of compliance:
@@ -50,24 +51,40 @@ sealed trait ComplianceMode {
 final case object FullCompliance extends ComplianceMode {
   val name = "full-compliance"
 }
-final case object ChangesOnly      extends ComplianceMode {
+final case class ChangesOnly (
+  heartbeatPeriod : Int
+)extends ComplianceMode {
+  val name = ChangesOnly.name
+}
+
+object ChangesOnly {
   val name = "changes-only"
 }
 
+trait ComplianceModeService {
+  def getComplianceMode : Box[ComplianceMode]
+}
 
-object ComplianceMode extends Loggable {
+class ComplianceModeServiceImpl (
+    readComplianceMode : () => Box[String]
+  , readHeartbeatFreq  : () => Box[Int]
+) extends ComplianceModeService {
 
-  /*
-   * If we can't parse the compliance, default to full-compliance
-   */
-  def parse(s: String): ComplianceMode = {
-    s.toLowerCase match {
-      case FullCompliance.name  => FullCompliance
-      case ChangesOnly.name => ChangesOnly
-      case _ =>
-        logger.error(s"Unable to parse the compliance mode. I was expecting '${FullCompliance.name}' or '${ChangesOnly.name}' (case unsensitive) and got '${s}'. Defaulting to full-compliance mode")
-        FullCompliance
-    }
+  def getComplianceMode : Box[ComplianceMode] = {
+     readComplianceMode() match {
+       case Full(FullCompliance.name) =>  Full(FullCompliance)
+       case Full(ChangesOnly.name) =>
+         readHeartbeatFreq() match {
+           case Full(freq) => Full(ChangesOnly(freq))
+           case eb : EmptyBox =>
+             val fail = eb ?~! "Could not get heartbeat period"
+             fail
+         }
+       case Full(value) =>
+         Failure(s"Unable to parse the compliance mode name. was expecting '${FullCompliance.name}' or '${ChangesOnly.name}' and got '${value}'")
+       case eb : EmptyBox =>
+         val fail = eb ?~! "Could not get compliance mode name"
+         fail
+     }
   }
-
 }
