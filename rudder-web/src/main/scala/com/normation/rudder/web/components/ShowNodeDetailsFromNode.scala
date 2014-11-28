@@ -60,6 +60,7 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.plugins.ExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
+import com.normation.rudder.reports.HeartbeatConfiguration
 
 object ShowNodeDetailsFromNode {
 
@@ -91,6 +92,43 @@ class ShowNodeDetailsFromNode(
 
   def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
+  //val nodeInfo = nodeInfoService.getNodeInfo(nodeId)
+
+   def complianceModeEditForm = new ComplianceModeEditForm(
+        () => getHeartBeat
+      , saveHeart
+      , () => Unit
+      , () => Some(configService.rudder_compliance_heartbeatPeriod)
+    )
+
+  val heartbeatConfiguration = HeartbeatConfiguration(false, 1)
+  def getHeartBeat : Box[(String,Int, Boolean)] = {
+    for {
+      complianceMode <- configService.rudder_compliance_mode_name
+      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+    } yield {
+      val hbConf = nodeInfo.nodeReportingConfiguration.heartbeatConfiguration.getOrElse(heartbeatConfiguration)
+      (complianceMode,hbConf.heartbeatPeriod,hbConf.overrides)
+    }
+  }
+
+
+  def saveHeart(complianceMode : String, frequency: Int, overrides : Boolean) : Box[Unit] = {
+    val heartbeatConfiguration = HeartbeatConfiguration(overrides, frequency)
+    for {
+      nodeInfo    <- nodeInfoService.getNode(nodeId)
+      reportConf  = nodeInfo.nodeReportingConfiguration.copy( heartbeatConfiguration = Some(heartbeatConfiguration))
+      newNode     = nodeInfo.copy(nodeReportingConfiguration = reportConf)
+      modId       = ModificationId(uuidGen.newUuid)
+      user        = CurrentUser.getActor
+      result      <- nodeRepo.update(newNode, modId, user, None)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+    }
+  }
+
+
+
    def agentScheduleEditForm = new AgentScheduleEditForm(
         () => getSchedule
       , saveSchedule
@@ -98,7 +136,7 @@ class ShowNodeDetailsFromNode(
       , () => Some(getGlobalSchedule)
     )
 
-     def getGlobalSchedule() : Box[AgentRunInterval] = {
+  def getGlobalSchedule() : Box[AgentRunInterval] = {
     for {
       starthour <- configService.agent_run_start_hour
       startmin  <- configService.agent_run_start_minute
@@ -187,7 +225,8 @@ class ShowNodeDetailsFromNode(
        "#nodeInventory *" #> DisplayNode.show(inventory, false) &
        "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
        "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
-       "#node_parameters *" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
+       "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
+       "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
        "#extraHeader" #> DisplayNode.showExtraHeader(inventory)&
        "#extraContent" #> DisplayNode.showExtraContent(node, inventory)
       ).apply(serverDetailsTemplate)

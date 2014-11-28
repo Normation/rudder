@@ -274,7 +274,7 @@ object ExecutionBatch extends Loggable {
 
               //in change only, it's just no report
               complianceMode match {
-                case ChangesOnly => NoReportInInterval(currentConfig)
+                case ChangesOnly(_) => NoReportInInterval(currentConfig)
                 case FullCompliance =>
                   if(currentConfig.creation.plus(graceDuration).isBefore(now)) {
                     NoReportInInterval(currentConfig)
@@ -311,7 +311,7 @@ object ExecutionBatch extends Loggable {
               } else {
                 val current = configs.maxBy( _.creation.getMillis )
                 complianceMode match {
-                  case ChangesOnly => CheckChanges(t, current)
+                  case ChangesOnly(_) => CheckChanges(t, current)
                   case FullCompliance =>
                     if(current.creation.plus(graceDuration).isBefore(t)) {
                       NoReportInInterval(current)
@@ -348,7 +348,7 @@ object ExecutionBatch extends Loggable {
                   v.endOfLife match {
                     case None =>
                       complianceMode match {
-                        case ChangesOnly => CheckChanges(t, v)
+                        case ChangesOnly(_) => CheckChanges(t, v)
                         case FullCompliance =>
                           if(t.plus(graceDuration).isBefore(now)) {
                             NoReportInInterval(v)
@@ -363,7 +363,7 @@ object ExecutionBatch extends Loggable {
                         UnexpectedVersion(t, configs.maxBy( _.creation.getMillis), Some(rv))
                       } else {
                         complianceMode match {
-                          case ChangesOnly => CheckChanges(t, v)
+                          case ChangesOnly(_) => CheckChanges(t, v)
                           case FullCompliance =>
                             val expected = configs.maxBy( _.creation.getMillis )
                             if(t.plus(graceDuration).isBefore(now)) {

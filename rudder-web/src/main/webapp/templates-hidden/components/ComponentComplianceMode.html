@@ -1,0 +1,97 @@
+<property:complianceMode>
+
+<div  id="complianceMode">
+  <div class="inner-portlet"  id="complianceModeController" ng-controller="complianceModeController" ng-class="{'tw-bs': isNodePage}">
+  <div class="page-title"  ng-hide="isNodePage">Configure compliance mode</div>
+  <div class="portlet-content">
+    <div class="intro"  ng-hide="isNodePage">
+      <div>
+              If enable, Rudder will work in compliance mode, assessing that each node correctly executed all required check, 
+              and only executed the expected check. <br/>
+              When compliance is disabled, Rudder will only look for "error" and "repair" reports.
+      </div>
+    </div>
+
+    <form role="form" name="complianceModeForm" class="form-horizontal" >
+
+      <div class="deca"  ng-hide="isNodePage">
+      <div class="tw-bs">
+      <div class="radio">
+        <label>
+          <input type="radio" ng-model="complianceMode.name" value="full-compliance" />
+          Full compliance
+        </label>
+     </div>
+      <div class="radio">
+        <label>
+          <input type="radio" ng-model="complianceMode.name"  value="changes-only"/>
+          Changes only
+        </label>
+     </div>
+     </div>
+          
+      </div>
+      <div ng-hide="complianceMode.name === 'full-compliance'" class="animate-hide">
+        <div class="page-title">Agent run heartbeat</div>
+        <div class="portlet-content" >
+          <div class="intro">
+          <!-- global run is defined on node page, so first section is displayed in global settings page -->
+            <div ng-if="!isNodePage">
+              In "changes only" compliance mode, the agent will, by default, report a "heartbeat" every time it runs.<br/>
+              A heartbeat is a set of two reports (startRun/endRun). When no other events are reported (no errors and no repairs),
+              this is the only feedback sent by the node.<br/>
+              The bandwidth consumed by these messages is tiny, but can add up over time. The setting below allows to change
+              the frequency of the heartbeat message, so that it is only sent every N runs.
+          </div>
+            <div ng-if="isNodePage">
+              In "changes only" compliance mode, the agent will report a "heartbeat" when no other events are reported 
+              (no errors and no repairs). This frequency can be changed to send a heartbeat only every N runs.<br/>
+              This setting is defined as a default for all nodes in the global  
+              <a href="{{contextPath}}/secure/administration/policyServerManagement#complianceMode">Settings</a>.<br/>
+              The current global setting is to run every <b>{{globalValue}} runs</b>,
+              (so every <b>{{globalValue * agentRun}} minutes)</b>.<br/>
+              You may override this global setting just for this node below:
+            </div>
+          </div>
+          <div class="deca">
+            <div class="form-group" ng-show="isNodePage">
+              <div>
+                <label for="overrideHeartbeat" class="control-label">
+                  <input  id="overrideHeartbeat" ng-model="complianceMode.overrides" type="checkbox"/>
+                    Override global value
+                </label>
+              </div>
+            </div>
+          <div class="form-group " ng-class="{ 'has-error' : complianceModeForm.heartbeat.$invalid }">
+            <label class="control-label pull-left" for="heartbeat">Send heartbeat every</label>
+            <div class="pull-left col-sm-1">
+              <input type="number" min="1" integer="" required="" max="{{checkMaximumValue()}}" class="form-control input-sm" name="heartbeat" id="heartbeat" ng-disabled="!complianceMode.overrides" ng-model="complianceMode.heartbeatPeriod"/>
+            </div>
+            <label class="control-label pull-left" for="heartbeat">runs</label>
+          </div>
+      <div class="form-group">
+          <div class="control-label pull-left" ng-hide="complianceModeForm.$invalid">
+            Heartbeat will be sent every {{complianceMode.heartbeatPeriod * agentRun}} minutes
+          </div>
+          <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.required">Number of runs between heartbeats cannot be empty</span>
+              <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.number">Number of runs between heartbeats must be a valid integer</span>
+    <span class="control-label pull-left error" ng-show="complianceModeForm.heartbeat.$error.min || complianceModeForm.heartbeat.$error.max">
+      Number of runs between heartbeats must be in range from 1 to {{checkMaximumValue()}} (24 hours with a {{agentRun}} minutes frequency)</span>
+          </div>
+        </div>
+      </div>
+      </div>
+      <div class="form-group" ng-hide="isNodePage    &amp;&amp; complianceMode.name === 'full-compliance'">
+        <div class="pull-left control-label">
+          <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save Changes</button>
+        </div>
+        <div id="heartBeatMessage" class="pull-left control-label">
+          <lift:Msg id="complianceModeMessage">[messages]</lift:Msg>
+        </div>
+      </div>
+          
+    </form>
+  </div>
+  </div>
+</div>
+</property:complianceMode>

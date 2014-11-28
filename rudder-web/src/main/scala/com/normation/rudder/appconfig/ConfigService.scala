@@ -45,6 +45,8 @@ import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ChangesOnly
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -103,7 +105,19 @@ trait ReadConfigService {
    *   back from node to server, and taken into account for compliance reports,
    * - "error_only": only error and repaired are going to the server.
    */
-  def rudder_compliance_mode(): Box[ComplianceMode]
+  def rudder_compliance_mode(): Box[(String,Int)] = {
+    for {
+        name <- rudder_compliance_mode_name
+        period <- rudder_compliance_heartbeatPeriod
+    } yield {
+      (name,period)
+    }
+  }
+
+  def rudder_compliance_mode_name(): Box[String]
+
+  def rudder_compliance_heartbeatPeriod(): Box[Int]
+
 
   /**
    * Send Metrics
@@ -154,14 +168,30 @@ trait UpdateConfigService {
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean): Box[Unit]
 
   /**
-   * Set the compliance mode
-   */
-  def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit]
-
-  /**
    * Send Metrics
    */
   def set_send_server_metrics(value : Option[Boolean]): Box[Unit]
+
+  /**
+   * Set the compliance mode
+   */
+  def set_rudder_compliance_mode(name : String, frequency : Int): Box[Unit] = {
+    for {
+      _ <- set_rudder_compliance_mode_name(name)
+      u <- name match {
+             case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(frequency)
+             case _ => Full()
+           }
+    } yield {
+      u
+    }
+
+  }
+
+  def set_rudder_compliance_mode_name(name : String) : Box[Unit]
+
+  def set_rudder_compliance_heartbeatPeriod(frequency : Int) : Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -172,7 +202,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   var cacheExecutionInterval: Option[Int] = None
 
   val defaultConfig =
-    """rudder.ui.changeMessage.enabled=true
+    s"""rudder.ui.changeMessage.enabled=true
        rudder.ui.changeMessage.mandatory=false
        rudder.ui.changeMessage.explanation=Please enter a reason explaining this change.
        rudder.workflow.enabled=false
@@ -187,8 +217,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.modified.files.ttl=30
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
-       rudder.compliance.mode=full-compliance
        send.server.metrics=none
+       rudder.compliance.mode=${FullCompliance.name}
+       rudder.compliance.heartbeatPeriod=1
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -239,14 +270,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
       p.map(Integer.parseInt(_))
     } catch {
       case ex:NumberFormatException => Failure(ex.getMessage)
-    }
-  }
-
-  private[this] implicit def toComplianceMode(x: Box[RudderWebProperty]) : Box[ComplianceMode] = {
-    for {
-      value <- x
-    } yield {
-      ComplianceMode.parse(value)
     }
   }
 
@@ -322,13 +345,15 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
 
   /**
    * Compliance mode
-   *
    */
-  def rudder_compliance_mode(): Box[ComplianceMode] = get("rudder_compliance_mode")
-  def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit] = {
-    val p = RudderWebProperty(RudderWebPropertyName("rudder_compliance_mode"), value.name, "")
-    repos.saveConfigParameter(p)
-  }
+  def rudder_compliance_mode_name(): Box[String] = get("rudder_compliance_mode")
+  def set_rudder_compliance_mode_name(value: String): Box[Unit] = save("rudder_compliance_mode", value)
+
+  /**
+   * Heartbeat frequency mode
+   */
+  def rudder_compliance_heartbeatPeriod(): Box[Int] = get("rudder_compliance_heartbeatPeriod")
+  def set_rudder_compliance_heartbeatPeriod(value: Int): Box[Unit] = save("rudder_compliance_heartbeatPeriod", value)
 
 
   /**
