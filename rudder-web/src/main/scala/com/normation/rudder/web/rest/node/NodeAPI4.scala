@@ -58,7 +58,7 @@ class NodeAPI4 (
    case Get(id :: Nil, req) if id != "pending" => {
       restExtractor.extractNodeDetailLevel(req.params) match {
         case Full(level) =>
-          apiV4.nodeDetailsGeneric(NodeId(id),level,req)
+          apiV4.nodeDetailsGeneric(NodeId(id), level, req)
         case eb:EmptyBox =>
           val failMsg = eb ?~ "node detail level not correctly sent"
           toJsonError(None, failMsg.msg)("nodeDetail",restExtractor.extractPrettify(req.params))
@@ -66,7 +66,6 @@ class NodeAPI4 (
     }
   }
 
-  // Node API Version 4 fallback to Node api2 if request is not handled in V4
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v4Dispatch orElse apiV2.requestDispatch
 
 }

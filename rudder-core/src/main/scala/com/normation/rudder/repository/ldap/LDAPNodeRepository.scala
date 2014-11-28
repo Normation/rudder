@@ -45,6 +45,7 @@ import com.unboundid.ldap.sdk.{DN,Filter}
 import com.normation.ldap.sdk._
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.services.nodes.NodeInfoServiceImpl
 
 
 class WoLDAPNodeRepository(
@@ -65,9 +66,10 @@ class WoLDAPNodeRepository(
    * If the node is a system one, the methods fails.
    */
   def update(node:Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node] = {
+    import NodeInfoServiceImpl.{nodeInfoAttributes => attrs}
     repo.synchronized { for {
       con           <- ldap
-      existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value)) ?~! s"Cannot update node with id ${node.id.value} : there is no node with that id"
+      existingEntry <- con.get(nodeDit.NODES.NODE.dn(node.id.value), attrs:_*) ?~! s"Cannot update node with id ${node.id.value} : there is no node with that id"
       oldNode       <- mapper.entryToNode(existingEntry) ?~! "Error when transforming LDAP entry into a node for id ${node.id.value} . Entry: ${existingEntry}"
       // here goes the check that we are not updating policy server
       nodeEntry     =  mapper.nodeToEntry(node)

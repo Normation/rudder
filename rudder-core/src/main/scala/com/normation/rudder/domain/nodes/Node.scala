@@ -37,6 +37,8 @@ package com.normation.rudder.domain.nodes
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.reports.ReportingConfiguration
+import net.liftweb.json.JsonAST.JObject
+import org.joda.time.DateTime
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -45,11 +47,54 @@ import com.normation.rudder.reports.ReportingConfiguration
  *
  */
 case class Node(
-    id                    : NodeId
-  , name                  : String
-  , description           : String
-  , isBroken              : Boolean
-  , isSystem              : Boolean
-  , isPolicyServer        : Boolean
+    id                        : NodeId
+  , name                      : String
+  , description               : String
+  , isBroken                  : Boolean
+  , isSystem                  : Boolean
+  , isPolicyServer            : Boolean
+  , creationDate              : DateTime
   , nodeReportingConfiguration: ReportingConfiguration
+  , properties                : Seq[NodeProperty]
 ) extends HashcodeCaching
+
+
+
+case class NodeProperty(name: String, value: String)
+
+object JsonSerialisation {
+
+  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json._
+
+
+  implicit class JsonNodeProperty(x: NodeProperty) {
+    def toLdapJson(): JObject = (
+        ( "name"  , x.name  )
+      ~ ( "value" , x.value )
+    )
+  }
+
+  implicit class JsonNodeProperties(props: Seq[NodeProperty]) {
+    import net.liftweb.json.Serialization.write
+    implicit val formats = DefaultFormats
+
+    private[this] def json(x: NodeProperty): JObject = (
+        ( "name"  , x.name  )
+      ~ ( "value" , x.value )
+    )
+
+    def toApiJson(): JArray = {
+      JArray(props.map(json(_)).toList)
+    }
+  }
+
+  def unserializeLdapNodeProperty(value:String): NodeProperty = {
+    import net.liftweb.json.JsonParser._
+    implicit val formats = DefaultFormats
+
+    parse(value).extract[NodeProperty]
+  }
+
+}
+

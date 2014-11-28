@@ -562,20 +562,36 @@ object RudderConfig extends Loggable {
       , restExtractorService
     )
 
-  val nodeApiService4 =
-    new NodeApiService4 (
-        fullInventoryRepository
-      , uuidGen
-      , restExtractorService
-      , restDataSerializer
-    )
 
-  val nodeApi4 = {
+
+  def nodeApi4Builder(version: Int) = {
     val fixedApiService2 = nodeApiService2.copy(fixedTag = true)
     val fixedApi2 = nodeApi2.copy(apiV2 = fixedApiService2)
     new NodeAPI4 (
         fixedApi2
-      , nodeApiService4
+      , new NodeApiService4 (
+            fullInventoryRepository
+          , nodeInfoService
+          , uuidGen
+          , restExtractorService
+          , restDataSerializer
+          , version
+        )
+      , restExtractorService
+    )
+  }
+
+  val nodeApi4 = nodeApi4Builder(4)
+
+  val nodeApi5 = {
+    new NodeAPI5 (
+        nodeApi4Builder(5)
+      , new NodeApiService5(
+            woNodeRepository
+          , nodeInfoService
+          , uuidGen
+          , restExtractorService
+        )
       , restExtractorService
     )
   }
@@ -623,12 +639,14 @@ object RudderConfig extends Loggable {
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
+  val apiV5 : List[RestAPI] = nodeApi5 :: apiV4.filter( _ != nodeApi4)
 
   val apis = {
     Map (
-        ( ApiVersion(2) -> apiV2)
-      , ( ApiVersion(3) -> apiV3)
-      , ( ApiVersion(4) -> apiV4)
+        ( ApiVersion(2) -> apiV2 )
+      , ( ApiVersion(3) -> apiV3 )
+      , ( ApiVersion(4) -> apiV4 )
+      , ( ApiVersion(5) -> apiV5 )
     )
   }
 
@@ -750,7 +768,7 @@ object RudderConfig extends Loggable {
    * For now, we don't want to query server other
    * than the accepted ones.
    */
-  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl)
+  private[this] lazy val ditQueryDataImpl = new DitQueryData(acceptedNodesDitImpl, nodeDit)
   private[this] lazy val queryParser = new CmdbQueryParser with DefaultStringQueryParser with JsonQueryLexer {
     override val criterionObjects = Map[String, ObjectCriterion]() ++ ditQueryDataImpl.criteriaMap
   }
@@ -880,7 +898,7 @@ object RudderConfig extends Loggable {
   )
 
   //we need a roLdap query checker for nodes in pending
-  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, new DitQueryData(pendingNodesDitImpl), ldapEntityMapper))
+  private[this] lazy val inventoryQueryChecker = new PendingNodesLDAPQueryChecker(new InternalLDAPQueryProcessor(roLdap, pendingNodesDitImpl, new DitQueryData(pendingNodesDitImpl, nodeDit), ldapEntityMapper))
   private[this] lazy val dynGroupServiceImpl = new DynGroupServiceImpl(rudderDitImpl, roLdap, ldapEntityMapper, inventoryQueryChecker)
 
   private[this] lazy val ldapFullInventoryRepository = new FullInventoryRepositoryImpl(inventoryDitService, inventoryMapper, rwLdap)
@@ -913,7 +931,7 @@ object RudderConfig extends Loggable {
     , diffRepos
     , PendingInventory
   )
-  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository)
+  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoService)
 
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
   private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(eventLogDetailsServiceImpl, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoServiceImpl, modificationService, personIdentServiceImpl)
