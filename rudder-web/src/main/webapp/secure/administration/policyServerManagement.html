@@ -303,6 +303,41 @@ These files are automatically removed to save on disk space. You can configure t
         </div>
       </div>
     </div>
+    
+    <div class="inner-portlet">
+      <div class="page-title">Usage survey participation</div>
+      <div class="portlet-content">
+
+        <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetricsForm">
+          <div class="intro">
+            <div>
+                  To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.<br/>
+                  These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
+                   (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included 
+                   (only stock Rudder-provided techniques are examined, no hostnames, etc).
+                   We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics).<br/>
+                  If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.<br/>
+                  This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about. 
+                  Please consider participating in the survey!
+            </div>
+          </div>
+
+          <hr class="spacer" />
+          <div class="deca">
+            <form class="lift:form.ajax">
+            
+              <div class="wbBaseField"> 
+                <label class="threeCol textight" for="sendMetrics" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetrics" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="Reload" id="sendMetricsSubmit"/>
+              <lift:Msg id="sendMetricsMsg">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>    
+    
 
     <div class="inner-portlet">
       <div class="page-title">Clear policy caches</div>
@@ -386,7 +421,6 @@ Currently, Rudder will automatically do this update every <b id="techniqueLibrar
         </div>
       </div>
     </div>
-    
     
 
   </div>
