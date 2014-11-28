@@ -79,6 +79,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
     case "complianceModeConfiguration" => complianceModeConfiguration
+    case "sendMetricsConfiguration" => sendMetricsConfiguration
   }
 
 
@@ -667,6 +668,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#complianceModeSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();")))
+
+  }
+
+
+  def sendMetricsConfiguration = { xml : NodeSeq =>
+    // form value, defaulted to save value
+    // the semantic is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
+    var sendMetrics = configService.send_server_metrics
+
+    def submit() = {
+      println(sendMetrics)
+      sendMetrics.foreach(x => configService.set_send_server_metrics(x))
+      sendMetrics = configService.send_server_metrics
+
+      // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
+      startNewPolicyGeneration
+      S.notice("sendMetricsMsg", sendMetrics match {
+        case Full(_)  => "'send server metrics' property updated"
+        case eb: EmptyBox => "There was an error when updating the value of the 'send server metrics' property"
+      })
+    }
+
+    def compliance(x: Boolean) : Box[ComplianceMode] = {
+      if(x) Full(FullCompliance) else Full(ChangesOnly)
+    }
+
+    ( "#sendMetrics" #> {
+      sendMetrics match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value.getOrElse(false)
+            , (b : Boolean) => { sendMetrics = Full(Some(b)) }
+            , ("id","complianceMode")
+          )
+        case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Send server metrics"
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+
+      "#sendMetricsSubmit " #> {
          SHtml.ajaxSubmit("Save changes", submit _)
       }
     ) apply (xml ++ Script(Run("correctButtons();")))
