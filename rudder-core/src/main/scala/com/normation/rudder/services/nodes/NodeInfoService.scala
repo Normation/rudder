@@ -42,7 +42,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.NodeDit
 import net.liftweb.common._
 import net.liftweb.util.Helpers._
-import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.nodes.{NodeInfo, Node}
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.inventory.ldap.core.LDAPConstants._
 import com.normation.rudder.domain.Constants._
@@ -79,19 +79,15 @@ trait NodeInfoService {
    */
   def getNodeInfo(nodeId: NodeId) : Box[NodeInfo]
 
-  /**
-   * Return a seq of NodeInfo from a seq of NodeId.
-   * If any of them fails, then we return Failure
-   * @param nodeId
-   * @return
-   */
-//  def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]]
-
 
   /**
-   * Get all node ids
+   * Get the node (not inventory).
+   * Most of the info are also in node info,
+   * but for some specific case (nodeProperties for ex),
+   * we need them.
    */
-//  def getAllIds() : Box[Seq[NodeId]]
+  def getNode(nodeId: NodeId): Box[Node]
+
 
   /**
    * Get all node infos.
@@ -101,12 +97,6 @@ trait NodeInfoService {
    * So it is possible that getAllIds.size > getAll.size
    */
   def getAll() : Box[Map[NodeId, NodeInfo]]
-
-  /**
-   * Get all "simple" node ids (i.e, all user nodes,
-   * for example, NOT policy servers)
-   */
-//  def getAllUserNodeIds() : Box[Seq[NodeId]]
 
   /**
    * Get all systen node ids, for example
@@ -121,15 +111,25 @@ object NodeInfoServiceImpl {
 }
 
 class NodeInfoServiceImpl(
-    nodeDit : NodeDit,
-    rudderDit:RudderDit,
-    inventoryDit:InventoryDit,
-    ldap:LDAPConnectionProvider[RoLDAPConnection],
-    ldapMapper:LDAPEntityMapper,
-    inventoryMapper:InventoryMapper,
-    inventoryDitService:InventoryDitService
+    nodeDit            : NodeDit
+  , rudderDit          : RudderDit
+  , inventoryDit       : InventoryDit
+  , ldap               : LDAPConnectionProvider[RoLDAPConnection]
+  , ldapMapper         : LDAPEntityMapper
+  , inventoryMapper    : InventoryMapper
+  , inventoryDitService: InventoryDitService
 ) extends NodeInfoService with Loggable {
   import NodeInfoServiceImpl._
+
+  def getNode(nodeId: NodeId): Box[Node] = {
+    for {
+      con <- ldap
+      entry <- con.get(nodeDit.NODES.NODE.dn(nodeId.value), nodeInfoAttributes:_*) ?~! s"Node with ID '${nodeId.value}' was not found"
+      node <- ldapMapper.entryToNode(entry)
+    } yield {
+      node
+    }
+  }
 
   def getLDAPNodeInfo(nodeId: NodeId) : Box[LDAPNodeInfo] = {
     logger.trace("Fetching node info for node id %s".format(nodeId.value))

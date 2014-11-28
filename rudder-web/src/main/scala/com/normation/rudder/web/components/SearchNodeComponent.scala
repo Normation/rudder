@@ -62,6 +62,7 @@ import LDAPConstants._
 import com.normation.rudder.domain.queries.OstypeComparator
 import net.liftweb.util.ToJsCmd
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 
 /**
  * The Search Nodes component
@@ -482,11 +483,12 @@ object SearchNodeComponent {
     def add(s:String, pre:String="") = opts += ((s,pre + S.?("ldap.object."+s)))
 
     add(OC_NODE)
-    add(OC_NET_IF, " ├─ ")
-    add(OC_FS,     " ├─ ")
-    add(A_PROCESS, " ├─ ")
-    add(OC_VM_INFO," ├─ ")
-    add(A_EV,      " └─ ")
+    add(OC_NET_IF,       " ├─ ")
+    add(OC_FS,           " ├─ ")
+    add(A_PROCESS,       " ├─ ")
+    add(OC_VM_INFO,      " ├─ ")
+    add(A_NODE_PROPERTY, " ├─ ")
+    add(A_EV,            " └─ ")
     add(OC_MACHINE)
     add(OC_BIOS,       " ├─ ")
     add(OC_CONTROLLER, " ├─ ")

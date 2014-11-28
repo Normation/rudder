@@ -57,6 +57,9 @@ import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.FullInventory
+import com.normation.rudder.domain.nodes.{Node => RudderNode}
+import com.normation.rudder.reports.ReportingConfiguration
 
 /**
  * A simple service that displays a NodeDetail widget from
@@ -86,7 +89,12 @@ class NodeHistoryViewer extends StatefulSnippet {
               case Failure(m,_,_) => <div class="error">Error while trying to display node history. Error message: {m}</div>
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) =>
-                <div id={hid}>{DisplayNode.showPannedContent(sm.data, AcceptedInventory, "hist") ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
+                <div id={hid}>{DisplayNode.showPannedContent(
+                    dummyNode(sm.data)
+                  , sm.data
+                  , AcceptedInventory
+                  , "hist"
+                ) ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
           } }
         </div>
 
@@ -94,6 +102,20 @@ class NodeHistoryViewer extends StatefulSnippet {
     }
   }
 
+  private def dummyNode(sm: FullInventory) : RudderNode = {
+    //create a false node
+    RudderNode(
+        id = sm.node.main.id
+      , name = sm.node.main.hostname
+      , description = ""
+      , isBroken = false
+      , isSystem = false
+      , isPolicyServer = false
+      , creationDate = new DateTime(0)
+      , nodeReportingConfiguration = ReportingConfiguration(None)
+      , properties = Seq()
+    )
+  }
 
   private def initState(suuid:String) : Unit = {
     val newUuid = NodeId(suuid)
@@ -121,7 +143,7 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) =>
         SetHtml(hid,
-          DisplayNode.showPannedContent(sm.data, AcceptedInventory, "hist")) &
+          DisplayNode.showPannedContent(dummyNode(sm.data), sm.data, AcceptedInventory, "hist")) &
           DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
         )
     }

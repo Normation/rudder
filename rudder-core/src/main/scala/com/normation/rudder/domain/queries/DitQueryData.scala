@@ -42,7 +42,8 @@ import BuildFilter._
 import scala.collection.{SortedMap,SortedSet}
 import com.normation.rudder.services.queries.SpecialFilter
 import com.normation.utils.HashcodeCaching
-
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
 
 /*
  * Here we define all data needed logic by the to create the search
@@ -69,7 +70,7 @@ case object QueryMachineDn extends DnType
 case object QueryNodeDn extends DnType
 case object QuerySoftwareDn extends DnType
 
-class DitQueryData(dit:InventoryDit) {
+class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
 // Criterion(A_MACHINE_UUID, StringComparator),
 // Criterion(A_MACHINE_DN, StringComparator), //we don't want to search on that
@@ -224,10 +225,10 @@ class DitQueryData(dit:InventoryDit) {
     )),
     ObjectCriterion(A_EV, Seq(
       Criterion("name.value", JsonComparator(A_EV,"=") )
-    ))/*,
-ObjectCriterion(OC_GROUP_OF_DNS,Seq(
-Criterion(A_NAME,GroupOfDnsComparator)
-))*/ // Hidding a code difficult to import
+    ))
+  , ObjectCriterion(A_NODE_PROPERTY, Seq(
+      Criterion("name.value", JsonComparator(A_NODE_PROPERTY,"=") )
+    ))
   )
 
   val criteriaMap : SortedMap[String,ObjectCriterion] = SortedMap[String,ObjectCriterion]() ++ (criteriaSet map { crit => (crit.objectType,crit) })
@@ -281,6 +282,7 @@ case class LDAPObjectType(
     "software" -> LDAPObjectType(dit.SOFTWARE.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
     "node" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
     "nodeAndPolicyServer" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
+    "serializedNodeProperty" -> LDAPObjectType(nodeDit.NODES.dn, One, LDAPObjectTypeFilter(ALL),None,  DNJoin),
     "networkInterfaceLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_NET_IF)), None, ParentDNJoin),
     "process" -> LDAPObjectType(dit.NODES.dn, One, LDAPObjectTypeFilter(ALL), None, DNJoin),
     "virtualMachineLogicalElement" -> LDAPObjectType(dit.NODES.dn, Sub, LDAPObjectTypeFilter(IS(OC_VM_INFO)), None, ParentDNJoin),
@@ -308,6 +310,7 @@ case class LDAPObjectType(
     "software" -> QuerySoftwareDn,
     "node" -> QueryNodeDn,
     "nodeAndPolicyServer" -> QueryNodeDn,
+    "serializedNodeProperty" -> QueryNodeDn,
     "networkInterfaceLogicalElement" -> QueryNodeDn,
     "fileSystemLogicalElement" -> QueryNodeDn,
     "process" -> QueryNodeDn,
@@ -334,6 +337,7 @@ case class LDAPObjectType(
     "software" -> DNJoin,
     "node" -> DNJoin,
     "nodeAndPolicyServer" -> DNJoin,
+    "serializedNodeProperty" -> DNJoin,
     "networkInterfaceLogicalElement" -> ParentDNJoin,
     "fileSystemLogicalElement" -> ParentDNJoin,
     "process" -> DNJoin,

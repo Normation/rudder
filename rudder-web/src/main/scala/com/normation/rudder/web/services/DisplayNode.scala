@@ -61,6 +61,8 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.nodes.{Node => RudderNode}
 
 /**
  * A service used to display details about a server
@@ -272,6 +274,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>
     <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>
     <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>
+    <li><a href={htmlId_#(jsId,"sd_props_")}>Properties</a></li>
     <li><a href={htmlId_#(jsId,"sd_var_")}>Environment variables</a></li>
     <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>
     <li><a href={htmlId_#(jsId,"sd_vm_")}>Virtual machines</a></li>
@@ -281,10 +284,11 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
   /**
   * show the extra part
   */
-  def showExtraContent(sm:FullInventory, salt:String = "") : NodeSeq = {
+  def showExtraContent(node: RudderNode, sm: FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     displayTabFilesystems(jsId, sm) ++
     displayTabNetworks(jsId, sm) ++
+    displayTabProperties(jsId, node) ++
     displayTabVariable(jsId, sm) ++
     displayTabProcess(jsId, sm) ++
     displayTabVM(jsId, sm) ++
@@ -296,7 +300,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="", tabContainer = Some("node_tabs"))
    */
-  def showPannedContent(sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
+  def showPannedContent(node: RudderNode, sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     <div id="node_tabs" class="tabs">
       <ul>
@@ -309,7 +313,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
            {show(sm, false, "")}
          </div>
        </div>
-       {showExtraContent(sm, salt)}
+       {showExtraContent(node, sm, salt)}
 
        <div id={htmlId(jsId,"node_summary_")}>
          {showNodeDetails(sm, None, inventoryStatus, salt)}
@@ -565,6 +569,14 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
     displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
         ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
         ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
+        Nil
+    }
+    }
+
+    private def displayTabProperties(jsId:JsNodeId, node: RudderNode) : NodeSeq = {
+    displayTabGrid(jsId)("props", Full(node.properties)){
+        ("Name", {x:NodeProperty => Text(x.name)}) ::
+        ("Value", {x:NodeProperty => Text(x.value)}) ::
         Nil
     }
     }
