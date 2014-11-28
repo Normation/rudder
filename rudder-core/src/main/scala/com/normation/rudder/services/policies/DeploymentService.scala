@@ -68,6 +68,10 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.AgentRunInterval
 
 
 
@@ -119,7 +123,18 @@ trait DeploymentService extends Loggable {
       _                     =  logger.debug(s"Global system variables built in ${timeGlobalSystemVar}ms, start to build new node configurations.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(ruleVals, allNodeInfos, allInventories, groupLib, allParameters, globalSystemVariables) ?~! "Cannot build target configuration node"
+      globalRunInterval <- getGlobalAgentRun
+      globalComplianceMode <- getGlobalComplianceMode
+      config          <- buildNodeConfigurations(
+                             ruleVals
+                           , allNodeInfos
+                           , allInventories
+                           , groupLib
+                           , allParameters
+                           , globalSystemVariables
+                           , globalRunInterval
+                           , globalComplianceMode
+                         ) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
 
@@ -185,6 +200,8 @@ trait DeploymentService extends Loggable {
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
+  def getGlobalComplianceMode(): Box[ComplianceMode]
+  def getGlobalAgentRun : Box[AgentRunInterval]
 
   /**
    * Find all modified rules.
@@ -219,12 +236,14 @@ trait DeploymentService extends Loggable {
    * Replace all ${node.varName} vars.
    */
   def buildNodeConfigurations(
-      ruleVals            : Seq[RuleVal]
-    , allNodeInfos        : Map[NodeId, NodeInfo]
-    , allInventories      : Map[NodeId, NodeInventory]
-    , groupLib            : FullNodeGroupCategory
-    , parameters          : Seq[GlobalParameter]
-    , globalSystemVariable: Map[String, Variable]
+      ruleVals             : Seq[RuleVal]
+    , allNodeInfos         : Map[NodeId, NodeInfo]
+    , allInventories       : Map[NodeId, NodeInventory]
+    , groupLib             : FullNodeGroupCategory
+    , parameters           : Seq[GlobalParameter]
+    , globalSystemVariable : Map[String, Variable]
+    , globalAgentRun       : AgentRunInterval
+    , globalComplianceMode : ComplianceMode
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -313,6 +332,8 @@ class DeploymentServiceImpl (
   , override val parameterService : RoParameterService
   , override val interpolatedValueCompiler:InterpolatedValueCompiler
   , override val roInventoryRepository: ReadOnlyFullInventoryRepository
+  , override val complianceModeService : ComplianceModeService
+  , override val agentRunService : AgentRunIntervalService
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -320,7 +341,6 @@ class DeploymentServiceImpl (
   DeploymentService_updateAndWriteRule with
   DeploymentService_setExpectedReports with
   DeploymentService_historization
-{}
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -344,6 +364,8 @@ trait DeploymentService_findDependantRules_bruteForce extends DeploymentService 
   def roDirectiveRepository: RoDirectiveRepository
   def parameterService : RoParameterService
   def roInventoryRepository: ReadOnlyFullInventoryRepository
+  def complianceModeService : ComplianceModeService
+  def agentRunService : AgentRunIntervalService
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true)
   override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll
@@ -351,6 +373,8 @@ trait DeploymentService_findDependantRules_bruteForce extends DeploymentService 
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary()
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
+  override def getGlobalComplianceMode(): Box[ComplianceMode] = complianceModeService.getComplianceMode
+  override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getAgentRun
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -436,11 +460,13 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
    * local overrides.
    */
   private[this] def buildInterpolationContext(
-      nodeIds              : Set[NodeId]
-    , allNodeInfos         : Map[NodeId, NodeInfo]
-    , allInventories       : Map[NodeId, NodeInventory]
-    , parameters           : Map[ParameterName, InterpolationContext => Box[String]]
-    , globalSystemVariables: Map[String, Variable]
+      nodeIds               : Set[NodeId]
+    , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allInventories        : Map[NodeId, NodeInventory]
+    , parameters            : Map[ParameterName, InterpolationContext => Box[String]]
+    , globalSystemVariables : Map[String, Variable]
+    , globalAgentRun        : AgentRunInterval
+    , globalComplianceMode  : ComplianceMode
   ): Map[NodeId, InterpolationContext] = {
 
     (nodeIds.flatMap { nodeId:NodeId =>
@@ -448,7 +474,8 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
         nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
         inventory    <- Box(allInventories.get(nodeId)) ?~! s"Inventory for node with ID ${nodeId.value} was not found"
         policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
-        nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables)
+
+        nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
       } yield {
         (nodeId, InterpolationContext(
                       nodeInfo
@@ -485,12 +512,14 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
    * allNodeInfos *must* contains the nodes info of every nodes
    */
   override def buildNodeConfigurations(
-      ruleVals             : Seq[RuleVal]
-    , allNodeInfos         : Map[NodeId, NodeInfo]
-    , allInventories       : Map[NodeId, NodeInventory]
-    , groupLib             : FullNodeGroupCategory
-    , parameters           : Seq[GlobalParameter]
-    , globalSystemVariables: Map[String, Variable]
+      ruleVals              : Seq[RuleVal]
+    , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allInventories        : Map[NodeId, NodeInventory]
+    , groupLib              : FullNodeGroupCategory
+    , parameters            : Seq[GlobalParameter]
+    , globalSystemVariables : Map[String, Variable]
+    , globalAgentRun        : AgentRunInterval
+    , globalComplianceMode  : ComplianceMode
   ) : Box[Seq[NodeConfiguration]] = {
 
 
@@ -567,7 +596,17 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     //1.2: for each node, build the interpolation context
     //this also give us the list of actual node to consider
 
-    val interpolationContexts = buildInterpolationContext(policyDraftByNode.keySet, allNodeInfos, allInventories, interpolatedParameters, globalSystemVariables)
+    val interpolationContexts = {
+      buildInterpolationContext(
+          policyDraftByNode.keySet
+        , allNodeInfos
+        , allInventories
+        , interpolatedParameters
+        , globalSystemVariables
+        , globalAgentRun
+        , globalComplianceMode
+      )
+    }
 
     //1.3: build node config, binding ${rudder.parameters} parameters
 

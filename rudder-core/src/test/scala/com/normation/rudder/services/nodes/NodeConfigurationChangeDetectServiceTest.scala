@@ -126,7 +126,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
       cf3PolicyDraft = policyVaredOne.cf3PolicyDraft.copy(serial = 1)
   )
 
-  private val emptyNodeReportingConfiguration = ReportingConfiguration(None)
+  private val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
 
   private val nodeInfo = NodeInfo(
     id            = NodeId("name")

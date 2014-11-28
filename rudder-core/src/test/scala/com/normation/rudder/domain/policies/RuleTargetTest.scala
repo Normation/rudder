@@ -36,7 +36,7 @@ class RuleTargetTest extends Specification with Loggable {
         , "", Seq(), NodeId("root")
         , "", DateTime.now
         , false, false, false, Set()
-        , ReportingConfiguration(None)
+        , ReportingConfiguration(None,None)
       )
     )
   }.toMap
