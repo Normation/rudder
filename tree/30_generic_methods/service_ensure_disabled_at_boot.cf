@@ -1,0 +1,72 @@
+#####################################################################################
+# Copyright 2017 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service ensure disabled at boot
+# @description Force a service not to be enabled at boot
+#
+# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
+#
+# @class_prefix service_ensure_disabled_at_boot
+# @class_parameter service_name
+# This bundle will define a class service_ensure_disabled_at_boot_${canonified_service_name}_{kept,repaired,not_ok,ok,reached}
+
+bundle agent service_ensure_disabled_at_boot(service_name)
+{
+  vars:
+
+    systemctl_utility_present::
+      "command_to_unregister" string => "${paths.path[systemctl]} disable ${service_name}";
+
+    !systemctl_utility_present.chkconfig_utility_present::
+      "command_to_unregister" string => "${paths.path[chkconfig]} ${service_name} off";
+    !systemctl_utility_present.update_rcd_utility_present::
+      "command_to_unregister" string => "${paths.path[update_rc_d]} ${service_name} disable";
+
+    !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.chitab_utility_present::
+      "command_to_unregister" string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service_name}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:off:\3/'`\"";
+
+    !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.!chitab_utility_present.svcadm_utility_present::
+      "command_to_unregister" string => "${paths.path[svcadm]} disable ${service_name}";
+
+    any::
+
+      "canonified_service_name" string => canonify("${service_name}");
+      "canonified_command_name" string => canonify("${command_to_unregister}");
+
+      "class_prefix"            string => "service_ensure_disabled_at_boot_${canonified_service_name}";
+
+  methods:
+      "check_at_boot"
+        usebundle => service_check_disabled_at_boot("${service_name}");
+
+      "define_at_boot"
+        usebundle  => command_execution("${command_to_unregister}"),
+        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
+
+      "already defined"
+        usebundle => _classes_success("${class_prefix}"),
+        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_ok";
+
+      "copy classes"
+        usebundle  => _classes_copy("command_execution_${canonified_command_name}", "${class_prefix}"),
+        ifvarclass => "service_check_disabled_at_boot_${canonified_service_name}_not_ok";
+
+      "report"
+        usebundle => _logger("Ensure service ${service_name} is disabled at boot time", "${class_prefix}");
+
+}
