@@ -309,7 +309,19 @@
 	text-align:right;
 }
 
-#cfagentSchedule .control-label {
+.control-label {
   padding-left: 15px;
   padding-right: 15px;
+}
+
+.tw-bs input[type="number"]{
+	padding-right:0;
+}
+
+.form-control {
+  width:100%
+}
+
+.deca .form-control {
+  width:100%
 }

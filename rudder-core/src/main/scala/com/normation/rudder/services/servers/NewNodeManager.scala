@@ -670,7 +670,7 @@ class AcceptFullInventoryInNodeOu(
       , false
       , isPolicyServer
       , DateTime.now // won't be used on save - dummy value
-      , ReportingConfiguration(None) // use global schedule
+      , ReportingConfiguration(None,None) // use global schedule
       , Seq() //no user properties for now
     )
 

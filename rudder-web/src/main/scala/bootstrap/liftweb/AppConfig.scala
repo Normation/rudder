@@ -134,6 +134,10 @@ import com.normation.rudder.appconfig._
 import com.normation.rudder.rule.category._
 import com.normation.rudder.rule.category.GitRuleCategoryArchiverImpl
 import com.normation.rudder.services.policies.nodeconfig._
+import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.reports.ComplianceModeServiceImpl
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 
 /**
  * Define a resource for configuration.
@@ -1141,7 +1145,19 @@ object RudderConfig extends Loggable {
     , gitModificationRepository
   )
 
-
+  private[this] lazy val globalComplianceModeService : ComplianceModeService =
+    new ComplianceModeServiceImpl(
+        configService.rudder_compliance_mode_name _
+      , configService.rudder_compliance_heartbeatPeriod
+    )
+  private[this] lazy val globalAgentRunService : AgentRunIntervalService =
+    new AgentRunIntervalServiceImpl(
+        () => Full(None)
+      , () => Full(configService.agent_run_interval)
+      , configService.agent_run_start_hour
+      , configService.agent_run_start_minute
+      , configService.agent_run_splaytime
+    )
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
       licenseRepository
     , systemVariableSpecService
@@ -1167,7 +1183,6 @@ object RudderConfig extends Loggable {
     , configService.cfengine_modified_files_ttl _
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _
-    , configService.rudder_compliance_mode _
     , configService.send_server_metrics _
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
@@ -1212,22 +1227,28 @@ object RudderConfig extends Loggable {
   private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
-    val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-          roLdapRuleRepository,
-          woLdapRuleRepository,
-          ruleValService,
-          systemVariableService,
-          nodeConfigurationServiceImpl,
-          nodeInfoServiceImpl,
-          updateExpectedReports,
-          historizationService,
-          roNodeGroupRepository,
-          roDirectiveRepository,
-          ruleApplicationStatusImpl,
-          roParameterServiceImpl,
-          interpolationCompiler,
-          ldapFullInventoryRepository
-    )
+
+    val deploymentService = {
+      new DeploymentServiceImpl(
+          roLdapRuleRepository
+        , woLdapRuleRepository
+        , ruleValService
+        , systemVariableService
+        , nodeConfigurationServiceImpl
+        , nodeInfoServiceImpl
+        , updateExpectedReports
+        , historizationService
+        , roNodeGroupRepository
+        , roDirectiveRepository
+        , ruleApplicationStatusImpl
+        , roParameterServiceImpl
+        , interpolationCompiler
+        , ldapFullInventoryRepository
+        , globalComplianceModeService
+        , globalAgentRunService
+    )}
+    val agent = new AsyncDeploymentAgent(
+        deploymentService
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation)
     techniqueRepositoryImpl.registerCallback(
@@ -1279,7 +1300,7 @@ object RudderConfig extends Loggable {
     , RoReportsExecutionJdbcRepository
     , findExpectedRepo
     , configService.agent_run_interval
-    , configService.rudder_compliance_mode
+    , globalComplianceModeService.getComplianceMode _
   )
   private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(
       updateExpectedRepo
