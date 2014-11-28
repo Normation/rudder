@@ -70,9 +70,10 @@ trait RestDataSerializer {
 
   def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue
 
-  def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue
+  def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
 
-  def serializeInventory (inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue
+  def serializeInventoryV4(node: Node, inventory: FullInventory, detailLevel: NodeDetailLevel) : JValue
+  def serializeInventoryV5(node: Node, inventory: FullInventory, detailLevel: NodeDetailLevel) : JValue
 }
 
 case class RestDataSerializerImpl (
@@ -82,7 +83,7 @@ case class RestDataSerializerImpl (
 
   import net.liftweb.json.JsonDSL._
 
-  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue ={
+  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
     (   ("id"          -> nodeInfo.id.value)
@@ -94,11 +95,18 @@ case class RestDataSerializerImpl (
     )
   }
 
-  def serializeInventory (inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
-    val fields : Set[JField] = detailLevel.fields.map(field => JField(field ,NodeDetailLevel.allFields(field)(inventory)))
+  def serializeInventoryV4(node: Node, inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
+    val filteredFields = detailLevel.fields - "properties"
+    val fields : Set[JField] = filteredFields.map(field => JField(field, NodeDetailLevel.allFields(field)(node, inventory)))
     JObject(fields.toList)
   }
-  def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue ={
+
+  def serializeInventoryV5(node: Node, inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
+    val fields : Set[JField] = detailLevel.fields.map(field => JField(field, NodeDetailLevel.allFields(field)(node, inventory)))
+    JObject(fields.toList)
+  }
+
+  def serializeInventory (inventory: FullInventory, status: String, tagFixed: Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
     val machineType = inventory.machine.map(_.machineType match {
@@ -141,7 +149,7 @@ case class RestDataSerializerImpl (
    )
   }
 
-  def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue = {
+  def serializeParameter (parameter:Parameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
      ~ ( "id"              -> parameter.name.value )
      ~ ( "value"           -> parameter.value )

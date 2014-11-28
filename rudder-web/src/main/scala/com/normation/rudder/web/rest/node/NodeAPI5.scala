@@ -34,19 +34,47 @@
 
 package com.normation.rudder.web.rest.node
 
+import com.normation.inventory.domain.NodeId
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
-import com.normation.rudder.web.rest.RestAPI
-import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.web.rest.RestExtractorService
+import com.normation.rudder.web.rest.RestUtils._
+import net.liftweb.common._
+import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest.RestUtils
 
-trait NodeAPI extends RestAPI {
-  val kind = "nodes"
+
+class NodeAPI5 (
+    apiV4        : NodeAPI4
+  , apiV5service : NodeApiService5
+  , restExtractor: RestExtractorService
+) extends RestHelper with NodeAPI with Loggable{
+
+
+  val v5Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+
+    case id :: Nil JsonPost body -> req => {
+      req.json match {
+        case Full(arg) =>
+          val restNode = restExtractor.extractNodePropertiesrFromJSON(arg)
+            apiV5service.updateRestNode(NodeId(id), restNode, req)
+        case Empty =>
+          toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
+        case f:Failure =>
+          toJsonError(None, f.messageChain)("updateGroup",restExtractor.extractPrettify(req.params))
+      }
+    }
+
+   case Post(id :: Nil, req) => {
+      val restNode = restExtractor.extractNodeProperties(req.params).map(RestNode(_))
+      apiV5service.updateRestNode(NodeId(id), restNode, req)
+    }
+  }
+
+  // Node API Version 5 fallback to Node API v4 if request is not handled in V5
+  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v5Dispatch orElse apiV4.requestDispatch
+
 }
-
-case class RestNode(
-    properties: Option[Seq[NodeProperty]]
-)
-
