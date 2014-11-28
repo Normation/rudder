@@ -93,6 +93,7 @@ class SystemVariableServiceImpl(
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
   , getComplianceMode               : () => Box[ComplianceMode]
+  , getSendMetrics                  : () => Box[Option[Boolean]]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -128,6 +129,12 @@ class SystemVariableServiceImpl(
     val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
     val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
 
+    val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
+      "yes"
+    } else {
+      "no"
+    }
+    val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq(sendMetricsValue))
     val interval = getAgentRunInterval()
     val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(interval.toString)
 
@@ -168,6 +175,7 @@ class SystemVariableServiceImpl(
       , (cfengineOutputsTtl.spec.name, cfengineOutputsTtl)
       , (storeAllCentralizedLogsInFile.spec.name, storeAllCentralizedLogsInFile)
       , (varReportMode.spec.name, varReportMode)
+      , (varSendMetrics.spec.name, varSendMetrics)
       )
     }
   }

@@ -105,6 +105,11 @@ trait ReadConfigService {
    */
   def rudder_compliance_mode(): Box[ComplianceMode]
 
+  /**
+   * Send Metrics
+   */
+  def send_server_metrics(): Box[Option[Boolean]]
+
 }
 
 /**
@@ -152,6 +157,11 @@ trait UpdateConfigService {
    * Set the compliance mode
    */
   def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit]
+
+  /**
+   * Send Metrics
+   */
+  def set_send_server_metrics(value : Option[Boolean]): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -178,6 +188,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
        rudder.compliance.mode=full-compliance
+       send.server.metrics=none
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -211,6 +222,12 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   private[this] implicit def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
     case "true" | "1" => true
     case _ => false
+  }
+
+  private[this] implicit def toOptionBoolean(p: RudderWebProperty): Option[Boolean] = p.value.toLowerCase match {
+    case "true" | "1" => Some(true)
+    case "none" => None
+    case _ => Some(false)
   }
 
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
@@ -311,6 +328,18 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def set_rudder_compliance_mode(value: ComplianceMode): Box[Unit] = {
     val p = RudderWebProperty(RudderWebPropertyName("rudder_compliance_mode"), value.name, "")
     repos.saveConfigParameter(p)
+  }
+
+
+  /**
+   * Send Metrics
+   */
+  def send_server_metrics(): Box[Option[Boolean]] = get("send_server_metrics")
+  def set_send_server_metrics(value : Option[Boolean]): Box[Unit] = {
+    println(value)
+    val t = value.map(_.toString).getOrElse("none")
+    println(t)
+    save("send_server_metrics",t)
   }
 
 }
