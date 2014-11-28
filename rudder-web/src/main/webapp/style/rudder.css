@@ -2835,3 +2835,25 @@ form .tw-bs input {
 .form-group select {
 	width: auto;
 }
+
+.animate-hide {
+  -webkit-transition: all linear 0.5s;
+  transition: all linear 0.5s;
+  opacity: 1;
+}
+
+.animate-hide.ng-hide {
+  opacity: 0;
+}
+
+.animate-hide.ng-hide-add, .animate-hide.ng-hide-remove {
+  /* this needs to be here to make it visible during the animation
+     since the .ng-hide class is already on the element rendering
+     it as hidden. */
+  display:block!important;
+}
+
+input[type="number"] {
+    padding: 5px 0 5px 5px;
+    margin-top:-5px;
+} 

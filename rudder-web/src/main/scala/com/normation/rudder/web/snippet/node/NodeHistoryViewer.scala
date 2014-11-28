@@ -112,7 +112,7 @@ class NodeHistoryViewer extends StatefulSnippet {
       , isSystem = false
       , isPolicyServer = false
       , creationDate = new DateTime(0)
-      , nodeReportingConfiguration = ReportingConfiguration(None)
+      , nodeReportingConfiguration = ReportingConfiguration(None, None)
       , properties = Seq()
     )
   }
