@@ -196,7 +196,7 @@ def generate_value_xml(method_call,generic_method):
 def get_technique_expected_reports(technique_metadata):
   """Generates technique expected reports from technique metadata"""
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata()
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')
 
   # Content start with a header
   content = ["""# This file contains one line per report expected by Rudder from this technique
@@ -252,7 +252,7 @@ def canonify_expected_reports(expected_reports, dest):
 def generate_rudder_reporting(technique):
   """Generate complementary reporting needed for Rudder in rudder_reporting.st file"""
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata()
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')
 
   content = []
   content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting')
