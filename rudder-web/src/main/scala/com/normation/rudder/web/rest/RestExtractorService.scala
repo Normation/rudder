@@ -62,6 +62,8 @@ import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.nodes.NodeProperty
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -85,7 +87,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]],key : String)( convertTo : (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(convertTo: (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
       case Some(list) => convertTo(list).map(Some(_))
@@ -492,6 +494,37 @@ case class RestExtractorService (
       RestParameter(value,description,overridable)
     }
   }
+
+  /*
+   * Looking for parameter: "properties=foo=bar"
+   * ==> set foo to bar; delete baz, set plop to plop.
+   */
+  def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[Seq[NodeProperty]]] = {
+    extractList(params, "properties") { props =>
+      val splitted = props.map { prop =>
+        val parts = prop.split('=')
+        if(parts.size == 1) NodeProperty(parts(0), "")
+        else NodeProperty(parts(0), parts(1))
+      }
+      Full(splitted)
+    }
+  }
+
+  /*
+   * expecting json:
+   * { "properties": [
+   *    {"name":"foo" , "value":"bar"  }
+   * ,  {"name":"baz" , "value": ""    }
+   * ,  {"name":"plop", "value":"plop" }
+   * ] }
+   */
+  def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNode] = {
+    import net.liftweb.json.JsonParser._
+    implicit val formats = DefaultFormats
+
+    Box(json.extractOpt[RestNode]) ?~! "Error when extracting node information"
+  }
+
 
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
     for {

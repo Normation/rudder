@@ -60,6 +60,7 @@ import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.services.nodes.NodeInfoService
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -80,7 +81,10 @@ case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCachin
  *   of head() in the calling template head
  * - call the display(servers) method
  */
-class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
+class NodeGrid(
+    getNodeAndMachine: LDAPFullInventoryRepository
+  , nodeInfoService  : NodeInfoService
+) extends Loggable {
 
   private def templatePath = List("templates-hidden", "server_grid")
   private def template() =  Templates(templatePath) match {
@@ -244,13 +248,15 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
     implicit val formats = DefaultFormats
 
     ( for {
-      json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
-      arg <- tryo(json.extract[JsonArg])
+      json   <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
+      arg    <- tryo(json.extract[JsonArg])
       status : InventoryStatus <- Box(InventoryStatus(arg.status))
-      sm <- getNodeAndMachine.get(NodeId(arg.id),status)
-    } yield (sm,arg.jsid, status) ) match {
-      case Full((sm,jsid,status)) =>
-        SetHtml(jsid, DisplayNode.showPannedContent(sm, status)) &
+      nodeId =  NodeId(arg.id)
+      node   <- nodeInfoService.getNode(nodeId)
+      sm     <- getNodeAndMachine.get(nodeId, status)
+    } yield (node, sm, arg.jsid, status) ) match {
+      case Full((node, sm, jsid, status)) =>
+        SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
