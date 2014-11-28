@@ -100,6 +100,8 @@ bundle common paths
     linux::
       "path[lsattr]"        string => "/usr/bin/lsattr";
       "path[tar]"           string => "/bin/tar";
+      "path[chkconfig]"     string => "/sbin/chkconfig";
+      "path[update_rcd]"    string => "/usr/sbin/update-rc.d";
 
     aix::
 
