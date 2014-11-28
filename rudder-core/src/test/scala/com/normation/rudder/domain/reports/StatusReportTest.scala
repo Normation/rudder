@@ -116,7 +116,7 @@ class StatusReportTest extends Specification {
     "correctly add them by directive" in {
       val a = aggregate(d1c1v1_s ++ d1c2v21_s ++ d2c2v21_e)
 
-      (a.compliance.pc_success === 66) and
+      (a.compliance.pc_success === 66.67.toFloat) and
       (a.directives("d1").compliance.pc_success === 100) and
       (a.directives("d2").compliance.pc_error === 100)
     }
