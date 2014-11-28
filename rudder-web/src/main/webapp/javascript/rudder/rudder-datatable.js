@@ -889,39 +889,70 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
 function buildComplianceBar(compliance) {
   var content = $('<div class="tw-bs progress"></div>')
 
-  var notapplicable = compliance[0]
-  if(notapplicable != 0) {
-    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notapplicable+'%" title="Not Applicable: '+notapplicable+'%">&nbsp;</div>')
+  // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
+  var sum = compliance.reduce(function(pv, cv) { return pv + cv; }, 0);
+  
+  if (sum > 100) {
+    var max_of_array = Math.max.apply(Math, compliance);
+    var index = compliance.indexOf(max_of_array)
+    var toRemove = sum - 100
+    compliance[index] = compliance[index] - toRemove
   }
+
+  var notApplicable = compliance[0]
+  if(notApplicable != 0) {
+    var value = Number((notApplicable).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notApplicable+'%" title="Not applicable: '+notApplicable+'%">'+value+'%</div>')
+  }
+
   var success = compliance[1]
-  if(success != 0) {
-    content.append('<div class="progress-bar progress-bar-success" style="width:'+success+'%" title="Success: '+success+'%">&nbsp;</div>')
-  }
   var repaired = compliance[2]
-  if(repaired != 0) {
-    content.append('<div class="progress-bar progress-bar-repaired" style="width:'+repaired+'%" title=Rrepaired: '+repaired+'%">&nbsp;</div>')
+  var okStatus = success + repaired
+  if(okStatus != 0) {
+    var text = []
+    if (success != 0) {
+      text.push("Sucess: "+success+"%")
+    }
+    if (repaired != 0) {
+      text.push("Repaired: "+repaired+"%")
+    }
+    var value = Number((okStatus).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-success" style="width:'+okStatus+'%" title="'+text.join("\n")+'">'+value+'%</div>')
   }
-  var error = compliance[3]
-  if(error != 0) {
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">&nbsp;</div>')
-  }
+
   var pending = compliance[4]
   if(pending != 0) {
-    content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">&nbsp;</div>')
+    var value = Number((pending).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">'+value+'%</div>')
   }
+
   var noreport = compliance[5]
   if(noreport != 0) {
-    content.append('<div class="progress-bar progress-bar-noanswer" style="width:'+noreport+'%" title="No Report: '+noreport+'%">&nbsp;</div>')
+    var value = Number((noreport).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-pending" style="width:'+noreport+'%" title="No Report: '+noreport+'%">'+value+'%</div>')
   }
+
   var missing = compliance[6]
-  if(missing != 0) {
-    content.append('<div class="progress-bar progress-bar-missing" style="width:'+missing+'%" title="Missing Report: '+missing+'%">&nbsp;</div>')
-  }
   var unknown = compliance[7]
-  if(unknown != 0) {
-    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unknown+'%" title="Unexpected Report: '+unknown+'%">&nbsp;</div>')
+  var unexpected = missing + unknown
+  if(unexpected != 0) {
+    var text = []
+    if (missing != 0) {
+      text.push("Missing reports: "+missing+"%")
+    }
+    if (unknown != 0) {
+      text.push("Unknown reports: "+unknown+"%")
+    }
+    var value = Number((unexpected).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unexpected+'%" title="'+text.join("\n")+'">'+value+'%</div>')
   }
-  
+
+  var error = compliance[3]
+  if(error != 0) {
+    var value = Number((error).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">'+value+'%</div>')
+  }
+
   return content
   
 }
