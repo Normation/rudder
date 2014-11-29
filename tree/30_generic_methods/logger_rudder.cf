@@ -81,22 +81,9 @@ bundle agent logger_rudder(message, class_prefix)
     # no need to avoid normal ordering since this class is set when report is ready
     report_data_read::
 
-    # "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}"
-    # rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
-
       # 4/ Array is ready, reporting time !!!
       "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${c_class_prefix}", "${report_data[3]}", "${report_data[4]}", "${report_data[5]}", "${message}"),
         classes    => classes_generic("logger_rudder_${c_class_prefix}");
-
-  commands:
-
-    logger_rudder_temp_resfile_repaired::
-
-      # 2/ If the temporary file has been updated, trigger this command to canonify all the values in
-      # it.
-      "${log_canonification_tool}"
-        contain       => in_shell,
-        classes       => classes_generic("logger_rudder_final_resfile");
 
 }
 
