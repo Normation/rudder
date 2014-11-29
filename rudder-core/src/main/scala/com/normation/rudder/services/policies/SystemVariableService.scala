@@ -319,6 +319,7 @@ class SystemVariableServiceImpl(
           systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(runInterval.splaytime.toString)  ::
           systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule) ::
           systemVariableSpecService.get("RUDDER_HEARTBEAT_INTERVAL").toVariable(Seq(heartbeat.toString)) ::
+          systemVariableSpecService.get("RUDDER_REPORT_MODE").toVariable(Seq(globalComplianceMode.name)) ::
           Nil
         }
         vars.map(v => v.spec.name -> v ).toMap
