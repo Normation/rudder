@@ -33,7 +33,7 @@ bundle common inputs
       "list_compatible_inputs" string => "NCF_CACHE_PATH=${sys.workdir}/state /bin/sh ${me.framework_path}/10_ncf_internals/list-compatible-inputs";
 
       # this list contains everything that is in the 10_ncf_internals
-      "ncf_internals_files"     slist => lsdir("${me.framework_path}/10_ncf_internals", ".*\.cf", "true");
+      "ncf_internals"          string => execresult("${list_compatible_inputs} ${sys.cf_version} ${me.framework_path} 10_ncf_internals", "useshell");
 
       # Here, we get all the generic files of the framework (basics, methods, it ops knowledge)
       # without their full path as it may break the 4K limit
@@ -49,6 +49,7 @@ bundle common inputs
 
       # We have to convert the result of the find into lists so that they can be use in the 
       # inputs list
+      "ncf_internals_files"     slist => splitstring("${ncf_internals}", "\n", 10000);
       "generic_framework_files" slist => splitstring("${generic_framework}", "\n", 10000);
       "techniques_files"        slist => splitstring("${techniques}", "\n", 10000);
       "services_files"          slist => splitstring("${services}", "\n", 10000);    
