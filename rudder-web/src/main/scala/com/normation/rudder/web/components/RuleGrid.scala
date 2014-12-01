@@ -72,6 +72,8 @@ import com.normation.rudder.web.services.JsTableData
 import net.liftweb.http.js.JE.AnonFunc
 import com.normation.rudder.web.services.NodeComplianceLine
 import org.joda.time.DateTime
+import org.joda.time.Interval
+import com.normation.rudder.services.reports.NodeChanges
 
 
 
@@ -154,13 +156,13 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), recentChanges.getChanges()) }
+    case "rulesGrid" => { _:NodeSeq => rulesGrid()}
   }
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   def rulesGridWithUpdatedInfo(popup: Boolean = false, linkCompliancePopup:Boolean = true) = {
-    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), recentChanges.getChanges(), popup, linkCompliancePopup)
+    rulesGrid(popup, linkCompliancePopup)
   }
 
 
@@ -210,7 +212,7 @@ class RuleGrid(
               nodeInfo     =  getAllNodeInfos()
               groupLib     =  getFullNodeGroupLib()
               directiveLib =  getFullDirectiveLib()
-              changes      =  recentChanges.getChanges()
+              changes      =  recentChanges.getChangesByInterval()
               newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib, changes)
             } yield {
               JsRaw(s"""refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});""")
@@ -226,36 +228,14 @@ class RuleGrid(
   }
 
   def rulesGrid(
-      allNodeInfos: Box[Map[NodeId, NodeInfo]]
-    , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]
-    , changes     : Box[Seq[ResultRepairedReport]]
-    , popup       : Boolean = false
+      popup       : Boolean = false
     , linkCompliancePopup:Boolean = true
   ) : NodeSeq = {
-    getRulesTableData(popup, rules, linkCompliancePopup, allNodeInfos, groupLib, directiveLib, changes) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to get information about rules"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was:", ex)
-        }
-
-        <div id={htmlId_rulesGridZone}>
-          <div id={htmlId_modalReportsPopup} class="nodisplay">
-            <div id={htmlId_reportsPopup} ></div>
-          </div>
-          <span class="error">{e.messageChain}</span>
-        </div>
-
-
-      case Full(tableData) =>
-
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
         val onLoad =
           s"""createRuleTable (
                  "${htmlId_rulesGridId}"
-                , ${tableData.json.toJsCmd}
+                , []
                 , ${showCheckboxColumn}
                 , ${popup}
                 , ${allcheckboxCallback.toJsCmd}
@@ -277,7 +257,6 @@ class RuleGrid(
           </div>
         </div> ++
         Script(OnLoad(JsRaw(onLoad)))
-    }
   }
 
   /*
@@ -292,7 +271,7 @@ class RuleGrid(
     , allNodeInfos : Box[Map[NodeId, NodeInfo]]
     , groupLib     : Box[FullNodeGroupCategory]
     , directiveLib : Box[FullActiveTechniqueCategory]
-    , recentChanges: Box[Seq[ResultRepairedReport]]
+    , recentChanges: Box[Map[Interval,Seq[ResultRepairedReport]]]
   ) : Box[JsTableData[RuleLine]] = {
 
     for {
@@ -425,7 +404,12 @@ class RuleGrid(
   /*
    * Generates Data for a line of the table
    */
-  private[this]  def getRuleData(line:Line, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo], changes: Seq[ResultRepairedReport]) : RuleLine = {
+  private[this]  def getRuleData (
+      line:Line
+    , groupsLib: FullNodeGroupCategory
+    , nodes: Map[NodeId, NodeInfo]
+    , changes: Map[Interval,Seq[ResultRepairedReport]]
+  ) : RuleLine = {
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled
@@ -518,6 +502,8 @@ class RuleGrid(
       AnonFunc("action",ajax)
     }
 
+
+
     RuleLine (
         line.rule.name
       , line.rule.id
@@ -526,7 +512,7 @@ class RuleGrid(
       , category
       , status
       , compliancePercent
-      , changes.collect{ case c if(c.ruleId == line.rule.id ) => (c.executionTimestamp, 1) }.toList
+      , changes
       , cssClass
       , callback
       , checkboxCallback
@@ -576,7 +562,7 @@ case class RuleLine (
   , category         : String
   , status           : String
   , compliance       : ComplianceLevel
-  , recentChanges    : List[(DateTime, Int)]
+  , recentChanges    : Map[Interval,Seq[ResultRepairedReport]]
   , trClass          : String
   , callback         : Option[AnonFunc]
   , checkboxCallback : Option[AnonFunc]
@@ -594,6 +580,8 @@ case class RuleLine (
 
       val optFields : Seq[(String,JsExp)]= reasonField.toSeq ++ cbCallbackField ++ callbackField
 
+      val changes = NodeChanges.changesOnRule(id)(recentChanges)
+
       val base = JsObj(
           ( "name", name )
         , ( "id", id.value )
@@ -602,7 +590,7 @@ case class RuleLine (
         , ( "category", category )
         , ( "status", status )
         , ( "compliance", jsCompliance(compliance) )
-        , ( "recentChanges", recentChanges(recentChanges))
+        , ( "recentChanges", NodeChanges.json(changes) )
         , ( "trClass", trClass )
       )
 

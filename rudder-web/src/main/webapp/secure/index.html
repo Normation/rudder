@@ -2,87 +2,102 @@
 
   <head>
   <title>Rudder - Home</title>
-  </head>
-
   
-  <div class="portlet">
-    <div class="portlet-header">Description</div>
-    <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
-      Manage your IT infrastructure by making inventories of your nodes, and applying Rules to them.<br/>
-      A Rule is the application of a configured Technique to a node group.
-
-      <ul>
-        <lift:authz role="node_read">
-        <lift:HomePage.pendingNodes/>
-        <lift:HomePage.acceptedNodes/>
-        </lift:authz>
-        <lift:authz role="rule_read">
-        <lift:HomePage.rules/>
-        </lift:authz>
-      </ul>
-	
-    </div>
-    <br/>
-  </div>
-
-  <div class="column">
-      <lift:authz role="node_read">
-        <div class="portlet">
-          <div class="portlet-header">Rudder Node Manager</div>
-          <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
-            <ul>
-              <li><a href="/secure/nodeManager/manageNewNode">Accept or refuse</a> new nodes in Rudder</li>
-              <li><a href="/secure/nodeManager/searchNodes">List or search</a> your nodes' inventories in Rudder</li>
-              <lift:authz role="group_read">
-              <li><a href="/secure/nodeManager/groups">Define node groups</a> from search results</li>
-              </lift:authz>
-            </ul>
-          </div>
-        </div>
-      </lift:authz>
-      <div class="portlet">
-          <div class="portlet-header">Support Desk</div>
-          <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
-            <ul>
-              <li>Looking for help? Start by reading the <a href="/rudder-doc" target="_blank">User Documentation</a></li>
-              <li>Reach out to the <a href="http://www.rudder-project.org/foswiki/Community/WebHome" target="_blank">open source community</a> to get help from other Rudder users via email or IRC</li>
-              <li>Found a bug or have a great idea for a new feature? Please report it on the project's <a href="http://www.rudder-project.org/foswiki/Community/WebHome" target="_blank">bugtracker</a></li>
-              <li>Looking for professional assistance? <a href="http://www.normation.com" target="_blank">Normation</a>, Rudder's creator, offers <a href="https://www.normation.com/services/support-pole-expertise" target="_blank">Support</a>, <a href="https://www.normation.com/services/rudder-training" target="_blank">Training</a> and other Rudder-specific services</li>
-            </ul>
-          </div>
+  <script type="text/javascript" src="/javascript/rudder/homePage.js"></script>
+  <script type="text/javascript" src="/javascript/gauge/gauge.min.js"></script>
+  </head>
+  
+  
+  
+   <div class="tw-bs">
+    <div class="col-sm-2" style="padding-left:0">
+    <div class=" panel panel-default">
+      <div class="panel-heading">Statistics</div>
+        <ul   class="nav nav-pills nav-stacked navbar-rudder" style="border-radius:4px">
+          <li ><a href="/secure/nodeManager/nodes">
+            <span class="badge pull-right"><lift:HomePage.acceptedNodes/></span>
+            Nodes</a>
+          </li>
+          <li ><a href="/secure/nodeManager/manageNewNode">
+            <span class="badge pull-right"><lift:HomePage.pendingNodes/></span>
+            Pending nodes</a>
+          </li>
+          <li><a href="/secure/configurationManager/ruleManagement">
+            Rules <span class="badge pull-right"><lift:HomePage.rules/></span>
+            </a>
+          </li>
+          <li ><a href="/secure/configurationManager/directiveManagement">
+            <span class="badge pull-right"><lift:HomePage.directives/></span>
+            Directives</a>
+          </li>
+          <li ><a href="/secure/nodeManager/groups">
+            <span class="badge pull-right"><lift:HomePage.groups/></span>
+            Groups</a>
+          </li>
+          <li ><a href="/secure/administration/techniqueLibraryManagement">
+            <span class="badge pull-right"><lift:HomePage.techniques/></span>
+            Techniques</a>
+          </li>
+        </ul>
       </div>
-  </div>
+      </div>
+   
+      <div class="col-sm-10" style="padding-right:0">
+      <div class="row">
+        <div class="col-sm-4">
+         <div class="panel panel-default">
+           <div class="panel-heading">Global compliance</div>
+           <div class="text-center">
+             <canvas id="complianceGauge" width="360" height="180" class="">
+             </canvas>
+             <span id="gauge-value"></span>
+             </div>
+        </div>
+         
+        </div>
+        <div class="col-sm-8">
+           <div class="panel panel-default" style="height:223px">
+      <div class="panel-heading">Global compliance details</div>
+      <lift:HomePage.getAllCompliance/>
+    </div>
+        </div>
+        </div>
+        <div class="row">
+      <div class=" col-sm-5">
+        
+        
+     <div id="nodeOverview" class="panel panel-default">
+      <div class="panel-heading">Nodes by overall compliance</div>
+         <div id="nodeCompliance" class="">
+         </div>
+      </div>
+      
+      </div>
 
-  <div class="column">
-      <lift:authz role="configuration_read">
-        <div class="portlet">
-          <div class="portlet-header">Rudder Configuration Manager</div>
-          <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
-            <ul>
-            <lift:authz role="technique_read">
-              <li>Build your own <a href="/secure/administration/techniqueLibraryManagement">Technique library</a> <lift:authz role="directive_read"> and <a href="/secure/configurationManager/directiveManagement">create and configure Directives instances</a></lift:authz></li>
-            </lift:authz>
-            <lift:authz role="rule_read">
-              <li>List, register and manage <a href="/secure/configurationManager/ruleManagement">Rules</a> on your nodes <lift:authz role="directive_read"> <span>from available <a href="/secure/configurationManager/directiveManagement">Directives</a> </span> </lift:authz></li>
-              <li>Manage and supervise states from these Rules</li>
-              </lift:authz>
-            </ul>
-          </div>
+     <div class=" col-sm-7">
+       <div class="panel panel-default">
+         <div class="panel-heading">Node breakdown</div>
+         <div class=" col-sm-4">
+           <h4>By machine type</h4>
+           <div id="nodeMachine"> </div>
         </div>
-      </lift:authz>
-      <lift:authz role="administration_read">
-        <div class="portlet">
-          <div class="portlet-header">Rudder Administration</div>
-          <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
-            <ul>
-              <li>Track all events that have occured: <a href="/secure/utilities/eventLogs">Event logs</a> </li> 
-              <lift:authz role="administration_edit">
-              <li><a href="/secure/administration/policyServerManagement">Configure the Rudder server</a></li>
-              </lift:authz>
-            </ul>
-          </div>
+        <div class=" col-sm-4">
+           <h4>By OS</h4>
+           <div id="nodeOs">
         </div>
-      </lift:authz>
-  </div>
-</lift:surround>
+        </div>
+      <div class=" col-sm-4">
+           <h4>By agent version</h4>
+         <div id="nodeAgents">
+        </div>
+        </div>
+        <div style="clear: both;"></div> 
+      </div>
+    </div>  
+</div>
+      
+      
+      </div>
+   </div>
+  </lift:surround>
 

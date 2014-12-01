@@ -88,8 +88,13 @@
 }
 
 
-.tw-bs a .badge {
+.tw-bs .badge {
   background-color: #2e2d2d;
+}
+
+.tw-bs .badge a {
+  color: #e78f08;
+  font-weight:bold;
 }
 
 
@@ -137,8 +142,8 @@
   position: static;
   height:100%;
   background-color:#2e2d2d;
-  width:94%;
-  margin : 0 3%
+  width:100%;
+  padding: 15px 25px 0;
 }
 
 
@@ -324,4 +329,45 @@
 
 .deca .form-control {
   width:100%
+}
+
+#globalCompliance .progress {
+  height:180px;
+  padding: 55px 20px
+}
+#globalCompliance .progress .progress-bar {
+  line-height:70px;
+  font-size:18px
+}
+
+.tw-bs .nav-pills  > li > a {
+	border-radius : 0px;
+  color : #2e2d2d;
+  font-size: 15px;
+} 
+
+#complianceGauge {
+	height:180px;
+	max-width: 360px;
+	width:100%
+}
+
+#gauge-value {
+	  color: black;
+    font-weight: bold;
+    left: 20px;
+    position: absolute;
+    right: 0;
+    text-align: center;
+    top: 45px;
+    font-size:30px;
+}
+.tw-bs .nav-pills.navbar-rudder {
+	padding-right : 0px;
+  background-color: #fff;
+  background-image:none;
+}
+
+.tw-bs .panel-heading {
+	font-size:18px;
 }
