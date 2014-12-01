@@ -102,7 +102,7 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
   // First mandatory row, so do general thing on the row ( line css, description tooltip ...)
   var name = {
       "mDataProp": "name"
-    , "sWidth": "90px"
+    , "sWidth": "20%"
     , "sTitle": "Name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
@@ -140,14 +140,14 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
   // Rule Category
   var category =
     { "mDataProp": "category"
-    , "sWidth": "120px"
+    , "sWidth": "20%"
     , "sTitle": "Category"
     };
 
   // Status of the rule (disabled) add reason tooltip if needed
   var status= {
       "mDataProp": "status"
-    , "sWidth": "60px"
+    , "sWidth": "10%"
     , "sTitle": "Status"
     , "sClass" : "statusCell"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -176,7 +176,7 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
   // Compliance, with link to the edit form
   var compliance = {
       "mDataProp": "compliance"
-    , "sWidth": "40px"
+    , "sWidth": "25%"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
@@ -189,20 +189,21 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
   // Compliance, with link to the edit form
   var recentChanges = {
       "mDataProp": "recentChanges"
-    , "sWidth": "200px"
-    , "sTitle": "Recent Changes (last 15 days, by hour)"
+    , "sWidth": "10%"
+    , "sTitle": "Recent changes"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
-        elem.append($('<canvas class="recentChanges" height="30"></canvas>')); //chart drawn in fnRowCallback
+        var id = "Changes-"+oData.id;
+        elem.append('<div id="'+id+'"></div>')
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
   };
-  
+
   // Action buttons, use id a dataprop as its is always present
   var actions = {
       "mDataProp": "id"
-    , "sWidth": "20px"
+    , "sWidth": "5%"
     , "bSortable" : false
     , "sClass" : "parametersTd"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -247,29 +248,45 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
     , "fnStateLoadParams": function (oSettings, oData) {
         oData.aoSearchCols[1].sSearch = "";
       }
-    , "fnRowCallback": function( nRow, aData, iDisplayIndex, iDisplayIndexFull ) {
-        var ctx = $(nRow).find('.recentChanges').get(0).getContext("2d");
-        //dataset: on x: timestamp, on y: number of changes
-        
-        console.log("aData content: ");
-        console.log(aData);
-        
-        new Chart(ctx).Line(
-            {
-                labels: aData.recentChanges.x
-              , datasets: [ {
-                  label: "",
-                  strokeColor: "rgba(220,220,220,1)",
-                  pointColor: "rgba(220,220,220,1)",
-                  pointStrokeColor: "#ddd",
-                  pointHighlightFill: "#eee",
-                  pointHighlightStroke: "rgba(220,220,220,1)",
-                  data: aData.recentChanges.y
-                }]
-            }
-          , chartjsSparklineOption()
-        )
-      }
+    , "fnDrawCallback": function( oSettings ) {
+       $.each(oSettings.aoData, function(index,data) {
+         aData = data._aData
+         var id = "Changes-"+aData.id
+         var data = aData.recentChanges.y
+         data.splice(0,0,'Recent changes')
+         var x = aData.recentChanges.x
+         x.splice(0,0,'x')
+        c3.generate({
+           bindto : "#"+id
+         , size: {
+               height: 30
+           }
+        , legend: {
+          show: false
+        }
+         , data: {
+              x: 'x'
+            , columns: [ x, data ]
+            , type: 'area-step'
+          }
+        , bar: {
+              width: {
+                  ratio: 1 // this makes bar width 50% of length between ticks
+              }
+          }
+        , axis: {
+              x: {
+                  show : false
+                , type: 'categories'
+              }
+        , y: {
+          show : false
+        }
+          }
+        });
+       })
+    }
+
     , "aaSorting": [[ sortingDefault, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
@@ -384,7 +401,6 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "details" : Details of components contained in the Directive [Array of Directive values ]
- *   , "callback" : Function to when clicking on compliance percent [ Function ]
  *   }
  */
 function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
@@ -432,11 +448,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "compliance"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = $("<a></a>");
-        elem.addClass("noExpand");
-        elem.attr("href","javascript://");
-        elem.append(buildComplianceBar(oData.compliance));
-        elem.click(function() {oData.callback()});
+        var elem = buildComplianceBar(oData.compliance)
         $(nTd).empty();
         $(nTd).append(elem);
       }
@@ -528,7 +540,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this,createComponentTable(true, true, contextPath));
+        createInnerTable(this,createDirectiveTable(false, true, contextPath));
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -549,7 +561,6 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
  *   , "statusClass" : Class to use on status cell [String]
  *   , "details" : Details of values contained in the component [ Array of Component values ]
  *   , "noExpand" : The line should not be expanded if all values are "None", not used in message popup [Boolean]
- *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
  *   }
  */
 function createComponentTable(isTopLevel, isNodeView, contextPath) {
@@ -566,7 +577,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "component"
     , "sTitle": "Component"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if(isNodeView) {
+        if(! oData.noExpand || isNodeView ) {
           $(nTd).addClass("listopen");
         } else {
           $(nTd).addClass("noExpand");
@@ -577,11 +588,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "compliance"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = $("<a></a>");
-        elem.addClass("noexpand");
-        elem.attr("href","javascript://");
-        elem.append(buildComplianceBar(oData.compliance));
-        elem.click(function() {oData.callback()});
+        var elem = buildComplianceBar(oData.compliance)
         $(nTd).empty();
         $(nTd).append(elem);
       }
@@ -612,7 +619,6 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
  *   { "value" : value of the key [String]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
  *   }
  */
@@ -679,7 +685,6 @@ function createNodeComponentValueTable(contextPath) {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
  *   , "compliance" : compliance percent as String, not used in message popup [String]
- *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
  *   }
  */
@@ -713,11 +718,7 @@ function createRuleComponentValueTable (contextPath) {
       , "mDataProp": "compliance"
       , "sTitle": "Compliance"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          var elem = $("<a></a>");
-          elem.attr("href","javascript://");
-          elem.addClass("noexpand");
-          elem.append(buildComplianceBar(oData.compliance));
-          elem.click(function() {oData.callback()});
+          var elem = buildComplianceBar(oData.compliance);
           $(nTd).empty();
           $(nTd).append(elem);
         }
@@ -877,6 +878,62 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
 
 }
 
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "executionDate" : Date report was executed [DateTime]
+ *   , "node": node hostname [String]
+ *   , "directiveName": Directive name [String]
+ *   , "component" : Report component [String]
+ *   , "value" : Report value [String]
+ *   , "message" : Report message [String]
+ *   }
+ */
+function createChangesTable(gridId, data, contextPath, refresh) {
+
+  var columns = [ {
+      "sWidth": "8%"
+      , "mDataProp": "executionDate"
+      , "sTitle": "Execution Date"
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "nodeName"
+    , "sTitle": "Node"
+  } , {
+      "sWidth": "17%"
+    , "mDataProp": "directiveName"
+    , "sTitle": "Directive"
+  } , {
+      "sWidth": "12%"
+    , "mDataProp": "component"
+    , "sTitle": "Component"
+  } , {
+      "sWidth": "12%"
+    , "mDataProp": "value"
+    , "sTitle": "Value"
+  } , {
+      "sWidth": "24%"
+    , "mDataProp": "message"
+    , "sTitle": "Message"
+  } ];
+
+  var params = {
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+    }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "sDom": '<"dataTables_wrapper_top newFilter"f>rt<"dataTables_wrapper_bottom"lip>'
+  };
+
+  createTable(gridId,data, columns, params, contextPath, refresh);
+
+}
+
 
 /*
  * A function that build a compliance bar with colored zone for compliance
@@ -889,39 +946,70 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
 function buildComplianceBar(compliance) {
   var content = $('<div class="tw-bs progress"></div>')
 
-  var notapplicable = compliance[0]
-  if(notapplicable != 0) {
-    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notapplicable+'%" title="Not Applicable: '+notapplicable+'%">&nbsp;</div>')
+  // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
+  var sum = compliance.reduce(function(pv, cv) { return pv + cv; }, 0);
+  
+  if (sum > 100) {
+    var max_of_array = Math.max.apply(Math, compliance);
+    var index = compliance.indexOf(max_of_array)
+    var toRemove = sum - 100
+    compliance[index] = compliance[index] - toRemove
   }
+
+  var notApplicable = compliance[0]
+  if(notApplicable != 0) {
+    var value = Number((notApplicable).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notApplicable+'%" title="Not applicable: '+notApplicable+'%">'+value+'%</div>')
+  }
+
   var success = compliance[1]
-  if(success != 0) {
-    content.append('<div class="progress-bar progress-bar-success" style="width:'+success+'%" title="Success: '+success+'%">&nbsp;</div>')
-  }
   var repaired = compliance[2]
-  if(repaired != 0) {
-    content.append('<div class="progress-bar progress-bar-repaired" style="width:'+repaired+'%" title=Rrepaired: '+repaired+'%">&nbsp;</div>')
+  var okStatus = success + repaired
+  if(okStatus != 0) {
+    var text = []
+    if (success != 0) {
+      text.push("Sucess: "+success+"%")
+    }
+    if (repaired != 0) {
+      text.push("Repaired: "+repaired+"%")
+    }
+    var value = Number((okStatus).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-success" style="width:'+okStatus+'%" title="'+text.join("\n")+'">'+value+'%</div>')
   }
-  var error = compliance[3]
-  if(error != 0) {
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">&nbsp;</div>')
-  }
+
   var pending = compliance[4]
   if(pending != 0) {
-    content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">&nbsp;</div>')
+    var value = Number((pending).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">'+value+'%</div>')
   }
+
   var noreport = compliance[5]
   if(noreport != 0) {
-    content.append('<div class="progress-bar progress-bar-noanswer" style="width:'+noreport+'%" title="No Report: '+noreport+'%">&nbsp;</div>')
+    var value = Number((noreport).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-pending" style="width:'+noreport+'%" title="No Report: '+noreport+'%">'+value+'%</div>')
   }
+
   var missing = compliance[6]
-  if(missing != 0) {
-    content.append('<div class="progress-bar progress-bar-missing" style="width:'+missing+'%" title="Missing Report: '+missing+'%">&nbsp;</div>')
-  }
   var unknown = compliance[7]
-  if(unknown != 0) {
-    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unknown+'%" title="Unexpected Report: '+unknown+'%">&nbsp;</div>')
+  var unexpected = missing + unknown
+  if(unexpected != 0) {
+    var text = []
+    if (missing != 0) {
+      text.push("Missing reports: "+missing+"%")
+    }
+    if (unknown != 0) {
+      text.push("Unknown reports: "+unknown+"%")
+    }
+    var value = Number((unexpected).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unexpected+'%" title="'+text.join("\n")+'">'+value+'%</div>')
   }
-  
+
+  var error = compliance[3]
+  if(error != 0) {
+    var value = Number((error).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">'+value+'%</div>')
+  }
+
   return content
   
 }
@@ -1098,32 +1186,33 @@ function chartjsSparklineOption() {
       // Function - Will fire on animation completion.
     , onAnimationComplete: function(){}
       
-      ///// line specific /////
-  
-      //Boolean - Whether grid lines are shown across the chart
+      ///// bar specific /////
+    
+
+    //Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
+    , scaleBeginAtZero : true
+
+    //Boolean - Whether grid lines are shown across the chart
     , scaleShowGridLines : false
-      //String - Colour of the grid lines
+
+    //String - Colour of the grid lines
     , scaleGridLineColor : "rgba(0,0,0,.05)"
-      //Number - Width of the grid lines
+
+    //Number - Width of the grid lines
     , scaleGridLineWidth : 1
-      //Boolean - Whether the line is curved between points
-    , bezierCurve : false
-      //Number - Tension of the bezier curve between points
-    , bezierCurveTension : 0.4
-      //Boolean - Whether to show a dot for each point
-    , pointDot : false
-      //Number - Radius of each point dot in pixels
-    , pointDotRadius : 2// 4
-      //Number - Pixel width of point dot stroke
-    , pointDotStrokeWidth : 0 //1
-      //Number - amount extra to add to the radius to cater for hit detection outside the drawn point
-    , pointHitDetectionRadius : 0 //20
-      //Boolean - Whether to show a stroke for datasets
-    , datasetStroke : true
-      //Number - Pixel width of dataset stroke
-    , datasetStrokeWidth : 2
-      //Boolean - Whether to fill the dataset with a colour
-    , datasetFill : false // true
+
+    //Boolean - If there is a stroke on each bar
+    , barShowStroke : true
+
+    //Number - Pixel width of the bar stroke
+    , barStrokeWidth : 1
+
+    //Number - Spacing between each of the X value sets
+    , barValueSpacing : 0
+
+    //Number - Spacing between data sets within X values
+    , barDatasetSpacing : 0
+    
       //String - A legend template
     , legendTemplate : "" //"<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].lineColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
   };

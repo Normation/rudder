@@ -82,9 +82,10 @@
 
 <component:details>
 <div id="details" class="object-details">
-	<div class="groupedEditZone">
-	  <fieldset>
-    <legend>Rule information</legend>
+   <div id="ruleInfoSection" class="unfoldedSection" onclick="$('#ruleInfo').toggle(400); $('#ruleInfoSection').toggleClass('foldedSection');$('#ruleInfoSection').toggleClass('unfoldedSection');">
+      <div class="section-title">Rule information</div>
+    </div>
+    <div id="ruleInfo"  >
         <div>
           <b>Name: </b>
           <span id="ruleName"/>
@@ -111,11 +112,10 @@
             Here comes the rudder ID
             </span>
         </div>
-		</fieldset>
 	</div>
 	<div id="compliancedetails">
-    </div>
-    </div>
+  </div>
+</div>
 </component:details>
 
 
