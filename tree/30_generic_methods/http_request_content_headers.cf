@@ -33,15 +33,21 @@ bundle agent http_request_content_headers(method, url, content, headers)
   vars:
       "class_prefix" string => canonify("http_request_content_headers_${url}");
 
+  classes:
+    any::
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass2::
+      "report"
+        usebundle  => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${class_prefix}");
+
   commands:
       "/bin/echo \"${content}\" | ${paths.path[curl]}"
         args => "${url} -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
         contain => in_shell,
         classes => classes_generic("${class_prefix}");
-
-  methods:
-      "report"
-        usebundle  => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${class_prefix}");
 
 }
 
