@@ -69,12 +69,13 @@
       var bootstrapAlert = $.fn.alert.noConflict();
       var bootstrapCarousel = $.fn.carousel.noConflict();
       var bootstrapCollapse = $.fn.collapse.noConflict();
-      var bootstrapModal = $.fn.modal.noConflict();
       var bootstrapTooltip = $.fn.tooltip.noConflict();
       var bootstrapPopover = $.fn.popover.noConflict();
       var bootstrapScrollspy = $.fn.scrollspy.noConflict();
       var bootstrapTab = $.fn.tab.noConflict();
       var bootstrapAffix = $.fn.affix.noConflict();
+      var bootstrapModal = $.fn.modal.noConflict();
+      $.fn.bsModal = bootstrapModal
       // ]]>
     </script>
 
@@ -83,6 +84,7 @@
     <script type="text/javascript" src="/javascript/rudder/angular/complianceMode.js" id="angular-complianceMode"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/agentSchedule.js" id="angular-agentSchedule"></script>
     
+        <lift:SendMetricsPopup.display />
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->
@@ -133,6 +135,34 @@
   </nav>
 </div>
 
+<div class="tw-bs">
+    <div id="sendMetricsPopup" class="modal fade">
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></div>
+        <h4 class="modal-title">Participate in usage survey?</h4>
+      </div>
+      <div class="modal-body">
+        <p>Thanks for using Rudder! We hope you are enjoying it.</p>
+        <p>To help the team continue to improve Rudder day after day, we are running a survey to collect usage statistics.</p>
+        <p>These statistics are submitted anonymously, and include overall statistics about your instance of Rudder (number of Rules, Directives, Nodes, etc).
+           No potentially-sensitive data is included (only stock Rudder-provided techniques are examined, no hostnames, etc).
+           We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics).</p>
+        <p>If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.</p>
+        <p>This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.<br/>
+           Please consider participating in the survey! You can choose to opt-out again anytime, in the <a href="/secure/administration/policyServerManagement#sendMetrics">global settings</a>.</p>
+      </div>
+      <div class="modal-footer" style="text-align:center">
+        <button type="button" id="noSendMetrics" class="btn btn-default pull-left">No</button>
+        <button type="button" class="btn btn-default"  data-dismiss="modal">Ask again later</button>
+        <button type="button" id="yesSendMetrics" class="btn btn-default pull-right">Yes</button>
+      </div>
+    </div><!-- /.modal-content -->
+  </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+
 
     <div id="dialogLogOut">
       <div class="simplemodal-title">
@@ -160,9 +190,9 @@
         </div>
       </div>
     <!--Fin popin Login-->
-
-  
   </div>
+</div>
+ 
   
 <img alt="" 
   id="ajax-loader" 
