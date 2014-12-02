@@ -41,9 +41,7 @@ import scala.xml.Node
 
 object TestFileFormat {
 
-  private[this] val currentFileFormat = Constants.XML_FILE_FORMAT_5
-
-  def apply(xml:Node, fileFormat:String = currentFileFormat.toString) : Box[String] = {
+  def apply(xml:Node, fileFormat : String  = Constants.XML_CURRENT_FILE_FORMAT.toString) : Box[String] = {
     if(xml.attribute("fileFormat").map( _.text ) == Some(fileFormat)) Full("OK")
     else Failure("Bad fileFormat (expecting %s): %s".format(fileFormat, xml))
   }
