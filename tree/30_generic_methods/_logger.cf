@@ -32,7 +32,7 @@ bundle agent _logger(message, class_prefix)
 
   methods:
 
-      # Report using the appropriate bundle(s)
+      # Report using the appropriate bundle(s)
       "logging" usebundle => _bundle_caller_two("${configuration.enabled_loggers}", "${message}" , "${class_prefix}");
 
 }
