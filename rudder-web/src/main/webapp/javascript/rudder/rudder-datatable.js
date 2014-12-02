@@ -968,7 +968,7 @@ function buildComplianceBar(compliance) {
   if(okStatus != 0) {
     var text = []
     if (success != 0) {
-      text.push("Sucess: "+success+"%")
+      text.push("Success: "+success+"%")
     }
     if (repaired != 0) {
       text.push("Repaired: "+repaired+"%")
@@ -986,7 +986,7 @@ function buildComplianceBar(compliance) {
   var noreport = compliance[5]
   if(noreport != 0) {
     var value = Number((noreport).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-pending" style="width:'+noreport+'%" title="No Report: '+noreport+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-pending" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>')
   }
 
   var missing = compliance[6]
