@@ -628,3 +628,19 @@ function filterTableInclude(tableId, filter, include) {
     }
   }
 }
+
+$(document).ready(function() {
+  $.extend( $.fn.dataTable.ext.oSort, {
+    "percent-pre": function ( xml ) {
+      var a = $(xml).text()
+      var x = (a == "-") ? 0 : a.replace( /%/, "" );
+      return parseFloat( x );
+    }
+  , "percent-asc": function ( a, b ) {
+      return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+    }
+  , "percent-desc": function ( a, b ) {
+      return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+    }
+  });
+});

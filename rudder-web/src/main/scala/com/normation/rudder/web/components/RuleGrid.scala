@@ -227,7 +227,7 @@ class RuleGrid(
           { "sWidth": "90px" },
           { "sWidth": "120px"  },
           { "sWidth": "60px" },
-          { "sWidth": "40px"  }${ if(!popup) """,
+          { "sWidth": "40px", "sType" : "percent" }${ if(!popup) """,
           { "sWidth": "20px", "bSortable" : false }""" else "" }
         ],
         "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
