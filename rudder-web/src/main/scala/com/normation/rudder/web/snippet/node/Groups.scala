@@ -131,6 +131,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
   private[this] var boxGroupLib = getFullGroupLibrary()
 
+  private[this] var selectedCategoryId = boxGroupLib.map(_.id)
+
   /**
    * Head of the portlet, nothing much yet
    * @param html
@@ -268,6 +270,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     creationPopup.set(Full(new CreateCategoryOrGroupPopup(
         None
       , rootCategory
+      , selectedCategoryId
       , onSuccessCategory = displayCategory(workflowEnabled)
       , onSuccessGroup = showGroupSection(workflowEnabled)
       , onSuccessCallback = onSuccessCallback(workflowEnabled)
@@ -445,6 +448,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   ********************************************/
 
   private[this] def displayCategory(workflowEnabled: Boolean)(category : NodeGroupCategory) : JsCmd = {
+    selectedCategoryId = Full(category.id)
     //update UI - no modification here, so no refreshGroupLib
     refreshRightPanel(CategoryForm(category), workflowEnabled)
   }
