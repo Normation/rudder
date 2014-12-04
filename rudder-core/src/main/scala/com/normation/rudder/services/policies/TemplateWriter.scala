@@ -66,7 +66,10 @@ trait TemplateWriter extends Loggable {
 
   private def copyLicenseFile(nodeConfigurationid: NodeId, newMachineFolder:String) : Unit = {
     licenseRepository.findLicense(nodeConfigurationid) match {
-      case None => throw new Exception("Could not find license file")
+      case None =>
+        // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
+        logger.info(s"Not copying missing license file into '${newMachineFolder}' for node '${nodeConfigurationid.value}'.")
+
       case Some(license) =>
         val licenseFile = new File(license.file)
         if (licenseFile.exists) {
