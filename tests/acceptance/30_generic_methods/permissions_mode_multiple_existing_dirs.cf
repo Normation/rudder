@@ -27,7 +27,7 @@ bundle agent init
     "directory_canon" string => canonify("${directory}");
     "mode"            string => "750";
     "owner"           string => "nobody";
-    "group"           string => "nogroup";
+    "group"           string => "daemon";
     "type"            string => "directories";
     "recursion"       string => "inf";
 

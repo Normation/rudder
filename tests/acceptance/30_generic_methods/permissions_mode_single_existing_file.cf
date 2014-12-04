@@ -27,7 +27,7 @@ bundle agent init
     "file_canon" string => canonify("${file}");
     "mode"       string => "640";
     "owner"      string => "nobody";
-    "group"      string => "nogroup";
+    "group"      string => "daemon";
     "type"       string => "files";
     "recursion"  string => "0";
 
