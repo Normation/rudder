@@ -172,13 +172,15 @@ class SystemVariableServiceImpl(
     val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
       licenseRepository.findLicense(nodeInfo.policyServerId) match {
         case None =>
-          logger.warn("Caution, the policy server %s does not have a registered Nova license".format(nodeInfo.policyServerId.value))
-          throw new LicenseException("No license found for the policy server " + nodeInfo.policyServerId.value)
+          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
+          //that's the default value
+          "25"
         case Some(x) => x.licenseNumber.toString
       }
     } else {
       "1"
     }
+
     val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
     var varClientList = systemVariableSpecService.get("CLIENTSLIST").toVariable()
