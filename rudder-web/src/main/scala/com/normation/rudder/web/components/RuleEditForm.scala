@@ -666,7 +666,7 @@ class RuleEditForm(
                   { "sWidth": "40px", "bSortable": false },
                   { "sWidth": "355px" },
                   { "sWidth": "50px" },
-                  { "sWidth": "120px" },
+                  { "sWidth": "120px", "sType" : "percent" },
                   { "sWidth": "10px" , "bSortable": false  , "bVisible":false}
                 ]
               });
@@ -723,7 +723,7 @@ class RuleEditForm(
                { "sWidth": "20px", "bSortable": false },
                { "sWidth": "375px" },
                { "sWidth": "50px" },
-               { "sWidth": "120px" },
+               { "sWidth": "120px", "sType" : "percent" },
                { "sWidth": "10px", "bSortable": false  , "bVisible":false }
              ],
               "fnDrawCallback" : function( oSettings ) {%2$s}
@@ -812,7 +812,7 @@ class RuleEditForm(
                     "aoColumns": [
                       { "sWidth": "403px" },
                       { "sWidth": "50px" },
-                      { "sWidth": "120px" },
+                      { "sWidth": "120px", "sType" : "percent" },
                       { "sWidth": "10px", "bSortable": false  , "bVisible":false }
                     ],
                     "fnDrawCallback" : function( oSettings ) {%s}
@@ -965,7 +965,7 @@ class RuleEditForm(
     ) : NodeSeq = {
     ruleStatusReport.computeCompliance match {
       case Some(percent) =>  {
-        val text = Text(percent.toString + "%")
+        val text = Text(percent.toInt.toString + "%")
         val attr = BasicElemAttr("class","noexpand")
         values match {
           case None => SHtml.a({() => showPopup(ruleStatusReport, directiveLib, allNodeInfos)}, text,attr)
