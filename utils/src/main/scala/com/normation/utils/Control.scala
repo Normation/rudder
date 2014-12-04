@@ -79,7 +79,12 @@ object Control {
     var errors = Option.empty[Failure]
     seq.foreach { u => f(u) match {
       case e:EmptyBox =>
-        val msg = s"Error processing ${u}"
+        val msg = e match {
+          case f:Failure => f.messageChain
+          // these case should never happen, because Empty is verbotten, so took a
+          // not to bad solution - u.toString can be very ugly, so limit size.
+          case Empty => s"An error occured while processing: ${u.toString().take(20)}"
+        }
         errors match {
           case None => errors = Some(e ?~! msg)
           case Some(f) => errors = Some(Failure(msg, Empty, Full(f)))
@@ -88,6 +93,7 @@ object Control {
     } }
     errors.getOrElse(Full(buf))
   }
+
   /**
    * A version of sequence that also provide the last output as input
    * of the next processing (it's a foldleft)
