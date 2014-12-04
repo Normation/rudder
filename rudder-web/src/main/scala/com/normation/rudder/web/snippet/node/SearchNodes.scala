@@ -99,9 +99,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
               false
               )
           )
-        , rootCategory = groupLibrary
+        , rootCategory     = groupLibrary
+        , selectedCategory = None
         , onSuccessCategory= { _ => Noop }
-        , onSuccessGroup = { (node:NodeGroup, _) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
+        , onSuccessGroup   = { (node:NodeGroup, _) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
       )))
   }
 
