@@ -99,8 +99,6 @@
         </div>
       </div>
     </div>
-    <div id="notifications">
-    </div>
 	
     <lift:authz role="directive_edit">
       <div id="pendingChangeRequestNotification">
@@ -180,9 +178,10 @@
            </div>
          <br/>
          </div>
-		<div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
-      <div class="section-title">Parameters</div>
-    </div>
+        <div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
+          <div class="section-title">Parameters</div>
+          <div id="notifications"></div>
+        </div>
     <div id="parameters">Here goes the list of parameters</div>
 
     <div  id="ruleTargetSection" class="unfoldedSection" onclick="$('#directiveRulesTab').toggle(400); $('#ruleTargetSection').toggleClass('foldedSection');$('#ruleTargetSection').toggleClass('unfoldedSection');">
