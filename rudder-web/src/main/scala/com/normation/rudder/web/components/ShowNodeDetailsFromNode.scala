@@ -228,7 +228,7 @@ class ShowNodeDetailsFromNode(
        "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
        "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
        "#extraHeader" #> DisplayNode.showExtraHeader(inventory)&
-       "#extraContent" #> DisplayNode.showExtraContent(node, inventory)
+       "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory)
       ).apply(serverDetailsTemplate)
   }
 

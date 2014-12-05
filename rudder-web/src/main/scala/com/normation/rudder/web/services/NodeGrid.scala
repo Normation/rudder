@@ -252,10 +252,11 @@ class NodeGrid(
       arg    <- tryo(json.extract[JsonArg])
       status : InventoryStatus <- Box(InventoryStatus(arg.status))
       nodeId =  NodeId(arg.id)
-      node   <- nodeInfoService.getNode(nodeId)
       sm     <- getNodeAndMachine.get(nodeId, status)
-    } yield (node, sm, arg.jsid, status) ) match {
-      case Full((node, sm, jsid, status)) =>
+    } yield (nodeId, sm, arg.jsid, status) ) match {
+      case Full((nodeId, sm, jsid, status)) =>
+        // Node may not be available, so we look for it outside the for coprehension
+        val node = nodeInfoService.getNode(nodeId)
         SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
       case e:EmptyBox =>
