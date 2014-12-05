@@ -67,45 +67,6 @@ class LoadDemoDataTest extends Specification {
 
 
   "The in memory LDAP directory" should {
-    "correctly load and read back demo-entries" in {
-
-      var i = 0
-
-      val bootPaths = for (path <- "ldap/bootstrap.ldif" :: "ldap/init-policy-server.ldif" :: Nil ) yield {
-        val p = this.getClass.getClassLoader.getResource(path).getPath
-        val reader = new com.unboundid.ldif.LDIFReader(p)
-        while(reader.readEntry != null) i += 1
-
-        p
-      }
-
-      val ldap = InMemoryDsConnectionProvider(
-          baseDNs = baseDN :: Nil
-        , schemaLDIFPaths = schemaLDIFs
-        , bootstrapLDIFPaths = bootPaths
-      )
-
-      //add demo entries
-      val inut2 = {
-        val reader = new com.unboundid.ldif.LDIFReader(
-          this.getClass.getClassLoader.getResource("ldap/demo-data.ldif").getPath
-        )
-        var rec = reader.readChangeRecord
-        while(rec != null) {
-          rec.getChangeType match {
-            case x if(x == ChangeType.ADD) => i += 1
-            case x if(x == ChangeType.DELETE) => i += 1
-            case _ => //nothing
-          }
-          rec.processChange(ldap.server)
-          rec = reader.readChangeRecord
-        }
-      }
-
-
-      ldap.server.countEntries === i
-    }
-
 
     "correctly load and read back test-entries" in {
       val bootstrapLDIFs = ("ldap/bootstrap.ldif" :: "ldap-data/inventory-sample-data.ldif" :: Nil) map { name =>

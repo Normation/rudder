@@ -26,7 +26,7 @@
       </div>
       <div ng-if="globalRun !== undefined">
         <p>By default, agents on all nodes run following the same frequency defined in the global <a href="{{contextPath}}/secure/administration/policyServerManagement#cfagentSchedule">Settings</a>.</p>
-        <p>The current global setting is to run every <b>{{getIntervalValue(globalRun.interval)}}</b>, starting at <b>{{globalRun.startHour}}:{{globalRun.startMinute}}</b>, with a maximum delay after scheduled run time (random interval) of <b>{{globalRun.splayHour}}:{{globalRun.splayMinute}}</b>.</p>
+        <p>The current global setting is to run every <b>{{getIntervalValue(globalRun.interval)}}</b>, starting at <b>{{(format2Digits(globalRun.startHour))}}:{{(format2Digits(globalRun.startMinute))}}</b>, with a maximum delay after scheduled run time (random interval) of <b>{{(format2Digits(globalRun.splayHour))}}:{{(format2Digits(globalRun.splayMinute))}}</b>.</p>
         <p>You may override this global setting just for this node below:</p>
       </div>
     </div>

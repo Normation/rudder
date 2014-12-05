@@ -232,8 +232,6 @@ class RuleEditForm(
     }
   }
 
-
-
   private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
 
     val maptarget = groupLib.allTargets.map{
