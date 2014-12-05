@@ -206,7 +206,7 @@ class SearchNodeComponent(
     def displayQuery(html: NodeSeq ) : NodeSeq = {
       val Query(otName,comp, criteria) = query.get
       SHtml.ajaxForm(bind("query", html,
-        "typeQuery" ->  <label>Include policy servers: <span class="compositionCheckbox">{SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
+        "typeQuery" ->  <label>Include Rudder server components: <span class="compositionCheckbox">{SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
                 if (value)
                   rType = NodeAndPolicyServerReturnType
                 else
