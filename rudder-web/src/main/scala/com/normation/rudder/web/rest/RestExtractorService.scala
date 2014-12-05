@@ -62,6 +62,7 @@ import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -195,7 +196,9 @@ case class RestExtractorService (
   //Call to   readRule.getRuleCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
-
+  private[this] def convertToGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
+    Full(NodeGroupCategoryId(value))
+  }
   private[this] def convertToDirectiveId (value:String) : Box[DirectiveId] = {
     readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
@@ -515,8 +518,9 @@ case class RestExtractorService (
       enabled     <- extractOneValue(params, "enabled")( convertToBoolean)
       dynamic     <- extractOneValue(params, "dynamic")( convertToBoolean)
       query       <- extractOneValue(params, "query")(convertToQuery)
+      category    <- extractOneValue(params, "category")(convertToGroupCategoryId)
     } yield {
-      RestGroup(name,description,query,dynamic,enabled)
+      RestGroup(name,description,query,dynamic,enabled,category)
     }
   }
 
@@ -579,8 +583,9 @@ case class RestExtractorService (
       dynamic     <- extractJsonBoolean(json, "dynamic")
       stringQuery <- queryParser.jsonParse(json \\ "query")
       query       <- queryParser.parse(stringQuery)
+      category    <- extractOneValueJson(json, "category")(convertToGroupCategoryId)
     } yield {
-      RestGroup(name,description,Some(query),dynamic,enabled)
+      RestGroup(name,description,Some(query),dynamic,enabled,category)
     }
   }
 
