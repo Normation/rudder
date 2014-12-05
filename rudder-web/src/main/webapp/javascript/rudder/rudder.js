@@ -630,7 +630,6 @@ function filterTableInclude(tableId, filter, include) {
   }
 }
 
-
 var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
 var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
 var searchTree = function(inputId, treeId) {
@@ -656,3 +655,18 @@ var twoDigitsFormator = d3.format("02d");
 function formatOn2Digits(number) {
   return twoDigitsFormator(number);
 }
+
+$(document).ready(function() {
+  $.extend( $.fn.dataTable.ext.oSort, {
+    "percent-pre": function ( a ) {
+      var x = (a == "-") ? 0 : a.replace( /%/, "" );
+      return parseFloat( x );
+    }
+  , "percent-asc": function ( a, b ) {
+      return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+    }
+  , "percent-desc": function ( a, b ) {
+      return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+    }
+  });
+});
