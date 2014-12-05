@@ -167,6 +167,7 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
   var compliance = {
       "mDataProp": "compliance"
     , "sWidth": "40px"
+    , "sType": "percent"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
@@ -317,6 +318,7 @@ function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
     var compliance = {
         "sWidth": complianceWidth
       , "mDataProp": "compliance"
+      , "sType": "percent"
       , "sTitle": "Compliance"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var elem = $("<a></a>");
@@ -416,6 +418,7 @@ function createComponentTable (isTopLevel, addCompliance, contextPath) {
   var compliance = {
       "sWidth": complianceWidth
     , "mDataProp": "compliance"
+    , "sType": "percent"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = $("<a></a>");
@@ -522,6 +525,7 @@ function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
       "sWidth": complianceWidth
     , "mDataProp": "compliance"
     , "sTitle": "Compliance"
+    , "sType": "percent"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = $("<a></a>");
         elem.addClass("right noExpand");

@@ -692,6 +692,11 @@ class WoLDAPDirectiveRepository(
       entry           <- getDirectiveEntry(con, id)
       //for logging, before deletion
       directive       <- mapper.entry2Directive(entry)
+      okNotSystem     <- if(directive.isSystem) {
+                           Failure(s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted")
+                         } else {
+                           Full("ok")
+                         }
       activeTechnique <- getActiveTechnique(id) ?~! "Can not find the User Policy Temple Entry for directive %s".format(id)
       technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion))
       //delete

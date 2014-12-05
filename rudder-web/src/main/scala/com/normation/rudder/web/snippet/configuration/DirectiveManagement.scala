@@ -216,7 +216,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       }
     }
 
-    JsRaw("""
+    JsRaw(s"""
         var directiveId = null;
         try {
           directiveId = JSON.parse(window.location.hash.substring(1)).directiveId ;
@@ -224,10 +224,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           directiveId = null;
         }
 
-        %s;
-
-    """.format(SHtml.ajaxCall(JsVar("directiveId"), isDirectiveIdValid _ )._2.toJsCmd,
-         htmlId_activeTechniquesTree))
+        ${SHtml.ajaxCall(JsVar("directiveId"), isDirectiveIdValid _ )._2.toJsCmd};
+        createTooltip();
+    """)
   }
 
   def initDirectiveDetails(workflowEnabled: Boolean): NodeSeq = directiveId match {

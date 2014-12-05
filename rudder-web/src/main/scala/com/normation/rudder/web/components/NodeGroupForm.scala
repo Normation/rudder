@@ -348,10 +348,10 @@ class NodeGroupForm(
   private[this] def showCloneGroupPopup() : JsCmd = {
     val popupSnippet = new LocalSnippet[CreateCloneGroupPopup]
             popupSnippet.set(Full(new CreateCloneGroupPopup(
-              Some(nodeGroup),
-              onSuccessCategory = displayACategory,
-              onSuccessGroup = showGroupSection
-              //, onSuccessCallback = { onSuccessCallback }
+                Some(nodeGroup)
+              , onSuccessCategory = displayACategory
+              , onSuccessGroup = showGroupSection
+              , onSuccessCallback = (String) => onSuccessCallback(Left(nodeGroup))
             )))
     val nodeSeqPopup = popupSnippet.is match {
       case Failure(m, _, _) =>  <span class="error">Error: {m}</span>

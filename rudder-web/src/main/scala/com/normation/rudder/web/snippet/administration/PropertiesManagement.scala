@@ -489,17 +489,21 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           S.error("cfagentScheduleMessage", e.messageChain)
 
         case Full((i,h,m,s)) =>
-          (for {
-            _ <- configService.set_agent_run_interval(i)
-            _ <- configService.set_agent_run_start_hour(h)
-            _ <- configService.set_agent_run_start_minute(m)
-            _ <- configService.set_agent_run_splaytime(s)
-          } yield {
-
-            logger.info(s"Agent schedule updated to run interval: ${i} min, start time: ${h }h ${m} min, splaytime: ${s} min")
-            "ok"
-          }) match {
+          ( if (i <= s) {
+            Failure("Cannot save a agent schedule with a splaytime higher than or equal to agent run interval")
+          } else {
+            for {
+              _ <- configService.set_agent_run_interval(i)
+              _ <- configService.set_agent_run_start_hour(h)
+              _ <- configService.set_agent_run_start_minute(m)
+              _ <- configService.set_agent_run_splaytime(s)
+            } yield {
+              logger.info(s"Agent schedule updated to run interval: ${i} min, start time: ${h }h ${m} min, splaytime: ${s} min")
+              "ok"
+            }
+          } ) match {
             case eb:EmptyBox =>
+              logger.error(eb)
               val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
               S.error("cfagentScheduleMessage", e.messageChain)
 
