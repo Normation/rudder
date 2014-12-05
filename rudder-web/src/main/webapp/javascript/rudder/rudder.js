@@ -454,42 +454,39 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
 }
 
 /**
- *
+ * Control a grid, by
+ * * activating the button buttonId
+ * * deactivate the optionnalButton when the form change, and the button has not been clicked
  */
-function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, status, optionnalButton) {
-  $("#"+buttonId).button();
+function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, optionnalButton) {
+    $("#"+buttonId).button();
 
-	if ("false"==status) {
-		$('#'+buttonId).button( "option", "disabled", true );
-	} else {
-		activateButtonDeactivateGrid(buttonId, gridId);
-  }
+    deactivateGrid(gridId);
 
-	// all change on the form
-	$('#'+containerDivId+' > form').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-	// this one is for the checkbox when using IE
-	//if ($.browser.msie)
-	//	$('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);}});
+    // all change on the form
+    $('#'+containerDivId+' > form').change(function() { deactivateGrid(gridId, optionnalButton);});
+    // This one is for all input (text, textarea, password... and yes, button)
+    $('#'+containerDivId+' :input').change(function() { deactivateGrid(gridId, optionnalButton);});
+    // this one is for the checkbox when using IE
 
-	// all change on not the form
-	$('#'+containerDivId+' :radio').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').keyup(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
+    // all change on not the form
+    $('#'+containerDivId+' :radio').change(function() { deactivateGrid(gridId, optionnalButton);});
+    // This one is for all input (text, textarea, password... and yes, button)
+    $('#'+containerDivId+' :input').keyup(function() { deactivateGrid(gridId, optionnalButton);});
 
-	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {
-	  if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  
-	    activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);
-	  }
-	});
-
+    $('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {
+      if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {
+        deactivateGrid(gridId, optionnalButton);
+      }
+    });
 }
 
-function activateButtonDeactivateGrid(buttonId, gridId, optionnalButton) {
-  $("#"+buttonId).button();
-  
-  $('#'+buttonId).button( "option", "disabled", false );
+/**
+ * Deactive the Grid with id gridId, and if optionnalButton is set, will disable it
+ * @param gridId
+ * @param optionnalButton
+ */
+function deactivateGrid(gridId, optionnalButton) {
   $('#'+gridId).addClass("desactivatedGrid");
 
   if ((optionnalButton)&&("" != optionnalButton)) {

@@ -125,7 +125,6 @@ class SearchNodeComponent(
     case "head" => { _ => head() }
   }
 
-  var activateSubmitButton = true
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
   //used in callback to know if we have to
@@ -153,7 +152,6 @@ class SearchNodeComponent(
     def addLine(i:Int) : JsCmd = {
       lines.insert(i+1, CriterionLine(ditQueryData.criteriaMap(OC_NODE),ditQueryData.criteriaMap(OC_NODE).criteria(0),ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)))
       query = Some(Query(rType, composition, lines.toSeq))
-      activateSubmitButton = true
       initUpdate = false
       ajaxCriteriaRefresh
     }
@@ -163,7 +161,6 @@ class SearchNodeComponent(
         lines.remove(i)
         query = Some(Query(rType, composition, lines.toSeq))
       }
-      activateSubmitButton = true
       initUpdate = false
       ajaxCriteriaRefresh
     }
@@ -183,13 +180,11 @@ class SearchNodeComponent(
       if(errors.filter(_.isDefined).size == 0) {
         // ********* EXECUTE QUERY ***********
         srvList = queryProcessor.process(newQuery)
-        activateSubmitButton = false
         initUpdate = true
         searchFormHasError = false
       } else {
         // ********* ERRORS FOUND ***********"
         srvList = Empty
-        activateSubmitButton = true
         searchFormHasError = true
       }
       ajaxCriteriaRefresh & ajaxGridRefresh
@@ -263,12 +258,7 @@ class SearchNodeComponent(
           Script(OnLoad(initJs))
         } else NodeSeq.Empty}
       },
-      "submit" -> {
-        if (activateSubmitButton)
-          SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
-        else
-          SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
-        }
+      "submit" -> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
       )) ++  Script(OnLoad(JsVar("""
           $(".queryInputValue").keydown( function(event) {
             processKey(event , 'SubmitSearch')
@@ -311,7 +301,7 @@ class SearchNodeComponent(
    */
   def activateButtonOnChange() : JsCmd = {
     onSearchCallback(searchFormHasError) &
-    JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s", "%s");  """.format(activateSubmitButton, saveButtonId))
+    JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s");  """.format(saveButtonId))
   }
 
   /**
