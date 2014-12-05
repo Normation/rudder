@@ -450,6 +450,10 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
 
 
 var buildDirectiveTree = function(id, initially_select, appContext, select_limit) {
+  var select_multiple_modifier = "on"
+  if (select_limit > 0) {
+    select_multiple_modifier = "ctrl"
+  }
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
       data.inst.open_all(-1);
@@ -460,8 +464,8 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
       },
       "ui" : { 
         "select_limit" : select_limit,
-        "select_multiple_modifier" : "on", 
         "selected_parent_close" : false,
+        "select_multiple_modifier" : select_multiple_modifier,
         "initially_select" : initially_select
       },
       // I set both options to -2, as I do not need depth and children count checking
@@ -487,8 +491,8 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
             },
             "valid_children" : [ "directive" ],
             "select_node" : function(e) {
-        	  this.toggle_node(e);
-        	  return false;
+               this.toggle_node(e);
+               return select_limit > 0;
             }
           },
           "directive" : {
