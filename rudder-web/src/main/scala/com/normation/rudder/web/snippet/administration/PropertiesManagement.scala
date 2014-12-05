@@ -467,12 +467,12 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
-
   val agentScheduleEditForm = new AgentScheduleEditForm(
       getSchedule
     , saveSchedule
     , () => startNewPolicyGeneration
   )
+
   val complianceModeEditForm = new ComplianceModeEditForm(
       () => configService.rudder_compliance_mode().map(a => (a._1,a._2,true))
     , (complianceMode,frequency,_) => {

@@ -76,6 +76,7 @@ import bootstrap.liftweb.RudderConfig
 class CreateCategoryOrGroupPopup(
     groupGenerator   : Option[NodeGroup]
   , rootCategory     : FullNodeGroupCategory
+  , selectedCategory : Option[NodeGroupCategoryId]
   , onSuccessCategory: (NodeGroupCategory) => JsCmd
   , onSuccessGroup   : (NodeGroup, NodeGroupCategoryId) => JsCmd
   , onSuccessCallback: (String) => JsCmd = { _ => Noop }
@@ -203,9 +204,10 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-  private[this] val piContainer = new WBSelectField("Parent category",
-      (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name)}),
-      "") {
+  private[this] val piContainer = new WBSelectField(
+      "Parent category"
+    , (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name)})
+    , selectedCategory.map(_.value).getOrElse("")) {
     override def errorClassName = "threeColErrors"
     override def className = "rudderBaseFieldSelectClassName"
     override def inputField =

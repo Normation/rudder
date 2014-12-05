@@ -128,7 +128,11 @@ class AgentScheduleEditForm(
       )
     } ) match {
       case head :: _ =>
-        Full(head)
+        if (head.interval <= head.splaytime) {
+          Failure("Cannot save an agent schedule with a splaytime higher than or equal to agent run interval")
+        } else {
+          Full(head)
+        }
       case Nil =>
         Failure(s"Could not parse ${s} as a valid cf-agent schedule")
     }

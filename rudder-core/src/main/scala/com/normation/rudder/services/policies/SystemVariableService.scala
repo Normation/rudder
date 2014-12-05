@@ -61,8 +61,6 @@ import com.normation.rudder.reports.AgentRunInterval
 trait SystemVariableService {
   def getGlobalSystemVariables():  Box[Map[String, Variable]]
 
-
-
   def getSystemVariables(
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
@@ -258,11 +256,20 @@ class SystemVariableServiceImpl(
 
     val varNodeRole = systemVariableSpecService.get("NODEROLE").toVariable().copyWithSavedValue(varNodeRoleValue)
 
-    // Check that the policy server have Nova license if the host is a Nova
-    if (nodeInfo.agentsName.contains(NOVA_AGENT) && licenseRepository.findLicense(nodeInfo.policyServerId).isEmpty) {
-      logger.warn("Caution, the policy server %s does not have a registered Nova license".format(nodeInfo.policyServerId.value))
-      throw new LicenseException("No license found for the policy server " + nodeInfo.policyServerId.value)
+    // Set the licences for the Nova
+    val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
+      licenseRepository.findLicense(nodeInfo.policyServerId) match {
+        case None =>
+          logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
+          //that's the default value
+          "25"
+        case Some(x) => x.licenseNumber.toString
+      }
+    } else {
+      "1"
     }
+
+    val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>
