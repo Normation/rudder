@@ -25,6 +25,25 @@ function findIndex(array, elem) {
 // define ncf app, using ui-bootstrap and its default templates
 var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic'])
 
+// A directive to add a filter on the technique name controller
+// It should prevent having techniques with same name (case insensitive)
+// It should not check with the original name of the technique so we can change its case
+app.directive('techniquename', function($filter) {
+  return {
+    require: 'ngModel',
+    link: function(scope, elm, attrs, ctrl) {
+      ctrl.$validators.techniqueName = function(modelValue, viewValue) {
+         // Get all techniqueNames in lowercase
+         var techniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()})
+         // Remove he original name from the technique names array
+         techniqueNames = $filter("filter")(techniqueNames, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
+         // technique name is ok if the current value is not in the array
+         return $.inArray(viewValue.toLowerCase(), techniqueNames) === -1
+      };
+    }
+  };
+});
+
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll) {
 
