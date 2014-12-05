@@ -42,6 +42,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 trait GroupAPI extends RestAPI {
   val kind = "groups"
@@ -52,14 +53,16 @@ case class RestGroup(
     , description : Option[String] = None
     , query       : Option[Query] = None
     , isDynamic   : Option[Boolean] = None
-    , enabled     : Option[Boolean]     = None
+    , enabled     : Option[Boolean] = None
+    , category    : Option[NodeGroupCategoryId] = None
   ) {
 
     val onlyName = name.isDefined      &&
                    description.isEmpty &&
                    query.isEmpty       &&
                    isDynamic.isEmpty   &&
-                   enabled.isEmpty
+                   enabled.isEmpty     &&
+                   category.isEmpty
 
     def updateGroup(group:NodeGroup) = {
       val updateName  = name.getOrElse(group.name)
