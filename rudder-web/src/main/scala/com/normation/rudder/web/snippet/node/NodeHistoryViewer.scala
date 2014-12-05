@@ -90,7 +90,7 @@ class NodeHistoryViewer extends StatefulSnippet {
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) =>
                 <div id={hid}>{DisplayNode.showPannedContent(
-                    dummyNode(sm.data)
+                    None
                   , sm.data
                   , AcceptedInventory
                   , "hist"
@@ -100,21 +100,6 @@ class NodeHistoryViewer extends StatefulSnippet {
 
       case _ => <div class="error">Missing node ID information: can not display history information</div>
     }
-  }
-
-  private def dummyNode(sm: FullInventory) : RudderNode = {
-    //create a false node
-    RudderNode(
-        id = sm.node.main.id
-      , name = sm.node.main.hostname
-      , description = ""
-      , isBroken = false
-      , isSystem = false
-      , isPolicyServer = false
-      , creationDate = new DateTime(0)
-      , nodeReportingConfiguration = ReportingConfiguration(None, None)
-      , properties = Seq()
-    )
   }
 
   private def initState(suuid:String) : Unit = {
@@ -143,7 +128,7 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) =>
         SetHtml(hid,
-          DisplayNode.showPannedContent(dummyNode(sm.data), sm.data, AcceptedInventory, "hist")) &
+          DisplayNode.showPannedContent(None, sm.data, AcceptedInventory, "hist")) &
           DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
         )
     }

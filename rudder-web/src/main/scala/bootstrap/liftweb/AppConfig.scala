@@ -944,7 +944,7 @@ object RudderConfig extends Loggable {
     , diffRepos
     , PendingInventory
   )
-  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoService)
+  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl)
 
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
   private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(eventLogDetailsServiceImpl, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoServiceImpl, modificationService, personIdentServiceImpl)

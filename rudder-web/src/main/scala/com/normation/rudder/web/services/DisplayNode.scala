@@ -283,12 +283,13 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
 
   /**
   * show the extra part
+  * If there is no node available (pending inventory), there is nothing to show
   */
-  def showExtraContent(node: RudderNode, sm: FullInventory, salt:String = "") : NodeSeq = {
+  def showExtraContent(node: Option[RudderNode], sm: FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     displayTabFilesystems(jsId, sm) ++
     displayTabNetworks(jsId, sm) ++
-    displayTabProperties(jsId, node) ++
+    node.map(displayTabProperties(jsId, _)).getOrElse(Nil) ++
     displayTabVariable(jsId, sm) ++
     displayTabProcess(jsId, sm) ++
     displayTabVM(jsId, sm) ++
@@ -300,7 +301,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="", tabContainer = Some("node_tabs"))
    */
-  def showPannedContent(node: RudderNode, sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
+  def showPannedContent(node: Option[RudderNode], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     <div id="node_tabs" class="tabs">
       <ul>
