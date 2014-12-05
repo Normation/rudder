@@ -274,7 +274,7 @@ case class RestExtractorService (
   private[this] def convertToRuleTarget(parameters: Map[String, List[String]], key:String ): Box[Option[RuleTarget]] = {
     parameters.get(key) match {
       case Some(values) =>
-        sequence(values) { value => RuleTarget.unser(value) }.flatMap { mergetTarget }
+        sequence(values) { value => RuleTarget.unser(value) }.flatMap { mergeTarget }
       case None => Full(None)
     }
   }
@@ -282,7 +282,7 @@ case class RestExtractorService (
   private[this] def convertToRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
     json \\ key match {
       case JArray(values) =>
-        sequence(values) { value => RuleTarget.unserJson(value) }.flatMap { mergetTarget }
+        sequence(values) { value => RuleTarget.unserJson(value) }.flatMap { mergeTarget }
       case x              => RuleTarget.unserJson(x).map(Some(_))
     }
   }
