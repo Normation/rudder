@@ -155,7 +155,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.server.denybadclocks=true
        cfengine.server.skipidentify=false
        agent.run.interval=5
-       agent.run.splaytime=5
+       agent.run.splaytime=4
        agent.run.start.hour=0
        agent.run.start.minute=0
        cfengine.modified.files.ttl=30

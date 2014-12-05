@@ -322,7 +322,7 @@ trait WoDirectiveRepository {
    * If the given directiveId does not exists, it leads to a
    * failure.
    *
-   * System policy instance can't be deleted.
+   * System directive can't be deleted.
    */
   def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff]
 
