@@ -163,18 +163,20 @@ class AccepetedNodesLDAPQueryProcessor(
         }
       }
 
-      //filter out policy server if necessary
+      //filter out Rudder server component if necessary
 
       query.returnType match {
         case NodeReturnType =>
-          val withoutPolicyServer = inNodes.filterNot { case QueryResult(e, _, _) => e.isA(OC_POLICY_SERVER_NODE)}
+            // we have a special case for the root node that always never to that group, even if some weird
+            // scenario lead to the removal (or non addition) of them
+          val withoutServerRole = inNodes.filterNot { case QueryResult(e, inv, _) =>  (inv.valuesFor(A_SERVER_ROLE).size>0 || e(A_NODE_UUID) == Some("root")) }
           if(logger.isDebugEnabled) {
-            val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutPolicyServer.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
+            val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutServerRole.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
             if(!filtered.isEmpty) {
-                logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutPolicyServer.size, filtered.mkString(", ")))
+                logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutServerRole.size, filtered.mkString(", ")))
             }
           }
-          withoutPolicyServer
+          withoutServerRole
         case NodeAndPolicyServerReturnType => inNodes
       }
     }
