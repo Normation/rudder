@@ -110,7 +110,7 @@ class RuleDisplayer (
     ruleCategoryTree.map(tree => SetHtml("categoryTreeParent", viewCategories(tree))).getOrElse(Noop)
   }
 
-  private[this] def ruleCategoryTree = {
+  private[this] val ruleCategoryTree = {
     root.map(
       new RuleCategoryTree(
           "categoryTree"

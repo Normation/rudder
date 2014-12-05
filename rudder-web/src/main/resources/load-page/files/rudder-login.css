@@ -6,7 +6,7 @@
 body {
    font-size: 11px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../images/login/fondLogin.jpg) repeat-x top left;
+   background: #1f1e1e url(fondLogin.jpg) repeat-x top left;
    text-align: center;
 }
 img {

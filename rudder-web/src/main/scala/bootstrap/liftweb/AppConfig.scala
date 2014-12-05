@@ -542,11 +542,20 @@ object RudderConfig extends Loggable {
       , restDataSerializer
     )
 
+  val groupApiService5 = new GroupApiService5 (groupApiService2)
+
   val groupApi2 =
     new GroupAPI2 (
         roNodeGroupRepository
       , restExtractorService
       , groupApiService2
+    )
+
+  val groupApi5 =
+    new GroupAPI5 (
+        restExtractorService
+      , groupApi2
+      , groupApiService5
     )
 
     val nodeApiService2 =
@@ -643,7 +652,7 @@ object RudderConfig extends Loggable {
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
-  val apiV5 : List[RestAPI] = nodeApi5 :: apiV4.filter( _ != nodeApi4)
+  val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
 
   val apis = {
     Map (

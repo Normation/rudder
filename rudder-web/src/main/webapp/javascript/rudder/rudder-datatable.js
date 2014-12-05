@@ -192,6 +192,7 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
     , "sWidth": "10%"
     , "sTitle": "Recent changes"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+      console.log(oData);
         var elem = callbackElement(oData);
         var id = "Changes-"+oData.id;
         elem.append('<div id="'+id+'"></div>')
@@ -256,37 +257,28 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
          data.splice(0,0,'Recent changes')
          var x = aData.recentChanges.x
          x.splice(0,0,'x')
-        c3.generate({
-           bindto : "#"+id
-         , size: {
-               height: 30
-           }
-        , legend: {
-          show: false
-        }
-         , data: {
-              x: 'x'
-            , columns: [ x, data ]
-            , type: 'area-step'
-          }
-        , bar: {
-              width: {
-                  ratio: 1 // this makes bar width 50% of length between ticks
-              }
-          }
-        , axis: {
-              x: {
-                  show : false
-                , type: 'categories'
-              }
-        , y: {
-          show : false
-        }
-          }
-        });
+         c3.generate({
+             bindto : "#"+id
+           , size: { height: 30 }
+           , legend: { show: false }
+           , data: {
+                 x: 'x'
+               , columns: [ x, data ]
+               , type: 'area-step'
+             }
+           , bar: {
+                width: {  ratio: 1 }
+             }
+           , axis: {
+                 x: {
+                    show : false
+                  , type: 'categories'
+                 }
+               , y: { show : false }
+             }
+         });
        })
-    }
-
+      }
     , "aaSorting": [[ sortingDefault, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
@@ -354,6 +346,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
   } , {
     "sWidth": "25%"
       , "mDataProp": "compliance"
+      , "sType": "percent"
       , "sTitle": "Compliance"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var elem = $("<a></a>");
@@ -447,6 +440,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
       "sWidth": complianceWidth
     , "mDataProp": "compliance"
     , "sTitle": "Compliance"
+    , "sType": "percent"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = buildComplianceBar(oData.compliance)
         $(nTd).empty();
