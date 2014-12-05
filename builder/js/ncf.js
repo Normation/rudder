@@ -36,7 +36,9 @@ app.directive('techniquename', function($filter) {
          // Get all techniqueNames in lowercase
          var techniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()})
          // Remove he original name from the technique names array
-         techniqueNames = $filter("filter")(techniqueNames, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
+         if (scope.originalTechnique !== undefined) {
+           techniqueNames = $filter("filter")(techniqueNames, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
+         }
          // technique name is ok if the current value is not in the array
          return $.inArray(viewValue.toLowerCase(), techniqueNames) === -1
       };
@@ -593,6 +595,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         technique: function () {
           return angular.copy($scope.originalTechnique);
         }
+        , techniques : function() { return $scope.techniques}
       }
     });
 
@@ -647,9 +650,11 @@ var confirmModalCtrl = function ($scope, $modalInstance, actionName, kind, name)
   };
 };
 
-var cloneModalCtrl = function ($scope, $modalInstance, technique) {
+var cloneModalCtrl = function ($scope, $modalInstance, technique, techniques) {
 
   technique.bundle_name = undefined;
+
+  $scope.techniques = techniques;
   $scope.technique = technique;
   $scope.oldTechniqueName = technique.name;
 

@@ -59,8 +59,9 @@
               <div class="form-group">
                 <label for="cloneName" class="control-label">New Technique name:</label>
                 <div>
-                  <input  type="text" id="cloneName" class="form-control" ng-model="technique.name" placeholder="Technique Name" required>
+                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required>
                 </div>
+                <span class="text-danger pull-left" ng-show="cloneForm.name.$error.techniqueName">Technique name must be unique</span>
               </div>
             </div>
             <div class="modal-footer">
