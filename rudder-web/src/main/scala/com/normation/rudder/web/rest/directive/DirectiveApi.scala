@@ -42,6 +42,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
+import com.normation.cfclerk.domain.TechniqueName
 
 
 trait DirectiveAPI extends RestAPI {
@@ -49,21 +50,24 @@ trait DirectiveAPI extends RestAPI {
 }
 
 case class RestDirective(
-      name             : Option[String] = None
-    , shortDescription : Option[String] = None
-    , longDescription  : Option[String] = None
-    , enabled          : Option[Boolean] = None
-    , parameters       : Option[Map[String, Seq[String]]] = None
-    , priority         : Option[Int] = None
-    , techniqueVersion : Option[TechniqueVersion] = None
+      name             : Option[String]
+    , shortDescription : Option[String]
+    , longDescription  : Option[String]
+    , enabled          : Option[Boolean]
+    , parameters       : Option[Map[String, Seq[String]]]
+    , priority         : Option[Int]
+    , techniqueName    : Option[TechniqueName]
+    , techniqueVersion : Option[TechniqueVersion]
   ) {
 
     val onlyName = name.isDefined           &&
                    shortDescription.isEmpty &&
                    longDescription.isEmpty  &&
+                   enabled.isEmpty          &&
                    parameters.isEmpty       &&
                    priority.isEmpty         &&
-                   enabled.isEmpty
+                   techniqueName.isEmpty    &&
+                   techniqueVersion.isEmpty
 
     def updateDirective(directive:Directive) = {
       val updateName = name.getOrElse(directive.name)

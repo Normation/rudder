@@ -189,7 +189,7 @@ case class DirectiveAPIService2 (
                 readDirective.getDirectiveWithContext(DirectiveId(sourceId)) match {
                   case Full((technique,activeTechnique,sourceDirective)) =>
 
-                    restExtractor.extractTechniqueVersion(req.params,technique.id.name) match {
+                    restExtractor.checkTechniqueVersion(technique.id.name, restDirective.techniqueVersion) match {
                       case Full(version) =>
                         actualDirectiveCreation(restDirective.copy(enabled = Some(false),techniqueVersion = version),sourceDirective.copy(id=directiveId),activeTechnique,technique)
                       case eb:EmptyBox =>
@@ -209,7 +209,7 @@ case class DirectiveAPIService2 (
               case None =>
                 // If enable is missing in parameter consider it to true
                 val defaultEnabled = restDirective.enabled.getOrElse(true)
-                restExtractor.extractTechnique(req.params) match {
+                restExtractor.extractTechnique(restDirective.techniqueName, restDirective.techniqueVersion) match {
                   case Full(technique) =>
                     readDirective.getActiveTechnique(technique.id.name) match {
                       case Full(activeTechnique) =>
@@ -313,43 +313,35 @@ case class DirectiveAPIService2 (
 
     //Find existing directive
     readDirective.getDirectiveWithContext(directiveId) match {
-      case Full((technique,activeTechnique,directive)) =>
+      case Full((technique, activeTechnique, directive)) =>
         restValues match {
           case Full(restDirective) =>
-            // Technique Version has to be extracted separetly (it needs to know which technique we are using
-            restExtractor.extractTechniqueVersion(req.params, technique.id.name) match {
-              case Full(version) =>
-                // Update Technique
-                val updatedDirective = restDirective.copy(techniqueVersion = version).updateDirective(directive)
-                // check Parameters value
-                val paramCheck = for {
-                  paramEditor <- editorService.get(technique.id, directiveId, updatedDirective.parameters)
-                  check <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
-                } yield {
-                  check
-                }
-                paramCheck match {
-                  case Full(_) =>
-                    val diff = ModifyToDirectiveDiff(technique.id.name,updatedDirective,technique.rootSection)
-                    createChangeRequestAndAnswer(
-                        id
-                      , diff
-                      , technique
-                      , activeTechnique
-                      , updatedDirective
-                      , Some(directive)
-                      , actor
-                      , req
-                      , "Update"
-                    )
+            // Update Technique
+            val updatedDirective = restDirective.updateDirective(directive)
+            // check Parameters value
+            val paramCheck = for {
+              paramEditor <- editorService.get(technique.id, directiveId, updatedDirective.parameters)
+              check <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
+            } yield {
+              check
+            }
+            paramCheck match {
+              case Full(_) =>
+                val diff = ModifyToDirectiveDiff(technique.id.name,updatedDirective,technique.rootSection)
+                createChangeRequestAndAnswer(
+                    id
+                  , diff
+                  , technique
+                  , activeTechnique
+                  , updatedDirective
+                  , Some(directive)
+                  , actor
+                  , req
+                  , "Update"
+                )
 
-                  case eb:EmptyBox =>
-                    val fail = eb ?~ (s"Error with directive Parameter" )
-                    val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."
-                    toJsonError(Some(directiveId.value), message)
-                }
               case eb:EmptyBox =>
-                val fail = eb ?~ (s"Could not find technique version" )
+                val fail = eb ?~ (s"Error with directive Parameter" )
                 val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."
                 toJsonError(Some(directiveId.value), message)
             }
