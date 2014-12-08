@@ -192,7 +192,6 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
     , "sWidth": "10%"
     , "sTitle": "Recent changes"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      console.log(oData);
         var elem = callbackElement(oData);
         var id = "Changes-"+oData.id;
         elem.append('<div id="'+id+'"></div>')

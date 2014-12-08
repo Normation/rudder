@@ -231,19 +231,6 @@ object PendingHistoryGrid extends Loggable {
         case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
         case Empty => Alert("No history was retrieved for the chosen date")
         case Full(sm) =>
-          //create a false node
-          val node = RudderNode(
-              id = sm.data.node.main.id
-            , name = sm.data.node.main.hostname
-            , description = ""
-            , isBroken = false
-            , isSystem = false
-            , isPolicyServer = false
-            , creationDate = new DateTime(0)
-            , nodeReportingConfiguration = ReportingConfiguration(None,None)
-            , properties = Seq()
-          )
-
           SetHtml(
             jsuuid,
             ( if (isAcceptLine)
@@ -251,7 +238,7 @@ object PendingHistoryGrid extends Loggable {
               else
                 NodeSeq.Empty
             ) ++
-            DisplayNode.showPannedContent(node, sm.data, RemovedInventory, "hist")) &
+            DisplayNode.showPannedContent(None, sm.data, RemovedInventory, "hist")) &
             DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
       }
     }
