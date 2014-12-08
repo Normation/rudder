@@ -62,6 +62,7 @@ import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -112,14 +113,18 @@ case class RestExtractorService (
   }
 
 
-  private[this] def extractJsonList[T] (json : JValue,key : String)( convertTo : (List[String]) => Box[T] = ( (value:List[String]) => Full(value))) : Box[Option[T]] = {
+  private[this] def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[Option[T]] = {
     json \\ key match {
       case JArray(values) =>
-        val list = values.flatMap {
-          case JString(value) => Full(value)
-          case value          => Failure(s"Not a good value for parameter ${key} and value ${value}")
-          }
-        convertTo(list).map(Some(_))
+        for {
+          strings <- sequence(values) { _ match {
+                        case JString(s) => Full(s)
+                        case x => Failure("Error extracting a string from json: '${x}'")
+                      } }
+          converted <- convertTo(strings.toList)
+        } yield {
+          Some(converted)
+        }
       case JObject(Nil)   => Full(None)
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
@@ -191,14 +196,9 @@ case class RestExtractorService (
   //Call to   readRule.getRuleCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
 
-  private[this] def convertToRuleTarget (value:String) : Box[RuleTarget] = {
-      RuleTarget.unser(value) match {
-        case Some(GroupTarget(groupId)) => readGroup.getNodeGroup(groupId).map(_ => GroupTarget(groupId))
-        case Some(otherTarget)          => Full(otherTarget)
-        case None                       => Failure(s"${value} is not a valid RuleTarget")
-      }
+  private[this] def convertToGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
+    Full(NodeGroupCategoryId(value))
   }
-
   private[this] def convertToDirectiveId (value:String) : Box[DirectiveId] = {
     readDirective.getDirective(DirectiveId(value)).map(_.id) ?~ s"Directive '$value' not found"
   }
@@ -259,20 +259,61 @@ case class RestExtractorService (
     }
   }
 
+
+  /*
+   * Converting ruletarget.
+   *
+   * We support two use cases, in both json and parameters mode:
+   * - simple rule target name (list of string) =>
+   *   converted into a list of included target
+   * - full-fledge include/exclude
+   *   converted into one composite target.
+   *
+   * For now, it is an error to give several include/exclude,
+   * as of Rudder 3.0, the UI does not know how to handle it.
+   *
+   * So in all case, the result is exactly ONE target.
+   */
+  private[this] def convertToRuleTarget(parameters: Map[String, List[String]], key:String ): Box[Option[RuleTarget]] = {
+    parameters.get(key) match {
+      case Some(values) =>
+        sequence(values) { value => RuleTarget.unser(value) }.flatMap { mergeTarget }
+      case None => Full(None)
+    }
+  }
+
+  private[this] def convertToRuleTarget(json:JValue, key:String ): Box[Option[RuleTarget]] = {
+    json \\ key match {
+      case JArray(values) =>
+        sequence(values) { value => RuleTarget.unserJson(value) }.flatMap { mergeTarget }
+      case x              => RuleTarget.unserJson(x).map(Some(_))
+    }
+  }
+
+  private[this] def mergeTarget(seq: Seq[RuleTarget]): Box[Option[RuleTarget]] = {
+    seq match {
+      case Seq() => Failure(s"Can not extract targets from parameters")
+      case head +: Seq() => Full(Some(head))
+      case several =>
+        //if we have only simple target, build a composite including
+        if(several.exists( x => x.isInstanceOf[CompositeRuleTarget])) {
+          Failure("Composing several composite target with include/exclude is not supported now, please only one composite target.")
+        } else {
+          Full(Some(RuleTarget.merge(several.toSet)))
+        }
+    }
+  }
+
+
   /*
    * Convert List Functions
    */
-  private[this] def convertListToDirectiveId (values : List[String]) : Box[Set[DirectiveId]] = {
-    sequence ( values.filter(_.size != 0) ) ( convertToDirectiveId ).map(_.toSet)
-
+  private[this] def convertListToDirectiveId (values : Seq[String]) : Box[Set[DirectiveId]] = {
+    sequence(values){ convertToDirectiveId }.map(_.toSet)
   }
 
   private[this] def convertListToNodeId (values : List[String]) : Box[List[NodeId]] = {
     Full(values.map(NodeId(_)))
-  }
-
-  private[this] def convertListToRuleTarget (values : List[String]) : Box[Set[RuleTarget]] = {
-    sequence ( values.filter(_.size != 0) ) ( convertToRuleTarget ).map(_.toSet)
   }
 
   def parseSectionVal(xml:JValue) : Box[SectionVal] = {
@@ -463,9 +504,9 @@ case class RestExtractorService (
       longDescription  <- extractOneValue(params,"longDescription")()
       enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
       directives       <- extractList(params,"directives")( convertListToDirectiveId)
-      targets          <- extractList(params,"targets")(convertListToRuleTarget)
+      target           <- convertToRuleTarget(params,"targets")
     } yield {
-      RestRule(name,category,shortDescription,longDescription,directives,targets,enabled)
+      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
     }
   }
 
@@ -477,8 +518,9 @@ case class RestExtractorService (
       enabled     <- extractOneValue(params, "enabled")( convertToBoolean)
       dynamic     <- extractOneValue(params, "dynamic")( convertToBoolean)
       query       <- extractOneValue(params, "query")(convertToQuery)
+      category    <- extractOneValue(params, "category")(convertToGroupCategoryId)
     } yield {
-      RestGroup(name,description,query,dynamic,enabled)
+      RestGroup(name,description,query,dynamic,enabled,category)
     }
   }
 
@@ -512,11 +554,11 @@ case class RestExtractorService (
       category         <- extractOneValueJson(json, "category")(convertToRuleCategoryId)
       shortDescription <- extractOneValueJson(json, "shortDescription")()
       longDescription  <- extractOneValueJson(json, "longDescription")()
-      directives       <- extractJsonList(json, "directives")(convertListToDirectiveId)
-      targets          <- extractJsonList(json, "targets")(convertListToRuleTarget)
+      directives       <- extractJsonListString(json, "directives")(convertListToDirectiveId)
+      target           <- convertToRuleTarget(json, "targets")
       enabled          <- extractJsonBoolean(json,"enabled")
     } yield {
-      RestRule(name,category,shortDescription,longDescription,directives,targets,enabled)
+      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
     }
   }
 
@@ -541,8 +583,9 @@ case class RestExtractorService (
       dynamic     <- extractJsonBoolean(json, "dynamic")
       stringQuery <- queryParser.jsonParse(json \\ "query")
       query       <- queryParser.parse(stringQuery)
+      category    <- extractOneValueJson(json, "category")(convertToGroupCategoryId)
     } yield {
-      RestGroup(name,description,Some(query),dynamic,enabled)
+      RestGroup(name,description,Some(query),dynamic,enabled,category)
     }
   }
 
@@ -577,7 +620,7 @@ case class RestExtractorService (
   }
 
   def extractNodeIdsFromJson (json : JValue) : Box[Option[List[NodeId]]] = {
-    extractJsonList(json, "nodeId")(convertListToNodeId)
+    extractJsonListString(json, "nodeId")(convertListToNodeId)
   }
 
   def extractNodeStatusFromJson (json : JValue) : Box[NodeStatusAction] = {
