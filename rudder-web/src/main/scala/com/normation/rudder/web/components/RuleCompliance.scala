@@ -148,7 +148,7 @@ class RuleCompliance (
           <hr class="spacer" />
          <table id="changesGrid" cellspacing="0">  </table>
         </div> ++
-        Script(JsRaw(s"""
+        Script(After(0,(JsRaw(s"""
           createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",${complianceByDirective.toJsCmd},${refresh().toJsCmd});
           createNodeComplianceTable("nodeReportsGrid",${complianceByNode.toJsCmd},"${S.contextPath}", ${refresh(false).toJsCmd});
           var recentChanges = ${changesData.toJsCmd};
@@ -184,7 +184,7 @@ class RuleCompliance (
                 , y: { show: true }
               }
           } );
-          createTooltip();"""))
+          createTooltip();""")) ))
       } ) match {
       case Full(xml) => xml
       case _ => <div class="error">Error while fetching report information</div>
