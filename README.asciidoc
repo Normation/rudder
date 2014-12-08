@@ -1,72 +1,144 @@
-Rudder: configuration management for the masses
------------------------------------------------
-
-This project is part of Rudder - configuration management made easy. 
- 
-See: http://rudder-project.org for more information. 
+Rudder: open source IT automation and compliance
+------------------------------------------------
 
 [horizontal]
-Screenshots:: http://www.rudder-project.org/foswiki/Screenshots/WebHome
-User documentation:: http://www.rudder-project.org/rudder-doc/rudder-doc.html
+Rudder site:: http://rudder-project.org
+Source:: https://github.com/Normation/rudder
+User documentation:: https://www.rudder-project.org/site/documentation/user-manual/
+API documentation:: http://www.rudder-project.org/rudder-api-doc/
 Bug report:: http://www.rudder-project.org/redmine/projects/rudder/issues
-Mailing list, irc:: http://www.rudder-project.org/foswiki/Community/
+Mailing list, irc:: https://www.rudder-project.org/site/community/mailing-lists/
+
+Rudder is an easy to use, web-driven, role-based solution for IT Infrastructure Automation & Compliance.
+
+The workflow offers different users options at their own level:
+
+*  Non-expert users can define parameters in a central console, and Rudder will automatically make sure that your IT services are installed, configured, running and in good health. All actions (checks, warnings, fixed errors…) are reported upon immediately in the user interface, keeping drift from nominal behaviour low.
+*  Expert users can configure how to implement these parameters on different systems, or build upon the pre-defined library provided.
+*  Managers can consult compliance reports and access audit logs.
+
+Rudder combines the power of some of the best-of-breed open source tools in the field, adding reporting and higher level features to keep an eye on your IT: http://www.ncf.io/[the ncf framework] and http://cfengine.com/[CFEngine configuration management agent], http://www.fusioninventory.org/[the FusionInventory hardware and software inventory tool], reporting and higher level features to keep an eye on your information system. Rudder’s web interface is developed in Scala. 
+
+
+TIP: Rudder is open source – we welcome ideas, comments, criticism, patches and any other contributions! So let's get a chat we our community https://www.rudder-project.org/site/support/chat-mailing-lists/[on irc]!
+
+
+=== Feature overview
+
+* Automate common system administration tasks (installation, configuration)
+* Enforce configuration over time (configuring once is good, ensuring that configuration is valid and automatically fixing it is better)
+* Inventory of all managed nodes
+* Web interface to configure and manage nodes and their configuration
+* Compliance reporting, by configuration and/or by node
+* Full API to interact with Rudder server
+
+Screenshots:: https://www.rudder-project.org/site/documentation/screenshots/
+
+=== Testing Rudder
+
+===== Demo site
+
+You can see a demo version of Rudder:
+* Long term support version: http://demo-latest.rudder-project.org/rudder/
+* Latest release: https://demo-stable.rudder-project.org/rudder/
+
+Login/password is jon.doe/secret for Rudder version =< 2.10 and admin/admin for version >= 2.11.
+
+===== Linux packages
+
+The easiest way to test and use Rudder is to install it from the provided Linux packages. 
+For the server, the main .rpm-based (RedHat, CentOS, SLES) and .deb-based (Debian, Ubuntu)
+distribution are supported. See https://www.rudder-project.org/site/get-rudder/downloads/
+for details about repository and available versions. 
+
+===== Vagrant
+
+Just want to test Rudder without worrying about a full installation?  We provide a https://github.com/Normation/rudder-vagrant[Vagrant set-up]. See https://www.rudder-project.org/site/get-rudder/vagrant/[Rudder Vagrant page] for a getting-started with Rudder on Vagrant.
+
+
+=== Rudder components and projects overview
+
+Rudder is now composed of several projects:
+
+|====
+|Component | Description and GitHub Projects
+
+| Rudder Techniques | 
+Provided Techniques coming in the base set-up of Rudder 
+https://github.com/Normation/rudder-techniques
+
+| Rudder packages | 
+This project contains all the logic to build both server and agent packages for Rudder
+https://github.com/Normation/rudder-packages
+
+| Rudder server | 
+This is the Scala web application It is composed of several Scala projects: 
+https://github.com/Normation/rudder-parent-pom
+https://github.com/Normation/rudder-commons
+https://github.com/Normation/scala-ldap
+https://github.com/Normation/cf-clerk
+https://github.com/Normation/rudder
+
+| Rudder inventory | 
+This part is in charge of parsing fusion inventory reports for Rudder
+https://github.com/Normation/ldap-inventory
+
+| Rudder agent | 
+This project contains the CLI for Rudder agent
+https://github.com/Normation/rudder-agent
+
+| ncf framework | 
+A powerful and structured CFEngine framework used to build Rudder Techniques
+https://github.com/Normation/ncf
+
+| Rudder tools | 
+Nice tools around Rudder 
+https://github.com/Normation/rudder-tools
+
+| Rudder plugins | 
+Plugin examples:
+https://github.com/Normation/rudder-plugin-helloworld
+https://github.com/Normation/rudder-plugin-external-node-information
+https://github.com/Normation/rudder-plugin-itop
+
+| Rudder documentation | 
+We have a project for main documentation and API documentation:
+https://github.com/Normation/rudder-doc
+https://github.com/Normation/rudder-api-doc
+
+|====
 
 === Authors
 
-Normation http://normation.com
+Rudder is supported by Normation http://normation.com
 
-- Francois "fanf" Armand francois.armand@normation.com
-- Nicolas "ncharles" Charles nicolas.charles@normation.com
-- Jonathan "jooooooon" Clarke jonathan.clarke@normation.com
-- Vincent Munier
+The list of contributors is available in https://github.com/Normation/rudder/graphs/contributors
+
 
 === License
 
-This project is licensed under AGPLv3 license, 
-see the provided "LICENSE" file or 
+This project is licensed under AGPLv3 license, see the provided "LICENSE" file or 
 http://www.gnu.org/licenses/agpl-3.0.txt
+
+We added an extension to the main AGPLv3 license to allows to build and use plugins
+on top of Rudder with any license, open source or closed/proprietary, see:
+https://github.com/Normation/rudder/blob/master/LICENSE_EXCEPTION
 
 === Contributing
 
-Thank you for your interest in our project!
+Thank you for your interest in our project! 
+
+We welcome pull requests on any of Rudder projects. 
+
 The contribution process is detailed here: 
 http://www.rudder-project.org/HowToContribute
 
-=== Synopsis
 
-This is the main project, Rudder, the web console that allows
-to see nodes inventory, manage group of nodes, apply configuration
-rules derived from techniques.
-
-This project is composed of several modules:
-
-[horizontal]
-rudder-core:: that module contains most of the logic for Rudder (i.e most of the
-         business tier). Among other things, you will find:
-  * all the logic to save and bind parameters to techniques;
-  * the pipeline of action that generates CFEngine promises from templates, parameters
-    and group of nodes;
-  * an LDAP query processor that allows "join" like operations;
-  * historization of user logging action.
-         
-rudder-web:: that module contains all the presentation layer and the service weaving
-         logic. Along with all the web standard things (JS, CSS, etc) you will find
-         some unusual Liftweb integration:
-  * utilities to use Spring in a Lift application
-  * a plugin system for Lift
-  * a somehow unusual organisation of Lift snippets in components belonging to pages
-  * an automatic web form generation system from XML descrition files. 
-         
-
-=== Usage
-
-The easiest way to test and use Rudder is to install it from the provided Linux packages, 
-see: http://www.rudder-project.org/foswiki/Main/Installation
 
 .For a more 'developper oriented' usage.
 
 This project is managed thanks to Maven software project management (http://maven.apache.org/). 
-You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
+You will have to have a working Maven 3.0.x installation.
 
 .Clean, build and install on your local repository:
 ----
