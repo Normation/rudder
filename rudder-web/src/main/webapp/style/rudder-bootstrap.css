@@ -206,7 +206,19 @@
 }
 
 .directive-footer{
-	width:65.8%
+  width:65.8%
+}
+
+.rule-footer{
+  width:96%;
+  left:25px;
+  margin-left:0px;
+  bottom: 50px;
+  border-right:0;
+}
+
+#editRuleZone form {
+	padding-bottom:40px;
 }
 
 @media (max-width:1475px) {

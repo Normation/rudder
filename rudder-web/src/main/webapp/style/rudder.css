@@ -1545,17 +1545,7 @@ Home portlet
    width: 50%;
    float: left;
 }
-.portlet {
-   margin: 0 1em 1em 0;
-   background-color: #fff;
-   background:  url(../images/fondPortlet.jpg) repeat-x\9;
-}
-*html .portlet {
-   background: url(../images/fondPortlet.jpg) repeat-x;
-}
-*html .portlet-content {
-   background: #fff url(../images/fondPortlet.jpg) repeat-x;
-}
+
 .portlet a {
    color: #f79d10;
 }
@@ -2856,4 +2846,10 @@ form .tw-bs input {
 input[type="number"] {
     padding: 5px 0 5px 5px;
     margin-top:-5px;
-} 
+}
+
+#clone {
+  margin-left:20px;
+  padding-right: 40px;
+  padding-left: 40px;
+}
