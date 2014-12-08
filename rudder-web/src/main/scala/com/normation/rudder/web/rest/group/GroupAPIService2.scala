@@ -192,14 +192,13 @@ case class GroupApiService2 (
                   case Full(enabled) =>
                     val enableCheck = restGroup.onlyName || (!enabled && defaultEnabled)
                     val baseGroup = NodeGroup(groupId,name,"",None,true,Set(),enableCheck)
-                    restExtractor.extractNodeGroupCategoryId(req.params) match {
-                      case Full(category) =>
+                    restGroup.category match {
+                      case Some(category) =>
                         // The enabled value in restGroup will be used in the saved Group
                         actualGroupCreation(restGroup.copy(enabled = Some(enableCheck)),baseGroup,category)
-                      case eb:EmptyBox =>
-                        val fail = eb ?~ (s"Could not node group category" )
-                        val message = s"Could not create Group ${name} (id:${groupId.value}): cause is: ${fail.msg}."
-                        toJsonError(Some(groupId.value), message)
+                      case None =>
+                        //use root category
+                        actualGroupCreation(restGroup.copy(enabled = Some(enableCheck)),baseGroup,readGroup.getRootCategory.id)
                     }
                   case eb : EmptyBox =>
                     val fail = eb ?~ (s"Could not check workflow property" )
