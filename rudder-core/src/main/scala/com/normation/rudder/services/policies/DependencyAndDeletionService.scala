@@ -253,8 +253,9 @@ class DependencyAndDeletionServiceImpl(
     for {
       con          <- ldap
       configRules  <- searchRules(con,id)
+      diff         <- woDirectiveRepository.delete(id, modId, actor, reason) ?~! s"Error when deleting policy instanc with ID '${id.value}'."
       updatedRules <- sequence(configRules) { rule =>
-                        //check that target is actually "target", and remove it
+                        //check that directive is actually in rule directives, and remove it
                         if(rule.directiveIds.exists(i => id == i)) {
                           val newRule = rule.copy(directiveIds = rule.directiveIds - id)
                           val updatedRuleRes = if(rule.isSystem) {
@@ -263,19 +264,16 @@ class DependencyAndDeletionServiceImpl(
                             woRuleRepository.update(newRule, modId, actor, reason)
                           }
                           updatedRuleRes ?~!
-                            "Can not update rule with ID %s. %s".format(rule.id, {
+                            s"Can not remove directive '${id.value}' from rule with ID '${rule.id.value}'. %s".format {
                                val alreadyUpdated = configRules.takeWhile(x => x.id != rule.id)
                                if(alreadyUpdated.isEmpty) ""
                                else "Some rules were already updated: %s".format(alreadyUpdated.mkString(", "))
-                            })
+                            }
                         } else {
                           logger.debug("Do not remove directive with ID '%s' from rule '%s' (already not present?)".format(id.value, rule.id.value))
                           None
                         }
       }
-      diff         <- woDirectiveRepository.delete(id, modId, actor, reason) ?~!
-                      "Error when deleting policy instanc with ID %s. All dependent rules where deleted %s.".format(
-                          id, configRules.map( _.id.value ).mkString(" (", ", ", ")"))
     } yield {
       DirectiveDependencies(id,configRules.toSet)
     }
