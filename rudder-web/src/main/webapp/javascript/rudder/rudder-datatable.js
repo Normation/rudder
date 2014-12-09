@@ -318,9 +318,10 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
  *   Javascript object containing all data to create a line in the DataTable
  *   { "rule" : Rule name [String]
  *   , "id" : Rule id [String]
- *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "details" : Details of Directives contained in the Rule [Array of Directive values]
+ *   , "jsid"    : unique identifier for the line [String]
+ *   , "isSystem" : Is it a system Rule? [Boolean]
  *   }
  */
 function createRuleComplianceTable(gridId, data, contextPath, refresh) {
@@ -332,15 +333,17 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).addClass("listopen");
 
-        var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
-        var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icPen.png");
-        editLink.click(function(e) {e.stopPropagation();})
-        editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        if (! oData.isSystem) {
+          var editLink = $("<a />");
+          editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
+          var editIcon = $("<img />");
+          editIcon.attr("src",contextPath + "/images/icPen.png");
+          editLink.click(function(e) {e.stopPropagation();})
+          editLink.append(editIcon);
+          editLink.addClass("reportIcon");
 
-        $(nTd).append(editLink);
+          $(nTd).append(editLink);
+        }
       }
   } , {
     "sWidth": "25%"
@@ -384,15 +387,15 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
  *   Used in the compliance details for a Rule, and in the
  *   node details page, in report tab.
  *   
- *   Javascript object containing all data to create a line in the DataTable
+ *   Javascript object containing all data to create a line in the DataTable *   Javascript object containing all data to create a line in the DataTable
  *   { "directive" : Directive name [String]
- *   , "id" : Rule id [String]
- *   , "compliance" : compliance percent as String [String]
+ *   , "id" : Directive id [String]
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
- *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of components contained in the Directive [Array of Directive values ]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "details" : Details of components contained in the Directive [Array of Component values]
+ *   , "jsid"    : unique identifier for the line [String]
+ *   , "isSystem" : Is it a system Directive? [Boolean]
  *   }
  */
 function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
@@ -423,17 +426,20 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         toolTipContainer.addClass("tooltipContent");
         toolTipContainer.attr("id",tooltipId);
 
-        var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
-        var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icPen.png");
-        editLink.click(function(e) {e.stopPropagation();})
-        editLink.append(editIcon);
-        editLink.addClass("reportIcon");
-
         $(nTd).append(tooltipIcon);
         $(nTd).append(toolTipContainer);
-        $(nTd).append(editLink);
+
+        if (! oData.isSystem) {
+          var editLink = $("<a />");
+          editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
+          var editIcon = $("<img />");
+          editIcon.attr("src",contextPath + "/images/icPen.png");
+          editLink.click(function(e) {e.stopPropagation();})
+          editLink.append(editIcon);
+          editLink.addClass("reportIcon");
+
+          $(nTd).append(editLink);
+        }
       }
   } , {
       "sWidth": complianceWidth
@@ -480,11 +486,11 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
  *   the pop-up from rule compliance details.
  * 
  *   Javascript object containing all data to create a line in the DataTable
- *   { "node" : Directive name [String]
- *   , "id" : Rule id [String]
- *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   { "node" : Node name [String]
+ *   , "id" : Node id [String]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "details" : Details of Directive applied by the Node [Array of Directive values ]
+ *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 function createNodeComplianceTable(gridId, data, contextPath, refresh) {
@@ -548,19 +554,15 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
  * 
  *   Javascript object containing all data to create a line in the DataTable
  *   { "component" : component name [String]
- *   , "id" : id generated about that component [String]
- *   , "compliance" : compliance percent as String, not used in message popup [String]
- *   , "status" : Worst status of the Directive [String]
- *   , "statusClass" : Class to use on status cell [String]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
  *   , "details" : Details of values contained in the component [ Array of Component values ]
- *   , "noExpand" : The line should not be expanded if all values are "None", not used in message popup [Boolean]
+ *   , "noExpand" : The line should not be expanded if all values are "None" [Boolean]
  *   }
  */
 function createComponentTable(isTopLevel, isNodeView, contextPath) {
 
   if (isTopLevel) {
     var complianceWidth = "26.3%";
-    var componentSize = "73.7%";
   } else {
     var complianceWidth = "27.9%";
     var componentSize = "72.4%";
@@ -610,9 +612,11 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
  *   
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
+ *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 function createNodeComponentValueTable(contextPath) {
@@ -621,22 +625,6 @@ function createNodeComponentValueTable(contextPath) {
       "sWidth": "20%"
     , "mDataProp": "value"
     , "sTitle": "Value"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if ("unexpanded" in oData) {
-          var tooltipIcon = $("<img />");
-          tooltipIcon.attr("src",contextPath+"/images/ic_question_14px.png");
-          tooltipIcon.addClass("reportIcon");
-          var tooltipId = oData.jsid+"-tooltip";
-          tooltipIcon.attr("tooltipid",tooltipId);
-          tooltipIcon.attr("title","");
-          tooltipIcon.addClass("tooltip tooltipable");
-          var toolTipContainer= $("<div>Value '<b>"+sData+"</b>' was expanded from the entry '<b>"+oData.unexpanded+"</b>'</div>");
-          toolTipContainer.addClass("tooltipContent");
-          toolTipContainer.attr("id",tooltipId);
-          $(nTd).append(tooltipIcon);
-          $(nTd).append(toolTipContainer);
-        }
-      }
   } , {
       "sWidth": "62.4%"
     , "mDataProp": "messages"
@@ -677,35 +665,22 @@ function createNodeComponentValueTable(contextPath) {
  *   
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
- *   , "compliance" : compliance percent as String, not used in message popup [String]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "status" : Worst status of the Directive [String]
+ *   , "statusClass" : Class to use on status cell [String]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
+ *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 function createRuleComponentValueTable (contextPath) {
 
-  var complianceWidth = "29.4%";
-  var componentSize = "70.6%";
+  var complianceWidth = "27.7%";
+  var componentSize = "72.3%";
 
   var columns = [ {
       "sWidth": componentSize
     , "mDataProp": "value"
     , "sTitle": "Value"
-    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        if ("unexpanded" in oData) {
-          var tooltipIcon = $("<img />");
-          tooltipIcon.attr("src",contextPath+"/images/ic_question_14px.png");
-          tooltipIcon.addClass("reportIcon");
-          var tooltipId = oData.jsid+"-tooltip";
-          tooltipIcon.attr("tooltipid",tooltipId);
-          tooltipIcon.attr("title","");
-          tooltipIcon.addClass("tooltip tooltipable");
-          var toolTipContainer= $("<div>Value '<b>"+sData+"</b>' was expanded from the entry '<b>"+oData.unexpanded+"</b>'</div>");
-          toolTipContainer.addClass("tooltipContent");
-          toolTipContainer.attr("id",tooltipId);
-          $(nTd).append(tooltipIcon);
-          $(nTd).append(toolTipContainer);
-        }
-      }
   } , {
         "sWidth": complianceWidth
       , "mDataProp": "compliance"
