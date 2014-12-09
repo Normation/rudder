@@ -17,10 +17,10 @@
 #####################################################################################
 
 # @name Service ensure running with service path
-# @description Ensure that a service is running using the appropriate method, specifying the path of the service in the ps output
+# @description Ensure that a service is running using the appropriate method, specifying the path of the service in the ps output, or using Windows task manager
 # 
 #
-# @parameter service_name Service name (as recognized by systemd, init.d, etc...)
+# @parameter service_name Service name (as recognized by systemd, init.d, Windows, etc...)
 # @parameter service_path Service with its path, as in the output from 'ps'
 
 # @class_prefix service_ensure_running
@@ -37,24 +37,34 @@ bundle agent service_ensure_running_path(service_name, service_path)
     "class_prefix"                 string => "service_ensure_running_${canonified_service_name}";
 
   methods:
+    !windows::
+      "check running"
+        usebundle  => service_check_running("${service_path}");
 
-    "check running"
-      usebundle  => service_check_running("${service_path}");
+      "start if not running"
+        usebundle  => service_start("${service_name}"),
+        ifvarclass => "!service_check_running_${canonified_service_path}_kept";
 
-    "start if not running"
-      usebundle  => service_start("${service_name}"),
-      ifvarclass => "!service_check_running_${canonified_service_path}_kept";
-
-    "class copy check"
-      usebundle => _classes_success("${class_prefix}"),
-      ifvarclass => "service_check_running_${canonified_service_path}_kept";
+      "class copy check"
+        usebundle => _classes_success("${class_prefix}"),
+        ifvarclass => "service_check_running_${canonified_service_path}_kept";
  
-    "class copy if not running"
-      usebundle => _classes_copy("service_start_${canonified_service_path}", "${class_prefix}"),
-      ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+      "class copy if not running"
+        usebundle => _classes_copy("service_start_${canonified_service_path}", "${class_prefix}"),
+        ifvarclass => "!service_check_running_${canonified_service_path}_kept";
 
-    "report"
-      usebundle => _logger("Ensure that service ${service_name} is running", "${class_prefix}");
+    any::
+      "report"
+        usebundle  => _logger("Ensure that service ${service_name} is running", "${class_prefix}"),
+        ifvarclass => "${class_prefix}_reached";
+
+  services:
+    windows::
+      "${service_name}"
+        service_policy => "start",
+        classes        => classes_generic("${class_prefix}");
+
+
 
 
 }
