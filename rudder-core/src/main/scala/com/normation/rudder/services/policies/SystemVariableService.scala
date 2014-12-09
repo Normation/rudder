@@ -246,8 +246,6 @@ class SystemVariableServiceImpl(
       "1"
     }
 
-    val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
-
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>
         //log ?
