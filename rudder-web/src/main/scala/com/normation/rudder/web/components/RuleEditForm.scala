@@ -189,8 +189,11 @@ class RuleEditForm(
             }
 
             (
-              "#editForm" #> formContent &
-              "#details"  #> new RuleCompliance(rule,directiveLib, nodeInfos).display
+                s"#${htmlId_EditZone} *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+                ClearClearable &
+              "#ruleForm" #> formContent &
+              "#details"  #> new RuleCompliance(rule,directiveLib, nodeInfos).display &
+              actionButtons()
             ).apply(body)
 
           } else {
@@ -232,24 +235,8 @@ class RuleEditForm(
     }
   }
 
-  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
-
-    val maptarget = groupLib.allTargets.map{
-      case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
-    }.toList.mkString("{",",","}")
-
-    val included = ruleTarget.includedTarget.targets
-    val excluded = ruleTarget.excludedTarget.targets
-
-    (
-      "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      ClearClearable &
-      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByRule(xml, rule.id, workflowEnabled)
-        } &
-      //activation button: show disactivate if activated
-      "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
-      "#removeAction *" #> {
+  private[this] def actionButtons () = {
+    "#removeAction *" #> {
          SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","dangerButton"))
        } &
        "#desactivateAction *" #> {
@@ -261,6 +248,25 @@ class RuleEditForm(
                     , { () =>  onCloneCallback(rule) }
                     , ("type", "button")
       ) &
+      "#save" #> saveButton
+
+  }
+
+  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
+
+    val maptarget = groupLib.allTargets.map{
+      case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
+    }.toList.mkString("{",",","}")
+
+    val included = ruleTarget.includedTarget.targets
+    val excluded = ruleTarget.excludedTarget.targets
+
+    (
+      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
+          PendingChangeRequestDisplayer.checkByRule(xml, rule.id, workflowEnabled)
+        } &
+      //activation button: show disactivate if activated
+      "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
       "#nameField" #> crName.toForm_! &
       "#categoryField" #>   category.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
@@ -295,9 +301,7 @@ class RuleEditForm(
             , excluded
           )}</ul>
         </div> } &
-      "#save" #> saveButton &
-      "#notifications" #>  updateAndDisplayNotifications &
-      "#editForm [id]" #> htmlId_rule
+      "#notifications" #>  updateAndDisplayNotifications
     )(crForm) ++
     Script(OnLoad(JsRaw("""
       correctButtons();

@@ -641,7 +641,6 @@ var clearSearchFieldTree = function(inputId, treeId) {
   return false;
 }
 
-
 var twoDigitsFormator = d3.format("02d");
 
 /* Facility to format a number on two digits */
@@ -663,3 +662,12 @@ $(document).ready(function() {
     }
   });
 });
+
+function checkMigrationButton(currentVersion,selectId) {
+  var selectedVersion = $("#"+selectId+" option:selected" ).text()
+  if (currentVersion === selectedVersion) {
+    $('#migrationButton').button( "option", "disabled", true );
+  } else {
+    $('#migrationButton').button( "option", "disabled", false );
+  }
+}
