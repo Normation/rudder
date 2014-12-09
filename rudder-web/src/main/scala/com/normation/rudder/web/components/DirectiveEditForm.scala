@@ -167,7 +167,9 @@ class DirectiveEditForm(
       , () => {
           val newDirective = directive.copy(techniqueVersion = version)
           onMigrationCallback(newDirective,Some(directive))
-        })
+        }
+      , ("id" -> "migrationButton")
+    )
   }
 
   val displayDeprecationWarning = technique.deprecrationInfo match {
@@ -191,6 +193,16 @@ class DirectiveEditForm(
         ).display
     }
 
+    val versionSelect = directiveVersion
+    val currentVersion = showDeprecatedVersion(directive.techniqueVersion)
+    // It is always a Full, but in case add a warning
+    val versionSelectId = versionSelect.uniqueFieldId match {
+      case Full(id) => id
+      case _ =>
+        logger.warn("could not find id for migration select version")
+        "id_not_found"
+    }
+    logger.info(versionSelect.uniqueFieldId.getOrElse("id_not_found"))
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
@@ -232,7 +244,7 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
-      "#version" #> directiveVersion.toForm_! &
+      "#version" #> versionSelect.toForm_! &
       "#migrate" #> migrateButton(directiveVersion.is,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
@@ -249,23 +261,21 @@ class DirectiveEditForm(
         correctButtons();
        $('#technicalDetails').hide();
       """) &
-      JsVar("""
-          $("input").not("#treeSearch").keydown( function(event) {
-            processKey(event , '%s');
+      JsRaw(s"""
+          $$("input").not("#treeSearch").keydown( function(event) {
+            processKey(event , '${htmlId_save}');
           } );
-          """.format(htmlId_save)) &
-      //adapt the height of tabs to the screen, so that the parameter edition takes all the available
-      //space (leting the possibility to see tabs and save button)
-      //Use a 450px as the minimum height.
-      JsRaw("""$('.tabContent').css('max-height', Math.max($(window).height()-100, 450) +'px') """)
+          checkMigrationButton("${currentVersion}","${versionSelectId}");
 
-    )&
-          JsRaw(
-            s"""$$( "#editZone" ).tabs({
-   select: function(event, ui) {
-       scrollToElement("editZone");
-   }});"""
-          )
+
+          $$('#${versionSelect.uniqueFieldId.getOrElse("id_not_found")}').change(
+            function () {
+              checkMigrationButton("${currentVersion}","${versionSelectId}")
+            }
+          );
+          """)
+
+    )
     )
   }
 
@@ -399,7 +409,8 @@ class DirectiveEditForm(
     new WBSelectObjField(
         "Technique version"
       , versions
-      , defaultValue = directive.techniqueVersion
+      , directive.techniqueVersion
+      , Seq(("id" -> "selectVersion"))
     ) {
 
       override def className = "twoCol"
