@@ -85,6 +85,10 @@ trait SpecialComparator extends BaseComparator
 case object Regex extends SpecialComparator { override val id = "regex" }
 case object NotRegex extends SpecialComparator { override val id = "notRegex" }
 
+
+sealed trait KeyValueComparator extends BaseComparator
+case object HasKey extends KeyValueComparator { override val id = "hasKey" }
+
 trait ComparatorList {
   def comparators : Seq[CriterionComparator]
   def comparatorForString(s:String) : Option[CriterionComparator] = {
@@ -402,23 +406,35 @@ case object EditorComparator extends CriterionType {
   override def toLDAP(value:String) = Full(value)
 }
 
-case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean = false) extends TStringComparator {
-  override val comparators = BaseComparators.comparators
+case class JsonComparator(key:String, splitter:String = "", numericvalue:Boolean = false) extends TStringComparator {
+  override val comparators = HasKey +: BaseComparators.comparators
 
-  def splitJson(attribute:String,value:String) = {
-   val (splittedvalue,splittedattribute) =
-     if (splitter!="")
-       (value.split(splitter),attribute.split('.'))
-     else
-       (Array(value),Array(attribute))
-  if (splittedvalue.size==splittedattribute.size){
-    val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
-    Full(keyvalue.map(attval => if (numericvalue) "\"%s\":%s".format(attval._1,attval._2) else
-      "\"%s\":\"%s\"".format(attval._1,attval._2)))
+  def splitJson(attribute:String, value:String) = {
+    val (splittedvalue,splittedattribute) =
+      if (splitter!="")
+        (value.split(splitter), attribute.split('.'))
+      else
+        (Array(value), Array(attribute))
+
+    if (splittedvalue.size == splittedattribute.size){
+      val keyvalue = (splittedattribute.toList,splittedvalue.toList).zipped map( (attribute,value) => (attribute,value))
+      Full(keyvalue.map(attval =>
+        if (numericvalue)
+          s""""${attval._1}":${attval._2}"""
+        else
+          s""""${attval._1}":"${attval._2}""""
+      ) )
+    } else {
+      Failure("not enough argument")
     }
-  else {
-    Failure("not enough argument")
   }
+
+  private[this] def getAttributeKey(attribute: String) = {
+    if(splitter != "") {
+      attribute.split('.')(0)
+    } else {
+      attribute
+    }
   }
 
   override def buildRegex(attribute:String,value:String) : RegexFilter = {
@@ -431,22 +447,23 @@ case class JsonComparator(key:String,splitter:String = "",numericvalue:Boolean =
     NotRegexFilter(key,regexp)
   }
 
-  override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
-  def JsonQueryfromkeyvalues (attributeName:String,value:String): Filter = {
+  override def buildFilter(attributeName:String, comparator:CriterionComparator,value:String) : Filter = {
+    def JsonQueryfromkeyvalues (attributeName:String,value:String): Filter = {
       splitJson(attributeName,value) match {
-      case e:EmptyBox => HAS(key)
-      case x => SUB(key,null,x.get.toArray ,null)
+        case e:EmptyBox => HAS(key)
+        case x => SUB(key,null,x.get.toArray ,null)
       }
     }
-  comparator match {
-    case Equals    => JsonQueryfromkeyvalues(attributeName,value)
-    case NotEquals => NOT(JsonQueryfromkeyvalues(attributeName,value))
-    case NotExists => NOT(HAS(key))
-    case Regex => HAS(key) //default, non interpreted regex
-    case NotRegex => HAS(key) //default, non interpreted regex
-    case _ => HAS(key) //default to Exists
+    comparator match {
+      case Equals    => JsonQueryfromkeyvalues(attributeName, value)
+      case NotEquals => NOT(JsonQueryfromkeyvalues(attributeName, value))
+      case NotExists => NOT(HAS(key))
+      case Regex     => HAS(key) //default, non interpreted regex
+      case NotRegex  => HAS(key) //default, non interpreted regex
+      case HasKey    => SUB(key, null, Array(s""""${getAttributeKey(attributeName)}":"${value}"""".getBytes), null)
+      case _ => HAS(key) //default to Exists
+    }
   }
- }
 }
 
 
