@@ -458,7 +458,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           , oldDirective
           , workflowEnabled
           , onSuccessCallback = directiveEditFormSuccessCallBack(workflowEnabled)
-          , onMigrationCallback = (dir,optDir) => updateDirectiveForm(workflowEnabled)(Left(dir),optDir)
+          , onMigrationCallback = (dir,optDir) => updateDirectiveForm(workflowEnabled)(Left(dir),optDir) & displayFinishMigrationPopup
           , isADirectiveCreation = isADirectiveCreation
           , onRemoveSuccessCallBack = () => onRemoveSuccessCallBack(workflowEnabled)
         )
