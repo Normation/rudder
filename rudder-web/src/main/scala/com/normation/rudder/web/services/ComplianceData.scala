@@ -152,8 +152,7 @@ case class ComplianceData(
       val details = getDirectivesComplianceDetails(report.directives)
 
       RuleComplianceLine (
-          rule.name
-        , rule.id
+          rule
         , status
         , severity
         , details
@@ -186,10 +185,9 @@ case class ComplianceData(
       val callback = AnonFunc("",ajaxCall)
 
       DirectiveComplianceLine (
-          directive.name
-        , directive.id
+          directive
         , techniqueName
-        , techniqueVersion : TechniqueVersion
+        , techniqueVersion
         , Some(buildComplianceChart(directiveStatus))
         , status
         , severity
@@ -216,10 +214,9 @@ case class ComplianceData(
     } yield {
 
       DirectiveComplianceLine (
-          directive.name
-        , directive.id
+          directive
         , techniqueName
-        , techniqueVersion : TechniqueVersion
+        , techniqueVersion
         , None
         , status
         , severity
@@ -480,19 +477,19 @@ case class ComponentComplianceLine (
 /*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "directive" : Directive name [String]
- *   , "id" : Rule id [String]
- *   , "compliance" : compliance percent as String, not used in message popup [String]
+ *   , "id" : Directive id [String]
+ *   , "compliance" : compliance percent as String [String]
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "details" : Details of components contained in the Directive [Array of Directive values ]
- *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
+ *   , "callback" : Function to when clicking on compliance percent [ Function ]
+ *   , "isSystem" : Is it a system Directive? [Boolean]
  *   }
  */
 case class DirectiveComplianceLine (
-    directive        : String
-  , id               : DirectiveId
+    directive        : Directive
   , techniqueName    : String
   , techniqueVersion : TechniqueVersion
   , compliance       : Option[String]
@@ -510,13 +507,14 @@ case class DirectiveComplianceLine (
 
   val baseFields =  {
     JsObj (
-        ( "directive"        -> directive )
-      , ( "id"               -> id.value )
+        ( "directive"        -> directive.name )
+      , ( "id"               -> directive.id.value )
       , ( "techniqueName"    -> techniqueName )
       , ( "techniqueVersion" -> techniqueVersion.toString )
       , ( "status"           -> status )
       , ( "statusClass"      -> statusClass )
       , ( "details"          -> details.json )
+      , ( "isSystem"         -> directive.isSystem )
     )
   }
 
@@ -554,25 +552,26 @@ case class NodeComplianceLine (
  *   Javascript object containing all data to create a line in the DataTable
  *   { "rule" : Rule name [String]
  *   , "id" : Rule id [String]
- *   , "status" : Worst status of the Directive [String]
+ *   , "status" : Worst status of the Rule [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   , "details" : Details of directives contained in the Rule [Array of Directives ]
+ *   , "isSystem" : is it a system Rule? [Boolean]
  *   }
  */
 case class RuleComplianceLine (
-    name        : String
-  , id          : RuleId
+    rule        : Rule
   , status      : String
   , statusClass : String
   , details     : JsTableData[DirectiveComplianceLine]
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "rule" ->  name )
+        ( "rule" ->  rule.name )
       , ( "status" -> status )
       , ( "statusClass" -> statusClass )
-      , ( "id" -> id.value )
+      , ( "id" -> rule.id.value )
       , ( "details" -> details.json )
+      , ( "isSystem" -> rule.isSystem )
     )
   }
 }
