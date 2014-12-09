@@ -44,7 +44,7 @@ case class GroupApiService5 (
   def createGroup(restGroup: Box[RestGroup], req:Req) = {
   val restGroupChecked =
     restGroup match {
-        case Full(RestGroup(_,_,None,_,_)) => Failure("Cannot create a group with an empty query")
+        case Full(RestGroup(_,_,None,_,_,_)) => Failure("Cannot create a group with an empty query")
         case a => a
     }
   apiService2.createGroup(restGroupChecked,req)
