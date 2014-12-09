@@ -671,3 +671,14 @@ function checkMigrationButton(currentVersion,selectId) {
     $('#migrationButton').button( "option", "disabled", false );
   }
 }
+
+
+/* 
+ * a function that allows to set the height of a div to roughtly
+ * the height of the content of a Rudder page (i.e: without
+ * the header/footer and the place for a title). 
+ */
+function correctContentHeight(selector) {
+  $(selector).height(Math.max(400, $(document).height() - 200));
+}
+
