@@ -25,10 +25,24 @@ bundle agent configuration
 
   vars:
 
-      "ncf_configuration_basedir" string => dirname("${this.promise_filename}");
+      "ncf_configuration_basedir"     string => dirname("${this.promise_filename}");
 
-      "ncf_configuration_file"    string => "${ncf_configuration_basedir}/../ncf.conf";
+      "ncf_configuration_file_source" string => "${ncf_configuration_basedir}/../ncf.conf";
 
+      # On CFEngine 3.6, we expand the template in the agent folder, so that it is not
+      # overwritten by the policy server expanded version, and if there are multiple
+      # agents on the node, each conf file does not compete
+      "ncf_configuration_file_cache"  string => "${sys.workdir}/ncf.conf.cache";
+
+    cfengine_3_5::
+      "ncf_configuration_file"        string => "${ncf_configuration_file_source}";
+    !cfengine_3_5::
+      "ncf_configuration_file"        string => "${ncf_configuration_file_source_cache}";
+      # We need to use a variable to define the bundle we call to expand template, otherwise the
+      # CFEngine parser will try to resolve the non existant bundle in 3.5
+      "generic_method_expansion"      string => "expand_configuration";
+
+    pass2::
       # Read all entries from the configuration file
       "num_entries"                  int => readstringarray("ncf_config","${ncf_configuration_file}","#[^\n]*","=",100,8000);
 
@@ -42,4 +56,13 @@ bundle agent configuration
       "debug"                     string => "[DEBUG]";
       "trace"                     string => "[TRACE]";
 
+  classes:
+    "pass2" expression => "pass1";
+    "pass1" expression => "any";
+
+  methods:
+    # We cannot use the generic method to expand template, as it rely on the logger,
+    # which is not yet defined
+    pass1.!cfengine_3_5::
+      "expand" usebundle => ${generic_method_expansion};
 }
