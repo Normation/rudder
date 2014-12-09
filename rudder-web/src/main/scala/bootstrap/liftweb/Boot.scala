@@ -285,6 +285,11 @@ class Boot extends Loggable {
             "secure" / "utilities" / "eventLogs"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
+
+        , Menu("techniqueEditor", <span>Technique Editor</span>) /
+            "secure" / "utilities" / "techniqueEditor"
+            >> LocGroup("utilitiesGroup")
+            >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
       )
     }
 
