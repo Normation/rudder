@@ -1114,6 +1114,7 @@ object RudderConfig extends Loggable {
     , RUDDER_WEBDAV_USER
     , RUDDER_WEBDAV_PASSWORD
     , RUDDER_SYSLOG_PORT
+    , RUDDER_DIR_GITROOT
     , configService.cfengine_server_denybadclocks _
     , configService.cfengine_server_skipidentify _
     , configService.agent_run_interval
