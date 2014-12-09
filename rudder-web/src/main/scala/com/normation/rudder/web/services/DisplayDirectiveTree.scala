@@ -244,7 +244,7 @@ object DisplayDirectiveTree extends Loggable {
         val tooltipId = Helpers.nextFuncName
 
         val actions = {
-          if (addEditLink) {
+          if (addEditLink && ! directive.isSystem) {
               <img src="/images/icPen.png" class="treeActions treeAction noRight" /> ++ Script(JsRaw(s"""
                 $$('#${htmlId} .treeActions').on("mouseup", function(e) {
                   var url = '${S.contextPath}/secure/configurationManager/directiveManagement#{"directiveId":"${directive.id.value}"}';

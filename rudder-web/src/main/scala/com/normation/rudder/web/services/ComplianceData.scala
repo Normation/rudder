@@ -66,10 +66,12 @@ import com.normation.rudder.services.reports.NodeChanges
 
 /*
  *   Javascript object containing all data to create a line about a change in the DataTable
- *   { "rule" : Rule name [String]
- *   , "id" : Rule id [String]
- *   , "compliance" : compliance percent as String, not used in message popup [List[String]]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   { "nodeName" : Name of the node [String]
+ *   , "message" : Messages linked to that change [String]
+ *   , "directiveName" : Name of the directive [String]
+ *   , "component" : Component name [String]
+ *   , "value": Value of the change [String]
+ *   , "executionDate" : date the report was run on the Node [String]
  *   }
  */
 case class ChangeLine (
@@ -124,25 +126,28 @@ object ChangeLine {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "rule" : Rule name [String]
  *   , "id" : Rule id [String]
- *   , "compliance" : compliance percent as String, not used in message popup [List[String]]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "details" : Details of Directives contained in the Rule [Array of Directive values]
+ *   , "jsid"    : unique identifier for the line [String]
+ *   , "isSystem" : Is it a system Rule? [Boolean]
  *   }
  */
 case class RuleComplianceLine (
-    name        : String
+    rule        : Rule
   , id          : RuleId
   , compliance  : ComplianceLevel
   , details     : JsTableData[DirectiveComplianceLine]
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "rule"       ->  name )
+        ( "rule"       ->  rule.name )
       , ( "compliance" -> jsCompliance(compliance) )
-      , ( "id"         -> id.value )
+      , ( "id"         -> rule.id.value )
       , ( "details"    -> details.json )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
       , ( "jsid"       -> nextFuncName )
+      , ( "isSystem"   -> rule.isSystem )
     )
   }
 }
@@ -150,16 +155,17 @@ case class RuleComplianceLine (
 /*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "directive" : Directive name [String]
- *   , "id" : Rule id [String]
+ *   , "id" : Directive id [String]
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
- *   , "compliance" : compliance percent as String, not used in message popup [List[String]]
- *   , "details" : Details of components contained in the Directive [Array of Directive values ]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "details" : Details of components contained in the Directive [Array of Component values]
+ *   , "jsid"    : unique identifier for the line [String]
+ *   , "isSystem" : Is it a system Directive? [Boolean]
  *   }
  */
 case class DirectiveComplianceLine (
-    directive        : String
-  , id               : DirectiveId
+    directive        : Directive
   , techniqueName    : String
   , techniqueVersion : TechniqueVersion
   , compliance       : ComplianceLevel
@@ -168,8 +174,8 @@ case class DirectiveComplianceLine (
 
   val json =  {
     JsObj (
-        ( "directive"        -> directive )
-      , ( "id"               -> id.value )
+        ( "directive"        -> directive.name )
+      , ( "id"               -> directive.id.value )
       , ( "techniqueName"    -> techniqueName )
       , ( "techniqueVersion" -> techniqueVersion.toString )
       , ( "compliance"       -> jsCompliance(compliance))
@@ -177,6 +183,7 @@ case class DirectiveComplianceLine (
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
       , ( "jsid"             -> nextFuncName )
+      , ( "isSystem"         -> directive.isSystem )
     )
   }
 }
@@ -184,10 +191,11 @@ case class DirectiveComplianceLine (
 
 /*
  *   Javascript object containing all data to create a line in the DataTable
- *   { "node" : Directive name [String]
- *   , "id" : Rule id [String]
- *   , "compliance" : compliance percent as String, not used in message popup [List[String]]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   { "node" : Node name [String]
+ *   , "id" : Node id [String]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "details" : Details of Directive applied by the Node [Array of Directive values ]
+ *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 case class NodeComplianceLine (
@@ -212,14 +220,14 @@ case class NodeComplianceLine (
  *   Javascript object containing all data to create a line in the DataTable
  *   { "component" : component name [String]
  *   , "id" : id generated about that component [String]
- *   , "compliance" : compliance percent as String, not used in message popup [List[String]]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
  *   , "details" : Details of values contained in the component [ Array of Component values ]
- *   , "noExpand" : The line should not be expanded if all values are "None", not used in message popup [Boolean]
+ *   , "noExpand" : The line should not be expanded if all values are "None" [Boolean]
+ *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 case class ComponentComplianceLine (
     component   : String
-  , id          : String
   , compliance  : ComplianceLevel
   , details     : JsTableData[ValueComplianceLine]
   , noExpand    : Boolean
@@ -228,13 +236,9 @@ case class ComponentComplianceLine (
   val json = {
     JsObj (
         ( "component"   -> component )
-      , ( "id"          -> id )
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "details"     -> details.json )
       , ( "noExpand"    -> noExpand )
-      //unique id, usable as DOM id - rules, directives, etc can
-      //appear several time in a page
-      , ( "jsid"        -> nextFuncName )
     )
   }
 
@@ -243,11 +247,11 @@ case class ComponentComplianceLine (
 /*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
- *   , "compliance" : compliance percent as String, not used in message popup [String]
+ *   , "compliance" : array of number of reports by compliance status [Array[Float]]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "callback" : Function to when clicking on compliance percent, not used in message popup [ Function ]
- *   , "message" : Message linked to that value, only used in message popup [ Array[String] ]
+ *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
+ *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 case class ValueComplianceLine (
@@ -325,7 +329,7 @@ object ComplianceData extends Loggable {
       val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib)
 
       RuleComplianceLine (
-          rule.name
+          rule
         , rule.id
         , aggregate.compliance
         , JsTableData(details)
@@ -367,10 +371,9 @@ object ComplianceData extends Loggable {
       val components =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
 
       DirectiveComplianceLine (
-          directive.name
-        , directive.id
+          directive
         , techniqueName
-        , techniqueVersion : TechniqueVersion
+        , techniqueVersion
         , directiveStatus.compliance
         , components
       )
@@ -397,10 +400,8 @@ object ComplianceData extends Loggable {
         (noExpand, getValuesComplianceDetails(component.componentValues.values.toSet))
       }
 
-
       ComponentComplianceLine(
           component.componentName
-        , Helpers.nextFuncName
         , component.compliance
         , values
         , noExpand
@@ -441,4 +442,3 @@ object ComplianceData extends Loggable {
   }
 
 }
-
