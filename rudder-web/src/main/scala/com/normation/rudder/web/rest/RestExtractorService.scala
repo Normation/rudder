@@ -120,7 +120,7 @@ case class RestExtractorService (
         for {
           strings <- sequence(values) { _ match {
                         case JString(s) => Full(s)
-                        case x => Failure("Error extracting a string from json: '${x}'")
+                        case x => Failure(s"Error extracting a string from json: '${x}'")
                       } }
           converted <- convertTo(strings.toList)
         } yield {
@@ -188,6 +188,12 @@ case class RestExtractorService (
     parseSectionVal(parse(value)).map(SectionVal.toMapVariables(_))
   }
 
+  private[this] def extractJsonDirectiveParam (json: JValue ): Box[Map[String,Seq[String]]] = {
+    json \\ "parameters" match {
+      case x@JObject(_) => parseSectionVal(x).map(SectionVal.toMapVariables(_))
+      case _            => Failure(s"Not a good value for parameter ")
+    }
+  }
 
   private[this] def convertToNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
     readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
@@ -454,12 +460,11 @@ case class RestExtractorService (
     extractList(params, "nodeId")(convertListToNodeId)
   }
 
-  def extractTechnique (params : Map[String,List[String]]) :  Box[Technique] = {
-    extractOneValue(params, "techniqueName")() match {
-      case Full(Some(name)) =>
-        val techniqueName = TechniqueName(name)
-        extractOneValue(params, "techniqueVersion")() match {
-          case Full(Some(version)) =>
+  def extractTechnique(optTechniqueName: Option[TechniqueName], opTechniqueVersion: Option[TechniqueVersion]) :  Box[Technique] = {
+    optTechniqueName match {
+      case Some(techniqueName) =>
+        opTechniqueVersion match {
+          case Some(version) =>
             techniqueRepository.getTechniqueVersions(techniqueName).find(_.upsreamTechniqueVersion.value == version) match {
               case Some(version) => techniqueRepository.get(TechniqueId(techniqueName,version)) match {
                 case Some(technique) => Full(technique)
@@ -467,25 +472,23 @@ case class RestExtractorService (
               }
               case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
             }
-          case Full(None) => techniqueRepository.getLastTechniqueByName(techniqueName) match {
+          case None => techniqueRepository.getLastTechniqueByName(techniqueName) match {
             case Some(technique) => Full(technique)
             case None => Failure( s"Error while fetching last version of technique ${techniqueName}")
           }
         }
-      case Full(None) => Failure("techniqueName should not be empty")
-      case eb:EmptyBox => eb ?~ "techniqueName should not be empty"
+      case None => Failure("techniqueName should not be empty")
     }
   }
 
-  def extractTechniqueVersion (params : Map[String,List[String]], techniqueName : TechniqueName)  = {
-     extractOneValue(params, "techniqueVersion")() match {
-          case Full(Some(version)) =>
+  def checkTechniqueVersion (techniqueName: TechniqueName, techniqueVersion: Option[TechniqueVersion])  = {
+     techniqueVersion match {
+          case Some(version) =>
             techniqueRepository.getTechniqueVersions(techniqueName).find(_.upsreamTechniqueVersion.value == version) match {
               case Some(version) => Full(Some(version))
               case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
             }
-          case Full(None) => Full(None)
-          case eb:EmptyBox => eb ?~ "error when extracting technique version"
+          case None => Full(None)
      }
   }
 
@@ -575,8 +578,10 @@ case class RestExtractorService (
       enabled          <- extractOneValue(params, "enabled")( convertToBoolean)
       priority         <- extractOneValue(params, "priority")(convertToInt)
       parameters       <- extractOneValue(params, "parameters")(convertToDirectiveParam)
+      techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
+      techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority, techniqueName, techniqueVersion)
     }
   }
 
@@ -601,9 +606,11 @@ case class RestExtractorService (
       longDescription  <- extractOneValueJson(json, "longDescription")()
       enabled          <- extractOneValueJson(json, "enabled")( convertToBoolean)
       priority         <- extractOneValueJson(json, "priority")(convertToInt)
-      parameters       <- extractOneValueJson(json,  "parameters")(convertToDirectiveParam)
+      parameters       <- extractJsonDirectiveParam(json)
+      techniqueName    <- extractOneValueJson(json, "techniqueName")(x => Full(TechniqueName(x)))
+      techniqueVersion <- extractOneValueJson(json, "techniqueVersion")(x => Full(TechniqueVersion(x)))
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority)
+      RestDirective(name,shortDescription,longDescription,enabled,Some(parameters),priority,techniqueName,techniqueVersion)
     }
   }
 
