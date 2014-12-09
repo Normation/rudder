@@ -93,13 +93,13 @@ class DirectiveEditorServiceImpl(
   }
 
   override def get(
-    policyName: TechniqueId,
+    techniqueId: TechniqueId,
     directiveId: DirectiveId,
     withVarValues: Map[String, Seq[String]] = Map()): Box[DirectiveEditor] = {
 
     for {
       //start by checking Directive existence
-      pol <- techniqueRepository.get(policyName) ?~! ("Error when retrieving Directive details for " + policyName)
+      pol <- techniqueRepository.get(techniqueId) ?~! s"Error when looking for technique with ID '${techniqueId}'. Check technique name and version"
       allVars = pol.rootSection.getAllVariables
       vars = getVars(allVars, withVarValues)
       pe <- section2FieldService.initDirectiveEditor(pol, directiveId, vars)
