@@ -452,7 +452,7 @@ function createComponentTable (isTopLevel, addCompliance, contextPath) {
 /*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "directive" : Directive name [String]
- *   , "id" : Rule id [String]
+ *   , "id" : Directive id [String]
  *   , "compliance" : compliance percent as String [String]
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
@@ -460,6 +460,7 @@ function createComponentTable (isTopLevel, addCompliance, contextPath) {
  *   , "statusClass" : Class to use on status cell [String]
  *   , "details" : Details of components contained in the Directive [Array of Directive values ]
  *   , "callback" : Function to when clicking on compliance percent [ Function ]
+ *   , "isSystem" : Is it a system Directive? [Boolean]
  *   }
  */
 function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
@@ -500,17 +501,20 @@ function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
         toolTipContainer.addClass("tooltipContent");
         toolTipContainer.attr("id",tooltipId);
 
-        var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
-        var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icPen.png");
-        editLink.click(function(e) {e.stopPropagation();})
-        editLink.append(editIcon);
-        editLink.addClass("reportIcon");
-
         $(nTd).append(tooltipIcon);
         $(nTd).append(toolTipContainer);
-        $(nTd).append(editLink);
+
+        if (! oData.isSystem) {
+          var editLink = $("<a />");
+          editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
+          var editIcon = $("<img />");
+          editIcon.attr("src",contextPath + "/images/icPen.png");
+          editLink.click(function(e) {e.stopPropagation();})
+          editLink.append(editIcon);
+          editLink.addClass("reportIcon");
+
+          $(nTd).append(editLink);
+        }
       }
   } , {
       "sWidth": statusWidth
@@ -573,9 +577,10 @@ function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "rule" : Rule name [String]
  *   , "id" : Rule id [String]
- *   , "status" : Worst status of the Directive [String]
+ *   , "status" : Worst status of the Rule [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "details" : Details of components contained in the Directive [Array of Component values ]
+ *   , "details" : Details of directives contained in the Rule [Array of Directives ]
+ *   , "isSystem" : is it a system Rule? [Boolean]
  *   }
  */
 function createRuleComplianceTable (gridId, data, contextPath, refresh) {
@@ -586,16 +591,17 @@ function createRuleComplianceTable (gridId, data, contextPath, refresh) {
     , "sTitle": "Rule"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).addClass("listopen");
-
+        if (! oData.isSystem) {
         var editLink = $("<a />");
-        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
-        var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icPen.png");
-        editLink.click(function(e) {e.stopPropagation();})
-        editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+          editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
+          var editIcon = $("<img />");
+          editIcon.attr("src",contextPath + "/images/icPen.png");
+          editLink.click(function(e) {e.stopPropagation();})
+          editLink.append(editIcon);
+          editLink.addClass("reportIcon");
 
-        $(nTd).append(editLink);
+          $(nTd).append(editLink);
+        }
       }
   } , {
       "sWidth": "15%"
