@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @name Service action
-# @description Trigger an action on a service using tools like systemctl, service, init.d...
+# @description Trigger an action on a service using tools like systemctl, service, init.d, Windows...
 #
 # @parameter service_name Service
 # @parameter action Action to trigger on the service (start, stop, restart, reload, ...)
@@ -50,6 +50,15 @@ bundle agent service_action(service_name, action)
 
       "class_prefix"              string => "service_action_${canonified_service_name}";
 
+  classes:
+    windows::
+      "is_valid_action"               or => {
+                                              strcmp("start", "${action}"),
+                                              strcmp("stop", "${action}"),
+                                              strcmp("restart", "${action}"),
+                                            };
+      "is_restart_action"     expression => strcmp("restart", "${action}");
+
   methods:
 
     systemctl_utility_present|service_utility_present|init_d_directory_present::
@@ -58,11 +67,31 @@ bundle agent service_action(service_name, action)
 
       "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
 
-      "report"                    usebundle => _logger("Run action ${action} on service ${service_name}", "${class_prefix}");
+    systemctl_utility_present|service_utility_present|init_d_directory_present|(windows.is_valid_action)::
 
-    !systemctl_utility_present.!service_utility_present.!init_d_directory_present::
+      "report"                    usebundle => _logger("Run action ${action} on service ${service_name}", "${class_prefix}"),
+                                 ifvarclass => "${class_prefix}_reached";
+
+    (!systemctl_utility_present.!service_utility_present.!init_d_directory_present.!windows)|(windows.!is_valid_action)::
 
       "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
       "report"                    usebundle => _logger("Running ${action} on service ${service_name} is not possible yet on this system", "${class_prefix}");
+
+  services:
+    # Restart causes the agent to fail, so we must replace it by stop and start
+    windows.is_valid_action.!is_restart_action::
+      "${service_name}"
+        service_policy => "${action}",
+        classes        => classes_generic("${class_prefix}");
+
+    windows.is_restart_action::
+      "${service_name}"
+        service_policy => "stop",
+        classes        => classes_generic("${class_prefix}_stop_service");
+
+      "${service_name}"
+        service_policy => "start",
+        classes        => classes_generic("${class_prefix}"),
+        ifvarclass     => "${class_prefix}_stop_service_ok";
 
 }

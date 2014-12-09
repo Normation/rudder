@@ -34,7 +34,7 @@ bundle agent service_ensure_stopped(service_name)
     "class_prefix"                 string => "service_ensure_stopped_${canonified_service_name}";
 
   methods:
-
+    !windows::
       "check running"
         usebundle  => service_check_running("${service_name}");
 
@@ -56,7 +56,17 @@ bundle agent service_ensure_stopped(service_name)
         usebundle => _classes_copy("service_stop_${canonified_service_name}", "${class_prefix}"),
         ifvarclass => "service_check_running_${canonified_service_name}_kept";
 
+    any::
       "report"
-        usebundle => _logger("Ensure that service ${service_name} is stopped", "${class_prefix}");
+        usebundle  => _logger("Ensure that service ${service_name} is stopped", "${class_prefix}"),
+        ifvarclass =>"${class_prefix}_reached";
+
+  services:
+    windows::
+      "${service_name}"
+        service_policy => "stop",
+        classes        => classes_generic("${class_prefix}");
+
+
 
 }
