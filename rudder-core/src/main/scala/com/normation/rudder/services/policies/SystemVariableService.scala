@@ -62,14 +62,15 @@ trait SystemVariableService {
 class SystemVariableServiceImpl(
     licenseRepository: LicenseRepository
   , parameterizedValueLookupService: ParameterizedValueLookupService
-  , systemVariableSpecService: SystemVariableSpecService
-  , toolsFolder: String
-  , cmdbEndPoint: String
-  , communityPort: Int
-  , sharedFilesFolder: String
-  , webdavUser: String
-  , webdavPassword: String
-  , syslogPort: Int
+  , systemVariableSpecService      : SystemVariableSpecService
+  , toolsFolder                    : String
+  , cmdbEndPoint                   : String
+  , communityPort                  : Int
+  , sharedFilesFolder              : String
+  , webdavUser                     : String
+  , webdavPassword                 : String
+  , syslogPort                     : Int
+  , configurationRepository        : String
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
   , getSkipIdentify: () => Box[Boolean]
@@ -90,6 +91,7 @@ class SystemVariableServiceImpl(
   val varSharedFilesFolder = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable().copyWithSavedValue(sharedFilesFolder)
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
+  val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable().copyWithSavedValue(configurationRepository)
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
@@ -122,6 +124,7 @@ class SystemVariableServiceImpl(
       , (varWebdavUser.spec.name, varWebdavUser)
       , (varWebdavPassword.spec.name, varWebdavPassword)
       , (syslogPortConfig.spec.name, syslogPortConfig)
+      , (configurationRepositoryFolder.spec.name, configurationRepositoryFolder)
       , (denyBadClocks.spec.name, denyBadClocks)
       , (skipIdentify.spec.name, skipIdentify)
       , (varAgentRunInterval.spec.name, varAgentRunInterval)
