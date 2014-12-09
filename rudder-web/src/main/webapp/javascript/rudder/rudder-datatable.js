@@ -786,6 +786,67 @@ function createNodeTable(gridId, data, contextPath, refresh) {
 }
 
 /*
+ *  Table of changes requests
+ *
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "name" : Change request name [String]
+ *   , "id" : Change request id [String]
+ *   , "step" : Change request validation step [String]
+ *   , "creator" : Name of the user that has created the change Request [String]
+ *   , "lastModification" : date of last modification [ String ]
+ *   }
+ */
+function createChangeRequestTable(gridId, data, contextPath, refresh) {
+
+  console.log(refresh);
+  var columns = [ {
+      "sWidth": "5%"
+    , "mDataProp": "id"
+    , "sTitle": "#"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).empty();
+        var editLink = $("<a />");
+        editLink.attr("href",contextPath +'/secure/utilities/changeRequest/'+sData)
+        editLink.text(sData)
+        $(nTd).append(editLink);
+      }
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "step"
+     , "sTitle": "Status"
+  } , {
+      "sWidth": "65%"
+    , "mDataProp": "name"
+    , "sTitle": "Name"
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "creator"
+    , "sTitle": "Creator"
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "lastModification"
+    , "sTitle": "Last Modification"
+  } ];
+
+  var params = {
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+    }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
+
+  createTable(gridId,data, columns, params, contextPath, refresh);
+
+}
+
+/*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "executionDate" : Date report was executed [DateTime]
  *   , "severity" : Report severity [String]
