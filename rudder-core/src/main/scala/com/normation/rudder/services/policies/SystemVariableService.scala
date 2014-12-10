@@ -82,6 +82,7 @@ class SystemVariableServiceImpl(
   , webdavUser               : String
   , webdavPassword           : String
   , syslogPort               : Int
+  , configurationRepository  : String
   , rudderServerRoleLdap     : String
   , rudderServerRoleInventoryEndpoint: String
   , rudderServerRoleDb       : String
@@ -109,6 +110,7 @@ class SystemVariableServiceImpl(
   val varSharedFilesFolder = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable().copyWithSavedValue(sharedFilesFolder)
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
+  val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable().copyWithSavedValue(configurationRepository)
 
   // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleRelayTop
   // if autodetect, then it is not defined, otherwise we parse it
@@ -165,6 +167,7 @@ class SystemVariableServiceImpl(
         varWebdavUser  ::
         varWebdavPassword ::
         syslogPortConfig ::
+        configurationRepositoryFolder ::
         denyBadClocks ::
         skipIdentify ::
         varAgentRunInterval ::
@@ -268,8 +271,6 @@ class SystemVariableServiceImpl(
     } else {
       "1"
     }
-
-    val varLicensesPaid = systemVariableSpecService.get("LICENSESPAID").toVariable().copyWithSavedValue(varLicensesPaidValue)
 
     val authorizedNetworks = policyServerManagementService.getAuthorizedNetworks(nodeInfo.id) match {
       case eb:EmptyBox =>

@@ -56,6 +56,10 @@ import scala.xml.Node
 import scala.xml.Elem
 import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
+import com.normation.rudder.web.services.JsTableData
+import com.normation.rudder.web.services.JsTableLine
+
+
 
 class ChangeRequestManagement extends DispatchSnippet with Loggable {
 
@@ -64,104 +68,78 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
   private[this] val workflowService = RudderConfig.workflowService
   private[this] val changeRequestEventLogService = RudderConfig.changeRequestEventLogService
   private[this] val workflowLoggerService = RudderConfig.workflowEventLogService
-  private[this] val changeRequestTableId = "ChangeRequestId"
+  private[this] val changeRequestTableId = "changeRequestTable"
   private[this] val currentUser = CurrentUser.checkRights(Read("validator")) || CurrentUser.checkRights(Read("deployer"))
 
   private[this] val initFilter : Box[String] = S.param("filter").map(_.replace("_", " "))
 
-  val dataTableInit =
-    """
-     jQuery.extend( jQuery.fn.dataTableExt.oSort, {
-        "num-html-pre": function ( a ) {
-           var x = String(a).replace( /<[\s\S]*?>/g, "" );
-           return parseFloat( x );
-        },
-
-        "num-html-asc": function ( a, b ) {
-           return ((a < b) ? -1 : ((a > b) ? 1 : 0));
-        },
-
-        "num-html-desc": function ( a, b ) {
-           return ((a < b) ? 1 : ((a > b) ? -1 : 0));
-        }
-     } );
-    """ +
-    s"""$$('#${changeRequestTableId}').dataTable( {
-          "asStripeClasses": [ 'color1', 'color2' ],
-          "bAutoWidth": false,
-          "bFilter" : true,
-          "bPaginate" : true,
-          "bLengthChange": true,
-          "bStateSave": true,
-          "sCookiePrefix": "Rudder_DataTables_",
-          "sPaginationType": "full_numbers",
-          "bJQueryUI": true,
-          "oLanguage": {
-            "sSearch": ""
-          },
-          "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-          "aaSorting": [[ 0, "asc" ]],
-          "aoColumns": [
-            { "sWidth": "20px" , "sType": "num-html"},
-            { "sWidth": "40px" },
-            { "sWidth": "100px" },
-            { "sWidth": "40px" },
-            { "sWidth": "40px" }
-          ],
-        } );
-        $$('.dataTables_filter input').attr("placeholder", "Filter");
-
-        ${initFilter match {
-          case Full(filter) => s"$$('#${changeRequestTableId}').dataTable().fnFilter('${filter}',1,true,false,true);"
-          case eb:EmptyBox => s"$$('#${changeRequestTableId}').dataTable().fnFilter('pending',1,true,false,true);"
+  /*
+   *  { "name" : Change request name [String]
+   *   , "id" : Change request id [String]
+   *   , "step" : Change request validation step [String]
+   *   , "creator" : Name of the user that has created the change Request [String]
+   *   , "lastModification" : date of last modification [ String ]
+   *   }
+   */
+  case class ChangeRequestLine ( changeRequest : ChangeRequest) extends JsTableLine {
+    val date =
+      (changeRequestEventLogService.getLastLog(changeRequest.id),workflowLoggerService.getLastLog(changeRequest.id)) match {
+        case (Full(Some(crLog)),Full(Some(wfLog))) =>
+          if (crLog.creationDate.isAfter(wfLog.creationDate)) {
+            DateFormaterService.getFormatedDate(crLog.creationDate)
+          } else {
+            DateFormaterService.getFormatedDate(wfLog.creationDate)
           }
-        }"""
+        case (Full(Some(crLog)),_) => DateFormaterService.getFormatedDate(crLog.creationDate)
+        case (_,Full(Some(wfLog))) => DateFormaterService.getFormatedDate(wfLog.creationDate)
+        case (_,_) => "Error while fetching last action Date"
+      }
 
+    val json = {
+      JsObj(
+          "id" -> changeRequest.id.value
+        , "name" -> changeRequest.info.name
+        , "creator" -> changeRequest.owner
+        , "step" -> workflowService.findStep(changeRequest.id).map(_.value).getOrElse("Unknown")
+        , "lastModification" -> date
+      )
+    }
+  }
 
-  def CRLine(cr: ChangeRequest)= {
-    <tr>
-      <td id="crId">
-         {SHtml.a(() => S.redirectTo(s"/secure/utilities/changeRequest/${cr.id}"), Text(cr.id.value.toString))}
-      </td>
-      <td id="crStatus">
-         {workflowService.findStep(cr.id).getOrElse("Unknown")}
-      </td>
-      <td id="crName">
-         {cr.info.name}
-      </td>
-      <td id="crOwner">
-         { cr.owner }
-      </td>
-      <td id="crDate">
-         {(changeRequestEventLogService.getLastLog(cr.id),workflowLoggerService.getLastLog(cr.id)) match {
-           case (Full(Some(crLog)),Full(Some(wfLog))) =>
-             if (crLog.creationDate.isAfter(wfLog.creationDate))
-               DateFormaterService.getFormatedDate(crLog.creationDate)
-             else
-               DateFormaterService.getFormatedDate(wfLog.creationDate)
-           case (Full(Some(crLog)),_) => DateFormaterService.getFormatedDate(crLog.creationDate)
-           case (_,Full(Some(wfLog))) => DateFormaterService.getFormatedDate(wfLog.creationDate)
-           case (_,_) => "Error while fetching last action Date"
-         }}
-      </td>
-   </tr>
+  def getLines() = {
+    val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)
+    JsTableData(changeRequests match {
+      case Full(changeRequests) =>
+        changeRequests.map(ChangeRequestLine(_)).toList
+      case eb:EmptyBox =>
+        val fail = eb ?~! s"Could not get change requests because of : ${eb}"
+        logger.error(fail.msg)
+        Nil
+    } )
+  }
+  def dataTableInit = {
+    val refresh = AnonFunc( SHtml.ajaxInvoke(() => JsRaw(s"refreshTable('${changeRequestTableId}',${getLines.json.toJsCmd})")))
+
+    val filter = initFilter match {
+      case Full(filter) => s"$$('#${changeRequestTableId}').dataTable().fnFilter('${filter}',1,true,false,true);"
+      case eb:EmptyBox => s"$$('#${changeRequestTableId}').dataTable().fnFilter('pending',1,true,false,true);"
+    }
+    s"""
+      var refreshCR = ${refresh.toJsCmd};
+      createChangeRequestTable('${changeRequestTableId}',[], '${S.contextPath}', refreshCR)
+      ${filter};
+      refreshCR();
+    """
 
   }
+
   def dispatch = {
     case "filter" =>
       xml => ("#actualFilter *" #> statusFilter).apply(xml)
     case "display" => xml =>
-      ( "#crBody" #> {
-        val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)
-        changeRequests match {
-        case Full(changeRequests) => changeRequests.flatMap(CRLine(_))
-        case eb:EmptyBox => val fail = eb ?~! s"Could not get change requests because of : ${eb}"
-        logger.error(fail.msg)
-        <error>{fail.msg}</error>
-      }  }).apply(xml) ++
+      xml ++
       Script(OnLoad(JsRaw(dataTableInit)))
   }
-
 
   def statusFilter = {
 
@@ -184,8 +162,6 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
             $$('#${changeRequestTableId}').dataTable().fnFilter(".",1);
           }"""
     val onChange = ("onchange" -> JsRaw(filterFunction))
-
-
 
     def filterForm (select:Elem,link:String, transform: String => NodeSeq) = {
       val submit =
