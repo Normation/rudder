@@ -72,6 +72,7 @@ class SystemVariableServiceImpl(
   , webdavUser               : String
   , webdavPassword           : String
   , syslogPort               : Int
+  , configurationRepository  : String
   , rudderServerRoleLdap     : String
   , rudderServerRoleInventoryEndpoint: String
   , rudderServerRoleDb       : String
@@ -98,6 +99,7 @@ class SystemVariableServiceImpl(
   val varSharedFilesFolder = systemVariableSpecService.get("SHARED_FILES_FOLDER").toVariable().copyWithSavedValue(sharedFilesFolder)
   val varCommunityPort = systemVariableSpecService.get("COMMUNITYPORT").toVariable().copyWithSavedValue(communityPort.toString)
   val syslogPortConfig = systemVariableSpecService.get("SYSLOGPORT").toVariable().copyWithSavedValue(syslogPort.toString)
+  val configurationRepositoryFolder = systemVariableSpecService.get("CONFIGURATION_REPOSITORY_FOLDER").toVariable().copyWithSavedValue(configurationRepository)
 
   // Compute the values for rudderServerRoleLdap, rudderServerRoleDb and rudderServerRoleRelayTop
   // if autodetect, then it is not defined, otherwise we parse it
@@ -148,6 +150,7 @@ class SystemVariableServiceImpl(
       , (varWebdavUser.spec.name, varWebdavUser)
       , (varWebdavPassword.spec.name, varWebdavPassword)
       , (syslogPortConfig.spec.name, syslogPortConfig)
+      , (configurationRepositoryFolder.spec.name, configurationRepositoryFolder)
       , (denyBadClocks.spec.name, denyBadClocks)
       , (skipIdentify.spec.name, skipIdentify)
       , (varAgentRunInterval.spec.name, varAgentRunInterval)
