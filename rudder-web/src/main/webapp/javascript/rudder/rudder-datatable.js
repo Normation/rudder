@@ -798,7 +798,6 @@ function createNodeTable(gridId, data, contextPath, refresh) {
  */
 function createChangeRequestTable(gridId, data, contextPath, refresh) {
 
-  console.log(refresh);
   var columns = [ {
       "sWidth": "5%"
     , "mDataProp": "id"
@@ -961,6 +960,103 @@ function createChangesTable(gridId, data, contextPath, refresh) {
 
   createTable(gridId,data, columns, params, contextPath, refresh);
 
+}
+
+/*
+ *   Javascript object containing all data to create a line in the DataTable
+ *   { "id" : Event log id [Int]
+ *   , "date": date the event log was produced [Date/String]
+ *   , "actor": Name of the actor making the event [String]
+ *   , "type" : Type of the event log [String]
+ *   , "description" : Description of the event [String]
+ *   , "details" : function/ajax call, setting the details content, takes the id of the element to set [Function(String)]
+ *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
+ *   }
+ */
+function createEventLogTable(gridId, data, contextPath, refresh) {
+
+  var columns = [ {
+      "sWidth": "10%"
+      , "mDataProp": "id"
+      , "sTitle": "Id"
+      , "sClass" : "eventId"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        if( oData.hasDetails ) {
+          $(nTd).addClass("listopen");
+        }
+      }
+  } , {
+      "sWidth": "20%"
+    , "mDataProp": "date"
+    , "sTitle": "Date"
+  } , {
+      "sWidth": "10%"
+    , "mDataProp": "actor"
+    , "sTitle": "Actor"
+  } , {
+      "sWidth": "30%"
+    , "mDataProp": "type"
+    , "sTitle": "Type"
+  } , {
+      "sWidth": "30%"
+    , "mDataProp": "description"
+    , "sTitle": "Description"
+  } ];
+
+  var params = {
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "bStateSave": true
+    , "sCookiePrefix": "Rudder_DataTables_"
+    , "oLanguage": {
+        "sSearch": ""
+    }
+    , "aaSorting": [[ 0, "desc" ]]
+    , "fnDrawCallback" : function( oSettings ) {
+        var myTable = this;
+        var lines = $(myTable.fnGetNodes());
+          lines.each( function () {
+          var tableRow = $(this);
+          var fnData = myTable.fnGetData( this );
+          if (fnData.hasDetails) {
+            tableRow.addClass("curspoint")
+            // Add callback to open th line
+            tableRow.click( function () {
+              // Chack if our line is opened/closed
+              var IdTd = tableRow.find("td.eventId");
+              if (IdTd.hasClass("listclose")) {
+                myTable.fnClose(this);
+              } else {
+                // Set details
+                var detailsId =  'details-'+fnData.id;
+                // First open the row an d set the id
+                var openedRow = $(myTable.fnOpen(this,'',detailsId));
+                var detailsTd = $("."+detailsId)
+                detailsTd.attr("id",detailsId);
+                // Set data in the open row with the details function from data
+                fnData.details(detailsId);
+                // Set final css
+                var color = 'color1';
+                if(tableRow.hasClass('color2'))
+                  color = 'color2';
+                openedRow.addClass(color + ' eventLogDescription')
+              }
+              // toggle list open / close classes
+              IdTd.toggleClass('listopen');
+              IdTd.toggleClass('listclose');
+            } );
+          }
+        } )
+      }
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
+
+  createTable(gridId,data, columns, params, contextPath, refresh);
+
+
+  
 }
 
 
