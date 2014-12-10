@@ -660,7 +660,17 @@ $(document).ready(function() {
   , "percent-desc": function ( a, b ) {
       return ((a < b) ? 1 : ((a > b) ? -1 : 0));
     }
-  });
+  , "num-html-pre": function ( a ) {
+      var x = String(a).replace( /<[\s\S]*?>/g, "" );
+      return parseFloat( x );
+    }
+  , "num-html-asc": function ( a, b ) {
+      return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+    }
+  , "num-html-desc": function ( a, b ) {
+      return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+    }
+  } );
 });
 
 function checkMigrationButton(currentVersion,selectId) {
@@ -671,3 +681,14 @@ function checkMigrationButton(currentVersion,selectId) {
     $('#migrationButton').button( "option", "disabled", false );
   }
 }
+
+
+/* 
+ * a function that allows to set the height of a div to roughtly
+ * the height of the content of a Rudder page (i.e: without
+ * the header/footer and the place for a title). 
+ */
+function correctContentHeight(selector) {
+  $(selector).height(Math.max(400, $(document).height() - 200));
+}
+
