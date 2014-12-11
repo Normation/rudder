@@ -299,7 +299,7 @@ case class RestExtractorService (
 
   private[this] def mergeTarget(seq: Seq[RuleTarget]): Box[Option[RuleTarget]] = {
     seq match {
-      case Seq() => Failure(s"Can not extract targets from parameters")
+      case Seq() => Full(None)
       case head +: Seq() => Full(Some(head))
       case several =>
         //if we have only simple target, build a composite including
