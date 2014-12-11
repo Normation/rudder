@@ -59,22 +59,22 @@ object JsInitContextLinkUtil extends Loggable {
   private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
 
   def groupLink(id:NodeGroupId) =
-    s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
+    s"""${S.contextPath}/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
 
   def ruleLink(id:RuleId) =
-    s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
+    s"""${S.contextPath}/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
 
   def directiveLink(id:DirectiveId) =
-    s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
+    s"""${S.contextPath}/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
   def nodeLink(id:NodeId) =
-    s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
+    s"""${S.contextPath}/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
 
   def globalParameterLink(name:ParameterName) =
-    s"/secure/configurationManager/parameterManagement"
+    s"${S.contextPath}/secure/configurationManager/parameterManagement"
 
   def changeRequestLink(id:ChangeRequestId) =
-    s"/secure/utilities/changeRequest/${id}"
+    s"${S.contextPath}/secure/utilities/changeRequest/${id}"
 
   def createRuleLink(id:RuleId) = {
     roRuleRepository.get(id) match {
