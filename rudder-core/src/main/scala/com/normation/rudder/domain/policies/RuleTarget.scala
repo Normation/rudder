@@ -243,18 +243,22 @@ object RuleTarget extends Loggable {
 
         val includedJson = fields.collect {
           case JField("include", inc) => inc
-        }.headOption.getOrElse(JObject(Nil))
+        }.headOption
         val excludedJson = fields.collect {
           case JField("exclude", inc) => inc
-        }.headOption.getOrElse(JObject(Nil))
+        }.headOption
 
-        for {
-          includeTargets <- unserComposition(includedJson)
-          excludeTargets <- unserComposition(excludedJson)
-        } yield {
-          TargetExclusion(includeTargets,excludeTargets)
+        (includedJson,excludedJson) match {
+          case (None, None) => unserComposition(json)
+          case (x,y) =>  //at least one of include/exclude was present, so we really want to do a composite
+            for {
+              includeTargets <- unserComposition(x.getOrElse(JObject(Nil)))
+              excludeTargets <- unserComposition(y.getOrElse(JObject(Nil)))
+            } yield {
+              TargetExclusion(includeTargets,excludeTargets)
+            }
         }
-      case _ =>
+      case _ => // not a JObject ?
         unserComposition(json)
     }
   }
