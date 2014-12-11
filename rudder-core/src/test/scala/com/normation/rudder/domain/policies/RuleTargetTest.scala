@@ -76,12 +76,12 @@ class RuleTargetTest extends Specification with Loggable {
     val union = TargetUnion(gs.map(g => GroupTarget(g.id)))
     val serverList = (gs :\ Set[NodeId]()) {case (g,res) => g.serverList union res}
     (union,serverList)
-  }
+  }.toSet
   val interTargets = groups.subsets.map{gs =>
     val inter =  TargetIntersection(gs.map(g => GroupTarget(g.id)))
     val serverList = (gs :\ allNodeIds) {case (g,res) => g.serverList intersect res}
     (inter,serverList)
-  }
+  }.toSet
 
   val allComposite : Set [(TargetComposition,Set[NodeId])]= (unionTargets ++ interTargets).toSet
 
@@ -124,12 +124,13 @@ class RuleTargetTest extends Specification with Loggable {
     }
   }
 
-  val allTargets : Set[RuleTarget] = (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))
+  val allTargets : Set[RuleTarget] =  (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))
   "Rule targets" should {
     "Be correctly serialized and deserialized from their target" in {
       allTargets.forall {
         case gt => RuleTarget.unser(gt.target) match {
-          case Some(unser) => unser === gt
+          case Some(unser) =>
+            unser === gt
           case None =>
             gt.target === gt
         }
