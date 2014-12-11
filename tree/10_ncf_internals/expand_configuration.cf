@@ -19,7 +19,7 @@
 # Expand the configuration template (written in Mustache) into plain config file
 # @agent_version >=3.6
 #
-bundle agent expand_configuration(source_template, destination)
+bundle agent expand_configuration
 {
 
   files:
