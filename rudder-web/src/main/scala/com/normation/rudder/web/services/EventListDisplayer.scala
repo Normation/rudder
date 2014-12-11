@@ -73,6 +73,7 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
+import net.liftweb.json.JString
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -89,167 +90,65 @@ class EventListDisplayer(
 ) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
- // private[this] val gridName = "eventLogsGrid"
- // private[this] val jsGridName = "oTable" + gridName
+  private[this] val gridName = "eventLogsGrid"
 
-  def display(events:Seq[EventLog], gridName:String) : NodeSeq  = {
+  def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {
 
-    (
-      "tbody *" #> ("tr" #> events.map { event =>
-        ".eventLine [jsuuid]" #> Text(gridName + "-" + event.id.getOrElse(0).toString) &
-        ".eventLine [id]" #> event.id.getOrElse(0).toString &
-        ".eventLine [class]" #> {
-          if (event.details != <entry></entry> )
-            Text("curspoint")
-          else
-            NodeSeq.Empty
-        } &
-        ".logId [class]" #> {
-          if (event.details != <entry></entry> )
-            Text("listopen")
-          else
-            Text("listEmpty")
-        } &
-        ".logId *" #> event.id.getOrElse(0).toString &
-        ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
-        ".logActor *" #> event.principal.name &
-        ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
-        ".logDescription *" #> displayDescription(event)
-      })
-     ).apply(dataTableXml(gridName))
-  }
-
-
-  def initJs(gridName : String) : JsCmd = {
-    val jsGridName = "oTable" + gridName
-    JsRaw("var %s;".format(jsGridName)) &
-    OnLoad(
-        JsRaw("""
-            $('.restore').button();
-            correctButtons();
-          /* Event handler function */
-          #table_var# = $('#%s').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :true,
-            "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "aaSorting":[],
-            "aoColumns": [
-                { "sWidth": "35px" }
-              , { "sWidth": "95px" }
-              , { "sWidth": "35px" }
-              , { "sWidth": "195px" }
-              , { "sWidth": "220px" }
-            ],
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-          })
-          $('.dataTables_filter input').attr("placeholder", "Filter");
-          """.format(gridName,gridName).replaceAll("#table_var#",jsGridName)
-        )  &
-        JsRaw("""
-        /* Formating function for row details */
-          function fnFormatDetails(id) {
-            var sOut = '<span id="'+id+'" class="sgridbph"/>';
-            return sOut;
-          };
-
-          $(#table_var#.fnGetNodes() ).each( function () {
-            $(this).click( function () {
-              var jTr = $(this);
-              if (jTr.hasClass('curspoint')) {
-                var opened = jTr.prop("open");
-                if (opened && opened.match("opened")) {
-                  jTr.prop("open", "closed");
-                  $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-                  #table_var#.fnClose(this);
-                } else {
-                  jTr.prop("open", "opened");
-                  $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-                  var jsid = jTr.attr("jsuuid");
-                  var color = 'color1';
-                  if(jTr.hasClass('color2'))
-                    color = 'color2';
-                  var row = $(#table_var#.fnOpen(this, fnFormatDetails(jsid), 'details'));
-                  $(row).addClass(color + ' eventLogDescription')
-                  %s;
-                }
-              }
-            } );
-          })
-
-          function showParameters(){
-            document.getElementById("show_parameters_info").style.display = "block";
-          }
-
-      """.format(
-          SHtml.ajaxCall(JsVar("jsid"), details(gridName) _)._2.toJsCmd).replaceAll("#table_var#",
-             jsGridName)
-     )
-    )
+    def getLastEvents : JsCmd = {
+      refreshEvents() match {
+        case Full(events) =>
+          val lines = JsTableData(events.map(EventLogLine(_)).toList)
+            JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})")
+        case eb : EmptyBox =>
+          val fail = eb ?~! "Could not get latest event logs"
+          logger.error(fail.messageChain)
+          val xml = <div class="error">Error when trying to get last event logs. Error message was: {fail.messageChain}</div>
+          SetHtml("eventLogsError",xml)
+      }
+    }
+    val refresh = AnonFunc(SHtml.ajaxInvoke( () => getLastEvents))
+    Script(OnLoad(JsRaw(s"""
+     var refreshEventLogs = ${refresh.toJsCmd};
+     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
+     refreshEventLogs();
+    """)))
   }
 
   /*
-   * Expect something like gridName-eventId
+   *   Javascript object containing all data to create a line in event logs table
+   *   { "id" : Event log id [Int]
+   *   , "date": date the event log was produced [Date/String]
+   *   , "actor": Name of the actor making the event [String]
+   *   , "type" : Type of the event log [String]
+   *   , "description" : Description of the event [String]
+   *   , "details" : function/ajax call, setting the details content, takes the id of the element to set [Function(String)]
+   *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
+   *   }
    */
-  private def details(gridname: String)(jsid:String) : JsCmd = {
-    val arr = jsid.split("-")
-    if (arr.length != 2) {
-      Alert("Called ID is not valid: %s".format(jsid))
-    } else {
-      val eventId = arr(1).toInt
-      repos.getEventLogWithChangeRequest(eventId) match {
-        case Full(Some((event,crId))) =>
-          SetHtml(jsid,displayDetails(event,crId, gridname))
-        case Full(None) =>
-          val msg = s"could not find event for id ${eventId}"
-          logger.debug(msg)
-          Alert(s"Called id is not valid: ${jsid}, cause : ${msg}")
-        case e:EmptyBox =>
-          logger.debug((e ?~! "error").messageChain)
-          Alert("Called id is not valid: %s".format(jsid))
+  case class EventLogLine(event : EventLog) extends JsTableLine {
+    val detailsCallback = {
+      AnonFunc("details",SHtml.ajaxCall(JsVar("details"), {(abc) =>
+        val crId = event.id.flatMap(repos.getEventLogWithChangeRequest(_) match {
+          case Full(Some((_,crId))) => crId
+          case _ => None
+        })
+        SetHtml(abc,displayDetails(event,crId))
       }
+      )._2
+      )
+    }
+    val json = {
+      JsObj(
+          "id" -> event.id.map(_.toString).getOrElse("Unknown")
+        , "date" -> DateFormaterService.getFormatedDate(event.creationDate)
+        , "actor" -> event.principal.name
+        , "type" -> S.?("rudder.log.eventType.names." + event.eventType.serialize)
+        , "description" -> displayDescription(event).toString
+        , "details" -> detailsCallback
+        , "hasDetails" -> boolToJsExp(event.details != <entry></entry>)
+      )
     }
   }
-
-
-  private[this] def dataTableXml(gridName:String) = {
-    <div>
-      <table id={gridName} class="display" cellspacing="0">
-        <thead>
-          <tr class="head">
-            <th class="titleId">ID</th>
-            <th>Date</th>
-            <th>Actor</th>
-            <th>Event Type</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr class="eventLine" jsuuid="id">
-            <td class="logId">[ID of event]</td>
-            <td class="logDatetime">[Date and time of event]</td>
-            <td class="logActor">[actor of the event]</td>
-            <td class="logType">[type of event]</td>
-            <td class="logDescription">[some user readable info]</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div id="logsGrid_paginate_area" class="paginate"></div>
-
-    </div>
-
-  }
-
 
     //////////////////// Display description/details of ////////////////////
 
@@ -392,14 +291,14 @@ class EventListDisplayer(
     }
   }
 
-  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId], gridname: String): NodeSeq = {
+  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId]): NodeSeq = {
 
     val groupLib = nodeGroupRepository.getFullGroupLibrary().openOr(return <div class="error">System error when trying to get the group library</div>)
 
     val generatedByChangeRequest =
       changeRequestId match {
       case None => NodeSeq.Empty
-      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request #<a href={changeRequestLink(id)}>{id}</a></h4>
+      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(changeRequestLink(id)),Text(s"#${id}"))}</h4>
     }
     def xmlParameters(eventId: Option[Int]) = {
       eventId match {
@@ -943,7 +842,7 @@ class EventListDisplayer(
         "*" #> { val xml : NodeSeq = logDetailsService.getRollbackDetails(x.details) match {
           case Full(eventLogs) =>
                addRestoreAction ++
-               displayRollbackDetails(eventLogs,event.id.get, gridname)
+               displayRollbackDetails(eventLogs,event.id.get)
           case e:EmptyBox => logger.warn(e)
           errorMessage(e)
         }
@@ -1544,7 +1443,7 @@ class EventListDisplayer(
       {liModDetailsXML("isEnabled", "Enabled")}
     </xml:group>
 
-  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int, gridname: String) = {
+  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked
     <div class="evloglmargin">
       <div style="width:50%; float:left;">
@@ -1558,7 +1457,7 @@ class EventListDisplayer(
                 $("#cancel%3$s").show();
                 scrollToElement('%2$s');
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format(gridname,rollbackInfo.target.id,id))
+                $('#%2$s').click();""".format(gridName,rollbackInfo.target.id,id))
               , Text(rollbackInfo.target.id.toString)
             )
           } has been completed.
@@ -1588,7 +1487,7 @@ class EventListDisplayer(
                 $("#cancel%3$s").show();
                 scrollToElement('%2$s');
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format(gridname,ev.id,id))
+                $('#%2$s').click();""".format(gridName,ev.id,id))
                   , Text(ev.id.toString)
                 )
               }
@@ -1605,7 +1504,7 @@ class EventListDisplayer(
           <div id={"cancel%s".format(id)} style="display:none"> the event <span id={"currentId%s".format(id)}/>  is displayed in the table below
       {SHtml.ajaxButton("Clear display", () =>
         Run("""$('#%s').dataTable().fnFilter("",0,true,false);
-            $("#cancel%s").hide();""".format(gridname,id) )
+            $("#cancel%s").hide();""".format(gridName,id) )
       ) }
       </div>
       <br/>
