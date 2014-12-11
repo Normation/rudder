@@ -223,6 +223,8 @@ object RuleTarget extends Loggable {
 
     def unserComposition(json : JValue) : Box[TargetComposition] = {
       json match {
+        case JObject(Nil) =>
+          Full(TargetUnion())
         case JObject(JField("or",JArray(content)) :: Nil) =>
           for {
             targets <- sequence(content)(unserJson)
@@ -236,21 +238,36 @@ object RuleTarget extends Loggable {
             TargetIntersection(targets.toSet)
           }
       case _ =>
-        Failure(s"${json.toString} is not a valid rule target")
+        Failure(s"'${compact(render(json))}' is not a valid rule target")
       }
     }
 
     json match {
       case JString(s) =>
         unser(s)
-      case JObject(JField("include",includedJson) :: JField("exclude",excludedJson) :: Nil) =>
-        for {
-          includeTargets <- unserComposition(includedJson)
-          excludeTargets <- unserComposition(excludedJson)
-        } yield {
-          TargetExclusion(includeTargets,excludeTargets)
+      //we want to be able to have field in both order, but I don't know how to do it in an other way
+      case JObject(fields) =>
+        //look for include and exclude. We accept to not have each one,
+        //and if several are given, just take one
+
+        val includedJson = fields.collect {
+          case JField("include", inc) => inc
+        }.headOption
+        val excludedJson = fields.collect {
+          case JField("exclude", inc) => inc
+        }.headOption
+
+        (includedJson,excludedJson) match {
+          case (None, None) => unserComposition(json)
+          case (x,y) =>  //at least one of include/exclude was present, so we really want to do a composite
+            for {
+              includeTargets <- unserComposition(x.getOrElse(JObject(Nil)))
+              excludeTargets <- unserComposition(y.getOrElse(JObject(Nil)))
+            } yield {
+              TargetExclusion(includeTargets,excludeTargets)
+            }
         }
-      case _ =>
+      case _ => // not a JObject ?
         unserComposition(json)
     }
   }
