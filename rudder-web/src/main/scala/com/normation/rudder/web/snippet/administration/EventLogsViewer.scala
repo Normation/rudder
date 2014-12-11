@@ -53,12 +53,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   }
 
   def dispatch = {
-    case "display" => xml => getLastEvents match {
-      case Full(seq) => eventList.display(seq,gridName) ++ Script(eventList.initJs(gridName))
-      case Empty => eventList.display(Seq(), gridName) ++ Script(eventList.initJs(gridName))
-      case f:Failure =>
-        <div class="error">Error when trying to get last event logs. Error message was: {f.msg}</div>
-    }
+    case "display" => _ => eventList.display(() => getLastEvents)
   }
 
 }
