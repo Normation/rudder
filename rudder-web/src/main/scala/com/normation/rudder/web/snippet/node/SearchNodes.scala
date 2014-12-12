@@ -36,7 +36,6 @@ package com.normation.rudder.web.snippet.node
 
 import scala.xml.NodeSeq
 import scala.xml.NodeSeq.seqToNodeSeq
-
 import com.normation.exceptions.TechnicalException
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeGroup
@@ -45,7 +44,6 @@ import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.web.components.SearchNodeComponent
 import com.normation.rudder.web.components.ShowNodeDetailsFromNode
 import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.LocalSnippet
@@ -58,6 +56,7 @@ import net.liftweb.http.js.JE.JsVar
 import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers.chooseTemplate
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 
 /**
@@ -151,7 +150,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
         , rootCategory     = groupLibrary
         , selectedCategory = None
         , onSuccessCategory= { _ => Noop }
-        , onSuccessGroup   = { (node:NodeGroup, _) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
+        , onSuccessGroup   = { (group:NodeGroup, _) => JsInitContextLinkUtil.redirectToGroupLink(group.id) }
       )))
   }
 

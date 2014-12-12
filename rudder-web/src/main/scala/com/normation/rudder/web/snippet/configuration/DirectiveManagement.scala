@@ -64,6 +64,7 @@ import com.normation.rudder.authorization.AuthzToRights
 import com.normation.rudder.authorization.NoRights
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -483,8 +484,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
         updateDirectiveLibrary()
         updateDirectiveForm(workflowEnabled)(Left(dir),None)
 
-      case Right(changeRequest) => // oh, we have a change request, go to it
-        RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
+      case Right(changeRequestId) => // oh, we have a change request, go to it
+        JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
     }
   }
 
