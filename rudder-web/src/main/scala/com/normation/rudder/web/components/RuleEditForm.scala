@@ -84,6 +84,7 @@ import com.normation.rudder.domain.policies.TargetComposition
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 object RuleEditForm {
 
@@ -550,8 +551,8 @@ class RuleEditForm(
         case Left(rule) => // ok, we've received a rule, do as before
           this.rule = rule
           JsRaw("$.modal.close();") &  onSuccess
-        case Right(changeRequest) => // oh, we have a change request, go to it
-          RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
+        case Right(changeRequestId) => // oh, we have a change request, go to it
+          JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
       }
     }
   }

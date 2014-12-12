@@ -228,7 +228,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
                 case Left(group) =>
                   refreshGroupLib()
                   refreshTree(htmlTreeNodeId(group.id.value), workflowEnabled)
-                case Right(crId) => RedirectTo(s"""/secure/utilities/changeRequest/${crId.value}""")
+                case Right(crId) =>
+                  JsInitContextLinkUtil.redirectToChangeRequestLink(crId)
               }
             }
         )
