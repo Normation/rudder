@@ -34,24 +34,34 @@
 
 package com.normation.rudder.repository
 
-import net.liftweb.common._
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.domain.nodes._
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.HeartbeatConfiguration
+import net.liftweb.common._
+import com.normation.inventory.domain.NodeId
 
 /**
  * Node Repository
  * To update the Node Run Configuration
  */
 trait WoNodeRepository {
-  /**
-   * Update the node with the given ID with the given
-   * parameters.
-   *
-   * If the node is not in the repos, the method fails.
-   * If the node is a system one, the methods fails.
-   */
-  def update(node:Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
 
+  /**
+   * Change the configuration of agent run period for the given node
+   */
+  def updateAgentRunPeriod(nodeId: NodeId, agentRun: AgentRunInterval, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
+
+  /**
+   * Change the configuration of heartbeat frequency for the given node
+   */
+  def updateNodeHeartbeat(nodeId: NodeId, heartbeat: HeartbeatConfiguration, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
+
+
+  /**
+   * Update the list of properties for the node, setting the content to exactly
+   * what is given in paramater
+   */
+  def updateNodeProperties(nodeId: NodeId, properties: Seq[NodeProperty], modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
 }
