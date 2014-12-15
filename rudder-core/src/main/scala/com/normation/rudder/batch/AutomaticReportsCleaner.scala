@@ -316,10 +316,11 @@ case class AutomaticReportsCleaning(
       val formattedDate = formatDate(date)
       cleanaction.act(date) match {
         case eb:EmptyBox =>
-          // Error while cleaning, should launch again
+          // Error while cleaning. Do not start again, since there is heavy chance
+          // that without an human intervention, it will fail again, leading to
+          // log explosion. Perhaps we could start-it again after a little time (several minutes)
           reportLogger.error("Reports database: Error while processing database %s, cause is: %s ".format(cleanaction.continue.toLowerCase(),eb))
-          reportLogger.error("Reports database: Relaunching %s %s process for all reports before %s".format(kind.toLowerCase,cleanaction.continue.toLowerCase(), formattedDate))
-          (this) ! message
+          currentState = IdleCleaner
         case Full(res) =>
           if (res==0)
             reportLogger.info("Reports database: %s %s completed for all reports before %s, no reports to %s".format(kind,cleanaction.name.toLowerCase(), formattedDate,cleanaction.name.toLowerCase()))
