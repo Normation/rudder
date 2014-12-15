@@ -640,42 +640,42 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def sendMetricsConfiguration = { xml : NodeSeq =>
-    // form value, defaulted to save value
-    // the semantic is "Use compliance mode", i.e checkbox checked (true) => fullCompliance
-    var sendMetrics = configService.send_server_metrics
+    ( configService.send_server_metrics match {
+      case Full(value) =>
+        var sendMetrics = value
+        var previous = value
+        def submit() = {
+          val save = configService.set_send_server_metrics(sendMetrics,previous,CurrentUser.getActor)
 
-    def submit() = {
-      val oldSendMetrics = configService.send_server_metrics.getOrElse(None)
-      sendMetrics.foreach(x => configService.set_send_server_metrics(x))
-      sendMetrics = configService.send_server_metrics
-
-      // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
-      startNewPolicyGeneration
-      S.notice("sendMetricsMsg", sendMetrics match {
-        case Full(_)  => "'send server metrics' property updated"
-        case eb: EmptyBox => "There was an error when updating the value of the 'send server metrics' property"
-      })
-    }
-
-    ( "#sendMetricsCheckbox" #> {
-      sendMetrics match {
-        case Full(value) =>
-          SHtml.ajaxCheckbox(
-              value.getOrElse(false)
-            , (b : Boolean) => { sendMetrics = Full(Some(b)) }
-            , ("id","complianceMode")
-          )
-        case eb: EmptyBox =>
-            val fail = eb ?~ "there was an error while fetching value of property: 'Send server metrics"
-            <div class="error">{fail.msg}</div>
+          S.notice("sendMetricsMsg", save match {
+            case Full(_)  =>
+              // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
+              startNewPolicyGeneration
+              previous = sendMetrics
+              "'send server metrics' property updated"
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'send server metrics' property"
+          } )
         }
-      } &
 
-      "#sendMetricsSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
-      }
-    ) apply (xml ++ Script(Run("correctButtons();")))
-
+        ( "#sendMetrics" #> {
+            SHtml.ajaxCheckbox(
+                value.getOrElse(false)
+              , (b : Boolean) => { sendMetrics = Some(b) }
+              , ("id","sendMetrics")
+            )
+          } &
+          "#sendMetricsSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          }
+        )
+      case eb: EmptyBox =>
+        ( "#sendMetrics" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'Send server metrics"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply (xml ++ Script(Run("correctButtons();")))
   }
 }
 

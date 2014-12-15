@@ -82,6 +82,8 @@ import com.normation.rudder.domain.policies.ModifyToRuleDiff
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.policies.SimpleDiff
 
 
 case class XmlSerializerImpl (
@@ -455,4 +457,26 @@ class APIAccountSerialisationImpl(xmlVersion:String) extends APIAccountSerialisa
        <tokenGenerationDate>{account.tokenGenerationDate.toString(ISODateTimeFormat.dateTime)}</tokenGenerationDate>
     )
   }
+}
+
+
+/**
+ * That trait allows to serialize a web property to an XML
+ */
+class GlobalPropertySerialisationImpl(xmlVersion:String) extends GlobalPropertySerialisation {
+  /**
+   * Version 6:
+     <globalPropertyUpdate fileFormat="6">
+       <name>{property.name.value}</name>
+       <value>{property.value}</value>
+     </globalPropertyUpdate>
+   */
+  def serializeChange(oldProperty:RudderWebProperty, newProperty : RudderWebProperty) :  Elem = {
+    val diff = SimpleDiff(oldProperty.value,newProperty.value)
+     <globalPropertyUpdate changetype="modify" fileFormat="6">
+       <name>{oldProperty.name.value}</name>
+       {SimpleDiff.stringToXml(<value/>,diff)}
+     </globalPropertyUpdate>
+  }
+
 }
