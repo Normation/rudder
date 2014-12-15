@@ -74,6 +74,10 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import net.liftweb.json.JString
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.reports.HeartbeatConfiguration
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -287,6 +291,9 @@ class EventListDisplayer(
       case x:ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
       case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
       case x:ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
+      case x:ModifyNodeAgentRun            => nodeDesc(x, Text(" modified"))
+      case x:ModifyNodeHeartbeat           => nodeDesc(x, Text(" modified"))
+      case x:ModifyNodeProperties          => nodeDesc(x, Text(" modified"))
       case _ => Text("Unknow event type")
 
     }
@@ -424,7 +431,7 @@ class EventListDisplayer(
         <div class="evloglmargin">
           <h4>Details for that node were not in a recognized format.
             Raw data are displayed next:</h4>
-          <pre style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+          { xmlParameters(event.id) }
         </div>
       </xml:group>
     }
@@ -1028,10 +1035,127 @@ class EventListDisplayer(
           }
         }
 
+      // Node modifiction
+      case mod:ModifyNodeAgentRun =>
+        "*" #> { logDetailsService.getModifyNodeAgentRunDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node agent run modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modAgentRun){ (optAr:Option[AgentRunInterval]) =>
+                  optAr match {
+                    case None => <span>No value</span>
+                    case Some(ar) => agentRunDetails(ar)
+                  }
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
+      case mod:ModifyNodeHeartbeat =>
+        "*" #> { logDetailsService.getModifyNodeHeartbeatDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node heartbeat modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modHeartbeat){ (optHb:Option[HeartbeatConfiguration]) =>
+                  optHb match {
+                    case None => <span>No value</span>
+                    case Some(hb) => heartbeatDetails(hb)
+                  }
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
+      case mod:ModifyNodeProperties =>
+        "*" #> { logDetailsService.getModifyNodePropertiesDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node properties modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
+                  nodePropertiesDetails(props)
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
       // other case: do not display details at all
       case _ => "*" #> ""
 
     })(event.details)++Script(JsRaw("correctButtons();"))
+  }
+
+
+  private[this] def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
+    (
+      "#override" #> ar.overrides.map(_.toString()).getOrElse("false")
+    & "#interval"  #> ar.interval
+    & "#startMinute"  #> ar.startMinute
+    & "#startHour"  #> ar.startHour
+    & "#splaytime"  #> ar.splaytime
+    ).apply(
+      <ul class="evlogviewpad">
+        <li><b>Override global value: </b><value id="override"/></li>
+        <li><b>Period: </b><value id="interval"/></li>
+        <li><b>Start at minute: </b><value id="startMinute"/></li>
+        <li><b>Start at hour: </b><value id="startHour"/></li>
+        <li><b>Splay time: </b><value id="splaytime"/></li>
+			</ul>
+    )
+  }
+
+  private[this] def heartbeatDetails(hb: HeartbeatConfiguration): NodeSeq = {
+    (
+      "#override" #> hb.overrides
+    & "#interval"  #> hb.heartbeatPeriod
+    ).apply(
+      <ul class="evlogviewpad">
+        <li><b>Override global value: </b><value id="override"/></li>
+        <li><b>Period: </b><value id="interval"/></li>
+      </ul>
+    )
+  }
+
+  private[this] def nodePropertiesDetails(props: Seq[NodeProperty]): NodeSeq = {
+    (
+        "#kv *"  #> props.map { p => s"${p.name}: ${p.value}" }
+    ).apply(
+      <ul class="evlogviewpad">
+        <li id="kv"></li>
+      </ul>
+    )
   }
 
   private[this] def displaySimpleDiff[T] (
@@ -1096,12 +1220,6 @@ class EventListDisplayer(
       </ul>
       {rawData}
     </div>
-
-  private[this] def displayDiff(tag:String)(xml:NodeSeq) =
-      "From value '%s' to value '%s'".format(
-          ("from ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
-        , ("to ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
-      )
 
 
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
@@ -1217,6 +1335,8 @@ class EventListDisplayer(
       "#isSystem" #> technique.isSystem
   )(xml)
 
+
+
   private[this] def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (
       "#name" #> globalParameter.name.value &
       "#value" #> globalParameter.value &
@@ -1245,6 +1365,22 @@ class EventListDisplayer(
    "#directiveID" #> id.value.toUpperCase
   }
 
+ private[this] def mapComplexDiff[T](opt:Option[SimpleDiff[T]])(display: T => NodeSeq) = {
+   opt match {
+     case None => NodeSeq.Empty
+     case Some(diff) =>
+       (
+         ".diffOldValue *" #> display(diff.oldValue) &
+         ".diffNewValue *" #> display(diff.newValue)
+       ).apply(
+        <ul class="evlogviewpad">
+          <li><b>Old value:&nbsp;</b><span class="diffOldValue">old value</span></li>
+          <li><b>New value:&nbsp;</b><span class="diffNewValue">new value</span></li>
+        </ul>
+    )
+  }
+ }
+
   private[this] def nodeDetails(details:InventoryLogDetails) = (
      "#nodeID" #> details.nodeId.value.toUpperCase &
      "#nodeName" #> details.hostname &
@@ -1258,23 +1394,6 @@ class EventListDisplayer(
       <li><b>Date inventory last received: </b><value id="version"/></li>
     </ul>
   )
-
-  private[this] def nodeDetails(details:NodeLogDetails) = (
-     "#id" #> details.node.id.value.toUpperCase &
-     "#name" #> details.node.name &
-     "#hostname" #> details.node.hostname &
-     "#description" #> details.node.description &
-     "#os" #> details.node.osName &
-     "#ips" #> details.node.ips.mkString("\n") &
-     "#inventoryDate" #> DateFormaterService.getFormatedDate(details.node.inventoryDate) &
-     "#publicKey" #> details.node.publicKey &
-     "#agentsName" #> details.node.agentsName.mkString("\n") &
-     "#policyServerId" #> details.node.policyServerId.value &
-     "#localAdministratorAccountName" #> details.node.localAdministratorAccountName &
-     "#isBroken" #> details.node.isBroken &
-     "#isSystem" #> details.node.isSystem &
-     "#creationDate" #> DateFormaterService.getFormatedDate(details.node.creationDate)
-  )(nodeDetailsXML)
 
   private[this] val crDetailsXML =
     <div>
@@ -1320,25 +1439,6 @@ class EventListDisplayer(
         <li><b>System: </b><value id="isSystem"/></li>
         <li><b>Query: </b><value id="query"/></li>
         <li><b>Node list: </b><value id="nodes"/></li>
-      </ul>
-    </div>
-
-  private[this] val nodeDetailsXML =
-    <div>
-      <h4>Node overview:</h4>
-      <ul class="evlogviewpad">
-        <li><b>Rudder ID: </b><value id="id"/></li>
-        <li><b>Name: </b><value id="name"/></li>
-        <li><b>Hostname: </b><value id="hostname"/></li>
-        <li><b>Description: </b><value id="description"/></li>
-        <li><b>Operating System: </b><value id="os"/></li>
-        <li><b>IPs addresses: </b><value id="ips"/></li>
-        <li><b>Date inventory last received: </b><value id="inventoryDate"/></li>
-        <li><b>Agent name: </b><value id="agentsName"/></li>
-        <li><b>Administrator account :</b><value id="localAdministratorAccountName"/></li>
-        <li><b>Date first accepted in Rudder :</b><value id="creationDate"/></li>
-        <li><b>Broken: </b><value id="isBroken"/></li>
-        <li><b>System: </b><value id="isSystem"/></li>
       </ul>
     </div>
 

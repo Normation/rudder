@@ -45,8 +45,8 @@ import net.liftweb.common._
  * * heartbeat configuration
  */
 final case class ReportingConfiguration (
-    agentRunInterval : Option[AgentRunInterval]
-  , heartbeatConfiguration : Option[HeartbeatConfiguration]
+    agentRunInterval      : Option[AgentRunInterval]
+  , heartbeatConfiguration: Option[HeartbeatConfiguration]
 ) extends HashcodeCaching
 
 final case class HeartbeatConfiguration (

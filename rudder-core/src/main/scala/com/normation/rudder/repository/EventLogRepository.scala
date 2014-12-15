@@ -34,24 +34,23 @@
 
 package com.normation.rudder.repository
 
-import net.liftweb.common._
-import com.normation.eventlog._
-import com.normation.rudder.domain.policies._
-import com.normation.rudder.services.eventlog.EventLogFactory
 import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
-import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
-import com.normation.rudder.domain.nodes.AddNodeGroupDiff
+import com.normation.eventlog._
 import com.normation.eventlog.ModificationId
-import scala.collection.mutable.Buffer
-import com.normation.rudder.domain.eventlog.ChangeRequestDiff
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.eventlog.ChangeRequestDiff
 import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.services.eventlog.EventLogFactory
+
+
+
+import net.liftweb.common._
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -324,6 +323,51 @@ trait EventLogRepository {
   }
 
 
+  /**
+   * Node properties: heartbeat, agent run, properties
+   */
+  def saveModifyNodeAgentRun(
+      modId: ModificationId
+    , principal: EventActor
+    , modifyDiff: ModifyNodeAgentRunDiff
+    , reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyNodeAgentRunFromDiff (
+            principal  = principal
+          , modifyDiff = modifyDiff
+          , reason = reason
+        )
+    )
+  }
+  def saveModifyNodeHeartbeat(
+      modId: ModificationId
+    , principal: EventActor
+    , modifyDiff: ModifyNodeHeartbeatDiff
+    , reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyNodeHeartbeatFromDiff (
+            principal  = principal
+          , modifyDiff = modifyDiff
+          , reason = reason
+        )
+    )
+  }
+  def saveModifyNodeProperties(
+      modId: ModificationId
+    , principal: EventActor
+    , modifyDiff: ModifyNodePropertiesDiff
+    , reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyNodePropertiesFromDiff (
+            principal  = principal
+          , modifyDiff = modifyDiff
+          , reason = reason
+        )
+    )
+  }
   /**
    * Get an EventLog by its entry
    */

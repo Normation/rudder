@@ -115,13 +115,9 @@ class ShowNodeDetailsFromNode(
 
   def saveHeart(complianceMode : String, frequency: Int, overrides : Boolean) : Box[Unit] = {
     val heartbeatConfiguration = HeartbeatConfiguration(overrides, frequency)
+    val modId = ModificationId(uuidGen.newUuid)
     for {
-      nodeInfo    <- nodeInfoService.getNode(nodeId)
-      reportConf  = nodeInfo.nodeReportingConfiguration.copy( heartbeatConfiguration = Some(heartbeatConfiguration))
-      newNode     = nodeInfo.copy(nodeReportingConfiguration = reportConf)
-      modId       = ModificationId(uuidGen.newUuid)
-      user        = CurrentUser.getActor
-      result      <- nodeRepo.update(newNode, modId, user, None)
+      result <- nodeRepo.updateNodeHeartbeat(nodeId, heartbeatConfiguration, modId, CurrentUser.getActor, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }
@@ -163,12 +159,10 @@ class ShowNodeDetailsFromNode(
   }
 
   def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+    val modId =  ModificationId(uuidGen.newUuid)
+    val user  =  CurrentUser.getActor
     for {
-      node    <- nodeInfoService.getNode(nodeId)
-      newNode =  node.copy(nodeReportingConfiguration = node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule)))
-      modId   =  ModificationId(uuidGen.newUuid)
-      user    =  CurrentUser.getActor
-      result  <- nodeRepo.update(newNode, modId, user, None)
+      result  <- nodeRepo.updateAgentRunPeriod(nodeId, schedule, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }

@@ -53,6 +53,8 @@ final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
 final case object ParameterLogCategory extends EventLogCategory
 final case object GlobalPropertyEventLogCategory extends EventLogCategory
+final case object SettingsLogCategory extends EventLogCategory
+final case object NodeLogCategory extends EventLogCategory
 
 
 // the promises related event type
@@ -229,6 +231,19 @@ final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyE
   def serialize = "SendServerMetricsModified"
 }
 
+// node properties: properties, heartbeat, agent run.
+final case object ModifyHeartbeatNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeHeartbeatModified"
+}
+
+final case object ModifyAgentRunIntervalNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeAgentRunPeriodModified"
+}
+
+final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
+  def serialize = "NodePropertiesModified"
+}
+
 /**
  * List of event generating a modification of promises
  */
@@ -262,6 +277,11 @@ object ModificationWatchList {
     , ModifyGlobalParameterEventType
 
     , ModifySendServerMetricsEventType
+
+    , ModifyHeartbeatNodeEventType
+    , ModifyAgentRunIntervalNodeEventType
+    , ModifyPropertiesNodeEventType
+
   )
 
 }
@@ -329,6 +349,11 @@ object EventTypeFactory {
     , ModifyGlobalParameterEventType
 
     , ModifySendServerMetricsEventType
+
+    , ModifyHeartbeatNodeEventType
+    , ModifyAgentRunIntervalNodeEventType
+    , ModifyPropertiesNodeEventType
+
   )
 
   def apply(s:String) : EventLogType = {
