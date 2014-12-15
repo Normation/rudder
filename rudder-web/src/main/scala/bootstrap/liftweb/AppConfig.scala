@@ -668,7 +668,7 @@ object RudderConfig extends Loggable {
   lazy val configService: ReadConfigService with UpdateConfigService =
     new LDAPBasedConfigService(
         config
-      , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper)
+      , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator)
       , asyncWorkflowInfo
   )
 
@@ -756,6 +756,8 @@ object RudderConfig extends Loggable {
     new GlobalParameterSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val apiAccountSerialisation: APIAccountSerialisation =
     new APIAccountSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
+  private[this] lazy val propertySerialization: GlobalPropertySerialisation =
+    new GlobalPropertySerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
   private[this] lazy val changeRequestChangesSerialisation : ChangeRequestChangesSerialisation =
     new ChangeRequestChangesSerialisationImpl(
         Constants.XML_CURRENT_FILE_FORMAT.toString
@@ -773,6 +775,7 @@ object RudderConfig extends Loggable {
     , activeTechniqueSerialisation
     , globalParameterSerialisation
     , apiAccountSerialisation
+    , propertySerialization
   )
   private[this] lazy val pathComputer = new PathComputerImpl(RUDDER_DIR_BACKUP)
   private[this] lazy val baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)

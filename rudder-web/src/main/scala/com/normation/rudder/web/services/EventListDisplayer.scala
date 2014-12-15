@@ -286,6 +286,7 @@ class EventListDisplayer(
       case x:CreateAPIAccountEventLog      => apiAccountDesc(x, Text(" added"))
       case x:ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
       case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
+      case x:ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
       case _ => Text("Unknow event type")
 
     }
@@ -1009,6 +1010,24 @@ class EventListDisplayer(
           }
         }
 
+      case mod:ModifyGlobalProperty =>
+        "*" #> { logDetailsService.getModifyGlobalPropertyDetails(mod.details) match {
+          case Full((oldProp,newProp)) =>
+              <div class="evloglmargin">
+              <h4>Global property overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Name:</b> { mod.propertyName }</li>
+                <li><b>Value:</b>
+              { val diff = Some(SimpleDiff(oldProp.value,newProp.value))
+         displaySimpleDiff(diff,"value",newProp.value) } </li>
+             </ul>
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+            errorMessage(e)
+          }
+        }
+
       // other case: do not display details at all
       case _ => "*" #> ""
 
@@ -1442,6 +1461,8 @@ class EventListDisplayer(
       {liModDetailsXML("description", "Description")}
       {liModDetailsXML("isEnabled", "Enabled")}
     </xml:group>
+
+  private[this] val globalPropertyModDetailsXML = {liModDirectiveDetailsXML("value", "Value")}
 
   private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked

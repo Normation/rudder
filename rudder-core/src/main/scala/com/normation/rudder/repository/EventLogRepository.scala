@@ -50,6 +50,8 @@ import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
@@ -301,6 +303,26 @@ trait EventLogRepository {
         )
     )
   }
+
+  def saveModifyGlobalProperty (
+      modId: ModificationId
+    , principal: EventActor
+    , oldProperty : RudderWebProperty
+    , newProperty : RudderWebProperty
+    , eventLogType : ModifyGlobalPropertyEventType
+    , reason:Option[String]) = {
+    saveEventLog(
+        modId
+      , eventLogFactory.getModifyGlobalPropertyFromDiff(
+          principal = principal
+        , oldProperty = oldProperty
+        , newProperty = newProperty
+        , eventLogType = eventLogType
+        , reason = reason
+      )
+    )
+  }
+
 
   /**
    * Get an EventLog by its entry

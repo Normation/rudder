@@ -49,6 +49,7 @@ import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.api.ApiAccount
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.domain.appconfig.RudderWebProperty
 
 trait XmlSerializer {
 
@@ -367,4 +368,19 @@ trait APIAccountSerialisation {
      </apiAccount>
    */
   def serialise(account:ApiAccount):  Elem
+}
+
+/**
+ * That trait allows to serialize a web property to an XML
+ */
+trait GlobalPropertySerialisation {
+  /**
+   * Version 6:
+     <globalPropertyUpdate fileFormat="6">
+       <name>{property.name.value}</name>
+       <value>{property.value}</value>
+     </globalPropertyUpdate>
+   */
+  def serializeChange(oldProperty:RudderWebProperty, newProperty : RudderWebProperty) :  Elem
+
 }
