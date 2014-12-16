@@ -117,10 +117,12 @@ CREATE TABLE ReportsExecution (
 , date         timestamp with time zone NOT NULL
 , complete     boolean NOT NULL
 , nodeConfigId text
+, insertionId  bigint
 , PRIMARY KEY(nodeId, date)
 );
 
 CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
+CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
 
 /* 
  *************************************************************************************

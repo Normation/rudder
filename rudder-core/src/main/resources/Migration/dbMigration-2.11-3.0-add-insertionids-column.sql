@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2014 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,24 +32,27 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.execution
 
-import com.normation.inventory.domain.NodeId
-import org.joda.time.DateTime
-import com.normation.rudder.domain.reports.NodeConfigId
+-- add the columns needed to store the report insertion id:
+-- in reportExectution, "insertionId"
+ALTER TABLE ReportsExecution ADD COLUMN insertionId bigint;
+
+-- Add the index on this entry
+CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
+
+-- Do the migration script
+-- Add the id from the ruddersysevents when available, but only for the last run of each node
+
+UPDATE ReportsExecution SET insertionId = S.id 
+FROM 
+(
+  SELECT T.nodeid, T.executiontimestamp, min(id) AS id FROM
+    (
+      SELECT DISTINCT nodeid, max(date) AS executiontimestamp FROM ReportsExecution GROUP BY nodeid
+    ) AS T
+  LEFT JOIN ruddersysevents AS R
+  ON T.nodeid = R.nodeid AND T.executiontimestamp = R.executiontimestamp
+  GROUP BY T.nodeid, T.executiontimestamp
+) AS S WHERE testreport.date = S.executiontimestamp AND testreport.nodeid=S.nodeid;
 
 
-final case class AgentRunId(
-    nodeId: NodeId
-  , date  : DateTime
-)
-
-/**
- * a mapping of reports executions
- */
-final case class AgentRun (
-    agentRunId       : AgentRunId
-  , nodeConfigVersion: Option[NodeConfigId]
-  , isCompleted      : Boolean
-  , insertionId      : Long
-)
