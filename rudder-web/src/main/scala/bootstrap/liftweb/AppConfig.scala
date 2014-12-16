@@ -1354,7 +1354,7 @@ object RudderConfig extends Loggable {
     , uuidGen
     , RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
   )
-  private[this] lazy val userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
+
   private[this] lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepositoryImpl)
   private[this] lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
         nodeDitImpl
