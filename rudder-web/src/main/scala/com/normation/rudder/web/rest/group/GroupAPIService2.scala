@@ -144,7 +144,10 @@ case class GroupApiService2 (
         saveDiff
       } ) match {
         case Full(x) =>
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+          if (x.needDeployment) {
+            // Trigger a deployment only if it is needed
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+          }
           val jsonGroup = List(serialize(newGroup,None))
           toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 

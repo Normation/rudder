@@ -42,16 +42,20 @@ import com.normation.rudder.rule.category.RuleCategoryId
  * That file define "diff" object between rules.
  */
 
-sealed trait RuleDiff
+sealed trait RuleDiff extends TriggerDeploymentDiff
 
 //for change request, with add type tag to RuleDiff
 sealed trait ChangeRequestRuleDiff {
   def rule     : Rule
 }
 
-final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+final case class AddRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff {
+  def needDeployment : Boolean = true
+}
 
-final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+final case class DeleteRuleDiff(rule:Rule) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff {
+  def needDeployment : Boolean = true
+}
 
 final case class ModifyRuleDiff(
     id                  : RuleId
@@ -66,8 +70,15 @@ final case class ModifyRuleDiff(
   , modIsActivatedStatus: Option[SimpleDiff[Boolean]] = None
   , modIsSystem         : Option[SimpleDiff[Boolean]] = None
   , modCategory         : Option[SimpleDiff[RuleCategoryId]] = None
-) extends RuleDiff with HashcodeCaching
+) extends RuleDiff with HashcodeCaching {
+  def needDeployment : Boolean = {
+    modSerial.isDefined || modTarget.isDefined || modDirectiveIds.isDefined || modIsActivatedStatus.isDefined
+  }
+}
 
 final case class ModifyToRuleDiff(
     rule     : Rule
-) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff
+) extends RuleDiff with HashcodeCaching with ChangeRequestRuleDiff {
+  // This case is undecidable, so it is always true
+  def needDeployment : Boolean = true
+}
