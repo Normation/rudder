@@ -81,8 +81,8 @@ class AgentRunsTest extends DBCommon {
 
   "Execution repo" should {
     val runs = Seq(
-        AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true)
-      , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false)
+        AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
+      , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
     )
 
     "correctly insert" in {
@@ -105,9 +105,9 @@ class AgentRunsTest extends DBCommon {
 
 
   val initRuns = Seq(
-      AgentRun(AgentRunId(n1, runMinus2.minusMinutes(5)), Some(NodeConfigId("nodeConfig_n1_v1")), true)
-    , AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true)
-    , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false)
+      AgentRun(AgentRunId(n1, runMinus2.minusMinutes(5)), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
+    , AgentRun(AgentRunId(n1, runMinus2), Some(NodeConfigId("nodeConfig_n1_v1")), true, 42)
+    , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 64)
   )
 
   /*
@@ -127,8 +127,8 @@ class AgentRunsTest extends DBCommon {
           initRuns(0).copy(isCompleted = false) //not updated
         , initRuns(1).copy(nodeConfigVersion = Some(NodeConfigId("nodeConfig_n1_v2")))
         , initRuns(2).copy(isCompleted = true)
-        , AgentRun(AgentRunId(n1, runMinus2.minusMinutes(10)), Some(NodeConfigId("nodeConfig_n1_v1")), true)
-        , AgentRun(AgentRunId(n1, runMinus1.plusMinutes(5)), Some(NodeConfigId("nodeConfig_n1_v1")), false)
+        , AgentRun(AgentRunId(n1, runMinus2.minusMinutes(10)), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
+        , AgentRun(AgentRunId(n1, runMinus1.plusMinutes(5)), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
       )
 
       //only the first one should not be modified
