@@ -75,6 +75,9 @@ import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -158,6 +161,8 @@ trait EventLogDetailsService {
   def getApiAccountDeleteDetails(xml:NodeSeq) : Box[DeleteApiAccountDiff]
 
   def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff]
+
+  def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)]
 }
 
 
@@ -856,6 +861,22 @@ class EventLogDetailsServiceImpl(
         , modDescription = modDescription
         , modIsEnabled = modIsEnabled
       )
+    }
+  }
+
+
+  def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)] = {
+    for {
+      entry              <- getEntryContent(xml)
+      globalParam        <- (entry \ "globalPropertyUpdate").headOption ?~! (s"Entry type is not a Global Property: ${entry}")
+      name               <- (globalParam \ "name").headOption.map( xml => RudderWebPropertyName(xml.text )) ?~! ("Missing attribute 'name' in entry type Global Parameter: ${entry}")
+      modValue           <- getFromToString((globalParam \ "value").headOption)
+      values             <- modValue
+      fileFormatOk       <- TestFileFormat(globalParam)
+    } yield {
+      val oldValue = RudderWebProperty(name,values.oldValue,"")
+      val newValue = RudderWebProperty(name,values.newValue,"")
+      (oldValue,newValue)
     }
   }
 }
