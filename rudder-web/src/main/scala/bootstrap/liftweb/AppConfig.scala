@@ -1526,7 +1526,12 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val controlXmlFileFormatMigration_5_6 = new ControlXmlFileFormatMigration_5_6(
       migrationEventLogRepository = migrationRepository
-    , batchMigrators              = Seq(eventLogsMigration_5_6)
+    , batchMigrators              = Seq(eventLogsMigration_5_6
+                                      , new ChangeRequestsMigration_5_6(
+                                          jdbcTemplate
+                                        , new ChangeRequestMigration_5_6(xmlMigration_5_6)
+                                      )
+                                    )
     , previousMigrationController = Some(controlXmlFileFormatMigration_4_5)
   )
   /**
