@@ -361,9 +361,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def send_server_metrics(): Box[Option[Boolean]] = get("send_server_metrics")
   def set_send_server_metrics(value : Option[Boolean]): Box[Unit] = {
-    println(value)
     val t = value.map(_.toString).getOrElse("none")
-    println(t)
     save("send_server_metrics",t)
   }
 

@@ -348,13 +348,13 @@ function jqCheckAll( id, name )
 /* button */
 
 function correctButtons() {
-	$("button, input:submit", "form").button();
+	$("button, input:submit", "form").not(".tw-bs .btn").button();
 	    
-	$(":button").button();
+	$(":button").not(".tw-bs .btn").button();
 	    
-	$("button, input:submit, a", ".whoUser").button();
+	$("button, input:submit, a", ".whoUser").not(".tw-bs .btn").button();
 		
-	$("a", ".whoUser").click(function() { return false; });
+	$("a", ".whoUser").not(".tw-bs .btn").click(function() { return false; });
 	
 	//$("button, input:submit", ".detailsUser").button();
 	//$("button, input:submit", ".popupButton").button();
@@ -691,4 +691,3 @@ function checkMigrationButton(currentVersion,selectId) {
 function correctContentHeight(selector) {
   $(selector).height(Math.max(400, $(document).height() - 200));
 }
-
