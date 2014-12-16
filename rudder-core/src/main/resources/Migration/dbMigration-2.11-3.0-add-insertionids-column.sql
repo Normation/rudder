@@ -53,6 +53,6 @@ FROM
   LEFT JOIN ruddersysevents AS R
   ON T.nodeid = R.nodeid AND T.executiontimestamp = R.executiontimestamp
   GROUP BY T.nodeid, T.executiontimestamp
-) AS S WHERE testreport.date = S.executiontimestamp AND testreport.nodeid=S.nodeid;
+) AS S WHERE ReportsExecution.date = S.executiontimestamp AND ReportsExecution.nodeid=S.nodeid;
 
 
