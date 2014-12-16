@@ -179,11 +179,11 @@ class ReportsTest extends DBCommon {
     "get reports" in {
       val res = repostsRepo.getReportsfromId(0, DateTime.now().plusDays(1)).openOrThrowException("Test failed")
       val expected = Seq(
-          AgentRun(AgentRunId(NodeId("n1"),run2),None,false)
-        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")),true)
-        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),true)
-        , AgentRun(AgentRunId(NodeId("n1"),run3),None,false)
-        , AgentRun(AgentRunId(NodeId("n0"),run1),None,true)
+          AgentRun(AgentRunId(NodeId("n1"),run2),None,false, 116)
+        , AgentRun(AgentRunId(NodeId("n2"),run1),Some(NodeConfigId("n2_run1")),true, 119)
+        , AgentRun(AgentRunId(NodeId("n1"),run1),Some(NodeConfigId("n1_run1")),true, 110)
+        , AgentRun(AgentRunId(NodeId("n1"),run3),None,false, 118)
+        , AgentRun(AgentRunId(NodeId("n0"),run1),None,true, 109)
       )
 
       res._1 must contain(exactly(expected:_*))
