@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2014 Normation SAS
 *************************************************************************************
 *
 * This program is free software: you can redistribute it and/or modify
@@ -32,42 +32,17 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.parameters
+package com.normation.rudder.domain.policies
 
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.domain.policies.SimpleDiff
-import com.normation.rudder.domain.policies.TriggerDeploymentDiff
-
-sealed trait ParameterDiff extends TriggerDeploymentDiff
-
-//for change request, with add type tag to DirectiveDiff
-sealed trait ChangeRequestGlobalParameterDiff {
-  def parameter:GlobalParameter
-}
-
-final case class AddGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching {
-  def needDeployment : Boolean = false
-}
-
-final case class DeleteGlobalParameterDiff(parameter:GlobalParameter) extends ParameterDiff with ChangeRequestGlobalParameterDiff with HashcodeCaching {
-  def needDeployment : Boolean = true
-}
-
-final case class ModifyGlobalParameterDiff(
-    name                : ParameterName
-  , modValue            : Option[SimpleDiff[String]] = None
-  , modDescription      : Option[SimpleDiff[String]] = None
-  , modOverridable      : Option[SimpleDiff[Boolean]] = None
-) extends ParameterDiff with HashcodeCaching {
-  def needDeployment : Boolean = {
-    modValue.isDefined || modOverridable.isDefined
-  }
-}
 
 
-final case class ModifyToGlobalParameterDiff(
-    parameter : GlobalParameter
-) extends ParameterDiff with HashcodeCaching with ChangeRequestGlobalParameterDiff {
-  // This case is undecidable, so it is always true
-  def needDeployment : Boolean = true
+/**
+ * Define a trait that means "this change should trigger a deployment", when something non trivial
+ * has been modified
+ */
+
+trait TriggerDeploymentDiff {
+  // Does this change should trigger a deployment ?
+  def needDeployment: Boolean
 }

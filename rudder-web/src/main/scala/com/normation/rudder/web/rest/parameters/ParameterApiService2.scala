@@ -37,7 +37,6 @@ package com.normation.rudder.web.rest.parameter
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentAgent
-import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.RoParameterRepository
