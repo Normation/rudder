@@ -407,9 +407,9 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     def getRuns(fromId: Long, toId: Long): Box[Seq[AgentRun]] = {
       import java.lang.{Long => jLong}
       val getRunsQuery = """select distinct
-                          |  T.nodeid, T.executiontimestamp, coalesce(C.iscomplete, false) as complete, coalesce(C.msg, '') as nodeconfigid
+                          |  T.nodeid, T.executiontimestamp, coalesce(C.iscomplete, false) as complete, coalesce(C.msg, '') as nodeconfigid, T.insertionid
                           |from
-                          |  (select distinct nodeid, executiontimestamp from ruddersysevents where id > ? and id <= ?) as T
+                          |  (select nodeid, executiontimestamp, min(id) as insertionid from ruddersysevents where id > ? and id <= ? group by nodeid, executiontimestamp) as T
                           |left join
                           |  (select
                           |    true as isComplete, nodeid, executiontimestamp, msg
@@ -538,6 +538,7 @@ object ReportsExecutionMapper extends RowMapper[AgentRun] {
            }
          }
        , rs.getBoolean("complete")
+       , rs.getLong("insertionid")
      )
     }
 }

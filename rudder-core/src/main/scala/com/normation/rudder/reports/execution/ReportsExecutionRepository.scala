@@ -46,6 +46,12 @@ trait RoReportsExecutionRepository {
 
   /**
    * Find the last execution of nodes, whatever is its state.
+   * Last execution is defined as "the last executions that have been inserted in the database",
+   * and do not rely on date (which can change too often)
+   * The goal is to have reporting that does not depend on time, as node may have time in the future, or
+   * past, or even change during their lifetime
+   * So the last run are the last run inserted in the reports database
+   * See ticket http://www.rudder-project.org/redmine/issues/6005
    */
   def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]]
 }

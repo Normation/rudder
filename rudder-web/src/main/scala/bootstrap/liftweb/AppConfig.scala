@@ -1452,7 +1452,7 @@ object RudderConfig extends Loggable {
     , uuidGen
     , RUDDER_BATCH_TECHNIQUELIBRARY_UPDATEINTERVAL
   )
-  private[this] lazy val userSessionLogEvent = new UserSessionLogEvent(logRepository, uuidGen)
+
   private[this] lazy val jsTreeUtilServiceImpl = new JsTreeUtilService(roLdapDirectiveRepository, techniqueRepositoryImpl)
   private[this] lazy val removeNodeServiceImpl = new RemoveNodeServiceImpl(
         nodeDitImpl
@@ -1526,7 +1526,12 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val controlXmlFileFormatMigration_5_6 = new ControlXmlFileFormatMigration_5_6(
       migrationEventLogRepository = migrationRepository
-    , batchMigrators              = Seq(eventLogsMigration_5_6)
+    , batchMigrators              = Seq(eventLogsMigration_5_6
+                                      , new ChangeRequestsMigration_5_6(
+                                          jdbcTemplate
+                                        , new ChangeRequestMigration_5_6(xmlMigration_5_6)
+                                      )
+                                    )
     , previousMigrationController = Some(controlXmlFileFormatMigration_4_5)
   )
   /**

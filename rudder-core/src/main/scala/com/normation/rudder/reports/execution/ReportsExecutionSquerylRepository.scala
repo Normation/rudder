@@ -68,7 +68,8 @@ case class RoReportsExecutionJdbcRepository (
       val nodeId = NodeId(rs.getString("nodeid"))
       val id = AgentRunId(nodeId, new DateTime(rs.getTimestamp("date").getTime))
       val configId = Option(rs.getString("nodeconfigid")).map(NodeConfigId(_))
-      (nodeId, AgentRun(id, configId, rs.getBoolean("complete")))
+      val insertionId = rs.getLong("insertionid")
+      (nodeId, AgentRun(id, configId, rs.getBoolean("complete"), insertionId))
     }
   }
 
@@ -78,10 +79,10 @@ case class RoReportsExecutionJdbcRepository (
       import pgInClause.in
       val query =
         s"""SELECT DISTINCT ON (nodeid)
-           |  nodeid, date, nodeconfigid, complete
+           |  nodeid, date, nodeconfigid, complete, insertionid
            |FROM  reportsexecution
            |WHERE ${in("nodeid", nodeIds.map(_.value))}
-           |ORDER BY nodeid, date DESC""".stripMargin
+           |ORDER BY nodeid, insertionId DESC""".stripMargin
 
       val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
 
@@ -172,11 +173,11 @@ object ExecutionRepositoryUtils {
   }
 
   implicit def toDB (execution : AgentRun)  : DBAgentRun = {
-    DBAgentRun(execution.agentRunId.nodeId.value, execution.agentRunId.date, execution.nodeConfigVersion.map(_.value), execution.isCompleted)
+    DBAgentRun(execution.agentRunId.nodeId.value, execution.agentRunId.date, execution.nodeConfigVersion.map(_.value), execution.isCompleted, execution.insertionId)
   }
 
   implicit def fromDB (execution : DBAgentRun)  : AgentRun = {
-    AgentRun(AgentRunId(NodeId(execution.nodeId), new DateTime(execution.date)), execution.nodeConfigId.map(NodeConfigId(_)), execution.isCompleted)
+    AgentRun(AgentRunId(NodeId(execution.nodeId), new DateTime(execution.date)), execution.nodeConfigId.map(NodeConfigId(_)), execution.isCompleted, execution.insertionId)
   }
 }
 
@@ -186,10 +187,11 @@ object Executions extends Schema {
 }
 
 case class DBAgentRun (
-    @Column("nodeid")   nodeId     : String
-  , @Column("date")     date       : Timestamp
+    @Column("nodeid")   nodeId        : String
+  , @Column("date")     date          : Timestamp
   , @Column("nodeconfigid") nodeConfigId : Option[String]
-  , @Column("complete") isCompleted: Boolean
+  , @Column("complete") isCompleted   : Boolean
+  , @Column("insertionid") insertionId: Long
 ) extends KeyedEntity[CompositeKey2[String,Timestamp]] {
 
   def id = compositeKey(nodeId,date)
