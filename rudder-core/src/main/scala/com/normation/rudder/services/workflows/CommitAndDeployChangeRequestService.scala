@@ -56,6 +56,7 @@ import com.normation.rudder.services.eventlog.WorkflowEventLogService
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.AddNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
+import com.normation.rudder.domain.nodes.NodeGroupDiff
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.parameters._
 import scala.xml._
@@ -124,15 +125,15 @@ class CommitAndDeployChangeRequestServiceImpl(
       logger.info(s"Saving and deploying change request ${changeRequestId}")
     } }
     for {
-      changeRequest <- roChangeRequestRepo.get(changeRequestId)
-      modId         <- changeRequest match {
+      changeRequest    <- roChangeRequestRepo.get(changeRequestId)
+      (modId, trigger) <- changeRequest match {
                          case Some(config:ConfigurationChangeRequest) =>
                            if(isMergeableConfigurationChangeRequest(config)) {
                              for{
-                               modId <-saveConfigurationChangeRequest(config)
+                               (modId, triggerDeployment) <-saveConfigurationChangeRequest(config)
                                updatedCr  <- woChangeRequestRepo.updateChangeRequest(ChangeRequest.setModId(config, modId),actor,reason)
                              } yield {
-                               modId
+                               (modId, triggerDeployment)
                              }
                            } else {
                              Failure("The change request can not be merge because current item state diverged since its creation")
@@ -140,7 +141,9 @@ class CommitAndDeployChangeRequestServiceImpl(
                          case x => Failure("We don't know how to deploy change request like this one: " + x)
                        }
     } yield {
-      asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+      if (trigger) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+      }
       modId
     }
   }
@@ -511,12 +514,13 @@ class CommitAndDeployChangeRequestServiceImpl(
 
   /*
    * So, what to do ?
+   * Returns the modificationId, plus a boolean indicating if we need to trigger a deployment
    */
-  private[this] def saveConfigurationChangeRequest(cr:ConfigurationChangeRequest) : Box[ModificationId] = {
+  private[this] def saveConfigurationChangeRequest(cr:ConfigurationChangeRequest) : Box[(ModificationId, Boolean)] = {
     import com.normation.utils.Control.sequence
 
-    def doDirectiveChange(directiveChanges:DirectiveChanges, modId: ModificationId) : Box[DirectiveId] = {
-      def save(tn:TechniqueName, d:Directive, change: DirectiveChangeItem) = {
+    def doDirectiveChange(directiveChanges:DirectiveChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
+      def save(tn:TechniqueName, d:Directive, change: DirectiveChangeItem) : Box[Option[DirectiveSaveDiff]] = {
         for {
           activeTechnique <- roDirectiveRepo.getActiveTechnique(tn).flatMap(Box(_) ?~! s"Missing active technique with name ${tn}")
           saved           <- woDirectiveRepo.saveDirective(activeTechnique.id, d, modId, change.actor, change.reason)
@@ -527,62 +531,69 @@ class CommitAndDeployChangeRequestServiceImpl(
 
       for {
         change <- directiveChanges.changes.change
-        done   <- change.diff match {
+        diff   <- change.diff match {
                     case DeleteDirectiveDiff(tn,d) =>
-                      dependencyService.cascadeDeleteDirective(d.id, modId, change.actor, change.reason).map( _ => d.id)
-                    case ModifyToDirectiveDiff(tn,d,rs) => save(tn,d, change).map( _ => d.id )
-                    case AddDirectiveDiff(tn,d) => save(tn,d, change).map( _ => d.id )
+                      dependencyService.cascadeDeleteDirective(d.id, modId, change.actor, change.reason).map( _ => DeleteDirectiveDiff(tn,d) )
+                    case ModifyToDirectiveDiff(tn,d,rs) =>
+                      // if the save returns None, then we return the original modification object
+                      save(tn,d, change).map(_.getOrElse(ModifyToDirectiveDiff(tn,d,rs)))
+                    case AddDirectiveDiff(tn,d) =>
+                      // if the save returns None, then we return the original modification object
+                      save(tn,d, change).map(_.getOrElse(AddDirectiveDiff(tn,d)))
                   }
       } yield {
-        done
+        diff
       }
     }
 
-    def doNodeGroupChange(change:NodeGroupChanges, modId: ModificationId) : Box[NodeGroupId] = {
+    def doNodeGroupChange(change:NodeGroupChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
-        done   <- change.diff match {
+        diff   <- change.diff match {
                     case DeleteNodeGroupDiff(n) =>
-                      dependencyService.cascadeDeleteTarget(GroupTarget(n.id), modId, change.actor, change.reason).map(_ => n.id )
+                      dependencyService.cascadeDeleteTarget(GroupTarget(n.id), modId, change.actor, change.reason).map(_ => DeleteNodeGroupDiff(n) )
                     case AddNodeGroupDiff(n) =>
-                     Failure("You should not be able to create a group with a change request")
+                      Failure("You should not be able to create a group with a change request")
                     case ModifyToNodeGroupDiff(n) =>
-                      woNodeGroupRepo.update(n, modId, change.actor, change.reason).map( _ => n.id)
+                      // if the update returns None, then we return the original modification object
+                      woNodeGroupRepo.update(n, modId, change.actor, change.reason).map(_.getOrElse(ModifyToNodeGroupDiff(n)))
                   }
       } yield {
-        done
+        diff
       }
     }
 
-    def doRuleChange(change:RuleChanges, modId: ModificationId) : Box[RuleId] = {
+    def doRuleChange(change:RuleChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
-        done   <- change.diff match {
+        diff   <- change.diff match {
                     case DeleteRuleDiff(r) =>
-                      woRuleRepository.delete(r.id, modId, change.actor, change.reason).map( _ => r.id)
+                      woRuleRepository.delete(r.id, modId, change.actor, change.reason)
                     case AddRuleDiff(r) =>
-                      woRuleRepository.create(r, modId, change.actor, change.reason).map( _ => r.id)
+                      woRuleRepository.create(r, modId, change.actor, change.reason)
                     case ModifyToRuleDiff(r) =>
-                      woRuleRepository.update(r, modId, change.actor, change.reason).map( _ => r.id)
+                      // if the update returns None, then we return the original modification object
+                      woRuleRepository.update(r, modId, change.actor, change.reason).map(_.getOrElse(ModifyToRuleDiff(r)))
                   }
       } yield {
-        done
+        diff
       }
     }
 
-    def doParamChange(change:GlobalParameterChanges, modId: ModificationId) : Box[ParameterName] = {
+    def doParamChange(change:GlobalParameterChanges, modId: ModificationId) : Box[TriggerDeploymentDiff] = {
       for {
         change <- change.changes.change
-        done   <- change.diff match {
+        diff   <- change.diff match {
                     case DeleteGlobalParameterDiff(param) =>
-                      woParameterRepository.delete(param.name, modId, change.actor, change.reason).map( _ => param.name)
+                      woParameterRepository.delete(param.name, modId, change.actor, change.reason)
                     case AddGlobalParameterDiff(param) =>
-                      woParameterRepository.saveParameter(param, modId, change.actor, change.reason).map( _ => param.name)
+                      woParameterRepository.saveParameter(param, modId, change.actor, change.reason)
                     case ModifyToGlobalParameterDiff(param) =>
-                      woParameterRepository.updateParameter(param, modId, change.actor, change.reason).map( _ => param.name)
+                      // if the update returns None, then we return the original modification object
+                      woParameterRepository.updateParameter(param, modId, change.actor, change.reason).map(_.getOrElse(ModifyToGlobalParameterDiff(param)))
                   }
       } yield {
-        done
+        diff
       }
     }
     val modId = ModificationId(uuidGen.newUuid)
@@ -679,14 +690,15 @@ class CommitAndDeployChangeRequestServiceImpl(
     val rules      = bestEffort(sortedRules) { rule =>
                       doRuleChange(rule, modId)
                     }
-
     //TODO: we will want to keep tracks of all the modification done, and in
     //particular of all the error
     //not fail on the first erroneous, but in case of error, get them all.
+    // For each of the step, we need to detect if a deployment is required
     for {
-      ISoK <-  bestEffort(List(params, directives, groups, rules)) { x => x.map(_ => "OK") }
+      triggerDeployments <-  bestEffort(List(params, directives, groups, rules)) { _.map( x => x.exists(y => (y.needDeployment == true)) ) }
     } yield {
-      modId
+      // If one of the step require a deployment, then we need to trigger a deployment
+      (modId, triggerDeployments.contains(true))
     }
 
   }

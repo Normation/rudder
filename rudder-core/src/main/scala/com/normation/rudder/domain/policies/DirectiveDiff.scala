@@ -43,7 +43,7 @@ import com.normation.cfclerk.domain.SectionSpec
  * That file define "diff" objects between directives.
  */
 
-sealed trait DirectiveDiff
+sealed trait DirectiveDiff extends TriggerDeploymentDiff
 
 //for change request, with add type tag to DirectiveDiff
 sealed trait ChangeRequestDirectiveDiff {
@@ -54,7 +54,9 @@ sealed trait ChangeRequestDirectiveDiff {
 final case class DeleteDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff
+) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff {
+  def needDeployment : Boolean = true
+}
 
 // add and modify are put together
 sealed trait DirectiveSaveDiff extends DirectiveDiff
@@ -62,7 +64,9 @@ sealed trait DirectiveSaveDiff extends DirectiveDiff
 final case class AddDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
-) extends DirectiveSaveDiff with HashcodeCaching with ChangeRequestDirectiveDiff
+) extends DirectiveSaveDiff with HashcodeCaching with ChangeRequestDirectiveDiff {
+  def needDeployment : Boolean = false
+}
 
 
 final case class ModifyDirectiveDiff(
@@ -77,11 +81,18 @@ final case class ModifyDirectiveDiff(
   , modPriority        : Option[SimpleDiff[Int]]              = None
   , modIsActivated     : Option[SimpleDiff[Boolean]]          = None
   , modIsSystem        : Option[SimpleDiff[Boolean]]          = None
-) extends DirectiveSaveDiff with HashcodeCaching
+) extends DirectiveSaveDiff with HashcodeCaching {
+  def needDeployment : Boolean = {
+    modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined || modIsActivated.isDefined
+  }
+}
 
 
 final case class ModifyToDirectiveDiff(
     techniqueName: TechniqueName
   , directive    : Directive
   , rootSection  : SectionSpec
-) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff
+) extends DirectiveDiff with HashcodeCaching with ChangeRequestDirectiveDiff {
+  // This case is undecidable, so it is always true
+  def needDeployment : Boolean = true
+}
