@@ -80,7 +80,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
       val regex = """.+\[(.+)\]""".r
       s match {
         case regex(id) =>
-          RedirectTo(JsInitContextLinkUtil.nodeLink(NodeId(id)))
+          JsInitContextLinkUtil.redirectToNodeLink(NodeId(id))
         case _ =>
           Alert("No node was selected")
       }
