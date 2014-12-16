@@ -51,10 +51,8 @@ final case object ChangeRequestLogCategory extends EventLogCategory
 final case object WorkflowLogCategory extends EventLogCategory
 final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
-
 final case object ParameterLogCategory extends EventLogCategory
-
-
+final case object SettingsLogCategory extends EventLogCategory
 
 
 // the promises related event type
@@ -223,6 +221,10 @@ final case object DeleteGlobalParameterEventType extends RollbackEventLogType {
 
 final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
+}
+
+final case object ModifySendServerMetricsEventType extends NoRollbackEventLogType {
+  def serialize = "SendServerMetricsModified"
 }
 
 /**
