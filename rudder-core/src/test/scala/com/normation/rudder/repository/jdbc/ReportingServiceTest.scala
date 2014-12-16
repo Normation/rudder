@@ -230,10 +230,10 @@ class ReportingServiceTest extends DBCommon {
 
       res must beEqualTo(agentRuns(
           ("n0" -> None                               )
-        , ("n1" -> Some(( run1, None         , true )))
-        , ("n2" -> Some(( run1, Some("n2_t1"), true )))
-        , ("n3" -> Some(( run2, None         , true )))
-        , ("n4" -> Some(( run2, Some("n4_t2"), true )))
+        , ("n1" -> Some(( run1, None         , true, 106 )))
+        , ("n2" -> Some(( run1, Some("n2_t1"), true, 102 )))
+        , ("n3" -> Some(( run2, None         , true, 126 )))
+        , ("n4" -> Some(( run2, Some("n4_t2"), true, 116 )))
       ))
 
     }
@@ -783,9 +783,9 @@ class ReportingServiceTest extends DBCommon {
 
   implicit def toRuleId(id: String): RuleId = RuleId(id)
 
-  implicit def agentRuns(runs:(String, Option[(DateTime, Option[String], Boolean)])*): Map[NodeId, Option[AgentRun]] = {
+  implicit def agentRuns(runs:(String, Option[(DateTime, Option[String], Boolean, Long)])*): Map[NodeId, Option[AgentRun]] = {
     runs.map { case (id, opt) =>
-      NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3))
+      NodeId(id) -> opt.map(e => AgentRun(AgentRunId(NodeId(id), e._1), e._2.map(NodeConfigId(_)), e._3, e._4))
     }.toMap
   }
 }
