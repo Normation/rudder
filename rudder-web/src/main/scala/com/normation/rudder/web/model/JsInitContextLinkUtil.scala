@@ -47,10 +47,15 @@ import scala.xml.Text
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
+import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.http.js.JsCmd
 /**
  * That class helps user to create valide JS initialisation context
  * links for pages that support them (search, Directive,
  * Rule).
+ * Link are constructed with a private definition, which is the actual base path to the page (starting by /)
+ * and then we have two functions, the link, with the context, and the JsCmd to redirect to this page
+ * without the Context, as the JS already embed the context in its redirect
  */
 object JsInitContextLinkUtil extends Loggable {
 
@@ -58,23 +63,61 @@ object JsInitContextLinkUtil extends Loggable {
   private[this] val roGroupRepository     = RudderConfig.roNodeGroupRepository
   private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
 
+  private[this] def baseGroupLink(id:NodeGroupId) =
+    s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
+
   def groupLink(id:NodeGroupId) =
-    s"""${S.contextPath}/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
+    s"""${S.contextPath}${baseGroupLink(id)}"""
+
+  def redirectToGroupLink(id:NodeGroupId) : JsCmd=
+    RedirectTo(baseGroupLink(id))
+
+  private[this] def baseRuleLink(id:RuleId) =
+    s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
 
   def ruleLink(id:RuleId) =
-    s"""${S.contextPath}/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
+    s"""${S.contextPath}${baseRuleLink(id)}"""
+
+  def redirectToRuleLink(id:RuleId) : JsCmd =
+    RedirectTo(baseRuleLink(id))
+
+  private[this] def baseDirectiveLink(id:DirectiveId) =
+    s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
   def directiveLink(id:DirectiveId) =
-    s"""${S.contextPath}/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
+    s"""${S.contextPath}${baseDirectiveLink(id)}"""
+
+  def redirectToDirectiveLink(id:DirectiveId) : JsCmd =
+    RedirectTo(baseDirectiveLink(id))
+
+  private[this] def baseNodeLink(id:NodeId) =
+    s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
 
   def nodeLink(id:NodeId) =
-    s"""${S.contextPath}/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
+    s"""${S.contextPath}${baseNodeLink(id)}"""
+
+  def redirectToNodeLink(id:NodeId) : JsCmd =
+     RedirectTo(baseNodeLink(id))
+
+
+  private[this] def baseGlobalParameterLink(name:ParameterName) =
+    s"/secure/configurationManager/parameterManagement"
 
   def globalParameterLink(name:ParameterName) =
-    s"${S.contextPath}/secure/configurationManager/parameterManagement"
+    s"${S.contextPath}${baseGlobalParameterLink(name)}"
+
+  def redirectToGlobalParameterLink(name:ParameterName) : JsCmd =
+     RedirectTo(baseGlobalParameterLink(name))
+
+  private[this] def baseChangeRequestLink(id:ChangeRequestId) =
+    s"/secure/utilities/changeRequest/${id}"
 
   def changeRequestLink(id:ChangeRequestId) =
-    s"${S.contextPath}/secure/utilities/changeRequest/${id}"
+    s"${S.contextPath}${baseChangeRequestLink(id)}"
+
+  def redirectToChangeRequestLink(id:ChangeRequestId) : JsCmd =
+     RedirectTo(baseChangeRequestLink(id))
+
 
   def createRuleLink(id:RuleId) = {
     roRuleRepository.get(id) match {
