@@ -32,7 +32,17 @@
 *************************************************************************************
 */
 
-.tw-bs .navbar-rudder {
+.tw-bs .modal-header {
+	background-image : linear-gradient(#ffa033, #ee7f00 50%, #b86200);
+  font-family: sans-serif;
+  font-weight:bold;
+}
+
+.tw-bs .modal-body {
+  font-size : 14px;
+}
+
+.tw-bs .navbar-rudder  {
   background-image: linear-gradient(#ffa033, #ee7f00 50%, #b86200);
   border: none;
   font-family: sans-serif;
@@ -382,4 +392,8 @@
 
 .tw-bs .panel-heading {
 	font-size:18px;
+}
+
+.modal-dialog {
+	z-index:1050;
 }
