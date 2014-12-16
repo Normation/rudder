@@ -258,8 +258,7 @@ class ChangeRequestsMigration_4_5(
 }
 
 /**
- * Migrate an event log from fileFormat 4 to 5
- * Also take care of categories, etc.
+ * Migrate change requests fileFormat 4 to 5
  */
 class ChangeRequestMigration_4_5(
     xmlMigration:XmlMigration_4_5

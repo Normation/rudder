@@ -284,10 +284,10 @@ object ExecutionBatch extends Loggable {
               }
             }
 
-          case (Some(AgentRun(AgentRunId(_, t), None, _)), None) =>
+          case (Some(AgentRun(AgentRunId(_, t), None, _, _)), None) =>
             VersionNotInitialized(t)
 
-          case (Some(AgentRun(AgentRunId(_, t), None, _)), Some(configs)) =>
+          case (Some(AgentRun(AgentRunId(_, t), None, _, _)), Some(configs)) =>
             if(configs.isEmpty) {
               VersionNotInitialized(t)
             } else {
@@ -322,7 +322,7 @@ object ExecutionBatch extends Loggable {
               }
             }
 
-          case (Some(AgentRun(AgentRunId(_, t), Some(rv), _)), None) =>
+          case (Some(AgentRun(AgentRunId(_, t), Some(rv), _, _)), None) =>
             //that seems to indicate a bug, the node should not be able to have
             //a version without having any information in the table.
             //migration from an other Rudder ? table deleted ?
@@ -330,7 +330,7 @@ object ExecutionBatch extends Loggable {
             //in all case, we want to act as if the node didn't had any config id.
             VersionNotInitialized(t)
 
-          case (Some(AgentRun(AgentRunId(_, t), Some(rv), _)), Some(configs)) =>
+          case (Some(AgentRun(AgentRunId(_, t), Some(rv), _, _)), Some(configs)) =>
             if(configs.isEmpty) {
               //error: we have a MISSING config id. Contrary to the case where any config id is missing
               //for the node, here we have a BAD id.
