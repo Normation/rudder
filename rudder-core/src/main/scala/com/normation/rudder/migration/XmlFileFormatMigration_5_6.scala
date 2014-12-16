@@ -155,6 +155,22 @@ class EventLogMigration_5_6(
  */
 class XmlMigration_5_6 extends Migration_5_6_Definition {
 
+  def changeRequest(xml:Elem) : Box[Elem] = {
+    for {
+      labelOK      <- TestLabel(xml, "changeRequest")
+      fileFormatOK <- TestFileFormat(xml,fromVersion.toString())
+      migrated     <-
+                      TestIsElem(
+                        ( // We need to get all 'rule' tags from each rule modified in a change request
+                          "rule rule *+" #> <category>rootRuleCategory</category>&
+                          "* fileFormat=5 [fileFormat]" #> toVersion
+                        ).apply(xml)
+                      )
+    } yield {
+      migrated
+    }
+  }
+
   def other(xml:Elem) : Box[Elem] = {
     for {
       fileFormatOK <- TestFileFormat(xml,fromVersion.toString())
@@ -170,6 +186,78 @@ class XmlMigration_5_6 extends Migration_5_6_Definition {
 }
 
 
+
+
+/**
+ * The class that handle the processing of the list of all event logs
+ * logic.
+ * Each individual eventlog is processed in EventLogMigration_4_5
+ *
+ */
+class ChangeRequestsMigration_5_6(
+    override val jdbcTemplate       : JdbcTemplate
+  , override val individualMigration: ChangeRequestMigration_5_6
+  , override val batchSize          : Int = 1000
+) extends BatchElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {
+
+  override val elementName = "ChangeRequest"
+  override val rowMapper = MigrationChangeRequestMapper
+  override val selectAllSqlRequest = "SELECT id, name, content FROM changerequest"
+
+
+  override protected def save(logs:Seq[MigrationChangeRequest]) : Box[Seq[MigrationChangeRequest]] = {
+    val UPDATE_SQL = "UPDATE changerequest set content = ? where id = ?"
+
+    val ilogs = logs match {
+      case x:IndexedSeq[_] => logs
+      case seq => seq.toIndexedSeq
+    }
+
+    tryo { jdbcTemplate.batchUpdate(
+               UPDATE_SQL
+             , new BatchPreparedStatementSetter() {
+                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
+                   val sqlXml = ps.getConnection.createSQLXML()
+                   sqlXml.setString(ilogs(i).data.toString)
+                   ps.setSQLXML(1, sqlXml)
+                   ps.setLong(2, ilogs(i).id )
+                 }
+
+                 override def getBatchSize() = ilogs.size
+               }
+    ) }.map( _ => ilogs )
+  }
+}
+
+/**
+ * Migrate change requests fileFormat 4 to 5
+ */
+class ChangeRequestMigration_5_6(
+    xmlMigration:XmlMigration_5_6
+) extends IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {
+
+  def migrate(cr:MigrationChangeRequest) : Box[MigrationChangeRequest] = {
+    /*
+     * We don't use values from
+     * com.normation.rudder.domain.eventlog.*EventType
+     * so that if they change in the future, the migration
+     * from 2.3 to 2.5 is still OK.
+     */
+    val MigrationChangeRequest(id,name, content) = cr
+
+
+    //utility to factor common code
+    def create(optElem:Box[Elem], name:String) = {
+       optElem.map { xml => MigrationChangeRequest(id, name, xml) }
+    }
+
+    for {
+      migrated <- create(xmlMigration.changeRequest(content), name)
+    } yield {
+      migrated
+    }
+  }
+}
 
 
 
