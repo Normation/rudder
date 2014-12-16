@@ -645,7 +645,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var sendMetrics = configService.send_server_metrics
 
     def submit() = {
-      println(sendMetrics)
+      val oldSendMetrics = configService.send_server_metrics.getOrElse(None)
       sendMetrics.foreach(x => configService.set_send_server_metrics(x))
       sendMetrics = configService.send_server_metrics
 
@@ -657,7 +657,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       })
     }
 
-    ( "#sendMetrics" #> {
+    ( "#sendMetricsCheckbox" #> {
       sendMetrics match {
         case Full(value) =>
           SHtml.ajaxCheckbox(
