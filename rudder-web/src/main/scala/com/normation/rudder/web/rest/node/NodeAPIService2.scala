@@ -68,7 +68,6 @@ import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.web.rest.RestDataSerializer
 import bootstrap.liftweb.RudderConfig
-import com.normation.rudder.batch.AutomaticStartDeployment
 
 
 case class NodeApiService2 (
@@ -81,8 +80,6 @@ case class NodeApiService2 (
   , fixedTag          : Boolean
 ) extends Loggable {
 
-
-  val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
 
   import restSerializer._
   def listAcceptedNodes (req : Req) = {
