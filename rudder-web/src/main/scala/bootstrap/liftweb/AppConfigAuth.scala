@@ -84,6 +84,7 @@ import org.springframework.ldap.core.DirContextAdapter
 import org.springframework.ldap.core.DirContextOperations
 import java.util.Collection
 import org.xml.sax.SAXParseException
+import com.normation.rudder.web.services.UserSessionLogEvent
 
 /**
  * Spring configuration for user authentication.
@@ -156,6 +157,10 @@ class AppConfigAuth extends Loggable {
         throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
     }
   }
+
+  //userSessionLogEvent must not be lazy, because not used by anybody directly
+  @Bean def userSessionLogEvent = new UserSessionLogEvent(RudderConfig.eventLogRepository, RudderConfig.stringUuidGenerator)
+
 }
 
 /**
