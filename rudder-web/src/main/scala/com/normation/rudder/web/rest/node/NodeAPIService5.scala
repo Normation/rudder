@@ -72,11 +72,11 @@ class NodeApiService5 (
 
     (for {
       reason   <- restExtractor.extractReason(req.params)
-      node     <- nodeInfoService.getNode(nodeId)
       restNode <- boxRestNode
-      updated  =  node.copy(properties = updateProperties(node.properties, restNode.properties))
-      saved    <- if(updated == node) Full(node)
-                  else nodeRepository.update(updated, modId, actor, reason)
+      saved    <- restNode.properties match {
+                    case None => nodeInfoService.getNode(nodeId)
+                    case Some(properties) => nodeRepository.updateNodeProperties(nodeId, properties, modId, actor, reason)
+                  }
     } yield {
       saved
     }) match {
