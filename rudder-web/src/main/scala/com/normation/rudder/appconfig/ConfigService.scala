@@ -51,6 +51,12 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
 import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
+import net.liftweb.common.EmptyBox
+import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytime
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -155,10 +161,10 @@ trait UpdateConfigService {
   /**
    * Agent frequency and start run
    */
-  def set_agent_run_interval(value: Int): Box[Unit]
-  def set_agent_run_splaytime(value: Int): Box[Unit]
-  def set_agent_run_start_hour(value: Int): Box[Unit]
-  def set_agent_run_start_minute(value: Int): Box[Unit]
+  def set_agent_run_interval(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_splaytime(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_start_hour(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_start_minute(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
 
   /**
    * Set CFEngine global properties
@@ -306,7 +312,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
       case Full(interval) =>
         cacheExecutionInterval = Some(interval)
         interval
-      case f: Failure =>
+      case f: EmptyBox =>
         val e = f ?~! "Failure when fetching the agent run interval "
         logger.error(e.messageChain)
         cacheExecutionInterval match {
@@ -321,19 +327,29 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
 
 
   }
-  def set_agent_run_interval(value: Int): Box[Unit] = {
+  def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
     cacheExecutionInterval = Some(value)
-    save("agent_run_interval", value)
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunIntervalEventType,actor,reason)
+    save("agent_run_interval", value, Some(info))
   }
 
   def agent_run_splaytime(): Box[Int] = get("agent_run_splaytime")
-  def set_agent_run_splaytime(value: Int): Box[Unit] = save("agent_run_splaytime", value)
+  def set_agent_run_splaytime(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunSplaytimeEventType,actor,reason)
+    save("agent_run_splaytime", value, Some(info))
+  }
 
   def agent_run_start_hour(): Box[Int] = get("agent_run_start_hour")
-  def set_agent_run_start_hour(value: Int): Box[Unit] = save("agent_run_start_hour", value)
+  def set_agent_run_start_hour(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartHourEventType,actor,reason)
+    save("agent_run_start_hour", value, Some(info))
+  }
 
   def agent_run_start_minute(): Box[Int] = get("agent_run_start_minute")
-  def set_agent_run_start_minute(value: Int): Box[Unit] = save("agent_run_start_minute", value)
+  def set_agent_run_start_minute(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartMinuteEventType,actor,reason)
+    save("agent_run_start_minute", value, Some(info))
+  }
 
   ///// CFEngine server /////
   def cfengine_modified_files_ttl(): Box[Int] = get("cfengine_modified_files_ttl")

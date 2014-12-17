@@ -500,11 +500,13 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+
+    val actor = CurrentUser.getActor
     for {
-      _ <- configService.set_agent_run_interval(schedule.interval)
-      _ <- configService.set_agent_run_start_hour(schedule.startHour)
-      _ <- configService.set_agent_run_start_minute(schedule.startMinute)
-      _ <- configService.set_agent_run_splaytime(schedule.splaytime)
+      _ <- configService.set_agent_run_interval(schedule.interval,actor,genericReasonMessage)
+      _ <- configService.set_agent_run_start_hour(schedule.startHour,actor,genericReasonMessage)
+      _ <- configService.set_agent_run_start_minute(schedule.startMinute,actor,genericReasonMessage)
+      _ <- configService.set_agent_run_splaytime(schedule.splaytime,actor,genericReasonMessage)
     } yield {
       logger.info(s"Agent schedule updated to run interval: ${schedule.interval} min, start time: ${schedule.startHour} h ${schedule.startMinute} min, splaytime: ${schedule.splaytime} min")
       "ok"
