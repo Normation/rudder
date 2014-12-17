@@ -53,7 +53,6 @@ import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
 import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
-import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytime
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
