@@ -38,46 +38,40 @@ import scala.xml.{Node => XNode, _}
 import net.liftweb.common._
 import net.liftweb.common.Box._
 import net.liftweb.util.Helpers.tryo
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.DateTime
+import org.eclipse.jgit.lib.PersonIdent
+
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.NodeId
 import com.normation.utils.Control.sequence
+import com.normation.eventlog.EventLog
+import com.normation.eventlog.ModificationId
+
+import com.normation.rudder.api._
+import com.normation.rudder.batch.CurrentDeploymentStatus
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.domain.queries.Query
-import com.normation.inventory.domain.NodeId
-import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.services.marshalling._
-import com.normation.rudder.batch.SuccessStatus
-import com.normation.rudder.batch.ErrorStatus
-import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
-import com.normation.rudder.batch.CurrentDeploymentStatus
-import com.normation.inventory.domain.AgentType
 import com.normation.rudder.domain.eventlog._
-import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.workflows._
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.Constants._
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.repository.GitPath
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.repository.GitArchiveId
-import org.eclipse.jgit.lib.PersonIdent
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.services.marshalling.TestFileFormat
-import com.normation.eventlog.EventLog
-import org.joda.time.DateTime
-import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import com.normation.rudder.domain.workflows.ConfigurationChangeRequest
-import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.domain.workflows.ChangeRequestInfo
-import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.domain.workflows.WorkflowNodeId
-import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.parameters._
-import com.normation.rudder.api._
-import com.normation.rudder.domain.Constants._
+import com.normation.rudder.repository.jdbc.NodeMapper
+import com.normation.rudder.reports._
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.appconfig.RudderWebProperty
-import com.normation.rudder.domain.appconfig.RudderWebPropertyName
+import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.services.marshalling._
+import com.normation.rudder.services.marshalling.TestFileFormat
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -162,7 +156,15 @@ trait EventLogDetailsService {
 
   def getApiAccountModifyDetails(xml:NodeSeq) : Box[ModifyApiAccountDiff]
 
+  // Global properties
   def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)]
+
+  // Node modifiction
+  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeAgentRunDiff]
+
+  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeHeartbeatDiff]
+
+  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodePropertiesDiff]
 }
 
 
@@ -754,10 +756,10 @@ class EventLogDetailsServiceImpl(
       eventlogs    <- event.child
       entry        <- (eventlogs \ "main").headOption
       id           <- (entry \ "id").headOption.map(_.text.toInt) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      evtType      <-(entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      author       <-(entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      date         <-(entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
-      rollbackType <-(entry \ "rollbackType").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      evtType      <- (entry \ "type").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      author       <- (entry \ "author").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      date         <- (entry \ "date").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
+      rollbackType <- (entry \ "rollbackType").headOption.map(_.text) ?~! ("Entry type is not a 'rollback': %s".format(entry))
     } yield {
       val target = RollbackedEvent(id,date,evtType,author)
       RollbackInfo(target,rollbackType,getEvents(xml))
@@ -865,6 +867,7 @@ class EventLogDetailsServiceImpl(
   }
 
 
+  // global properties
   def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)] = {
     for {
       entry              <- getEntryContent(xml)
@@ -879,6 +882,95 @@ class EventLogDetailsServiceImpl(
       (oldValue,newValue)
     }
   }
+
+  // Node modifiction
+  private[this] def getModifyNodeDetails[T, U](xml:NodeSeq, tag: String, details: NodeSeq => Box[T], build: (NodeId, Option[SimpleDiff[T]]) => U) : Box[U] = {
+    for {
+      entry        <- getEntryContent(xml)
+      node         <- (entry \ "node" ).headOption ?~!
+                        (s"Entry type is not a node modification: ${entry}")
+      fileFormatOk <- TestFileFormat(node)
+      changeTypeOk <- {
+                        if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+                        else Failure(s"API Account attribute does not have changeType=modify in ${entry}")
+                      }
+      id           <- (node \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type API Account : " + entry)
+      info         <- getFromTo[T]((node \ tag).headOption, details(_) )
+    } yield {
+      build(NodeId(id), info)
+    }
+  }
+
+  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeAgentRunDiff] = {
+    def extract(details: NodeSeq) = {
+      val children = (details \ "_")
+      if(children.isEmpty) Full(None)
+      else for {
+        overrides   <- (details \ "override").headOption match {
+                         case None => Full(None)
+                         case Some(elt) => tryo(Some(elt.text.toBoolean))
+                       }
+        interval    <- (details \ "interval").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'interval' in entry type node : '${xml}'"
+        startMinute <- (details \ "startMinute").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'startMinute' in entry type node : '${xml}'"
+        startHour   <- (details \ "startHour").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'startHour' in entry type node : '${xml}'"
+        splaytime   <- (details \ "splaytime").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'splaytime' in entry type node : '${xml}'"
+      } yield {
+        Some(AgentRunInterval(
+            overrides
+          , interval
+          , startMinute
+          , startHour
+          , splaytime
+        ))
+      }
+    }
+
+    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[AgentRunInterval]]]) : ModifyNodeAgentRunDiff = {
+      ModifyNodeAgentRunDiff(nodeId, details)
+    }
+    getModifyNodeDetails(xml, "agentRun", extract, build)
+  }
+
+  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeHeartbeatDiff] = {
+    def extract(details: NodeSeq) = {
+      if((details\"_").isEmpty) Full(None)
+      else for {
+        overrides <- (details \ "override").headOption.flatMap(x => tryo(x.text.toBoolean )) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
+        period    <- (details \ "period").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
+      } yield {
+        Some(HeartbeatConfiguration(overrides, period))
+      }
+    }
+
+    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[HeartbeatConfiguration]]]): ModifyNodeHeartbeatDiff = {
+      ModifyNodeHeartbeatDiff(nodeId, details)
+    }
+    getModifyNodeDetails(xml, "heartbeat", extract, build)
+  }
+
+  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodePropertiesDiff] = {
+    def extract(details: NodeSeq): Box[Seq[NodeProperty]] = {
+      if(details.isEmpty) Full(Seq())
+      else for {
+        properties <- sequence((details \ "property").toSeq) { prop =>
+                         for {
+                           name  <- (prop \ "name" ).headOption.map( _.text ) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
+                           value <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
+                         } yield {
+                           NodeProperty(name, value)
+                         }
+                       }
+      } yield {
+        properties
+      }
+    }
+
+    def build(nodeId: NodeId, details: Option[SimpleDiff[Seq[NodeProperty]]]) : ModifyNodePropertiesDiff = {
+      ModifyNodePropertiesDiff(nodeId, details)
+    }
+    getModifyNodeDetails(xml, "properties", extract, build)
+  }
+
 }
 
 case class RollbackInfo(

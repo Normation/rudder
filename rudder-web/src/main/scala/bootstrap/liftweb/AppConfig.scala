@@ -1077,9 +1077,7 @@ object RudderConfig extends Loggable {
       nodeDitImpl
     , ldapEntityMapper
     , rwLdap
-    , ldapDiffMapper
     , logRepository
-    , personIdentServiceImpl
   )
 
   private[this] lazy val roLdapNodeGroupRepository = new RoLDAPNodeGroupRepository(

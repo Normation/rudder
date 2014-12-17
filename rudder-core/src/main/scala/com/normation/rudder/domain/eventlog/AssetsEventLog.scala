@@ -147,48 +147,6 @@ object RefuseNodeEventLog extends EventLogFilter {
 
 // Accepted node part
 
-final case class NodeLogDetails(
-    node: NodeInfo
-) extends HashcodeCaching
-
-sealed trait NodeEventLog extends AssetEventLog
-
-object NodeEventLog {
-
-  /**
-   * Print to XML a node detail
-   */
-  def toXml(
-      node  : NodeInfo
-    , action: String
-  ) = {
-    scala.xml.Utility.trim(
-      <node action={action} fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-        <id>{node.id.value}</id>
-        <name>{node.name}</name>
-        <hostname>{node.hostname}</hostname>
-        <description>{node.description}</description>
-        <os>{node.osName}</os>
-        <osVersion>{node.osVersion}</osVersion>
-        {node.servicePack.map(sp =>   <servicePack>{sp}</servicePack>)
-          .getOrElse(NodeSeq.Empty)}
-
-        <ips>{node.ips.map(ip => <ip>{ip}</ip>)}</ips>
-        <inventoryDate>{node.inventoryDate}</inventoryDate>
-        <publicKey>{node.publicKey}</publicKey>
-        <agentsName>{node.agentsName.map(agentName => <agentName>{agentName}</agentName>)}</agentsName>
-        <policyServerId>{node.policyServerId}</policyServerId>
-        <localAdministratorAccountName>{node.localAdministratorAccountName}</localAdministratorAccountName>
-        <creationDate>{node.creationDate}</creationDate>
-        <isBroken>{node.isBroken}</isBroken>
-        <isSystem>{node.isSystem}</isSystem>
-        <isPolicyServer>{node.isPolicyServer}</isPolicyServer>
-      </node>
-    )
-  }
-}
-
-
 final case class DeleteNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {

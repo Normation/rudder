@@ -32,36 +32,12 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository
+-- Replace all varchar by text in the database
+ALTER TABLE RudderSysEvents ALTER COLUMN eventType TYPE text;
 
-import com.normation.eventlog.EventActor
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.HeartbeatConfiguration
-import net.liftweb.common._
-import com.normation.inventory.domain.NodeId
+ALTER TABLE ArchivedRudderSysEvents ALTER COLUMN eventType TYPE text;
 
-/**
- * Node Repository
- * To update the Node Run Configuration
- */
-trait WoNodeRepository {
+ALTER TABLE expectedReportsNodes ALTER COLUMN nodeId TYPE text;
 
-  /**
-   * Change the configuration of agent run period for the given node
-   */
-  def updateAgentRunPeriod(nodeId: NodeId, agentRun: AgentRunInterval, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
+ALTER TABLE EventLog ALTER COLUMN eventType TYPE text;
 
-  /**
-   * Change the configuration of heartbeat frequency for the given node
-   */
-  def updateNodeHeartbeat(nodeId: NodeId, heartbeat: HeartbeatConfiguration, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
-
-
-  /**
-   * Update the list of properties for the node, setting the content to exactly
-   * what is given in paramater
-   */
-  def updateNodeProperties(nodeId: NodeId, properties: Seq[NodeProperty], modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
-}
