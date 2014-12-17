@@ -442,7 +442,7 @@ function createComponentTable (isTopLevel, addCompliance, contextPath) {
     , "bInfo" : false
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createComponentValueTable(isTopLevel, addCompliance, contextPath));
+        createInnerTable(this, createComponentValueTable(isTopLevel, addCompliance, contextPath), "component");
       }
   }
 
@@ -553,7 +553,7 @@ function createDirectiveTable (isTopLevel, addCompliance, contextPath) {
     , "sPaginationType": "full_numbers"
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createComponentTable(isTopLevel, addCompliance, contextPath), contextPath);
+        createInnerTable(this, createComponentTable(isTopLevel, addCompliance, contextPath), contextPath, "directive");
       }
   };
 
@@ -624,7 +624,7 @@ function createRuleComplianceTable (gridId, data, contextPath, refresh) {
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createDirectiveTable(false, false, contextPath), contextPath);
+        createInnerTable(this, createDirectiveTable(false, false, contextPath), contextPath, "rule");
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -682,7 +682,7 @@ function createNodeComplianceTable (gridId, data, contextPath, refresh) {
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this,createComponentTable(true, false, contextPath));
+        createInnerTable(this,createComponentTable(true, false, contextPath),"node");
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -775,7 +775,7 @@ function refreshTable (gridId, data) {
 /*
  * Function to define opening of an inner table
  */
-function createInnerTable(myTable,  createFunction, contextPath) {
+function createInnerTable(myTable,  createFunction, contextPath, kind) {
   var plusTd = $(myTable.fnGetNodes());
   plusTd.each( function () {
     $(this).unbind();
@@ -785,11 +785,19 @@ function createInnerTable(myTable,  createFunction, contextPath) {
       } else {
         var fnData = myTable.fnGetData( this );
         var i = $.inArray( this, anOpen );
-        var detailsId = fnData.id + "-details";
+        var detailsId = fnData.id ;
+        if (kind !== undefined) {
+          detailsId += "-"+kind
+        }
+        detailsId += "-details"
         if ( i === -1 ) {
           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var table = $("<table></table>");
-          var tableId = fnData.id + "-compliance";
+          var tableId = fnData.id;
+          if (kind !== undefined) {
+            tableId += "-"+kind;
+          }
+          tableId += "-compliance";
           table.attr("id",tableId);
           table.attr("cellspacing",0);
           table.addClass("noMarginGrid");
