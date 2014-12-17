@@ -373,7 +373,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createDirectiveTable(false, true, contextPath), contextPath);
+        createInnerTable(this, createDirectiveTable(false, true, contextPath), contextPath, "rule");
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -461,7 +461,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "sPaginationType": "full_numbers"
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this, createComponentTable(isTopLevel, isNodeView, contextPath), contextPath);
+        createInnerTable(this, createComponentTable(isTopLevel, isNodeView, contextPath), contextPath, "directive");
       }
   };
 
@@ -539,7 +539,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
-        createInnerTable(this,createDirectiveTable(false, true, contextPath));
+        createInnerTable(this,createDirectiveTable(false, true, contextPath),"node");
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -1150,7 +1150,7 @@ function refreshTable (gridId, data) {
 /*
  * Function to define opening of an inner table
  */
-function createInnerTable(myTable,  createFunction, contextPath) {
+function createInnerTable(myTable,  createFunction, contextPath, kind) {
   var plusTd = $(myTable.fnGetNodes());
   plusTd.each( function () {
     $(this).unbind();
@@ -1160,11 +1160,19 @@ function createInnerTable(myTable,  createFunction, contextPath) {
       } else {
         var fnData = myTable.fnGetData( this );
         var i = $.inArray( this, anOpen );
-        var detailsId = fnData.jsid + "-details";
+        var detailsId = fnData.id ;
+        if (kind !== undefined) {
+          detailsId += "-"+kind
+        }
+        detailsId += "-details"
         if ( i === -1 ) {
           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var table = $("<table></table>");
-          var tableId = fnData.jsid + "-compliance";
+          var tableId = fnData.id;
+          if (kind !== undefined) {
+            tableId += "-"+kind;
+          }
+          tableId += "-compliance";
           table.attr("id",tableId);
           table.attr("cellspacing",0);
           table.addClass("noMarginGrid");
