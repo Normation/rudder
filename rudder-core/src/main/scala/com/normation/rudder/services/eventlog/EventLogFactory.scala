@@ -39,6 +39,10 @@ import com.normation.rudder.services.marshalling.GlobalParameterSerialisation
 import com.normation.rudder.services.marshalling.APIAccountSerialisation
 import com.normation.rudder.api._
 import com.normation.rudder.rule.category.RuleCategoryService
+import com.normation.rudder.services.marshalling.GlobalPropertySerialisation
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import scala.reflect.ClassTag
+import com.normation.eventlog.EventLogType
 
 trait EventLogFactory {
 
@@ -234,15 +238,29 @@ trait EventLogFactory {
     , severity           : Int = 100
     , reason             : Option[String]
   ) : DeleteAPIAccountEventLog
+
+
+  def getModifyGlobalPropertyFromDiff(
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+    , oldProperty    : RudderWebProperty
+    , newProperty    : RudderWebProperty
+    , eventLogType   : ModifyGlobalPropertyEventType
+  ) : ModifyGlobalProperty
 }
 
 class EventLogFactoryImpl(
-    crToXml         : RuleSerialisation
-  , piToXml         : DirectiveSerialisation
-  , groutToXml      : NodeGroupSerialisation
-  , techniqueToXml  : ActiveTechniqueSerialisation
-  , parameterToXml  : GlobalParameterSerialisation
-  , ApiAccountToXml : APIAccountSerialisation
+    ruleXmlserializer      : RuleSerialisation
+  , DirectiveXmlSerializer : DirectiveSerialisation
+  , GroupXmlSerializer     : NodeGroupSerialisation
+  , techniqueXmlSerializer : ActiveTechniqueSerialisation
+  , parameterXmlSerializer : GlobalParameterSerialisation
+  , apiAccountXmlSerializer: APIAccountSerialisation
+  , propertySerializer     : GlobalPropertySerialisation
 ) extends EventLogFactory {
 
   /////
@@ -258,7 +276,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : AddRule= {
-    val details = EventLog.withContent(crToXml.serialise(addDiff.rule) % ("changeType" -> "add"))
+    val details = EventLog.withContent(ruleXmlserializer.serialise(addDiff.rule) % ("changeType" -> "add"))
     AddRule(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -279,7 +297,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : DeleteRule= {
-    val details = EventLog.withContent(crToXml.serialise(deleteDiff.rule) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(ruleXmlserializer.serialise(deleteDiff.rule) % ("changeType" -> "delete"))
     DeleteRule(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -354,7 +372,7 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
     , reason             : Option[String]
   ) = {
-    val details = EventLog.withContent(piToXml.serialise(addDiff.techniqueName, varsRootSectionSpec, addDiff.directive) % ("changeType" -> "add"))
+    val details = EventLog.withContent(DirectiveXmlSerializer.serialise(addDiff.techniqueName, varsRootSectionSpec, addDiff.directive) % ("changeType" -> "add"))
     AddDirective(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -375,7 +393,7 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
     , reason             : Option[String]
   ) = {
-    val details = EventLog.withContent(piToXml.serialise(deleteDiff.techniqueName, varsRootSectionSpec, deleteDiff.directive) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(DirectiveXmlSerializer.serialise(deleteDiff.techniqueName, varsRootSectionSpec, deleteDiff.directive) % ("changeType" -> "delete"))
     DeleteDirective(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -437,7 +455,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : AddNodeGroup = {
-    val details = EventLog.withContent(groutToXml.serialise(addDiff.group) % ("changeType" -> "add"))
+    val details = EventLog.withContent(GroupXmlSerializer.serialise(addDiff.group) % ("changeType" -> "add"))
     AddNodeGroup(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -457,7 +475,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : DeleteNodeGroup = {
-    val details = EventLog.withContent(groutToXml.serialise(deleteDiff.group) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(GroupXmlSerializer.serialise(deleteDiff.group) % ("changeType" -> "delete"))
     DeleteNodeGroup(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -544,7 +562,7 @@ class EventLogFactoryImpl(
     , severity    : Int = 100
     , reason      : Option[String]
   ) : DeleteTechnique = {
-    val details = EventLog.withContent(techniqueToXml.serialise(deleteDiff.technique) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(techniqueXmlSerializer.serialise(deleteDiff.technique) % ("changeType" -> "delete"))
     DeleteTechnique(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -564,7 +582,7 @@ class EventLogFactoryImpl(
     , severity       : Int = 100
     , reason         : Option[String]
   ) : AddGlobalParameter = {
-    val details = EventLog.withContent(parameterToXml.serialise(addDiff.parameter) % ("changeType" -> "add"))
+    val details = EventLog.withContent(parameterXmlSerializer.serialise(addDiff.parameter) % ("changeType" -> "add"))
     AddGlobalParameter(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -584,7 +602,7 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
     , reason             : Option[String]
   ) : DeleteGlobalParameter = {
-    val details = EventLog.withContent(parameterToXml.serialise(deleteDiff.parameter) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(parameterXmlSerializer.serialise(deleteDiff.parameter) % ("changeType" -> "delete"))
     DeleteGlobalParameter(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -704,7 +722,7 @@ class EventLogFactoryImpl(
     , severity       : Int = 100
     , reason         : Option[String]
   ) : CreateAPIAccountEventLog = {
-    val details = EventLog.withContent(ApiAccountToXml.serialise(addDiff.apiAccount) % ("changeType" -> "add"))
+    val details = EventLog.withContent(apiAccountXmlSerializer.serialise(addDiff.apiAccount) % ("changeType" -> "add"))
     CreateAPIAccountEventLog(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -753,7 +771,7 @@ class EventLogFactoryImpl(
     , severity           : Int = 100
     , reason             : Option[String]
   ) : DeleteAPIAccountEventLog = {
-    val details = EventLog.withContent(ApiAccountToXml.serialise(deleteDiff.apiAccount) % ("changeType" -> "delete"))
+    val details = EventLog.withContent(apiAccountXmlSerializer.serialise(deleteDiff.apiAccount) % ("changeType" -> "delete"))
     DeleteAPIAccountEventLog(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -762,6 +780,30 @@ class EventLogFactoryImpl(
       , creationDate = creationDate
       , reason = reason
       , severity = severity))
+  }
+
+  override def getModifyGlobalPropertyFromDiff (
+      id             : Option[Int] = None
+    , modificationId : Option[ModificationId] = None
+    , principal      : EventActor
+    , creationDate   : DateTime = DateTime.now()
+    , severity       : Int = 100
+    , reason         : Option[String]
+    , oldProperty    : RudderWebProperty
+    , newProperty    : RudderWebProperty
+    , eventLogType   : ModifyGlobalPropertyEventType
+  ) : ModifyGlobalProperty = {
+
+    val details = EventLog.withContent(propertySerializer.serializeChange(oldProperty,newProperty) )
+    val eventLogDetails = EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity)
+     ModifyGlobalProperty(eventLogType,eventLogDetails)
   }
 }
 

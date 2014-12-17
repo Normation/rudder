@@ -295,7 +295,8 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         APIAccountEventLogsFilter.eventList :::
         ChangeRequestLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList :::
-        ParameterEventsLogsFilter.eventList
+        ParameterEventsLogsFilter.eventList :::
+        ModifyGlobalPropertyEventLogsFilter.eventList
 
 
   private[this] def mapEventLog(

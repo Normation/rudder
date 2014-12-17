@@ -169,7 +169,10 @@ case class DirectiveAPIService2 (
         saveDiff
       } ) match {
         case Full(saveDiff) =>
-          asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+          // We need to deploy only if there is a saveDiff, that says that a deployment is needed
+          if (saveDiff.map(_.needDeployment).getOrElse(false)) {
+            asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+          }
           val jsonDirective = List(serialize(technique,newDirective))
           toJsonResponse(Some(directiveId.value), ("directives" -> JArray(jsonDirective)))
 
