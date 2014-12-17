@@ -4,38 +4,33 @@ import com.normation.eventlog._
 import com.normation.utils.HashcodeCaching
 
 
-sealed trait ModifyGlobalProperty extends EventLog {
+case class ModifyGlobalProperty(
+    eventType: ModifyGlobalPropertyEventType
+  , eventDetails : EventLogDetails
+) extends EventLog  {
   override final val eventLogCategory = GlobalPropertyEventLogCategory
-  def propertyName : String
-}
 
-final case class ModifySendServerMetrics (
-    override val eventDetails : EventLogDetails
-) extends ModifyGlobalProperty with HashcodeCaching {
   override val cause = None
-  override val eventType = ModifySendServerMetrics.eventType
-  override val propertyName = "Send metrics"
+  val propertyName = eventType.propertyName
 }
 
-object ModifySendServerMetrics extends EventLogFilter {
-  override val eventType = ModifySendServerMetricsEventType
+case class ModifyGlobalPropertyEventFilter (eventType : ModifyGlobalPropertyEventType) extends EventLogFilter {
 
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifySendServerMetrics = ModifySendServerMetrics(x._2)
+   def apply(x :(EventLogType,EventLogDetails)) : ModifyGlobalProperty  = ModifyGlobalProperty(eventType,x._2)
 }
-
-
-object ModifyGlobalProperty {
-
-   def apply(eventType: ModifyGlobalPropertyEventType, eventDetails : EventLogDetails) : ModifyGlobalProperty  = {
-    eventType match {
-      case ModifySendServerMetricsEventType => ModifySendServerMetrics(eventDetails)
-    }
-   }
-}
-
 
 object ModifyGlobalPropertyEventLogsFilter {
+
+  val eventTypes =
+    ModifySendServerMetricsEventType ::
+    ModifyComplianceModeEventType ::
+    ModifyHeartbeatPeriodEventType ::
+    ModifyAgentRunIntervalEventType ::
+    ModifyAgentRunSplaytimeEventType  ::
+    ModifyAgentRunStartHourEventType ::
+    ModifyAgentRunStartMinuteEventType ::
+    Nil
+
   final val eventList : List[EventLogFilter] =
-      ModifySendServerMetrics ::
-      Nil
+      eventTypes.map(ModifyGlobalPropertyEventFilter)
 }

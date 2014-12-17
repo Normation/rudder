@@ -283,6 +283,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
 
   private[this] val logFilters =
         WorkflowStepChanged ::
+        NodeEventLogsFilter.eventList :::
         AssetsEventLogsFilter.eventList :::
         RuleEventLogsFilter.eventList :::
         GenericEventLogsFilter.eventList :::

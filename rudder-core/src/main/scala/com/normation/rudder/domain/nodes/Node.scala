@@ -39,6 +39,9 @@ import com.normation.utils.HashcodeCaching
 import com.normation.rudder.reports.ReportingConfiguration
 import net.liftweb.json.JsonAST.JObject
 import org.joda.time.DateTime
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.domain.policies.SimpleDiff
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -58,10 +61,50 @@ case class Node(
   , properties                : Seq[NodeProperty]
 ) extends HashcodeCaching
 
-
-
 case class NodeProperty(name: String, value: String)
 
+
+/**
+ * Node diff for event logs:
+ * Change
+ * - heartbeat frequency
+ * - run interval
+ * - properties
+ *
+ * For now, other simple properties are not handle.
+ */
+
+sealed trait NodeDiff
+
+/**
+ * Denote a change on the heartbeat frequency.
+ */
+final case class ModifyNodeHeartbeatDiff(
+    id          : NodeId
+  , modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]
+) extends NodeDiff with HashcodeCaching
+
+
+/**
+ * Diff on a change on agent run period
+ */
+final case class ModifyNodeAgentRunDiff(
+    id         : NodeId
+  , modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]
+) extends NodeDiff with HashcodeCaching
+
+/**
+ * Diff on the list of properties
+ */
+final case class ModifyNodePropertiesDiff(
+    id           : NodeId
+  , modProperties: Option[SimpleDiff[Seq[NodeProperty]]]
+)
+
+/**
+ * The part dealing with JsonSerialisation of node related
+ * attributes (especially properties)
+ */
 object JsonSerialisation {
 
   import net.liftweb.json.JsonDSL._

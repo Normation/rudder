@@ -49,6 +49,13 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
+import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
+import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
+import net.liftweb.common.EmptyBox
+import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -153,10 +160,10 @@ trait UpdateConfigService {
   /**
    * Agent frequency and start run
    */
-  def set_agent_run_interval(value: Int): Box[Unit]
-  def set_agent_run_splaytime(value: Int): Box[Unit]
-  def set_agent_run_start_hour(value: Int): Box[Unit]
-  def set_agent_run_start_minute(value: Int): Box[Unit]
+  def set_agent_run_interval(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_splaytime(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_start_hour(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_start_minute(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
 
   /**
    * Set CFEngine global properties
@@ -172,16 +179,16 @@ trait UpdateConfigService {
   /**
    * Send Metrics
    */
-  def set_send_server_metrics(value : Option[Boolean], oldValue : Option[Boolean], actor : EventActor): Box[Unit]
+  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): Box[Unit]
 
   /**
    * Set the compliance mode
    */
-  def set_rudder_compliance_mode(name : String, frequency : Int): Box[Unit] = {
+  def set_rudder_compliance_mode(name : String, frequency : Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
     for {
-      _ <- set_rudder_compliance_mode_name(name)
+      _ <- set_rudder_compliance_mode_name(name,actor, reason)
       u <- name match {
-             case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(frequency)
+             case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(frequency, actor, reason)
              case _ => Full()
            }
     } yield {
@@ -190,9 +197,9 @@ trait UpdateConfigService {
 
   }
 
-  def set_rudder_compliance_mode_name(name : String) : Box[Unit]
+  def set_rudder_compliance_mode_name(name : String, actor : EventActor, reason: Option[String]) : Box[Unit]
 
-  def set_rudder_compliance_heartbeatPeriod(frequency : Int) : Box[Unit]
+  def set_rudder_compliance_heartbeatPeriod(frequency : Int, actor: EventActor, reason: Option[String]) : Box[Unit]
 
 }
 
@@ -304,7 +311,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
       case Full(interval) =>
         cacheExecutionInterval = Some(interval)
         interval
-      case f: Failure =>
+      case f: EmptyBox =>
         val e = f ?~! "Failure when fetching the agent run interval "
         logger.error(e.messageChain)
         cacheExecutionInterval match {
@@ -319,19 +326,29 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
 
 
   }
-  def set_agent_run_interval(value: Int): Box[Unit] = {
+  def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
     cacheExecutionInterval = Some(value)
-    save("agent_run_interval", value)
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunIntervalEventType,actor,reason)
+    save("agent_run_interval", value, Some(info))
   }
 
   def agent_run_splaytime(): Box[Int] = get("agent_run_splaytime")
-  def set_agent_run_splaytime(value: Int): Box[Unit] = save("agent_run_splaytime", value)
+  def set_agent_run_splaytime(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunSplaytimeEventType,actor,reason)
+    save("agent_run_splaytime", value, Some(info))
+  }
 
   def agent_run_start_hour(): Box[Int] = get("agent_run_start_hour")
-  def set_agent_run_start_hour(value: Int): Box[Unit] = save("agent_run_start_hour", value)
+  def set_agent_run_start_hour(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartHourEventType,actor,reason)
+    save("agent_run_start_hour", value, Some(info))
+  }
 
   def agent_run_start_minute(): Box[Int] = get("agent_run_start_minute")
-  def set_agent_run_start_minute(value: Int): Box[Unit] = save("agent_run_start_minute", value)
+  def set_agent_run_start_minute(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartMinuteEventType,actor,reason)
+    save("agent_run_start_minute", value, Some(info))
+  }
 
   ///// CFEngine server /////
   def cfengine_modified_files_ttl(): Box[Int] = get("cfengine_modified_files_ttl")
@@ -349,13 +366,19 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    * Compliance mode
    */
   def rudder_compliance_mode_name(): Box[String] = get("rudder_compliance_mode")
-  def set_rudder_compliance_mode_name(value: String): Box[Unit] = save("rudder_compliance_mode", value)
+  def set_rudder_compliance_mode_name(value: String, actor : EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
+    save("rudder_compliance_mode", value, Some(info))
+  }
 
   /**
    * Heartbeat frequency mode
    */
   def rudder_compliance_heartbeatPeriod(): Box[Int] = get("rudder_compliance_heartbeatPeriod")
-  def set_rudder_compliance_heartbeatPeriod(value: Int): Box[Unit] = save("rudder_compliance_heartbeatPeriod", value)
+  def set_rudder_compliance_heartbeatPeriod(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyHeartbeatPeriodEventType,actor,reason)
+    save("rudder_compliance_heartbeatPeriod", value, Some(info))
+  }
 
 
   /**
@@ -363,11 +386,10 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def send_server_metrics(): Box[Option[Boolean]] = get("send_server_metrics")
 
-  def set_send_server_metrics(value : Option[Boolean], oldValue : Option[Boolean], actor : EventActor): Box[Unit] = {
-    val p = RudderWebProperty(RudderWebPropertyName("send_server_metrics"), oldValue.toString, "")
-    val info = ModifyGlobalPropertyInfo(p,ModifySendServerMetricsEventType,actor,None)
-    val t = value.map(_.toString).getOrElse("none")
-    save("send_server_metrics",t,Some(info))
+  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): Box[Unit] = {
+    val newVal = value.map(_.toString).getOrElse("none")
+    val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
+    save("send_server_metrics",newVal,Some(info))
   }
 
 }

@@ -58,8 +58,9 @@ object ApplicationStarted extends EventLogFilter {
 
   override def apply(x : (EventLogType, EventLogDetails)) : ApplicationStarted = ApplicationStarted(x._2)
 }
+
 /**
- * Red buton part
+ * Red button part
  */
 final case class ActivateRedButton(
     override val eventDetails : EventLogDetails

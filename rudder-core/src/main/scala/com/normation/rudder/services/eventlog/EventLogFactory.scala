@@ -1,48 +1,60 @@
+/*
+*************************************************************************************
+* Copyright 2011 Normation SAS
+*************************************************************************************
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as
+* published by the Free Software Foundation, either version 3 of the
+* License, or (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU Affero GPL v3, the copyright holders add the following
+* Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
+* licence, when you create a Related Module, this Related Module is
+* not considered as a part of the work and may be distributed under the
+* license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+*
+*************************************************************************************
+*/
+
 package com.normation.rudder.services.eventlog
-import com.normation.rudder.domain.policies.ModifyRuleDiff
-import com.normation.rudder.domain.policies.ModifyTechniqueDiff
-import com.normation.rudder.domain.policies.DeleteTechniqueDiff
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.domain.policies.AddRuleDiff
-import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.policies.DeleteRuleDiff
-import com.normation.rudder.services.marshalling.RuleSerialisation
-import org.joda.time.DateTime
-import com.normation.eventlog.EventLog
-import com.normation.rudder.domain.Constants
-import com.normation.rudder.domain.policies.SimpleDiff
-import net.liftweb.util.Helpers._
-import com.normation.rudder.domain.policies.RuleTarget
-import scala.xml.Text
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.AddDirectiveDiff
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.rudder.domain.policies.ModifyDirectiveDiff
-import com.normation.rudder.domain.policies.DeleteDirectiveDiff
-import com.normation.rudder.services.marshalling.DirectiveSerialisation
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.domain.policies.SectionVal
-import com.normation.rudder.domain.nodes.AddNodeGroupDiff
-import com.normation.rudder.domain.nodes.ModifyNodeGroupDiff
-import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
-import com.normation.rudder.services.marshalling.NodeGroupSerialisation
-import com.normation.rudder.services.marshalling.ActiveTechniqueSerialisation
-import com.normation.rudder.domain.queries.Query
-import com.normation.inventory.domain.NodeId
-import com.normation.eventlog.EventLogDetails
+
 import scala.xml._
-import com.normation.eventlog.ModificationId
-import com.normation.eventlog.EventLogDetails
-import com.normation.rudder.domain.workflows.WorkflowStepChange
-import com.normation.rudder.domain.parameters._
-import com.normation.rudder.services.marshalling.GlobalParameterSerialisation
-import com.normation.rudder.services.marshalling.APIAccountSerialisation
+import scala.xml.Text
+
+import org.joda.time.DateTime
+
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.eventlog._
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.api._
-import com.normation.rudder.rule.category.RuleCategoryService
-import com.normation.rudder.services.marshalling.GlobalPropertySerialisation
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.appconfig.RudderWebProperty
-import scala.reflect.ClassTag
-import com.normation.eventlog.EventLogType
+import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.domain.nodes._
+import com.normation.rudder.domain.parameters._
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.workflows.WorkflowStepChange
+import com.normation.rudder.services.marshalling._
+
+import net.liftweb.util.Helpers._
 
 trait EventLogFactory {
 
@@ -251,6 +263,37 @@ trait EventLogFactory {
     , newProperty    : RudderWebProperty
     , eventLogType   : ModifyGlobalPropertyEventType
   ) : ModifyGlobalProperty
+
+  def getModifyNodePropertiesFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodePropertiesDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyNodeProperties
+
+  def getModifyNodeAgentRunFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodeAgentRunDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyNodeAgentRun
+
+  def getModifyNodeHeartbeatFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodeHeartbeatDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyNodeHeartbeat
+
 }
 
 class EventLogFactoryImpl(
@@ -741,8 +784,8 @@ class EventLogFactoryImpl(
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) = {
-   val details = EventLog.withContent{
+  ) = {
+    val details = EventLog.withContent{
       scala.xml.Utility.trim(<apiAccount changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{diff.id.value}</id>{
           diff.modName.map(x => SimpleDiff.stringToXml(<name/>, x) ) ++
@@ -752,6 +795,7 @@ class EventLogFactoryImpl(
         }
       </apiAccount>)
     }
+
     ModifyAPIAccountEventLog(EventLogDetails(
         id = id
       , modificationId = modificationId
@@ -759,8 +803,10 @@ class EventLogFactoryImpl(
       , details = details
       , creationDate = creationDate
       , reason = reason
-      , severity = severity))
+      , severity = severity
+    ))
   }
+
 
   override def getDeleteApiAccountFromDiff(
       id                 : Option[Int] = None
@@ -802,9 +848,122 @@ class EventLogFactoryImpl(
       , details = details
       , creationDate = creationDate
       , reason = reason
-      , severity = severity)
-     ModifyGlobalProperty(eventLogType,eventLogDetails)
+      , severity = severity
+    )
+
+    ModifyGlobalProperty(eventLogType,eventLogDetails)
   }
+
+  def getModifyNodePropertiesFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodePropertiesDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyNodeProperties = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{modifyDiff.id.value}</id>{
+          modifyDiff.modProperties match {
+            case None => <properties/>
+            case Some(x) => SimpleDiff.toXml(<properties/>, x) { props =>
+              props.flatMap { p => <property><name>{ p.name }</name><value>{ p.value }</value></property> }
+            } }
+        }
+      </node>)
+    }
+
+    ModifyNodeProperties(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity
+    ) )
+  }
+
+  def getModifyNodeAgentRunFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodeAgentRunDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyNodeAgentRun = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{modifyDiff.id.value}</id>{
+          modifyDiff.modAgentRun match {
+            case None => <agentRun/>
+            case Some(x) => SimpleDiff.toXml(<agentRun/>, x) { _ match {
+              case None      => NodeSeq.Empty
+              case Some(run) => (
+                                  <override>{run.overrides.map(_.toString).getOrElse("")}</override>
+                                  <interval>{run.interval}</interval>
+                                  <startMinute>{run.startMinute}</startMinute>
+                                  <startHour>{run.startHour}</startHour>
+                                  <splaytime>{run.splaytime}</splaytime>
+                                )
+            } }
+          }
+        }
+      </node>)
+    }
+
+    ModifyNodeAgentRun(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity
+    ) )
+  }
+
+
+  def getModifyNodeHeartbeatFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodeHeartbeatDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+ ) : ModifyNodeHeartbeat = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{modifyDiff.id.value}</id>{
+          modifyDiff.modHeartbeat match {
+            case None => <heartbeat/>
+            case Some(x) => SimpleDiff.toXml(<heartbeat/>, x) { _ match {
+              case None     => NodeSeq.Empty
+              case Some(hb) => (
+                                  <override>{hb.overrides}</override>
+                                  <period>{hb.heartbeatPeriod}</period>
+                                )
+            } }
+          }
+        }
+      </node>)
+    }
+
+    ModifyNodeHeartbeat(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity
+     ) )
+  }
+
 }
 
 

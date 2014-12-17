@@ -70,7 +70,7 @@ CREATE TABLE RudderSysEvents (
 , component          text NOT NULL CHECK (component <> '')
 , keyValue           text
 , executionTimeStamp timestamp with time zone NOT NULL
-, eventType          varchar(64)
+, eventType          text
 , policy             text
 , msg                text
 );
@@ -99,7 +99,7 @@ CREATE TABLE ArchivedRudderSysEvents (
 , component          text NOT NULL CHECK (component <> '')
 , keyValue           text
 , executionTimeStamp timestamp with time zone NOT NULL
-, eventType          varchar(64)
+, eventType          text
 , policy             text
 , msg                text
 );
@@ -158,7 +158,7 @@ CREATE INDEX expectedReports_serialId ON expectedReports (ruleId, serial);
 
 CREATE TABLE expectedReportsNodes (
   nodeJoinKey   integer NOT NULL 
-, nodeId        varchar(50) NOT NULL CHECK (nodeId <> '')
+, nodeId        text NOT NULL CHECK (nodeId <> '')
   /*
    * NodeConfigIds is an array of string  used for node 
    * config version id. It can be null or empty to accomodate 
@@ -213,7 +213,7 @@ CREATE TABLE EventLog (
 , modificationId text
 , principal      text
 , reason         text
-, eventType      varchar(64)
+, eventType      text
 , data           xml
 ); 
 
