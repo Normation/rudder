@@ -53,6 +53,8 @@ final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
 final case object ParameterLogCategory extends EventLogCategory
 final case object GlobalPropertyEventLogCategory extends EventLogCategory
+final case object SettingsLogCategory extends EventLogCategory
+final case object NodeLogCategory extends EventLogCategory
 
 
 // the promises related event type
@@ -229,6 +231,27 @@ final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyE
   def serialize = "SendServerMetricsModified"
 }
 
+// node properties: properties, heartbeat, agent run.
+final case object ModifyHeartbeatNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeHeartbeatModified"
+}
+
+final case object ModifyAgentRunIntervalNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeAgentRunPeriodModified"
+}
+
+final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
+  def serialize = "NodePropertiesModified"
+}
+
+final case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "ComplianceModeModified"
+}
+
+final case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "HeartbeatPeriodModified"
+}
+
 /**
  * List of event generating a modification of promises
  */
@@ -261,8 +284,11 @@ object ModificationWatchList {
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
 
-    , ModifySendServerMetricsEventType
-  )
+    , ModifyHeartbeatNodeEventType
+    , ModifyAgentRunIntervalNodeEventType
+    , ModifyPropertiesNodeEventType
+
+  ) ++ ModifyGlobalPropertyEventLogsFilter.eventList.map(_.eventType)
 
 }
 
@@ -328,8 +354,11 @@ object EventTypeFactory {
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
 
-    , ModifySendServerMetricsEventType
-  )
+    , ModifyHeartbeatNodeEventType
+    , ModifyAgentRunIntervalNodeEventType
+    , ModifyPropertiesNodeEventType
+
+  ) ::: ModifyGlobalPropertyEventLogsFilter.eventList.map(_.eventType)
 
   def apply(s:String) : EventLogType = {
     eventTypes.find {
