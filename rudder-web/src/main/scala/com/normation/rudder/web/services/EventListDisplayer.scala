@@ -1028,6 +1028,7 @@ class EventListDisplayer(
               { val diff = Some(SimpleDiff(oldProp.value,newProp.value))
          displaySimpleDiff(diff,"value",newProp.value) } </li>
              </ul>
+              { reasonHtml }
               { xmlParameters(event.id) }
             </div>
           case e:EmptyBox => logger.warn(e)
