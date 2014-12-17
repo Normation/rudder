@@ -54,16 +54,23 @@ import net.liftweb.util.PassThru
 import net.liftweb.util.ClearNodes
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
+import ComplianceModeEditForm._
+import com.normation.eventlog.EventActor
+import com.normation.rudder.web.model.CurrentUser
+
+
 
 /**
  * Component to display and configure the compliance Mode (and it's heartbeat)
  */
+
 class ComplianceModeEditForm (
     getConfigureCallback : () => Box[(String,Int,Boolean)]
   , saveConfigureCallback: (String,Int,Boolean) => Box[Unit]
   , startNewPolicyGeneration: () => Unit
   , getGlobalConfiguration : () => Option[Box[Int]] = () => None
 ) extends DispatchSnippet with Loggable  {
+
 
   // Html template
   def templatePath = List("templates-hidden", "components", "ComponentComplianceMode")
@@ -85,7 +92,7 @@ class ComplianceModeEditForm (
         logger.error(e.messageChain)
         S.error("complianceModeMessage", e.messageChain)
       case Full((name,frequency,overrides)) =>
-        saveConfigureCallback(name,frequency,overrides) match {
+        saveConfigureCallback(name,frequency,overrides)  match {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
             logger.error(e.messageChain)
