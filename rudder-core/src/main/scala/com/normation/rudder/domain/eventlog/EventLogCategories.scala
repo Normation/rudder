@@ -244,6 +244,14 @@ final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
   def serialize = "NodePropertiesModified"
 }
 
+final case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "ComplianceModeModified"
+}
+
+final case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "HeartbeatPeriodModified"
+}
+
 /**
  * List of event generating a modification of promises
  */
@@ -276,13 +284,11 @@ object ModificationWatchList {
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
 
-    , ModifySendServerMetricsEventType
-
     , ModifyHeartbeatNodeEventType
     , ModifyAgentRunIntervalNodeEventType
     , ModifyPropertiesNodeEventType
 
-  )
+  ) ++ ModifyGlobalPropertyEventLogsFilter.eventList.map(_.eventType)
 
 }
 
@@ -348,13 +354,11 @@ object EventTypeFactory {
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
 
-    , ModifySendServerMetricsEventType
-
     , ModifyHeartbeatNodeEventType
     , ModifyAgentRunIntervalNodeEventType
     , ModifyPropertiesNodeEventType
 
-  )
+  ) ::: ModifyGlobalPropertyEventLogsFilter.eventList.map(_.eventType)
 
   def apply(s:String) : EventLogType = {
     eventTypes.find {

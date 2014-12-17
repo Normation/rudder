@@ -67,6 +67,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen = RudderConfig.stringUuidGenerator
 
+  private[this] val genericReasonMessage = Some("Property modified from Rudder preference page")
+
   def startNewPolicyGeneration() = {
     val modId = ModificationId(uuidGen.newUuid)
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
@@ -475,8 +477,8 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
   val complianceModeEditForm = new ComplianceModeEditForm(
       () => configService.rudder_compliance_mode().map(a => (a._1,a._2,true))
-    , (complianceMode,frequency,_) => {
-          configService.set_rudder_compliance_mode(complianceMode,frequency)}
+    , (complianceMode,heartbeatPeriod,_) =>  {
+          configService.set_rudder_compliance_mode(complianceMode,heartbeatPeriod,CurrentUser.getActor,genericReasonMessage)}
     , () => startNewPolicyGeneration
   )
 
@@ -643,26 +645,24 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ( configService.send_server_metrics match {
       case Full(value) =>
         var sendMetrics = value
-        var previous = value
         def submit() = {
-          val save = configService.set_send_server_metrics(sendMetrics,previous,CurrentUser.getActor)
+          val save = configService.set_send_server_metrics(sendMetrics,CurrentUser.getActor,genericReasonMessage)
 
           S.notice("sendMetricsMsg", save match {
             case Full(_)  =>
               // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
               startNewPolicyGeneration
-              previous = sendMetrics
               "'send server metrics' property updated"
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'send server metrics' property"
           } )
         }
 
-        ( "#sendMetrics" #> {
+        ( "#sendMetricsCheckbox" #> {
             SHtml.ajaxCheckbox(
                 value.getOrElse(false)
               , (b : Boolean) => { sendMetrics = Some(b) }
-              , ("id","sendMetrics")
+              , ("id","sendMetricsCheckbox")
             )
           } &
           "#sendMetricsSubmit " #> {

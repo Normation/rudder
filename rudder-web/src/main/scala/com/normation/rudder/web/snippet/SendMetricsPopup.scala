@@ -40,7 +40,7 @@ class SendMetricsPopup extends DispatchSnippet with Loggable {
         if (showPopup) {
           // ajax callback
           def ajaxCall(value : Option[Boolean]) = {
-            SHtml.ajaxInvoke(() => configService.set_send_server_metrics(value,None,CurrentUser.getActor) match {
+            SHtml.ajaxInvoke(() => configService.set_send_server_metrics(value,CurrentUser.getActor,Some("Property modified from 'Send metrics' popup")) match {
               case Full(_) => JsRaw(s"""$$("#sendMetricsPopup").bsModal('hide')""")
               case eb : EmptyBox =>
                 val msg = eb ?~! "Could not update 'metrics' property"
