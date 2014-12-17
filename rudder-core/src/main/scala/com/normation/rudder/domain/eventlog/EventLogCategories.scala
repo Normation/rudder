@@ -225,11 +225,7 @@ final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
 }
 
-sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType
 
-final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
-  def serialize = "SendServerMetricsModified"
-}
 
 // node properties: properties, heartbeat, agent run.
 final case object ModifyHeartbeatNodeEventType extends RollbackEventLogType {
@@ -244,12 +240,34 @@ final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
   def serialize = "NodePropertiesModified"
 }
 
+sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType
+
+final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "SendServerMetricsModified"
+}
+
 final case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
   def serialize = "ComplianceModeModified"
 }
 
 final case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
   def serialize = "HeartbeatPeriodModified"
+}
+
+final case object ModifyAgentRunIntervalEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunIntervalModified"
+}
+
+final case object ModifyAgentRunSplaytimeEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunSplaytimeModified"
+}
+
+final case object ModifyAgentRunStartHourEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunStartHourModified"
+}
+
+final case object ModifyAgentRunStartMinuteEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunStartMinuteModified"
 }
 
 /**
