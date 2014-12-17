@@ -240,34 +240,43 @@ final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
   def serialize = "NodePropertiesModified"
 }
 
-sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType
+sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType {
+  def propertyName : String
+}
 
 final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
   def serialize = "SendServerMetricsModified"
+  val propertyName = "Send metrics"
 }
 
 final case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
   def serialize = "ComplianceModeModified"
+  val propertyName = "Compliance mode"
 }
 
 final case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
   def serialize = "HeartbeatPeriodModified"
+  val propertyName = "Heartbeat period"
 }
 
 final case object ModifyAgentRunIntervalEventType extends ModifyGlobalPropertyEventType {
   def serialize = "AgentRunIntervalModified"
+  val propertyName = "Agent run interval"
 }
 
 final case object ModifyAgentRunSplaytimeEventType extends ModifyGlobalPropertyEventType {
   def serialize = "AgentRunSplaytimeModified"
+  val propertyName = "Agent run splaytime"
 }
 
 final case object ModifyAgentRunStartHourEventType extends ModifyGlobalPropertyEventType {
   def serialize = "AgentRunStartHourModified"
+  val propertyName = "Agent run start hour"
 }
 
 final case object ModifyAgentRunStartMinuteEventType extends ModifyGlobalPropertyEventType {
   def serialize = "AgentRunStartMinuteModified"
+  val propertyName = "Agent run start minute"
 }
 
 /**
@@ -306,7 +315,7 @@ object ModificationWatchList {
     , ModifyAgentRunIntervalNodeEventType
     , ModifyPropertiesNodeEventType
 
-  ) ++ ModifyGlobalPropertyEventLogsFilter.eventList.map(_.eventType)
+  ) ++ ModifyGlobalPropertyEventLogsFilter.eventTypes
 
 }
 
@@ -376,7 +385,7 @@ object EventTypeFactory {
     , ModifyAgentRunIntervalNodeEventType
     , ModifyPropertiesNodeEventType
 
-  ) ::: ModifyGlobalPropertyEventLogsFilter.eventList.map(_.eventType)
+  ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 
   def apply(s:String) : EventLogType = {
     eventTypes.find {
