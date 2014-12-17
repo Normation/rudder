@@ -37,60 +37,56 @@ package com.normation.rudder.domain.eventlog
 
 import com.normation.eventlog._
 import scala.xml._
+import com.normation.rudder.domain.policies._
 import org.joda.time.DateTime
 import net.liftweb.common._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.queries.Query
-import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 
-sealed trait NodeGroupEventLog extends EventLog { override final val eventLogCategory = NodeGroupLogCategory }
 
+sealed trait NodeEventLog extends EventLog { override final val eventLogCategory = NodeLogCategory }
 
-final case class AddNodeGroup(
+final case class ModifyNodeHeartbeat(
     override val eventDetails : EventLogDetails
-) extends NodeGroupEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = AddNodeGroup.eventType
+) extends NodeEventLog with HashcodeCaching {
+  override val eventType = ModifyNodeHeartbeat.eventType
 }
 
-object AddNodeGroup extends EventLogFilter {
-  override val eventType = AddNodeGroupEventType
+object ModifyNodeHeartbeat extends EventLogFilter {
+  override val eventType = ModifyHeartbeatNodeEventType
 
-  override def apply(x : (EventLogType, EventLogDetails)) : AddNodeGroup = AddNodeGroup(x._2)
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeHeartbeat = ModifyNodeHeartbeat(x._2)
 }
 
 
-final case class DeleteNodeGroup(
+final case class ModifyNodeAgentRun(
     override val eventDetails : EventLogDetails
-) extends NodeGroupEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = DeleteNodeGroup.eventType
+) extends NodeEventLog with HashcodeCaching {
+  override val eventType = ModifyNodeAgentRun.eventType
 }
 
-object DeleteNodeGroup extends EventLogFilter {
-  override val eventType = DeleteNodeGroupEventType
+object ModifyNodeAgentRun extends EventLogFilter {
+  override val eventType = ModifyAgentRunIntervalNodeEventType
 
-  override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeGroup = DeleteNodeGroup(x._2)
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeAgentRun = ModifyNodeAgentRun(x._2)
 }
 
-final case class ModifyNodeGroup(
+
+final case class ModifyNodeProperties(
     override val eventDetails : EventLogDetails
-) extends NodeGroupEventLog with HashcodeCaching {
-  override val cause = None
-  override val eventType = ModifyNodeGroup.eventType
+) extends NodeEventLog with HashcodeCaching {
+  override val eventType = ModifyNodeProperties.eventType
 }
 
-object ModifyNodeGroup extends EventLogFilter {
-  override val eventType = ModifyNodeGroupEventType
+object ModifyNodeProperties extends EventLogFilter {
+  override val eventType = ModifyPropertiesNodeEventType
 
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeGroup = ModifyNodeGroup(x._2)
+  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeProperties = ModifyNodeProperties(x._2)
 }
 
-object NodeGroupEventLogsFilter {
+object NodeEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      AddNodeGroup
-    , DeleteNodeGroup
-    , ModifyNodeGroup
+      ModifyNodeHeartbeat
+    , ModifyNodeAgentRun
+    , ModifyNodeProperties
     )
 }
