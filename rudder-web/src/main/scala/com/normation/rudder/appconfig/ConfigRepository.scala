@@ -44,6 +44,13 @@ import com.normation.utils.Control._
 import net.liftweb.common.Box
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.domain.eventlog.ModifyGlobalPropertyEventType
+import com.normation.rudder.repository.EventLogRepository
+import net.liftweb.common.Full
+import net.liftweb.common.Full
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.EventActor
 
 /**
  * A basic config repository, NOT typesafe.
@@ -55,7 +62,7 @@ trait ConfigRepository {
 
   def getConfigParameters(): Box[Seq[RudderWebProperty]]
 
-  def saveConfigParameter(parameter: RudderWebProperty): Box[RudderWebProperty]
+  def saveConfigParameter(parameter: RudderWebProperty, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] ): Box[RudderWebProperty]
 
 }
 
@@ -64,6 +71,8 @@ class LdapConfigRepository(
     rudderDit: RudderDit
   , ldap     : LDAPConnectionProvider[RwLDAPConnection]
   , mapper   : LDAPEntityMapper
+  , eventLogRepository : EventLogRepository
+  , uuidGen             : StringUuidGenerator
 ) extends ConfigRepository {
 
   def getConfigParameters(): Box[Seq[RudderWebProperty]] = {
@@ -78,11 +87,18 @@ class LdapConfigRepository(
     }
   }
 
-  def saveConfigParameter(property: RudderWebProperty) = {
+  def saveConfigParameter(property: RudderWebProperty, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] ) = {
     for {
       con        <- ldap
       propEntry =  mapper.rudderConfig2Entry(property)
       result     <- con.save(propEntry) ?~! "Error when saving parameter entry in repository: %s".format(propEntry)
+      eventLog <- modifyGlobalPropertyInfo match {
+        case Some(info) =>
+          val modId = ModificationId(uuidGen.newUuid)
+          eventLogRepository.saveModifyGlobalProperty(modId, info.actor, info.oldProperty, property, info.eventLogType, info.reason)
+        case None => Full("OK")
+
+      }
     } yield {
       property
     }
@@ -90,3 +106,11 @@ class LdapConfigRepository(
 
 
 }
+
+
+case class ModifyGlobalPropertyInfo (
+    oldProperty : RudderWebProperty
+  , eventLogType : ModifyGlobalPropertyEventType
+  , actor:EventActor
+  , reason:Option[String]
+)

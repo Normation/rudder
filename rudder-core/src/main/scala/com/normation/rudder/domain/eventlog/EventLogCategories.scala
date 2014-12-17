@@ -52,7 +52,7 @@ final case object WorkflowLogCategory extends EventLogCategory
 final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
 final case object ParameterLogCategory extends EventLogCategory
-final case object SettingsLogCategory extends EventLogCategory
+final case object GlobalPropertyEventLogCategory extends EventLogCategory
 
 
 // the promises related event type
@@ -223,7 +223,9 @@ final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
 }
 
-final case object ModifySendServerMetricsEventType extends NoRollbackEventLogType {
+sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType
+
+final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
   def serialize = "SendServerMetricsModified"
 }
 
@@ -258,6 +260,8 @@ object ModificationWatchList {
     , AddGlobalParameterEventType
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
+
+    , ModifySendServerMetricsEventType
   )
 
 }
@@ -323,6 +327,8 @@ object EventTypeFactory {
     , AddGlobalParameterEventType
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
+
+    , ModifySendServerMetricsEventType
   )
 
   def apply(s:String) : EventLogType = {

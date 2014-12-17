@@ -47,6 +47,8 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -170,7 +172,7 @@ trait UpdateConfigService {
   /**
    * Send Metrics
    */
-  def set_send_server_metrics(value : Option[Boolean]): Box[Unit]
+  def set_send_server_metrics(value : Option[Boolean], oldValue : Option[Boolean], actor : EventActor): Box[Unit]
 
   /**
    * Set the compliance mode
@@ -245,9 +247,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     }
   }
 
-  private[this] def save[T](name: String, value: T): Box[RudderWebProperty] = {
+  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] = None): Box[RudderWebProperty] = {
     val p = RudderWebProperty(RudderWebPropertyName(name), value.toString, "")
-    repos.saveConfigParameter(p)
+    repos.saveConfigParameter(p,modifyGlobalPropertyInfo)
   }
 
   private[this] implicit def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
@@ -360,9 +362,12 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    * Send Metrics
    */
   def send_server_metrics(): Box[Option[Boolean]] = get("send_server_metrics")
-  def set_send_server_metrics(value : Option[Boolean]): Box[Unit] = {
+
+  def set_send_server_metrics(value : Option[Boolean], oldValue : Option[Boolean], actor : EventActor): Box[Unit] = {
+    val p = RudderWebProperty(RudderWebPropertyName("send_server_metrics"), oldValue.toString, "")
+    val info = ModifyGlobalPropertyInfo(p,ModifySendServerMetricsEventType,actor,None)
     val t = value.map(_.toString).getOrElse("none")
-    save("send_server_metrics",t)
+    save("send_server_metrics",t,Some(info))
   }
 
 }
