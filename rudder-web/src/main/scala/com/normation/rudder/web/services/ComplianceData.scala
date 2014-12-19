@@ -239,7 +239,7 @@ case class ComponentComplianceLine (
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "details"     -> details.json )
       , ( "noExpand"    -> noExpand )
-      , ( "id"          -> Helpers.nextFuncName)
+      , ( "jsid"        -> nextFuncName )
     )
   }
 
