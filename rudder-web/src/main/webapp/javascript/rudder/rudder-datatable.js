@@ -1160,7 +1160,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
       } else {
         var fnData = myTable.fnGetData( this );
         var i = $.inArray( this, anOpen );
-        var detailsId = fnData.id ;
+        var detailsId = fnData.jsid ;
         if (kind !== undefined) {
           detailsId += "-"+kind
         }
@@ -1168,11 +1168,11 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
         if ( i === -1 ) {
           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var table = $("<table></table>");
-          var tableId = fnData.id;
+          var tableId = fnData.jsid;
           if (kind !== undefined) {
             tableId += "-"+kind;
           }
-          tableId += "-compliance";
+          tableId += "-table";
           table.attr("id",tableId);
           table.attr("cellspacing",0);
           table.addClass("noMarginGrid");
