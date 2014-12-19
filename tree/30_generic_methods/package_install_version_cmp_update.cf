@@ -131,7 +131,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
-                        package_method  => generic,
+                        package_method  => ncf_generic,
                         classes         => classes_generic("${class_prefix}"),
                         action          => do_if_immediate;
 
@@ -140,7 +140,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy  => "${update_policy}",
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
-                        package_method  => generic,
+                        package_method  => ncf_generic,
                         classes         => classes_generic("${class_prefix}"),
                         action          => do_if_immediate;
 
@@ -148,7 +148,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
     version_not_specified.local_package.SuSE::
       "${package_name}"
                         package_policy => "${update_policy}",
-                        package_method => generic,
+                        package_method => ncf_generic,
                         classes        => classes_generic("${class_prefix}"),
                         action         => do_if_immediate;
 
@@ -156,7 +156,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
     version_not_specified.!local_package.SuSE::
       "${package_name}"
                         package_policy => "${update_policy}",
-                        package_method => generic,
+                        package_method => ncf_generic,
                         classes        => classes_generic("${class_prefix}"),
                         action         => do_if_immediate;
 
