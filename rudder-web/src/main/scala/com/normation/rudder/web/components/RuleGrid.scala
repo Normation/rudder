@@ -348,7 +348,11 @@ class RuleGrid(
                complianceMap match {
                  case eb: EmptyBox => eb ?~! "Error when getting the compliance of rules"
                  case Full(cm) => cm.get(rule.id) match {
-                   case None => Failure(s"Error when getting compliance for Rule ${rule.name}")
+                   case None =>
+                       logger.debug(s"Error when getting compliance for Rule ${rule.name}")
+                       // if we can't find the compliance, it is most likely that the promises are not generated yet,
+                       // so we say it is pending
+                       Full(Some(ComplianceLevel(pending = 1)))
                    case s@Some(_) => Full(s)
                  }
                }
