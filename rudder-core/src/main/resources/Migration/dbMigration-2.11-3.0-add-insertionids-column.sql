@@ -35,7 +35,7 @@
 
 -- add the columns needed to store the report insertion id:
 -- in reportExectution, "insertionId"
-ALTER TABLE ReportsExecution ADD COLUMN insertionId bigint;
+ALTER TABLE ReportsExecution ADD COLUMN insertionId bigint default 0;
 
 -- Add the index on this entry
 CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
