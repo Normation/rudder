@@ -99,22 +99,34 @@ class FindExpectedReportsJdbcRepository(
 
   import pgInClause.in
 
-  //build on the model of postgres in clause
-  private[this] def inT2(attribute: (String,String), values: Iterable[NodeAndConfigId]): String = {
+    //build on the model of postgres in clause
+  private[this] def T2(attribute: (String,String), values: Iterable[NodeAndConfigId], in: Boolean): String = {
     //with values, we need more ()
     if(values.isEmpty) ""
     else {
+      val INCLAUSE = if (in) {
+        "IN"
+      } else {
+        "NOT IN"
+      }
       val choice = "("+attribute._1+","+attribute._2+")"
       val ins = values.map{ case NodeAndConfigId(NodeId(x), NodeConfigId(y)) =>
         "('"+x+"','"+y+"')"
       }.mkString(",")
 
-      if(values.size < pgInClause.inClauseMaxNbElt) s"${choice} IN (${ins})"
+      if(values.size < pgInClause.inClauseMaxNbElt) s"${choice} ${INCLAUSE} (${ins})"
       //use IN ( VALUES (), (), ... )
-      else s"${choice} IN(VALUES ${ins})"
+      else s"${choice} ${INCLAUSE}(VALUES ${ins})"
     }
   }
 
+  private[this] def inT2(attribute: (String,String), values: Iterable[NodeAndConfigId]): String = {
+    T2(attribute, values, true)
+  }
+
+  private[this] def notInT2(attribute: (String,String), values: Iterable[NodeAndConfigId]): String = {
+    T2(attribute, values, false)
+  }
 
   /*
    * Retrieve the list of node config ids
@@ -181,6 +193,40 @@ class FindExpectedReportsJdbcRepository(
       }
     }
   }
+  // returns all the pending: those where the expected don't contain the actual
+  def getPendingReports(previousAndExpected: Set[PreviousAndExpectedNodeConfigId], filterByRules: Set[RuleId]) : Box[Set[RuleExpectedReports]] = {
+    if(previousAndExpected.isEmpty) Full(Set())
+    else {
+      val expectedNodeConfigIds = previousAndExpected.map( x => (x.expected))
+      val previousNodeConfigIds = previousAndExpected.map( x => (x.previous))
+
+      val rulePredicate = if(filterByRules.isEmpty) "" else " where " + in("ruleid", filterByRules.map(_.value))
+
+       val query = s"""select
+            E.pkid, E.nodejoinkey, E.ruleid, E.directiveid, E.serial, E.component, E.componentsvalues
+          , E.unexpandedComponentsValues, E.cardinality, E.begindate, E.enddate
+          , NNN.nodeid, NNN.nodeconfigids
+        from expectedreports E
+        inner join (
+          select NN.nodejoinkey, NN.nodeid, NN.nodeconfigids
+          from (
+            select N.nodejoinkey, N.nodeid, N.nodeconfigids, generate_subscripts(N.nodeconfigids,1) as v
+            from expectedreportsnodes N
+          ) as NN
+          where ${inT2(("NN.nodeid","NN.nodeconfigids[v]"), expectedNodeConfigIds)}
+          and ${notInT2(("NN.nodeid","NN.nodeconfigids[v]"), previousNodeConfigIds)}
+        ) as NNN
+        on E.nodejoinkey = NNN.nodejoinkey
+      """ + rulePredicate
+
+      for {
+        entries <- tryo ( jdbcTemplate.query(query, ReportAndNodeMapper).asScala )
+      } yield {
+        toExpectedReports(entries).toSet
+      }
+    }
+  }
+
 
   /**
    * Return current expected reports (the one still pending) for this Rule

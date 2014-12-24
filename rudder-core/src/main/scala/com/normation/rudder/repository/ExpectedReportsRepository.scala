@@ -116,6 +116,13 @@ trait FindExpectedReportRepository {
   def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Set[RuleExpectedReports]]
 
 
+  /**
+   *  returns all the pending reports from the expected reports: those whom the expected don't contain the actual
+   *  We pass a set of Expected NodeAndConfigId (those we generated), and the actual NodeAndConfigId (that we received)
+   *  It returns the RuleExpectedReports that contains the actual NodeAndConfigId but not the Expected NodeAndConfigId
+   *  so, it is those that were updated since last run
+   */
+  def getPendingReports(previousAndExpectedNodeConfig: Set[PreviousAndExpectedNodeConfigId], filterByRules: Set[RuleId]) : Box[Set[RuleExpectedReports]]
 }
 
 
