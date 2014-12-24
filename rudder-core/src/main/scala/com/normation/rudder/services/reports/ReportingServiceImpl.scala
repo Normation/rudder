@@ -96,6 +96,7 @@ class ReportingServiceImpl(
                                     case None => (l1+nodeId, l2)
                                     case Some(c) => (l1, l2 + NodeAndConfigId(nodeId, c))
                                   } }
+
       lastExpectedReports      <- confExpectedRepo.getLastExpectedReports(nodesForOpenExpected, ruleIds)
 
       //get nodeConfigId for nodes not in the nodesForOpenExpected and with a config version
@@ -103,7 +104,17 @@ class ReportingServiceImpl(
 
       allExpected              =  (byVersionExpectedReports ++ lastExpectedReports).toSeq
 
-      nodeStatusReports        <- buildNodeStatusReports(runInfos, allExpected, ruleIds)
+      // We need to list all the pending node entries, to get the expected configId, and the received ConfigId
+      pendingNodeEntries       = runInfos.collect{
+        case (nodeId, Pending(expected, Some(actualLastRun), _)) =>  PreviousAndExpectedNodeConfigId(NodeAndConfigId(nodeId,actualLastRun.configId), NodeAndConfigId(nodeId,expected.configId)) }.toSet
+
+      olderExpectedReports     <- confExpectedRepo.getPendingReports(pendingNodeEntries, ruleIds)
+
+
+      // allExpected contains all the expected reports, but in the case of pending Node, we still have some relevant information
+      // from previous runs, that we'd need to use
+      // However we should exclude from these previous runs the reports corresponding to older expected reports
+      nodeStatusReports        <- buildNodeStatusReports(runInfos, allExpected, ruleIds, olderExpectedReports)
     } yield {
       nodeStatusReports.toSet
     }
@@ -146,21 +157,24 @@ class ReportingServiceImpl(
    * Given a set of agen runs and expected reports, retrieve the corresponding
    * execution reports and then nodestatusreports, being smart about what to
    * query for
+   * When a node is in pending state, we drop the olderExpectedReports from it
    */
   private[this] def buildNodeStatusReports(
       runInfos          : Map[NodeId, RunAndConfigInfo]
     , allExpectedReports: Seq[RuleExpectedReports]
     , ruleIds           : Set[RuleId]
+    , olderExpectedReports: Set[RuleExpectedReports]
   ): Box[Seq[RuleNodeStatusReport]] = {
 
     val now = DateTime.now
-
     /**
      * We want to optimize and only query reports for nodes that we
      * actually want to merge/compare or report as unexpected reports
      */
     val agentRunIds = (runInfos.collect { case(nodeId, run:InterestingRun) =>
        AgentRunId(nodeId, run.dateTime)
+    }).toSet ++ (runInfos.collect { case(nodeId, Pending(expected, Some(actual), Some(run))) =>
+       AgentRunId(nodeId, run)
     }).toSet
 
     for {
@@ -172,12 +186,12 @@ class ReportingServiceImpl(
       reports              <- reportsRepository.getExecutionReports(agentRunIds, ruleIds)
     } yield {
 
-
       //we want to have nodeStatus for all asked node, not only the ones with reports
       runInfos.flatMap { case(nodeId, optRun) =>
         ExecutionBatch.getNodeStatusReports(nodeId, optRun
             , allExpectedReports
             , reports.getOrElse(nodeId, Seq())
+            , olderExpectedReports
         )
       }
     }.toSeq
