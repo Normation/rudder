@@ -77,7 +77,8 @@ class ExecutionBatchTest extends Specification {
         case ChangesOnly(heartbeatPeriod) => CheckChanges(runTime, info)
       }
 
-      ExecutionBatch.getNodeStatusReports(nodeId, runInfo, Seq(ruleExpectedReports), reportsParam)
+      val emptyPrevious = scala.collection.immutable.Set[com.normation.rudder.domain.reports.RuleExpectedReports]()
+      ExecutionBatch.getNodeStatusReports(nodeId, runInfo, Seq(ruleExpectedReports), reportsParam, emptyPrevious)
     }).flatten
   }
 
