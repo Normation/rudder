@@ -520,7 +520,8 @@ object ReportsWithIdMapper extends RowMapper[(Reports,Long)] {
 object ReportsExecutionMapper extends RowMapper[AgentRun] {
 
   //we want to match: """End execution with config [75rz605art18a05]"""
-  val nodeConfigVersionRegex = """.+\[([^\]]+)\].*""".r
+  // the (?s) allows . to match any characters, even non displayable ones
+  val nodeConfigVersionRegex = """(?s).+\[([^\]]+)\].*""".r
 
    def mapRow(rs : ResultSet, rowNum: Int) : AgentRun = {
      AgentRun(
@@ -532,8 +533,10 @@ object ReportsExecutionMapper extends RowMapper[AgentRun] {
            } else {
              s match {
                 //check if we have the version and modify the report accordingly
-                case nodeConfigVersionRegex(v) => Some(NodeConfigId(v))
-                case _ => None
+                case nodeConfigVersionRegex(v) =>
+                  Some(NodeConfigId(v))
+                case _ =>
+                  None
              }
            }
          }
