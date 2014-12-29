@@ -115,3 +115,8 @@ object ReportType {
 
   implicit def reportTypeSeverity(reportType:ReportType):String = ReportType.getSeverityFromStatus(reportType)
 }
+
+/**
+ * Case class to store the previous (last received) configid  and the expected NodeConfigId in the Pending case
+ */
+final case class PreviousAndExpectedNodeConfigId(previous: NodeAndConfigId, expected: NodeAndConfigId)
