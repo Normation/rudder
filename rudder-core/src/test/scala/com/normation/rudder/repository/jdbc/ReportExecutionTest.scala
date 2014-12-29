@@ -93,9 +93,9 @@ class AgentRunsTest extends DBCommon {
       roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
     }
 
-    "correctly update last" in {
-      (woRunRepo.updateExecutions(runs) must beEqualTo( Full(Seq(runs(1))) )) and
-      (roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(1))))))
+    "correctly ignore incomplete" in {
+      //(woRunRepo.updateExecutions(runs) must beEqualTo( Full(Seq(runs(1))) )) and
+      (roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0))))))
     }
 
     "don't find report when none was added" in {
