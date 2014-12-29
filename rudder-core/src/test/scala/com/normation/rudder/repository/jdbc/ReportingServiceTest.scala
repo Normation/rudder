@@ -419,7 +419,7 @@ class ReportingServiceTest extends DBCommon {
 
           /*
            * n0: no run at all, so no run in the last 5 minutes but we are still
-           * not expired => pending
+           * not expired => Applying
            */
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
@@ -432,7 +432,7 @@ class ReportingServiceTest extends DBCommon {
            * since no config version, we are looking for a newer result.
            * As the grace period is still running, it's "pending"
            */
-        , nodeStatus("n1", None, Some("n1_t2"), "r0", 2,
+        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
                 , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
@@ -442,7 +442,7 @@ class ReportingServiceTest extends DBCommon {
            * Here, we have pending, because we are still in the grace period and
            * hoping for run with config 2 to happen
            */
-        , nodeStatus("n2", None, Some("n2_t2"), "r0", 2,
+        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
                 , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
@@ -453,10 +453,10 @@ class ReportingServiceTest extends DBCommon {
            * the oldest config is still recend and we are still in grace period
            * for the latest => pending
            */
-        , nodeStatus("n3", None, Some("n3_t2"), "r0", 2,
+        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
@@ -488,19 +488,19 @@ class ReportingServiceTest extends DBCommon {
           /*
            * We got a run without config, so it can still happen
            */
-        , nodeStatus("n1", None, Some("n1_t2"), "r2", 1,
+        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
                   compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
               )
           ))
-        , nodeStatus("n2", None, Some("n2_t2"), "r2", 1,
+        , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
               ("r2_d2", Seq(
                   compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
               )
           ))
-        , nodeStatus("n3", None, Some("n3_t2"), "r2", 1,
+        , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
@@ -632,13 +632,13 @@ class ReportingServiceTest extends DBCommon {
       val r = complianceReportingService.findNodeStatusReport(NodeId("n1"))
       val result = r.openOrThrowException("'Test failled'")
       compareNodeStatus(result.report.reports, Seq(
-          nodeStatus("n1", None, Some("n1_t2"), "r0", 2,
+          nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
                 , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
               )
           ))
-        , nodeStatus("n1", None, Some("n1_t2"), "r2", 1,
+        , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
                   compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
               )
@@ -662,7 +662,7 @@ class ReportingServiceTest extends DBCommon {
       val result = r.openOrThrowException("'Test failled'")
       val all = result.byRules("r0").reports
       compareNodeStatus(all, Seq(
-          nodeStatus("n2", None, Some("n2_t2"), "r0", 2,
+          nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
                   compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
                 , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
@@ -676,10 +676,10 @@ class ReportingServiceTest extends DBCommon {
       val result = r.openOrThrowException("'Test failled'")
       val all = result.byRules("r0").reports
       compareNodeStatus(all, Seq(
-          nodeStatus("n3", None, Some("n3_t2"), "r0", 2,
+          nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
               )
           ))
       ))
