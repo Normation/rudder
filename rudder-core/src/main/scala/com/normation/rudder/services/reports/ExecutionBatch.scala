@@ -151,7 +151,9 @@ case class UnexpectedVersion(
 }
 
 case class Pending(
-  expectedConfig: NodeConfigIdInfo
+    expectedConfig  : NodeConfigIdInfo
+  , previousLastRun : Option[NodeConfigIdInfo]
+  , dateTime        : Option[DateTime]
 ) extends NoReport {
   val configIdForExpectedReports = Some(expectedConfig.configId)
 }
@@ -266,6 +268,7 @@ object ExecutionBatch extends Loggable {
           case (None, None) =>
             NoRunNoInit
 
+          // There are no run for this node
           case (None, Some(configs)) =>
             if(configs.isEmpty) {
               NoRunNoInit
@@ -279,7 +282,7 @@ object ExecutionBatch extends Loggable {
                   if(currentConfig.creation.plus(graceDuration).isBefore(now)) {
                     NoReportInInterval(currentConfig)
                   } else {
-                    Pending(currentConfig)
+                    Pending(currentConfig, None, None)
                   }
               }
             }
@@ -316,7 +319,7 @@ object ExecutionBatch extends Loggable {
                     if(current.creation.plus(graceDuration).isBefore(t)) {
                       NoReportInInterval(current)
                     } else {
-                      Pending(current)
+                      Pending(current, Some(oldest), Some(t))
                     }
                 }
               }
@@ -343,7 +346,6 @@ object ExecutionBatch extends Loggable {
                   UnexpectedVersion(t, configs.maxBy( _.creation.getMillis ), Some(rv))
 
                 case Some(v) => //nominal case !
-
                   //check if the run is not too old for the version, i.e if endOflife + grace is before run
                   v.endOfLife match {
                     case None =>
@@ -369,7 +371,7 @@ object ExecutionBatch extends Loggable {
                             if(t.plus(graceDuration).isBefore(now)) {
                               NoReportInInterval(expected)
                             } else {
-                              Pending(expected)
+                              Pending(expected, Some(v), Some(t))
                             }
                         }
                       }
@@ -390,12 +392,13 @@ object ExecutionBatch extends Loggable {
    *
    */
   def getNodeStatusReports(
-      nodeId                 : NodeId
+      nodeId                    : NodeId
       // run info: if we have a run, we have a datetime for it
       // and perhaps a configId
-    , runInfo                : RunAndConfigInfo
-    , expectedReports        : Seq[RuleExpectedReports]
-    , agentExecutionReports  : Seq[Reports]
+    , runInfo                   : RunAndConfigInfo
+    , expectedReports           : Seq[RuleExpectedReports]
+    , agentExecutionReports     : Seq[Reports]
+    , previousRunExpectedReports: Set[RuleExpectedReports]
     // this is the agent execution interval, in minutes
   ) : Seq[RuleNodeStatusReport] = {
 
@@ -457,12 +460,34 @@ object ExecutionBatch extends Loggable {
           , UnexpectedReportType
         )
 
-      case Pending(expectedConfig) =>
-         buildRuleNodeStatusReport(
-            MergeInfo(nodeId, None, Some(expectedConfig.configId))
-          , expectedRules
-          , PendingReportType
-        )
+      //
+      case Pending(expectedConfig, latestRun, runTime) =>
+        latestRun match {
+          case None =>
+            // we don't have previous run, so we can simply say the node is Pending
+            buildRuleNodeStatusReport(
+                MergeInfo(nodeId, None, Some(expectedConfig.configId))
+              , expectedRules
+              , PendingReportType
+            )
+          case Some(run) =>
+            val mapOfPreviousReports = previousRunExpectedReports.map { x => x.ruleId -> x }.toMap
+            val filterReports = nodeStatusReports.map { case (ruleId, reports) =>
+              mapOfPreviousReports.get(ruleId) match {
+                case None => // we don't need to remove any reports
+                            (ruleId, reports)
+                case Some(RuleExpectedReports(_, serial, _, _,_)) =>
+                  // we remove all reports that came from previous run
+                  (ruleId, reports.filter( x => x.serial == serial && x.ruleId == ruleId))
+              }
+            }
+            mergeCompareByRule(
+                MergeInfo(nodeId, runTime, Some(expectedConfig.configId))
+              , filterReports
+              , expectedRules
+              , PendingReportType
+            )
+        }
 
       case CheckChanges(runTime, config) =>
         mergeCompareByRule(

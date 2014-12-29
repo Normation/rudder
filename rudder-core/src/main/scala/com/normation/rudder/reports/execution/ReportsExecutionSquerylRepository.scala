@@ -81,7 +81,7 @@ case class RoReportsExecutionJdbcRepository (
         s"""SELECT DISTINCT ON (nodeid)
            |  nodeid, date, nodeconfigid, complete, insertionid
            |FROM  reportsexecution
-           |WHERE ${in("nodeid", nodeIds.map(_.value))}
+           |WHERE complete = true and ${in("nodeid", nodeIds.map(_.value))}
            |ORDER BY nodeid, insertionId DESC""".stripMargin
 
       val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
