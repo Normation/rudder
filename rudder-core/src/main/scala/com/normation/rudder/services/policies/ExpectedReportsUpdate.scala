@@ -250,13 +250,13 @@ class ExpectedReportsUpdateImpl(
       //we want to save updatedNodeConfiguration that were not already saved
       //in expected reports.
       newConfigId              =  filteredExpandedRuleVals.flatMap { case ExpandedRuleVal(_, _, configs) => configs.keySet.map{case NodeAndConfigId(id,v) => (id,v)}}.toMap
-      notUpdateNodeJoinKey     =  openExepectedReports.filterKeys(k => !allClosable.contains(k)).flatMap{ case(ruleId, (serial, nodeJoinKey, mapNodes)) =>
+      notUpdateNodeJoinKey     =  openExepectedReports.filterKeys(k => !allClosable.contains(k)).toSeq.flatMap{ case(ruleId, (serial, nodeJoinKey, mapNodes)) =>
                                     mapNodes.values.map { case NodeConfigVersions(nodeId, versions) =>
                                       val lastVersion = newConfigId(nodeId)
                                       val newVersions = if(versions.contains(lastVersion)) versions else lastVersion :: versions
                                       (nodeJoinKey, NodeConfigVersions(nodeId, newVersions))
                                     }
-                                  }.toSeq
+                                  }
       updatedNodeConfigVersion <- confExpectedRepo.updateNodeConfigVersion(notUpdateNodeJoinKey)
       savedNodesInfos          <- nodeConfigRepo.addNodeConfigIdInfo(updatedNodeConfigs, generationTime)
     } yield {
