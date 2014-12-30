@@ -183,7 +183,9 @@ class HomePage extends Loggable {
         )""")))
     } ) match {
       case Full(complianceBar) => complianceBar
-      case _ => NodeSeq.Empty
+      case eb : EmptyBox =>
+        logger.error(eb)
+        NodeSeq.Empty
     }
   }
 
