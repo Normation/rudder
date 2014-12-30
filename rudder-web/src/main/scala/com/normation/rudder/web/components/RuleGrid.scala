@@ -359,6 +359,7 @@ class RuleGrid(
            }
            compliance match {
              case e:EmptyBox =>
+               logger.error(e)
                ErrorLine(rule, trackerVariables, targetsInfo)
              case Full(value) =>
                OKLine(rule, value, applicationStatus, seq, targets)
