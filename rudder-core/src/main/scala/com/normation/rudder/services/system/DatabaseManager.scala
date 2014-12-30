@@ -40,6 +40,7 @@ import org.joda.time.DateTime
 import org.springframework.jdbc.core.JdbcTemplate
 import net.liftweb.common.Loggable
 import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.UpdateExpectedReportsRepository
 
 trait DatabaseManager {
 
@@ -77,7 +78,8 @@ trait DatabaseManager {
 }
 
 class DatabaseManagerImpl(
-    reportsRepository : ReportsRepository
+    reportsRepository   : ReportsRepository
+  , expectedReportsRepo : UpdateExpectedReportsRepository
   )  extends DatabaseManager with  Loggable {
 
   def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
@@ -122,7 +124,24 @@ class DatabaseManagerImpl(
      reportsRepository.archiveEntries(date)
    }
 
-   def deleteEntries(date : DateTime) = {
-     reportsRepository.deleteEntries(date)
+   def deleteEntries(date : DateTime) : Box[Int] = {
+     val reports = reportsRepository.deleteEntries(date)
+     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date)
+
+     (reports, nodeConfigs) match {
+       case (Full(reports), Full(nodeConfig)) => Full(reports+nodeConfig)
+       case (b:EmptyBox,Full(_)) => b
+       case (Full(_), b:EmptyBox) => b
+       case (a:EmptyBox, b:EmptyBox) =>
+         val reportError = a match {
+           case f:Failure => f
+           case Empty => Failure("An error occured while deleting reports", Empty, Empty)
+         }
+         val nodeConfigError = b match {
+           case f:Failure => f
+           case Empty => Failure("An error occured while deleting old nodeConfig", Empty, Empty)
+         }
+         Failure(nodeConfigError.msg, nodeConfigError.exception, Full(reportError))
+     }
    }
 }
