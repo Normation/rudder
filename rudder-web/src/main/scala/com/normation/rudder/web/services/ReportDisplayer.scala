@@ -67,7 +67,7 @@ class ReportDisplayer(
   , directiveRepository : RoDirectiveRepository
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository
-) {
+) extends Loggable {
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
 
@@ -155,7 +155,10 @@ class ReportDisplayer(
     )
 
     boxXml match {
-      case e:EmptyBox => <div class="error">Could not fetch reports information</div>
+      case e:EmptyBox =>
+
+        logger.error(e)
+        <div class="error">Could not fetch reports information</div>
       case Full(xml) => xml
     }
   }
