@@ -201,7 +201,7 @@ rudder.nova.checkpromises.command=/bin/true
 # Command to force the server to reload its promises
 # This will be run every time promises are regenerated on the root server
 #
-rudder.cfengine.reload.server.command=/usr/bin/killall -SIGHUP cf-serverd
+rudder.cfengine.reload.server.command=/opt/rudder/bin/rudder-reload-cf-serverd
 
 #
 # Path to where CFEngine Enterprise (ex Nova) licenses are stored. 
