@@ -80,6 +80,11 @@ trait UpdateExpectedReportsRepository {
    */
   //only for update logic
   def updateNodeConfigVersion(toUpdate: Seq[(Int, NodeConfigVersions)]): Box[Seq[(Int,NodeConfigVersions)]]
+
+  /**
+   * Delete all node config id info that finished before date
+   */
+  def deleteNodeConfigIdInfo(date:DateTime) : Box[Int]
 }
 
 
@@ -139,6 +144,7 @@ case class NodeConfigIdInfo(
 trait RoNodeConfigIdInfoRepository {
 
   def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]]
+  def getAllNodeConfigIdInfos(): Box[Map[NodeId, Seq[NodeConfigIdInfo]]]
 
 }
 
