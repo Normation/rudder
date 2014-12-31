@@ -1,19 +1,17 @@
 <lift:surround with="common-layout" at="content">
 
-  <head>
+<head>
   <title>Rudder - Home</title>
-  
   <script type="text/javascript" src="/javascript/rudder/homePage.js"></script>
   <script type="text/javascript" src="/javascript/gauge/gauge.min.js"></script>
-  </head>
-  
-  
-  
-   <div class="tw-bs">
-    <div class="col-sm-2" style="padding-left:0">
+</head>
+
+<div class="tw-bs">
+  <div class="col-sm-2" style="padding-left:0">
     <div class=" panel panel-default">
       <div class="panel-heading">Statistics</div>
-        <ul   class="nav nav-pills nav-stacked navbar-rudder" style="border-radius:4px">
+      <div data-lift="lazy-load">
+        <ul class="nav nav-pills nav-stacked navbar-rudder" style="border-radius:4px">
           <li ><a href="/secure/nodeManager/nodes">
             <span class="badge pull-right"><lift:HomePage.acceptedNodes/></span>
             Nodes</a>
@@ -40,64 +38,59 @@
           </li>
         </ul>
       </div>
-      </div>
-   
-      <div class="col-sm-10" style="padding-right:0">
-      <div class="row">
-        <div class="col-sm-4">
-         <div class="panel panel-default">
-           <div class="panel-heading">Global compliance</div>
-           <div class="text-center">
-             <canvas id="complianceGauge" width="360" height="180" class="">
-             </canvas>
-             <span id="gauge-value"></span>
-             </div>
-        </div>
-         
-        </div>
-        <div class="col-sm-8">
-           <div class="panel panel-default" style="height:223px">
-      <div class="panel-heading">Global compliance details</div>
-      <lift:HomePage.getAllCompliance/>
     </div>
+  </div>
+ 
+  <div class="col-sm-10" style="padding-right:0">
+    <div class="row">
+      <div class="col-sm-4">
+        <div class="panel panel-default">
+        <div class="panel-heading">Global compliance</div>
+          <div class="text-center">
+          <canvas id="complianceGauge" width="360" height="180" class=""></canvas>
+          <span id="gauge-value"></span>
+          </div>
         </div>
-        </div>
-        <div class="row">
-      <div class=" col-sm-5">
-        
-        
-     <div id="nodeOverview" class="panel panel-default">
-      <div class="panel-heading">Nodes by overall compliance</div>
-         <div id="nodeCompliance" class="">
-         </div>
       </div>
       
+      <div class="col-sm-8">
+        <div class="panel panel-default" style="height:223px">
+          <div class="panel-heading">Global compliance details</div>
+          <div data-lift="lazy-load">
+            <lift:HomePage.getAllCompliance/>
+          </div>
+        </div>
+      </div>
+    </div>
+   
+    <div class="row">
+      <div class=" col-sm-5">
+        <div id="nodeOverview" class="panel panel-default">
+          <div class="panel-heading">Nodes by overall compliance</div>
+          <div id="nodeCompliance" class=""></div>
+        </div>    
       </div>
 
-     <div class=" col-sm-7">
-       <div class="panel panel-default">
-         <div class="panel-heading">Node breakdown</div>
-         <div class=" col-sm-4">
-           <h4>By machine type</h4>
-           <div id="nodeMachine"> </div>
+      <div class=" col-sm-7">
+        <div class="panel panel-default">
+          <div class="panel-heading">Node breakdown</div>
+          <div class=" col-sm-4">
+            <h4>By machine type</h4>
+            <div id="nodeMachine"> </div>
+          </div>
+          <div class=" col-sm-4">
+            <h4>By OS</h4>
+            <div id="nodeOs"></div>
+          </div>
+          <div class=" col-sm-4">
+            <h4>By agent version</h4>
+            <div id="nodeAgents"></div>
+          </div>
+          <div style="clear: both;"></div> 
         </div>
-        <div class=" col-sm-4">
-           <h4>By OS</h4>
-           <div id="nodeOs">
-        </div>
-        </div>
-      <div class=" col-sm-4">
-           <h4>By agent version</h4>
-         <div id="nodeAgents">
-        </div>
-        </div>
-        <div style="clear: both;"></div> 
-      </div>
-    </div>  
+      </div>  
+    </div>
+  </div>
 </div>
-      
-      
-      </div>
-   </div>
-  </lift:surround>
+</lift:surround>
 
