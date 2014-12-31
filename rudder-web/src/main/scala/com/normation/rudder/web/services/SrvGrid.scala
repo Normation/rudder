@@ -57,6 +57,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.reports.execution.AgentRun
+import com.normation.rudder.domain.logger.TimingDebugLogger
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -139,35 +140,42 @@ class SrvGrid(
     , callback : Option[String => JsCmd]
   ) = {
 
-      val lines = (for {
-        lastReports <- roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
-      } yield {
-        nodes.map(node => NodeLine(node,lastReports.get(node.id), callback))
-      }) match {
-        case eb: EmptyBox =>
-          val msg = "Error when trying to get nodes info"
-          val e = eb ?~! msg
-          logger.error(e.messageChain)
-          e.rootExceptionCause.foreach(ex => logger.error(ex) )
-          Nil
-        case Full(lines) => lines.toList
-      }
+    val now = System.currentTimeMillis
+    val runs = roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
 
-      JsTableData(lines)
+    if(TimingDebugLogger.isDebugEnabled) {
+      TimingDebugLogger.debug(s"Get all last run date time: ${System.currentTimeMillis - now}ms")
     }
+
+    val lines = (for {
+      lastReports <- runs
+    } yield {
+      nodes.map(node => NodeLine(node,lastReports.get(node.id), callback))
+    }) match {
+      case eb: EmptyBox =>
+        val msg = "Error when trying to get nodes info"
+        val e = eb ?~! msg
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach(ex => logger.error(ex) )
+        Nil
+      case Full(lines) => lines.toList
+    }
+
+    JsTableData(lines)
+  }
 
   def refreshData (
       refreshNodes : () => Seq[NodeInfo]
     , callback : Option[String => JsCmd]
     , tableId: String
   ) = {
-     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
-       val nodes = refreshNodes()
-       val data = getTableData(nodes,callback)
-       JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd});""")
-     } )
+    val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
+      val nodes = refreshNodes()
+      val data = getTableData(nodes,callback)
+      JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd});""")
+    } )
 
-     AnonFunc("",ajaxCall)
+    AnonFunc("",ajaxCall)
   }
 
   /**

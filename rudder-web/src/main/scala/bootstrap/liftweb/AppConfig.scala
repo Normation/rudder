@@ -359,6 +359,7 @@ object RudderConfig extends Loggable {
   val woAgentRunsRepository : WoReportsExecutionRepository = woAgentRunsSquerylRepository
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
+  val ldapInventoryMapper = inventoryMapper
 
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use
@@ -952,7 +953,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
   private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(eventLogDetailsServiceImpl, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoServiceImpl, modificationService, personIdentServiceImpl)
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
-  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl)
+  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
