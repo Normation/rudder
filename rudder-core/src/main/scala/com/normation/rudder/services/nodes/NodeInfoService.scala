@@ -53,6 +53,7 @@ import com.normation.rudder.repository.ldap.LDAPEntityMapper
 import com.normation.utils.Control._
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryDitService
+import com.normation.rudder.domain.logger.TimingDebugLogger
 
 /**
  * A case class used to represent the minimal
@@ -185,26 +186,42 @@ class NodeInfoServiceImpl(
      * query for far too many entries (in machine) compared to do lots
      * of requests.
      */
+    import scala.collection.mutable.{Map => MutMap}
 
     ldap.map { con =>
-      val allNodes = con.searchOne(nodeDit.NODES.dn, ALL, nodeInfoAttributes:_*).flatMap { node =>
-        nodeDit.NODES.NODE.idFromDn(node.dn).map { (_, node) }
+
+      //some map of things - mutable, yes
+      val nodes = MutMap[String, LDAPEntry]() //node_uuid -> entry
+      val nodeInventories = MutMap[String, LDAPEntry]() // node_uuid -> entry
+      val machineInventories = MutMap[String, LDAPEntry]() // machine_dn -> entry
+
+      val n1 = System.currentTimeMillis
+      con.search(
+          nodeDit.BASE_DN
+        , Sub
+        , OR(IS(OC_MACHINE), IS(OC_NODE), IS(OC_RUDDER_NODE))
+        , nodeInfoAttributes:_*
+      ).foreach { e =>
+        if(e.isA(OC_MACHINE)) {
+          machineInventories += (e.dn.toString -> e)
+        } else if(e.isA(OC_NODE)) {
+          nodeInventories += (e.value_!(A_NODE_UUID) -> e)
+        } else if(e.isA(OC_RUDDER_NODE)) {
+          nodes += (e.value_!(A_NODE_UUID) -> e)
+        } else {
+          // it's an error, don't use
+        }
       }
-      val allNodeInventories = con.searchOne(inventoryDit.NODES.dn, ALL, nodeInfoAttributes:_*).flatMap { nodeInv =>
-        inventoryDit.NODES.NODE.idFromDN(nodeInv.dn).map{ (_, nodeInv) }
-      }.toMap
 
-      //we must look in ou=Inventories,cn=rudder-configuration
-      //because we don't know what the machine inventory status will be
-      //and we only need objectClass
-      val allMachineInventories = con.searchSub(inventoryDit.BASE_DN.getParent, IS(OC_MACHINE), Seq("objectClass"):_*).map( machine => (machine.dn, machine) ).toMap
+      val n2 = System.currentTimeMillis
+      TimingDebugLogger.debug(s"Getting node info entries: ${n2-n1}ms")
 
-      allNodes.flatMap { case (id, nodeEntry) =>
+      nodes.flatMap { case (id, nodeEntry) =>
         for {
-          nodeInv <- allNodeInventories.get(id)
+          nodeInv <- nodeInventories.get(id)
           machineInv = for {
                          containerDn  <- nodeInv(A_CONTAINER_DN)
-                         machineEntry <- allMachineInventories.get(containerDn)
+                         machineEntry <- machineInventories.get(containerDn)
                        } yield {
                          machineEntry
                        }
@@ -216,46 +233,9 @@ class NodeInfoServiceImpl(
     }
   }
 
-  def find(nodeIds: Seq[NodeId]) : Box[Seq[NodeInfo]] = {
-    sequence(nodeIds) { nodeId =>
-      getNodeInfo(nodeId)
-    }
-  }
-
-  /**
-   * Get all node ids
-   */
-  def getAllIds() : Box[Seq[NodeId]] = {
-    for {
-      con <- ldap
-      nodeIds <- sequence(con.searchOne(nodeDit.NODES.dn, IS(OC_RUDDER_NODE),  "1.1")) { entry =>
-        nodeDit.NODES.NODE.idFromDn(entry.dn)
-      }
-    } yield {
-      nodeIds
-    }
-  }
-
-  /**
-   * Get all "simple" node ids (i.e, all user nodes,
-   * for example, NOT policy servers)
-   */
-  def getAllUserNodeIds() : Box[Seq[NodeId]] = {
-    for {
-      con <- ldap
-      nodeIds <- sequence(con.searchOne(nodeDit.NODES.dn, AND(IS(OC_RUDDER_NODE), NOT(IS(OC_POLICY_SERVER_NODE))),  "1.1")) { entry =>
-        nodeDit.NODES.NODE.idFromDn(entry.dn)
-      }
-    } yield {
-      nodeIds
-    }
-  }
-
-  /**
-   * Get all systen node ids, for example
-   * policy server node ids.
-   * @return
-   */
+ /**
+  * Get all policy server node ids.
+  */
   def getAllSystemNodeIds() : Box[Seq[NodeId]] = {
     for {
       con <- ldap

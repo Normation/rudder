@@ -144,7 +144,19 @@ class FindExpectedReportsJdbcRepository(
         nodeIds.map(n => (n, res.get(n))).toMap
       }
     }
+  }
 
+  /*
+   * Retrieve all node config ids
+   */
+  def getAllNodeConfigIdInfos(): Box[Map[NodeId, Seq[NodeConfigIdInfo]]] = {
+    val query = s"""select node_id, config_ids from nodes_info"""
+
+    for {
+      entries <- tryo ( jdbcTemplate.query(query, NodeConfigIdMapper).asScala )
+    } yield {
+      entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
+    }
   }
 
   /*
@@ -343,15 +355,6 @@ class UpdateExpectedReportsJdbcRepository(
 
 
   private[jdbc] def getNodes(nodeJoinKeys : Set[Int]) : Box[Map[Int, Map[NodeId, List[NodeConfigId]]]] = {
-
-    object NodeJoinKeyConfigMapper extends RowMapper[(Int, NodeConfigVersions)] {
-      def mapRow(rs : ResultSet, rowNum: Int) : (Int, NodeConfigVersions) = {
-        val nodeId = new NodeId(rs.getString("nodeid"))
-        val versions = NodeConfigVersionsSerializer.unserialize(rs.getArray("nodeconfigids"))
-        (rs.getInt("nodejoinkey"), NodeConfigVersions(nodeId, versions))
-      }
-    }
-
     if(nodeJoinKeys.isEmpty) Full(Map())
     else tryo {
       val x = jdbcTemplate.query(
@@ -372,6 +375,45 @@ class UpdateExpectedReportsJdbcRepository(
     }
   }
 
+  private[jdbc] def getNodesByNodesId(nodeIds : Set[NodeId]) :Box[Seq[(Int, NodeConfigVersions)]] = {
+    if(nodeIds.isEmpty) Full(Seq())
+    else tryo {
+      val params: Array[AnyRef] = nodeIds.map(_.value).toArray[AnyRef]
+      jdbcTemplate.query(
+          s"select nodejoinkey, nodeid, nodeconfigids from expectedreportsnodes where nodeid in ${nodeIds.toSeq.map(_ => "?").mkString("(", ",", ")")}"
+        , params
+        , NodeJoinKeyConfigMapper
+      ).asScala
+
+    }
+  }
+
+  /**
+   * From a map of Node -> RemovedNodeConfigId, remove all those config id from the expected reports
+   */
+  private[jdbc] def purgeNodeConfigId(nodeConfigIdToRemove : Map[NodeId, Seq[NodeConfigId]]) = {
+    // extract all the config to remove
+    val allConfigToRemove = nodeConfigIdToRemove.values.flatten.toSeq
+    for {
+      // fetch all the nodejoinkey -> configIdversion in the expected reports table
+      currentNodeConfigId <- getNodesByNodesId(nodeConfigIdToRemove.keySet)
+
+      // list all those that contains version that must be removed
+      nodesToClean = currentNodeConfigId.filter{ case (nodeJoinKey, nodeConfigVersion) =>
+                                                    nodeConfigVersion.versions.exists(x => allConfigToRemove.contains(x))
+                                                }
+      // filter out all the version to remove
+      cleanedReports = nodesToClean.map { case (nodeJoinKey, nodeConfigVersion) =>
+        (nodeJoinKey, nodeConfigVersion.copy(versions = nodeConfigVersion.versions.filterNot(x =>  allConfigToRemove.contains(x))) )
+      }
+
+      // we update these config
+      cleanedExpectedReports <- updateNodeConfigVersion(cleanedReports)
+    } yield {
+      cleanedExpectedReports
+    }
+
+  }
   override def findAllCurrentExpectedReportsWithNodesAndSerial(): Map[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])] = {
     val composite = jdbcTemplate.query("select distinct ruleid, serial, nodejoinkey from expectedreports where enddate is null", RuleIdSerialNodeJoinKeyMapper)
 
@@ -614,6 +656,27 @@ class UpdateExpectedReportsJdbcRepository(
       }
     })
   }
+
+  /**
+   * Delete all NodeConfigId that finished before date (meaning: all NodeConfigId that have one created before date)
+   * This must be transactionnal to avoid conflict with other potential updates
+   */
+  override def deleteNodeConfigIdInfo(date:DateTime) : Box[Int] = {
+    transactionTemplate.execute(new TransactionCallback[Box[Int]]() {
+      def doInTransaction(status: TransactionStatus): Box[Int] = {
+        for {
+          allNodeConfigId       <- findNodeConfig.getAllNodeConfigIdInfos()
+          mapOfBeforeAfter      = allNodeConfigId.map {
+                                    case (nodeId, nodeConfigIds) => (nodeId, nodeConfigIds.partition(config => config.endOfLife.map( x => x.isBefore(date)).getOrElse(false)))
+                                }
+          update                <- updateNodeConfigIdInfo(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, current)})
+          purgedExpectedReports <- purgeNodeConfigId(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, old.map(x => x.configId))})
+          } yield {
+            update.size
+          }
+        }
+      })
+  }
 }
 
 case class ReportAndNodeMapping(
@@ -723,6 +786,14 @@ object NodeMapper extends RowMapper[NodeId] {
 object NodeConfigIdMapper extends RowMapper[(NodeId, String)] {
   def mapRow(rs : ResultSet, rowNum: Int) : (NodeId, String) = {
     (NodeId(rs.getString("node_id")) , rs.getString("config_ids"))
+  }
+}
+
+object NodeJoinKeyConfigMapper extends RowMapper[(Int, NodeConfigVersions)] {
+  def mapRow(rs : ResultSet, rowNum: Int) : (Int, NodeConfigVersions) = {
+    val nodeId = new NodeId(rs.getString("nodeid"))
+    val versions = NodeConfigVersionsSerializer.unserialize(rs.getArray("nodeconfigids"))
+    (rs.getInt("nodejoinkey"), NodeConfigVersions(nodeId, versions))
   }
 }
 
