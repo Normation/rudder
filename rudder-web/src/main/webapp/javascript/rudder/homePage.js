@@ -37,9 +37,6 @@ function homePage (
   , globalGauge
   , nodeCompliance
   , nodeComplianceColors
-  , nodeMachines
-  , nodeOses
-  , nodeAgents
 ) {
   $("#globalCompliance").append(buildComplianceBar(globalCompliance));
   createTooltip();
@@ -86,8 +83,13 @@ function homePage (
         }
       }
   } );
+}
 
-  var smallHeight = height / 2
+function homePageInventory (
+    nodeMachines
+  , nodeOses
+) {
+  var smallHeight =  $(window).height() / 4 ;
 
   c3.generate({
       size: { height: smallHeight }
@@ -102,9 +104,7 @@ function homePage (
         }
       }
   } );
-  
-
-  
+    
   c3.generate({
     size: { height: smallHeight }
   , bindto: '#nodeOs'
@@ -117,14 +117,20 @@ function homePage (
         show: false
       }
     }
-  } );
-  
+  } );      
+}
+
+function homePageSoftware (
+      nodeAgents
+  ) {
+  var smallHeight =  $(window).height() / 4 ;
+ 
   c3.generate({
     size: { height: smallHeight }
   , bindto: '#nodeAgents'
   , data: {
         columns: nodeAgents
-      , type : 'donut'
+      , type   : 'donut'
     }
   , donut : {
       label: {

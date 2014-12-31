@@ -42,13 +42,14 @@
   </div>
  
   <div class="col-sm-10" style="padding-right:0">
+    
     <div class="row">
       <div class="col-sm-4">
         <div class="panel panel-default">
         <div class="panel-heading">Global compliance</div>
           <div class="text-center">
-          <canvas id="complianceGauge" width="360" height="180" class=""></canvas>
-          <span id="gauge-value"></span>
+            <canvas id="complianceGauge" width="360" height="180" class=""></canvas>
+            <span id="gauge-value"></span>
           </div>
         </div>
       </div>
@@ -56,9 +57,7 @@
       <div class="col-sm-8">
         <div class="panel panel-default" style="height:223px">
           <div class="panel-heading">Global compliance details</div>
-          <div data-lift="lazy-load">
-            <lift:HomePage.getAllCompliance/>
-          </div>
+          <div id="globalCompliance"></div>
         </div>
       </div>
     </div>
@@ -68,8 +67,10 @@
         <div id="nodeOverview" class="panel panel-default">
           <div class="panel-heading">Nodes by overall compliance</div>
           <div id="nodeCompliance" class=""></div>
+          <div data-lift="lazy-load"><lift:HomePage.getAllCompliance/></div>
         </div>    
       </div>
+
 
       <div class=" col-sm-7">
         <div class="panel panel-default">
@@ -81,10 +82,13 @@
           <div class=" col-sm-4">
             <h4>By OS</h4>
             <div id="nodeOs"></div>
+            <div data-lift="lazy-load"><lift:HomePage.inventoryInfo/></div>
           </div>
           <div class=" col-sm-4">
             <h4>By agent version</h4>
-            <div id="nodeAgents"></div>
+            <div id="nodeAgents">
+              <div data-lift="lazy-load"><lift:HomePage.rudderAgentVersion/></div>
+            </div>        
           </div>
           <div style="clear: both;"></div> 
         </div>
@@ -92,5 +96,6 @@
     </div>
   </div>
 </div>
+
 </lift:surround>
 
