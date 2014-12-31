@@ -328,7 +328,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
     val errorCode =  process.!(processLogger)
     
     if (errorCode != 0) {
-      val errorMessage = s"""Failed to reload CFEngine server promises with "command ${cfengineReloadPromises}" - cause is ${out.mkString(",")} ${err.mkString(",")}"""
+      val errorMessage = s"""Failed to reload CFEngine server promises with command "${cfengineReloadPromises}" - cause is ${out.mkString(",")} ${err.mkString(",")}"""
 
       logger.warn(errorMessage)
     }
