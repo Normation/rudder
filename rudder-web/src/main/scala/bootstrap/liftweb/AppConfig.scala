@@ -359,6 +359,7 @@ object RudderConfig extends Loggable {
   val woAgentRunsRepository : WoReportsExecutionRepository = woAgentRunsSquerylRepository
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
+  val ldapInventoryMapper = inventoryMapper
 
   val roChangeRequestRepository : RoChangeRequestRepository = {
     //a runtime checking of the workflow to use

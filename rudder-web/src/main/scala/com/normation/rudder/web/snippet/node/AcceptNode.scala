@@ -74,6 +74,7 @@ import com.normation.rudder.repository.EventLogRepository
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.logger.TimingDebugLogger
 
 /**
  * Check for server in the pending repository and propose to
@@ -171,7 +172,13 @@ class AcceptNode {
     val modId = ModificationId(uuidGen.newUuid)
     //TODO : manage error message
     S.clearCurrentNotices
-    listNode.foreach { id => newNodeManager.accept(id, modId, CurrentUser.getActor) match {
+    listNode.foreach { id =>
+      val now = System.currentTimeMillis
+      val accept = newNodeManager.accept(id, modId, CurrentUser.getActor)
+      if(TimingDebugLogger.isDebugEnabled) {
+        TimingDebugLogger.debug(s"Accepting node ${id.value}: ${System.currentTimeMillis - now}ms")
+      }
+      accept match {
       case f:Failure =>
         S.error(
           <span class="error">
