@@ -39,5 +39,4 @@ import net.liftweb.common.Box
 
 trait ReadOnlySoftwareDAO {
  def getSoftware(ids:Seq[SoftwareUuid]) : Box[Seq[Software]]
- def getSoftware(serverId:NodeId,inventoryStatus:InventoryStatus) : Box[Seq[Software]]
 }
