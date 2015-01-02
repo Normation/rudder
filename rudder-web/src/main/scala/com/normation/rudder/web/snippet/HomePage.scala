@@ -81,22 +81,22 @@ sealed trait ComplianceLevelPieChart{
 }
 
 case class GreenChart (value : Int) extends ComplianceLevelPieChart{
-  val label = "100%"
+  val label = "Perfect (100%)"
   val color = "#5cb85c"
 }
 
 case class BlueChart (value : Int) extends ComplianceLevelPieChart{
-  val label = "75-100%"
+  val label = "Good (> 75%)"
   val color = "#5bc0de"
 }
 
 case class OrangeChart (value : Int) extends ComplianceLevelPieChart{
-  val label = "50-75%"
+  val label = "Average (> 50%)"
   val color = "#f0ad4e"
 }
 
 case class RedChart (value : Int) extends ComplianceLevelPieChart{
-  val label = "0-50%"
+  val label = "Poor (< 50%)"
   val color = "#d9534f"
 }
 
