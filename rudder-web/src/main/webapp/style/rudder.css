@@ -112,6 +112,7 @@ td.nodeIndernal {
 .showParameters {
   margin-top:5px;
   margin-bottom:3px;
+  text-decoration:underline;
 }
 
 /**********************************
