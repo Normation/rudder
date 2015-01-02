@@ -49,7 +49,6 @@ trait NodeSummaryService {
   /**
    * Retrieve minimal information about the server
    */
-  def find(filter:Filter,dit:InventoryDit) : Box[Seq[Srv]]
   def find(dit:InventoryDit, id:NodeId*) : Box[Seq[Srv]]
 }
 
@@ -95,11 +94,6 @@ class NodeSummaryServiceImpl(
         , creationDate = dateTime
       )
     }
-  }
-
-
-  override def find(filter:Filter,dit:InventoryDit) : Box[Seq[Srv]] = ldap map { con =>
-    con.searchOne(dit.NODES.dn, filter, Srv.ldapAttributes:_*).flatMap { makeSrv(_) }.toSeq
   }
 
   override def find(dit:InventoryDit,ids:NodeId*) : Box[Seq[Srv]] =
