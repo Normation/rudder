@@ -346,7 +346,7 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  lazy val srvGrid = new SrvGrid(RoReportsExecutionJdbcRepository)
+  lazy val srvGrid = new SrvGrid(roAgentRunsRepository)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -355,8 +355,9 @@ object RudderConfig extends Loggable {
   val roWorkflowRepository : RoWorkflowRepository = new RoWorkflowJdbcRepository(jdbcTemplate)
   val woWorkflowRepository : WoWorkflowRepository = new WoWorkflowJdbcRepository(jdbcTemplate, roWorkflowRepository)
 
-  val roAgentRunsRepository : RoReportsExecutionRepository = RoReportsExecutionJdbcRepository
-  val woAgentRunsRepository : WoReportsExecutionRepository = woAgentRunsSquerylRepository
+  lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
+  lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
+  lazy val cacheForAgentRunsRepository : CachedRepository = cachedAgentRunRepository
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
@@ -1309,7 +1310,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(
       findExpectedRepo
     , reportsRepositoryImpl
-    , RoReportsExecutionJdbcRepository
+    , roAgentRunsRepository
     , findExpectedRepo
     , configService.agent_run_interval
     , globalComplianceModeService.getComplianceMode _
@@ -1652,13 +1653,15 @@ object RudderConfig extends Loggable {
 //  private[this] lazy val snippetExtensionRegister: SnippetExtensionRegister = new SnippetExtensionRegisterImpl()
 
   /*
-   * Reports aggregation
+   * Agent runs: we use a cache for them.
    */
-
-
-  private[this] lazy val RoReportsExecutionJdbcRepository = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
-
-  private[this] lazy  val woAgentRunsSquerylRepository = new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, RoReportsExecutionJdbcRepository )
+  private[this] lazy val cachedAgentRunRepository = {
+    val roRepo = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
+    new CachedReportsExecutionRepository(
+        roRepo
+      , new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roRepo )
+    )
+  }
 
   val updatesEntryJdbcRepository = new StatusUpdateSquerylRepository(squerylDatasourceProvider)
 
@@ -1672,7 +1675,7 @@ object RudderConfig extends Loggable {
 
     new ReportsExecutionService(
       reportsRepository
-    , woAgentRunsSquerylRepository
+    , woAgentRunsRepository
     , updatesEntryJdbcRepository
     , max
     )
