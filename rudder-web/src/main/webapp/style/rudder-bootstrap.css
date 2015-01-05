@@ -83,10 +83,14 @@
 }
 
 .tw-bs .navbar-nav li.dropdown > a {
-  padding: 15px;
+  padding: 15px 8px;
   line-height: 20px;
   display:block;
   position:relative;
+}
+
+.tw-bs .navbar-nav > li > a {
+  padding: 15px 8px;
 }
 
 .tw-bs .nav > li > a:hover .glyphicon, .tw-bs .nav > li > a:focus .glyphicon,
@@ -145,7 +149,8 @@
 }
 
 .tw-bs .navbar-form .form-control {
-	width:200px
+	width:120px;
+	padding: 6px;
 }
 
 .rudder_col{
@@ -233,7 +238,7 @@
 	padding-bottom:40px;
 }
 
-@media (max-width:1475px) {
+@media (max-width:1280px) {
   .container {
     padding:120px 0 30px;
     margin: -130px 0 0;
