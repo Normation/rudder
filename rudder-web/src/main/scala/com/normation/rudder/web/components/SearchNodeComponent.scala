@@ -151,7 +151,13 @@ class SearchNodeComponent(
 
 
     def addLine(i:Int) : JsCmd = {
-      lines.insert(i+1, CriterionLine(ditQueryData.criteriaMap(OC_NODE),ditQueryData.criteriaMap(OC_NODE).criteria(0),ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)))
+      if(i >= 0) {
+        //used same info than previous line
+        lines.insert(i+1, lines(i).copy(value = ""))
+      } else {
+        //defaults values
+        lines.insert(i+1, CriterionLine(ditQueryData.criteriaMap(OC_NODE),ditQueryData.criteriaMap(OC_NODE).criteria(0),ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)))
+      }
       query = Some(Query(rType, composition, lines.toSeq))
       initUpdate = false
       ajaxCriteriaRefresh
