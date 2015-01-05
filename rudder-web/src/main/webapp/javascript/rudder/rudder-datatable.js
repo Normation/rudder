@@ -34,6 +34,47 @@
 
 var anOpen = [];
 
+var ruleCompliances = {};
+var recentChanges = {};
+var recentGraphs = {};
+
+
+function computeChangeGraph(changes, id, currentRowsIds) {
+  recentChanges[id] = changes
+  if (currentRowsIds.indexOf(id) != -1) {
+    generateRecentGraph(id)
+  }
+}
+
+function generateRecentGraph(id) {
+  var changes = recentChanges[id]
+  if (changes !== undefined) {
+    var graphId = "Changes-"+id
+    var data = changes.y
+    data.splice(0,0,'Recent changes')
+    var x = changes.x
+    x.splice(0,0,'x')
+    var chart = c3.generate({
+        size: { height: 30 }
+      , legend: { show: false }
+      , data: {
+            x: 'x'
+          , columns: [ x, data ]
+          , type: 'area-step'
+        }
+      , axis: {
+            x: {
+                show : false
+              , type: 'categories'
+            }
+          , y: { show : false }
+        }
+    });
+    recentGraphs[id] = chart
+
+    $("#"+graphId).html(chart.element);
+  }
+}
 
 
 /*  
@@ -175,12 +216,14 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
 
   // Compliance, with link to the edit form
   var compliance = {
-      "mDataProp": "compliance"
+      "mDataProp": "name"
     , "sWidth": "25%"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
-        elem.append(buildComplianceBar(oData.compliance));
+        if (oData.status === "In application" || oData.status === "Partially applied" ) {
+          elem.append('<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>');
+        }
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
@@ -188,13 +231,13 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
 
   // Compliance, with link to the edit form
   var recentChanges = {
-      "mDataProp": "recentChanges"
+      "mDataProp": "name"
     , "sWidth": "10%"
     , "sTitle": "Recent changes"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
         var id = "Changes-"+oData.id;
-        elem.append('<div id="'+id+'"></div>')
+        elem.append('<div id="'+id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>')
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
@@ -249,33 +292,20 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
         oData.aoSearchCols[1].sSearch = "";
       }
     , "fnDrawCallback": function( oSettings ) {
-       $.each(oSettings.aoData, function(index,data) {
-         aData = data._aData
-         var id = "Changes-"+aData.id
-         var data = aData.recentChanges.y
-         data.splice(0,0,'Recent changes')
-         var x = aData.recentChanges.x
-         x.splice(0,0,'x')
-         var chart = c3.generate({
-             size: { height: 30 }
-           , legend: { show: false }
-           , data: {
-                 x: 'x'
-               , columns: [ x, data ]
-               , type: 'area-step'
-             }
-           , bar: {
-                width: {  ratio: 1 }
-             }
-           , axis: {
-                 x: {
-                    show : false
-                  , type: 'categories'
-                 }
-               , y: { show : false }
-             }
-         });
-         $('#'+id).append(chart.element);
+      var rows = this._('tr', {"page":"current"});
+       $.each(rows, function(index,row) {
+         var id = "Changes-"+row.id
+         // Display compliance progress bar if it has already been computed
+         var compliance = ruleCompliances[row.id]
+         if (compliance !== undefined) {
+           $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
+         }
+         var changes = recentGraphs[row.id]
+         if (changes !== undefined) {
+           $("#"+id).html(changes.element);
+         } else {
+           generateRecentGraph(row.id)
+         }
        })
       }
     , "aaSorting": [[ sortingDefault, "asc" ]]

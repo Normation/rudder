@@ -74,6 +74,9 @@ import com.normation.rudder.web.services.NodeComplianceLine
 import org.joda.time.DateTime
 import org.joda.time.Interval
 import com.normation.rudder.services.reports.NodeChanges
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import scala.concurrent._
+import ExecutionContext.Implicits.global
 
 
 
@@ -107,7 +110,6 @@ class RuleGrid(
 
   private[this] case class OKLine(
       rule             : Rule
-    , compliance       : Option[ComplianceLevel]
     , applicationStatus: ApplicationStatus
     , trackerVariables : Seq[(Directive,ActiveTechnique,Technique)]
     , targets          : Set[RuleTargetInfo]
@@ -144,7 +146,6 @@ class RuleGrid(
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val htmlId_rulesGridWrapper = htmlId_rulesGridId + "_wrapper"
   private[this] val tableId_reportsPopup = "popupReportsGrid"
-
 
 
   def templatePath = List("templates-hidden", "reports_grid")
@@ -203,22 +204,159 @@ class RuleGrid(
     }
   }
 
+  // Compute compliance level for all rules in  a future so it will be diosplayed asynchronoussily
+  def complianceFuture (rules: Seq[Rule], nodeIds : Seq[NodeId]) = {
+    future {
+      val start = System.currentTimeMillis
+      for {
+              compliances <- computeCompliances(nodeIds.toSet,rules.map(_.id).toSet)
+              after = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"computing compliance in Future took ${after - start}ms" )
 
-  // Build refresh function for Rule grid
+      } yield {
+        compliances
+      }
+    }
+  }
+
+
+  def changesFuture (rules: Seq[Rule]) = {
+    future {
+      val start = System.currentTimeMillis
+      for {
+              recentChanges <- recentChanges.getChangesByInterval()
+              nodeChanges = rules.map(rule => (rule.id -> NodeChanges.changesOnRule(rule.id)(recentChanges)))
+              after = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
+
+      } yield {
+        nodeChanges.toMap
+      }
+    }
+  }
+
+  // Ajax call back to get compliance details
+  def ajaxCompliance(future : Future[Box[Map[RuleId,ComplianceLevel]]]) : JsCmd = {
+    SHtml.ajaxInvoke( () => {
+      // Is my future completed ?
+      if( future.isCompleted ) {
+        // Yes wait for result
+        Await.result(future,scala.concurrent.duration.Duration.Inf) match {
+          case Full(compliances) =>
+            val bars  = {
+              for { (ruleId, compliance) <- compliances } yield {
+                val array = JsArray (
+                    JE.Num(compliance.pc_notApplicable)
+                  , JE.Num(compliance.pc_success)
+                  , JE.Num(compliance.pc_repaired)
+                  , JE.Num(compliance.pc_error)
+                  , JE.Num(compliance.pc_pending)
+                  , JE.Num(compliance.pc_noAnswer)
+                  , JE.Num(compliance.pc_missing)
+                  , JE.Num(compliance.pc_unexpected)
+                )
+                s"""
+                $$("#compliance-bar-${ruleId.value}").html(buildComplianceBar(${array.toJsCmd}));
+                ruleCompliances['${ruleId.value}'] = ${array.toJsCmd};
+                """
+              }
+            }
+             JsRaw(bars.mkString(";"))
+
+          case eb : EmptyBox =>
+            val error = eb ?~! "error while fetching compliances"
+            logger.error(error.messageChain)
+            Alert(error.messageChain)
+        }
+      } else {
+        After(500,ajaxCompliance(future))
+      }
+    } )
+
+  }
+
+  // Ajax call back to get recent changes
+  def ajaxChanges(future : Future[Box[Map[RuleId,Map[Interval,Seq[ResultRepairedReport]]]]]) : JsCmd = {
+    SHtml.ajaxInvoke( () => {
+      // Is my future completed ?
+      if( future.isCompleted ) {
+        // Yes wait/get for result
+        Await.result(future,scala.concurrent.duration.Duration.Inf) match {
+          case Full(changes) =>
+            val computeGraphs = for {
+              (ruleId,change) <- changes
+            } yield {
+              val data = NodeChanges.json(change)
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds)"""
+           }
+
+          JsRaw(s"""
+            var ruleTable = $$('#'+"${htmlId_rulesGridId}").dataTable();
+            var currentPageRow = ruleTable._('tr', {"page":"current"});
+            var currentPageIds = $$.map( currentPageRow , function(val) { return val.id});
+            ${computeGraphs.mkString(";")}
+          """)
+
+          case eb : EmptyBox =>
+            val error = eb ?~! "error while fetching compliances"
+            logger.error(error.messageChain)
+            Alert(error.messageChain)
+        }
+      } else {
+        After(500,ajaxChanges(future))
+      }
+    } )
+
+  }
+
   def refresh(popup:Boolean = false, linkCompliancePopup:Boolean = true) =  {
     AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
+
+      val start = System.currentTimeMillis
+
           ( for {
               rules        <- roRuleRepository.getAll(false)
-              nodeInfo     =  getAllNodeInfos()
-              groupLib     =  getFullNodeGroupLib()
-              directiveLib =  getFullDirectiveLib()
-              changes      =  recentChanges.getChangesByInterval()
-              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib, changes)
+              afterRules = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"Fetching all Rules took ${afterRules - start}ms" )
+
+              val futureChanges = changesFuture(rules)
+
+              nodeInfo     <-  getAllNodeInfos()
+              afterNodeInfos = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"Fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
+
+              // we have all the data we need to start our future
+              future = complianceFuture(rules,nodeInfo.keys.toSeq)
+
+              groupLib     <-  getFullNodeGroupLib()
+              afterGroups = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"Fetching all Groups took ${afterGroups - afterNodeInfos}ms" )
+
+              directiveLib <-  getFullDirectiveLib()
+              afterDirectives = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"Fetching all Directives took ${afterDirectives - afterGroups}ms" )
+
+              newData      = getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+              afterData = System.currentTimeMillis
+              _ = TimingDebugLogger.debug(s"Transforming into data took ${afterData - afterDirectives}ms" )
+
+
+              _ = TimingDebugLogger.debug(s"Computing whole data for rule grid took ${afterData - start}ms" )
             } yield {
-              JsRaw(s"""refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});""")
+
+              // Reset rule compliances stored in JS, so we get new ones from the future
+              JsRaw(s"""
+                  ruleCompliances = {};
+                  recentChanges = {};
+                  recentGraphs = {};
+                  refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});
+                  ${ajaxCompliance(future).toJsCmd}
+                  ${ajaxChanges(futureChanges).toJsCmd}
+              """)
             }
           ) match {
-            case Full(cmd) => cmd
+            case Full(cmd) =>
+              cmd
             case eb:EmptyBox =>
               val fail = eb ?~! ("an error occured during data update")
               logger.error(s"Could not refresh Rule table data cause is: ${fail.msg}")
@@ -246,6 +384,7 @@ class RuleGrid(
               createTooltiptr();
               $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
           """
+
         <div id={htmlId_rulesGridZone}>
           <span class="error" id="ruleTableError"></span>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
@@ -268,25 +407,17 @@ class RuleGrid(
       popup:Boolean
     , rules:Seq[Rule]
     , linkCompliancePopup:Boolean
-    , allNodeInfos : Box[Map[NodeId, NodeInfo]]
-    , groupLib     : Box[FullNodeGroupCategory]
-    , directiveLib : Box[FullActiveTechniqueCategory]
-    , recentChanges: Box[Map[Interval,Seq[ResultRepairedReport]]]
-  ) : Box[JsTableData[RuleLine]] = {
+    , allNodeInfos : Map[NodeId, NodeInfo]
+    , groupLib     : FullNodeGroupCategory
+    , directiveLib : FullActiveTechniqueCategory
+  ) : JsTableData[RuleLine] = {
 
-    for {
-      directivesLib <- directiveLib
-      groupsLib     <- groupLib
-      nodes         <- allNodeInfos
-      changes       <- recentChanges
-    } yield {
       val lines = for {
-         line <- convertRulesToLines(directivesLib, groupsLib, nodes, rules.toList)
+         line <- convertRulesToLines(directiveLib, groupLib, allNodeInfos, rules.toList)
       } yield {
-        getRuleData(line, groupsLib, nodes, changes)
+        getRuleData(line, groupLib, allNodeInfos)
       }
       JsTableData(lines)
-    }
 
   }
 
@@ -362,7 +493,7 @@ class RuleGrid(
                logger.error(e)
                ErrorLine(rule, trackerVariables, targetsInfo)
              case Full(value) =>
-               OKLine(rule, value, applicationStatus, seq, targets)
+               OKLine(rule, applicationStatus, seq, targets)
            }
          case (x,y) =>
            if(rule.isEnabledStatus) {
@@ -413,7 +544,6 @@ class RuleGrid(
       line:Line
     , groupsLib: FullNodeGroupCategory
     , nodes: Map[NodeId, NodeInfo]
-    , changes: Map[Interval,Seq[ResultRepairedReport]]
   ) : RuleLine = {
 
     // Status is the state of the Rule, defined as a string
@@ -446,17 +576,6 @@ class RuleGrid(
               ("Not applied", Some(why))
           }
         case _ : ErrorLine => ("N/A",None)
-    }
-
-    // Compliance percent and class to apply to the td
-    val compliancePercent = {
-      line match {
-        case line : OKLine => line.compliance match {
-          case None => ComplianceLevel()
-          case Some(c) => c
-        }
-        case _ => ComplianceLevel()
-      }
     }
 
     // Is the ruple applying a Directive and callback associated to the checkbox
@@ -516,8 +635,6 @@ class RuleGrid(
       , applying
       , category
       , status
-      , compliancePercent
-      , changes
       , cssClass
       , callback
       , checkboxCallback
@@ -551,7 +668,6 @@ class RuleGrid(
    *   , "applying": Is the rule applying the Directive, used in Directive page [Boolean]
    *   , "category" : Rule category [String]
    *   , "status" : Status of the Rule, "enabled", "disabled" or "N/A" [String]
-   *   , "compliance" : Percent of compliance of the Rule [String]
    *   , "recentChanges" : Array of changes to build the sparkline [Array[String]]
    *   , "trClass" : Class to apply on the whole line (disabled ?) [String]
    *   , "callback" : Function to use when clicking on one of the line link, takes a parameter to define which tab to open, not always present[ Function ]
@@ -566,8 +682,6 @@ case class RuleLine (
   , applying         : Boolean
   , category         : String
   , status           : String
-  , compliance       : ComplianceLevel
-  , recentChanges    : Map[Interval,Seq[ResultRepairedReport]]
   , trClass          : String
   , callback         : Option[AnonFunc]
   , checkboxCallback : Option[AnonFunc]
@@ -585,7 +699,7 @@ case class RuleLine (
 
       val optFields : Seq[(String,JsExp)]= reasonField.toSeq ++ cbCallbackField ++ callbackField
 
-      val changes = NodeChanges.changesOnRule(id)(recentChanges)
+     // val changes = NodeChanges.changesOnRule(id)(recentChanges)
 
       val base = JsObj(
           ( "name", name )
@@ -594,8 +708,7 @@ case class RuleLine (
         , ( "applying",  applying )
         , ( "category", category )
         , ( "status", status )
-        , ( "compliance", jsCompliance(compliance) )
-        , ( "recentChanges", NodeChanges.json(changes) )
+     //   , ( "recentChanges", NodeChanges.json(changes) )
         , ( "trClass", trClass )
       )
 
