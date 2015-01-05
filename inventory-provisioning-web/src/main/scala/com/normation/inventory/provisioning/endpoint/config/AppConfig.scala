@@ -213,12 +213,12 @@ class AppConfig {
     ))
 
   @Bean
-  def softwareFinder() : SoftwareDNFinderAction =
-    new SoftwareDNFinderService(Seq(
-      NamedSoftwareDNFinderAction(
-        "check_name_and_version",
-        new NameAndVersionIdFinder(roLdapConnectionProvider,inventoryMapper,acceptedNodesDit)
-    )))
+  def softwareFinder() : SoftwareDNFinderAction = new NameAndVersionIdFinder(
+      "check_name_and_version"
+    , roLdapConnectionProvider
+    , inventoryMapper
+    , acceptedNodesDit
+  )
 
   @Bean
   def automaticMerger() : PreCommit = new UuidMergerPreCommit(

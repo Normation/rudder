@@ -58,46 +58,44 @@ object NameAndVersionIdFinder {
  * Retrieve the id from the Mother Board Id
  */
 class NameAndVersionIdFinder(
-    ldapConnectionProvider:LDAPConnectionProvider[RoLDAPConnection],
-    mapper:InventoryMapper,
-    dit:InventoryDit
+    val name              : String
+  , ldapConnectionProvider: LDAPConnectionProvider[RoLDAPConnection]
+  , mapper                : InventoryMapper
+  , dit                   : InventoryDit
 ) extends SoftwareDNFinderAction {
 
   //the onlyTypes is an AND filter
-  override def tryWith(entity:Software) : Box[SoftwareUuid] = {
-    //create filter for software name and version
-    val nameFilter = entity.name match {
-      case None => NOT(HAS(A_NAME))
-      case Some(x) => EQ(A_NAME,x)
-    }
-
-    val versionFilter = entity.version match {
-      case None => NOT(HAS(A_SOFT_VERSION))
-      case Some(x) => EQ(A_SOFT_VERSION,x.value)
-    }
-
-    val filter = AND(nameFilter,versionFilter)
+  override def tryWith(entities:Set[Software]) : Box[MergedSoftware] = {
 
 
-    ldapConnectionProvider.flatMap { con =>
+    val filter = OR(entities.map { entity =>
+      //create filter for software name and version
+      val nameFilter = entity.name match {
+        case None => NOT(HAS(A_NAME))
+        case Some(x) => EQ(A_NAME,x)
+      }
+
+      val versionFilter = entity.version match {
+        case None => NOT(HAS(A_SOFT_VERSION))
+        case Some(x) => EQ(A_SOFT_VERSION,x.value)
+      }
+
+      AND(nameFilter, versionFilter)
+    }.toSeq:_*)
+
+
+    ldapConnectionProvider.map { con =>
       //get potential entries, and only get the one with a A_SOFTWARE_UUID
       //return the list of A_SOFTWARE_UUID sorted
-      val entries = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID).map(e => e(A_SOFTWARE_UUID)).flatten.sorted
-      if(entries.size >= 1) {
-        if(entries.size > 1) {
-        /*
-         * that means that several os have the same public key, probably they should be
-         * merge. Notify the human merger service for candidate.
-         * For that case, take the first one
-         */
-        //TODO : notify merge
-          logger.info("Several software ids found for filter '{}', chosing the first one:",filter)
-          for(e <- entries) {
-            logger.info("-> {}",e )
-          }
+      val merged = con.searchOne(dit.SOFTWARE.dn, filter, A_SOFTWARE_UUID, A_NAME, A_SOFT_VERSION).flatMap(e => mapper.softwareFromEntry(e) )
+
+      //now merge back
+      (MergedSoftware(Set(),Set())/: entities) { case(ms, s) =>
+        merged.find { x => x.name == s.name && x.version == s.version } match {
+          case None => ms.copy(newSoftware = ms.newSoftware+s)
+          case Some(x) => ms.copy(alreadySavedSoftware = ms.alreadySavedSoftware+x)
         }
-        Full(SoftwareUuid(entries.head))
-      } else Empty
+      }
     }
   }
 }

@@ -83,25 +83,6 @@ class MachineDNFinderService(actions:Seq[NamedMachineDNFinderAction]) extends Ma
 }
 
 /*
- * Implementation of IdFinderAction that is pipelinable
- * for machines
+ * No implementation for software, because they must be handle in
+ * mass to keep performance OK.
  */
-
-sealed case class NamedSoftwareDNFinderAction(val name:String,val action:SoftwareDNFinderAction) extends HashcodeCaching
-
-class SoftwareDNFinderService(actions:Seq[NamedSoftwareDNFinderAction]) extends SoftwareDNFinderAction with Loggable {
-
-  override def tryWith(entity:Software) : Box[SoftwareUuid] = {
-    for(a <- actions) {
-      logger.trace("Processing software id finder %s".format(a.name))
-      a.action.tryWith(entity).foreach {
-        (x:SoftwareUuid) => {
-          logger.trace("Software Id '%s' found with id finder '%s'".format(x,a.name))
-          return Some(x)
-        }
-      }
-    }
-    logger.debug("All software finder executed, no id found")
-    None
-  }
-}
