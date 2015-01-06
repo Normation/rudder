@@ -37,6 +37,7 @@ package com.normation.inventory.services.provisioning
 import com.normation.inventory.domain.InventoryReport
 import com.normation.utils.Control.pipeline
 import net.liftweb.common.{Box,Full,Empty,EmptyBox,Failure}
+import net.liftweb.common.Loggable
 
 /**
  *
@@ -72,7 +73,7 @@ trait ReportSaver[R] {
 
 
 
-trait PipelinedReportSaver[R] extends ReportSaver[R] {
+trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
 
   val preCommitPipeline:Seq[PreCommit]
   val postCommitPipeline:Seq[PostCommit[R]]
@@ -85,6 +86,9 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
   def commitChange(report:InventoryReport) : Box[R]
 
   override def save(report:InventoryReport) : Box[R] = {
+
+    val t0 = System.currentTimeMillis
+
     for {
       /*
        * Firstly, we let the chance to third part contributor to
@@ -96,7 +100,11 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
        */
       postPreCommitReport <- pipeline(preCommitPipeline, report){ (preCommit, currentReport) =>
         try {
-          preCommit(currentReport) ?~! "Error in preCommit pipeline with processor '%s', abort".format(preCommit.name)
+          val t0 = System.currentTimeMillis
+          val res = preCommit(currentReport) ?~! "Error in preCommit pipeline with processor '%s', abort".format(preCommit.name)
+          val t1 = System.currentTimeMillis
+          logger.trace(s"Precommit '${preCommit.name}': ${t1-t0}ms")
+          res
         } catch {
           case ex:Exception => Failure("Exception in preCommit pipeline with processor '%s', abort".format(preCommit.name), Full(ex), Empty)
         }
@@ -105,11 +113,19 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
        * commit change - no rollback !
        */
 
+      t1 = System.currentTimeMillis
+      _  = logger.trace(s"Pre commit report: ${t1-t0}ms")
+
       commitedChange <- try {
           commitChange(postPreCommitReport)
         } catch {
           case ex:Exception => Failure("Exception when commiting inventory, abort.", Full(ex), Empty)
         }
+
+      t2 = System.currentTimeMillis
+      _  = logger.trace(s"Commit report: ${t2-t1}ms")
+
+
       /*
        * now, post process report with third-party actions
        */
@@ -120,6 +136,9 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] {
           case ex:Exception => Failure("Exception in postCommit pipeline with processor '%s'. The commit was done, we may be in a inconsistent state,".format(postCommit.name), Full(ex), Empty)
         }
       }
+
+      t3 = System.currentTimeMillis
+      _  = logger.trace(s"Post commit report: ${t3-t2}ms")
     } yield {
       postPostCommitReport
     }
