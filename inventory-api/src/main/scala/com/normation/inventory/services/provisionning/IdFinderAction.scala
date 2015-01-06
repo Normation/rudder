@@ -57,10 +57,22 @@ trait MachineDNFinderAction {
   def tryWith(entity:MachineInventory) : Box[(MachineUuid, InventoryStatus)]
 }
 
+
+case class MergedSoftware(
+    newSoftware         : Set[Software]
+  , alreadySavedSoftware: Set[Software]
+)
+
+/**
+ * Return the couple of set of software such that:
+ * (updatedUUID, notUpdatedUUID).
+ * Normally, argument == updatedUUID+notUpdatedUUID
+ * (modulo the changes in UUIDs, of course)
+ */
 trait SoftwareDNFinderAction {
 
   //black list / white list ?
 
-  def tryWith(entity:Software) : Box[SoftwareUuid]
+  def tryWith(entities: Set[Software]) : Box[MergedSoftware]
 }
 
