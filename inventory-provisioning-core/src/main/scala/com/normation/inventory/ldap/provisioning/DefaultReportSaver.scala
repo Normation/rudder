@@ -73,6 +73,8 @@ class DefaultReportSaver(
      */
     var results = List[Box[Seq[LDIFChangeRecord]]]()
 
+    val t0 = System.currentTimeMillis
+
     //we really want to save each software, and not the software tree as a whole - just think about the diff...
     report.applications foreach { x =>
       results = {
@@ -83,6 +85,9 @@ class DefaultReportSaver(
       } :: results
     }
 
+    val t1 = System.currentTimeMillis
+    logger.trace(s"Saving software: ${t1-t0}ms")
+
     results = {
       for {
         con <- ldapConnectionProvider
@@ -90,15 +95,19 @@ class DefaultReportSaver(
       } yield { res }
     } :: results
 
+    val t2 = System.currentTimeMillis
+    logger.trace(s"Saving machine: ${t2-t1}ms")
 
     results = {
       for {
         con <- ldapConnectionProvider
-
         res <- con.saveTree(mapper.treeFromNode(report.node))
       } yield {
         res }
     } :: results
+
+    val t3 = System.currentTimeMillis
+    logger.trace(s"Saving node: ${t3-t2}ms")
 
     //finally, vms
     report.vms foreach { x =>
@@ -108,6 +117,9 @@ class DefaultReportSaver(
         } yield { res }
       } :: results
     }
+
+    val t4 = System.currentTimeMillis
+    logger.trace(s"Saving vms: ${t4-t3}ms")
 
     /*
      * TODO : what to do when there is a mix a failure/success ?

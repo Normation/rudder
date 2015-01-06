@@ -40,7 +40,7 @@ import com.normation.inventory.services.provisioning._
 import com.normation.utils.StringUuidGenerator
 import com.normation.inventory.domain._
 import com.normation.inventory.ldap.core._
-import net.liftweb.common.{Box,Empty,Failure,Full}
+import net.liftweb.common._
 import org.slf4j.{Logger,LoggerFactory}
 import scala.collection.mutable.Buffer
 import UuidMergerPreCommit._
@@ -119,28 +119,17 @@ class UuidMergerPreCommit(
      * from the values in server
      *
      */
-    var applications = List.empty[Software]
-    val toUpdate = scala.collection.mutable.Map.empty[/* from */ SoftwareUuid, /* to */ SoftwareUuid]
-
-    report.applications.foreach { s =>
-      mergeSoftware(s) match {
-        //these one were already saved : update Node#softwareId, but remove them from the list of soft to save
-        case Full(soft) if(soft.id != s.id) => toUpdate += (s.id -> soft.id)
-        //these ones were not in the backend. Keep them for saving
-        case Full(soft) => applications = soft :: applications
-        case Empty => None
-        case f:Failure =>
-          logger.error(f.msg)
-          None
-      }
+    val mergedSoftwares = softwareIdFinder.tryWith(report.applications.toSet) match {
+      case eb: EmptyBox =>
+        val e = eb ?~! "Error when trying to find existing software UUIDs"
+        logger.error(e.messageChain)
+        return e
+      case Full(s) => s
     }
 
     //update node's soft ids
     var node = report.node.copy(
-        softwareIds = report.node.softwareIds.map { id => toUpdate.get(id) match {
-          case None => id
-          case Some(nid) => nid
-        } }
+        softwareIds = (mergedSoftwares.alreadySavedSoftware.map( _.id ) ++ mergedSoftwares.newSoftware.map(_.id)).toSeq
     )
 
     /*
@@ -195,7 +184,8 @@ class UuidMergerPreCommit(
       finalMachine,
       report.version,
       vms,
-      applications,
+      //no need to put again already saved softwares
+      mergedSoftwares.newSoftware.toSeq,
       report.sourceReport
     ))
   }
@@ -247,13 +237,4 @@ class UuidMergerPreCommit(
     }
   }
 
-  protected def mergeSoftware(software:Software) : Box[Software] = {
-    softwareIdFinder.tryWith(software) match {
-      case f@Failure(_,_,_) => f
-      case Empty =>
-        logger.debug("Use new generated ID for software: {}",software.id)
-        Full(software)
-      case Full(id) => Full(software.copy(id))
-    }
-  }
 }
