@@ -1384,14 +1384,11 @@ object RudderConfig extends Loggable {
    , groupLibReadWriteMutex
   )
   private[this] lazy val eventLogDeploymentServiceImpl = new EventLogDeploymentService(logRepository, eventLogDetailsServiceImpl)
-  private[this] lazy val nodeInfoServiceImpl: NodeInfoService = new NodeInfoServiceImpl(
-      nodeDitImpl
-    , rudderDitImpl
+  private[this] lazy val nodeInfoServiceImpl: NodeInfoService = new NodeInfoServiceCachedImpl(
+      roLdap
+    , nodeDitImpl
     , acceptedNodesDitImpl
-    , roLdap
     , ldapEntityMapper
-    , inventoryMapper
-    , inventoryDitService
   )
   private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
         roLdap
