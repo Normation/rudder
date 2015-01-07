@@ -67,9 +67,8 @@ function homePage (
 
   var height = $(window).height() / 2 ;
   
-  c3.generate( {
+  var chart = c3.generate( {
       size: { height: height }
-    , bindto: '#nodeCompliance'
     , data: {
           columns: nodeCompliance
         , type : 'donut'
@@ -83,6 +82,7 @@ function homePage (
         }
       }
   } );
+  $('#nodeCompliance').append(chart.element);
 }
 
 function homePageInventory (
@@ -91,9 +91,8 @@ function homePageInventory (
 ) {
   var smallHeight =  $(window).height() / 4 ;
 
-  c3.generate({
+  var chart1 = c3.generate( {
       size: { height: smallHeight }
-    , bindto: '#nodeMachine'
     , data: {
           columns: nodeMachines
         , type : 'donut'
@@ -104,10 +103,10 @@ function homePageInventory (
         }
       }
   } );
+  $('#nodeMachine').append(chart1.element);
     
-  c3.generate({
+  var chart2 = c3.generate( {
     size: { height: smallHeight }
-  , bindto: '#nodeOs'
   , data: {
         columns: nodeOses
       , type : 'donut'
@@ -118,6 +117,7 @@ function homePageInventory (
       }
     }
   } );      
+  $('#nodeOs').append(chart2.element);
 }
 
 function homePageSoftware (
@@ -125,9 +125,8 @@ function homePageSoftware (
   ) {
   var smallHeight =  $(window).height() / 4 ;
  
-  c3.generate({
+  var chart = c3.generate( {
     size: { height: smallHeight }
-  , bindto: '#nodeAgents'
   , data: {
         columns: nodeAgents
       , type   : 'donut'
@@ -138,4 +137,5 @@ function homePageSoftware (
       }
     }
   } );
+  $('#nodeAgents').append(chart.element);
 }
