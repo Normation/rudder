@@ -159,7 +159,7 @@ class RuleCompliance (
           x.splice(0,0,'x')
           createChangesTable("changesGrid",${allChanges.toJsCmd},"${S.contextPath}");
           var chart = c3.generate({
-            , data: {
+            data: {
                   x: 'x'
                 , columns: [ x , data ]
                 , type: 'bar'
