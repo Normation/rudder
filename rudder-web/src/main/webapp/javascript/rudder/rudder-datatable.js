@@ -256,9 +256,8 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
          data.splice(0,0,'Recent changes')
          var x = aData.recentChanges.x
          x.splice(0,0,'x')
-         c3.generate({
-             bindto : "#"+id
-           , size: { height: 30 }
+         var chart = c3.generate({
+             size: { height: 30 }
            , legend: { show: false }
            , data: {
                  x: 'x'
@@ -276,6 +275,7 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
                , y: { show : false }
              }
          });
+         $('#'+id).append(chart.element);
        })
       }
     , "aaSorting": [[ sortingDefault, "asc" ]]

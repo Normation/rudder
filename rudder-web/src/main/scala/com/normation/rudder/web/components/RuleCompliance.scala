@@ -158,8 +158,7 @@ class RuleCompliance (
           var x = recentChanges.x
           x.splice(0,0,'x')
           createChangesTable("changesGrid",${allChanges.toJsCmd},"${S.contextPath}");
-          c3.generate({
-              bindto : "#changesChart"
+          var chart = c3.generate({
             , data: {
                   x: 'x'
                 , columns: [ x , data ]
@@ -184,6 +183,7 @@ class RuleCompliance (
                 , y: { show: true }
               }
           } );
+          $$('#changesChart').append(chart.element);
           createTooltip();""")) ))
       } ) match {
       case Full(xml) => xml
