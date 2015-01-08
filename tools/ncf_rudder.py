@@ -188,7 +188,7 @@ def generate_value_xml(method_call,generic_method):
     parameter = method_call["args"][generic_method["class_parameter_id"]-1]
     value = parameter
     
-    return "        <VALUE>"+value+"</VALUE>"
+    return "        <VALUE><![CDATA["+value+"]]></VALUE>"
   except:
     raise Exception("Method parameter \"" + generic_method['class_parameter_id'] + "\" is not defined")
 
