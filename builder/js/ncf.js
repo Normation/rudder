@@ -36,7 +36,7 @@ app.directive('techniquename', function($filter) {
          // Get all techniqueNames in lowercase
          var techniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()})
          // Remove he original name from the technique names array
-         if (scope.originalTechnique !== undefined) {
+         if (scope.originalTechnique !== undefined && scope.originalTechnique.name !== undefined) {
            techniqueNames = $filter("filter")(techniqueNames, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
          }
          // technique name is ok if the current value is not in the array
@@ -375,7 +375,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Create a new technique stub
   var newTech = {
       "method_calls" : []
-    , "name": undefined
+    , "name": ""
     , "description": ""
     , "version": "1.0"
     , "bundle_name": undefined
