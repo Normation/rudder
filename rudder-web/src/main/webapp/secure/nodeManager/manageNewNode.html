@@ -1,74 +1,61 @@
 <lift:surround with="common-layout" at="content">
 
 <head>
-<title>Rudder - New Nodes Management</title>
+  <title>Rudder - New Nodes Management</title>
 </head>
 
 <div class="portlet">
-      <div class="inner-portlet">
-        <div class="page-title">Accept new Nodes</div>
-          <div class="intro">
-           Accept or refuse Nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report. To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
-           </div>
- <div class="portlet-content">
+<div class="inner-portlet">
+  <div class="page-title">Accept new Nodes</div>
+  <div class="intro">
+    Accept or refuse Nodes in your infrastructure that have declared themselves to Rudder by sending an inventory report. To add new nodes, install the rudder-agent package on a machine, and follow the instructions provided.
+  </div>
+
+  <div class="portlet-content">
    
-  <lift:node.AcceptNode.head />
-  <hr class="spacer"/>
-  <div id="new_servers_tab" class="tabs">
-     <ul>
+    <lift:node.AcceptNode.head />
+    <hr class="spacer"/>
+    <div id="new_servers_tab" class="tabs">
+      <ul>
         <li><a href="#review_new_server">Review new nodes</a></li>
         <li><a href="#history">History</a></li>
-     </ul> 
-    
-    <div id="review_new_server" data-lift="lazy-load">
-      <div class="tabInform">
-      <p>Click on a node name to view detailed inventory information.</p>
-      <p>Click on <img src="/images/icPolicies.jpg"/> to list Rules that would be applied to this node if you accept it.</p>
-      </div>
-      <lift:ignore>
-        The template for the table can be found at 
-        templates-hidden/server_grid
-        It is enhanced with a "select" column
-      </lift:ignore>
-      <div class="err"><lift:Msgs>[error]</lift:Msgs></div>
-      <lift:node.AcceptNode.list>
-        <pending:selectall/>
-          <br/>
-        <pending:servers/>
-        
-        <div id="acceptNodeGrid_paginate_area" class="nodisplay"/>
-        
-        <lift:authz role="node_write">
-        <p class="bottomButton rmargin">
-          <span><pending:accept/></span>
-          <span class="nserverrmargin"><pending:refuse/></span>
-        </p>
-        </lift:authz>
-        <pending:errors/>
+      </ul> 
       
-      </lift:node.AcceptNode.list>
+      <div id="review_new_server"><div  data-lift="lazy-load">
+        <div class="tabInform">
+          <p>Click on a node name to view detailed inventory information.</p>
+          <p>Click on <img src="/images/icPolicies.jpg"/> to list Rules that would be applied to this node if you accept it.</p>
+        </div>
+        <div class="err"><lift:Msgs>[error]</lift:Msgs></div>
+        <lift:node.AcceptNode.list>
+          <pending:selectall/>
+          <br/>
+          <pending:servers/>
+          <div id="acceptNodeGrid_paginate_area" class="nodisplay"/>
+          <lift:authz role="node_write">
+          <p class="bottomButton rmargin">
+            <span><pending:accept/></span>
+            <span class="nserverrmargin"><pending:refuse/></span>
+          </p>
+          </lift:authz>
+          <pending:errors/>
+        </lift:node.AcceptNode.list>
+      </div></div>
+      
+      <div id="history"><div data-lift="lazy-load">
+        <div class="tabInform">
+          <p>View history of Nodes that have been accepted or refused.</p>
+          <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
+        </div>    
+        <lift:node.PendingHistoryGrid.displayAndInit>
+          <pending:history/>
+        </lift:node.PendingHistoryGrid.displayAndInit>
+      </div></div>
     </div>
-    <div id="history" data-lift="lazy-load">
-     <div class="tabInform">
-      <p>View history of Nodes that have been accepted or refused.</p>
-      <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
-     </div>    
-    <lift:node.PendingHistoryGrid.displayAndInit>
-      <pending:history/>
-    </lift:node.PendingHistoryGrid.displayAndInit>
-    </div>
-  </div>
-  <div id="manageNewNode"/>
-  <lift:ignore>
-  This div gets a popup injected within
-  </lift:ignore>
-
-  <div id="expectedPolicyZone"/>
-  <lift:ignore>
-  This div gets a popup injected within
-  </lift:ignore>
+    <div id="manageNewNode"/>
+    <div id="expectedPolicyZone"/>
   
- </div>
+  </div>
 </div>
 </div>
   
