@@ -143,7 +143,8 @@ class SearchNodeComponent(
   }
 
 
-  def buildQuery() : NodeSeq = {
+  def buildQuery : NodeSeq = {
+
     if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
@@ -204,14 +205,15 @@ class SearchNodeComponent(
           SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
     }
 
+
     /**
      * Display the query part
      * Caution, we pass an html different at the init part (whole content:query) or at update (update:query)
      *
      */
-    def displayQuery(html: NodeSeq ) : NodeSeq = {
+    def displayQuery(html: NodeSeq) = {
       val Query(otName,comp, criteria) = query.get
-      SHtml.ajaxForm(bind("query", html,
+      bind("query", html,
         "typeQuery" ->  <label>Include Rudder server components: <span class="compositionCheckbox">{SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
                 if (value)
                   rType = NodeAndPolicyServerReturnType
@@ -266,13 +268,13 @@ class SearchNodeComponent(
         } else NodeSeq.Empty}
       },
       "submit" -> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
-      )) ++  Script(OnLoad(JsVar("""
+      ) ++  Script(OnLoad(JsVar("""
           $(".queryInputValue").keydown( function(event) {
             processKey(event , 'SubmitSearch')
           } );
           """)))
-    }
 
+    }
 
     /**
      * Show the search engine and the grid
@@ -283,6 +285,7 @@ class SearchNodeComponent(
         "gridResult" -> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
       )
     }
+
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
   }
 
