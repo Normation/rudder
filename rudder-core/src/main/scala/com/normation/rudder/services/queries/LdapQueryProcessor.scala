@@ -117,10 +117,10 @@ object DefaultRequestLimits extends RequestLimits(0,0,0,0)
  * in the ou=Nodes branch)
  */
 class AccepetedNodesLDAPQueryProcessor(
-    nodeDit:NodeDit,
-    inventoryDit:InventoryDit,
-    processor:InternalLDAPQueryProcessor,
-    nodeInfoService: NodeInfoService
+    nodeDit        : NodeDit
+  , inventoryDit   : InventoryDit
+  , processor      : InternalLDAPQueryProcessor
+  , nodeInfoService: NodeInfoService
 ) extends QueryProcessor with Loggable {
 
 
@@ -147,14 +147,12 @@ class AccepetedNodesLDAPQueryProcessor(
 
     for {
       inventoryEntries <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
+      ldapEntries      <- nodeInfoService.getLDAPNodeInfo(inventoryEntries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet)
     } yield {
-      val inNodes = (for {
-        inventoryEntry <- inventoryEntries
-        rdn <- inventoryEntry(A_NODE_UUID)
-        LDAPNodeInfo(nodeEntry, nodeInv, machineInv) <- nodeInfoService.getLDAPNodeInfo(NodeId(rdn))
-      } yield {
+
+      val inNodes = ldapEntries.map { case LDAPNodeInfo(nodeEntry, nodeInv, machineInv) =>
         QueryResult(nodeEntry,nodeInv, machineInv)
-      })
+      }
 
       if(logger.isDebugEnabled) {
         val filtered = inventoryEntries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
@@ -176,8 +174,8 @@ class AccepetedNodesLDAPQueryProcessor(
                 logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutServerRole.size, filtered.mkString(", ")))
             }
           }
-          withoutServerRole
-        case NodeAndPolicyServerReturnType => inNodes
+          withoutServerRole.toSeq
+        case NodeAndPolicyServerReturnType => inNodes.toSeq
       }
     }
   }
