@@ -125,9 +125,7 @@ class AcceptNode {
 
   def head() : NodeSeq =
     <head>{
-      serverGrid.head ++ Script(OnLoad(JsRaw("""
-          $("button", ".bottomButton").button();
-      """) ) )
+      serverGrid.head
     }</head>
 
   /*
@@ -148,7 +146,7 @@ class AcceptNode {
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
       case f@Failure(_,_,_) => <div>Error while retriving server to confirm</div>
-      case Full(seq) => display(html,seq)
+      case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""$("button", ".bottomButton").button();""") ) )
     }
   }
 

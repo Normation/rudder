@@ -51,6 +51,7 @@ import com.normation.inventory.ldap.core._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NodeInfoServiceImpl
+import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
 
 /*
  * Test query parsing.
@@ -101,7 +102,7 @@ class TestQueryProcessor extends Loggable {
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
 
-  val nodeInfoService = new NodeInfoServiceImpl(nodeDit, rudderDit, DIT, ldap, ldapMapper, inventoryMapper, ditService)
+  val nodeInfoService = new NodeInfoServiceCachedImpl(ldap, nodeDit, DIT, ldapMapper)
 
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,
