@@ -10,7 +10,6 @@
 
 (function(global) {
 
-  console.log(global);
   var registrationsTable = new WeakMap();
 
   var setImmediate;
@@ -563,12 +562,9 @@
 
   global.JsMutationObserver = JsMutationObserver;
 
-  console.log("hello")
   if (!global.MutationObserver) {
-    console.log(JsMutationObserver);
     global.MutationObserver = JsMutationObserver;
   }
-  console.log(JsMutationObserver);
 
 
 })(this);

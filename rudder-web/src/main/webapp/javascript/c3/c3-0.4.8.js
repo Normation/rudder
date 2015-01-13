@@ -2534,7 +2534,12 @@
     c3_chart_internal_fn.getParentRectValue = function (key) {
         var parent = this.selectChart.node(), v;
         while (parent && parent.tagName !== 'BODY') {
+            try {
             v = parent.getBoundingClientRect()[key];
+            } catch(err) {
+              var defaultRectangle = {top : 0, bottom: 0, left:0,right:0,height:0, width:0};
+              v = defaultRectangle[key];
+            }
             if (v) {
                 break;
             }
