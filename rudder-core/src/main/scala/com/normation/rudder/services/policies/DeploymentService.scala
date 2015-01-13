@@ -72,6 +72,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.domain.logger.ComplianceDebugLogger
 
 
 
@@ -201,7 +202,7 @@ trait DeploymentService extends Loggable {
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
   def getGlobalComplianceMode(): Box[ComplianceMode]
-  def getGlobalAgentRun : Box[AgentRunInterval]
+  def getGlobalAgentRun() : Box[AgentRunInterval]
 
   /**
    * Find all modified rules.
@@ -308,8 +309,11 @@ trait DeploymentService extends Loggable {
   def historizeData(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Unit]
 
 
+  protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
+    NodeConfigId(config.hashCode.toString)
+  }
   def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
-    configs.map(x => (x.nodeInfo.id, NodeConfigId(NodeConfigurationCache(x).hashCode.toString))).toMap
+    configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationCache(x)))).toMap
   }
 }
 
@@ -374,7 +378,7 @@ trait DeploymentService_findDependantRules_bruteForce extends DeploymentService 
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
   override def getGlobalComplianceMode(): Box[ComplianceMode] = complianceModeService.getComplianceMode
-  override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getAgentRun
+  override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getGlobalAgentRun()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -714,7 +718,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
   ) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
     val firstElt = (Map[RuleId,Int](), Seq[RuleId]())
     // First, fetch the updated CRs (which are either updated or deleted)
-    (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
+    val res = (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
       allRules.get(ruleId) match {
         case Some(rule) =>
           woRuleRepo.incrementSerial(rule.id) match {
@@ -729,6 +733,20 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
           Full((updated.toMap, (deleted :+ ruleId)))
       }
     } }
+
+    res.foreach { case (updated, deleted) =>
+      if(updated.nonEmpty) {
+        ComplianceDebugLogger.debug(s"Updated rules:${ updated.map { case (id, serial) =>
+          s"[${id.value}->${serial}]"
+        }.mkString("") }")
+      }
+      if(deleted.nonEmpty) {
+        ComplianceDebugLogger.debug(s"Deleted rules:${ deleted.map { id =>
+          s"[${id.value}]"
+        }.mkString("") }")
+      }
+    }
+    res
    }
 
   /**
@@ -752,6 +770,11 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
      * - update caches
      */
     val updated = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, cache)
+
+    ComplianceDebugLogger.debug(s"Updated node configuration ids: ${updated.map {id =>
+      s"[${id.value}:${cache.get(id).fold("???")(x => computeNodeConfigIdFromCache(x).value)}->${computeNodeConfigIdFromCache(NodeConfigurationCache(allNodeConfigs(id))).value}]"
+    }.mkString("") }")
+
     val writtingTime = Some(DateTime.now)
     val fsWrite0   =  writtingTime.get.getMillis
 
@@ -856,10 +879,12 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
 
     //we also want to build the list of overriden directive based on unique techniques.
     val overriden = configs.flatMap { nodeConfig =>
-      nodeConfig.policyDrafts.flatMap( x => x.overrides.map(o => UniqueOverrides(nodeConfig.nodeInfo.id, x.ruleId, x.directiveId, o)))
-    }
+      nodeConfig.policyDrafts.flatMap( x => x.overrides.map { case (ruleId, directiveId) =>
+        UniqueOverrides(nodeConfig.nodeInfo.id, ruleId, directiveId, x.draftId)
+      })
+    }.toSet
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden.toSet)
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden)
   }
 }
 

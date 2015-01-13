@@ -38,6 +38,15 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     Full information about the file format is available on the project
     web site: http://logback.qos.ch/manual/configuration.html#syntax
    -->
+   
+   
+   <!-- 
+    NOTE FOR USER: most of the interesting information are at the 
+    bottom of the file, but that crappy xml file does not allow to
+    make important information first :(
+   -->
+   
+   
 
   <!-- 
     Appender configuration - where&how to write logs in SLF4J speaking.
@@ -180,47 +189,105 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
 <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
  
-  <!-- Here come ops logger -->
+  <!-- 
+    Operation level logger
+    =======================
+    They allow to have information about some domain of the application. 
+    By default, the level is to info but you can use "debug" or "trace"
+    to get more detailed information. 
+    
+    For all of them, you will get the logs in both the webapp logs and file 
+    config in OPSLOG (by default, /var/log/rudder/core/rudder-webapp.log
+    
+    You can comment out the line "<appender-ref ref="STDOUT" />" in each
+    of them to have logs only in OPSLOG (respectivelly, 
+    <appender-ref ref="OPSLOG" />)
+  -->
    
-   <logger name="report" level="info" additivity="false">
-     <appender-ref ref="OPSLOG" />
-     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
-     <appender-ref ref="STDOUT" />
-   </logger>
+  <!--
+    This logger is in charge of general application logging (webapp status, etc) 
+  -->
+  <logger name="application" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
+    <appender-ref ref="STDOUT" />
+  </logger>
 
-   <logger name="application" level="info" additivity="false">
-     <appender-ref ref="OPSLOG" />
-     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
-     <appender-ref ref="STDOUT" />
-   </logger>
+  <!-- 
+    Log information about migration processus, for example in case of internal data format updates
+  -->
+  <logger name="migration" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
 
-   <logger name="migration" level="info" additivity="false">
-     <appender-ref ref="OPSLOG" />
-     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
-     <appender-ref ref="STDOUT" />
-   </logger>
+  <!-- 
+    Log historization activity (name historization for configuration elements). 
+  -->
+  <logger name="historization" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
 
-   <logger name="historization" level="info" additivity="false">
-     <appender-ref ref="OPSLOG" />
-     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
-     <appender-ref ref="STDOUT" />
-   </logger>
+  <!-- 
+      This logger allows to log information about reports, especially DB cleaning operation
+  -->
+  <logger name="report" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
 
-   <!-- Here come non compliant reports logger -->
 
-   <logger name="non-compliant-reports" level="info" additivity="false">
-     <appender-ref ref="REPORTLOG" />
-   </logger>
-
-   <logger name="changeRequest" level="info" additivity="false">
-     <appender-ref ref="OPSLOG" />
-     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
-     <appender-ref ref="STDOUT" />
-   </logger>
+  <!-- 
+    Logs about change requests and validation workflows
+  -->
+  <logger name="changeRequest" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
    
-   <logger name="bootstrap" level="info" additivity="false">
-     <appender-ref ref="OPSLOG" />
-     <!-- comment the following appender if you don't want to have logs about report in both stdout and opslog -->
-     <appender-ref ref="STDOUT" />
-   </logger>
+  <!-- 
+    Startup information, like timing each operation of the boot to understand 
+    what is sooooo long - and should not. 
+  -->
+  <logger name="bootstrap" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+   
+  <!-- 
+    Debugging information about time spent on various operation known to be long. 
+    This logs can be chatty and can be hard to understand without knowledge 
+    of Rudder internals. 
+  -->
+  <logger name="debug_timing" level="info" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger>
+  
+  <!-- 
+    Information (mostly debugging) about compliance. 
+    Log level "debug" and "trace" are used and allow to trace how
+    compliance computation are done (typically, for a node, what is the
+    expected configuration id, what is the last reports received, is the
+    date/time ok regarding run interval and compliance mode, etc. 
+  -->
+  <logger name="explain_compliance" level="trace" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger> 
+   
+   
+   
+  <!-- 
+   Non compliant report logs
+   ==========================
+   
+    Log all non compliant reports in the REPORTLOG defined above
+    (by default, /var/log/rudder/compliance/non-compliant-reports.log
+  -->
+  <logger name="non-compliant-reports" level="info" additivity="false">
+    <appender-ref ref="REPORTLOG" />
+  </logger>
+   
 </configuration>

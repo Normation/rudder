@@ -45,6 +45,11 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.domain.reports.RuleStatusReport
 import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.reports.execution.AgentRun
+import com.normation.rudder.reports.ResolvedAgentRunInterval
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.domain.policies.SerialedRuleId
+import com.normation.rudder.domain.logger.TimingDebugLogger
 
 
 class ReportingServiceImpl(
@@ -52,7 +57,7 @@ class ReportingServiceImpl(
   , reportsRepository  : ReportsRepository
   , agentRunRepository : RoReportsExecutionRepository
   , nodeConfigInfoRepo : RoNodeConfigIdInfoRepository
-  , getAgentRunInterval: () => Int
+  , runIntervalService : AgentRunIntervalService
   , getComplianceMode  : () => Box[ComplianceMode]
 ) extends ReportingService with Loggable {
 
@@ -70,7 +75,7 @@ class ReportingServiceImpl(
   }
 
 
-  override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
+   def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
     for {
       reports <- findRuleNodeStatusReports(Set(nodeId), Set())
       report  =  reports.groupBy(_.nodeId).map { case(nodeId, reports) => NodeStatusReport(nodeId, reports) }.toSet
@@ -82,39 +87,58 @@ class ReportingServiceImpl(
 
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
+    /*
+     * This is the main logic point to get reports.
+     *
+     * Compliance for a given node is a function of ONLY(expectedNodeConfigId, lastReceivedAgentRun).
+     *
+     * The logic is:
+     *
+     * - for a (or n) given node (we have a node-bias),
+     * - get the expected configuration right now
+     *   - errors may happen if the node does not exists or if
+     *     it does not have config right now. For example, it
+     *     was added just a second ago.
+     *     => "no data for that node"
+     * - get the last run for the node.
+     *
+     * If nodeConfigId(last run) == nodeConfigId(expected config)
+     *  => simple compare & merge
+     * else {
+     *   - expected reports INTERSECTION received report ==> compute the compliance on
+     *      received reports (with an expiration date)
+     *   - expected reports - received report ==> pending reports (with an expiration date)
+     *
+     * }
+     *
+     *
+     */
+    val t0 = System.currentTimeMillis
     for {
-      runInfos                 <- getNodeRunInfos(nodeIds)
+      // we want compliance on these nodes
+      runInfos            <- getNodeRunInfos(nodeIds)
 
-      /*
-       * For node with bad or no usable config id, we need
-       * to retrieve the last expected reports.
-       * For other, we find expected reports by configId
-       */
+      // that gives us configId for runs, and expected configId (some may be in both set)
+      expectedConfigId    =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigId.configId) }
+      lastrunConfigId     =  runInfos.collect {
+                               case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId.configId)
+                               case (nodeId, Pending(_, Some(run), _, _)) => NodeAndConfigId(nodeId, run._2.configId)
+                             }
 
-      ( nodesForOpenExpected
-      , nodesByConfigId      ) =  runInfos.foldLeft((Set.empty[NodeId], Set.empty[NodeAndConfigId])) { case((l1,l2), (nodeId, x)) => x.configIdForExpectedReports match {
-                                    case None => (l1+nodeId, l2)
-                                    case Some(c) => (l1, l2 + NodeAndConfigId(nodeId, c))
-                                  } }
+      t1                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t1-t0}ms")
 
-      lastExpectedReports      <- confExpectedRepo.getLastExpectedReports(nodesForOpenExpected, ruleIds)
+      // so now, get all expected reports for these config id
+      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigId.toSet++lastrunConfigId, ruleIds)
 
-      //get nodeConfigId for nodes not in the nodesForOpenExpected and with a config version
-      byVersionExpectedReports <- confExpectedRepo.getExpectedReports(nodesByConfigId, ruleIds)
+      t2                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get expected reports: ${t2-t1}ms")
 
-      allExpected              =  (byVersionExpectedReports ++ lastExpectedReports).toSeq
+      // compute the status
+      nodeStatusReports   <- buildNodeStatusReports(runInfos, allExpectedReports, ruleIds)
 
-      // We need to list all the pending node entries, to get the expected configId, and the received ConfigId
-      pendingNodeEntries       = runInfos.collect{
-        case (nodeId, Pending(expected, Some(actualLastRun), _)) =>  PreviousAndExpectedNodeConfigId(NodeAndConfigId(nodeId,actualLastRun.configId), NodeAndConfigId(nodeId,expected.configId)) }.toSet
-
-      olderExpectedReports     <- confExpectedRepo.getPendingReports(pendingNodeEntries, ruleIds)
-
-
-      // allExpected contains all the expected reports, but in the case of pending Node, we still have some relevant information
-      // from previous runs, that we'd need to use
-      // However we should exclude from these previous runs the reports corresponding to older expected reports
-      nodeStatusReports        <- buildNodeStatusReports(runInfos, allExpected, ruleIds, olderExpectedReports)
+      t3                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
     } yield {
       nodeStatusReports.toSet
     }
@@ -143,38 +167,39 @@ class ReportingServiceImpl(
       compliance        <- getComplianceMode()
       runs              <- agentRunRepository.getNodesLastRun(nodeIds)
       nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
+      runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)
+      //just a validation that we have all nodes interval
+      _                 <- if(runIntervals.keySet == nodeIds) Full("OK") else {
+                             Failure(s"We weren't able to get agent run interval configuration (even using default values) for some node: ${(nodeIds -- runIntervals.keySet).map(_.value).mkString(", ")}")
+                           }
     } yield {
-      val agentRunInterval = getAgentRunInterval()
-      val nodeWithGrace = nodeIds.map( (_, Duration.standardMinutes(agentRunInterval+ExecutionBatch.GRACE_TIME_PENDING))).toMap
-
-      ExecutionBatch.computeNodeRunInfo(nodeWithGrace, runs, nodeConfigIdInfos, compliance)
-
+      ExecutionBatch.computeNodeRunInfo(runIntervals, runs, nodeConfigIdInfos, compliance)
     }
   }
 
 
   /*
-   * Given a set of agen runs and expected reports, retrieve the corresponding
+   * Given a set of agent runs and expected reports, retrieve the corresponding
    * execution reports and then nodestatusreports, being smart about what to
    * query for
    * When a node is in pending state, we drop the olderExpectedReports from it
    */
   private[this] def buildNodeStatusReports(
       runInfos          : Map[NodeId, RunAndConfigInfo]
-    , allExpectedReports: Seq[RuleExpectedReports]
+    , allExpectedReports: Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , ruleIds           : Set[RuleId]
-    , olderExpectedReports: Set[RuleExpectedReports]
   ): Box[Seq[RuleNodeStatusReport]] = {
 
     val now = DateTime.now
-    /**
+
+    /*
      * We want to optimize and only query reports for nodes that we
      * actually want to merge/compare or report as unexpected reports
      */
-    val agentRunIds = (runInfos.collect { case(nodeId, run:InterestingRun) =>
-       AgentRunId(nodeId, run.dateTime)
-    }).toSet ++ (runInfos.collect { case(nodeId, Pending(expected, Some(actual), Some(run))) =>
-       AgentRunId(nodeId, run)
+    val agentRunIds = (runInfos.collect { case(nodeId, run:LastRunAvailable) =>
+       AgentRunId(nodeId, run.lastRunDateTime)
+    }).toSet ++ (runInfos.collect { case(nodeId, Pending(_, Some(run), _, _)) =>
+       AgentRunId(nodeId, run._1)
     }).toSet
 
     for {
@@ -183,15 +208,13 @@ class ReportingServiceImpl(
        * We don't want to reach for node reports that are out of date, i.e in full compliance mode,
        * reports older that agent's run interval + 5 minutes compare to now
        */
-      reports              <- reportsRepository.getExecutionReports(agentRunIds, ruleIds)
+      reports <- reportsRepository.getExecutionReports(agentRunIds, ruleIds)
     } yield {
-
       //we want to have nodeStatus for all asked node, not only the ones with reports
-      runInfos.flatMap { case(nodeId, optRun) =>
-        ExecutionBatch.getNodeStatusReports(nodeId, optRun
-            , allExpectedReports
+      runInfos.flatMap { case(nodeId, runInfo) =>
+        ExecutionBatch.getNodeStatusReports(nodeId, runInfo
+            , allExpectedReports.getOrElse(nodeId, Map())
             , reports.getOrElse(nodeId, Seq())
-            , olderExpectedReports
         )
       }
     }.toSeq

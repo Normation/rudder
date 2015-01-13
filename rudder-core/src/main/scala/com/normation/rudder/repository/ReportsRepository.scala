@@ -46,7 +46,6 @@ import com.normation.rudder.reports.execution.AgentRunId
 /**
  * An overly simple repository for searching through the cfengine reports
  * Can search by CR, by Node, by both, and or by date
- * @author Nicolas CHARLES
  *
  */
 trait ReportsRepository {
@@ -71,23 +70,7 @@ trait ReportsRepository {
    */
   def getExecutionReports(runs: Set[AgentRunId], filterByRules: Set[RuleId]): Box[Map[NodeId, Seq[Reports]]]
 
-  /**
-   * Return the last (really the last, serial wise, with full execution) reports for a rule
-   */
-  def findLastReportByRule(
-      ruleId     : RuleId
-    , serial     : Int
-    , node       : Option[NodeId]
-    , runInterval: Int
-  ) : Seq[Reports]
 
-  /**
-   * Return the last (really the last, serial wise, with full execution) reports for a rule
-   */
-  def findLastReportsByRules(
-      rulesAndSerials: Set[(RuleId, Int)]
-    , runInterval    : Int
-  ) : Seq[Reports]
 
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
@@ -117,6 +100,7 @@ trait ReportsRepository {
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime]
+
   def getOldestReports() : Box[Option[Reports]]
 
   //databaseManager only
