@@ -112,7 +112,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   var dispatch : DispatchIt = {
     case "showQuery" => searchNodeComponent.is match {
-      case Full(component) => { _ => component.buildQuery }
+      case Full(component) => { _ => queryForm(component) }
       case _ => { _ => <div>The component is not set</div><div></div> }
     }
     case "head" => head _
@@ -178,6 +178,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
        ("class", "largeButton"))
   }
 
+  def queryForm(sc : SearchNodeComponent) = {
+    SHtml.ajaxForm(sc.buildQuery)
+  }
+
   /**
    * If a query is passed as argument, try to dejsoniffy-it, in a best effort
    * way - just don't take of errors.
@@ -199,7 +203,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
           Noop
         case e:EmptyBox => Noop
         case Full(q)    =>
-          Replace("SearchNodes", sc.buildQuery()) &
+          Replace("SearchNodes", queryForm(sc)) &
           JsRaw("correctButtons(); $('#SubmitSearch').click();")
       }
     }
