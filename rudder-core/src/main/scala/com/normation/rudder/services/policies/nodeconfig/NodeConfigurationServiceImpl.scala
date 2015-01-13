@@ -258,7 +258,8 @@ class NodeConfigurationServiceImpl(
         }
         logger.trace(s"Unicity check: on node '${nodeConfig.nodeInfo.id.value}' for mono-instance (unique) technique '${keep.cf3PolicyDraft.technique.id}': keeping (ruleId@@directiveId) '${keep.draftId.value}', discarding less priorize: ${lesserPriority.map(_.draftId.value).mkString("'", "', ", "'")}")
 
-        keep.copy(overrides = (samePriority.tail.map( _.draftId) ++ lesserPriority.map( _.draftId )).toSet)
+        val overrides = (samePriority.tail.map(x => (x.ruleId,x.directiveId)) ++ lesserPriority.map(x => (x.ruleId,x.directiveId))).toSet
+        keep.copy(overrides = overrides)
 
       }
 

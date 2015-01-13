@@ -44,8 +44,25 @@ import com.normation.inventory.domain.NodeId
 
 
 /**
+ * The main class helping maps expected
+ * reports for a node
+ */
+case class RuleNodeExpectedReports(
+    ruleId    : RuleId
+  , serial    : Int // the serial of the rule
+  , directives: Seq[DirectiveExpectedReports]
+  // the period where the configuration is applied to the servers
+  , beginDate : DateTime = DateTime.now()
+  , endDate   : Option[DateTime] = None
+) extends HashcodeCaching {
+  val interval = new Interval(beginDate, endDate.getOrElse(DateTime.now))
+}
+
+/**
  * The representation of the database object for the expected reports for
- * a rule and a list of nodes
+ * a rule and a list of nodes.
+ *
+ * Its use is discouraged in favor of RuleNodeExpectedReports
  *
  */
 case class RuleExpectedReports(
@@ -69,6 +86,7 @@ case class DirectivesOnNodes(
   , nodeConfigurationIds    : Map[NodeId, Option[NodeConfigId]]
   , directiveExpectedReports: Seq[DirectiveExpectedReports]
 ) extends HashcodeCaching
+
 
 
 /**
