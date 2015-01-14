@@ -85,57 +85,93 @@ function homePage (
   $('#nodeCompliance').append(chart.element);
 }
 
+function displayInventoryGraph (id,data) {
+
+  var smallHeight =  $(window).height() / 4 ;
+  
+  // The chart, without legend
+  var chart =
+    c3.generate( {
+        size: {
+          height: smallHeight 
+        }
+      , data: {
+            columns: data
+          , type   : 'donut'
+        }
+      , donut : {
+          label: {
+            show: false
+          }
+        }
+      , legend :  {
+          show : false
+        }
+    });
+
+  // Define a 'chart' which will only display its legend with interactin with the chart defind above
+  var legend =
+    c3.generate( {
+        size: {
+          height: smallHeight / 3
+        }
+      , data: {
+            columns: data
+          , type : 'donut'
+        }
+     , legend :  {
+         item : {
+             onclick : function(id) {
+               // hide/show
+               chart.toggle(id)
+               // Check if we just hid or shown the data to determine action
+               var result = $.grep(chart.data.shown(), function(elem,index) {
+                 return elem.id === id;
+               });
+               if(result.length > 0){
+                 // Shown => focus
+                 chart.focus(id)
+               } else {
+                 // Hid => revert to initial state
+                 chart.revert()
+               }
+             }
+           , onmouseover : function(id) {
+               // Check if the data is hidden
+               var result = $.grep(chart.data.shown(), function(elem,index) {
+                 return elem.id === id;
+               });
+               if(result.length > 0){
+                 // Data not hidden focus
+                 chart.focus(id)
+               }
+             }
+           , onmouseout : function(id) {
+               chart.revert()
+           }
+         }
+       }
+    });
+
+  // Hide data of legend, undefined means to hide all data)
+  legend.hide(undefined, {withLegend: false});
+  
+  // append charts
+  $('#'+id).append(chart.element);
+  $('#'+id+'Legend').append(legend.element);
+  
+}
+
 function homePageInventory (
     nodeMachines
   , nodeOses
 ) {
-  var smallHeight =  $(window).height() / 4 ;
-
-  var chart1 = c3.generate( {
-      size: { height: smallHeight }
-    , data: {
-          columns: nodeMachines
-        , type : 'donut'
-      }
-    , donut : {
-        label: {
-          show: false
-        }
-      }
-  } );
-  $('#nodeMachine').append(chart1.element);
-    
-  var chart2 = c3.generate( {
-    size: { height: smallHeight }
-  , data: {
-        columns: nodeOses
-      , type : 'donut'
-    }
-  , donut : {
-      label: {
-        show: false
-      }
-    }
-  } );      
-  $('#nodeOs').append(chart2.element);
+  displayInventoryGraph('nodeMachine',nodeMachines)
+  displayInventoryGraph('nodeOs', nodeOses)
 }
 
 function homePageSoftware (
       nodeAgents
   ) {
-  var smallHeight =  $(window).height() / 4 ;
- 
-  var chart = c3.generate( {
-    size: { height: smallHeight }
-  , data: {
-        columns: nodeAgents
-      , type   : 'donut'
-    }
-  , donut : {
-      label: {
-        show: false
-      }
-    }
-  } );
-  $('#nodeAgents').append(chart.element);
+  displayInventoryGraph('nodeAgents', nodeAgents)
 }
