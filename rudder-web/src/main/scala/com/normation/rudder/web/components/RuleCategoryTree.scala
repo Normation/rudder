@@ -127,7 +127,12 @@ class RuleCategoryTree(
 
   // Perform category selection, filter in the dataTable and display the name of the category
   def selectCategory() = {
-    ruleCategoryService.bothFqdn(selectedCategoryId,true) match {
+    (for {
+      rootCategory <- roRuleCategoryRepository.getRootCategory
+      fqdn         <- ruleCategoryService.bothFqdn(rootCategory, selectedCategoryId, true)
+    } yield {
+      fqdn
+    }) match {
       case Full((long,short)) =>
         val escaped = Utility.escape(short)
         JsRaw(s"""

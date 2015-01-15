@@ -73,6 +73,8 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RoRuleCategoryRepository
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -84,6 +86,7 @@ class EventListDisplayer(
     , nodeGroupRepository : RoNodeGroupRepository
     , directiveRepository : RoDirectiveRepository
     , nodeInfoService     : NodeInfoService
+    , ruleCatRepository   : RoRuleCategoryRepository
     , modificationService : ModificationService
     , personIdentService  : PersonIdentService
 ) extends Loggable {
@@ -395,6 +398,7 @@ class EventListDisplayer(
   def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId], gridname: String): NodeSeq = {
 
     val groupLib = nodeGroupRepository.getFullGroupLibrary().openOr(return <div class="error">System error when trying to get the group library</div>)
+    val rootRuleCategory = ruleCatRepository.getRootCategory.openOr(return <div class="error">System error when trying to get the rule categories</div>)
 
     val generatedByChangeRequest =
       changeRequestId match {
@@ -540,7 +544,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { generatedByChangeRequest }
               { addRestoreAction }
-              { ruleDetails(crDetailsXML, addDiff.rule, groupLib)}
+              { ruleDetails(crDetailsXML, addDiff.rule, groupLib, rootRuleCategory)}
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
@@ -556,7 +560,7 @@ class EventListDisplayer(
             <div class="evloglmargin">
               { addRestoreAction }
               { generatedByChangeRequest }
-              { ruleDetails(crDetailsXML, delDiff.rule, groupLib) }
+              { ruleDetails(crDetailsXML, delDiff.rule, groupLib, rootRuleCategory) }
               { reasonHtml }
               { xmlParameters(event.id) }
             </div>
@@ -581,7 +585,7 @@ class EventListDisplayer(
                 val modCategory = modDiff.modCategory.map {
                   case SimpleDiff(oldOne,newOne) =>
                       <li><b>Rule category changed: </b></li> ++
-                      DiffDisplayer.displayRuleCategory(oldOne,Some(newOne))
+                      DiffDisplayer.displayRuleCategory(rootRuleCategory, oldOne, Some(newOne))
                   }
                (
                 "#name" #>  mapSimpleDiff(modDiff.modName) &
@@ -1238,12 +1242,12 @@ class EventListDisplayer(
     }
   }
 
-  private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory) = {
+  private[this] def ruleDetails(xml:NodeSeq, rule:Rule, groupLib: FullNodeGroupCategory, rootRuleCategory: RuleCategory) = {
 
     (
       "#ruleID"    #> rule.id.value.toUpperCase &
       "#ruleName"  #> rule.name &
-      "#category"  #> DiffDisplayer.displayRuleCategory(rule.categoryId, None) &
+      "#category"  #> DiffDisplayer.displayRuleCategory(rootRuleCategory, rule.categoryId, None) &
       "#target"    #> DiffDisplayer.displayRuleTargets(rule.targets.toSeq, rule.targets.toSeq, groupLib) &
       "#policy"    #> DiffDisplayer.displayDirectiveChangeList(rule.directiveIds.toSeq, rule.directiveIds.toSeq) &
       "#isEnabled" #> rule.isEnabled &

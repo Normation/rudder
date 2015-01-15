@@ -37,17 +37,14 @@ package com.normation.rudder.rule.category
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 
-class RuleCategoryService(
-  roRuleCategoryService : RoRuleCategoryRepository
-) {
-
+class RuleCategoryService {
 
   // from a rule category, get the full FQDN and the short fqdn
   // The root category element can be displayed in caps in the full fqdn
-  def bothFqdn(id:RuleCategoryId,rootInCaps : Boolean = false) : Box[(String,String)] = {
+  def bothFqdn(rootCategory: RuleCategory, id: RuleCategoryId, rootInCaps : Boolean = false) : Box[(String,String)] = {
     for {
-      fqdn  <-roRuleCategoryService.getParents(id,true)
-      short = toShortFqdn(fqdn)
+      fqdn  <- rootCategory.childPath(id)
+      short =  toShortFqdn(fqdn)
     } yield {
       val full = {
         val complete =
@@ -69,7 +66,7 @@ class RuleCategoryService(
   }
 
   // Get the short fqdn from the id of a Rule category
-  def shortFqdn (id : RuleCategoryId) : Box[String] = {
-      roRuleCategoryService.getParents(id,true).map(toShortFqdn _)
+  def shortFqdn(rootCategory: RuleCategory, id : RuleCategoryId) : Box[String] = {
+      rootCategory.childPath(id).map(toShortFqdn _)
   }
 }

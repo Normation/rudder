@@ -81,6 +81,7 @@ import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.domain.policies.TargetExclusion
 import com.normation.rudder.domain.policies.TargetComposition
+import com.normation.rudder.rule.category.RuleCategory
 
 object RuleEditForm {
 
@@ -151,7 +152,6 @@ class RuleEditForm(
   private[this] val htmlId_EditZone = "editRuleZone"
 
   private[this] val roRuleRepository     = RudderConfig.roRuleRepository
-  private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
   private[this] val reportingService     = RudderConfig.reportingService
   private[this] val userPropertyService  = RudderConfig.userPropertyService
   private[this] val categoryService      = RudderConfig.ruleCategoryService
@@ -165,6 +165,7 @@ class RuleEditForm(
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   private[this] val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
     r.directiveIds.map( id => (id -> r.id))
@@ -180,9 +181,11 @@ class RuleEditForm(
       showForm(1)}
   )
 
+  private[this] val boxRootRuleCategory = getRootRuleCategory()
+
   private[this] def showForm(tab :Int = 0) : NodeSeq = {
-    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos()) match {
-      case (Full(groupLib), Full(directiveLib), Full(nodeInfos)) =>
+    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory) match {
+      case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory)) =>
         val allNodeInfos = nodeInfos.map( x => (x.id -> x) ).toMap
 
         val form = {
@@ -195,7 +198,7 @@ class RuleEditForm(
 
             (
               "#editForm" #> formContent &
-              "#details"  #> showRuleDetails(directiveLib, allNodeInfos)
+              "#details"  #> showRuleDetails(directiveLib, allNodeInfos, rootRuleCategory)
             ).apply(body)
 
           } else {
@@ -203,7 +206,7 @@ class RuleEditForm(
           }
         }
 
-        val ruleComplianceTabAjax = SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"), (v:String) => Replace("details",showRuleDetails(directiveLib, allNodeInfos)))._2.toJsCmd
+        val ruleComplianceTabAjax = SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"), (v:String) => Replace("details", showRuleDetails(directiveLib, allNodeInfos, rootRuleCategory)))._2.toJsCmd
 
         form ++
         Script(
@@ -218,8 +221,8 @@ class RuleEditForm(
           )
         )
 
-      case (a, b, c) =>
-        List(a,b,c).collect{ case eb: EmptyBox =>
+      case (a, b, c, d) =>
+        List(a,b,c, d).collect{ case eb: EmptyBox =>
           val e = eb ?~! "An error happens when trying to get the node group library"
           logger.error(e.messageChain)
           <div class="error">{e.msg}</div>
@@ -227,12 +230,12 @@ class RuleEditForm(
     }
   }
 
-  private[this] def  showRuleDetails(directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]) : NodeSeq = {
+  private[this] def  showRuleDetails(directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo], rootRuleCategory: RuleCategory) : NodeSeq = {
     val updatedrule = roRuleRepository.get(rule.id)
     (
       "#details *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
       "#nameField" #>    <div>{crName.displayNameHtml.getOrElse("Could not fetch rule name")} {updatedrule.map(_.name).openOr("could not fetch rule name")} </div> &
-      "#categoryField" #> <div> {category.displayNameHtml.getOrElse("Could not fetch rule category")} {updatedrule.flatMap(c => categoryService.shortFqdn(c.categoryId)).openOr("could not fetch rule category")}</div> &
+      "#categoryField" #> <div> {category.displayNameHtml.getOrElse("Could not fetch rule category")} {updatedrule.flatMap(c => categoryService.shortFqdn(rootRuleCategory, c.categoryId)).openOr("could not fetch rule category")}</div> &
       "#rudderID" #> {rule.id.value.toUpperCase} &
       "#shortDescriptionField" #>  <div>{crShortDescription.displayNameHtml.getOrElse("Could not fetch short description")} {updatedrule.map(_.shortDescription).openOr("could not fetch rule short descritption")}</div> &
       "#longDescriptionField" #>  <div>{crLongDescription.displayNameHtml.getOrElse("Could not fetch description")} {updatedrule.map(_.longDescription).openOr("could not fetch rule long description")}</div> &
@@ -275,7 +278,7 @@ class RuleEditForm(
                     , ("type", "button")
       ) &
       "#nameField" #> crName.toForm_! &
-      "#categoryField" #>   category.toForm_! &
+      "#categoryField" #> category.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
       "#selectPiField" #> {
@@ -475,13 +478,15 @@ class RuleEditForm(
     }
   }
 
-  private[this] val category =
-    new WBSelectField(
-        "Rule category"
-      , categoryHierarchyDisplayer.getRuleCategoryHierarchy(roCategoryRepository.getRootCategory.get, None).map { case (id, name) => (id.value -> name)}
-      , rule.categoryId.value
-    ) {
-    override def className = "twoCol"
+  private[this] val category = {
+    //if root is not defined, the error message is managed on showForm
+    val values = boxRootRuleCategory.map { r =>
+      categoryHierarchyDisplayer.getRuleCategoryHierarchy(r, None).map { case (id, name) => (id.value -> name)}
+    }.getOrElse(Nil)
+
+    new WBSelectField("Rule category", values, rule.categoryId.value) {
+      override def className = "twoCol"
+    }
   }
 
   private[this] val formTracker = new FormTracker(List(crName, crShortDescription, crLongDescription))
