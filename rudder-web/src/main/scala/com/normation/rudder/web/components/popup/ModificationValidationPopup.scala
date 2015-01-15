@@ -245,6 +245,7 @@ class ModificationValidationPopup(
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getDirectiveLib          = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos          = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -257,6 +258,8 @@ class ModificationValidationPopup(
   private[this] val allNodeInfos = getAllNodeInfos()
   private[this] val groupLib = getGroupLib()
   private[this] val directiveLib = getDirectiveLib()
+  private[this] val rootRuleCategory = getRootRuleCategory()
+
 
   private[this] val rules = {
     action match {
@@ -376,7 +379,7 @@ class ModificationValidationPopup(
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
         val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
-        cmp.rulesGrid(allNodeInfos, groupLib, directiveLib, popup = true,linkCompliancePopup = false)
+        cmp.rulesGrid(allNodeInfos, groupLib, directiveLib, rootRuleCategory, popup = true,linkCompliancePopup = false)
     }
   }
 
