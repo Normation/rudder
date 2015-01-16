@@ -97,7 +97,12 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
           "bPaginate" : true,
           "bLengthChange": true,
           "bStateSave": true,
-          "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_reportsGrid', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_changeHistory') );
+                    },
           "sPaginationType": "full_numbers",
           "bJQueryUI": true,
           "oLanguage": {

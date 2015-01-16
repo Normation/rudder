@@ -148,7 +148,12 @@ class SrvGrid(
             "bPaginate": true,
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${tableId}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${tableId}') );
+                    },
             "sPaginationType": "full_numbers",
             "oLanguage": {
               "sSearch": ""
