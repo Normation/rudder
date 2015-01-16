@@ -77,6 +77,7 @@ import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import scala.concurrent._
 import ExecutionContext.Implicits.global
+import com.normation.rudder.rule.category.RuleCategory
 
 
 
@@ -124,13 +125,13 @@ class RuleGrid(
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
+  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory  = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
 
   private[this] val recentChanges    = RudderConfig.recentChangesService
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val categoryRepository  = RudderConfig.roRuleCategoryRepository
   private[this] val categoryService     = RudderConfig.ruleCategoryService
 
 
@@ -336,7 +337,9 @@ class RuleGrid(
               afterDirectives = System.currentTimeMillis
               _ = TimingDebugLogger.debug(s"Rule grid: fetching all Directives took ${afterDirectives - afterGroups}ms" )
 
-              newData      = getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+              rootRuleCat  <-  getRootRuleCategory()
+
+              newData      = getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib, rootRuleCat)
               afterData = System.currentTimeMillis
               _ = TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
 
@@ -410,10 +413,11 @@ class RuleGrid(
     , allNodeInfos : Map[NodeId, NodeInfo]
     , groupLib     : FullNodeGroupCategory
     , directiveLib : FullActiveTechniqueCategory
+    , rootRuleCategory   : RuleCategory
   ) : JsTableData[RuleLine] = {
 
       val t0 = System.currentTimeMillis
-      val converted = convertRulesToLines(directiveLib, groupLib, allNodeInfos, rules.toList)
+      val converted = convertRulesToLines(directiveLib, groupLib, allNodeInfos, rules.toList, rootRuleCategory)
       val t1 = System.currentTimeMillis
       TimingDebugLogger.trace(s"Rule grid: transforming into data: convert to lines: ${t1-t0}ms")
 
@@ -423,7 +427,7 @@ class RuleGrid(
          line <- converted
       } yield {
         val tf0 = System.currentTimeMillis
-        val res = getRuleData(line, groupLib, allNodeInfos)
+        val res = getRuleData(line, groupLib, allNodeInfos, rootRuleCategory)
         val tf1 = System.currentTimeMillis
         tData = tData + tf1 - tf0
         res
@@ -448,6 +452,7 @@ class RuleGrid(
     , groupsLib    : FullNodeGroupCategory
     , nodes        : Map[NodeId, NodeInfo]
     , rules        : List[Rule]
+    , rootRuleCategory: RuleCategory
   ) : List[Line] = {
 
     // we compute beforehand the compliance, so that we have a single big query
@@ -541,6 +546,7 @@ class RuleGrid(
       line:Line
     , groupsLib: FullNodeGroupCategory
     , nodes: Map[NodeId, NodeInfo]
+    , rootRuleCategory: RuleCategory
   ) : RuleLine = {
 
     val t0 = System.currentTimeMillis
@@ -575,7 +581,7 @@ class RuleGrid(
               ("Not applied", Some(why))
           }
         case _ : ErrorLine => ("N/A",None)
-    }
+      }
 
     val t1 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: line status: ${t1-t0}ms")
@@ -624,7 +630,7 @@ class RuleGrid(
     val t3 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: css class: ${t3-t2}ms")
 
-    val category = categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error")
+    val category = categoryService.shortFqdn(rootRuleCategory, line.rule.categoryId).getOrElse("Error")
 
     val t4 = System.currentTimeMillis
     TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: category: ${t4-t3}ms")

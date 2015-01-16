@@ -73,6 +73,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.services.DiffDisplayer
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.parameters._
+import com.normation.rudder.rule.category.RuleCategory
 
 object ChangeRequestChangesForm {
   def form =
@@ -96,6 +97,7 @@ class ChangeRequestChangesForm(
   private[this] val diffService =  RudderConfig.diffService
   private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
+  private[this] val ruleCategoryRepository = RudderConfig.roRuleCategoryRepository
 
 
   def dispatch = {
@@ -103,33 +105,45 @@ class ChangeRequestChangesForm(
       _ =>
         changeRequest match {
           case cr: ConfigurationChangeRequest =>
-            ( "#changeTree ul *" #>  treeNode(cr).toXml &
-              "#history *" #> displayHistory (
-                                  cr.directives.values.map(_.changes).toList
+            ruleCategoryRepository.getRootCategory match {
+              case Full(rootRuleCategory) =>
+
+                ( "#changeTree ul *" #>  treeNode(cr, rootRuleCategory).toXml &
+                  "#history *" #> displayHistory (
+                                      rootRuleCategory
+                                    , cr.directives.values.map(_.changes).toList
+                                    , cr.nodeGroups.values.map(_.changes).toList
+                                    , cr.rules.values.map(_.changes).toList
+                                    , cr.globalParams.values.map(_.changes).toList) &
+                  "#diff *" #> diff(
+                                  rootRuleCategory
+                                , cr.directives.values.map(_.changes).toList
                                 , cr.nodeGroups.values.map(_.changes).toList
                                 , cr.rules.values.map(_.changes).toList
-                                , cr.globalParams.values.map(_.changes).toList) &
-              "#diff *" #> diff(
-                              cr.directives.values.map(_.changes).toList
-                            , cr.nodeGroups.values.map(_.changes).toList
-                            , cr.rules.values.map(_.changes).toList
-                            , cr.globalParams.values.map(_.changes).toList
-                            )
-            ) (form) ++
-            Script(JsRaw(s"""buildChangesTree("#changeTree","${S.contextPath}");
-                             $$( "#changeDisplay" ).tabs();""") )
-          case _ => Text("not implemented :(")
+                                , cr.globalParams.values.map(_.changes).toList
+                                )
+                ) (form) ++
+                Script(JsRaw(s"""buildChangesTree("#changeTree","${S.contextPath}");
+                                 $$( "#changeDisplay" ).tabs();""") )
+
+              case eb: EmptyBox =>
+                val e = eb ?~! "An error occured when trying to get data from base. "
+                logger.error(e.messageChain)
+                Text(e.msg)
+            }
+
+          case _ => Text("not implemented")
         }
   }
 
- def treeNode(changeRequest:ConfigurationChangeRequest) = new JsTreeNode{
+ def treeNode(changeRequest:ConfigurationChangeRequest, rootRuleCategory: RuleCategory) = new JsTreeNode{
 
   def directiveChild(directiveId:DirectiveId) = new JsTreeNode{
     val changes = changeRequest.directives(directiveId).changes
     val directiveName = changes.initialState.map(_._2.name).getOrElse(changes.firstChange.diff.directive.name)
 
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(List(changes)))
+        () => SetHtml("history",displayHistory(rootRuleCategory, List(changes)))
       , <span>{directiveName}</span>
     )
 
@@ -140,7 +154,7 @@ class ChangeRequestChangesForm(
   val directivesChild = new JsTreeNode{
     val changes = changeRequest.directives.values.map(_.changes).toList
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(changes) )
+        () => SetHtml("history",displayHistory(rootRuleCategory, changes) )
       , <span>Directives</span>
     )
     val children = changeRequest.directives.keys.map(directiveChild(_)).toList
@@ -152,7 +166,7 @@ class ChangeRequestChangesForm(
     val changes = changeRequest.rules(ruleId).changes
     val ruleName = changes.initialState.map(_.name).getOrElse(changes.firstChange.diff.rule.name)
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(Nil,Nil,List(changes)))
+        () => SetHtml("history",displayHistory(rootRuleCategory, Nil, Nil, List(changes)))
       , <span>{ruleName}</span>
     )
 
@@ -162,7 +176,7 @@ class ChangeRequestChangesForm(
   val rulesChild = new JsTreeNode{
     val changes = changeRequest.rules.values.map(_.changes).toList
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(Nil,Nil,changes) )
+        () => SetHtml("history",displayHistory(rootRuleCategory, Nil, Nil, changes) )
       , <span>Rules</span>
     )
     val children = changeRequest.rules.keys.map(ruleChild(_)).toList
@@ -177,7 +191,7 @@ class ChangeRequestChangesForm(
            case modTo : ModifyToNodeGroupDiff => modTo.group.name
     } )
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(Nil,List(changes)))
+        () => SetHtml("history",displayHistory(rootRuleCategory, Nil, List(changes)))
       , <span>{groupeName}</span>
     )
 
@@ -187,7 +201,7 @@ class ChangeRequestChangesForm(
   val groupsChild = new JsTreeNode{
     val changes =  changeRequest.nodeGroups.values.map(_.changes).toList
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(Nil,changes) )
+        () => SetHtml("history",displayHistory(rootRuleCategory, Nil, changes) )
       , <span>Groups</span>
     )
     val children = changeRequest.nodeGroups.keys.map(groupChild(_)).toList
@@ -202,7 +216,7 @@ class ChangeRequestChangesForm(
            case modTo : ModifyToGlobalParameterDiff => modTo.parameter.name.value
     } )
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(Nil,Nil,Nil,List(changes)))
+        () => SetHtml("history",displayHistory(rootRuleCategory, Nil, Nil, Nil, List(changes)))
       , <span>{parameterName}</span>
     )
 
@@ -212,7 +226,7 @@ class ChangeRequestChangesForm(
   val globalParametersChild = new JsTreeNode{
     val changes =  changeRequest.globalParams.values.map(_.changes).toList
     val body = SHtml.a(
-        () => SetHtml("history",displayHistory(Nil,Nil,Nil,changes) )
+        () => SetHtml("history",displayHistory(rootRuleCategory, Nil, Nil, Nil, changes) )
       , <span>Global Parameters</span>
     )
     val children = changeRequest.globalParams.keys.map(globalParameterChild(_)).toList
@@ -222,7 +236,8 @@ class ChangeRequestChangesForm(
 
   val body = SHtml.a(
      () => SetHtml("history",displayHistory (
-           changeRequest.directives.values.map(_.changes).toList
+           rootRuleCategory
+         , changeRequest.directives.values.map(_.changes).toList
          , changeRequest.nodeGroups.values.map(_.changes).toList
          , changeRequest.rules.values.map(_.changes).toList
          , changeRequest.globalParams.values.map(_.changes).toList
@@ -237,7 +252,8 @@ class ChangeRequestChangesForm(
 }
 
   def displayHistory (
-      directives  : List[DirectiveChange]       = Nil
+      rootRuleCategory: RuleCategory
+    , directives  : List[DirectiveChange]       = Nil
     , groups      : List[NodeGroupChange]       = Nil
     , rules       : List[RuleChange]            = Nil
     , globalParams: List[GlobalParameterChange] = Nil
@@ -281,7 +297,7 @@ class ChangeRequestChangesForm(
 
     ( "#crBody" #> lines).apply(CRTable) ++
     Script(
-      SetHtml("diff",diff(directives,groups,rules, globalParams) ) &
+      SetHtml("diff",diff(rootRuleCategory, directives, groups, rules, globalParams) ) &
       initDatatable
     )
   }
@@ -341,8 +357,8 @@ class ChangeRequestChangesForm(
     , default : NodeSeq
   ) = diff.map(value => displayFormDiff(value, name)).getOrElse(default)
 
-  private[this] def displayRule(rule:Rule, groupLib: FullNodeGroupCategory) = {
-    val categoryName = ruleCategoryService.shortFqdn(rule.categoryId).getOrElse("Error while looking for category")
+  private[this] def displayRule(rule:Rule, rootRuleCategory: RuleCategory, groupLib: FullNodeGroupCategory) = {
+    val categoryName = ruleCategoryService.shortFqdn(rootRuleCategory, rule.categoryId).getOrElse("Error while looking for category")
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> rule.name &
       "#category" #> categoryName &
@@ -357,13 +373,19 @@ class ChangeRequestChangesForm(
 
 
   private[this] def displayRuleDiff (
-      diff : ModifyRuleDiff
-    , rule : Rule
-    , groupLib: FullNodeGroupCategory
+      diff            : ModifyRuleDiff
+    , rule            : Rule
+    , groupLib        : FullNodeGroupCategory
+    , rootRuleCategory: RuleCategory
   ) = {
 
-    val categoryName = ruleCategoryService.shortFqdn(rule.categoryId).getOrElse("Error while looking for category")
-    val modCategory = diff.modCategory.map(diff => SimpleDiff(ruleCategoryService.shortFqdn(diff.oldValue).getOrElse("Error while looking for category"),ruleCategoryService.shortFqdn(diff.newValue).getOrElse("Error while looking for category")))
+    val categoryName = ruleCategoryService.shortFqdn(rootRuleCategory, rule.categoryId).getOrElse("Error while looking for category")
+    val modCategory = diff.modCategory.map(diff =>
+      SimpleDiff(
+          ruleCategoryService.shortFqdn(rootRuleCategory, diff.oldValue).getOrElse("Error while looking for category")
+        , ruleCategoryService.shortFqdn(rootRuleCategory, diff.newValue).getOrElse("Error while looking for category")
+      )
+    )
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> displaySimpleDiff(diff.modName, "name", Text(rule.name)) &
       "#category" #> displaySimpleDiff(modCategory, "name", Text(categoryName)) &
@@ -491,7 +513,13 @@ class ChangeRequestChangesForm(
     ) (DirectiveXML)
   }
 
-  def diff(directives : List[DirectiveChange],groups : List[NodeGroupChange], rules : List[RuleChange], globalParameters : List[GlobalParameterChange]) = <ul> {
+  def diff(
+      rootRuleCategory: RuleCategory
+    , directives      : List[DirectiveChange]
+    , groups          : List[NodeGroupChange]
+    , rules           : List[RuleChange]
+    , globalParameters: List[GlobalParameterChange]
+  ) = <ul> {
       directives.flatMap(directiveChange =>
         <li>{
           directiveChange.change.map(_.diff match {
@@ -548,7 +576,7 @@ class ChangeRequestChangesForm(
               }) match {
                 case Full((groupLib,initialRule)) =>
                   val diff = diffService.diffRule(initialRule, rule)
-                  displayRuleDiff(diff, rule, groupLib)
+                  displayRuleDiff(diff, rule, groupLib, rootRuleCategory)
                 case eb:EmptyBox =>
                   val msg = s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
                   logger.error(msg)
@@ -558,7 +586,7 @@ class ChangeRequestChangesForm(
               val rule = diff.rule
               for {
                 groupLib <- getGroupLib()
-                res <- displayRule(rule, groupLib)
+                res <- displayRule(rule, rootRuleCategory, groupLib)
               } yield {
                 res
               }

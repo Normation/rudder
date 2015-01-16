@@ -389,7 +389,7 @@ object RudderConfig extends Loggable {
 
 
   val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
-  val ruleCategoryService      : RuleCategoryService = new RuleCategoryService(roRuleCategoryRepository)
+  val ruleCategoryService      : RuleCategoryService = new RuleCategoryService()
   val woRuleCategoryRepository : WoRuleCategoryRepository = woLDAPRuleCategoryRepository
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
@@ -952,7 +952,16 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl)
 
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
-  private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(eventLogDetailsServiceImpl, logRepository, roLdapNodeGroupRepository, roLdapDirectiveRepository, nodeInfoServiceImpl, modificationService, personIdentServiceImpl)
+  private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(
+      eventLogDetailsServiceImpl
+    , logRepository
+    , roLdapNodeGroupRepository
+    , roLdapDirectiveRepository
+    , nodeInfoServiceImpl
+    , roRuleCategoryRepository
+    , modificationService
+    , personIdentServiceImpl
+  )
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
   private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, updateExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
