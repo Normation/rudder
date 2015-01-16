@@ -81,34 +81,6 @@ class RoLDAPRuleCategoryRepository(
 ) extends RoRuleCategoryRepository with Loggable {
   repo =>
 
-  /**
-   * Add sub entries
-   * the given category which MUST be mapped to an entry with the given
-   * DN in the LDAP backend, accessible with the given connection.
-   */
-  private[this] def addSubEntries(category:RuleCategory, dn:DN, con:RoLDAPConnection) : RuleCategory = {
-    val subEntries =
-      con.searchOne(
-          dn
-        , IS(OC_RULE_CATEGORY)
-        , A_OC
-        , A_RULE_CATEGORY_UUID
-        , A_NAME
-        , A_RULE_TARGET
-        , A_DESCRIPTION
-        , A_IS_ENABLED
-        , A_IS_SYSTEM
-      ).partition(e => e.isA(OC_RULE_CATEGORY))
-
-    val subCategories = {
-      subEntries._1.flatMap { e =>
-        val category = mapper.entry2RuleCategory(e)
-        category.map(addSubEntries(_,e.dn,con))
-      }.toList
-    }
-
-    category.copy(childs = subCategories)
-  }
 
   /**
    * Get category with given Id
@@ -144,30 +116,35 @@ class RoLDAPRuleCategoryRepository(
    * get Root category
    */
   override def getRootCategory(): Box[RuleCategory] = {
+    val catAttributes = Seq(A_OC, A_RULE_CATEGORY_UUID, A_NAME, A_RULE_TARGET, A_DESCRIPTION, A_IS_ENABLED, A_IS_SYSTEM)
+
     (for {
-      con <- ldap
-      rootCategoryEntry <- categoryMutex.readLock { con.get(rudderDit.RULECATEGORY.dn) ?~! "The root category of the Rule category seems to be missing in LDAP directory. Please check its content" }
+      con          <- ldap
+      entries      =  categoryMutex.readLock { con.searchSub(rudderDit.RULECATEGORY.dn, IS(OC_RULE_CATEGORY), catAttributes:_*) }
       // look for sub categories
-      rootCategory <- mapper.entry2RuleCategory(rootCategoryEntry) ?~! s"Error when mapping from an LDAP entry to a RuleCategory: ${rootCategoryEntry}"
+      categories   <- sequence(entries){ entry =>
+                        mapper.entry2RuleCategory(entry).map(c => (entry.dn, c)) ?~! s"Error when mapping from an LDAP entry to a RuleCategory: ${entry}"
+                      }
+      rootCategory <- buildHierarchy(rudderDit.RULECATEGORY.dn, categories.toList)
     } yield {
-      addSubEntries(rootCategory,rootCategoryEntry.dn, con)
+      rootCategory
     })
   }
 
   /**
-   * Return the list of parents for that category, from the root category
-   * You can choose wether to include or not the category itself
+   * Build the hierarchy defined by the list of categories, filling children.
+   * The starting point is given by the root id.
    */
-  def getParents(id:RuleCategoryId, includeCategory : Boolean) : Box[List[RuleCategory]] = {
+  private[this] def buildHierarchy(rootDn: DN, categories: List[(DN, RuleCategory)]): Box[RuleCategory] = {
+    def getChildren(parentDn: DN): List[RuleCategory] = categories.collect { case (dn, r) if(dn.getParent == parentDn) =>
+      val cc = getChildren(dn)
+      r.copy(childs = cc)
+    }
+
     for {
-      root <- getRootCategory
-      parents <- if (includeCategory) {
-                   root.childPath(id)
-                 } else {
-                   root.findParents(id)
-                 }
+      root <- Box(categories.find( _._1 == rootDn)) ?~! s"The category with id '${rootDn}' was not found on the back but is referenced by other categories"
     } yield {
-      parents
+      root._2.copy(childs = getChildren(rootDn))
     }
   }
 }
@@ -219,6 +196,18 @@ class WoLDAPRuleCategoryRepository(
     }
   }
 
+
+  /**
+   * Return the list of parents for that category, from the root category
+   */
+  private[this] def getParents(id:RuleCategoryId) : Box[List[RuleCategory]] = {
+    for {
+      root    <- getRootCategory
+      parents <- root.findParents(id)
+    } yield {
+      parents
+    }
+  }
   /**
    * Add that category into the given parent category
    * Fails if the parent category does not exists or
@@ -245,7 +234,7 @@ class WoLDAPRuleCategoryRepository(
       result              <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
       autoArchive         <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !that.isSystem) {
                                for {
-                                 parents  <- getParents(that.id,false)
+                                 parents  <- getParents(that.id)
                                  commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                  archive  <- gitArchiver.archiveRuleCategory(that,parents.map( _.id), Some(modId,commiter, reason))
                                } yield {
@@ -281,7 +270,7 @@ class WoLDAPRuleCategoryRepository(
       // Maybe we have to check if the parents are system or not too
       autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
                              for {
-                              parents  <- getParents(category.id,false)
+                              parents  <- getParents(category.id)
                               commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                               archive  <- gitArchiver.archiveRuleCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
                             } yield {
@@ -306,7 +295,7 @@ class WoLDAPRuleCategoryRepository(
     repo.synchronized { for {
       con              <- ldap
       oldParents       <- if(autoExportOnModify) {
-                            getParents(category.id,false)
+                            getParents(category.id)
                           } else Full(Nil)
       oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! s"Entry with ID '${category.id.value}' was not found"
       newParent        <- getCategoryEntry(con, containerId, "1.1") ?~! s"Parent entry with ID '${containerId.value}' was not found"
@@ -327,7 +316,7 @@ class WoLDAPRuleCategoryRepository(
                             case (_:LDIFNoopChangeRecord, _:LDIFNoopChangeRecord) => Full("OK, nothing to archive")
                             case _ if(autoExportOnModify && !updated.isSystem) =>
                               (for {
-                                parents  <- getParents(updated.id,false)
+                                parents  <- getParents(updated.id)
                                 commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
                                 moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
                               } yield {
@@ -367,7 +356,7 @@ class WoLDAPRuleCategoryRepository(
           case Full(entry) =>
             for {
               parents     <- if(autoExportOnModify) {
-                               getParents(that,false)
+                               getParents(that)
                              } else Full(Nil)
               ok          <- try {
                                categoryMutex.writeLock { con.delete(entry.dn, recurse = !checkEmpty) ?~! s"Error when trying to delete category with ID '${that.value}'" }
