@@ -796,10 +796,10 @@ class RuleEditForm(
                 }
               }
             }
-          ) (reportsGridXml) ++ Script( JsRaw("""
-                  %s
+          ) (reportsGridXml) ++ Script( JsRaw(s"""
+                  ${FormatDetailsJSFunction}
                   var anOpen = [];
-                  var oTable = $('#reportsGrid').dataTable( {
+                  var oTable = $$('#reportsGrid').dataTable( {
                     "asStripeClasses": [ 'color1', 'color2' ],
                     "bAutoWidth": false,
                     "bFilter" : true,
@@ -807,8 +807,6 @@ class RuleEditForm(
                     "bLengthChange": true,
                     "sPaginationType": "full_numbers",
                     "bJQueryUI": true,
-                    "bStateSave": true,
-                    "sCookiePrefix": "Rudder_DataTables_",
                     "oLanguage": {
                       "sSearch": ""
                     },
@@ -820,10 +818,10 @@ class RuleEditForm(
                       { "sWidth": "120px", "sType" : "percent" },
                       { "sWidth": "10px", "bSortable": false  , "bVisible":false }
                     ],
-                    "fnDrawCallback" : function( oSettings ) {%s}
+                    "fnDrawCallback" : function( oSettings ) {${ReportsGridClickFunction}}
                   } );
-                  $('.dataTables_filter input').attr("placeholder", "Search");
-                  """.format(FormatDetailsJSFunction,ReportsGridClickFunction) ) )
+                  $$('.dataTables_filter input').attr("placeholder", "Search");
+                  """ ) )
       }
     }
 
@@ -1019,8 +1017,6 @@ class RuleEditForm(
                 "bLengthChange": true,
                 "sPaginationType": "full_numbers",
                 "bJQueryUI": true,
-                "bStateSave": true,
-                "sCookiePrefix": "Rudder_DataTables_",
                 "oLanguage": {
                  "sSearch": ""
                 },
@@ -1184,8 +1180,8 @@ class RuleEditForm(
       val components: Seq[String] = reports.map(_.component).distinct
       val missingreports = components.flatMap(component => reports.filter(_.component == component).map(report => (component, report.value))).distinct
       ("#reportLine" #> missingreports.flatMap(showMissingReport(_))).apply(missingGridXml(gridId)) ++
-        Script(JsRaw("""
-             var oTable%1$s = $('#%2$s').dataTable({
+        Script(JsRaw(s"""
+             var oTable${tabid} = $$('#${gridId + "Grid"}').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
@@ -1193,8 +1189,6 @@ class RuleEditForm(
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
-               "bStateSave": true,
-               "sCookiePrefix": "Rudder_DataTables_",
                "oLanguage": {
                  "sSearch": ""
                },
@@ -1206,7 +1200,7 @@ class RuleEditForm(
                  { "sWidth": "150px" }
                ]
              } );
-         """.format(tabid, gridId + "Grid")))
+         """))
     } else
       NodeSeq.Empty
   }
@@ -1424,23 +1418,21 @@ class RuleEditForm(
              * As we need to have several dynamic datables, we have to add a specific identifier, the tabid
              * Everything is based what has been done for the previous dataTable
              */
-        Script(JsRaw("""
-            function fnFormatDetails%1$s( oTable, nTr ) {
+        Script(JsRaw(s"""
+            function fnFormatDetail${tabid} ( oTable, nTr ) {
               var fnData = oTable.fnGetData( nTr );
               var oTable2 = fnData[fnData.length-1]
               var sOut ='<div class="innerDetails">'+oTable2+'</div>';
               return sOut;
             }
-            var anOpen%1$s = [];
-             var oTable%1$s = $('#%2$s').dataTable({
+            var anOpen${tabid} = [];
+             var oTable${tabid} = $$('#${gridId}').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,
                "bLengthChange": true,
                "sPaginationType": "full_numbers",
-               "bStateSave": true,
-               "sCookiePrefix": "Rudder_DataTables_",
                "bJQueryUI": true,
                "oLanguage": {
                  "sSearch": ""
@@ -1452,9 +1444,9 @@ class RuleEditForm(
                  { "sWidth": "50px" },
                  { "sWidth": "10px","bSortable": false  , "bVisible":false}
                ],
-               "fnDrawCallback" : function( oSettings ) {%3$s}
+               "fnDrawCallback" : function( oSettings ) {${jsFun}}
              } );
-                """.format(tabid, gridId + "Grid", jsFun)))
+                """))
     } else
       NodeSeq.Empty
   }
@@ -1533,8 +1525,8 @@ class RuleEditForm(
 
     if (reports.size > 0) {
       ("#reportLine" #> reports.flatMap(showUnexpectedReport(_))).apply(unexpectedGridXml(gridId)) ++
-        Script(JsRaw("""
-             var oTable%1$s = $('#%2$s').dataTable({
+        Script(JsRaw(s"""
+             var oTable${tabid} = $$('#${gridId + "Grid"}').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
@@ -1543,7 +1535,12 @@ class RuleEditForm(
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
                "bStateSave": true,
-               "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${gridId + "Grid"}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${gridId + "Grid"}') );
+                    },
                "oLanguage": {
                  "sSearch": ""
                },
@@ -1557,7 +1554,7 @@ class RuleEditForm(
                  { "sWidth": "200px" }
                ]
              } );
-         """.format(tabid, gridId + "Grid")))
+         """))
     } else
       NodeSeq.Empty
   }
