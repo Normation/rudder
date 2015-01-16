@@ -44,9 +44,8 @@ trait RoRuleCategoryRepository {
 
   def get(id: RuleCategoryId) : Box[RuleCategory]
 
-  def getRootCategory : Box[RuleCategory]
+  def getRootCategory() : Box[RuleCategory]
 
-  def getParents(targetId:RuleCategoryId, includeCategory : Boolean) : Box[List[RuleCategory]]
 }
 
 trait WoRuleCategoryRepository {
