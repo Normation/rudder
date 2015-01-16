@@ -246,6 +246,7 @@ class ModificationValidationPopup(
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getDirectiveLib          = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos          = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory      = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }

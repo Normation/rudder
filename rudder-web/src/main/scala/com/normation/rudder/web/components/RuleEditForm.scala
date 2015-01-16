@@ -85,6 +85,7 @@ import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import com.normation.rudder.rule.category.RuleCategory
 
 object RuleEditForm {
 
@@ -150,6 +151,7 @@ class RuleEditForm(
 
   private[this] val roRuleRepository     = RudderConfig.roRuleRepository
   private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
+  private[this] val reportingService     = RudderConfig.reportingService
   private[this] val userPropertyService  = RudderConfig.userPropertyService
   private[this] val categoryService      = RudderConfig.ruleCategoryService
 
@@ -162,6 +164,7 @@ class RuleEditForm(
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   private[this] val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
     r.directiveIds.map( id => (id -> r.id))
@@ -177,9 +180,11 @@ class RuleEditForm(
       showForm(1)}
   )
 
+  private[this] val boxRootRuleCategory = getRootRuleCategory()
+
   private[this] def showForm(tab :Int = 0) : NodeSeq = {
-    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos()) match {
-      case (Full(groupLib), Full(directiveLib), Full(nodeInfos)) =>
+    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory) match {
+      case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory)) =>
 
         val form = {
           if(CurrentUser.checkRights(Read("rule"))) {
@@ -193,7 +198,7 @@ class RuleEditForm(
                 s"#${htmlId_EditZone} *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
                 ClearClearable &
               "#ruleForm" #> formContent &
-              "#details"  #> new RuleCompliance(rule,directiveLib, nodeInfos).display &
+              "#details"  #> new RuleCompliance(rule,directiveLib, nodeInfos, rootRuleCategory).display &
               actionButtons()
             ).apply(body)
 
@@ -205,7 +210,7 @@ class RuleEditForm(
         def updateCompliance() = {
            roRuleRepository.get(rule.id) match {
              case Full(updatedrule) =>
-               new RuleCompliance(updatedrule,directiveLib, nodeInfos).display
+               new RuleCompliance(updatedrule,directiveLib, nodeInfos, rootRuleCategory).display
              case eb:EmptyBox =>
                logger.error("could not get updated version of the Rule")
                <div>Could not get updated version of the Rule, please </div>
@@ -227,8 +232,8 @@ class RuleEditForm(
           )
         )
 
-      case (a, b, c) =>
-        List(a,b,c).collect{ case eb: EmptyBox =>
+      case (a, b, c, d) =>
+        List(a,b,c, d).collect{ case eb: EmptyBox =>
           val e = eb ?~! "An error happens when trying to get the node group library"
           logger.error(e.messageChain)
           <div class="error">{e.msg}</div>
@@ -269,7 +274,7 @@ class RuleEditForm(
       //activation button: show disactivate if activated
       "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
       "#nameField" #> crName.toForm_! &
-      "#categoryField" #>   category.toForm_! &
+      "#categoryField" #> category.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
       "#longDescriptionField" #> crLongDescription.toForm_! &
       "#selectPiField" #> {
@@ -464,14 +469,15 @@ class RuleEditForm(
     }
   }
 
-  private[this] val categories = categoryHierarchyDisplayer.getRuleCategoryHierarchy(roCategoryRepository.getRootCategory.get, None)
-  private[this] val category =
-    new WBSelectField(
-        "Rule category"
-      , categories.map { case (id, name) => (id.value -> name)}
-      , rule.categoryId.value
-    ) {
-    override def className = "twoCol"
+  private[this] val category = {
+    //if root is not defined, the error message is managed on showForm
+    val values = boxRootRuleCategory.map { r =>
+      categoryHierarchyDisplayer.getRuleCategoryHierarchy(r, None).map { case (id, name) => (id.value -> name)}
+    }.getOrElse(Nil)
+
+    new WBSelectField("Rule category", values, rule.categoryId.value) {
+      override def className = "twoCol"
+    }
   }
 
   private[this] val formTracker = new FormTracker(List(crName, crShortDescription, crLongDescription))

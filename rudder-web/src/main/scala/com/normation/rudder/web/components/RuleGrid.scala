@@ -77,6 +77,7 @@ import com.normation.rudder.services.reports.NodeChanges
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import scala.concurrent._
 import ExecutionContext.Implicits.global
+import com.normation.rudder.rule.category.RuleCategory
 
 
 
@@ -124,13 +125,13 @@ class RuleGrid(
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
+  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory  = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
 
   private[this] val recentChanges    = RudderConfig.recentChangesService
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val categoryRepository  = RudderConfig.roRuleCategoryRepository
   private[this] val categoryService     = RudderConfig.ruleCategoryService
 
 
@@ -317,31 +318,33 @@ class RuleGrid(
           ( for {
               rules        <- roRuleRepository.getAll(false)
               afterRules = System.currentTimeMillis
-              _ = TimingDebugLogger.debug(s"Fetching all Rules took ${afterRules - start}ms" )
+              _ = TimingDebugLogger.debug(s"Rule grid: fetching all Rules took ${afterRules - start}ms" )
 
               val futureChanges = changesFuture(rules)
 
               nodeInfo     <-  getAllNodeInfos()
               afterNodeInfos = System.currentTimeMillis
-              _ = TimingDebugLogger.debug(s"Fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
+              _ = TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
 
               // we have all the data we need to start our future
               future = complianceFuture(rules,nodeInfo.keys.toSeq)
 
               groupLib     <-  getFullNodeGroupLib()
               afterGroups = System.currentTimeMillis
-              _ = TimingDebugLogger.debug(s"Fetching all Groups took ${afterGroups - afterNodeInfos}ms" )
+              _ = TimingDebugLogger.debug(s"Rule grid: fetching all Groups took ${afterGroups - afterNodeInfos}ms" )
 
               directiveLib <-  getFullDirectiveLib()
               afterDirectives = System.currentTimeMillis
-              _ = TimingDebugLogger.debug(s"Fetching all Directives took ${afterDirectives - afterGroups}ms" )
+              _ = TimingDebugLogger.debug(s"Rule grid: fetching all Directives took ${afterDirectives - afterGroups}ms" )
 
-              newData      = getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+              rootRuleCat  <-  getRootRuleCategory()
+
+              newData      = getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib, rootRuleCat)
               afterData = System.currentTimeMillis
-              _ = TimingDebugLogger.debug(s"Transforming into data took ${afterData - afterDirectives}ms" )
+              _ = TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
 
 
-              _ = TimingDebugLogger.debug(s"Computing whole data for rule grid took ${afterData - start}ms" )
+              _ = TimingDebugLogger.debug(s"Rule grid: computing whole data for rule grid took ${afterData - start}ms" )
             } yield {
 
               // Reset rule compliances stored in JS, so we get new ones from the future
@@ -410,15 +413,34 @@ class RuleGrid(
     , allNodeInfos : Map[NodeId, NodeInfo]
     , groupLib     : FullNodeGroupCategory
     , directiveLib : FullActiveTechniqueCategory
+    , rootRuleCategory   : RuleCategory
   ) : JsTableData[RuleLine] = {
 
-      val lines = for {
-         line <- convertRulesToLines(directiveLib, groupLib, allNodeInfos, rules.toList)
-      } yield {
-        getRuleData(line, groupLib, allNodeInfos)
-      }
-      JsTableData(lines)
+      val t0 = System.currentTimeMillis
+      val converted = convertRulesToLines(directiveLib, groupLib, allNodeInfos, rules.toList, rootRuleCategory)
+      val t1 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Rule grid: transforming into data: convert to lines: ${t1-t0}ms")
 
+      var tData = 0l
+
+      val lines = for {
+         line <- converted
+      } yield {
+        val tf0 = System.currentTimeMillis
+        val res = getRuleData(line, groupLib, allNodeInfos, rootRuleCategory)
+        val tf1 = System.currentTimeMillis
+        tData = tData + tf1 - tf0
+        res
+      }
+
+      val size = converted.size
+      TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data ${tData}ms (by line: ${tData/size}ms)")
+
+      val t2 = System.currentTimeMillis
+      val res = JsTableData(lines)
+      val t3 = System.currentTimeMillis
+      TimingDebugLogger.trace(s"Rule grid: transforming into data: jstable: ${t3-t2}ms")
+      res
   }
 
 
@@ -430,11 +452,11 @@ class RuleGrid(
     , groupsLib    : FullNodeGroupCategory
     , nodes        : Map[NodeId, NodeInfo]
     , rules        : List[Rule]
+    , rootRuleCategory: RuleCategory
   ) : List[Line] = {
 
     // we compute beforehand the compliance, so that we have a single big query
     // to the database
-    val complianceMap = computeCompliances(nodes.keySet, rules.map( _.id).toSet)
 
     rules.map { rule =>
 
@@ -472,29 +494,9 @@ class RuleGrid(
        (trackerVariables, targetsInfo) match {
          case (Full(seq), Full(targets)) =>
            val applicationStatus = getRuleApplicationStatus(rule, groupsLib, directivesLib, nodes)
-           val compliance =  applicationStatus match {
-             case _:NotAppliedStatus =>
-               Full(None)
-             case _ =>
-               complianceMap match {
-                 case eb: EmptyBox => eb ?~! "Error when getting the compliance of rules"
-                 case Full(cm) => cm.get(rule.id) match {
-                   case None =>
-                       logger.debug(s"Error when getting compliance for Rule ${rule.name}")
-                       // if we can't find the compliance, it is most likely that the promises are not generated yet,
-                       // so we say it is pending
-                       Full(Some(ComplianceLevel(pending = 1)))
-                   case s@Some(_) => Full(s)
-                 }
-               }
-           }
-           compliance match {
-             case e:EmptyBox =>
-               logger.error(e)
-               ErrorLine(rule, trackerVariables, targetsInfo)
-             case Full(value) =>
-               OKLine(rule, applicationStatus, seq, targets)
-           }
+
+           OKLine(rule, applicationStatus, seq, targets)
+
          case (x,y) =>
            if(rule.isEnabledStatus) {
              //the Rule has some error, try to disable it
@@ -540,11 +542,14 @@ class RuleGrid(
   /*
    * Generates Data for a line of the table
    */
-  private[this]  def getRuleData (
+  private[this] def getRuleData (
       line:Line
     , groupsLib: FullNodeGroupCategory
     , nodes: Map[NodeId, NodeInfo]
+    , rootRuleCategory: RuleCategory
   ) : RuleLine = {
+
+    val t0 = System.currentTimeMillis
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled
@@ -576,10 +581,13 @@ class RuleGrid(
               ("Not applied", Some(why))
           }
         case _ : ErrorLine => ("N/A",None)
-    }
+      }
+
+    val t1 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: line status: ${t1-t0}ms")
 
     // Is the ruple applying a Directive and callback associated to the checkbox
-    val (applying,checkboxCallback) = {
+    val (applying, checkboxCallback) = {
       directiveApplication match {
         case Some(directiveApplication) =>
           def check(value : Boolean) : JsCmd= {
@@ -600,6 +608,9 @@ class RuleGrid(
       }
     }
 
+    val t2 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: checkbox callback: ${t2-t1}ms")
+
     // Css to add to the whole line
     val cssClass = {
       val disabled = if (line.rule.isEnabled) {
@@ -616,7 +627,13 @@ class RuleGrid(
       s"tooltipabletr ${disabled} ${error}"
     }
 
-    val category = categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error")
+    val t3 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: css class: ${t3-t2}ms")
+
+    val category = categoryService.shortFqdn(rootRuleCategory, line.rule.categoryId).getOrElse("Error")
+
+    val t4 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: category: ${t4-t3}ms")
 
     // Callback to use on links, parameter define the tab to open "showForm" for compliance, "showEditForm" to edit form
     val callback = for {
@@ -626,7 +643,8 @@ class RuleGrid(
       AnonFunc("action",ajax)
     }
 
-
+    val t5 = System.currentTimeMillis
+    TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data: callback: ${t5-t4}ms")
 
     RuleLine (
         line.rule.name
@@ -640,7 +658,6 @@ class RuleGrid(
       , checkboxCallback
       , reasons
    )
-
   }
 
 
