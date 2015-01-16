@@ -70,6 +70,7 @@ import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.services.JsTableLine
 import com.normation.rudder.web.services.JsTableData
 import net.liftweb.http.js.JE.AnonFunc
+import com.normation.rudder.rule.category.RuleCategory
 
 
 
@@ -118,11 +119,11 @@ class RuleGrid(
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
+  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory  = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val categoryRepository  = RudderConfig.roRuleCategoryRepository
   private[this] val categoryService     = RudderConfig.ruleCategoryService
 
 
@@ -140,7 +141,6 @@ class RuleGrid(
   private[this] val tableId_reportsPopup = "popupReportsGrid"
 
 
-
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -150,13 +150,13 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib()) }
+    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), getRootRuleCategory()) }
   }
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   def rulesGridWithUpdatedInfo(popup: Boolean = false, linkCompliancePopup:Boolean = true) = {
-    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), popup, linkCompliancePopup)
+    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), getRootRuleCategory(), popup, linkCompliancePopup)
   }
 
 
@@ -205,7 +205,8 @@ class RuleGrid(
               nodeInfo     = getAllNodeInfos()
               groupLib     = getFullNodeGroupLib()
               directiveLib = getFullDirectiveLib()
-              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib)
+              rootRuleCat  = getRootRuleCategory()
+              newData      <- getRulesTableData(popup,rules,linkCompliancePopup, nodeInfo, groupLib, directiveLib, rootRuleCat)
             } yield {
               JsRaw(s"""refreshTable("${htmlId_rulesGridId}",${newData.json.toJsCmd});""")
             }
@@ -219,13 +220,14 @@ class RuleGrid(
         } ))
 
   def rulesGrid(
-      allNodeInfos: Box[Map[NodeId, NodeInfo]]
-    , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]
-    , popup       : Boolean = false
+      allNodeInfos    : Box[Map[NodeId, NodeInfo]]
+    , groupLib        : Box[FullNodeGroupCategory]
+    , directiveLib    : Box[FullActiveTechniqueCategory]
+    , rootRuleCategory: Box[RuleCategory]
+    , popup           : Boolean = false
     , linkCompliancePopup:Boolean = true
   ) : NodeSeq = {
-    getRulesTableData(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib) match {
+    getRulesTableData(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib, rootRuleCategory) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get information about rules"
         logger.error(e.messageChain)
@@ -283,17 +285,20 @@ class RuleGrid(
     , linkCompliancePopup:Boolean
     , allNodeInfos: Box[Map[NodeId, NodeInfo]]
     , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]) : Box[JsTableData[RuleLine]] = {
+    , directiveLib: Box[FullActiveTechniqueCategory]
+    , rootRuleCategory   : Box[RuleCategory]
+  ) : Box[JsTableData[RuleLine]] = {
 
     for {
       directivesLib <- directiveLib
       groupsLib     <- groupLib
       nodes         <- allNodeInfos
+      rootRuleCat   <- rootRuleCategory
     } yield {
       val lines = for {
-         line <- convertRulesToLines(directivesLib, groupsLib, nodes, rules.toList)
+         line <- convertRulesToLines(directivesLib, groupsLib, nodes, rules.toList, rootRuleCat)
       } yield {
-        getRuleData(line, groupsLib, nodes)
+        getRuleData(line, groupsLib, nodes, rootRuleCat)
       }
       JsTableData(lines)
     }
@@ -309,6 +314,7 @@ class RuleGrid(
     , groupsLib: FullNodeGroupCategory
     , nodes: Map[NodeId, NodeInfo]
     , rules : List[Rule]
+    , rootRuleCategory: RuleCategory
   ) : List[Line] = {
 
     // we compute beforehand the compliance, so that we have a single big query
@@ -408,7 +414,7 @@ class RuleGrid(
   /*
    * Generates Data for a line of the table
    */
-  private[this]  def getRuleData (line:Line, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo]) : RuleLine = {
+  private[this]  def getRuleData (line:Line, groupsLib: FullNodeGroupCategory, nodes: Map[NodeId, NodeInfo], rootRuleCategory: RuleCategory) : RuleLine = {
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled
@@ -440,7 +446,7 @@ class RuleGrid(
               ("Not applied", Some(why))
           }
         case _ : ErrorLine => ("N/A",None)
-    }
+      }
 
     // Compliance percent and class to apply to the td
     val (complianceClass,compliancePercent) = {
@@ -488,7 +494,7 @@ class RuleGrid(
       s"tooltipabletr ${disabled} ${error}"
     }
 
-    val category = categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error")
+    val category = categoryService.shortFqdn(rootRuleCategory, line.rule.categoryId).getOrElse("Error")
 
     // Callback to use on links, parameter define the tab to open "showForm" for compliance, "showEditForm" to edit form
     val callback = for {

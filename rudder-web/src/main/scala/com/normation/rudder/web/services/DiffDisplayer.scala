@@ -49,6 +49,7 @@ import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies._
+import com.normation.rudder.rule.category.RuleCategory
 
 
 
@@ -218,13 +219,15 @@ object DiffDisplayer extends Loggable {
 
 
   private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
+
   def displayRuleCategory (
-      oldCategory : RuleCategoryId
+      rootCategory: RuleCategory
+    , oldCategory : RuleCategoryId
     , newCategory : Option[RuleCategoryId]
   ) = {
 
     def getCategoryFullName(category : RuleCategoryId) = {
-      ruleCategoryService.shortFqdn(category) match {
+      ruleCategoryService.shortFqdn(rootCategory, category) match {
         case Full(fqdn) => fqdn
         case eb : EmptyBox =>
           logger.error(s"Error while looking for category ${category.value}")

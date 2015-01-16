@@ -53,6 +53,7 @@ import com.normation.rudder.web.model.WBTextField
 import com.normation.rudder.web.model.WBTextAreaField
 import com.normation.rudder.web.model.WBSelectField
 import com.normation.rudder.web.services.ComplianceData
+import com.normation.rudder.rule.category.RuleCategory
 
 /**
  *   This component display the compliance of a Rule by showing compliance of every Directive
@@ -61,8 +62,9 @@ import com.normation.rudder.web.services.ComplianceData
 
 class RuleCompliance (
     rule : Rule
-  , directiveLib : FullActiveTechniqueCategory
-  , allNodeInfos : Map[NodeId, NodeInfo]
+  , directiveLib    : FullActiveTechniqueCategory
+  , allNodeInfos    : Map[NodeId, NodeInfo]
+  , rootRuleCategory: RuleCategory
 ) extends Loggable {
 
   private[this] val reportingService = RudderConfig.reportingService
@@ -80,7 +82,7 @@ class RuleCompliance (
 
     (
       "#ruleName" #>   rule.name &
-      "#ruleCategory" #> categoryService.shortFqdn(rule.categoryId) &
+      "#ruleCategory" #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
       "#rudderID" #> rule.id.value.toUpperCase &
       "#ruleShortDescription" #> rule.shortDescription &
       "#ruleLongDescription" #>  rule.longDescription &
