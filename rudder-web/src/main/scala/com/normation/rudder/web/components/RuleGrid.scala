@@ -66,6 +66,7 @@ import net.liftweb.json.JsonParser
 import net.liftweb.json.JString
 import net.liftweb.json.JObject
 import net.liftweb.json.JField
+import com.normation.rudder.rule.category.RuleCategory
 
 
 
@@ -97,11 +98,11 @@ class RuleGrid(
   private[this] val getFullNodeGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getRuleApplicationStatus = RudderConfig.ruleApplicationStatus.isApplied _
+  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
+  private[this] val getRootRuleCategory  = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
   private[this] val reportingService = RudderConfig.reportingService
-  private[this] val getAllNodeInfos  = RudderConfig.nodeInfoService.getAll _
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
-  private[this] val categoryRepository  = RudderConfig.roRuleCategoryRepository
   private[this] val categoryService     = RudderConfig.ruleCategoryService
 
 
@@ -119,7 +120,6 @@ class RuleGrid(
   private[this] val tableId_reportsPopup = "popupReportsGrid"
 
 
-
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -129,13 +129,13 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib()) }
+    case "rulesGrid" => { _:NodeSeq => rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), getRootRuleCategory()) }
   }
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   def rulesGridWithUpdatedInfo(popup: Boolean = false, linkCompliancePopup:Boolean = true) = {
-    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), popup, linkCompliancePopup)
+    rulesGrid(getAllNodeInfos(), getFullNodeGroupLib(), getFullDirectiveLib(), getRootRuleCategory(), popup, linkCompliancePopup)
   }
 
 
@@ -177,13 +177,14 @@ class RuleGrid(
   }
 
   def rulesGrid(
-      allNodeInfos: Box[Set[NodeInfo]]
-    , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]
-    , popup       : Boolean = false
+      allNodeInfos       : Box[Set[NodeInfo]]
+    , groupLib           : Box[FullNodeGroupCategory]
+    , directiveLib       : Box[FullActiveTechniqueCategory]
+    , rootRuleCategory   : Box[RuleCategory]
+    , popup              : Boolean = false
     , linkCompliancePopup:Boolean = true
   ) : NodeSeq = {
-    showRulesDetails(popup,rules,linkCompliancePopup, allNodeInfos, groupLib, directiveLib) match {
+    showRulesDetails(popup, rules, linkCompliancePopup, allNodeInfos, groupLib, directiveLib, rootRuleCategory) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get information about rules"
         logger.error(e.messageChain)
@@ -279,12 +280,14 @@ class RuleGrid(
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   private[this] def showRulesDetails(
-      popup:Boolean
-    , rules:Seq[Rule]
-    , linkCompliancePopup:Boolean
-    , allNodeInfos: Box[Set[NodeInfo]]
-    , groupLib    : Box[FullNodeGroupCategory]
-    , directiveLib: Box[FullActiveTechniqueCategory]) : Box[NodeSeq] = {
+      popup              : Boolean
+    , rules              : Seq[Rule]
+    , linkCompliancePopup: Boolean
+    , allNodeInfos       : Box[Set[NodeInfo]]
+    , groupLib           : Box[FullNodeGroupCategory]
+    , directiveLib       : Box[FullActiveTechniqueCategory]
+    , rootRuleCategory   : Box[RuleCategory]
+  ) : Box[NodeSeq] = {
     sealed trait Line { val rule:Rule }
 
     // we compute beforehand the compliance, so that we have a single big query
@@ -313,7 +316,7 @@ class RuleGrid(
 
 
 
-    def displayGridLines(directivesLib: FullActiveTechniqueCategory, groupsLib: FullNodeGroupCategory, nodes: Set[NodeInfo]) : NodeSeq = {
+    def displayGridLines(directivesLib: FullActiveTechniqueCategory, groupsLib: FullNodeGroupCategory, nodes: Set[NodeInfo], rootRuleCategory: RuleCategory) : NodeSeq = {
     //for each rule, get all the required info and display them
     val lines:Seq[Line] = rules.map { rule =>
 
@@ -514,7 +517,7 @@ class RuleGrid(
             } }
           </td>
           <td>
-            { categoryService.shortFqdn(line.rule.categoryId).getOrElse("Error") }
+            { categoryService.shortFqdn(rootRuleCategory, line.rule.categoryId).getOrElse("Error") }
           </td>
           <td>
             <b>{ status(line) }</b>
@@ -533,8 +536,9 @@ class RuleGrid(
       directivesLib <- directiveLib
       groupsLib     <- groupLib
       nodes         <- allNodeInfos
+      ruleCategory  <- rootRuleCategory
     } yield {
-      displayGridLines(directivesLib, groupsLib, nodes)
+      displayGridLines(directivesLib, groupsLib, nodes, ruleCategory)
     }
 
   }
