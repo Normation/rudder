@@ -915,7 +915,7 @@ object RudderConfig extends Loggable {
     , personIdentServiceImpl
   )
   private[this] lazy val fileManagerImpl = new FileManager(UPLOAD_ROOT_DIRECTORY)
-  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl)
+  private[this] lazy val databaseManagerImpl = new DatabaseManagerImpl(reportsRepositoryImpl, configurationExpectedRepo)
   private[this] lazy val softwareInventoryDAO: ReadOnlySoftwareDAO = new ReadOnlySoftwareDAOImpl(inventoryDitService, roLdap, inventoryMapper)
   private[this] lazy val nodeSummaryServiceImpl = new NodeSummaryServiceImpl(inventoryDitService, inventoryMapper, roLdap)
   private[this] lazy val diffRepos: InventoryHistoryLogRepository =
