@@ -51,6 +51,7 @@ import net.liftweb.util.Helpers.{ boolean2, strToSuperArrowAssoc }
 import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.RuleTarget
+import net.liftweb.http.S
 
 /**
  *
@@ -179,6 +180,19 @@ object DisplayNodeGroupTree extends Loggable {
 
       override def body = {
         val tooltipId = Helpers.nextFuncName
+
+
+        val editButton = {
+          if (!targetActions.isEmpty && ! targetInfo.isSystem) {
+              <img src="/images/icPen.png" class="treeActions treeAction noRight" /> ++ Script(JsRaw(s"""
+                $$('#${jsId} .treeActions').on("mouseup", function(e) {
+                  redirectTo('${S.contextPath}/secure/nodeManager/groups#{"groupId":"${groupId}"}',e);
+                } );"""))
+          } else {
+            NodeSeq.Empty
+          }
+        }
+
         val actionButtons = {
           if (!targetActions.isEmpty) {
             <span class="treeActions">
@@ -219,7 +233,9 @@ object DisplayNodeGroupTree extends Loggable {
             <h3>{targetInfo.name}</h3>
             <div>{targetInfo.description}</div>
           </div> ++
-        actionButtons ++ jsInitFunction
+        actionButtons ++
+        editButton  ++
+        jsInitFunction
         }
 
         onClickNode match {
