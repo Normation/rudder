@@ -559,6 +559,18 @@ function showParameters(s){
     document.getElementById("showParametersInfo" + s).style.display = "none";
 }
 
+function redirectTo(url,event) {
+  // If using middle button, open the link in a new tab
+  if( event.which == 2 ) {
+    window.open(url, '_blank');
+  } else {
+    // On left button button, open the link the same tab
+    if ( event.which == 1 ) {
+      location.href=url;
+    }
+  }
+}
+
 /*
  * This function takes the content of 2 elements (represented by their ids)
  * , produce a diff beetween them and add the result in third element
