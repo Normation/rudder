@@ -161,21 +161,21 @@ class DirectiveEditForm(
     )(body)
   }
 
-  def migrateButton(version : => TechniqueVersion, text: String) = {
+  def migrateButton(version : => TechniqueVersion, text: String, id:String = "migrationButton") = {
     SHtml.ajaxSubmit(
         text
       , () => {
           val newDirective = directive.copy(techniqueVersion = version)
           onMigrationCallback(newDirective,Some(directive))
         }
-      , ("id" -> "migrationButton")
+      , ("id" -> id)
     )
   }
 
   val displayDeprecationWarning = technique.deprecrationInfo match {
     case Some(info) =>
       ( "#deprecation-message *" #> info.message &
-        "#migrate-button *" #> migrateButton(fullActiveTechnique.techniques.keys.max,"Migrate now!")
+        "#migrate-button *" #> migrateButton(fullActiveTechnique.techniques.keys.max,"Migrate now!","deprecation-migration")
       )
     case None =>
       ("#deprecation-warning [class+]" #> "hidden" )
