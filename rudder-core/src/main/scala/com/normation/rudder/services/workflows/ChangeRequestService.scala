@@ -153,6 +153,7 @@ trait ChangeRequestService {
   def get(id:ChangeRequestId) : Box[Option[ChangeRequest]]
 
   def getLastLog(id:ChangeRequestId) : Box[Option[ChangeRequestEventLog]]
+
 }
 
 

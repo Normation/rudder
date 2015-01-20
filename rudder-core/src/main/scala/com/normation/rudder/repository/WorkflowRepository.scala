@@ -45,7 +45,9 @@ trait RoWorkflowRepository {
   def getAllByState(state : WorkflowNodeId) :  Box[Seq[ChangeRequestId]]
 
   def getStateOfChangeRequest(crId: ChangeRequestId) : Box[WorkflowNodeId]
-  
+
+  def getAllChangeRequestsState() : Box[Map[ChangeRequestId,WorkflowNodeId]]
+
   /**
    * Check if a change request is already part of a workflow
    * If so, returns true, if not returns false
