@@ -315,6 +315,31 @@ class RuleExpectedReportsJdbcRepository(
 
   }
 
+  /**
+   * Delete all expected reports closed before a date
+   */
+  def deleteExpectedReports(date: DateTime) : Box[Int] = {
+    // Find all nodejoinkey that have expected reports closed more before date
+    transactionTemplate.execute(new TransactionCallback[Box[Int]]() {
+        def doInTransaction(status: TransactionStatus): Box[Int] = {
+          tryo {
+            val deletedExpectedReports = jdbcTemplate.update(s"DELETE FROM ${TABLE_NAME} where coalesce(endDate, ?) < ?"
+                                , new Timestamp(date.getMillis), new Timestamp(date.getMillis)
+                              )
+
+            if (deletedExpectedReports == 0) {
+              0
+            } else {
+              logger.debug(s"Deleted ${deletedExpectedReports} expected reports closed before ${date}")
+              val deletedExpectedReportsNode = jdbcTemplate.update(s"delete from ${NODE_TABLE_NAME} where nodejoinkey not in (select nodejoinkey from ${TABLE_NAME})")
+              logger.debug(s"Deleted ${deletedExpectedReportsNode} expected reports node")
+              deletedExpectedReports
+            }
+          }
+        }
+    })
+  }
+
   private[this] def getNodes(nodeJoinKey : Int) : Box[Seq[NodeId]] = {
     tryo {
       jdbcTemplate.queryForList("select nodeId from "+ NODE_TABLE_NAME +" where nodeJoinKey = ?",
@@ -418,6 +443,7 @@ object RuleIdSerialNodeJoinKeyMapper extends RowMapper[(RuleId, Int, Int)] {
     (new RuleId(rs.getString("ruleid")) , rs.getInt("serial"), rs.getInt("nodejoinkey"))
   }
 }
+
 /**
  * Just a plain mapping of the database
  */
@@ -452,5 +478,4 @@ case class ExpectedConfRuleMapping(
     implicit val formats = DefaultFormats
     parse(ids).extract[List[String]]
  }
-
 }

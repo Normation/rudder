@@ -56,6 +56,10 @@ import scala.xml.Node
 import scala.xml.Elem
 import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowNodeId
+import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
+import com.normation.eventlog.EventLog
 
 class ChangeRequestManagement extends DispatchSnippet with Loggable {
 
@@ -118,13 +122,18 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
         }"""
 
 
-  def CRLine(cr: ChangeRequest)= {
+
+  def CRLine(
+      cr: ChangeRequest
+    , workflowStateMap: Map[ChangeRequestId,WorkflowNodeId]
+    , eventsMap : Map[ChangeRequestId, EventLog]
+  ) = {
     <tr>
       <td id="crId">
          {SHtml.a(() => S.redirectTo(s"/secure/utilities/changeRequest/${cr.id}"), Text(cr.id.value.toString))}
       </td>
       <td id="crStatus">
-         {workflowService.findStep(cr.id).getOrElse("Unknown")}
+         {workflowStateMap.get(cr.id).getOrElse("Unknown")}
       </td>
       <td id="crName">
          {cr.info.name}
@@ -133,32 +142,77 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
          { cr.owner }
       </td>
       <td id="crDate">
-         {(changeRequestEventLogService.getLastLog(cr.id),workflowLoggerService.getLastLog(cr.id)) match {
-           case (Full(Some(crLog)),Full(Some(wfLog))) =>
-             if (crLog.creationDate.isAfter(wfLog.creationDate))
-               DateFormaterService.getFormatedDate(crLog.creationDate)
-             else
-               DateFormaterService.getFormatedDate(wfLog.creationDate)
-           case (Full(Some(crLog)),_) => DateFormaterService.getFormatedDate(crLog.creationDate)
-           case (_,Full(Some(wfLog))) => DateFormaterService.getFormatedDate(wfLog.creationDate)
-           case (_,_) => "Error while fetching last action Date"
-         }}
+         {eventsMap.get(cr.id).map(event => DateFormaterService.getFormatedDate(event.creationDate)).getOrElse("Unknown")}
       </td>
    </tr>
 
   }
+
+
+  /**
+   * Get all events, merge them via a mutMap (we only want to keep the most recent event)
+   */
+  private[this] def getLastEventsMap = {
+    val CREventsMap : Map[ChangeRequestId,EventLog] = changeRequestEventLogService.getLastCREvents match {
+      case Full(map) => map
+      case eb:EmptyBox =>
+        val fail = eb ?~! "Could not find last Change requests events requests state"
+        logger.error(fail.messageChain)
+        Map()
+    }
+    val workflowEventsMap : Map[ChangeRequestId,EventLog] = workflowLoggerService.getLastWorkflowEvents match {
+      case Full(map) => map
+      case eb:EmptyBox =>
+        val fail = eb ?~! "Could not find last Change requests events requests state"
+        logger.error(fail.messageChain)
+        Map()
+    }
+
+    import scala.collection.mutable.{Map => MutMap}
+
+    val eventMap = MutMap() ++ CREventsMap
+
+    for {
+      (crId, event) <- workflowEventsMap
+    } {
+      eventMap.get(crId) match {
+          case Some(currentEvent) if (currentEvent.creationDate isAfter event.creationDate) =>
+          case _ => eventMap.update(crId, event)
+        }
+    }
+
+    eventMap.toMap
+  }
+
+
   def dispatch = {
     case "filter" =>
       xml => ("#actualFilter *" #> statusFilter).apply(xml)
     case "display" => xml =>
       ( "#crBody" #> {
-        val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)
-        changeRequests match {
-        case Full(changeRequests) => changeRequests.flatMap(CRLine(_))
-        case eb:EmptyBox => val fail = eb ?~! s"Could not get change requests because of : ${eb}"
+
+        val eventMap = getLastEventsMap
+
+        val workflowStateMap : Map[ChangeRequestId,WorkflowNodeId]= workflowService.getAllChangeRequestsStep match {
+          case Full(stateMap) => stateMap
+          case eb:EmptyBox =>
+            val fail = eb ?~! "Could not find change requests state"
+            logger.error(fail.messageChain)
+            Map()
+        }
+
+        (if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)) match {
+          case Full(changeRequests) =>
+            for {
+              cr <- changeRequests
+            } yield {
+              CRLine(cr,workflowStateMap,eventMap)
+            }
+          case eb:EmptyBox => val fail = eb ?~! s"Could not get change requests because of : ${eb}"
         logger.error(fail.msg)
         <error>{fail.msg}</error>
-      }  }).apply(xml) ++
+        }
+      }).apply(xml) ++
       Script(OnLoad(JsRaw(dataTableInit)))
   }
 
