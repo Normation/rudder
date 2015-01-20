@@ -127,17 +127,22 @@ class EventListDisplayer(
     val jsGridName = "oTable" + gridName
     JsRaw("var %s;".format(jsGridName)) &
     OnLoad(
-        JsRaw("""
-            $('.restore').button();
+        JsRaw(s"""
+            $$('.restore').button();
             correctButtons();
           /* Event handler function */
-          #table_var# = $('#%s').dataTable({
+          ${jsGridName} = $$('#${gridName}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${gridName}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${gridName}') );
+                    },
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "bJQueryUI": true,
@@ -154,8 +159,8 @@ class EventListDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           })
-          $('.dataTables_filter input').attr("placeholder", "Search");
-          """.format(gridName,gridName).replaceAll("#table_var#",jsGridName)
+          $$('.dataTables_filter input').attr("placeholder", "Search");
+          """
         )  &
         JsRaw("""
         /* Formating function for row details */
@@ -1614,15 +1619,20 @@ class EventListDisplayer(
       </div>
       <br/>
     </div>
-  </div> ++ Script(JsRaw("""
-        $('#rollbackTable%s').dataTable({
+  </div> ++ Script(JsRaw(s"""
+        $$('#rollbackTable${id}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_rollbackTable${id}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_rollbackTable${id}') );
+                    },
             "sPaginationType": "full_numbers",
             "bJQueryUI": true,
             "oLanguage": {
@@ -1637,7 +1647,7 @@ class EventListDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-        """.format(id)))
+        """))
   }
 
   private[this] def authorizedNetworksXML() = (
