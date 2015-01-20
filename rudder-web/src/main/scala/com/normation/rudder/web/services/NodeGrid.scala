@@ -258,7 +258,7 @@ class NodeGrid(
         // Node may not be available, so we look for it outside the for coprehension
         val node = nodeInfoService.getNode(nodeId)
         SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
-        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
+        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))

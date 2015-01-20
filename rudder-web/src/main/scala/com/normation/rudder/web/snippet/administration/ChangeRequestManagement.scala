@@ -58,8 +58,10 @@ import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
 import com.normation.rudder.web.services.JsTableData
 import com.normation.rudder.web.services.JsTableLine
-
-
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowNodeId
+import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
+import com.normation.eventlog.EventLog
 
 class ChangeRequestManagement extends DispatchSnippet with Loggable {
 
@@ -81,26 +83,19 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
    *   , "lastModification" : date of last modification [ String ]
    *   }
    */
-  case class ChangeRequestLine ( changeRequest : ChangeRequest) extends JsTableLine {
-    val date =
-      (changeRequestEventLogService.getLastLog(changeRequest.id),workflowLoggerService.getLastLog(changeRequest.id)) match {
-        case (Full(Some(crLog)),Full(Some(wfLog))) =>
-          if (crLog.creationDate.isAfter(wfLog.creationDate)) {
-            DateFormaterService.getFormatedDate(crLog.creationDate)
-          } else {
-            DateFormaterService.getFormatedDate(wfLog.creationDate)
-          }
-        case (Full(Some(crLog)),_) => DateFormaterService.getFormatedDate(crLog.creationDate)
-        case (_,Full(Some(wfLog))) => DateFormaterService.getFormatedDate(wfLog.creationDate)
-        case (_,_) => "Error while fetching last action Date"
-      }
+  case class ChangeRequestLine (
+      changeRequest : ChangeRequest
+    , workflowStateMap: Map[ChangeRequestId,WorkflowNodeId]
+    , eventsMap : Map[ChangeRequestId, EventLog]
+  ) extends JsTableLine {
+    val date = eventsMap.get(changeRequest.id).map(event => DateFormaterService.getFormatedDate(event.creationDate)).getOrElse("Unknown")
 
     val json = {
       JsObj(
           "id" -> changeRequest.id.value
         , "name" -> changeRequest.info.name
         , "creator" -> changeRequest.owner
-        , "step" -> workflowService.findStep(changeRequest.id).map(_.value).getOrElse("Unknown")
+        , "step" -> workflowStateMap.get(changeRequest.id).map(_.value).getOrElse("Unknown")
         , "lastModification" -> date
       )
     }
@@ -110,7 +105,17 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     val changeRequests = if (currentUser) roCrRepo.getAll else roCrRepo.getByContributor(CurrentUser.getActor)
     JsTableData(changeRequests match {
       case Full(changeRequests) =>
-        changeRequests.map(ChangeRequestLine(_)).toList
+        
+        val eventMap = getLastEventsMap
+
+        val workflowStateMap : Map[ChangeRequestId,WorkflowNodeId]= workflowService.getAllChangeRequestsStep match {
+          case Full(stateMap) => stateMap
+          case eb:EmptyBox =>
+            val fail = eb ?~! "Could not find change requests state"
+            logger.error(fail.messageChain)
+            Map()
+        }
+        changeRequests.map(ChangeRequestLine(_,workflowStateMap,eventMap)).toList
       case eb:EmptyBox =>
         val fail = eb ?~! s"Could not get change requests because of : ${eb}"
         logger.error(fail.msg)
@@ -132,6 +137,42 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     """
 
   }
+
+  /**
+   * Get all events, merge them via a mutMap (we only want to keep the most recent event)
+   */
+  private[this] def getLastEventsMap = {
+    val CREventsMap : Map[ChangeRequestId,EventLog] = changeRequestEventLogService.getLastCREvents match {
+      case Full(map) => map
+      case eb:EmptyBox =>
+        val fail = eb ?~! "Could not find last Change requests events requests state"
+        logger.error(fail.messageChain)
+        Map()
+    }
+    val workflowEventsMap : Map[ChangeRequestId,EventLog] = workflowLoggerService.getLastWorkflowEvents match {
+      case Full(map) => map
+      case eb:EmptyBox =>
+        val fail = eb ?~! "Could not find last Change requests events requests state"
+        logger.error(fail.messageChain)
+        Map()
+    }
+
+    import scala.collection.mutable.{Map => MutMap}
+
+    val eventMap = MutMap() ++ CREventsMap
+
+    for {
+      (crId, event) <- workflowEventsMap
+    } {
+      eventMap.get(crId) match {
+          case Some(currentEvent) if (currentEvent.creationDate isAfter event.creationDate) =>
+          case _ => eventMap.update(crId, event)
+        }
+    }
+
+    eventMap.toMap
+  }
+
 
   def dispatch = {
     case "filter" =>
