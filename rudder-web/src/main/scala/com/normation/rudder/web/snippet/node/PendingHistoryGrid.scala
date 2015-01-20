@@ -112,7 +112,12 @@ object PendingHistoryGrid extends Loggable {
             "bFilter" :true,
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_pending_server_history', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_pending_server_history') );
+                    },
             "bJQueryUI": true,
             "oLanguage": {
               "sSearch": ""

@@ -217,7 +217,12 @@ class RuleGrid(
         "fnStateLoadParams": function (oSettings, oData) {
           oData.aoSearchCols[1].sSearch = "";
         },
-        "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${htmlId_rulesGridId}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${htmlId_rulesGridId}') );
+                    },
         "oLanguage": {
           "sZeroRecords": "No matching rules!",
           "sSearch": ""

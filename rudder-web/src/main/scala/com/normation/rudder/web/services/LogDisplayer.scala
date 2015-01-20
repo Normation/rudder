@@ -135,17 +135,22 @@ class LogDisplayer(
 
     JsRaw("var %s;".format(jsVarNameForId(gridName))) &
     OnLoad(
-        JsRaw("""
+        JsRaw(s"""
           /* Event handler function */
-          #table_var# = $('#%1$s').dataTable({
+          ${jsVarNameForId(gridName)} = $$('#${gridName}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
-            %2$s
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${gridName}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${gridName}') );
+                    },
+            ${extension}
             "sPaginationType": "full_numbers",
             "oLanguage": {
               "sSearch": ""
@@ -163,8 +168,8 @@ class LogDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-            $('.dataTables_filter input').attr("placeholder", "Search");
-            """.format(gridName,extension, gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
+            $$('.dataTables_filter input').attr("placeholder", "Search");
+            """
         )
     )
   }
