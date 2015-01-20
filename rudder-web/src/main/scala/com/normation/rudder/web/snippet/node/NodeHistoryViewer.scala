@@ -89,12 +89,10 @@ class NodeHistoryViewer extends StatefulSnippet {
               case Failure(m,_,_) => <div class="error">Error while trying to display node history. Error message: {m}</div>
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) =>
-                <div id={hid}>{DisplayNode.showPannedContent(
-                    None
-                  , sm.data
-                  , AcceptedInventory
-                  , "hist"
-                ) ++ Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs")))}</div>
+                <div id={hid}>{
+                  DisplayNode.showPannedContent(None,sm.data, AcceptedInventory, "hist") ++
+                  Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist"))
+                }</div>
           } }
         </div>
 
@@ -127,10 +125,8 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) =>
-        SetHtml(hid,
-          DisplayNode.showPannedContent(None, sm.data, AcceptedInventory, "hist")) &
-          DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist", Some("node_tabs")
-        )
+        SetHtml(hid,DisplayNode.showPannedContent(None,sm.data, AcceptedInventory, "hist")) &
+        DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist")
     }
   }
 

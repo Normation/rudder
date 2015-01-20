@@ -138,7 +138,7 @@ object DisplayNode extends Loggable {
 
   def head() = chooseTemplate("serverdetails","head",template)
 
-def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContainer : Option[String] = None):JsCmd = {
+def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
@@ -203,14 +203,11 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
       JsRaw("roundTabs()") &
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
-      JsRaw("""
-| $("#%s").bind( "show", function(event, ui) {
-| if(ui.panel.id== '%s' && ui.panel.firstChild.id == '%s') { %s; }
-| });
-""".stripMargin('|').format(tabContainer.getOrElse(detailsId),
-            softPanelId,softGridId,
-            SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd)
-      )
+      JsRaw(s"""
+$$("#${detailsId}").bind( "show", function(event, ui) {
+  if(ui.panel.id== '${softPanelId}' && ui.panel.firstChild.id == '${softGridId}') { ${  SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd}; }
+});
+""")
     )
   }
 
@@ -303,7 +300,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
    */
   def showPannedContent(node: Option[RudderNode], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
-    <div id="node_tabs" class="tabs">
+    val detailsId = htmlId(jsId,"details_")
+    <div id={detailsId} class="tabs">
       <ul>
         <li><a href={htmlId_#(jsId,"node_summary_")}>Node summary</a></li>
         <li><a href={htmlId_#(jsId,"node_inventory_")}>Hardware</a></li>
