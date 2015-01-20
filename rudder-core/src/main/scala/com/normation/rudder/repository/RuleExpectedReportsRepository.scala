@@ -116,6 +116,11 @@ trait RuleExpectedReportsRepository {
   def closeExpectedReport(ruleId : RuleId) : Box[Unit]
 
   /**
+   * Delete all expected reports closed before a date
+   */
+  def deleteExpectedReports(date: DateTime) : Box[Int]
+
+  /**
    * Save an expected reports.
    * I'm not really happy with this API
    * @param ruleId : the id of the rule (the main id)

@@ -40,6 +40,7 @@ import org.joda.time.DateTime
 import org.springframework.jdbc.core.JdbcTemplate
 import net.liftweb.common.Loggable
 import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.RuleExpectedReportsRepository
 
 trait DatabaseManager {
 
@@ -77,7 +78,8 @@ trait DatabaseManager {
 }
 
 class DatabaseManagerImpl(
-    reportsRepository : ReportsRepository
+    reportsRepository             : ReportsRepository
+  , ruleExpectedReportsRepository : RuleExpectedReportsRepository
   )  extends DatabaseManager with  Loggable {
 
   def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
@@ -123,6 +125,13 @@ class DatabaseManagerImpl(
    }
 
    def deleteEntries(date : DateTime) = {
+     // If the deletion of expected report fails, don't fail
+     // but log it and complain loudly
+     ruleExpectedReportsRepository.deleteExpectedReports(date) match {
+       case Full(_) => // nothing
+       case Empty => logger.error("Failed to delete expected reports, no reason given")
+       case f: Failure => logger.error(s"Failed to delete expected reports, cause is ${f.messageChain}")
+     }
      reportsRepository.deleteEntries(date)
    }
 }
