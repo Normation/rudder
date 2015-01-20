@@ -131,8 +131,7 @@ class ShowNodeDetailsFromNode(
         serverAndMachineRepo.get(server.id,AcceptedInventory) match {
           case Full(sm) =>
             bindNode(server, sm, withinPopup) ++ Script(OnLoad(
-              DisplayNode.jsInit(server.id, sm.node.softwareIds, "", Some("node_tabs")) &
-              //reportDisplayer.initJs("reportsGrid") &
+              DisplayNode.jsInit(server.id, sm.node.softwareIds, "") &
               OnLoad(buildJsTree(htmlId_crTree))
             ))
           case e:EmptyBox =>

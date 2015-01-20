@@ -252,7 +252,7 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
     } yield (sm,arg.jsid, status) ) match {
       case Full((sm,jsid,status)) =>
         SetHtml(jsid, DisplayNode.showPannedContent(sm, status)) &
-        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
+        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))
