@@ -33,7 +33,6 @@
 */
 
 var anOpen = [];
-
 /* Create Rule table
  *
  *   data:
@@ -225,8 +224,6 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
           "sZeroRecords": "No matching rules!"
         , "sSearch": ""
@@ -238,7 +235,7 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
 
-  createTable(gridId,data,columns, params, contextPath, refresh);
+  createTable(gridId,data,columns, params, contextPath, refresh, "rules");
 
   createTooltip();
 
@@ -617,8 +614,6 @@ function createRuleComplianceTable (gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
       }
@@ -675,8 +670,6 @@ function createNodeComplianceTable (gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
       }
@@ -752,8 +745,6 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
     }
@@ -761,7 +752,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh);
+  createTable(gridId,data, columns, params, contextPath, refresh, "nodes");
 
 }
 
@@ -823,7 +814,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
 }
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
-function createTable(gridId,data,columns, customParams, contextPath, refresh) {
+function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId) {
 
   var defaultParams = {
       "asStripeClasses": [ 'color1', 'color2' ]
@@ -832,6 +823,20 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh) {
     , "aaData": data
     , "bJQueryUI": true
   };
+
+  if (storageId !== undefined) {
+    var storageParams = {
+        "bStateSave" : true
+      , "fnStateSave": function (oSettings, oData) {
+          localStorage.setItem( 'DataTables_'+storageId, JSON.stringify(oData) );
+        }
+      , "fnStateLoad": function (oSettings) {
+          return JSON.parse( localStorage.getItem('DataTables_'+storageId) );
+        }
+    }
+
+    $.extend(defaultParams,storageParams)
+  }
 
   var params = $.extend({},defaultParams,customParams)
   $('#'+gridId).dataTable( params );
