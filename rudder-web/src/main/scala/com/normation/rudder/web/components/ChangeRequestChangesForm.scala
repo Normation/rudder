@@ -357,7 +357,7 @@ class ChangeRequestChangesForm(
     , default : NodeSeq
   ) = diff.map(value => displayFormDiff(value, name)).getOrElse(default)
 
-  private[this] def displayRule(rule:Rule, rootRuleCategory: RuleCategory, groupLib: FullNodeGroupCategory) = {
+  private[this] def displayRule(rule:Rule, rootRuleCategory: RuleCategory, groupLib: FullNodeGroupCategory) : NodeSeq = {
     val categoryName = ruleCategoryService.shortFqdn(rootRuleCategory, rule.categoryId).getOrElse("Error while looking for category")
     ( "#ruleID" #> createRuleLink(rule.id) &
       "#ruleName" #> rule.name &
@@ -565,32 +565,44 @@ class ChangeRequestChangesForm(
       ) ++
       rules.flatMap(ruleChange =>
         <li>{
-          ruleChange.change.map{_.diff match {
+          (ruleChange.change.map{  change =>
 
-            case ModifyToRuleDiff(rule) =>
-              (for {
+             val rule = change.diff.rule
+            (for {
                 groupLib <- getGroupLib()
-                initialRule <- ruleChange.initialState
-              } yield {
-                (groupLib, initialRule)
-              }) match {
-                case Full((groupLib,initialRule)) =>
-                  val diff = diffService.diffRule(initialRule, rule)
-                  displayRuleDiff(diff, rule, groupLib, rootRuleCategory)
+            } yield {
+
+              change.diff match {
+                case ModifyToRuleDiff(rule) =>
+                  ruleChange.initialState match {
+                    case Some(initialRule) =>
+                      val diff = diffService.diffRule(initialRule, rule)
+                      displayRuleDiff(diff, rule, groupLib, rootRuleCategory)
+                    case None =>
+                      val msg = s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
+                      logger.error(msg)
+                      <div>{msg}</div>
+                  }
+                case diff =>
+                  displayRule(rule, rootRuleCategory, groupLib)
+              }
+
+            }) match {
+                case Full(xml) =>
+                  xml
                 case eb:EmptyBox =>
-                  val msg = s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
-                  logger.error(msg)
-                  <div>msg</div>
-              }
-           case diff =>
-              val rule = diff.rule
-              for {
-                groupLib <- getGroupLib()
-                res <- displayRule(rule, rootRuleCategory, groupLib)
-              } yield {
-                res
-              }
-          } }.getOrElse(<div>Error</div>)
+                  val fail = eb ?~! s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
+                  logger.error(fail.messageChain)
+                  <div>{fail.messageChain}</div>
+            }
+          }) match {
+            case Full(xml) =>
+              xml
+            case eb:EmptyBox =>
+              val fail = eb ?~! s"Could not display Rule diffs"
+              logger.error(fail.messageChain)
+              <div>{fail.messageChain}</div>
+          }
         }</li>
       ) ++
       globalParameters.flatMap(globalParameterChange =>
