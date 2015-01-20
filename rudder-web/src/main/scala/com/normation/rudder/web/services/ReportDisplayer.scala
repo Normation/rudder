@@ -243,14 +243,19 @@ class ReportDisplayer(
           ( "#reportLine" #> reports.flatMap(showMissingReport(_) )
           ).apply(missingGridXml ) ++
             Script( JsRaw("""
-             var oTable%1$s = $('#%2$s').dataTable({
+             var oTableMissing = $('#missingGrid').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,
                "bLengthChange": true,
                "bStateSave": true,
-               "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_missingGrid', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_missingGrid') );
+                    },
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
                "oLanguage": {
@@ -264,7 +269,7 @@ class ReportDisplayer(
                  { "sWidth": "150px" }
                ]
              } );
-         """.format("missing","missingGrid") ) ) }
+         """) ) }
         else
           NodeSeq.Empty
         }
@@ -332,14 +337,19 @@ class ReportDisplayer(
          ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
          ).apply(unexpectedGridXml ) ++
             Script( JsRaw("""
-             var oTable%1$s = $('#%2$s').dataTable({
+             var oTableUnexpected = $('#unexpectedGrid').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
                "bPaginate" : true,
                "bLengthChange": true,
                "bStateSave": true,
-               "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_unexpectedGrid', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_unexpectedGrid') );
+                    },
                "sPaginationType": "full_numbers",
                "bJQueryUI": true,
                "oLanguage": {
@@ -354,7 +364,7 @@ class ReportDisplayer(
                  { "sWidth": "200px" }
                ]
              } );
-         """.format("unexpected","unexpectedGrid") ) ) }
+         """ ) ) }
         else
           NodeSeq.Empty
         }
