@@ -238,7 +238,7 @@ object PendingHistoryGrid extends Loggable {
                 NodeSeq.Empty
             ) ++
             DisplayNode.showPannedContent(sm.data, RemovedInventory, "hist")) &
-            DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
+            DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist")
       }
     }
   }
