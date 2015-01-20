@@ -47,7 +47,7 @@ bundle agent logger_rudder(message, class_prefix)
 
       # 4/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
-        int        => getfields("^[^;]*;;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
+        int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
@@ -194,5 +194,13 @@ body classes _rudder_always_classes_persist(always, persist)
   repair_timeout   => { "${always}" };
 
   persist_time     => "${persist}";
+}
+
+#
+# Define the current Technique we are doing report on
+# Must be called before the reporting
+bundle agent current_technique_report_info(name) {
+  vars:
+    "technique_name" string => "${name}";
 }
 
