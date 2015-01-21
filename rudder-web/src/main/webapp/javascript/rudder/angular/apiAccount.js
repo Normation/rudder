@@ -174,6 +174,13 @@ $scope.overrideOptions = {
     "bPaginate" : true,
     "bInfo" : false,
     "bJQueryUI": true,
+    "bStateSave": true,
+    "fnStateSave": function (oSettings, oData) {
+      localStorage.setItem( 'DataTables_apiAccounts', JSON.stringify(oData) );
+    },
+    "fnStateLoad": function (oSettings) {
+      return JSON.parse( localStorage.getItem('DataTables_apiAccounts') );
+    },
     "bLengthChange": true,
     "sPaginationType": "full_numbers",
     "oLanguage": {
