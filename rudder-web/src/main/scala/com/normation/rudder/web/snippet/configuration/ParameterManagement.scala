@@ -150,16 +150,21 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   private[this] def initJs() : JsCmd = {
     OnLoad(
-        JsRaw("""
+        JsRaw(s"""
           /* Event handler function */
-          #table_var# = $('#%s').dataTable({
+          ${jsVarNameForId(gridName)} = $$('#${gridName}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth"   : false,
             "bFilter"      : true,
             "bPaginate"    : true,
             "bLengthChange": true,
             "bStateSave"   : true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${gridName}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${gridName}') );
+                    },
             "sPaginationType": "full_numbers",
             "oLanguage": {
               "sZeroRecords": "No parameters!",
@@ -174,8 +179,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $('.dataTables_filter input').attr("placeholder", "Filter");
-          """.format(gridName).replaceAll("#table_var#",jsVarNameForId(gridName))
+          $$('.dataTables_filter input').attr("placeholder", "Filter");
+          """
         ) &
         JsRaw("""
         /* Formating function for row details */

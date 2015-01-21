@@ -1635,15 +1635,20 @@ class EventListDisplayer(
       </div>
       <br/>
     </div>
-  </div> ++ Script(JsRaw("""
-        $('#rollbackTable%s').dataTable({
+  </div> ++ Script(JsRaw(s"""
+        $$('#rollbackTable${id}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
             "bFilter" :true,
             "bPaginate" :true,
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_rollbackTable${id}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_rollbackTable${id}') );
+                    },
             "sPaginationType": "full_numbers",
             "bJQueryUI": true,
             "oLanguage": {
@@ -1658,7 +1663,7 @@ class EventListDisplayer(
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-        """.format(id)))
+        """))
   }
 
   private[this] def authorizedNetworksXML() = (

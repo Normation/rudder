@@ -237,7 +237,6 @@ class ReportDisplayer(
     }
   }
 
-
   def showUnexpectedReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
     def showUnexpectedReport(report:((String,String,List[String]),String,String)) : NodeSeq = {
       val techniqueName =report._2
@@ -320,7 +319,12 @@ class ReportDisplayer(
        "bPaginate" : true,
        "bLengthChange": true,
        "bStateSave": true,
-       "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${name2}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${name2}') );
+                    },
        "sPaginationType": "full_numbers",
        "bJQueryUI": true,
        "oLanguage": {
