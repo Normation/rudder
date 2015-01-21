@@ -394,8 +394,6 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
       }
@@ -856,8 +854,6 @@ function createChangeRequestTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
     }
@@ -865,8 +861,7 @@ function createChangeRequestTable(gridId, data, contextPath, refresh) {
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh);
-
+  createTable(gridId,data, columns, params, contextPath, refresh, "change_requests");
 }
 
 /*
@@ -917,8 +912,6 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
     }
@@ -926,7 +919,7 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh);
+  createTable(gridId,data, columns, params, contextPath, refresh, "technical_logs");
 
 }
 
@@ -973,8 +966,6 @@ function createChangesTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
     }
@@ -982,7 +973,7 @@ function createChangesTable(gridId, data, contextPath, refresh) {
     , "sDom": '<"dataTables_wrapper_top newFilter"f>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh);
+  createTable(gridId,data, columns, params, contextPath, refresh, "recent_changes");
 
 }
 
@@ -1032,8 +1023,6 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
     , "bPaginate" : true
     , "bLengthChange": true
     , "sPaginationType": "full_numbers"
-    , "bStateSave": true
-    , "sCookiePrefix": "Rudder_DataTables_"
     , "oLanguage": {
         "sSearch": ""
     }
@@ -1077,7 +1066,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh);
+  createTable(gridId,data, columns, params, contextPath, refresh, "event_logs");
 
 
   
