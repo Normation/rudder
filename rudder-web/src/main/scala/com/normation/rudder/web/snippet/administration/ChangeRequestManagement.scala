@@ -98,10 +98,10 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
           "bLengthChange": true,
           "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_reportsGrid', JSON.stringify(oData) );
+                      localStorage.setItem( 'DataTables_changeRequests', JSON.stringify(oData) );
                     },
                     "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_changeHistory') );
+                      return JSON.parse( localStorage.getItem('DataTables_changeRequests') );
                     },
           "sPaginationType": "full_numbers",
           "bJQueryUI": true,
