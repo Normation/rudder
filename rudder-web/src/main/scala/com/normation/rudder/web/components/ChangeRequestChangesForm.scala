@@ -284,7 +284,12 @@ class ChangeRequestChangesForm(
           "sSearch": ""
           },
           "bStateSave": true,
-          "sCookiePrefix": "Rudder_DataTables_",
+          "fnStateSave": function (oSettings, oData) {
+            localStorage.setItem( 'DataTables_changeHistory', JSON.stringify(oData) );
+          },
+          "fnStateLoad": function (oSettings) {
+            return JSON.parse( localStorage.getItem('DataTables_changeHistory') );
+          },
           "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
           "aoColumns": [
             { "sWidth": "120px" },

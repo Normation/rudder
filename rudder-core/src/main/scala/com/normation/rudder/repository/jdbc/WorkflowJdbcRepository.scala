@@ -47,6 +47,8 @@ import org.springframework.jdbc.core.RowMapper
 import java.sql.ResultSet
 import org.springframework.jdbc.support.GeneratedKeyHolder
 import org.springframework.jdbc.core.PreparedStatementCreator
+import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.domain.workflows.WorkflowNodeId
 
 class RoWorkflowJdbcRepository(
     jdbcTemplate : JdbcTemplate
@@ -81,6 +83,21 @@ class RoWorkflowJdbcRepository(
       case Success(x) => x
       case Catch(error) =>
         logger.error(s"Error when fetching status of change request ${crId.value} : ${error.toString()}")
+        Failure(error.toString())
+    }
+  }
+
+  def getAllChangeRequestsState() : Box[Map[ChangeRequestId,WorkflowNodeId]] = {
+     Try {
+      for{
+        WorkflowStateMapper(state,id) <- jdbcTemplate.query(SELECT_SQL , DummyWorkflowsMapper).toSeq
+      } yield {
+        (ChangeRequestId(id),WorkflowNodeId(state))
+      }
+    } match {
+      case Success(x) => Full(x.toMap)
+      case Catch(error) =>
+        logger.error(s"Error when fetching status of all change requests : ${error.toString()}")
         Failure(error.toString())
     }
   }
@@ -166,15 +183,15 @@ class WoWorkflowJdbcRepository(
 /**
  * A dummy object easing the transition between database and code
  */
-private[jdbc] case class DummyMapper(
+private[jdbc] case class WorkflowStateMapper(
   state : String
 , crId  : Int
 )
 
-object DummyWorkflowsMapper extends RowMapper[DummyMapper] with Loggable {
-  def mapRow(rs : ResultSet, rowNum: Int) : DummyMapper = {
+object DummyWorkflowsMapper extends RowMapper[WorkflowStateMapper] with Loggable {
+  def mapRow(rs : ResultSet, rowNum: Int) : WorkflowStateMapper = {
     // dummy code
-    DummyMapper(
+    WorkflowStateMapper(
         rs.getString("state")
       , rs.getInt("id")
     )

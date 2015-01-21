@@ -85,6 +85,12 @@ trait UpdateExpectedReportsRepository {
    * Delete all node config id info that finished before date
    */
   def deleteNodeConfigIdInfo(date:DateTime) : Box[Int]
+
+  /**
+   * Delete all expected reports closed before a date
+   */
+  def deleteExpectedReports(date: DateTime) : Box[Int]
+
 }
 
 

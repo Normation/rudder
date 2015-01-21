@@ -113,7 +113,12 @@ object PendingHistoryGrid extends Loggable {
             "bFilter" :true,
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_pending_server_history', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_pending_server_history') );
+                    },
             "bJQueryUI": true,
             "oLanguage": {
               "sSearch": ""
@@ -239,7 +244,7 @@ object PendingHistoryGrid extends Loggable {
                 NodeSeq.Empty
             ) ++
             DisplayNode.showPannedContent(None, sm.data, RemovedInventory, "hist")) &
-            DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist", Some("node_tabs"))
+            DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist")
       }
     }
   }

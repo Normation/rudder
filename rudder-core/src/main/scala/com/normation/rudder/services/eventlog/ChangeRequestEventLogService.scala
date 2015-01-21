@@ -71,6 +71,8 @@ trait ChangeRequestEventLogService {
    * describing what happened in other cases.
    */
   def getLastLog(id:ChangeRequestId) : Box[Option[ChangeRequestEventLog]]
+
+  def getLastCREvents: Box[Map[ChangeRequestId,EventLog]]
 }
 
 class ChangeRequestEventLogServiceImpl(
@@ -95,5 +97,12 @@ class ChangeRequestEventLogServiceImpl(
 
   private[this] def getFirstOrLastLog(id:ChangeRequestId, sortMethod:String) :  Box[Option[ChangeRequestEventLog]] = {
     eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()",Some(1),Some(sortMethod), Some(ChangeRequestLogsFilter.eventList.toSeq)).map(_.collect{case c:ChangeRequestEventLog => c}.headOption)
+  }
+
+  /**
+   * Get Last Change Request event for all change Request
+   */
+  def getLastCREvents: Box[Map[ChangeRequestId,EventLog]] = {
+    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()",Some(ChangeRequestLogsFilter.eventList.toSeq))
   }
 }

@@ -104,14 +104,14 @@ object DisplayNode extends Loggable {
     (for {
       seq <- getSoftwareService.getSoftware(softIds)
       gridDataId = htmlId(jsId,"soft_grid_data_")
-      gridId = htmlId(jsId,"soft_grid_")
+      gridId = "soft"
     } yield SetExp(JsVar(gridDataId),JsArray(seq.map { x => JsArray(
         Str(x.name.getOrElse("")),
         Str(x.version.map(_.value).getOrElse("")),
         Str(x.description.getOrElse(""))
-      )}:_*) ) & JsRaw("""
-          $('#%s').dataTable({
-            "aaData":%s,
+      )}:_*) ) & JsRaw(s"""
+          $$('#${htmlId(jsId,gridId+"_")}').dataTable({
+            "aaData":${gridDataId},
             "bJQueryUI": true,
             "bPaginate": true,
             "bLengthChange": true,
@@ -122,13 +122,18 @@ object DisplayNode extends Loggable {
             },
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${gridId}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${gridId}') );
+                    },
             "bAutoWidth": false,
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
         });
-        $('.dataTables_filter input').attr("placeholder", "Filter");
-            """.format(gridId,gridDataId,gridId))
+        $$('.dataTables_filter input').attr("placeholder", "Filter");
+            """)
     ) match {
       case Empty => Alert("No software found for that server")
       case Failure(m,_,_) => Alert("Error when trying to fetch software. Reported message: "+m)
@@ -138,22 +143,21 @@ object DisplayNode extends Loggable {
 
   def head() = chooseTemplate("serverdetails","head",template)
 
-def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContainer : Option[String] = None):JsCmd = {
+def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
-    val softGridId = htmlId(jsId,"soft_grid_")
+    val softGridId = htmlId(jsId,"soft_")
     val softPanelId = htmlId(jsId,"sd_soft_")
     var eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0)).map(x => (htmlId(jsId, x._1+ "_grid_"),x._2.map("""{"sWidth": "%spx"}""".format(_)),x._3))
-    val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos").
-                           map(x => htmlId(jsId, x+ "_grid_"))
+    val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
 
     JsRaw("var "+softGridDataId +"= null") &
     OnLoad(
       JsRaw("$('#"+detailsId+"').tabs()") &
       { eltIds.map { i =>
-          JsRaw("""
-              $('#%s').dataTable({
+          JsRaw(s"""
+              $$('#${htmlId(jsId,i+"_")}').dataTable({
                 "bJQueryUI": true,
                 "bRetrieve": true,
                 "bFilter": true,
@@ -163,7 +167,12 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 },
                 "bLengthChange": true,
                 "bStateSave": true,
-                "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${i}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${i}') );
+                    },
                 "sPaginationType": "full_numbers",
                 "bPaginate": true,
                 "bAutoWidth": false,
@@ -171,46 +180,48 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
 
-              $('.dataTables_filter input').attr("placeholder", "Filter");
-          | """.stripMargin('|').format(i,i)):JsCmd
+              $$('.dataTables_filter input').attr("placeholder", "Filter");
+          | """.stripMargin('|')):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
       { eltIdswidth.map { i =>
-          JsRaw("""
-              $('#%s').dataTable({
+          JsRaw(s"""
+              $$('#${i._1}').dataTable({
                 "bJQueryUI": true,
                 "bRetrieve": true,
                 "sPaginationType": "full_numbers",
                 "bFilter": true,
                 "asStripeClasses": [ 'color1', 'color2' ],
                 "bPaginate": true,
-                "aoColumns": %s ,
-                "aaSorting": [[ %s, "asc" ]],
+                "aoColumns": ${i._2.mkString("[",",","]")} ,
+                "aaSorting": [[ ${i._3}, "asc" ]],
                 "oLanguage": {
                   "sSearch": ""
                 },
                 "bLengthChange": true,
                 "bStateSave": true,
-                "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${i._1}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${i._1}') );
+                    },
                 "bAutoWidth": false,
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
-              $('.dataTables_filter input').attr("placeholder", "Filter");
-           | """.stripMargin('|').format(i._1,i._2.mkString("[",",","]"),i._3,i._1)):JsCmd
+              $$('.dataTables_filter input').attr("placeholder", "Filter");
+           | """.stripMargin('|')):JsCmd
         }
       } &
       JsRaw("roundTabs()") &
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
-      JsRaw("""
-| $("#%s").bind( "show", function(event, ui) {
-| if(ui.panel.id== '%s' && ui.panel.firstChild.id == '%s') { %s; }
-| });
-""".stripMargin('|').format(tabContainer.getOrElse(detailsId),
-            softPanelId,softGridId,
-            SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd)
-      )
+      JsRaw(s"""
+$$("#${detailsId}").bind( "show", function(event, ui) {
+  if(ui.panel.id== '${softPanelId}' && ui.panel.firstChild.id == '${softGridId}') { ${  SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd}; }
+});
+""")
     )
   }
 
@@ -303,7 +314,8 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
    */
   def showPannedContent(node: Option[RudderNode], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
-    <div id="node_tabs" class="tabs">
+    val detailsId = htmlId(jsId,"details_")
+    <div id={detailsId} class="tabs">
       <ul>
         <li><a href={htmlId_#(jsId,"node_summary_")}>Node summary</a></li>
         <li><a href={htmlId_#(jsId,"node_inventory_")}>Hardware</a></li>
@@ -504,7 +516,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String="", tabContaine
         case Failure(m,_,_) => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
         case Full(seq) if (seq.isEmpty && eltName != "soft") => <span>No matching components detected on this node</span>
         case Full(seq) =>
-          <table cellspacing="0" id={htmlId(jsId,eltName + "_grid_")} class="tablewidth">
+          <table cellspacing="0" id={htmlId(jsId,eltName+"_")} class="tablewidth">
           { title match {
             case None => NodeSeq.Empty
             case Some(title) => <div style="text-align:center"><b>{title}</b></div>

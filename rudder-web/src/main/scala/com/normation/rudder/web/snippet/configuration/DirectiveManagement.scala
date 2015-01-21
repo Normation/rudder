@@ -436,7 +436,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
     JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({'directiveId':'${directiveId.value}'})""") &
-    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
+    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled)) &
+    After(0,JsRaw("""correctButtons(); createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
   private[this] def updateDirectiveSettingForm(
@@ -514,7 +515,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       //Update UI
       Replace(html_techniqueDetails, techniqueDetails.applyAgain) &
       Replace(htmlId_policyConf, showDirectiveDetails) &
-      JsRaw("""correctButtons();""")
+      JsRaw("""correctButtons(); createTooltip();""")
   }
 
 }
