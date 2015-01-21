@@ -284,7 +284,7 @@ class SystemVariableServiceImpl(
     val agentRunParams =
       if (nodeInfo.isPolicyServer) {
         val policyServerSchedule = """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
-        Full((AgentRunInterval(Some(false), 5, 0, 0, 5), policyServerSchedule))
+        Full((AgentRunInterval(Some(false), 5, 0, 0, 0), policyServerSchedule))
       } else {
         val runInterval = nodeInfo.nodeReportingConfiguration.agentRunInterval match {
           case Some(nodeRunInterval)  if nodeRunInterval.overrides.getOrElse(false) =>
@@ -349,7 +349,6 @@ class SystemVariableServiceImpl(
 
 
       // the schedule must be the default one for policy server
-
 
 
       Map(
