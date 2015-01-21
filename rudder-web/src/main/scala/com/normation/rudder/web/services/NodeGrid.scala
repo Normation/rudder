@@ -131,16 +131,21 @@ class NodeGrid(
       """.replaceAll("#table_var#",jsVarNameForId(tableId))
     ) & OnLoad(
 
-        JsRaw("""
+        JsRaw(s"""
           /* Event handler function */
-          #table_var# = $('#%s').dataTable({
+          ${jsVarNameForId(tableId)} = $$('#${tableId}').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" :%s,
-            "bPaginate" :%s,
+            "bFilter" : ${searchable},
+            "bPaginate" : ${paginate},
             "bLengthChange": true,
             "bStateSave": true,
-            "sCookiePrefix": "Rudder_DataTables_",
+                    "fnStateSave": function (oSettings, oData) {
+                      localStorage.setItem( 'DataTables_${tableId}', JSON.stringify(oData) );
+                    },
+                    "fnStateLoad": function (oSettings) {
+                      return JSON.parse( localStorage.getItem('DataTables_${tableId}') );
+                    },
             "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
             "sPaginationType": "full_numbers",
@@ -150,11 +155,11 @@ class NodeGrid(
             "aoColumns": [
               { "sWidth": "180px" },
               { "sWidth": "190px" },
-              { "sWidth": "100px" } %s
+              { "sWidth": "100px" } ${aoColumns}
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-            """.format(tableId,searchable,paginate,aoColumns).replaceAll("#table_var#",jsVarNameForId(tableId))
+            """
         ) &
 
         initJsCallBack(tableId)
@@ -258,7 +263,7 @@ class NodeGrid(
         // Node may not be available, so we look for it outside the for coprehension
         val node = nodeInfoService.getNode(nodeId)
         SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
-        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "", Some("node_tabs"))
+        DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)
         Alert("Called id is not valid: %s".format(jsonArg))

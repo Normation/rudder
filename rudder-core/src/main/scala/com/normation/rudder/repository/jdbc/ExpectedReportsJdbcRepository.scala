@@ -352,7 +352,30 @@ class UpdateExpectedReportsJdbcRepository(
    */
   val transactionTemplate = new org.springframework.transaction.support.TransactionTemplate(transactionManager)
 
+  /**
+   * Delete all expected reports closed before a date
+   */
+  def deleteExpectedReports(date: DateTime) : Box[Int] = {
+    // Find all nodejoinkey that have expected reports closed more before date
+    transactionTemplate.execute(new TransactionCallback[Box[Int]]() {
+        def doInTransaction(status: TransactionStatus): Box[Int] = {
+          tryo {
+            val deletedExpectedReports = jdbcTemplate.update("DELETE FROM expectedreports where coalesce(endDate, ?) < ?"
+                                , new Timestamp(date.getMillis), new Timestamp(date.getMillis)
+                              )
 
+            if (deletedExpectedReports == 0) {
+              0
+            } else {
+              logger.debug(s"Deleted ${deletedExpectedReports} expected reports closed before ${date}")
+              val deletedExpectedReportsNode = jdbcTemplate.update("delete from expectedreportsnodes where nodejoinkey not in (select nodejoinkey from expectedreports)")
+              logger.debug(s"Deleted ${deletedExpectedReportsNode} expected reports node")
+              deletedExpectedReports
+            }
+          }
+        }
+    })
+  }
 
   private[jdbc] def getNodes(nodeJoinKeys : Set[Int]) : Box[Map[Int, Map[NodeId, List[NodeConfigId]]]] = {
     if(nodeJoinKeys.isEmpty) Full(Map())

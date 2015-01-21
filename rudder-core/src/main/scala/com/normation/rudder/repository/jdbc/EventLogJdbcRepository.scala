@@ -186,6 +186,53 @@ class EventLogJdbcRepository(
     }
   }
 
+  def getLastEventByChangeRequest(
+      xpath: String
+    , eventTypeFilter : Option[Seq[EventLogFilter]] = None
+  ) : Box[Map[ChangeRequestId,EventLog]] = {
+
+    val eventFilter = eventTypeFilter.map( seq => " where eventType in (" + seq.map(x => "?").mkString(",") + ")").getOrElse("")
+
+    // Query to get Last event by change request, we need to do something like a groupby and get the one with a higher creationDate
+    // We partition our result by id, and order them by creation desc, and get the number of that row
+    // then we only keep the first row (rownumber <=1)
+    val query = s"""
+      select * from (
+        select
+            *
+          , cast (xpath(?, data) as text[]) as crid
+          , row_number() over (
+              partition by cast (xpath(?, data) as text[])
+              order by creationDate desc
+            ) as rownumber
+        from eventlog
+        ${eventFilter}
+      ) lastEvents where rownumber <= 1;
+      """
+    Try {
+      jdbcTemplate.query(
+          new PreparedStatementCreator() {
+            def createPreparedStatement(connection : Connection) : PreparedStatement = {
+              val ps = connection.prepareStatement(query, Array[String]());
+              ps.setString(1, xpath )
+              ps.setString(2, xpath )
+
+              // if with have eventtype filter, apply them
+              eventTypeFilter.map { seq => seq.zipWithIndex.map { case (eventType, index) =>
+                // zipwithIndex starts at 0, and we have already 2 used for the array and start at 1, so we +3 the index
+                ps.setString((index+3), eventType.eventType.serialize )
+              } }
+
+              ps
+            }
+          }
+        , EventLogWithCRIdMapper
+      )
+    } match {
+      case Success(x) => Full(x.toMap)
+      case Catch(error) => Failure(error.toString())
+    }
+  }
 
   def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
     val where = criteria.map(c => s"and ${c}").getOrElse("")
@@ -335,6 +382,14 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
     returnedMap.toMap
    }
 
+}
 
-
+object EventLogWithCRIdMapper extends RowMapper[(ChangeRequestId,EventLog)] with Loggable {
+  def mapRow(rs : ResultSet, rowNum: Int) : (ChangeRequestId,EventLog) = {
+    val eventLog = EventLogReportsMapper.mapRow(rs, rowNum)
+    // Since we extracted the value from xml,  it is surrounded by "{" and "}" we need to remove first and last character
+    val id = rs.getString("crId")
+    val crId = ChangeRequestId(rs.getString("crId").substring(1, id.length()-1).toInt)
+    (crId,eventLog)
+  }
 }

@@ -48,6 +48,11 @@ trait WorkflowEventLogService {
   def getChangeRequestHistory(id: ChangeRequestId) : Box[Seq[WorkflowStepChanged]]
 
   def getLastLog(id:ChangeRequestId) : Box[Option[WorkflowStepChanged]]
+
+  /**
+   * Get Last Workflow event for each change Request
+   */
+  def getLastWorkflowEvents() : Box[Map[ChangeRequestId,EventLog]]
 }
 
 class WorkflowEventLogServiceImpl (
@@ -65,5 +70,9 @@ class WorkflowEventLogServiceImpl (
 
   def getLastLog(id:ChangeRequestId) : Box[Option[WorkflowStepChanged]] = {
     eventLogRepository.getEventLogByChangeRequest(id,"/entry/workflowStep/changeRequestId/text()",Some(1),Some("creationDate desc"), eventTypeFilter=Some(Seq(WorkflowStepChanged))).map(_.collect{case w:WorkflowStepChanged => w}.headOption)
+  }
+
+  def getLastWorkflowEvents() : Box[Map[ChangeRequestId,EventLog]] = {
+    eventLogRepository.getLastEventByChangeRequest("/entry/workflowStep/changeRequestId/text()",Some(Seq(WorkflowStepChanged)))
   }
   }

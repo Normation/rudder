@@ -97,6 +97,12 @@ trait WorkflowService {
   ) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])]
 
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId]
+
+  /**
+   * Get workflow step of each ChangeRequest
+   */
+  def getAllChangeRequestsStep() : Box[Map[ChangeRequestId,WorkflowNodeId]]
+
   def isEditable(currentUserRights:Seq[String],currentStep:WorkflowNodeId, isCreator : Boolean): Boolean
   def isPending(currentStep:WorkflowNodeId): Boolean
 }
@@ -124,6 +130,8 @@ class EitherWorkflowService(cond: () => Box[Boolean], whenTrue: WorkflowService,
     if(cond().getOrElse(false)) whenTrue.findBackSteps(currentUserRights, currentStep, isCreator) else whenFalse.findBackSteps(currentUserRights, currentStep, isCreator)
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] =
     if(cond().getOrElse(false)) whenTrue.findStep(changeRequestId) else whenFalse.findStep(changeRequestId)
+  def getAllChangeRequestsStep() : Box[Map[ChangeRequestId,WorkflowNodeId]] =
+    if(cond().getOrElse(false)) whenTrue.getAllChangeRequestsStep else whenFalse.getAllChangeRequestsStep
   def isEditable(currentUserRights: Seq[String], currentStep: WorkflowNodeId, isCreator: Boolean): Boolean =
     if(cond().getOrElse(false)) whenTrue.isEditable(currentUserRights, currentStep, isCreator) else whenFalse.isEditable(currentUserRights, currentStep, isCreator)
   def isPending(currentStep:WorkflowNodeId): Boolean =
@@ -166,6 +174,8 @@ class NoWorkflowServiceImpl(
   ) : Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])] = Seq()
 
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = Failure("No state when no workflow")
+
+  def getAllChangeRequestsStep : Box[Map[ChangeRequestId,WorkflowNodeId]] = Failure("No state when no workflow")
 
   val openSteps : List[WorkflowNodeId] = List()
   val closedSteps : List[WorkflowNodeId] = List()
@@ -307,6 +317,11 @@ class TwoValidationStepsWorkflowServiceImpl(
   }
   def findStep(changeRequestId: ChangeRequestId) : Box[WorkflowNodeId] = {
     roWorkflowRepo.getStateOfChangeRequest(changeRequestId)
+  }
+
+
+  def getAllChangeRequestsStep : Box[Map[ChangeRequestId,WorkflowNodeId]] = {
+    roWorkflowRepo.getAllChangeRequestsState
   }
 
   private[this] def changeStep(

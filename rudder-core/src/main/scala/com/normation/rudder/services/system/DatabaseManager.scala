@@ -41,6 +41,7 @@ import org.springframework.jdbc.core.JdbcTemplate
 import net.liftweb.common.Loggable
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
+import com.normation.utils.Control
 
 trait DatabaseManager {
 
@@ -124,24 +125,14 @@ class DatabaseManagerImpl(
      reportsRepository.archiveEntries(date)
    }
 
-   def deleteEntries(date : DateTime) : Box[Int] = {
-     val reports = reportsRepository.deleteEntries(date)
-     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date)
 
-     (reports, nodeConfigs) match {
-       case (Full(reports), Full(nodeConfig)) => Full(reports+nodeConfig)
-       case (b:EmptyBox,Full(_)) => b
-       case (Full(_), b:EmptyBox) => b
-       case (a:EmptyBox, b:EmptyBox) =>
-         val reportError = a match {
-           case f:Failure => f
-           case Empty => Failure("An error occured while deleting reports", Empty, Empty)
-         }
-         val nodeConfigError = b match {
-           case f:Failure => f
-           case Empty => Failure("An error occured while deleting old nodeConfig", Empty, Empty)
-         }
-         Failure(nodeConfigError.msg, nodeConfigError.exception, Full(reportError))
-     }
+   def deleteEntries(date : DateTime) : Box[Int] = {
+     val reports = reportsRepository.deleteEntries(date) ?~! "An error occured while deleting reports"
+     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date) ?~! "An error occured while deleting reports"
+     val expectedReports = expectedReportsRepo.deleteExpectedReports(date) ?~! "An error occured while old expected reports"
+
+     // Accumulate errors, them sum values
+     (Control.bestEffort(Seq(reports, nodeConfigs, expectedReports)) (identity)).map(_.sum)
+
    }
 }
