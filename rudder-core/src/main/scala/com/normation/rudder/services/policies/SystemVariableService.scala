@@ -258,7 +258,7 @@ class SystemVariableServiceImpl(
 
       val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue("5")
 
-      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue("5")
+      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue("0")
       val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(DEFAULT_SCHEDULE)
       overridGlobalVariable.put(varAgentRunInterval.spec.name, varAgentRunInterval)
       overridGlobalVariable.put(varAgentRunSchedule.spec.name, varAgentRunSchedule)
