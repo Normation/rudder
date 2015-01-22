@@ -127,7 +127,7 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
         action    => immediate;
 
   reports:
-    full_compliance|send_reports::
+    !changes_only|send_reports::
       "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}";
 }
 
