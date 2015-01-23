@@ -485,7 +485,7 @@ case class RestExtractorService (
   def checkTechniqueVersion (techniqueName: TechniqueName, techniqueVersion: Option[TechniqueVersion])  = {
      techniqueVersion match {
           case Some(version) =>
-            techniqueRepository.getTechniqueVersions(techniqueName).find(_.upsreamTechniqueVersion.value == version) match {
+            techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
               case Some(version) => Full(Some(version))
               case None => Failure(s" version ${version} of Technique ${techniqueName}  is not valid")
             }
