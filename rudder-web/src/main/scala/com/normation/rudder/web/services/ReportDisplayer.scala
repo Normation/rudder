@@ -161,15 +161,16 @@ class ReportDisplayer(
   }
 
   def asyncDisplay(node : NodeInfo) : NodeSeq = {
-      Script(OnLoad(JsRaw("""
-              | $("#%s").bind( "show", function(event, ui) {
-              | if(ui.panel.id== '%s') { %s; }
-              | });
-              """.stripMargin('|').format("node_tabs",
-            "node_reports",
-            SHtml.ajaxCall(JsRaw(""),(v:String) => SetHtml("reportsDetails",displayReports(node)) )._2.toJsCmd
-       )))
-      )
+
+    val id = JsNodeId(node.id)
+    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
+    Script(OnLoad(JsRaw(
+      s"""
+        $$("#details_${id}").bind( "show", function(event, ui) {
+          if(ui.panel.id== 'node_reports') { ${callback.toJsCmd} }
+        });
+       """
+    )))
   }
 
   def displayReports(node : NodeInfo) : NodeSeq = {
