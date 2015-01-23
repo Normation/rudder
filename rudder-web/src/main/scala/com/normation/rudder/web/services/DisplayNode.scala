@@ -305,7 +305,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
   /**
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
-   * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="", tabContainer = Some("node_tabs"))
+   * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="")
    */
   def showPannedContent(sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
