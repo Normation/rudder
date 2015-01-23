@@ -917,7 +917,7 @@ object RudderConfig extends Loggable {
     , roLdapNodeGroupRepository
     , roLdapDirectiveRepository
     , nodeInfoServiceImpl
-    , roRuleCategoryRepository
+    , roLDAPRuleCategoryRepository
     , modificationService
     , personIdentServiceImpl
   )
