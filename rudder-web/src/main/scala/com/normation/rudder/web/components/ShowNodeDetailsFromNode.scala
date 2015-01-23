@@ -68,6 +68,7 @@ import com.normation.rudder.web.services.DisplayNodeGroupTree
 import com.normation.plugins.ExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
+import com.normation.rudder.web.model.JsNodeId
 
 object ShowNodeDetailsFromNode {
 
@@ -148,23 +149,31 @@ class ShowNodeDetailsFromNode(
    * @return
    */
   private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
-      bind("server", serverDetailsTemplate,
-             "header" ->
+
+    val template =
+      bind(
+          "server"
+        , serverDetailsTemplate
+        , "header" ->
               <div id="node_header" class="nodeheader">
                 <div class="nodeheadercontent ui-corner-top"> Node Details - {inventory.node.main.hostname}
                  (last updated { inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}) </div>
-              </div>,
-             "jsTree" ->
+              </div>
+        , "jsTree" ->
               <div id={htmlId_crTree}>
                 <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node.id)}</ul>
-              </div>,
-              "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup),
-              "inventory" -> DisplayNode.show(inventory, false),
-              "extraHeader" -> DisplayNode.showExtraHeader(inventory),
-              "extraContent" -> DisplayNode.showExtraContent(inventory),
-              "reports" -> reportDisplayer.asyncDisplay(node),
-              "logs" -> logDisplayer.asyncDisplay(node.id, withinPopup)
-            )
+              </div>
+        , "nodeDetails" -> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup)
+        , "inventory" -> DisplayNode.show(inventory, false)
+        , "extraHeader" -> DisplayNode.showExtraHeader(inventory)
+        , "extraContent" -> DisplayNode.showExtraContent(inventory)
+        , "reports" -> reportDisplayer.asyncDisplay(node)
+        , "logs" -> logDisplayer.asyncDisplay(node.id, withinPopup)
+      )
+    val id = JsNodeId(node.id)
+    // replace node_tabs with a specific id for the node so we are consistent on all Node Details page
+    val selector : CssSel = ("#node_tabs [id]" #> s"details_${id}")
+    selector(template)
   }
 
   /**
