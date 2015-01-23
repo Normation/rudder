@@ -87,15 +87,16 @@ class LogDisplayer(
 
 
   def asyncDisplay(nodeId : NodeId, withinPopup : Boolean) : NodeSeq = {
-      Script(OnLoad(JsRaw("""
-              | $("#%s").bind( "show", function(event, ui) {
-              | if(ui.panel.id== '%s') { %s; }
-              | });
-              """.stripMargin('|').format("node_tabs",
-            "node_logs",
-            SHtml.ajaxCall(JsRaw(""),(v:String) => SetHtml("logsDetails",display(nodeId))& initJs(withinPopup) )._2.toJsCmd
-       )))
-      )
+
+    val id = JsNodeId(nodeId)
+    val callback =  SHtml.ajaxInvoke( () => SetHtml("logsDetails",display(nodeId))& initJs(withinPopup) )
+    Script(OnLoad(JsRaw(
+      s"""
+        $$("#details_${id}").bind( "show", function(event, ui) {
+          if(ui.panel.id== 'node_logs') { ${callback.toJsCmd} }
+        });
+       """
+     )))
   }
 
   def display(nodeId : NodeId) : NodeSeq = {

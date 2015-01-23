@@ -133,7 +133,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
     case Full(n) => n
   }
   private def serverPortletTemplate = chooseTemplate("server","portlet",serverPortletTemplateFile)
-  private def serverDetailsTemplate = chooseTemplate("detail","server",serverPortletTemplateFile)
   private def searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
 
   // the container for the server selected
