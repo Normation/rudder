@@ -61,6 +61,7 @@ import com.normation.plugins.ExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.web.model.JsNodeId
 
 object ShowNodeDetailsFromNode {
 
@@ -209,20 +210,22 @@ class ShowNodeDetailsFromNode(
    * @return
    */
   private def bindNode(node : Node, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
-      ("#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
-       "#groupTree *" #>
-              <div id={htmlId_crTree}>
-                <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node.id)}</ul>
-              </div> &
-       "#nodeDetails *" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
-       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
-       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
-       "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
-       "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
-       "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
-       "#extraHeader" #> DisplayNode.showExtraHeader(inventory)&
-       "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory)
-      ).apply(serverDetailsTemplate)
+    val id = JsNodeId(node.id)
+    ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
+      "#groupTree *" #>
+        <div id={htmlId_crTree}>
+          <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node.id)}</ul>
+        </div> &
+      "#nodeDetails *" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
+      "#nodeInventory *" #> DisplayNode.show(inventory, false) &
+      "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
+      "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
+      "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
+      "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
+      "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
+      "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
+      "#node_tabs [id]" #> s"details_${id}"
+    ).apply(serverDetailsTemplate)
   }
 
 

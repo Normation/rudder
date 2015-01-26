@@ -85,20 +85,22 @@ class LogDisplayer(
 
 
   def asyncDisplay(nodeId : NodeId) : NodeSeq = {
-
-    val ajaxRefresh = SHtml.ajaxCall(JsRaw(""),(v:String) => refreshData(nodeId) )._2.toJsCmd
+    val id = JsNodeId(nodeId)
+    val ajaxRefresh =  SHtml.ajaxInvoke( () => refreshData(nodeId))
 
     Script(
       OnLoad(
         // set static content
         SetHtml("logsDetails",content) &
         // Create empty table
-        JsRaw(s"""createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh}});""") &
+        JsRaw(s"""createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh.toJsCmd}});""") &
         // Load data asynchronously
-        JsRaw(s"""
-        $$("#node_tabs").bind( "show", function(event, ui) {
-          if(ui.panel.id== 'node_logs') { ${ajaxRefresh}; }
-        });"""
+        JsRaw(
+      s"""
+        $$("#details_${id}").bind( "show", function(event, ui) {
+          if(ui.panel.id== 'node_logs') { ${ajaxRefresh.toJsCmd} }
+        });
+       """
     )))
   }
 
