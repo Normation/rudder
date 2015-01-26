@@ -57,6 +57,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.web.model.JsNodeId
 
 /**
  * Display the last reports of a server
@@ -90,16 +91,16 @@ class ReportDisplayer(
    * - missing reports table if such reports exists
    * - unknown reports table if such reports exists
    */
-  def asyncDisplay(node: Node) : NodeSeq = {
-      Script(OnLoad(JsRaw("""
-              | $("#%s").bind( "show", function(event, ui) {
-              | if(ui.panel.id== '%s') { %s; }
-              | });
-              """.stripMargin('|').format("node_tabs",
-            "node_reports",
-            SHtml.ajaxCall(JsRaw(""),(v:String) => SetHtml("reportsDetails",displayReports(node)) )._2.toJsCmd
-       )))
-      )
+  def asyncDisplay(node : Node) : NodeSeq = {
+    val id = JsNodeId(node.id)
+    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
+    Script(OnLoad(JsRaw(
+      s"""
+        $$("#details_${id}").bind( "show", function(event, ui) {
+          if(ui.panel.id== 'node_reports') { ${callback.toJsCmd} }
+        });
+       """
+    )))
   }
 
   /**
