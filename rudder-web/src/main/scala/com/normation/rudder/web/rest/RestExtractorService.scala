@@ -605,7 +605,7 @@ case class RestExtractorService (
       name             <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
       shortDescription <- extractOneValueJson(json, "shortDescription")()
       longDescription  <- extractOneValueJson(json, "longDescription")()
-      enabled          <- extractOneValueJson(json, "enabled")( convertToBoolean)
+      enabled          <- extractJsonBoolean(json, "enabled")
       priority         <- extractOneValueJson(json, "priority")(convertToInt)
       parameters       <- extractJsonDirectiveParam(json)
       techniqueName    <- extractOneValueJson(json, "techniqueName")(x => Full(TechniqueName(x)))
