@@ -147,7 +147,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
     val softGridId = htmlId(jsId,"soft_")
     val softPanelId = htmlId(jsId,"sd_soft_")
-    var eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0)).map(x => (htmlId(jsId, x._1+ "_grid_"),x._2.map("""{"sWidth": "%spx"}""".format(_)),x._3))
+    var eltIdswidth = List( ("process",List("50","50","50","60","120","50","100","850"),1),("var",List("200","800"),0))
     val eltIds = List( "vm", "fs", "net","bios", "controllers", "memories", "ports", "processors", "slots", "sounds", "storages", "videos")
 
     JsRaw("var "+softGridDataId +"= null") &
@@ -182,35 +182,35 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
           | """.stripMargin('|')):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
-      { eltIdswidth.map { i =>
+      { eltIdswidth.map { case (id,columns,sorting) =>
           JsRaw(s"""
-              $$('#${i._1}').dataTable({
+              $$('#${htmlId(jsId,id+"_")}').dataTable({
                 "bJQueryUI": true,
                 "bRetrieve": true,
                 "sPaginationType": "full_numbers",
                 "bFilter": true,
                 "asStripeClasses": [ 'color1', 'color2' ],
                 "bPaginate": true,
-                "aoColumns": ${i._2.mkString("[",",","]")} ,
-                "aaSorting": [[ ${i._3}, "asc" ]],
+                "aoColumns": ${columns.map(col => s"{'sWidth': '${col}px'}").mkString("[",",","]")} ,
+                "aaSorting": [[ ${sorting}, "asc" ]],
                 "oLanguage": {
                   "sSearch": ""
                 },
                 "bLengthChange": true,
                 "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_${i._1}', JSON.stringify(oData) );
+                      localStorage.setItem( 'DataTables_${id}', JSON.stringify(oData) );
                     },
                     "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_${i._1}') );
+                      return JSON.parse( localStorage.getItem('DataTables_${id}') );
                     },
                 "bAutoWidth": false,
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
               $$('.dataTables_filter input').attr("placeholder", "Search");
-           | """.stripMargin('|')):JsCmd
-        }
+           """) : JsCmd
+        }.reduceLeft( (i,acc) => acc & i )
       } &
       JsRaw("roundTabs()") &
       // for the software tab, we check for the panel id, and the firstChild id
