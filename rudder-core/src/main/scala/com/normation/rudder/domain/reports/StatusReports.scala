@@ -123,18 +123,19 @@ object AggregatedStatusReport {
 
 
 final case class RuleNodeStatusReport(
-    nodeId      : NodeId
-  , ruleId      : RuleId
-  , serial      : Int
-  , agentRunTime: Option[DateTime]
-  , configId    : Option[NodeConfigId]
+    nodeId        : NodeId
+  , ruleId        : RuleId
+  , serial        : Int
+  , agentRunTime  : Option[DateTime]
+  , configId      : Option[NodeConfigId]
     //only one DirectiveStatusReport by directiveId
-  , directives  : Map[DirectiveId, DirectiveStatusReport]
+  , directives    : Map[DirectiveId, DirectiveStatusReport]
+  , expirationDate: DateTime
 ) extends StatusReport {
 
   override val compliance = ComplianceLevel.sum(directives.map(_._2.compliance) )
 
-  override def toString() = s"""[[${nodeId.value}: ${ruleId.value}/${serial}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}]
+  override def toString() = s"""[[${nodeId.value}: ${ruleId.value}/${serial}; run: ${agentRunTime.getOrElse("no time")};${configId.map(_.value).getOrElse("no config id")}->${expirationDate}]
   |  compliance:${compliance}
   |  ${directives.values.toSeq.sortBy( _.directiveId.value ).map { x => s"${x}" }.mkString("\n  ")}]
   |""".stripMargin('|')
@@ -164,7 +165,9 @@ object RuleNodeStatusReport {
     reports.groupBy(r => (r.nodeId, r.ruleId, r.serial, r.agentRunTime, r.configId)).map { case (id, reports) =>
       val newDirectives = DirectiveStatusReport.merge(reports.flatMap( _.directives.values))
 
-      (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, id._5, newDirectives))
+      //the merge of two reports expire when the first one expire
+      val expire = new DateTime( reports.map( _.expirationDate.getMillis).min )
+      (id, RuleNodeStatusReport(id._1, id._2, id._3, id._4, id._5, newDirectives, expire))
     }.toMap
   }
 }

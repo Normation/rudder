@@ -63,6 +63,7 @@ import com.normation.rudder.repository.RoNodeConfigIdInfoRepository
 import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.repository.NodeConfigIdInfo
+import com.normation.rudder.domain.logger.TimingDebugLogger
 
 
 
@@ -89,6 +90,14 @@ class PostgresqlInClause(
     //use IN ( VALUES (), (), ... )
     else s"${attribute} IN(VALUES ${values.mkString("('","'),('","')")})"
   }
+
+  def inNumber(attribute: String, values: Iterable[AnyVal]): String = {
+    //with values, we need more ()
+    if(values.isEmpty) ""
+    else if(values.size < inClauseMaxNbElt) s"${attribute} IN (${values.mkString("", ",", "")})"
+    //use IN ( VALUES (), (), ... )
+    else s"${attribute} IN(VALUES ${values.mkString("(","),(",")")})"
+  }
 }
 
 
@@ -97,41 +106,12 @@ class FindExpectedReportsJdbcRepository(
   , pgInClause  : PostgresqlInClause
 ) extends FindExpectedReportRepository with Loggable with RoNodeConfigIdInfoRepository {
 
-  import pgInClause.in
-
-    //build on the model of postgres in clause
-  private[this] def T2(attribute: (String,String), values: Iterable[NodeAndConfigId], in: Boolean): String = {
-    //with values, we need more ()
-    if(values.isEmpty) ""
-    else {
-      val INCLAUSE = if (in) {
-        "IN"
-      } else {
-        "NOT IN"
-      }
-      val choice = "("+attribute._1+","+attribute._2+")"
-      val ins = values.map{ case NodeAndConfigId(NodeId(x), NodeConfigId(y)) =>
-        "('"+x+"','"+y+"')"
-      }.mkString(",")
-
-      if(values.size < pgInClause.inClauseMaxNbElt) s"${choice} ${INCLAUSE} (${ins})"
-      //use IN ( VALUES (), (), ... )
-      else s"${choice} ${INCLAUSE}(VALUES ${ins})"
-    }
-  }
-
-  private[this] def inT2(attribute: (String,String), values: Iterable[NodeAndConfigId]): String = {
-    T2(attribute, values, true)
-  }
-
-  private[this] def notInT2(attribute: (String,String), values: Iterable[NodeAndConfigId]): String = {
-    T2(attribute, values, false)
-  }
+  import pgInClause._
 
   /*
    * Retrieve the list of node config ids
    */
-  def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]] = {
+  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]] = {
     if(nodeIds.isEmpty) Full(Map())
     else {
       val query = s"""select node_id, config_ids from nodes_info
@@ -149,7 +129,7 @@ class FindExpectedReportsJdbcRepository(
   /*
    * Retrieve all node config ids
    */
-  def getAllNodeConfigIdInfos(): Box[Map[NodeId, Seq[NodeConfigIdInfo]]] = {
+  override def getAllNodeConfigIdInfos(): Box[Map[NodeId, Seq[NodeConfigIdInfo]]] = {
     val query = s"""select node_id, config_ids from nodes_info"""
 
     for {
@@ -159,18 +139,7 @@ class FindExpectedReportsJdbcRepository(
     }
   }
 
-  /*
-   * Retrieve the last expected reports for the nodes.
-   */
-  def getLastExpectedReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId]): Box[Set[RuleExpectedReports]] = {
-    if(nodeIds.isEmpty) Full(Set())
-    else {
-      val rulePredicate = if(filterByRules.isEmpty) "" else " and " + in("ruleid", filterByRules.map(_.value))
-      val where = s"""where E.enddate is null and ${in("N.nodeid", nodeIds.map(_.value))} ${rulePredicate}"""
 
-      getRuleExpectedReports(where, Array()).map(_.toSet)
-    }
-  }
 
   /*
    * Retrieve the expected reports by config version of the nodes
@@ -178,14 +147,13 @@ class FindExpectedReportsJdbcRepository(
    * The current version seems highly inefficient.
    *
    */
-  def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Set[RuleExpectedReports]] = {
-    if(nodeConfigIds.isEmpty) Full(Set())
+  override def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]] = {
+    if(nodeConfigIds.isEmpty) Full(Map())
     else {
       val rulePredicate = if(filterByRules.isEmpty) "" else " where " + in("ruleid", filterByRules.map(_.value))
-      val query = s"""select
-            E.pkid, E.nodejoinkey, E.ruleid, E.directiveid, E.serial, E.component, E.componentsvalues
-          , E.unexpandedComponentsValues, E.cardinality, E.begindate, E.enddate
-          , NNN.nodeid, NNN.nodeconfigids
+
+      val query_subscript_configids = s"""select
+            E.pkid, NNN.nodeid, NNN.nodeconfigids
         from expectedreports E
         inner join (
           select NN.nodejoinkey, NN.nodeid, NN.nodeconfigids
@@ -193,57 +161,96 @@ class FindExpectedReportsJdbcRepository(
             select N.nodejoinkey, N.nodeid, N.nodeconfigids, generate_subscripts(N.nodeconfigids,1) as v
             from expectedreportsnodes N
           ) as NN
-          where ${inT2(("NN.nodeid","NN.nodeconfigids[v]"), nodeConfigIds)}
+          where ${in("NN.nodeconfigids[v]", nodeConfigIds.map(_.version.value))}
         ) as NNN
         on E.nodejoinkey = NNN.nodejoinkey
       """ + rulePredicate
 
-      for {
-        entries <- tryo ( jdbcTemplate.query(query, ReportAndNodeMapper).asScala )
-      } yield {
-        toExpectedReports(entries).toSet
+      def getReportsByIds(reportIds: Set[Int]): Box[Seq[ReportMapping]] = {
+        if(reportIds.isEmpty) {
+          Full(Seq())
+        } else {
+
+          val query_subscript_reports = s"""select
+                E.pkid, E.nodejoinkey, E.ruleid, E.directiveid, E.serial, E.component, E.componentsvalues
+              , E.unexpandedComponentsValues, E.cardinality, E.begindate, E.enddate
+            from expectedreports E
+            where ${inNumber("E.pkid", reportIds) }
+          """
+          tryo(  jdbcTemplate.query(query_subscript_reports, ReportMapper).asScala )
+        }
       }
+
+      val t0 = System.currentTimeMillis()
+
+      val res = for {
+        reportsAndConfigIds <- tryo ( jdbcTemplate.query(query_subscript_configids, ReportAndConfigIdMapper).asScala )
+        t1                  =  System.currentTimeMillis
+        _                   =  TimingDebugLogger.debug(s"GetExpectedReports: configIds: ${t1-t0}ms")
+        reportIds           =  Set[Int]() ++ reportsAndConfigIds.map( _._1)
+        t2                  =  System.currentTimeMillis
+        expectecReports     <- getReportsByIds(reportIds)
+        t3                  =  System.currentTimeMillis
+        _                   =  TimingDebugLogger.debug(s"GetExpectedReports: expectedreports: ${t3-t2}ms")
+      } yield {
+
+        val reports = expectecReports.map(x => (x.pkId, x)).toMap
+
+        val mapped = reportsAndConfigIds.map { case (pkId, nodeId, versions) =>
+          val r = reports(pkId)
+          ReportAndNodeMapping(
+             r.pkId
+           , r.nodeJoinKey
+           , r.ruleId
+           , r.serial
+           , r.directiveId
+           , r.component
+           , r.cardinality
+           , r.componentsValues
+           , r.unexpandedCptsValues
+           , r.beginDate
+           , r.endDate
+           , nodeId
+           , versions
+          )}
+
+        val t4 =  System.currentTimeMillis
+        TimingDebugLogger.debug(s"GetExpectedReports: reportsAndNodeMapping: ${t4-t3}ms")
+
+        val res= toNodeExpectedReports(nodeConfigIds, mapped)
+
+        val t5 =  System.currentTimeMillis
+        TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: ${t5-t4}ms")
+
+        res
+      }
+      res
     }
   }
-  // returns all the pending: those where the expected don't contain the actual
-  def getPendingReports(previousAndExpected: Set[PreviousAndExpectedNodeConfigId], filterByRules: Set[RuleId]) : Box[Set[RuleExpectedReports]] = {
-    if(previousAndExpected.isEmpty) Full(Set())
-    else {
-      val expectedNodeConfigIds = previousAndExpected.map( x => (x.expected))
-      val previousNodeConfigIds = previousAndExpected.map( x => (x.previous))
 
-      val rulePredicate = if(filterByRules.isEmpty) "" else " where " + in("ruleid", filterByRules.map(_.value))
-
-       val query = s"""select
-            E.pkid, E.nodejoinkey, E.ruleid, E.directiveid, E.serial, E.component, E.componentsvalues
-          , E.unexpandedComponentsValues, E.cardinality, E.begindate, E.enddate
-          , NNN.nodeid, NNN.nodeconfigids
-        from expectedreports E
-        inner join (
-          select NN.nodejoinkey, NN.nodeid, NN.nodeconfigids
-          from (
-            select N.nodejoinkey, N.nodeid, N.nodeconfigids, generate_subscripts(N.nodeconfigids,1) as v
-            from expectedreportsnodes N
-          ) as NN
-          where ${inT2(("NN.nodeid","NN.nodeconfigids[v]"), expectedNodeConfigIds)}
-          and ${notInT2(("NN.nodeid","NN.nodeconfigids[v]"), previousNodeConfigIds)}
-        ) as NNN
-        on E.nodejoinkey = NNN.nodejoinkey
-      """ + rulePredicate
-
-      for {
-        entries <- tryo ( jdbcTemplate.query(query, ReportAndNodeMapper).asScala )
-      } yield {
-        toExpectedReports(entries).toSet
+  object ReportAndConfigIdMapper extends RowMapper[(Int, NodeId, List[NodeConfigId])] {
+    def mapRow(rs : ResultSet, rowNum: Int) : (Int, NodeId, List[NodeConfigId]) = {
+      def notNullS(name: String): String = {
+        rs.getString(name) match {
+          case null => throw new IllegalArgumentException(s"Column '${name}' has a null value (illegal value)")
+          case x => x
+        }
       }
+
+      (
+          rs.getInt("pkid")
+        , NodeId(notNullS("nodeid"))
+        , NodeConfigVersionsSerializer.unserialize(rs.getArray("nodeconfigids"))
+      )
     }
   }
-
 
   /**
    * Return current expected reports (the one still pending) for this Rule
+   *
+   * Only used in UpdateExpectedReportsJdbcRepository
    */
-  override def findCurrentExpectedReports(ruleId : RuleId) : Box[Option[RuleExpectedReports]] = {
+  private[jdbc] def findCurrentExpectedReports(ruleId : RuleId) : Box[Option[RuleExpectedReports]] = {
     getRuleExpectedReports("where enddate is null and ruleid = ?", Array[AnyRef](ruleId.value))  match {
         case Empty => Empty
         case f:Failure =>
@@ -279,7 +286,7 @@ class FindExpectedReportsJdbcRepository(
     getRuleExpectedReports("where beginDate < ? and coalesce(endDate, ?) >= ? ", params)
   }
 
-  private[this] def getRuleExpectedReports(whereClause: String, params: Array[AnyRef]) : Box[Seq[RuleExpectedReports]] = {
+  private[this] def getRuleExpectedReports[T](whereClause: String, params: Array[AnyRef], mapEntries: Seq[ReportAndNodeMapping] => T = toExpectedReports _) : Box[T] = {
     val expectedReportsQuery ="""select
           E.pkid, E.nodejoinkey, E.ruleid, E.directiveid, E.serial, E.component, E.componentsvalues
         , E.unexpandedComponentsValues, E.cardinality, E.begindate, E.enddate
@@ -295,8 +302,67 @@ class FindExpectedReportsJdbcRepository(
                    jdbcTemplate.query(expectedReportsQuery, params, ReportAndNodeMapper).asScala
                  } }
     } yield {
-      toExpectedReports(entries)
+      mapEntries(entries)
     }
+  }
+
+
+  /**
+   * Build RuleNodeExpectedReports from a list of rows from DB.
+   */
+  private[this] def toNodeExpectedReports(nodeConfigIds: Set[NodeAndConfigId], entries:Seq[ReportAndNodeMapping]) : Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]] = {
+    /*
+     * It's a simple grouping by nodeId, then by nodeConfigId, then by
+     * ruleId/seria
+     */
+
+    //it's several order of magnitude quicker to build groupBy map
+    //than to filter in the loop
+    val t0 = System.currentTimeMillis
+    val nodeAndConfigIds = nodeConfigIds.groupBy { _.nodeId }.mapValues { _.toSeq.map(_.version) }
+    val reportsForNode = entries.groupBy { _.nodeId }
+
+    val t1 = System.currentTimeMillis
+    TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: groupBy: ${t1-t0}ms")
+
+    var t_byConfigId = 0l
+    var n = 0
+
+    val res = nodeAndConfigIds.map { case (nodeId, configIds) =>
+      val tx_0 = System.currentTimeMillis
+
+      val byConfigId = configIds.map { configId =>
+        val reportsForId = reportsForNode.getOrElse(nodeId, Seq()).filter { _.nodeConfigVersions.exists { _ == configId } }
+        val rnExpectedReports = reportsForId.groupBy( r => SerialedRuleId(r.ruleId, r.serial)).map { case (ruleId, dirReports) =>
+          val directives = dirReports.groupBy(x => x.directiveId).map { case (directiveId, lines) =>
+            // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are
+            // for the same directive, and must be put together
+            DirectiveExpectedReports(directiveId, lines.map( x =>
+              ComponentExpectedReport(x.component, x.cardinality, x.componentsValues, x.unexpandedCptsValues)
+            ).distinct /* because we have the cardinality to deals with mutltiplicity */ )
+          }
+          ( ruleId ->
+            RuleNodeExpectedReports(
+                ruleId.ruleId
+              , ruleId.serial
+              , directives.toSeq
+              , dirReports.head.beginDate // ".head" ok because of groupBy
+              , dirReports.head.endDate
+            )
+          )
+        }
+        (configId, rnExpectedReports)
+      }.toMap
+
+      if(TimingDebugLogger.isDebugEnabled) {
+        val tx_1 = System.currentTimeMillis
+        t_byConfigId = t_byConfigId + tx_1 - tx_0
+        n += 1
+      }
+      (nodeId, byConfigId)
+    }
+    TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: loop: ${t_byConfigId}ms for ${n} iterations (mean: ${t_byConfigId/n}")
+    res
   }
 
   private[this] def toExpectedReports(entries:Seq[ReportAndNodeMapping]) : Seq[RuleExpectedReports] = {
@@ -355,7 +421,7 @@ class UpdateExpectedReportsJdbcRepository(
   /**
    * Delete all expected reports closed before a date
    */
-  def deleteExpectedReports(date: DateTime) : Box[Int] = {
+  override def deleteExpectedReports(date: DateTime) : Box[Int] = {
     // Find all nodejoinkey that have expected reports closed more before date
     transactionTemplate.execute(new TransactionCallback[Box[Int]]() {
         def doInTransaction(status: TransactionStatus): Box[Int] = {
@@ -619,18 +685,6 @@ class UpdateExpectedReportsJdbcRepository(
        }
      }))
   }
-
-  /**
-   * Save the server list in the database
-   */
-  private[this] def updateNodes(configs: Seq[(Int,NodeConfigVersions)]): Box[Seq[(Int,NodeConfigVersions)]] = {
-    sequence(configs) { case(nodeJoinKey, config) =>
-      updateNodeConfig(nodeJoinKey,config)
-    }.map(_ => configs)
-  }
-
-
-
   /*
    * Handle node config id update
    */
@@ -718,6 +772,20 @@ case class ReportAndNodeMapping(
   , val nodeConfigVersions  : List[NodeConfigId]
 ) extends HashcodeCaching
 
+case class ReportMapping(
+    val pkId                : Int
+  , val nodeJoinKey         : Int
+  , val ruleId              : RuleId
+  , val serial              : Int
+  , val directiveId         : DirectiveId
+  , val component           : String
+  , val cardinality         : Int
+  , val componentsValues    : Seq[String]
+  , val unexpandedCptsValues: Seq[String]
+  , val beginDate           : DateTime = DateTime.now()
+  , val endDate             : Option[DateTime] = None
+) extends HashcodeCaching
+
 object ReportAndNodeMapper extends RowMapper[ReportAndNodeMapping] {
 
   //handler to raise exception on null: we DON'T have better means here,
@@ -725,18 +793,13 @@ object ReportAndNodeMapper extends RowMapper[ReportAndNodeMapping] {
 
 
   def mapRow(rs : ResultSet, rowNum: Int) : ReportAndNodeMapping = {
-    def notNullS[T](name: String): String = {
-      rs.getString(name) match {
-        case null => throw new IllegalArgumentException(s"Column '${name}' is null (illegal value)")
-        case x => x
-      }
+    def notNull[T](f: String => T)(name: String): T = f(name) match {
+      case null => throw new IllegalArgumentException(s"Column '${name}' has a null value (illegal value)")
+      case x => x
     }
-    def notNullT(name: String): Timestamp = {
-      rs.getTimestamp(name) match {
-        case null => throw new IllegalArgumentException(s"Column '${name}' is null (illegal value)")
-        case x => x
-      }
-    }
+
+    val notNullS = notNull(rs.getString) _
+    val notNullT = notNull(rs.getTimestamp) _
 
     new ReportAndNodeMapping(
         rs.getInt("pkid")
@@ -755,6 +818,39 @@ object ReportAndNodeMapper extends RowMapper[ReportAndNodeMapping] {
         }
       , NodeId(notNullS("nodeid"))
       , NodeConfigVersionsSerializer.unserialize(rs.getArray("nodeconfigids"))
+    )
+  }
+}
+object ReportMapper extends RowMapper[ReportMapping] {
+
+  //handler to raise exception on null: we DON'T have better means here,
+  //so be sure to handle the exception above
+
+
+  def mapRow(rs : ResultSet, rowNum: Int) : ReportMapping = {
+    def notNull[T](f: String => T)(name: String): T = f(name) match {
+      case null => throw new IllegalArgumentException(s"Column '${name}' has a null value (illegal value)")
+      case x => x
+    }
+
+    val notNullS = notNull(rs.getString) _
+    val notNullT = notNull(rs.getTimestamp) _
+
+    new ReportMapping(
+        rs.getInt("pkid")
+      , rs.getInt("nodejoinkey")
+      , new RuleId(notNullS("ruleid"))
+      , rs.getInt("serial")
+      , DirectiveId(notNullS("directiveid"))
+      , notNullS("component")
+      , rs.getInt("cardinality")
+      , ComponentsValuesSerialiser.unserializeComponents(rs.getString("componentsvalues"))
+      , ComponentsValuesSerialiser.unserializeComponents(rs.getString("unexpandedcomponentsvalues"))
+      , new DateTime(notNullT("begindate"))
+      , rs.getTimestamp("enddate") match {
+          case null => None
+          case x    => Some(new DateTime(x))
+        }
     )
   }
 }
@@ -875,8 +971,6 @@ object NodeConfigIdSerializer {
       }
     }
  }
-
-
 }
 
 

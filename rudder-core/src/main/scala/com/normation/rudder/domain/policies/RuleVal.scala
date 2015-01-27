@@ -141,7 +141,7 @@ case class RuleWithCf3PolicyDraft private (
     ruleId        : RuleId
   , directiveId   : DirectiveId
   , cf3PolicyDraft: Cf3PolicyDraft
-  , overrides     : Set[Cf3PolicyDraftId] //a set of other draft overriden by that one
+  , overrides     : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
 ) extends HashcodeCaching {
   val draftId = cf3PolicyDraft.id
 

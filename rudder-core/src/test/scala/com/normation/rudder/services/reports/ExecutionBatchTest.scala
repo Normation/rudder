@@ -38,7 +38,6 @@ package com.normation.rudder.services.reports
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import scala.collection._
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveId
@@ -49,6 +48,9 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.reports.ChangesOnly
+import com.normation.rudder.domain.policies.SerialedRuleId
+import com.normation.rudder.domain.policies.SerialedRuleId
+import com.normation.rudder.domain.policies.SerialedRuleId
 
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
@@ -57,29 +59,42 @@ class ExecutionBatchTest extends Specification {
   private implicit def str2nodeId(s:String) = NodeId(s)
   private implicit def str2nodeConfigIds(ss:Seq[String]) = ss.map(s =>  (NodeId(s), Some(NodeConfigId("version_" + s)))).toMap
 
+  def buildExpected(
+      nodeIds: Seq[String]
+    , ruleId : String
+    , serial : Int
+    , directives: Seq[DirectiveExpectedReports]
+  ): Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]] = {
+    val rid = SerialedRuleId(RuleId(ruleId), serial)
+    val exp = Map(rid -> RuleNodeExpectedReports(rid.ruleId, rid.serial, directives))
+    nodeIds.map { id =>
+      (NodeId(id) -> Map(NodeConfigId("version_" + id) -> exp))
+    }.toMap
+  }
+
 
   def getNodeStatusReportsByRule(
-      ruleExpectedReports   : RuleExpectedReports
+      ruleExpectedReports   : Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , reportsParam          : Seq[Reports]
     // this is the agent execution interval, in minutes
     , complianceMode        : ComplianceMode
   ): Seq[RuleNodeStatusReport] = {
 
 
-    (for {
-      directiveOnNode   <- ruleExpectedReports.directivesOnNodes
-      (nodeId, version) <- directiveOnNode.nodeConfigurationIds
+    val res = (for {
+      (nodeId, expected) <- ruleExpectedReports.toSeq
     } yield {
       val runTime = reportsParam.headOption.map( _.executionTimestamp).getOrElse(DateTime.now)
-      val info = NodeConfigIdInfo(NodeConfigId("version1"), DateTime.now.minusDays(1), None)
+      val info = NodeConfigIdInfo(expected.keySet.head, DateTime.now.minusDays(1), None)
       val runInfo = complianceMode match {
-        case FullCompliance => CheckCompliance(runTime, info)
-        case ChangesOnly(heartbeatPeriod) => CheckChanges(runTime, info)
+        case FullCompliance => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), MissingReportType)
+        case ChangesOnly(heartbeatPeriod) => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), SuccessReportType)
       }
 
-      val emptyPrevious = scala.collection.immutable.Set[com.normation.rudder.domain.reports.RuleExpectedReports]()
-      ExecutionBatch.getNodeStatusReports(nodeId, runInfo, Seq(ruleExpectedReports), reportsParam, emptyPrevious)
+      ExecutionBatch.getNodeStatusReports(nodeId, runInfo, expected, reportsParam)
     }).flatten
+
+    res
   }
 
   val getNodeStatusByRule = (getNodeStatusReportsByRule _).tupled
@@ -274,17 +289,14 @@ class ExecutionBatchTest extends Specification {
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one")
-              , Seq(
-                  DirectiveExpectedReports("policy"
-                    , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
-                  )
-                )
-            ))
+          , Seq(DirectiveExpectedReports("policy"
+                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
+              )
+            )
         )
       , Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value", DateTime.now(), "message"))
       , FullCompliance
@@ -315,17 +327,14 @@ class ExecutionBatchTest extends Specification {
 
   "A detailed execution Batch, with one component, cardinality one, wrong node" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one")
-              , Seq(
-                  DirectiveExpectedReports("policy"
-                    , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
-                  )
-                )
-            ))
+          , Seq(DirectiveExpectedReports("policy"
+                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
+              )
+            )
         )
       , Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"))
       , FullCompliance
@@ -346,17 +355,14 @@ class ExecutionBatchTest extends Specification {
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one")
-              , Seq(
-                  DirectiveExpectedReports("policy"
-                    , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
-                  )
-                )
-            ))
+          , Seq(DirectiveExpectedReports("policy"
+                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
+              )
+            )
          )
        , Seq[Reports](
              new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
@@ -378,17 +384,14 @@ class ExecutionBatchTest extends Specification {
 
    "A detailed execution Batch, with one component, cardinality one, two nodes, including one not responding" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one", "two")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one", "two")
-              , Seq(
-                  DirectiveExpectedReports("policy"
-                    , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
-                  )
-                )
-           ))
+          , Seq(DirectiveExpectedReports("policy"
+                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
+              )
+            )
         )
       , Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"))
       , FullCompliance
@@ -406,17 +409,14 @@ class ExecutionBatchTest extends Specification {
 
   "A detailed execution Batch, with one component, cardinality one, three nodes, including one not responding" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one", "two", "three")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one", "two", "three")
-              , Seq(
-                  DirectiveExpectedReports("policy"
-                    , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
-                  )
-                )
-           ))
+          , Seq(DirectiveExpectedReports("policy"
+                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
+              )
+            )
          )
        , Seq[Reports](
              new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value", DateTime.now(), "message")
@@ -436,22 +436,19 @@ class ExecutionBatchTest extends Specification {
 
   "A detailed execution Batch, with two directive, two component, cardinality one, three nodes, including one partly responding and one not responding" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one", "two", "three")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one", "two", "three")
-              , Seq(
-                    DirectiveExpectedReports("policy", Seq(
-                         new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
-                       , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
-                     ))
-                   , DirectiveExpectedReports("policy2", Seq(
-                         new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
-                       , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
-                     ))
-                )
-            ))
+          , Seq(DirectiveExpectedReports("policy", Seq(
+                     new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
+                   , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
+                 ))
+               , DirectiveExpectedReports("policy2", Seq(
+                     new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
+                   , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
+                 ))
+            )
         )
       , Seq[Reports](
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
@@ -480,22 +477,19 @@ class ExecutionBatchTest extends Specification {
 
   "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not responding" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one", "two", "three")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-               , Seq("one", "two", "three")
-               , Seq(
-                     DirectiveExpectedReports("policy", Seq(
-                         new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
-                       , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
-                     ))
-                   , DirectiveExpectedReports("policy2",Seq(
-                         new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
-                       , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
-                     ))
-                 )
-            ))
+          , Seq(DirectiveExpectedReports("policy", Seq(
+                     new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
+                   , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
+                 ))
+               , DirectiveExpectedReports("policy2",Seq(
+                     new ComponentExpectedReport("component", 1, Seq("value"), Seq() )
+                   , new ComponentExpectedReport("component2", 1, Seq("value"), Seq() )
+                 ))
+             )
         )
       , Seq[Reports](
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
@@ -535,17 +529,14 @@ class ExecutionBatchTest extends Specification {
 
   "A detailed execution Batch, with two directive, two component, cardinality three, three nodes, including two not completely responding" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one", "two", "three")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-               , Seq("one", "two", "three")
-               , Seq(
-                   DirectiveExpectedReports("policy", Seq(
-                       new ComponentExpectedReport("component", 1, Seq("value", "value2", "value3"), Seq() )
-                   ))
-                 )
-            ))
+          , Seq(DirectiveExpectedReports("policy", Seq(
+                   new ComponentExpectedReport("component", 1, Seq("value", "value2", "value3"), Seq() )
+               ))
+             )
         )
       , Seq[Reports](
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"),
@@ -583,17 +574,14 @@ class ExecutionBatchTest extends Specification {
   "An execution Batch, with one component with a quote in its value, cardinality one, one node" should {
 
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("one")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("one")
-              , Seq(
-                  DirectiveExpectedReports("policy", Seq(
-                      new ComponentExpectedReport("component", 1, Seq("""some\"text"""), Seq("""some\text""") )
-                  ))
-                )
-            ))
+          , Seq(DirectiveExpectedReports("policy", Seq(
+                  new ComponentExpectedReport("component", 1, Seq("""some\"text"""), Seq("""some\text""") )
+              ))
+            )
         )
       , Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some\"text""",new DateTime(), "message"))
       , FullCompliance
@@ -614,17 +602,14 @@ class ExecutionBatchTest extends Specification {
  "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a an escaped quote as well" should {
 
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("nodeId")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("nodeId")
-              , Seq(
-                  DirectiveExpectedReports("policy", Seq(
-                      new ComponentExpectedReport("component", 1, Seq("""${sys.workdir}/inputs/\"test"""), Seq() )
-                  ))
-                )
-            ))
+          , Seq(DirectiveExpectedReports("policy", Seq(
+                  new ComponentExpectedReport("component", 1, Seq("""${sys.workdir}/inputs/\"test"""), Seq() )
+              ))
+            )
         )
       , Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/\"test""", new DateTime(), "message"))
       , FullCompliance
@@ -644,17 +629,14 @@ class ExecutionBatchTest extends Specification {
 
   "An execution Batch, with one component, one node, but with a component value being a cfengine variable with {, and a quote as well" should {
     val param = (
-        RuleExpectedReports(
-            "rule"
+        buildExpected(
+            Seq("nodeId")
+          , "rule"
           , 12
-          , Seq(DirectivesOnNodes(42
-              , Seq("nodeId")
-              , Seq(
-                  DirectiveExpectedReports("policy", Seq(
-                    new ComponentExpectedReport("component", 1, Seq("""${sys.workdir}/inputs/"test"""), Seq("""${sys.workdir}/inputs/"test""") )
-                  ))
-                )
-           ))
+          , Seq(DirectiveExpectedReports("policy", Seq(
+                new ComponentExpectedReport("component", 1, Seq("""${sys.workdir}/inputs/"test"""), Seq("""${sys.workdir}/inputs/"test""") )
+              ))
+            )
         )
       , Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", new DateTime(), "message"))
       , FullCompliance
