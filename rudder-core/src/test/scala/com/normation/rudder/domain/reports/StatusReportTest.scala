@@ -288,7 +288,7 @@ class StatusReportTest extends Specification {
                 ))
               ))
             ))
-          )))
+          ), DateTime.now.plusMinutes(5)))
         case "" :: Nil | Nil => None
         case _ => throw new IllegalArgumentException(s"Can not parse line ${i}: '${l}'")
       }

@@ -34,12 +34,11 @@
 
 package com.normation.rudder.repository
 import org.joda.time._
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
-
 import net.liftweb.common.Box
+import com.normation.rudder.domain.policies.SerialedRuleId
 
 
 trait UpdateExpectedReportsRepository {
@@ -104,36 +103,16 @@ trait FindExpectedReportRepository {
    */
   def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]]
 
-
-  /**
-   * Return current expectedreports (the one still pending) for this Rule
-   */
-  def findCurrentExpectedReports(rule : RuleId) : Box[Option[RuleExpectedReports]]
-
   /**
    * Return node ids associated to the rule (based on expectedreports (the one still pending)) for this Rule
    */
   def findCurrentNodeIds(rule : RuleId) : Box[Set[NodeId]]
 
-
   /*
-   * Retrieve the last expected reports for the nodes.
+   * Retrieve the expected reports by config version of the nodes.
+   * Here, for a given node, we can have several configId asked for.
    */
-  def getLastExpectedReports(nodeIds: Set[NodeId], filterByRules: Set[RuleId]): Box[Set[RuleExpectedReports]]
-
-  /*
-   * Retrieve the expected reports by config version of the nodes
-   */
-  def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Set[RuleExpectedReports]]
-
-
-  /**
-   *  returns all the pending reports from the expected reports: those whom the expected don't contain the actual
-   *  We pass a set of Expected NodeAndConfigId (those we generated), and the actual NodeAndConfigId (that we received)
-   *  It returns the RuleExpectedReports that contains the actual NodeAndConfigId but not the Expected NodeAndConfigId
-   *  so, it is those that were updated since last run
-   */
-  def getPendingReports(previousAndExpectedNodeConfig: Set[PreviousAndExpectedNodeConfigId], filterByRules: Set[RuleId]) : Box[Set[RuleExpectedReports]]
+  def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]]
 }
 
 

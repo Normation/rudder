@@ -96,7 +96,7 @@ function generateRecentGraph(id) {
  *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
  *   }
  */
-function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallback, contextPath, refresh) {
+function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, allCheckboxCallback, contextPath, refresh) {
 
   //base element for the clickable cells
   function callbackElement(oData) {
@@ -271,9 +271,11 @@ function createRuleTable(gridId, data, needCheckbox, isPopup, allCheckboxCallbac
   columns.push(name);
   columns.push(category);
   columns.push(status);
-  columns.push(compliance);
-  columns.push(recentChanges);
-  if (!isPopup) {
+  if (needCompliance) {
+    columns.push(compliance);
+    columns.push(recentChanges);
+  }
+  if (needActions) {
     columns.push(actions);
   }
 
