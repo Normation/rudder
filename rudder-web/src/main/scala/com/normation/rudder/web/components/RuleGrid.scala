@@ -353,8 +353,8 @@ class RuleGrid(
       } else {
         val start = System.currentTimeMillis
         for {
-                recentChanges <- recentChanges.getChangesByInterval()
-                nodeChanges = rules.map(rule => (rule.id -> NodeChanges.changesOnRule(rule.id)(recentChanges)))
+                recentChanges <- recentChanges.getChangesByInterval(None)
+                nodeChanges = rules.map(rule => (rule.id, recentChanges.getOrElse(rule.id, Map())))
                 after = System.currentTimeMillis
                 _ = TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
 
