@@ -1412,6 +1412,7 @@ class RuleEditForm(
                   } );
                 }
           } );} );""".format(tabid, gridId + "Grid", S.contextPath, innerJsFun)
+
       ("#reportLine" #> datas.flatMap(showNodeReport(_))).apply(reportsGridXml(gridId, message)) ++
         /*Sorry about the Javascript
              * but we need to have dynamic definition of those datatables
@@ -1419,14 +1420,14 @@ class RuleEditForm(
              * Everything is based what has been done for the previous dataTable
              */
         Script(JsRaw(s"""
-            function fnFormatDetail${tabid} ( oTable, nTr ) {
+            function fnFormatDetails${tabid} ( oTable, nTr ) {
               var fnData = oTable.fnGetData( nTr );
               var oTable2 = fnData[fnData.length-1]
               var sOut ='<div class="innerDetails">'+oTable2+'</div>';
               return sOut;
             }
             var anOpen${tabid} = [];
-             var oTable${tabid} = $$('#${gridId}').dataTable({
+             var oTable${tabid} = $$('#${gridId}Grid').dataTable({
                "asStripeClasses": [ 'color1', 'color2' ],
                "bAutoWidth": false,
                "bFilter" : true,
