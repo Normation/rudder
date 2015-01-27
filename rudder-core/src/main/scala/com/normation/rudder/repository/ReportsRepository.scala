@@ -121,6 +121,7 @@ trait ReportsRepository {
 
   //nodechangesServices
   def getChangeReports(notBefore: DateTime): Box[Seq[ResultRepairedReport]]
+  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]]
 
   //reportExecution only
   /**

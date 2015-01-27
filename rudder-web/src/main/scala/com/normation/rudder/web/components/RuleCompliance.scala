@@ -119,7 +119,7 @@ class RuleCompliance (
 
     ( for {
       reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-      changesOnRule <- recentChangesService.getChangesByInterval().map(NodeChanges.changesOnRule(rule.id))
+      changesOnRule <- recentChangesService.getChangesByInterval(None).map( _.getOrElse(rule.id, Map()))
     } yield {
 
         val complianceByDirective = ComplianceData.getRuleByDirectivesComplianceDetails(reports, rule, allNodeInfos, directiveLib).json
@@ -170,7 +170,7 @@ class RuleCompliance (
 
     def refreshChanges() : JsCmd = {
       ( for {
-        changesOnRule <- recentChangesService.getChangesByInterval().map(NodeChanges.changesOnRule(rule.id))
+        changesOnRule <- recentChangesService.getChangesByInterval(None).map( _.getOrElse(rule.id, Map()))
       } yield {
         val changesData = NodeChanges.json(changesOnRule)
         val changesLine = ChangeLine.jsonByInterval(changesOnRule, Some(rule.name), directiveLib, allNodeInfos)

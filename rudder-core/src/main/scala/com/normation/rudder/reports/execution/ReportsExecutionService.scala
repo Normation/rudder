@@ -35,12 +35,15 @@
 package com.normation.rudder.reports.execution
 
 import org.joda.time.DateTime
-
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.reports.statusUpdate.StatusUpdateRepository
 import com.normation.rudder.repository.ReportsRepository
-
 import net.liftweb.common._
+import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import scala.concurrent._
+import ExecutionContext.Implicits.global
+import scala.util.Success
 
 /**
  * That service contains most of the logic to merge
@@ -50,10 +53,13 @@ class ReportsExecutionService (
     reportsRepository      : ReportsRepository
   , writeExecutions        : WoReportsExecutionRepository
   , statusUpdateRepository : StatusUpdateRepository
+  , cachedChanges          : CachedNodeChangesServiceImpl
   , maxDays                : Int // in days
-) extends Loggable {
+) {
 
   val format = "yyyy/MM/dd HH:mm:ss"
+
+  val logger = ReportLogger
 
   def findAndSaveExecutions(processId : Long) = {
     val startTime = DateTime.now().getMillis()
@@ -84,6 +90,23 @@ class ReportsExecutionService (
                   lastReportDate
                 }
               }
+
+
+              /*
+               * here is a hook to plug the update for changes.
+               * it should be made generic and inverted with some hooks method defined in
+               * that class (giving to caller the lowed and highest index of reports to
+               * take into account) BUT: these users will be extremely hard on the DB
+               * performance, most likelly each of them doing a query. Of course, it is
+               * much more interesting to mutualise the queries (and if possible, make
+               * them asynchrone from the main current loop), what is much harder with
+               * an IoC pattern.
+               * So, until we have a better view of what the actual user are, I let that
+               * here.
+               */
+              this.asyncHook(lastReportId, maxReportId)
+              // end of hooks code
+
               // Save new executions
               writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
@@ -127,4 +150,34 @@ class ReportsExecutionService (
     }
 
 
-} }
+  }
+
+  /*
+   * The hook method where the other method needing to happen when
+   * new reports are processed are called.
+   */
+  private[this] def asyncHook(lowestId: Long, highestId: Long) : Unit = {
+    //for now, just update the list of changes by rule
+    future {
+      for {
+        changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
+        updated <- cachedChanges.update(changes)
+      } yield {
+        updated
+      }
+    }.onComplete {
+      case Success(x) => x match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "An error occured when trying to update the cache of last changes"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception was: ", ex)
+          }
+        case Full(x) => //youhou
+      }
+      case scala.util.Failure(ex) =>
+        logger.error("An error occured when trying to update the cache of last changes", ex)
+    }
+  }
+
+}
