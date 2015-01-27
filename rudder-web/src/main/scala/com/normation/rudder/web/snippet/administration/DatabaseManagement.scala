@@ -48,7 +48,6 @@ import net.liftweb.http.js._
 import net.liftweb.http.js.JsCmds._
 import org.joda.time.format.DateTimeFormat
 import net.liftweb.http.js.JE.JsRaw
-import com.normation.rudder.domain.logger.ReportLogger
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.batch.AutomaticReportsCleaning
 import bootstrap.liftweb.RudderConfig

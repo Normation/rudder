@@ -148,58 +148,6 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
 
   }
 
-
-  /**
-   * Return the last (really the last, serial wise, with full execution) reports for a rule
-   */
-  override def findLastReportByRule(
-      ruleId     : RuleId
-    , serial     : Int
-    , node       : Option[NodeId]
-    , runInterval: Int
-  ) : Seq[Reports] = {
-    import scala.collection.mutable.Buffer
-    var query = ""
-    var array = Buffer[AnyRef]()
-    val interval = 3*runInterval
-
-    node match {
-      case None =>
-          query += joinQuery(interval) +  s" and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '${interval} minutes')"
-          array ++= Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
-      case Some(nodeId) =>
-        query += joinQueryByNode(interval) +  s" and ruleId = ? and serial = ? and executionTimeStamp > (now() - interval '${interval} minutes') and nodeId = ?"
-        array ++= Buffer[AnyRef](nodeId.value, ruleId.value, new java.lang.Integer(serial), nodeId.value)
-    }
-
-    jdbcTemplate.query(query,
-          array.toArray[AnyRef],
-          ReportsMapper).asScala
-  }
-
-  /**
-   * Return the last (really the last, serial wise, with full execution) reports for a rule
-   */
-  override def findLastReportsByRules(
-      rulesAndSerials: Set[(RuleId, Int)]
-    , runInterval    : Int
-  ) : Seq[Reports] = {
-    import scala.collection.mutable.Buffer
-    val interval = 3*runInterval
-
-    var query = joinQuery(interval) + " and ( 1 != 1 "
-    var array = Buffer[AnyRef]()
-
-    rulesAndSerials.foreach { case (ruleId, serial) =>
-          query +=   " or (ruleId = ? and serial = ?)"
-          array ++= Buffer[AnyRef](ruleId.value, new java.lang.Integer(serial))
-    }
-    query += s" ) and executionTimeStamp > (now() - interval '${interval} minutes')"
-    jdbcTemplate.query(query,
-          array.toArray[AnyRef],
-          ReportsMapper).asScala
-  }
-
   override def findExecutionTimeByNode(
       nodeId   : NodeId
     , beginDate: DateTime
