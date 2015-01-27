@@ -45,6 +45,14 @@
   
   <logger name="com.normation.rudder.services.queries" level="info" /> 
   
+  
+<!--   
+       This is a logger that will trace the computation of compliance, 
+       what node configuration id changed to how last run/expected 
+       reports is understood compared to interval and compliance mode constraints 
+-->
+<!--   <logger name="explain_compliance" level="trace" /> -->
+  
   <!-- 
       if you don't want appender to be cumulative, add additivity
       parameter and set it to false: 

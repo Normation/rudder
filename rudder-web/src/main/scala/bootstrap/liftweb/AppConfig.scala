@@ -1173,12 +1173,14 @@ object RudderConfig extends Loggable {
     )
   private[this] lazy val globalAgentRunService : AgentRunIntervalService =
     new AgentRunIntervalServiceImpl(
-        () => Full(None)
+        nodeInfoServiceImpl
       , () => Full(configService.agent_run_interval)
       , configService.agent_run_start_hour
       , configService.agent_run_start_minute
       , configService.agent_run_splaytime
+      , configService.rudder_compliance_heartbeatPeriod
     )
+
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
       licenseRepository
     , systemVariableSpecService
@@ -1321,7 +1323,7 @@ object RudderConfig extends Loggable {
     , reportsRepositoryImpl
     , roAgentRunsRepository
     , findExpectedRepo
-    , configService.agent_run_interval
+    , globalAgentRunService
     , globalComplianceModeService.getComplianceMode _
   )
   private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(
