@@ -272,7 +272,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     expected configuration id, what is the last reports received, is the
     date/time ok regarding run interval and compliance mode, etc. 
   -->
-  <logger name="explain_compliance" level="trace" additivity="false">
+  <logger name="explain_compliance" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger> 
