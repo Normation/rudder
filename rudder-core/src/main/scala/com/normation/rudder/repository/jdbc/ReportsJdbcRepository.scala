@@ -406,6 +406,18 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
+  override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
+    val query = s"${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId} order by executionTimeStamp asc"
+    try {
+      Full(jdbcTemplate.query(query,ReportsMapper).asScala.collect{case r:ResultRepairedReport => r})
+    } catch {
+      case ex: Exception =>
+        val error = Failure("Error when trying to retrieve change reports", Some(ex), Empty)
+        logger.error(error)
+        error
+    }
+  }
+
 
   override def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]] = {
     if (lower>=upper)

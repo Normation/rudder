@@ -55,7 +55,7 @@ function generateRecentGraph(id) {
     var x = changes.x
     x.splice(0,0,'x')
     var chart = c3.generate({
-        size: { height: 30 }
+        size: { height: 30 , width: 168 }
       , legend: { show: false }
       , data: {
             x: 'x'
