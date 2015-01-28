@@ -357,7 +357,13 @@ object RudderConfig extends Loggable {
 
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
-  lazy val cacheForAgentRunsRepository : CachedRepository = cachedAgentRunRepository
+
+
+  //all cache that need to be cleared are stored here
+  lazy val clearableCache: Seq[CachedRepository] = Seq(
+      cachedAgentRunRepository
+    , recentChangesService
+  )
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
   val ldapInventoryMapper = inventoryMapper
@@ -674,7 +680,7 @@ object RudderConfig extends Loggable {
       , asyncWorkflowInfo
   )
 
-  lazy val recentChangesService: NodeChangesService = new NodeChangesServiceImpl(reportsRepository)
+  lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository))
 
   //////////////////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
@@ -1685,6 +1691,7 @@ object RudderConfig extends Loggable {
       reportsRepository
     , woAgentRunsRepository
     , updatesEntryJdbcRepository
+    , recentChangesService
     , max
     )
   }

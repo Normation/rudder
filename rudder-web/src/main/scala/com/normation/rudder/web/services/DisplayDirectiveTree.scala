@@ -159,10 +159,10 @@ object DisplayDirectiveTree extends Loggable {
         activeTechnique.directives
           .sortBy( _.name )
           .collect {
-            case x if(keepDirective(x)) =>
+            case x if( keepDirective(x) ) =>
               displayDirective(
                   x
-                , activeTechnique.techniques(x.techniqueVersion)
+                , activeTechnique.techniques.get(x.techniqueVersion)
                 , localOnClickDirective
               )
           }
@@ -196,7 +196,7 @@ object DisplayDirectiveTree extends Loggable {
 
     def displayDirective(
         directive : Directive
-      , technique : Technique
+      , technique : Option[Technique]
       , onClickDirective: Option[Directive => JsCmd]
     ) : JsTreeNode = new JsTreeNode {
 
@@ -255,7 +255,7 @@ object DisplayDirectiveTree extends Loggable {
         }
 
 
-        val deprecated = technique.deprecrationInfo match {
+        val deprecated = technique.flatMap(_.deprecrationInfo) match {
           case Some(info) =>
             val tooltipId = Helpers.nextFuncName
             <span class="glyphicon glyphicon-exclamation-sign text-danger deprecatedTechniqueIcon" tooltipid={tooltipId} title=""></span>

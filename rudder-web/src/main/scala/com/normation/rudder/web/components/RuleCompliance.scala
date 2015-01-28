@@ -119,13 +119,12 @@ class RuleCompliance (
 
     ( for {
       reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-      changesOnRule <- recentChangesService.getChangesByInterval().map(NodeChanges.changesOnRule(rule.id))
+      changesOnRule <- recentChangesService.getChangesByInterval(None).map( _.getOrElse(rule.id, Map()))
     } yield {
 
         val complianceByDirective = ComplianceData.getRuleByDirectivesComplianceDetails(reports, rule, allNodeInfos, directiveLib).json
         val complianceByNode = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos).json
 
-       // val changes = NodeChanges.changesByPeriod(changesOnRule)
         val changesData = NodeChanges.json(changesOnRule)
         val changesLine = ChangeLine.jsonByInterval(changesOnRule, Some(rule.name), directiveLib, allNodeInfos)
         val changesArray = changesLine.in.toList.flatMap{case a:JsArray => a.in.toList; case _ => Nil}
@@ -146,20 +145,46 @@ class RuleCompliance (
          <div class="section-title">Recent changes</div>
        </div>
        <div id="recentChanges">
+         {SHtml.ajaxButton("Refresh", () => refresh())}
          <div id="changesChart">  </div>
           <hr class="spacer" />
          <table id="changesGrid" cellspacing="0">  </table>
         </div> ++
-        Script(After(0,(JsRaw(s"""
-          createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",${complianceByDirective.toJsCmd},${refresh().toJsCmd});
-          createNodeComplianceTable("nodeReportsGrid",${complianceByNode.toJsCmd},"${S.contextPath}", ${refresh(false).toJsCmd});
+        Script(After(0,JsRaw(s"""
+          function refresh() {${ajaxRefresh().toJsCmd}};
+          createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",[],refresh);
+          createNodeComplianceTable("nodeReportsGrid",[],"${S.contextPath}", refresh);
+          createChangesTable("changesGrid",[],"${S.contextPath}");
+          correctButtons();
+          refresh();
+        """)))
+      } ) match {
+      case Full(xml) => xml
+      case _ => <div class="error">Error while fetching report information</div>
+    }
+  }
+
+  def ajaxRefresh() = { SHtml.ajaxInvoke(() => refresh()) }
+
+  def refresh() = {
+
+    def refreshChanges() : JsCmd = {
+      ( for {
+        changesOnRule <- recentChangesService.getChangesByInterval(None).map( _.getOrElse(rule.id, Map()))
+      } yield {
+        val changesData = NodeChanges.json(changesOnRule)
+        val changesLine = ChangeLine.jsonByInterval(changesOnRule, Some(rule.name), directiveLib, allNodeInfos)
+        val changesArray = changesLine.in.toList.flatMap{case a:JsArray => a.in.toList; case _ => Nil}
+        val allChanges = JsArray(changesArray)
+        JsRaw(s"""
+          refreshTable("changesGrid",${allChanges.toJsCmd});
+
           var recentChanges = ${changesData.toJsCmd};
           var changes = ${changesLine.toJsCmd};
           var data = recentChanges.y
           data.splice(0,0,'Recent changes')
           var x = recentChanges.x
           x.splice(0,0,'x')
-          createChangesTable("changesGrid",${allChanges.toJsCmd},"${S.contextPath}");
           var chart = c3.generate({
             data: {
                   x: 'x'
@@ -185,39 +210,42 @@ class RuleCompliance (
                 , y: { show: true }
               }
           } );
-          $$('#changesChart').append(chart.element);
-          createTooltip();""")) ))
-      } ) match {
-      case Full(xml) => xml
-      case _ => <div class="error">Error while fetching report information</div>
+          $$('#changesChart').html(chart.element);
+          createTooltip();
+        """)
+      }) match  {
+        case Full(cmd) => cmd
+        case eb:EmptyBox =>
+          val fail = eb ?~! "Could not refresh recent changes"
+          logger.error(fail.messageChain)
+          Noop
+      }
     }
-  }
 
-  def refresh(refreshDirectiveData : Boolean = true) = {
-     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
-        val result : Box[String] = for {
-            reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
-            updatedRule <- roRuleRepository.get(rule.id)
-            updatedNodes <- getAllNodeInfos().map(_.toMap)
-            updatedDirectives <- getFullDirectiveLib()
+    def refreshCompliance() : JsCmd = {
+      ( for {
+          reports <- reportingService.findDirectiveRuleStatusReportsByRule(rule.id)
+          updatedRule <- roRuleRepository.get(rule.id)
+          updatedNodes <- getAllNodeInfos().map(_.toMap)
+          updatedDirectives <- getFullDirectiveLib()
         } yield {
-          if (refreshDirectiveData) {
-            ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib).json.toJsCmd
-          } else {
-            ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos).json.toJsCmd
-          }
+          val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib).json.toJsCmd
+          val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos).json.toJsCmd
+          JsRaw(s"""
+            refreshTable("reportsGrid",${directiveData});
+            refreshTable("nodeReportsGrid",${nodeData});
+            createTooltip();
+          """)
+        } ) match {
+          case Full(cmd) => cmd
+          case eb : EmptyBox =>
+            val fail = eb ?~! s"Error while computing Rule ${rule.name} (${rule.id.value})"
+            logger.error(fail.messageChain)
+            Noop
         }
+    }
 
-        val id = if (refreshDirectiveData) {
-          "reportsGrid"
-        } else {
-          "nodeReportsGrid"
-        }
-        JsRaw(s"""refreshTable("${id}",${result.getOrElse("[]")});
-               createTooltip();""")
-     })
-
-     AnonFunc("",ajaxCall)
+    refreshCompliance() & refreshChanges()
   }
 }
 
