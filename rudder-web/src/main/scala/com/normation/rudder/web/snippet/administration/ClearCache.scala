@@ -63,7 +63,7 @@ class ClearCache extends DispatchSnippet with Loggable {
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
   private[this] val eventLogRepository       = RudderConfig.eventLogRepository
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
-  private[this] val agentRunCache            = RudderConfig.cacheForAgentRunsRepository
+  private[this] val clearableCache           = RudderConfig.clearableCache
 
   def dispatch = {
     case "render" => clearCache
@@ -82,7 +82,7 @@ class ClearCache extends DispatchSnippet with Loggable {
       val modId = ModificationId(uuidGen.newUuid)
 
       //clear agentRun cache
-      agentRunCache.clearCache()
+      clearableCache.foreach { _.clearCache }
 
       //clear node configuration cache
       nodeConfigurationService.deleteAllNodeConfigurations match {

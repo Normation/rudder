@@ -97,7 +97,7 @@ class ExpectedPolicyPopup(
     //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = rules match {
       case Full(seq) =>
-        (new RuleGrid("dependentRulesGrid", None, false)).rulesGridWithUpdatedInfo(seq, false, false)
+        (new RuleGrid("dependentRulesGrid", None, false)).rulesGridWithUpdatedInfo(Some(seq), false, false)
       case e:EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
         logger.error(msg, e)

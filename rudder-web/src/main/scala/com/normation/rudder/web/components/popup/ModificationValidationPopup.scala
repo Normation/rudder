@@ -376,7 +376,7 @@ class ModificationValidationPopup(
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
         val cmp = new RuleGrid("remove_popup_grid", None, false)
-        cmp.rulesGridWithUpdatedInfo(rules.toSeq, false, false)
+        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, false)
     }
   }
 

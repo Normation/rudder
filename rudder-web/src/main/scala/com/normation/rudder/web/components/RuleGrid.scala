@@ -157,7 +157,7 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(Seq(), true, true)}
+    case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true, true)}
   }
 
 
@@ -228,7 +228,7 @@ class RuleGrid(
   /**
    * Display the selected set of rules.
    */
-  def rulesGridWithUpdatedInfo(rules: Seq[Rule], showActionsColumn: Boolean, showComplianceColumns: Boolean): NodeSeq = {
+  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, showComplianceColumns: Boolean): NodeSeq = {
 
     (for {
       allNodeInfos <- getAllNodeInfos()
@@ -236,7 +236,7 @@ class RuleGrid(
       directiveLib <- getFullDirectiveLib()
       ruleCat      <- getRootRuleCategory()
     } yield {
-      getRulesTableData(rules, allNodeInfos, groupLib, directiveLib, ruleCat)
+      getRulesTableData(rules.getOrElse(Seq()), allNodeInfos, groupLib, directiveLib, ruleCat)
     }) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get information about rules"
@@ -265,7 +265,7 @@ class RuleGrid(
                 , ${showComplianceColumns}
                 , ${allcheckboxCallback.toJsCmd}
                 , "${S.contextPath}"
-                , ${asyncDisplayAllRules(Some(rules.map(_.id).toSet), showComplianceColumns).toJsCmd}
+                , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet), showComplianceColumns).toJsCmd}
               );
               createTooltip();
               createTooltiptr();
@@ -353,8 +353,8 @@ class RuleGrid(
       } else {
         val start = System.currentTimeMillis
         for {
-                recentChanges <- recentChanges.getChangesByInterval()
-                nodeChanges = rules.map(rule => (rule.id -> NodeChanges.changesOnRule(rule.id)(recentChanges)))
+                recentChanges <- recentChanges.getChangesByInterval(None)
+                nodeChanges = rules.map(rule => (rule.id, recentChanges.getOrElse(rule.id, Map())))
                 after = System.currentTimeMillis
                 _ = TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
 
