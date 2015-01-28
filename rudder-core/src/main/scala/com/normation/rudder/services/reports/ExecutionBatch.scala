@@ -233,6 +233,10 @@ object ExecutionBatch extends Loggable {
    */
   final val GRACE_TIME_PENDING = Duration.standardMinutes(5)
 
+  /**
+   * Then end of times, used to denote report which are not expiring
+   */
+  final val END_OF_TIME = new DateTime(Long.MaxValue)
 
   /**
    * Takes a string, that should contains a CFEngine var ( $(xxx) or ${xxx} )
@@ -515,7 +519,9 @@ object ExecutionBatch extends Loggable {
 
       case NoReportInInterval(expectedConfigId) =>
         buildRuleNodeStatusReport(
-            MergeInfo(nodeId, None, Some(expectedConfigId.configId), new DateTime(0))
+            //these reports don't really expires - without change, it will
+            //always be the same.
+            MergeInfo(nodeId, None, Some(expectedConfigId.configId), END_OF_TIME)
           , getExpectedReports(expectedConfigId.configId)
           , NoAnswerReportType
         )
@@ -537,7 +543,7 @@ object ExecutionBatch extends Loggable {
         logger.debug(s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${
           optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")
         }). No expected configuration matches these reports.")
-        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, new DateTime(0)), nodeStatusReports)
+        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports)
 
       case NoRunNoInit =>
         /*
