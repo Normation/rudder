@@ -73,7 +73,7 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
-
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 
 
 
@@ -166,6 +166,8 @@ trait DeploymentService extends Loggable {
       // need to update this part as well
       updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
       expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
+      // now, invalidate cache
+      _                     =  invalidateComplianceCache(updatedNodeConfig)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport}ms")
 
@@ -288,7 +290,7 @@ trait DeploymentService extends Loggable {
 
 
   /**
-   * Set the exepcted reports for the rule
+   * Set the expected reports for the rule
    * Caution : we can't handle deletion with this
    * @param ruleVal
    * @return
@@ -302,6 +304,12 @@ trait DeploymentService extends Loggable {
     , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
   ) : Box[Seq[RuleExpectedReports]]
+
+  /**
+   * After updates of everything, notify compliace cache
+   * that it should forbid what it knows about the updated nodes
+   */
+  def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit
 
   /**
    * Store groups and directive in the database
@@ -338,6 +346,7 @@ class DeploymentServiceImpl (
   , override val roInventoryRepository: ReadOnlyFullInventoryRepository
   , override val complianceModeService : ComplianceModeService
   , override val agentRunService : AgentRunIntervalService
+  , override val complianceCache  : CachedFindRuleNodeStatusReports
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -800,6 +809,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
 
 trait DeploymentService_setExpectedReports extends DeploymentService {
   def reportingService : ExpectedReportsUpdate
+  def complianceCache  : CachedFindRuleNodeStatusReports
 
    /**
    * Update the serials in the rule vals based on the updated rule (which may be empty if nothing is updated)
@@ -856,7 +866,7 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
     }
   }
 
-  def setExpectedReports(
+  override def setExpectedReports(
       ruleVal          : Seq[RuleVal]
     , configs          : Seq[NodeConfiguration]
     , versions         : Map[NodeId, NodeConfigId]
@@ -885,6 +895,10 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
     }.toSet
 
     reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden)
+  }
+
+  override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {
+    complianceCache.invalidate(nodeIds)
   }
 }
 
