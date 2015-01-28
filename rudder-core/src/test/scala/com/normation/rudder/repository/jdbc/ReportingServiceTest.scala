@@ -63,6 +63,8 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import org.slf4j.LoggerFactory
 import ch.qos.logback.classic.Level
+import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import net.liftweb.common.Empty
 
 /**
  *
@@ -97,7 +99,19 @@ class ReportingServiceTest extends DBCommon {
   val roAgentRun = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
   val woAgentRun = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roAgentRun)
 
-  val updateRuns = new ReportsExecutionService(reportsRepo, woAgentRun, new StatusUpdateSquerylRepository(squerylConnectionProvider), 1)
+  val dummyChangesCache = new CachedNodeChangesServiceImpl(null) {
+    override def update(changes: Seq[ResultRepairedReport]): Box[Unit] = Full(())
+    override def getCurrentValidIntervals(since: Option[DateTime]) = Seq()
+    override def getChangesByInterval(since: Option[DateTime]) = Empty
+  }
+
+  val updateRuns = new ReportsExecutionService(
+      reportsRepo
+    , woAgentRun
+    , new StatusUpdateSquerylRepository(squerylConnectionProvider)
+    , dummyChangesCache
+    , 1
+  )
 
   import slick._
 
