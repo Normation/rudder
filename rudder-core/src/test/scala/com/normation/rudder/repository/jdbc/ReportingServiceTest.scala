@@ -65,6 +65,10 @@ import org.slf4j.LoggerFactory
 import ch.qos.logback.classic.Level
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import net.liftweb.common.Empty
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
 
 /**
  *
@@ -79,6 +83,13 @@ class ReportingServiceTest extends DBCommon {
     jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
   }
 
+  val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
+    def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
+    def nodeInfoService: NodeInfoService = null
+    def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
+    def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
+    override def invalidate(nodeIds: Set[NodeId]) = ()
+  }
   val pgIn = new PostgresqlInClause(2)
   val reportsRepo = new ReportsJdbcRepository(jdbcTemplate)
   val slick = new SlickSchema(dataSource)
@@ -110,6 +121,7 @@ class ReportingServiceTest extends DBCommon {
     , woAgentRun
     , new StatusUpdateSquerylRepository(squerylConnectionProvider)
     , dummyChangesCache
+    , dummyComplianceCache
     , 1
   )
 

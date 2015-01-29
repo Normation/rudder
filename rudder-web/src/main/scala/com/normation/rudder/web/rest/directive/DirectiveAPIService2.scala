@@ -217,7 +217,7 @@ case class DirectiveAPIService2 (
                   case Full(technique) =>
                     readDirective.getActiveTechnique(technique.id.name) match {
                       case Full(Some(activeTechnique)) =>
-                        val baseDirective = Directive(directiveId,technique.id.version,Map(),name,"")
+                        val baseDirective = Directive(directiveId,technique.id.version,Map(),name,"",isEnabled = true)
                         actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique)
                       case Full(None) =>
                         toJsonError(Some(directiveId.value), "Could not create Directive because the technique was not found")

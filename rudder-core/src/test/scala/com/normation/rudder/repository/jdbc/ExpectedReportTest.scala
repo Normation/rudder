@@ -62,6 +62,9 @@ import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.rudder.services.policies.UniqueOverrides
 import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
 
 /**
  * Test on database.
