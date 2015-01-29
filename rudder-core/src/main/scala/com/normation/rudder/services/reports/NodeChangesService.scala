@@ -227,7 +227,7 @@ class CachedNodeChangesServiceImpl(
   /**
    * For intervals "on", merge change1 and change2 (respective to rules). Intervals not in "on"
    * are removed from the result.
-   * For a given rule, on a given interval, changes fomr change1 and change2 are added.
+   * For a given rule, on a given interval, changes from change1 and change2 are added.
    */
   private[this] def merge(on: Seq[Interval], changes1: ChangesByRule, changes2: ChangesByRule): ChangesByRule = {
     //shortcut that get map(k1)(k2) and return an empty seq if key not found
