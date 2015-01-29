@@ -363,6 +363,7 @@ object RudderConfig extends Loggable {
   lazy val clearableCache: Seq[CachedRepository] = Seq(
       cachedAgentRunRepository
     , recentChangesService
+    , reportingServiceImpl
   )
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
@@ -1276,6 +1277,7 @@ object RudderConfig extends Loggable {
         , ldapFullInventoryRepository
         , globalComplianceModeService
         , globalAgentRunService
+        , reportingServiceImpl
     )}
     val agent = new AsyncDeploymentAgent(
         deploymentService
@@ -1324,14 +1326,18 @@ object RudderConfig extends Loggable {
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
   )
 //  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
-  private[this] lazy val reportingServiceImpl = new ReportingServiceImpl(
-      findExpectedRepo
-    , reportsRepositoryImpl
-    , roAgentRunsRepository
-    , findExpectedRepo
-    , globalAgentRunService
-    , globalComplianceModeService.getComplianceMode _
+  private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(
+      new ReportingServiceImpl(
+          findExpectedRepo
+        , reportsRepositoryImpl
+        , roAgentRunsRepository
+        , findExpectedRepo
+        , globalAgentRunService
+        , globalComplianceModeService.getComplianceMode _
+      )
+    , nodeInfoServiceImpl
   )
+
   private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(
       updateExpectedRepo
     , updateExpectedRepo
@@ -1692,6 +1698,7 @@ object RudderConfig extends Loggable {
     , woAgentRunsRepository
     , updatesEntryJdbcRepository
     , recentChangesService
+    , reportingServiceImpl
     , max
     )
   }

@@ -44,6 +44,8 @@ import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.util.Success
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.inventory.domain.NodeId
 
 /**
  * That service contains most of the logic to merge
@@ -54,6 +56,7 @@ class ReportsExecutionService (
   , writeExecutions        : WoReportsExecutionRepository
   , statusUpdateRepository : StatusUpdateRepository
   , cachedChanges          : CachedNodeChangesServiceImpl
+  , cachedCompliance       : CachedFindRuleNodeStatusReports
   , maxDays                : Int // in days
 ) {
 
@@ -104,7 +107,7 @@ class ReportsExecutionService (
                * So, until we have a better view of what the actual user are, I let that
                * here.
                */
-              this.asyncHook(lastReportId, maxReportId)
+              this.asyncHook(lastReportId, maxReportId, reportExec.map { _.agentRunId.nodeId}.toSet )
               // end of hooks code
 
               // Save new executions
@@ -156,7 +159,7 @@ class ReportsExecutionService (
    * The hook method where the other method needing to happen when
    * new reports are processed are called.
    */
-  private[this] def asyncHook(lowestId: Long, highestId: Long) : Unit = {
+  private[this] def asyncHook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
     //for now, just update the list of changes by rule
     future {
       for {
@@ -178,6 +181,15 @@ class ReportsExecutionService (
       case scala.util.Failure(ex) =>
         logger.error("An error occured when trying to update the cache of last changes", ex)
     }
+
+    future {
+      cachedCompliance.invalidate(updatedNodeIds)
+    }.onComplete {
+      case Success(x) => x //youhou
+      case scala.util.Failure(ex) =>
+        logger.error("An error occured when trying to invalidate entries in the cache of compliance", ex)
+    }
+
   }
 
 }

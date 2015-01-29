@@ -50,18 +50,40 @@ import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.services.nodes.NodeInfoService
 
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
 
+/**
+ * Defaults non-cached version of the reporting service.
+ * Just the composition of the two defaults implementation.
+ */
 class ReportingServiceImpl(
-    confExpectedRepo   : FindExpectedReportRepository
-  , reportsRepository  : ReportsRepository
-  , agentRunRepository : RoReportsExecutionRepository
-  , nodeConfigInfoRepo : RoNodeConfigIdInfoRepository
-  , runIntervalService : AgentRunIntervalService
-  , getComplianceMode  : () => Box[ComplianceMode]
-) extends ReportingService with Loggable {
+    val confExpectedRepo    : FindExpectedReportRepository
+  , val reportsRepository   : ReportsRepository
+  , val agentRunRepository  : RoReportsExecutionRepository
+  , val nodeConfigInfoRepo  : RoNodeConfigIdInfoRepository
+  , val runIntervalService  : AgentRunIntervalService
+  , val getComplianceMode   : () => Box[ComplianceMode]
+) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
 
+class CachedReportingServiceImpl(
+    val defaultFindRuleNodeStatusReports: ReportingServiceImpl
+  , val nodeInfoService                 : NodeInfoService
+) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
+  val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
+}
+
+/**
+ * Two of the reporting services methods are just utilities above
+ * "findRuleNodeStatusReports": factor them out of the actual
+ * implementation of that one
+ */
+trait RuleOrNodeReportingServiceImpl extends ReportingService {
+
+  def confExpectedRepo: FindExpectedReportRepository
 
   override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
@@ -74,8 +96,7 @@ class ReportingServiceImpl(
     }
   }
 
-
-   def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
+   override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
     for {
       reports <- findRuleNodeStatusReports(Set(nodeId), Set())
       report  =  reports.groupBy(_.nodeId).map { case(nodeId, reports) => NodeStatusReport(nodeId, reports) }.toSet
@@ -85,6 +106,143 @@ class ReportingServiceImpl(
     }
   }
 
+}
+
+trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with Loggable {
+
+  /**
+   * underlying service that will provide the computation logic
+   */
+  def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
+  def nodeInfoService                 : NodeInfoService
+
+  /**
+   * The cache is managed node by node.
+   * A missing nodeId mean that the cache wasn't initialized for
+   * that node.
+   */
+  private[this] var cache = Map.empty[NodeId, Set[RuleNodeStatusReport]]
+
+  private[this] def cacheToLog(c: Map[NodeId, Set[RuleNodeStatusReport]]): String = {
+    //display compliance value and expiration date.
+    c.map { case (nodeId, reports) =>
+
+      val reportsString = reports.map { r =>
+        val run = r.agentRunTime match {
+          case None => "no agent run"
+          case Some(r) => s"last run@${r}"
+        }
+        val cfid = r.configId match {
+          case None => "no config id"
+          case Some(c) => s"configId:${c.value}"
+        }
+        s"${r.ruleId.value}/${r.serial}[exp:${r.expirationDate}][${run}][${cfid}]${r.compliance.toString}"
+      }.mkString("\n  ", "\n  ", "")
+
+      s"node: ${nodeId.value}${reportsString}"
+    }.mkString("\n", "\n", "")
+  }
+
+
+  /**
+   * Invalidate some keys in the cache. That won't charge them again
+   * immediately
+   */
+  def invalidate(nodeIds: Set[NodeId]): Unit = this.synchronized {
+    logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
+    cache = cache -- nodeIds
+    //preload new results
+    future {
+      checkAndUpdateCache(nodeIds)
+    }
+    ()
+  }
+
+
+  /**
+   * For the nodeIds in parameter, check that the cache is:
+   * - initialized, else go find missing rule node status reports (one time for all)
+   * - none reports is expired, else switch its status to "missing" for all components
+   */
+  private[this] def checkAndUpdateCache(nodeIds: Set[NodeId]) : Box[Map[NodeId, Set[RuleNodeStatusReport]]] = this.synchronized {
+    if(nodeIds.isEmpty) {
+      Full(Map())
+    } else {
+      val now = DateTime.now
+
+      /*
+       * Three cases: 1/ cache does not exist, 2/ cache exists but expiration date expired, 3/ cache does note exists
+       * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
+       * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
+       * expired could be computed without any more logic than "every thing is missing".
+       *
+       */
+
+      val (expired, upToDate) = nodeIds.partition { id =>  //two group: expired id, and up to date info
+        cache.get(id) match {
+          case None      => true
+          case Some(set) => set.exists { _.expirationDate.isBefore(now) }
+        }
+      }
+
+      for {
+        newStatus <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
+      } yield {
+        /*
+         * Here, it's missing all the UnexpectedVersion/NoInitNoVersion results, because, well, they
+         * actually don't have rulenodestatutreport. So.
+         * We add them in NodeId -> Set()
+         */
+        val updated = newStatus.groupBy { _.nodeId }
+        val invalidVersion = expired -- updated.keySet
+        logger.debug(s"Compliance cache miss (invalid version):[${invalidVersion.map(_.value).mkString(" , ")}],"+
+                               s" cache miss (updated):[${updated.keySet.map(_.value).mkString(" , ")}], "+
+                               s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
+        cache = cache ++ invalidVersion.map(id => (id,Set[RuleNodeStatusReport]())).toMap ++ updated
+        val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
+        logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        toReturn
+      }
+    }
+  }
+
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
+    for {
+      reports <- checkAndUpdateCache(nodeIds)
+    } yield {
+      reports.values.flatten.filter( report => ruleIds.isEmpty || ruleIds.contains(report.ruleId)).toSet
+    }
+  }
+
+  /**
+   * Clear cache. Try a reload asynchronously, disregarding
+   * the result
+   */
+  override def clearCache(): Unit = this.synchronized {
+    cache = Map()
+    logger.debug("Compliance cache cleared")
+    //reload it for future use
+    future {
+      for {
+        infos <- nodeInfoService.getAll
+      } yield {
+        checkAndUpdateCache(infos.keySet)
+      }
+    }
+    ()
+  }
+
+}
+
+
+trait DefaultFindRuleNodeStatusReports extends ReportingService {
+
+  def confExpectedRepo  : FindExpectedReportRepository
+  def reportsRepository : ReportsRepository
+  def agentRunRepository: RoReportsExecutionRepository
+  def nodeConfigInfoRepo: RoNodeConfigIdInfoRepository
+  def runIntervalService: AgentRunIntervalService
+  def getComplianceMode : () => Box[ComplianceMode]
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
     /*
@@ -162,7 +320,6 @@ class ReportingServiceImpl(
       }) }
     }
 
-
     for {
       compliance        <- getComplianceMode()
       runs              <- agentRunRepository.getNodesLastRun(nodeIds)
@@ -219,7 +376,5 @@ class ReportingServiceImpl(
       }
     }.toSeq
   }
-
-
 }
 
