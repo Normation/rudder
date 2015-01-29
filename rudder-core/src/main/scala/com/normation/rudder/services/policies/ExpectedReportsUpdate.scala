@@ -99,8 +99,8 @@ case class UniqueOverrides(
 )
 
 class ExpectedReportsUpdateImpl(
-    confExpectedRepo   : UpdateExpectedReportsRepository
-  , nodeConfigRepo     : WoNodeConfigIdInfoRepository
+    confExpectedRepo: UpdateExpectedReportsRepository
+  , nodeConfigRepo  : WoNodeConfigIdInfoRepository
 ) extends ExpectedReportsUpdate with Loggable {
 
   /**
@@ -257,9 +257,10 @@ class ExpectedReportsUpdateImpl(
                                       (nodeJoinKey, NodeConfigVersions(nodeId, newVersions))
                                     }
                                   }
-      updatedNodeConfigVersion <- confExpectedRepo.updateNodeConfigVersion(notUpdateNodeJoinKey)
+      _                        <- confExpectedRepo.updateNodeConfigVersion(notUpdateNodeJoinKey)
       savedNodesInfos          <- nodeConfigRepo.addNodeConfigIdInfo(updatedNodeConfigs, generationTime)
     } yield {
+
       /*
        * Here, we may have several expected rule for an unique rule id/serial, so we want to merge them back
        * into sensible data
