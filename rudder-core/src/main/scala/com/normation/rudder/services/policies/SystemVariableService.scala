@@ -304,17 +304,22 @@ class SystemVariableServiceImpl(
       }
 
     val heartBeatFrequency = {
-      globalComplianceMode match {
-        case FullCompliance =>
-          1
-        case ChangesOnly(globalFrequency) =>
-          nodeInfo.nodeReportingConfiguration.heartbeatConfiguration match {
-            // It overrides! use it to compute the new heartbeatInterval
-            case Some(heartbeatConf) if heartbeatConf.overrides =>
-              heartbeatConf.heartbeatPeriod
-            case _ =>
-              globalFrequency
-          }
+      if (nodeInfo.isPolicyServer) {
+        // A policy server is always sending heartbeat
+        1
+      } else {
+        globalComplianceMode match {
+          case FullCompliance =>
+            1
+          case ChangesOnly(globalFrequency) =>
+            nodeInfo.nodeReportingConfiguration.heartbeatConfiguration match {
+              // It overrides! use it to compute the new heartbeatInterval
+              case Some(heartbeatConf) if heartbeatConf.overrides =>
+                heartbeatConf.heartbeatPeriod
+              case _ =>
+                globalFrequency
+            }
+        }
       }
     }
 
