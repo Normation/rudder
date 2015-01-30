@@ -82,8 +82,6 @@ class ReportDisplayer(
   def reportByNodeTemplate = chooseTemplate("batches", "list", templateByNode)
   def directiveDetails = chooseTemplate("directive", "foreach", templateByNode)
 
-
-
   /**
    * Main entry point to display the tab with reports of a node.
    * It build up to 3 tables:
@@ -261,6 +259,7 @@ class ReportDisplayer(
       ( "#reportLine" #> missingComponents.flatMap(showUnexpectedReport(_) )).apply(
       <h3>Unexpected reports</h3>
       <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
+
       <table id="unexpectedGrid"  cellspacing="0" style="clear:both">
         <thead>
           <tr class="head">
