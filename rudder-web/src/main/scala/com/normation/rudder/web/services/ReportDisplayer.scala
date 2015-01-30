@@ -122,7 +122,6 @@ class ReportDisplayer(
       val complianceData = ComplianceData(directiveLib,allNodeInfos)
 
       complianceData.getRuleComplianceDetails(reportStatus)
-
     }
   }
 
@@ -235,8 +234,11 @@ class ReportDisplayer(
             val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.reportType==UnknownReportType&&value.message.size==0)
             values.map(value => (component.component,value.componentValue))
             }
-          val tech = directiveRepository.getActiveTechnique(dir.directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
-          val techVersion = directiveRepository.getDirective(dir.directiveId).map(_.techniqueVersion.toString).getOrElse("N/A")
+          val (tech, techVersion ) = directiveRepository.getActiveTechniqueAndDirective(dir.directiveId) match {
+            case Full((at, dir)) =>
+              (techniqueRepository.getLastTechniqueByName(at.techniqueName).map(_.name).getOrElse("Unknown Technique"), dir.techniqueVersion.toString)
+            case _ => ("Unknown Technique", "N/A")
+          }
           componentsReport.map(compo=> (compo,tech,techVersion))}
         techniqueComponentsReports }
 
@@ -330,8 +332,11 @@ class ReportDisplayer(
             val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.reportType==UnknownReportType&&value.message.size!=0)
             values.map(value => (component.component,value.componentValue,value.message))
             }
-          val tech = directiveRepository.getActiveTechnique(dir.directiveId).map(tech => techniqueRepository.getLastTechniqueByName(tech.techniqueName).map(_.name).getOrElse("Unknown Technique")).getOrElse("Unknown Technique")
-          val techVersion = directiveRepository.getDirective(dir.directiveId).map(_.techniqueVersion.toString).getOrElse("N/A")
+          val (tech, techVersion ) = directiveRepository.getActiveTechniqueAndDirective(dir.directiveId) match {
+            case Full((at, dir)) =>
+              (techniqueRepository.getLastTechniqueByName(at.techniqueName).map(_.name).getOrElse("Unknown Technique"), dir.techniqueVersion.toString)
+            case _ => ("Unknown Technique", "N/A")
+          }
           componentsReport.map(compo=> (compo,tech,techVersion))}
         techniqueComponentsReports }
        if (reports.size >0){
