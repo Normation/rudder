@@ -207,8 +207,10 @@ class AutomaticReportLogger(
           , directiveRepository.getDirective(report.directiveId).map(_.name).openOr("Unknown directive")
           )
 
-     val techniqueName = directiveRepository.getActiveTechnique(report.directiveId).map(_.techniqueName).openOr("Unknown technique id")
-     val techniqueVersion = directiveRepository.getDirective(report.directiveId).map(_.techniqueVersion.toString).openOr("N/A")
+     val (techniqueName, techniqueVersion) = directiveRepository.getActiveTechniqueAndDirective(report.directiveId) match {
+       case Full((at, d)) => (at.techniqueName, d.techniqueVersion.toString)
+       case _ => ("Unknown technique id", "N/A")
+     }
      val technique = "%s/%s".format(techniqueName,techniqueVersion)
 
       AllReportLogger.FindLogger(report.severity)(reportLineTemplate.format(execDate,node,report.severity,rule,directive,technique,report.component,report.keyValue,report.message))
