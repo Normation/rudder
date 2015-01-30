@@ -100,6 +100,10 @@ case class RedChart (value : Int) extends ComplianceLevelPieChart{
   val color = "#d9534f"
 }
 
+case class PendingChart (value : Int) extends ComplianceLevelPieChart{
+  val label = "Applying"
+  val color = "#73c9e3"
+}
 
 object HomePage {
   private val nodeInfosService = RudderConfig.nodeInfoService
@@ -166,29 +170,45 @@ class HomePage extends Loggable {
 
       val compliance = ComplianceLevel.sum(reports.map(_.compliance))
 
+      val reportsByNode = reports.groupBy(_.nodeId).mapValues(reports => ComplianceLevel.sum(reports.map(_.compliance)))
 
-      val complianceByNode : List[Float] = reports.groupBy(_.nodeId).mapValues(reports => ComplianceLevel.sum(reports.map(_.compliance)).compliance).values.toList
+      /*
+       * Here, for the compliance by node, we want to distinguish (but NOT ignore, like in globalCompliance) the
+       * case where the node is pending.
+       *
+       * We are using a coarse grain here: if a node as even ONE report not pending, we compute it's compliance.
+       * Else, if the node's reports are ALL pending, we use a special pending case.
+       *
+       * Note: node without reports are also put in "pending".
+       */
+
+      val complianceByNode : List[Float] = reportsByNode.values.map { r =>
+        if(r.pending == r.total) -1 else  r.complianceWithoutPending
+      }.toList
 
       val complianceDiagram : List[ComplianceLevelPieChart] = (complianceByNode.groupBy{compliance =>
-      if (compliance == 100) GreenChart else
-        if (compliance >= 75) BlueChart else
-          if (compliance >= 50) OrangeChart else
-              RedChart
+             if (compliance == -1)  PendingChart
+        else if (compliance == 100) GreenChart
+        else if (compliance >= 75)  BlueChart
+        else if (compliance >= 50)  OrangeChart
+        else                        RedChart
       }.map {
-        case (GreenChart,compliance) => GreenChart(compliance.size)
-        case (BlueChart,compliance) => BlueChart(compliance.size)
-        case (OrangeChart,compliance) => OrangeChart(compliance.size)
-        case (RedChart,compliance) => RedChart(compliance.size)
-        case (_,compliance) => RedChart(compliance.size)
+        case (PendingChart, compliance) => PendingChart(compliance.size)
+        case (GreenChart  , compliance) => GreenChart(compliance.size)
+        case (BlueChart   , compliance) => BlueChart(compliance.size)
+        case (OrangeChart , compliance) => OrangeChart(compliance.size)
+        case (RedChart    , compliance) => RedChart(compliance.size)
+        case (_           , compliance) => RedChart(compliance.size)
       }).toList
 
      val sorted = complianceDiagram.sortWith{
-        case (a:GreenChart,_) => true
-        case (a:BlueChart,_:GreenChart) => false
-        case (a:BlueChart,_) => true
-        case (_:OrangeChart,(_:GreenChart|_:BlueChart)) => false
-        case (a:OrangeChart,_) => true
-        case (a:RedChart,_) => false
+        case (a:PendingChart ,_)            => true
+        case (a:GreenChart   ,_)            => true
+        case (a:BlueChart    ,_:GreenChart) => false
+        case (a:BlueChart    ,_)            => true
+        case (_:OrangeChart  , ( _:GreenChart| _:BlueChart)) => false
+        case (a:OrangeChart  ,_)            => true
+        case (a:RedChart     ,_)            => false
       }
 
      val diagramData = JsArray(sorted.map(_.jsValue):_*)
@@ -207,7 +227,7 @@ class HomePage extends Loggable {
      )
 
 
-     val globalCompliance = compliance.compliance.round
+     val globalCompliance = compliance.complianceWithoutPending.round
 
      Script(OnLoad(JsRaw(s"""
         homePage(
