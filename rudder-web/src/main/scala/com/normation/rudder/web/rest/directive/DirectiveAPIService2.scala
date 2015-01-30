@@ -69,6 +69,7 @@ import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.services.TechniqueRepository
 
 case class DirectiveAPIService2 (
     readDirective        : RoDirectiveRepository
@@ -81,6 +82,7 @@ case class DirectiveAPIService2 (
   , workflowEnabled      : () => Box[Boolean]
   , editorService        : DirectiveEditorService
   , restDataSerializer   : RestDataSerializer
+  , techniqueRepository  : TechniqueRepository
   ) extends Loggable {
 
   def serialize(technique : Technique, directive:Directive, crId : Option[ChangeRequestId] = None) = restDataSerializer.serializeDirective(technique, directive, crId)
@@ -138,11 +140,13 @@ case class DirectiveAPIService2 (
   def listDirectives(req : Req) = {
     implicit val action = "listDirectives"
     implicit val prettify = restExtractor.extractPrettify(req.params)
-    readDirective.getAll(false) match {
-      case Full(directives) =>
+    readDirective.getFullDirectiveLibrary match {
+      case Full(fullLibrary) =>
+        val atDirectives = fullLibrary.allDirectives.values.filter(!_._2.isSystem)
         val res = ( for {
-          directive <- directives
-          (technique,activeTechnique,_) <- readDirective.getDirectiveWithContext(directive.id)
+          (activeTechnique, directive) <- atDirectives
+          activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
+          technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
         } yield {
           serialize(technique,directive)
         } )
