@@ -96,19 +96,19 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
 
   override def checks() : Unit = {
 
-    roRepos.getAll(includeSystem = true) match {
+    roRepos.getFullDirectiveLibrary match {
       case eb:EmptyBox =>
         val f = (eb ?~! "Can not check that Rudder interpolated variable in directive variables use 'rudder' namespace")
         logger.defaultErrorLogger(f)
 
-      case Full(directives) =>
+      case Full(fullLibrary) =>
 
-        val (systemDirectives, userDirectives) = directives.partition(d => d.isSystem)
+        val (systemDirectives, userDirectives) = fullLibrary.allDirectives.values.map(_._2).partition(d => d.isSystem)
 
         if(systemDirectives.exists { d => migrateDirectiveParametersToRudderNamespace(d).isDefined}) {
           //migrate everything
-          val newUserDirectives = migrateDirectives(userDirectives)
-          val newSystemDirectives = migrateDirectives(systemDirectives)
+          val newUserDirectives = migrateDirectives(userDirectives.toSeq)
+          val newSystemDirectives = migrateDirectives(systemDirectives.toSeq)
 
           //generate a unique modification ID for the whole migration process
           val modId = ModificationId(uuidGen.newUuid)
@@ -117,8 +117,8 @@ class CheckMigrationDirectiveInterpolatedVariablesHaveRudderNamespace(
           (sequence(newUserDirectives ++ newSystemDirectives) { directive =>
             val message = "Migrating inline variables in Directive %s (uuid: %s) so that they use the new 'rudder' namespace".format(directive.name, directive.id.value)
             logger.info(message)
+            val activeTechnique = fullLibrary.allDirectives(directive.id)._1
             for {
-              activeTechnique <- roRepos.getActiveTechnique(directive.id)
               saved           <- if(directive.isSystem) {
                                    rwRepos.saveSystemDirective(activeTechnique.id, directive, modId, RudderEventActor, Some(message))
                                  } else {

@@ -384,8 +384,8 @@ class DependencyAndDeletionServiceImpl(
         //group by target, and check if target is enable
         (sequence(enabledCr.groupBy { case (rule,id) => id }.toSeq) { case (id, seq) =>
           for {
-            directive <- roDirectiveRepository.getDirective(id)
-            activeTechnique <- roDirectiveRepository.getActiveTechnique(id)
+           (activeTechnique
+           , directive     ) <- roDirectiveRepository.getActiveTechniqueAndDirective(id) ?~! s"Error when retrieving directive with ID ${id.value}''"
           } yield {
             if(directive.isEnabled && activeTechnique.isEnabled) {
               seq.map { case(id,_) => id }
