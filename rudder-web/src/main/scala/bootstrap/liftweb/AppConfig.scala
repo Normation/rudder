@@ -528,6 +528,7 @@ object RudderConfig extends Loggable {
       , configService.rudder_workflow_enabled
       , directiveEditorService
       , restDataSerializer
+      , techniqueRepositoryImpl
     )
 
   val directiveApi2 =

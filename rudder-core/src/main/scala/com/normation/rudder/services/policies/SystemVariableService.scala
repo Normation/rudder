@@ -326,7 +326,8 @@ class SystemVariableServiceImpl(
     val AgentRunVariables = ( agentRunParams.map {
       case (runInterval,schedule) =>
 
-        val heartbeat = runInterval.interval * heartBeatFrequency
+        // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
+        val heartbeat = runInterval.interval * heartBeatFrequency - 1
         val vars = {
           systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(runInterval.interval.toString) ::
           systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(runInterval.splaytime.toString)  ::

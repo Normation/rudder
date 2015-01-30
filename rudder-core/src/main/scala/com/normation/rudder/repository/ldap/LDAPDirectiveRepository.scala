@@ -112,8 +112,8 @@ class RoLDAPDirectiveRepository(
 
   override def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)] = {
     for {
-      directive         <- this.getDirective(directiveId) ?~! "No user Directive with ID=%s.".format(directiveId)
-      activeTechnique   <- this.getActiveTechnique(directiveId) ?~! "Can not find the Active Technique for Directive %s".format(directiveId)
+      (activeTechnique
+           , directive     ) <- this.getActiveTechniqueAndDirective(directiveId) ?~! s"Error when retrieving directive with ID ${directiveId.value}''"
       activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
       technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
     } yield {
@@ -121,36 +121,14 @@ class RoLDAPDirectiveRepository(
     }
   }
 
-
-  override def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]] = {
+  def getActiveTechniqueAndDirectiveEntries(id:DirectiveId): Box[(LDAPEntry, LDAPEntry)] = {
     for {
-      locked     <- userLibMutex.readLock
-      con        <- ldap
-      //for each directive entry, map it. if one fails, all fails
-      directives <- sequence(con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn,  policyFilter(includeSystem))) { piEntry =>
-                      mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive. Entry: %s".format(piEntry)
-                    }
+      locked   <- userLibMutex.readLock
+      con      <- ldap
+      piEntry  <- getDirectiveEntry(con, id, "1.1") ?~! "Can not find directive with id %s".format(id)
+      uptEntry <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }) ?~! "Can not find Active Technique entry in LDAP"
     } yield {
-      directives
-    }
-  }
-
-
-  /**
-   * Find the active technique for which the given policy
-   * instance is an instance.
-   *
-   * Return empty if no such directive is known,
-   * fails if no active technique match the directive.
-   */
-  override def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique] = {
-    for {
-      locked          <- userLibMutex.readLock
-      con             <- ldap
-      piEntry         <- getDirectiveEntry(con, id, "1.1") ?~! "Can not find directive with id %s".format(id)
-      activeTechnique <- getActiveTechnique(mapper.dn2ActiveTechniqueId(piEntry.dn.getParent)).flatMap { Box(_)}
-    } yield {
-      activeTechnique
+      (uptEntry, piEntry)
     }
   }
 
@@ -162,12 +140,9 @@ class RoLDAPDirectiveRepository(
    */
   override def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = {
     for {
-      locked  <- userLibMutex.readLock
-      con     <- ldap
-      piEntry <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
-      uptEntry        <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }) ?~! "Can not find Active Technique entry in LDAP"
-      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
-      directive       <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
+      (uptEntry, piEntry) <- getActiveTechniqueAndDirectiveEntries(id) ?~! "Can not find Active Technique entry in LDAP"
+      activeTechnique     <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
+      directive           <- mapper.entry2Directive(piEntry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, piEntry)
     } yield {
       (activeTechnique, directive)
     }
@@ -607,16 +582,10 @@ class WoLDAPDirectiveRepository(
                      }
       // We have to keep the old rootSection to generate the event log
       oldRootSection     =  {
-        getDirective(directive.id) match {
-          case Full(oldDirective) => getActiveTechnique(directive.id) match {
-            case Full(oldActiveTechnique) =>
-              val oldTechniqueId     =  TechniqueId(oldActiveTechnique.techniqueName,oldDirective.techniqueVersion)
+        getActiveTechniqueAndDirective(directive.id) match {
+          case Full((oldActiveTechnique, oldDirective)) =>
+              val oldTechniqueId =  TechniqueId(oldActiveTechnique.techniqueName, oldDirective.techniqueVersion)
               techniqueRepository.get(oldTechniqueId).map(_.rootSection)
-            case eb:EmptyBox =>
-              // Directory did not exist before, this is a Rule addition. but this should not happen So reporting an error
-              logger.error("The rule did not existe before")
-              None
-          }
           case eb:EmptyBox =>
             // Directory did not exist before, this is a Rule addition.
             None
@@ -698,15 +667,16 @@ class WoLDAPDirectiveRepository(
   override def delete(id:DirectiveId, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[DeleteDirectiveDiff] = {
     for {
       con             <- ldap
-      entry           <- getDirectiveEntry(con, id)
       //for logging, before deletion
-      directive       <- mapper.entry2Directive(entry)
+      (uptEntry
+      , entry  )      <- getActiveTechniqueAndDirectiveEntries(id)
+      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
+      directive       <- mapper.entry2Directive(entry) ?~! "Error when transforming LDAP entry into a directive for id %s. Entry: %s".format(id, entry)
       okNotSystem     <- if(directive.isSystem) {
                            Failure(s"Error: system directive (like '${directive.name} [id: ${directive.id.value}])' can't be deleted")
                          } else {
                            Full("ok")
                          }
-      activeTechnique <- getActiveTechnique(id) ?~! "Can not find the User Policy Temple Entry for directive %s".format(id)
       technique       <- techniqueRepository.get(TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion))
       //delete
       deleted         <- userLibMutex.writeLock { con.delete(entry.dn) }
@@ -722,6 +692,7 @@ class WoLDAPDirectiveRepository(
                            } yield archived
                          } else Full("ok")
     } yield {
+      val t1 = System.currentTimeMillis
       diff
     }
   }
