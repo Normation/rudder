@@ -465,7 +465,7 @@ case class RestExtractorService (
       case Some(techniqueName) =>
         opTechniqueVersion match {
           case Some(version) =>
-            techniqueRepository.getTechniqueVersions(techniqueName).find(_.upsreamTechniqueVersion.value == version) match {
+            techniqueRepository.getTechniqueVersions(techniqueName).find(_ == version) match {
               case Some(version) => techniqueRepository.get(TechniqueId(techniqueName,version)) match {
                 case Some(technique) => Full(technique)
                 case None => Failure(s" Technique ${techniqueName} version ${version} is not a valid Technique")
