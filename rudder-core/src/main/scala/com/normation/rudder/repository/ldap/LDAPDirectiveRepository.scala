@@ -125,7 +125,7 @@ class RoLDAPDirectiveRepository(
     for {
       locked   <- userLibMutex.readLock
       con      <- ldap
-      piEntry  <- getDirectiveEntry(con, id, "1.1") ?~! "Can not find directive with id %s".format(id)
+      piEntry  <- getDirectiveEntry(con, id) ?~! "Can not find directive with id %s".format(id)
       uptEntry <- getUPTEntry(con, mapper.dn2ActiveTechniqueId(piEntry.dn.getParent), { id:ActiveTechniqueId => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) }) ?~! "Can not find Active Technique entry in LDAP"
     } yield {
       (uptEntry, piEntry)
