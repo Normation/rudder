@@ -106,8 +106,7 @@ class PolicyServerManagementServiceImpl(
     }
 
     for {
-      directive <- roDirectiveRepository.getDirective(directiveId) ?~! "Error when retrieving directive with ID '%s'".format(directiveId.value)
-      activeTechnique <- roDirectiveRepository.getActiveTechnique(directiveId) ?~! "Error when getting active technique for directive with ID '%s'".format(directiveId.value)
+      (activeTechnique, directive) <- roDirectiveRepository.getActiveTechniqueAndDirective(directiveId) ?~! s"Error when retrieving directive with ID ${directiveId.value}''"
       newPi = directive.copy(parameters = directive.parameters + (Constants.V_ALLOWED_NETWORK -> networks.map( _.toString)))
       msg = Some("Automatic update of system directive due to modification of accepted networks ")
       saved <- woDirectiveRepository.saveSystemDirective(activeTechnique.id, newPi, modId, actor, msg) ?~! "Can not save directive for Active Technique '%s'".format(activeTechnique.id.value)

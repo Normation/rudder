@@ -174,15 +174,6 @@ trait RoDirectiveRepository {
    */
   def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)]
 
-
-  /**
-   * Find the active technique for which the given directive is an instance.
-   *
-   * Return empty if no such directive is known,
-   * fails if no active technique match the directive.
-   */
-  def getActiveTechnique(id:DirectiveId) : Box[ActiveTechnique]
-
   /**
    * Find the active technique for which the given directive is an instance.
    *
@@ -196,12 +187,6 @@ trait RoDirectiveRepository {
    * A not known technique id is a failure.
    */
   def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]]
-
-  /**
-   * Get all directives defined in that repository
-   */
-  def getAll(includeSystem:Boolean = false) : Box[Seq[Directive]]
-
 
   /**
    * Get all pairs of (category details, Set(active technique))
