@@ -112,9 +112,9 @@ class AgentRunIntervalServiceImpl(
 
   override def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
     for {
-      gInterval <- readGlobalInterval()
+      gInterval  <- readGlobalInterval()
       gHeartbeat <- readGlobalHeartbeat()
-      nodeInfos <- nodeInfoService.getAll()
+      nodeInfos  <- nodeInfoService.getAll()
     } yield {
       nodeIds.map { nodeId =>
 
