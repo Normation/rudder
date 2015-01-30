@@ -1037,8 +1037,11 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           var fnData = myTable.fnGetData( this );
           if (fnData.hasDetails) {
             tableRow.addClass("curspoint")
-            // Add callback to open th line
-            tableRow.click( function () {
+            // Remove all previously added callbacks on row or you will get problems
+            tableRow.unbind();
+            // Add callback to open the line
+            tableRow.click( function (e) {
+              e.stopPropagation();
               // Chack if our line is opened/closed
               var IdTd = tableRow.find("td.eventId");
               if (IdTd.hasClass("listclose")) {

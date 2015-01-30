@@ -141,7 +141,7 @@ class EventListDisplayer(
         })
         SetHtml(abc,displayDetails(event,crId))
       }
-      )._2
+      )
       )
     }
     val json = {
