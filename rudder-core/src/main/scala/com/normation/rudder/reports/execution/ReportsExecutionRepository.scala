@@ -122,7 +122,7 @@ class CachedReportsExecutionRepository(
     for {
       runs <- writeBackend.updateExecutions(executions)
     } yield {
-      cache = cache ++ runs.map(x => (x.agentRunId.nodeId, Some(x))).toMap
+      cache = cache ++ runs.filter( _.isCompleted ).map(x => (x.agentRunId.nodeId, Some(x))).toMap
       runs
     }
   }
