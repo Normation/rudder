@@ -410,8 +410,11 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         case Full(seq) => //ok, cool
           logger.debug("Pre accepted phase: %s".format(unitAcceptor.name))
         case eb:EmptyBox => //on an error here, stop
-          val e = eb ?~! "Error when trying to execute pre-accepting for phase %s. Stop.".format(unitAcceptor.name)
+          val id = sm.node.main.id.value
+          val msg = s"Error when trying to add node with id '${id}'"
+          val e = eb ?~! msg
           logger.error(e.messageChain)
+          logger.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
           //stop now
           return e
       }
@@ -479,9 +482,11 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
               logger.debug(s"Pre acceptance phase: '${unitAcceptor.name}' OK")
               Full(seq)
             case eb:EmptyBox => //on an error here, stop
-              val msg = s"Error when trying to execute pre-accepting for phase '${unitAcceptor.name}. Stop."
+              val id = inventory.node.main.id.value
+              val msg = s"Error when trying to add node with id '${id}'"
               val e = eb ?~! msg
               logger.error(e.messageChain)
+              logger.debug(s"Node with id '${id}' was refused during 'pre-accepting' step of phase '${unitAcceptor.name}'")
               e
           }
       )
