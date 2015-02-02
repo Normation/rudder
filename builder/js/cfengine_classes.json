@@ -8,7 +8,7 @@ var cfengine_OS_classes = [
       , class : "any"
       , childs : []
     }
-  , {   name : "Aix"
+  , {   name : "AIX"
       , class : "aix"
       , childs : []
     }
