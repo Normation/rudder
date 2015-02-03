@@ -291,7 +291,7 @@ class NodeGroupForm(
         , serverList =  srvList.getOrElse(Set()).map( _.id ).toSet
       )
 
-      if(newGroup == nodeGroup) {
+      if(newGroup == nodeGroup && optContainer.isEmpty) {
         formTracker.addFormError(Text("There are no modifications to save"))
         onFailure & onFailureCallback()
       } else {
