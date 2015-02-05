@@ -32,12 +32,21 @@
 *************************************************************************************
 */
 
+var currentAgentRun
+
+// Update agent run from compliance Mode controller
 function updateAgentRun (run) {
-    var scope = angular.element($("#complianceModeController")).scope();
-    scope.$apply(function(){
-          scope.updateAgentRun(run);
-        } );
+  var scope = angular.element($("#complianceModeController")).scope();
+  // compliance mode controller may not be defined yet when that function run for the first time
+  if(scope !== undefined) {
+    scope.$apply(function() {
+      scope.updateAgentRun(run);
+    } );
+  } else {
+    // Scope not available store it in global variable so whe can still use it after scope initialization
+    currentAgentRun = run;
   }
+}
 
 var complianceModeModule = angular.module("complianceMode", ['ngAnimate'])
 complianceModeModule.controller("complianceModeController", function($scope) {
@@ -76,7 +85,6 @@ complianceModeModule.controller("complianceModeController", function($scope) {
   $scope.updateAgentRun = function(run) {
     $scope.agentRun = run;
   }
-
 
   $scope.save = function() {
     var run = JSON.stringify($scope.complianceMode);
