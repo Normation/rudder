@@ -32,12 +32,8 @@
 *************************************************************************************
 */
 
-var currentAgentRun = undefined;
-
 var cfagentScheduleModule = angular.module("cfagentSchedule", [])
 cfagentScheduleModule.controller("cfagentScheduleController", function($scope) {
-
-  
 
   $scope.agentRun = {
       'overrides'   : undefined
