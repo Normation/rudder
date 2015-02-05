@@ -142,6 +142,7 @@ case class RuleComplianceLine (
     JsObj (
         ( "rule"       ->  rule.name )
       , ( "compliance" -> jsCompliance(compliance) )
+      , ( "compliancePercent"       -> compliance.compliance)
       , ( "id"         -> rule.id.value )
       , ( "details"    -> details.json )
       //unique id, usable as DOM id - rules, directives, etc can
@@ -159,6 +160,7 @@ case class RuleComplianceLine (
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of components contained in the Directive [Array of Component values]
  *   , "jsid"    : unique identifier for the line [String]
  *   , "isSystem" : Is it a system Directive? [Boolean]
@@ -179,6 +181,7 @@ case class DirectiveComplianceLine (
       , ( "techniqueName"    -> techniqueName )
       , ( "techniqueVersion" -> techniqueVersion.toString )
       , ( "compliance"       -> jsCompliance(compliance))
+      , ( "compliancePercent"       -> compliance.compliance)
       , ( "details"          -> details.json )
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
@@ -194,6 +197,7 @@ case class DirectiveComplianceLine (
  *   { "node" : Node name [String]
  *   , "id" : Node id [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of Directive applied by the Node [Array of Directive values ]
  *   , "jsid"    : unique identifier for the line [String]
  *   }
@@ -207,6 +211,7 @@ case class NodeComplianceLine (
     JsObj (
         ( "node"       -> nodeInfo.hostname )
       , ( "compliance" -> jsCompliance(compliance))
+      , ( "compliancePercent"       -> compliance.compliance)
       , ( "id"         -> nodeInfo.id.value )
       , ( "details"    -> details.json )
       //unique id, usable as DOM id - rules, directives, etc can
@@ -221,6 +226,7 @@ case class NodeComplianceLine (
  *   { "component" : component name [String]
  *   , "id" : id generated about that component [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of values contained in the component [ Array of Component values ]
  *   , "noExpand" : The line should not be expanded if all values are "None" [Boolean]
  *   , "jsid"    : unique identifier for the line [String]
@@ -237,6 +243,7 @@ case class ComponentComplianceLine (
     JsObj (
         ( "component"   -> component )
       , ( "compliance"  -> jsCompliance(compliance))
+      , ( "compliancePercent"       -> compliance.compliance)
       , ( "details"     -> details.json )
       , ( "noExpand"    -> noExpand )
       , ( "jsid"        -> nextFuncName )
@@ -249,6 +256,7 @@ case class ComponentComplianceLine (
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
@@ -270,6 +278,7 @@ case class ValueComplianceLine (
       , ( "statusClass" -> statusClass )
       , ( "messages"    -> JsArray(messages.map(Str)))
       , ( "compliance"  -> jsCompliance(compliance))
+      , ( "compliancePercent"       -> compliance.compliance)
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
       , ( "jsid"        -> nextFuncName )
