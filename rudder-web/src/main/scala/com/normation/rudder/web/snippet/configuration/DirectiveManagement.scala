@@ -492,7 +492,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] def onRemoveSuccessCallBack(workflowEnabled: Boolean): JsCmd = {
     updateDirectiveLibrary
-    Replace(htmlId_policyConf, showDirectiveDetails) &
     Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
   }
 
