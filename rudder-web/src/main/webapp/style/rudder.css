@@ -2859,3 +2859,7 @@ input[type="number"] {
   box-sizing: border-box;
   -moz-box-sizing: border-box;
 }
+
+.c3-tooltip td.name {
+    padding-right: 3px;
+}
