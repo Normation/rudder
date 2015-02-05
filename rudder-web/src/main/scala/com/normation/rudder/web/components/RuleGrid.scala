@@ -400,7 +400,12 @@ class RuleGrid(
                 }
               }
             }
-            JsRaw(bars.mkString(";"))
+            JsRaw(
+              s"""
+              ${bars.mkString(";")}
+              resortTable("${htmlId_rulesGridId}")
+              """
+            )
 
           case eb : EmptyBox =>
             val error = eb ?~! "error while fetching compliances"
@@ -425,8 +430,9 @@ class RuleGrid(
             val computeGraphs = for {
               (ruleId,change) <- changes
             } yield {
+              val changeCount = change.values.map(_.size).sum
               val data = NodeChanges.json(change)
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds)"""
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount})"""
            }
 
           JsRaw(s"""
@@ -434,6 +440,7 @@ class RuleGrid(
             var currentPageRow = ruleTable._('tr', {"page":"current"});
             var currentPageIds = $$.map( currentPageRow , function(val) { return val.id});
             ${computeGraphs.mkString(";")}
+            resortTable("${htmlId_rulesGridId}")
           """)
 
           case eb : EmptyBox =>
