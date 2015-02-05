@@ -246,7 +246,8 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   private def updateLocationHash(nodeId:String) = {
     //JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
-    JsRaw(s"updateHashString('nodeId', '${nodeId}')")
+    JsRaw(s"updateHashString('nodeId', '${nodeId}')") &
+    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
   }
 }
 
