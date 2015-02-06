@@ -243,6 +243,7 @@ class AcceptNode {
                   , fullOsName       = srv.osFullName
                   , actorIp          = S.containerRequest.map(_.remoteAddress).openOr("Unknown IP")
                 )
+
             )
 
             logRepository.saveEventLog(modId, entry) match {
@@ -295,35 +296,39 @@ class AcceptNode {
   /**
    * Display the list of selected server, and the accept/refuse button
    */
+
   def listNode(listNode : Seq[NodeId], template : NodeSeq) : NodeSeq = {
-      serverSummaryService.find(pendingNodeDit,listNode:_*) match {
-        case Full(servers) =>
-          bind("servergrid",template,
-            "lines" -> servers.flatMap { case s@Srv(id,status, hostname,ostype, osname, fullos, ips, _) =>
-               bind("line",chooseTemplate("servergrid","lines",template),
-                  "os" -> fullos,
-                  "hostname" -> hostname,
-                  "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> })  // TODO : enhance this
+    serverSummaryService.find(pendingNodeDit,listNode:_*) match {
+      case Full(servers) =>
+        bind("servergrid",template,
+            "lines" ->
+              servers.flatMap { case s@Srv(id,status, hostname,ostype, osname, fullos, ips,  _, _, _) =>
+                bind("line",chooseTemplate("servergrid","lines",template),
+                    "os" -> fullos
+                  , "hostname" -> hostname
+                  , "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> })  // TODO : enhance this
                 )
-            },
-            "accept" -> SHtml.submit("Accept", {
-              () => { addNodes(listNode) }
-              S.redirectTo(S.uri)
-            })
-            ,
-            "refuse" -> SHtml.submit("Refuse", {
-              () => refuseNodes(listNode)
-               S.redirectTo(S.uri)
-            }, ("class", "red")),
-            "close" ->SHtml.ajaxButton("Cancel", {
-              () => JsRaw(" $.modal.close();") : JsCmd
-            })
-          )
-        case e:EmptyBox =>
-          val error = e ?~! "An error occured when trying to get server details for displaying them in the popup"
-          logger.debug(error.messageChain, e)
-          NodeSeq.Empty
-      }
+              }
+          , "accept" ->
+              SHtml.submit("Accept", {
+                () => { addNodes(listNode) }
+                S.redirectTo(S.uri)
+              })
+          , "refuse" ->
+              SHtml.submit("Refuse", {
+                () => refuseNodes(listNode)
+                S.redirectTo(S.uri)
+              }, ("class", "red"))
+          ,  "close" ->
+               SHtml.ajaxButton("Cancel", {
+                 () => JsRaw(" $.modal.close();") : JsCmd
+               })
+        )
+      case e:EmptyBox =>
+        val error = e ?~! "An error occured when trying to get server details for displaying them in the popup"
+        logger.debug(error.messageChain, e)
+        NodeSeq.Empty
+    }
   }
 
   /**
@@ -341,9 +346,9 @@ class AcceptNode {
   /**
    * Display the expected Directives for a machine
    */
-  def showExpectedPolicyPopup(nodeId : NodeId) = {
+  def showExpectedPolicyPopup(node : Srv) = {
 
-    SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", nodeId)).display ) &
+    SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display ) &
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
 
@@ -356,7 +361,7 @@ class AcceptNode {
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
             (Text("Directive"),
                   { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                      () =>  showExpectedPolicyPopup(e.id)
+                      () =>  showExpectedPolicyPopup(e)
                     }, ("class", "smallButton")
                    )
                   }
