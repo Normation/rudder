@@ -34,30 +34,20 @@
 
 package com.normation.rudder.web.components.popup
 
-import com.normation.rudder.services.servers.NodeSummaryService
-import com.normation.rudder.domain.policies._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.queries.DynGroupService
-import com.normation.rudder.services.policies._
-import com.normation.utils.Control.sequence
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.exceptions.TechnicalException
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftweb.http.SHtml._
-import org.joda.time.DateTime
-import org.slf4j.LoggerFactory
-import com.normation.rudder.domain.RudderDit
-import com.normation.rudder.web.services.NodeGrid
-import com.normation.rudder.web.components.RuleGrid
-import bootstrap.liftweb.RudderConfig
 
+import bootstrap.liftweb.RudderConfig
+import com.normation.exceptions.TechnicalException
+import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.web.components.RuleGrid
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.common._
+import net.liftweb.http.Templates
+import net.liftweb.util.ClearClearable
+import net.liftweb.util.Helpers._
+import scala.xml.NodeSeq
+import scala.xml.Text
 
 object ExpectedPolicyPopup {
 
@@ -75,27 +65,22 @@ object ExpectedPolicyPopup {
 }
 
 class ExpectedPolicyPopup(
-  htmlId_popup:String,
-  nodeId : NodeId
+  htmlId_popup: String,
+  nodeSrv     : Srv
 ) extends DispatchSnippet with Loggable {
   import ExpectedPolicyPopup._
 
-  private[this] val serverSummaryService = RudderConfig.nodeSummaryService
-  private[this] val dependenciesServices = RudderConfig.dependencyAndDeletionService
-  private[this] val dynGroupService      = RudderConfig.dynGroupService
-  private[this] val pendingNodesDit      = RudderConfig.pendingNodesDit
-
-
+  private[this] val ruleRepository  = RudderConfig.roRuleRepository
+  private[this] val dynGroupService = RudderConfig.dynGroupService
 
   def dispatch = {
     case "display" => {_ => display }
   }
 
-
   def display : NodeSeq = {
 
     //find the list of dyn groups on which that server would be and from that, the Rules
-    val rulesGrid : NodeSeq = rules match {
+    val rulesGrid : NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
         (new RuleGrid("dependentRulesGrid", None, false)).rulesGridWithUpdatedInfo(Some(seq), false, false)
       case e:EmptyBox =>
@@ -108,45 +93,28 @@ class ExpectedPolicyPopup(
         ClearClearable &
         "#dependentRulesGrid" #> rulesGrid
     )(bind("expectedPolicyPopup",expectedTechnique,
-      "node" -> displayNode(nodeId),
+      "node" -> displayNode(nodeSrv),
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
     ) )
   }
 
-
-  private[this] val rules:Box[Seq[Rule]] = {
+  private[this] val getDependantRulesForNode:Box[Seq[Rule]] = {
     for {
-      allNodesRules               <- dependenciesServices.targetDependencies(AllTarget).map(_.rules.toSeq) ?~!
-                                       "Error when building the list of Rules depending on 'All nodes' system Group"
-      allExceptPolicyServersRules <- dependenciesServices.targetDependencies(AllTargetExceptPolicyServers).map(_.rules.toSeq) ?~!
-                                       "Error when building the list of Rules depending on 'All nodes except policy servers' system Group"
-
-      groupMap       <- dynGroupService.findDynGroups(Seq(nodeId)) ?~! "Error when building the map of dynamic group to update by node"
-      seqNodeGroupId = groupMap.get(nodeId).getOrElse(Seq())
-      seqTargetDeps  <- sequence(seqNodeGroupId) { groupId =>
-                          dependenciesServices.
-                            targetDependencies(GroupTarget(groupId)) ?~!
-                              s"Error when building the list of Rules depending on Group ${groupId.value}"
-                        }
+      dynGroup     <- dynGroupService.findDynGroups(Seq(nodeSrv.id)) ?~! "Error when building the map of dynamic group to update by node"
+      groupTargets =  dynGroup.getOrElse(nodeSrv.id, Seq())
+      rules        <- ruleRepository.getAll(includeSytem = false)
     } yield {
-      (seqTargetDeps.flatMap { _.rules } ++ allExceptPolicyServersRules ++ allNodesRules).distinct
+      val allNodes = Map( (nodeSrv.id , (nodeSrv.isPolicyServer, nodeSrv.serverRoles)) )
+      val groups = groupTargets.map { x => (x, Set(nodeSrv.id)) }.toMap
+
+      rules.filter { r =>
+        RuleTarget.getNodeIds(r.targets, allNodes, groups).nonEmpty
+      }
     }
   }
 
-
-  private[this] def displayNode(nodeId : NodeId) : NodeSeq = {
-    serverSummaryService.find(pendingNodesDit,nodeId) match {
-      case Full(srv) =>
-        srv.toList match {
-          case Nil => <div>Node not found</div>
-          case head::Nil => Text(head.hostname + " - " +head.osFullName)
-          case _ => logger.error("Too many nodes returned while searching server %s".format(nodeId.value))
-                  <p class="error">ERROR - Too many nodes</p>
-        }
-      case _ => <div>No node found</div>
-    }
-
+  private[this] def displayNode(srv : Srv) : NodeSeq = {
+    Text(srv.hostname + " - " + srv.osFullName)
   }
-
 
 }

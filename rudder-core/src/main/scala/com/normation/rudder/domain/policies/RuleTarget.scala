@@ -34,15 +34,16 @@
 
 package com.normation.rudder.domain.policies
 
-import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.ServerRole
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.utils.Control.sequence
+import com.normation.utils.HashcodeCaching
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
-import net.liftweb.util.JSONParser
 import net.liftweb.common._
-import com.normation.utils.Control.sequence
 
 
 /**
@@ -133,7 +134,7 @@ sealed trait CompositeRuleTarget extends RuleTarget {
 /**
  * Target Composition allow you to compose multiple targets in one target
  */
-trait TargetComposition extends CompositeRuleTarget {
+sealed trait TargetComposition extends CompositeRuleTarget {
   /**
    * Targets contained in that composition
    */
@@ -177,7 +178,7 @@ final case class TargetIntersection(targets:Set[RuleTarget] = Set()) extends Tar
  * - Excluded : Targets that should be removed
  * Final result should be Included set of nodes with Nodes from Excluded removed
  */
-case class TargetExclusion(
+final case class TargetExclusion(
     includedTarget : TargetComposition
   , excludedTarget : TargetComposition
 ) extends CompositeRuleTarget {
@@ -215,6 +216,60 @@ case class TargetExclusion(
 }
 
 object RuleTarget extends Loggable {
+
+  /**
+   * Return all node ids that match the set of target.
+   * allNodes pair is: (isPolicyServer, serverRoles)
+   */
+  def getNodeIds(
+      targets : Set[RuleTarget]
+    , allNodes: Map[NodeId, (Boolean /* isPolicyServer */, Set[ServerRole])]
+    , groups  : Map[NodeGroupId, Set[NodeId]]
+  ) : Set[NodeId] = {
+
+    (Set[NodeId]() /: targets) { case (nodes , target) => target match {
+      case AllTarget => return allNodes.keySet
+      case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,n) if(!n._1) => k }
+      case PolicyServerTarget(nodeId) => nodes + nodeId
+      case AllServersWithRole =>
+        //we have a special case for the root node that always belongs to that group, even if some weird
+        //scenario lead to the removal (or non addition) of them
+        nodes ++ allNodes.collect { case(k,n) if(n._2.size>0 || n._1 == Constants.ROOT_POLICY_SERVER_ID) => k }
+      case AllNodesWithoutRole =>
+        //root policy server is never on the the group without roles, even if none are defined
+        nodes ++ allNodes.collect { case(k,n) if(n._2.size == 0 && n._1 != Constants.ROOT_POLICY_SERVER_ID) => k }
+
+      //here, if we don't find the group, we consider it's an error in the
+      //target recording, but don't fail, just log it.
+      case GroupTarget(groupId) =>
+        nodes ++ groups.getOrElse(groupId, Set())
+
+      case TargetIntersection(targets) =>
+        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
+        // Compute the intersection of the sets of Nodes
+        val intersection = (allNodes.keySet/: nodeSets) {
+          case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
+        }
+        nodes ++ intersection
+
+      case TargetUnion(targets) =>
+        val nodeSets = targets.map(t => getNodeIds(Set(t), allNodes, groups))
+        // Compute the union of the sets of Nodes
+        val union = (Set[NodeId]()/: nodeSets) {
+          case (currentUnion, nodes) => currentUnion.union(nodes)
+        }
+        nodes ++ union
+
+      case TargetExclusion(included,excluded) =>
+        // Compute the included Nodes
+        val includedNodes = getNodeIds(Set(included), allNodes, groups)
+        // Compute the excluded Nodes
+        val excludedNodes = getNodeIds(Set(excluded), allNodes, groups)
+        // Remove excluded nodes from included nodes
+        val result = includedNodes -- excludedNodes
+        nodes ++ result
+    } }
+  }
 
   /**
    * Unserialize RuleTarget from Json

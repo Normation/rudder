@@ -221,7 +221,7 @@ class NodeGrid(
     <table id={tableId} class="fixedlayout" cellspacing="0">{
     bind("servergrid",tableTemplate,
       "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
-      "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate) =>
+      "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate, _, _) =>
         //build all table lines
         (".hostname *" #> {(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)} &
          ".fullos *" #> osFullName &
