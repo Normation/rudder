@@ -34,41 +34,28 @@
 
 package com.normation.rudder.domain.servers
 
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import com.normation.utils.Utils._
-import org.slf4j.LoggerFactory
 import org.joda.time.DateTime
-import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.utils.HashcodeCaching
-
-
-
-// TODO : merge with NodeInventory.NodeSummary
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.ServerRole
+import com.normation.inventory.domain.InventoryStatus
+import com.normation.rudder.domain.RudderLDAPConstants._
 
 
 /**
  * Class that only contains most meaningfull data about a server (a non registered node)
- * (it's a server, shorten, so its name)
- * Properties are "web friendly" (i.e: string, never null, perhaps empty)
- * @param id - uuid of the server, ex: 27e0e8e8-dfc4-487e-975f-065b073f0b1f
- * @param hostname - full hostname of the server, ex: foobox1.example.com
- * @param osType - os description of the server, ex: Linux
- * @param osName - linux distribution, windows version, etc
- * @param osFullName - long description about the os (distribution, type, version, etc)
- * @param ips : the server's list of ip
- * @param creationDate : the creation date of the object
  */
 case class Srv(
-    id          : NodeId
-  , status      : InventoryStatus
-  , hostname    : String
-  , osType      : String
-  , osName      : String
-  , osFullName  : String
-  , ips         : List[String]
-  , creationDate: DateTime
+    id            : NodeId
+  , status        : InventoryStatus
+  , hostname      : String
+  , osType        : String
+  , osName        : String
+  , osFullName    : String
+  , ips           : List[String]
+  , creationDate  : DateTime
+  , isPolicyServer: Boolean
+  , serverRoles   : Set[ServerRole]
 ) extends HashcodeCaching
 
 
@@ -92,5 +79,6 @@ object Srv {
    , A_NAME
    , A_LIST_OF_IP
    , A_OBJECT_CREATION_DATE
+   , A_SERVER_ROLE
   )
 }

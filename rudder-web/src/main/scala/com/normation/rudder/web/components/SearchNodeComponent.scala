@@ -78,7 +78,7 @@ class SearchNodeComponent(
   , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
   , onClickCallback  : Option[(String) => JsCmd] = None // this callback is used when we click on an element in the grid
-  , onSearchCallback : (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
+  , onSearchCallback : (Boolean, Option[Query]) => JsCmd = {(_, _) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
 )extends DispatchSnippet with Loggable {
@@ -307,7 +307,7 @@ class SearchNodeComponent(
    * @return
    */
   def activateButtonOnChange() : JsCmd = {
-    onSearchCallback(searchFormHasError) &
+    onSearchCallback(searchFormHasError, query) &
     JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s");  """.format(saveButtonId))
   }
 

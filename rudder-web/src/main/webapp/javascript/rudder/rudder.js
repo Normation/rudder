@@ -703,3 +703,33 @@ function checkMigrationButton(currentVersion,selectId) {
 function correctContentHeight(selector) {
   $(selector).height(Math.max(400, $(document).height() - 200));
 }
+
+
+
+/**
+ * A pair of function that allows to parse and set the # part of
+ * the url to some value for node/query
+ */
+function parseURLHash() {
+  try {
+    return JSON.parse(window.location.hash.substring(1));
+  } catch(e) {
+    return {};
+  }
+}
+
+function parseSearchHash(nodeIdCallback, queryCallback) {
+  var hash = parseURLHash();
+  if( hash.nodeId != null && hash.nodeId.length > 0) {
+    nodeIdCallback(hash.nodeId);
+  }
+  if( hash.query != null && JSON.stringify(hash.query).length > 0) {
+    queryCallback(JSON.stringify(hash.query));
+  }
+}
+
+function updateHashString(key, value) {
+  var hash = parseURLHash();
+  hash[key] = value;
+  window.location.hash = "#" + JSON.stringify(hash);
+}

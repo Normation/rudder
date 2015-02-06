@@ -184,7 +184,7 @@ class RuleGrid(
           _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Nodes informations took ${afterNodeInfos - afterRules}ms" )
 
           // we have all the data we need to start our future
-          futureComp      =  if(showComplianceColumns) complianceFuture(rules,nodeInfo.keys.toSeq) else complianceFuture(Seq(), Seq())
+          futureComp      =  if(showComplianceColumns) complianceFuture(rules.map(_.id).toSet, nodeInfo.keys.toSeq) else complianceFuture(Set(), Seq())
 
           groupLib        <- getFullNodeGroupLib()
           afterGroups     =  System.currentTimeMillis
@@ -328,20 +328,21 @@ class RuleGrid(
   }
 
   // Compute compliance level for all rules in  a future so it will be diosplayed asynchronoussily
-  private[this] def complianceFuture(rules: Seq[Rule], nodeIds : Seq[NodeId]): Future[Box[Map[RuleId, ComplianceLevel]]] = {
+  private[this] def complianceFuture(ruleIds: Set[RuleId], nodeIds : Seq[NodeId]): Future[Box[Map[RuleId, Option[ComplianceLevel]]]] = {
     future {
       if(nodeIds.isEmpty) {
         Full(Map())
       } else {
         val start = System.currentTimeMillis
-        for {
-                compliances <- computeCompliances(nodeIds.toSet,rules.map(_.id).toSet)
+        val res = for {
+                compliances <- computeCompliances(nodeIds.toSet, ruleIds)
                 after = System.currentTimeMillis
                 _ = TimingDebugLogger.debug(s"computing compliance in Future took ${after - start}ms" )
 
         } yield {
           compliances
         }
+        res.map(x => ruleIds.map(id => (id, x.get(id))).toMap)
       }
     }
   }
@@ -366,7 +367,7 @@ class RuleGrid(
   }
 
   // Ajax call back to get compliance details
-  private[this] def ajaxCompliance(future : Future[Box[Map[RuleId,ComplianceLevel]]]) : JsCmd = {
+  private[this] def ajaxCompliance(future : Future[Box[Map[RuleId,Option[ComplianceLevel]]]]) : JsCmd = {
     SHtml.ajaxInvoke( () => {
       // Is my future completed ?
       if( future.isCompleted ) {
@@ -374,24 +375,37 @@ class RuleGrid(
         Await.result(future,scala.concurrent.duration.Duration.Inf) match {
           case Full(compliances) =>
             val bars  = {
-              for { (ruleId, compliance) <- compliances } yield {
-                val array = JsArray (
-                    JE.Num(compliance.pc_notApplicable)
-                  , JE.Num(compliance.pc_success)
-                  , JE.Num(compliance.pc_repaired)
-                  , JE.Num(compliance.pc_error)
-                  , JE.Num(compliance.pc_pending)
-                  , JE.Num(compliance.pc_noAnswer)
-                  , JE.Num(compliance.pc_missing)
-                  , JE.Num(compliance.pc_unexpected)
-                )
-                s"""
-                $$("#compliance-bar-${ruleId.value}").html(buildComplianceBar(${array.toJsCmd}));
-                ruleCompliances['${ruleId.value}'] = ${array.toJsCmd};
-                """
+              for { (ruleId, optCompliance) <- compliances } yield {
+                optCompliance match {
+                  case None =>
+                    s"""
+                    $$("#compliance-bar-${ruleId.value}").parent().css("text-decoration", "none");
+                    $$("#compliance-bar-${ruleId.value}").html('<div class="tw-bs"><span class="text-center text-muted">no data available</span></div>');
+                    """
+                  case Some(compliance) =>
+                    val array = JsArray (
+                        JE.Num(compliance.pc_notApplicable)
+                      , JE.Num(compliance.pc_success)
+                      , JE.Num(compliance.pc_repaired)
+                      , JE.Num(compliance.pc_error)
+                      , JE.Num(compliance.pc_pending)
+                      , JE.Num(compliance.pc_noAnswer)
+                      , JE.Num(compliance.pc_missing)
+                      , JE.Num(compliance.pc_unexpected)
+                    )
+                    s"""
+                    $$("#compliance-bar-${ruleId.value}").html(buildComplianceBar(${array.toJsCmd}));
+                    ruleCompliances['${ruleId.value}'] = ${array.toJsCmd};
+                    """
+                }
               }
             }
-             JsRaw(bars.mkString(";"))
+            JsRaw(
+              s"""
+              ${bars.mkString(";")}
+              resortTable("${htmlId_rulesGridId}")
+              """
+            )
 
           case eb : EmptyBox =>
             val error = eb ?~! "error while fetching compliances"
@@ -416,8 +430,9 @@ class RuleGrid(
             val computeGraphs = for {
               (ruleId,change) <- changes
             } yield {
+              val changeCount = change.values.map(_.size).sum
               val data = NodeChanges.json(change)
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds)"""
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount})"""
            }
 
           JsRaw(s"""
@@ -425,6 +440,7 @@ class RuleGrid(
             var currentPageRow = ruleTable._('tr', {"page":"current"});
             var currentPageIds = $$.map( currentPageRow , function(val) { return val.id});
             ${computeGraphs.mkString(";")}
+            resortTable("${htmlId_rulesGridId}")
           """)
 
           case eb : EmptyBox =>

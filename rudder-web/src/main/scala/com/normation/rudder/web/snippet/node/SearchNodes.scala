@@ -127,9 +127,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     import net.liftweb.json.JsonDSL._
 
     { <head>
-      {Script(parseHashtag()) ++ Script(OnLoad(JsRaw("""parseHashtag();
-          $(window).on('hashchange',function(){ parseHashtag() });
-      """)))}
+      {Script(OnLoad(parseHashtag()))}
     </head> }
   }
 
@@ -166,6 +164,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       , srvList
       , () => Noop
       , Some(showNodeDetails)
+      , onSearchCallback = updateQueryHash
       , groupPage = false
     )
     searchNodeComponent.set(Full(sc))
@@ -208,23 +207,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
       }
     }
 
-    JsRaw(s"""
-        var parseHashtag = function() {
-          var hash = null;
-          try {
-            hash = JSON.parse(window.location.hash.substring(1));
-          } catch(e) {
-            hash = {}
-          }
-          if( hash.nodeId != null && hash.nodeId.length > 0) {
-            ${SHtml.ajaxCall(JsVar("hash","nodeId"), displayDetails _ )._2.toJsCmd}
-          }
-          if( hash.query != null && JSON.stringify(hash.query).length > 0) {
-            ${SHtml.ajaxCall(JsRaw("JSON.stringify(hash.query)"), executeQuery _ )._2.toJsCmd}
-          }
-        }
-    """
-    )
+    JsRaw(s"""parseSearchHash(
+        function(x) { ${SHtml.ajaxCall(JsVar("x"), displayDetails _ )._2.toJsCmd} }
+      , function(x) { ${SHtml.ajaxCall(JsVar("x") , executeQuery   _ )._2.toJsCmd} }
+    )""")
   }
 
 
@@ -249,8 +235,19 @@ class SearchNodes extends StatefulSnippet with Loggable {
       case eb:EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
     }
   }
+  private def updateQueryHash(button: Boolean, query: Option[Query]): JsCmd = {
+    query match {
+      case Some(q) =>
+        JsRaw(s"updateHashString('query', ${q.toJSONString})")
+      case None => Noop
+    }
 
-  private def updateLocationHash(nodeId:String) =
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
+  }
+
+  private def updateLocationHash(nodeId:String) = {
+    //JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
+    JsRaw(s"updateHashString('nodeId', '${nodeId}')") &
+    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
+  }
 }
 
