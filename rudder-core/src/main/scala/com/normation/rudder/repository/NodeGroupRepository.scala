@@ -161,62 +161,10 @@ final case class FullNodeGroupCategory(
    * Return all node ids that match the set of target.
    */
   def getNodeIds(targets: Set[RuleTarget], allNodeInfos: Map[NodeId, NodeInfo]) : Set[NodeId] = {
-    val allNodeIds = allNodeInfos.keySet
-    (Set[NodeId]()/:targets) {
-      case (nodes, t:NonGroupRuleTarget) =>
-        t match {
-          case AllTarget => return allNodeIds
-          case AllTargetExceptPolicyServers => nodes ++ allNodeInfos.collect { case(k,n) if(!n.isPolicyServer) => n.id }
-          case PolicyServerTarget(nodeId) => nodes + nodeId
-          case AllServersWithRole =>
-            //we have a special case for the root node that always belongs to that group, even if some weird
-            //scenario lead to the removal (or non addition) of them
-            nodes ++ allNodeInfos.collect { case(k,n) if(n.serverRoles.size>0 || n.id.value == "root") => n.id }
-          case AllNodesWithoutRole =>
-            //root policy server is never on the the group without roles, even if none are defined
-            nodes ++ allNodeInfos.collect { case(k,n) if(n.serverRoles.size == 0 && n.id.value != "root") => n.id }
-        }
-      //here, if we don't find the group, we consider it's an error in the
-      //target recording, but don't fail, just log it.
-      case (nodes, GroupTarget(groupId)) =>
-        val nodesForGroup = allGroups.get(groupId).map( _.nodeGroup.serverList) match {
-          case None =>
-            logger.error(s"Ignoring target for Group with ID='${groupId.value}' because that group is not present in group library")
-            Set()
-          case Some(ids) => ids
-        }
-        nodes ++ nodesForGroup
+    val allNodes = allNodeInfos.mapValues { x => (x.isPolicyServer, x.serverRoles) }
+    val groups = allGroups.mapValues { _.nodeGroup.serverList.toSet }
 
-      case (nodes, TargetIntersection(targets)) =>
-        val nodeSets = targets.map(t => getNodeIds(Set(t),allNodeInfos))
-        // Compute the intersection of the sets of Nodes
-        val intersection = (allNodeIds/: nodeSets) {
-          case (currentIntersection, nodes) => currentIntersection.intersect(nodes)
-        }
-        nodes ++ intersection
-
-      case (nodes, TargetUnion(targets)) =>
-        val nodeSets = targets.map(t => getNodeIds(Set(t),allNodeInfos))
-        // Compute the union of the sets of Nodes
-        val union = (Set[NodeId]()/: nodeSets) {
-          case (currentUnion, nodes) => currentUnion.union(nodes)
-        }
-        nodes ++ union
-
-      case (nodes, TargetExclusion(included,excluded)) =>
-        // Compute the included Nodes
-        val includedNodes = getNodeIds(Set(included),allNodeInfos)
-        // Compute the excluded Nodes
-        val excludedNodes = getNodeIds(Set(excluded),allNodeInfos)
-        // Remove excluded nodes from included nodes
-        val result = includedNodes -- excludedNodes
-        nodes ++ result
-
-
-      case (nodes,target) =>
-        logger.debug(s"Cannot find nodes from a Rule target, the target is : ${target}")
-        nodes
-    }
+    RuleTarget.getNodeIds(targets, allNodes, groups)
   }
 }
 
