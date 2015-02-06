@@ -202,7 +202,6 @@ class DirectiveEditForm(
         logger.warn("could not find id for migration select version")
         "id_not_found"
     }
-    logger.info(versionSelect.uniqueFieldId.getOrElse("id_not_found"))
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup

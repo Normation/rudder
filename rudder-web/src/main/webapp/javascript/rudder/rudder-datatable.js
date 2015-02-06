@@ -36,11 +36,56 @@ var anOpen = [];
 
 var ruleCompliances = {};
 var recentChanges = {};
+var recentChangesCount = {};
 var recentGraphs = {};
 
+/*
+ * This function is used to resort a table after its sorting datas were changed ( like sorting function below)
+ */
+function resortTable (tableId) {
+  var table = $("#"+tableId).dataTable();
+  var sortingColumns = table.dataTableSettings[0].saved_aaSorting;
+  table.fnSort(sortingColumns)
+}
 
-function computeChangeGraph(changes, id, currentRowsIds) {
-  recentChanges[id] = changes
+$.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
+{
+    var data =
+      $.map(
+          // All data of the table
+          oSettings.oApi._fnGetDataMaster(oSettings)
+        , function (elem, index) {
+            if (elem.id in ruleCompliances) {
+              var compliance = ruleCompliances[elem.id];
+              return compliance[0] + compliance[1] + compliance[2]
+            }
+            return -1;
+          }
+      )
+    return data;
+};
+
+$.fn.dataTableExt.afnSortData['changes'] = function ( oSettings, iColumn )
+{
+    var data =
+      $.map(
+          // All data of the table
+          oSettings.oApi._fnGetDataMaster(oSettings)
+        , function (elem, index) {
+            if (elem.id in recentChangesCount) {
+              return recentChangesCount[elem.id];
+            }
+            return -1;
+          }
+      )
+    return data;
+};
+
+
+
+function computeChangeGraph(changes, id, currentRowsIds, changeCount) {
+  recentChanges[id] = changes;
+  recentChangesCount[id] = changeCount
   if (currentRowsIds.indexOf(id) != -1) {
     generateRecentGraph(id)
   }
@@ -219,6 +264,8 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
       "mDataProp": "name"
     , "sWidth": "25%"
     , "sTitle": "Compliance"
+    , "sSortDataType": "compliance"
+    , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
         if (oData.status === "In application" || oData.status === "Partially applied" ) {
@@ -234,6 +281,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
       "mDataProp": "name"
     , "sWidth": "10%"
     , "sTitle": "Recent changes"
+    , "sSortDataType": "changes"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
         var id = "Changes-"+oData.id;
@@ -349,6 +397,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
  *   { "rule" : Rule name [String]
  *   , "id" : Rule id [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of Directives contained in the Rule [Array of Directive values]
  *   , "jsid"    : unique identifier for the line [String]
  *   , "isSystem" : Is it a system Rule? [Boolean]
@@ -377,8 +426,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
       }
   } , {
     "sWidth": "25%"
-      , "mDataProp": "compliance"
-      , "sType": "percent"
+      , "mDataProp": "compliancePercent"
       , "sTitle": "Compliance"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var elem = $("<a></a>");
@@ -421,6 +469,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
  *   , "techniqueName": Name of the technique the Directive is based upon [String]
  *   , "techniqueVersion" : Version of the technique the Directive is based upon  [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of components contained in the Directive [Array of Component values]
  *   , "jsid"    : unique identifier for the line [String]
  *   , "isSystem" : Is it a system Directive? [Boolean]
@@ -471,9 +520,8 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
       }
   } , {
       "sWidth": complianceWidth
-    , "mDataProp": "compliance"
+    , "mDataProp": "compliancePercent"
     , "sTitle": "Compliance"
-    , "sType": "percent"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = buildComplianceBar(oData.compliance)
         $(nTd).empty();
@@ -517,6 +565,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
  *   { "node" : Node name [String]
  *   , "id" : Node id [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of Directive applied by the Node [Array of Directive values ]
  *   , "jsid"    : unique identifier for the line [String]
  *   }
@@ -542,7 +591,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
       }
   } , {
       "sWidth": "25%"
-    , "mDataProp": "compliance"
+    , "mDataProp": "compliancePercent"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = $("<a></a>");
@@ -581,6 +630,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "component" : component name [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "details" : Details of values contained in the component [ Array of Component values ]
  *   , "noExpand" : The line should not be expanded if all values are "None" [Boolean]
  *   }
@@ -606,7 +656,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
       }
   } , {
       "sWidth": complianceWidth
-    , "mDataProp": "compliance"
+    , "mDataProp": "compliancePercent"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = buildComplianceBar(oData.compliance)
@@ -638,7 +688,6 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
  *   
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
- *   , "compliance" : array of number of reports by compliance status [Array[Float]]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
@@ -692,6 +741,7 @@ function createNodeComponentValueTable(contextPath) {
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
+ *   , "compliancePercent" : Compliance percentage [Float]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
  *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
@@ -709,7 +759,7 @@ function createRuleComponentValueTable (contextPath) {
     , "sTitle": "Value"
   } , {
         "sWidth": complianceWidth
-      , "mDataProp": "compliance"
+      , "mDataProp": "compliancePercent"
       , "sTitle": "Compliance"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var elem = buildComplianceBar(oData.compliance);
