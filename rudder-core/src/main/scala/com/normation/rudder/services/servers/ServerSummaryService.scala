@@ -85,14 +85,16 @@ class NodeSummaryServiceImpl(
       }}
 
       Srv(
-          id           = node.main.id
-        , status       = node.main.status
-        , hostname     = node.main.hostname
-        , osType       = node.main.osDetails.os.kernelName
-        , osName       = node.main.osDetails.os.name
-        , osFullName   = node.main.osDetails.fullName
-        , ips          = node.serverIps.toList
-        , creationDate = dateTime
+          id             = node.main.id
+        , status         = node.main.status
+        , hostname       = node.main.hostname
+        , osType         = node.main.osDetails.os.kernelName
+        , osName         = node.main.osDetails.os.name
+        , osFullName     = node.main.osDetails.fullName
+        , ips            = node.serverIps.toList
+        , creationDate   = dateTime
+        , isPolicyServer = e.isA(OC_POLICY_SERVER_NODE)
+        , serverRoles    = node.serverRoles
       )
     }
   }

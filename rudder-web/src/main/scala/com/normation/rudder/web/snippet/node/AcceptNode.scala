@@ -283,7 +283,7 @@ class AcceptNode {
         serverSummaryService.find(pendingNodeDit,listNode:_*) match {
           case Full(servers) =>
             bind("servergrid",template,
-              "lines" -> servers.flatMap { case s@Srv(id,status, hostname,ostype, osname, fullos, ips, _) =>
+              "lines" -> servers.flatMap { case s@Srv(id,status, hostname,ostype, osname, fullos, ips,  _, _, _) =>
                  bind("line",chooseTemplate("servergrid","lines",template),
                     "os" -> fullos,
                     "hostname" -> hostname,
@@ -325,9 +325,9 @@ class AcceptNode {
   /**
    * Display the expected Directives for a machine
    */
-  def showExpectedPolicyPopup(nodeId : NodeId) = {
+  def showExpectedPolicyPopup(node : Srv) = {
 
-    SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", nodeId)).display ) &
+    SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display ) &
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
 
@@ -341,7 +341,7 @@ class AcceptNode {
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
             (Text("Directive"),
                   { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                      () =>  showExpectedPolicyPopup(e.id)
+                      () =>  showExpectedPolicyPopup(e)
                     }, ("class", "smallButton")
                    )
                   }
