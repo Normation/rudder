@@ -28,6 +28,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.utils.Control.sequence
 import net.liftweb.util.Helpers.tryo
+import com.normation.rudder.repository.CachedRepository
 
 
 trait RemoveNodeService {
@@ -54,6 +55,7 @@ class RemoveNodeServiceImpl(
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
     , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+    , nodeInfoServiceCache      : NodeInfoService with CachedRepository
 ) extends RemoveNodeService with Loggable {
 
 
@@ -94,6 +96,9 @@ class RemoveNodeServiceImpl(
             actionLogger.saveEventLog(modId, eventlog)
           }
         } yield {
+          //clear node info cached
+          nodeInfoServiceCache.clearCache
+
           moved
         }
       }

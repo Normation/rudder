@@ -364,6 +364,7 @@ object RudderConfig extends Loggable {
       cachedAgentRunRepository
     , recentChangesService
     , reportingServiceImpl
+    , nodeInfoServiceImpl
   )
 
   val inMemoryChangeRequestRepository : InMemoryChangeRequestRepository = new InMemoryChangeRequestRepository
@@ -1408,7 +1409,7 @@ object RudderConfig extends Loggable {
    , groupLibReadWriteMutex
   )
   private[this] lazy val eventLogDeploymentServiceImpl = new EventLogDeploymentService(logRepository, eventLogDetailsServiceImpl)
-  private[this] lazy val nodeInfoServiceImpl: NodeInfoService = new NodeInfoServiceCachedImpl(
+  private[this] lazy val nodeInfoServiceImpl = new NodeInfoServiceCachedImpl(
       roLdap
     , nodeDitImpl
     , acceptedNodesDitImpl
@@ -1488,7 +1489,9 @@ object RudderConfig extends Loggable {
       , nodeInfoServiceImpl
       , ldapFullInventoryRepository
       , logRepository
-      , nodeReadWriteMutex)
+      , nodeReadWriteMutex
+      , nodeInfoServiceImpl
+  )
 
   /**
    * Event log migration

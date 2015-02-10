@@ -54,6 +54,7 @@ import com.normation.utils.Control._
 import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.repository.CachedRepository
 
 /**
  * A case class used to represent the minimal
@@ -122,7 +123,7 @@ class NodeInfoServiceCachedImpl(
   , nodeDit        : NodeDit
   , inventoryDit   : InventoryDit
   , ldapMapper     : LDAPEntityMapper
-) extends NodeInfoService with Loggable {
+) extends NodeInfoService with Loggable with CachedRepository {
 
 
   /*
@@ -298,6 +299,14 @@ class NodeInfoServiceCachedImpl(
     res
   }
 
+  /**
+   * Clear cache. Try a reload asynchronously, disregarding
+   * the result
+   */
+  override def clearCache(): Unit = this.synchronized {
+    this.lastModificationTime = new DateTime(0)
+    this.nodeCache = None
+  }
 
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all node") { cache =>
     Full(cache.mapValues(_._2))
