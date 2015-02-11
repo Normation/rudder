@@ -44,7 +44,7 @@ var recentGraphs = {};
  */
 function resortTable (tableId) {
   var table = $("#"+tableId).dataTable();
-  var sortingColumns = table.dataTableSettings[0].saved_aaSorting;
+  var sortingColumns = table.dataTableSettings[0].aaSorting;
   table.fnSort(sortingColumns)
 }
 
