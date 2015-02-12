@@ -294,13 +294,13 @@ class RuleGrid(
     directiveApplication match {
       case Some(directiveApp) =>
         def moveCategory(arg: String) : JsCmd = {
-        //parse arg, which have to  be json object with sourceGroupId, destCatId
+          //parse arg, which have to  be json object with sourceGroupId, destCatId
           try {
             (for {
                JObject(JField("rules",JArray(childs)) :: Nil) <- JsonParser.parse(arg)
-               JString(ruleid) <- childs
+               JString(ruleId) <- childs
              } yield {
-               RuleId(ruleid)
+               RuleId(ruleId)
              }) match {
               case ruleIds =>
                 directiveApp.checkRules(ruleIds,status)  match {
@@ -314,12 +314,17 @@ class RuleGrid(
             }
             }
           } catch {
-            case e:Exception => Alert("Error while trying to move group :"+e)
+            case e:Exception =>
+              val msg = s"Error while trying to apply directive ${directiveApp.directive.id.value} on visible Rules"
+              logger.error(s"$msg, cause is: ${e.getMessage()}")
+              logger.debug(s"Error details:", e)
+              Alert(msg)
           }
         }
 
         JsRaw(s"""
-            var rules = $$.map($$('#grid_rules_grid_zone tr.tooltipabletr'), function(v,i) {return $$(v).prop("id")});
+            var data = $$("#${htmlId_rulesGridId}").dataTable()._('tr', {"filter":"applied", "page":"current"});
+            var rules = $$.map(data, function(e,i) { return e.id })
             var rulesIds = JSON.stringify({ "rules" : rules });
             ${SHtml.ajaxCall(JsVar("rulesIds"), moveCategory _)};
         """)
@@ -768,8 +773,6 @@ case class RuleLine (
 
       val optFields : Seq[(String,JsExp)]= reasonField.toSeq ++ cbCallbackField ++ callbackField
 
-     // val changes = NodeChanges.changesOnRule(id)(recentChanges)
-
       val base = JsObj(
           ( "name", name )
         , ( "id", id.value )
@@ -777,7 +780,6 @@ case class RuleLine (
         , ( "applying",  applying )
         , ( "category", category )
         , ( "status", status )
-     //   , ( "recentChanges", NodeChanges.json(changes) )
         , ( "trClass", trClass )
       )
 
