@@ -201,16 +201,16 @@ class TestNcf(unittest.TestCase):
     expected_result.append('{')
     expected_result.append('  methods:')
     expected_result.append('    "method_call" usebundle => package_install_version("${bla.apache_package_name}", "2.2.11"),')
-    expected_result.append('      ifvarclass => "any";')
+    expected_result.append('      ifvarclass => concat("any");')
 
     expected_result.append('    "method_call" usebundle => service_start("${bla.apache_package_name}"),')
-    expected_result.append('      ifvarclass => "cfengine";')
+    expected_result.append('      ifvarclass => concat("cfengine");')
 
     expected_result.append('    "method_call" usebundle => package_install("openssh-server"),')
-    expected_result.append('      ifvarclass => "cfengine";')
+    expected_result.append('      ifvarclass => concat("cfengine");')
 
     expected_result.append('    "method_call" usebundle => _logger("NA", "NA"),')
-    expected_result.append('      ifvarclass => "!cfengine";')
+    expected_result.append('      ifvarclass => concat("!cfengine");')
     expected_result.append('}')
 
     # Join all lines with \n to get a pretty technique file
