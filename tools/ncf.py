@@ -171,6 +171,14 @@ def class_context_and(a, b):
 
   return '.'.join(final_contexts)
 
+def parse_function_call_class_context(function_call):
+  """Extract a function call from class context"""
+  function_name = function_call['name']
+  function_args = [function_arg['value'].replace('\\"', '"') for function_arg in function_call['arguments']]
+  # This is valid for string parameters only should improve for inner function
+  return function_name + '(' + ','.join(function_args) + ')'
+
+
 def parse_technique_methods(technique_file):
   res = []
 
@@ -206,7 +214,7 @@ def parse_technique_methods(technique_file):
       method_name = None
       args = None
       promise_class_context = class_context
-
+      ifvarclass_context = None
       promiser = method['promiser']
 
       for attribute in method['attributes']:
@@ -216,14 +224,44 @@ def parse_technique_methods(technique_file):
             args = [arg['value'].replace('\\"', '"') for arg in attribute['rval']['arguments']]
           if attribute['rval']['type'] == 'string':
             method_name = attribute['rval']['value']
+        # Extract class context from 'ifvarclass'
         elif attribute['lval'] == 'ifvarclass':
+          # Simple string get its value
           if attribute['rval']['type'] == 'string':
-            promise_class_context = class_context_and(class_context, attribute['rval']['value'])
+            ifvarclass_context = attribute['rval']['value']
+          # We have a function call here, and need to treat concat case
           if attribute['rval']['type'] == 'functionCall':
             ifvarclass_function = attribute['rval']['name']
-            ifvarclass_args = [arg['value'].replace('\\"', '"') for arg in attribute['rval']['arguments']]
-            promise_class_context = class_context_and(class_context, ifvarclass_function + '(' + ','.join(ifvarclass_args) + ')')
-            # FIXME: This is not really valid!
+            # Function is concat! We use that to handle variable in classes:
+            # variables in classes are expanded at runtime, making invalid character in classes
+            # We have to canonify variables only, and not the whole if var class
+            # as it would replace all the 'invalid' character from the class ( and '.' , not '!', ...)
+            # so a class like:
+            # Monday.${bundle2.var}.debian.${bundle.var}.linux
+            # will be written
+            # concat("Monday.",canonify(${bundle2.var}),".debian.",canonify(${bundle.var}),".linux")
+            # But the class we really want to extract is:
+            # Monday.${bundle2.var}.debian.${bundle.var}.linux
+            if ifvarclass_function == 'concat':
+              ifvarclass_args = []
+              for arg in attribute['rval']['arguments']:
+                # simple string get only the value
+                if arg['type'] == 'string':
+                  ifvarclass_args.append(arg['value'])
+                # This a canonify call, extract only the value of the canonify
+                elif arg['type'] == 'functionCall' and arg['name'] == 'canonify':
+                  ifvarclass_args.append(arg['arguments'][0]['value'])
+                # Extract the function call correctly
+                else:
+                  function_call = parse_function_call_class_context(arg)
+                  ifvarclass_args.append(function_call)
+              ifvarclass_context = ''.join(ifvarclass_args)
+            # Another function call, extract it directly
+            else:
+              ifvarclass_context = parse_function_call_class_context(attribute['rval'])
+
+      if ifvarclass_context is not None:
+        promise_class_context = class_context_and(class_context, ifvarclass_context)
 
       if args:
         res.append({'class_context': promise_class_context, 'method_name': method_name, 'args': args})
@@ -408,6 +446,15 @@ def add_default_values_technique_metadata(technique_metadata):
   technique['method_calls'] = method_calls
   return technique
 
+def canonify_class_context(class_context):
+  """Transform a class context into a canonified one"""
+  # We transform the following class context:
+  # "Monday.${bundle2.var}.debian.${bundle.var}.linux"
+  # into:
+  # concat("Monday.",canonify(${bundle2.var}),".debian.",canonify(${bundle.var}),".linux")
+  # We have to canonify variables only so the class context is valid and coherent
+  return re.sub(r'(\${[^\}]*})', r'",canonify("\1"),"', class_context)
+
 def generate_technique_content(technique_metadata):
   """Generate technique CFEngine file as string from its metadata"""
 
@@ -430,9 +477,10 @@ def generate_technique_content(technique_metadata):
       arg_value = ', '.join(args)
     else:
       arg_value = ""
-    
+    class_context = canonify_class_context(method_call['class_context'])
+
     content.append('    "method_call" usebundle => '+method_call['method_name']+'('+arg_value+'),')
-    content.append('      ifvarclass => "'+method_call['class_context']+'";')
+    content.append('      ifvarclass => concat("'+class_context+'");')
 
   content.append('}')
 
