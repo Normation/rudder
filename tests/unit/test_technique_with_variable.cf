@@ -13,7 +13,7 @@ bundle agent Test_technique_with_variable {
     any::
       "ph1" usebundle => directory_create("${sys.workdir}/module");
       "ph2" usebundle => file_create("${sys.workdir}/module/env"),
-           ifvarclass => "(directory_create_${sys.workdir}_module_repaired)";
+           ifvarclass => concat("directory_create_",canonify(${sys.workdir}),"_module_repaired");
 
 
 }

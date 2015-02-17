@@ -105,9 +105,9 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('  methods:')
     expected_result.append('')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("file_create_${sys.workdir}_module_env"),')
-    expected_result.append('                    ifvarclass => "!((directory_create_${sys.workdir}_module_repaired))";')
+    expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
     expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "file_create_${sys.workdir}_module_env"),')
-    expected_result.append('                    ifvarclass => "!((directory_create_${sys.workdir}_module_repaired))";')
+    expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
     expected_result.append('}')
 
     # Join all lines with \n
