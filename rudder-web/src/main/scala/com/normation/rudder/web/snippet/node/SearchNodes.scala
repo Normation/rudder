@@ -126,8 +126,13 @@ class SearchNodes extends StatefulSnippet with Loggable {
     import net.liftweb.json._
     import net.liftweb.json.JsonDSL._
 
+    //add a function name to force reparse hashtag for other js elt of the page
+
     { <head>
-      {Script(OnLoad(parseHashtag()))}
+      {Script(
+         JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd } }") &
+         OnLoad(JsRaw("forceParseHashtag()"))
+     )}
     </head> }
   }
 

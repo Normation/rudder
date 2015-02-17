@@ -35,11 +35,9 @@
 package com.normation.rudder.web.snippet
 
 import scala.xml.NodeSeq
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.components.AutoCompleteAutoSubmit
 import com.normation.rudder.web.model.JsInitContextLinkUtil
-
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
@@ -47,6 +45,7 @@ import net.liftweb.http.js.JsCmd
 import net.liftweb.http.js.JsCmds.Alert
 import net.liftweb.http.js.JsCmds.RedirectTo
 import net.liftweb.util.Helpers.strToSuperArrowAssoc
+import net.liftweb.http.js.JsCmds.Run
 
 /**
  * This snippet allow to display the node "quick search" field.
@@ -80,7 +79,8 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
       val regex = """.+\[(.+)\]""".r
       s match {
         case regex(id) =>
-          JsInitContextLinkUtil.redirectToNodeLink(NodeId(id))
+          JsInitContextLinkUtil.redirectToNodeLink(NodeId(id)) &
+          Run(s"if(window.location.href.indexOf('nodeManager/searchNodes') > -1) { forceParseHashtag(); }")
         case _ =>
           Alert("No node was selected")
       }
