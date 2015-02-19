@@ -184,8 +184,8 @@ object DisplayNodeGroupTree extends Loggable {
 
         val editButton = {
           if (!targetActions.isEmpty && ! targetInfo.isSystem) {
-              <img src="/images/icPen.png" class="treeActions treeAction noRight" /> ++ Script(JsRaw(s"""
-                $$('#${jsId} .treeActions').on("mouseup", function(e) {
+              <img src="/images/icPen.png" class="treeActions treeAction noRight groupDetails" /> ++ Script(JsRaw(s"""
+                $$('#${jsId} .groupDetails').on("mouseup", function(e) {
                   redirectTo('${S.contextPath}/secure/nodeManager/groups#{"groupId":"${groupId}"}',e);
                 } );"""))
           } else {
