@@ -1,6 +1,7 @@
 all: clean test doc
 
 test:
+	type fakeroot 2>/dev/null || { echo "fakeroot is required but not found." ; exit 1 ; }
 	cd tests/style/ && ./testall
 	cd tests/unit/ && ./testall
 	cd tests/acceptance/ && ./testall --no-network
