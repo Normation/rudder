@@ -99,7 +99,14 @@ class WoLDAPNodeRepository(
    * what is given in paramater
    */
   def updateNodeProperties(nodeId: NodeId, properties: Seq[NodeProperty], modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node] = {
-    val updateNode = (node: Node) => node.copy(properties = properties)
+    val updateNode = (node: Node) => {
+      val newProperties = properties.groupBy(_.name)
+      val oldProperties = node.properties.groupBy(_.name)
+      // Merge all properties, since this a Map old ones will be overwritten by new since they have the same key
+      // Filter to remove properties with empty values
+      val allProperties = (oldProperties ++ newProperties).values.flatten.toSeq.filterNot(_.value == "")
+      node.copy(properties = allProperties)
+    }
     val log = (oldNode: Node, newNode: Node) => {
       val diff = ModifyNodePropertiesDiff(nodeId, if(oldNode.properties.toSet == newNode.properties.toSet) None
                                                   else Some(SimpleDiff(oldNode.properties, newNode.properties))
