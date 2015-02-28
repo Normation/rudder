@@ -72,11 +72,11 @@ class NodeApiService5 (
 
     (for {
       reason   <- restExtractor.extractReason(req.params)
+      node     <- nodeInfoService.getNode(nodeId)
       restNode <- boxRestNode
-      saved    <- restNode.properties match {
-                    case None => nodeInfoService.getNode(nodeId)
-                    case Some(properties) => nodeRepository.updateNodeProperties(nodeId, properties, modId, actor, reason)
-                  }
+      updated  =  node.copy(properties = updateProperties(node.properties, restNode.properties))
+      saved    <- if(updated == node) Full(node)
+                  else nodeRepository.updateNodeProperties(updated.id, updated.properties, modId, actor, reason)
     } yield {
       saved
     }) match {
@@ -103,7 +103,7 @@ class NodeApiService5 (
       case Some(u) =>
         val values = u.map { case NodeProperty(k, v) => (k, v)}.toMap
         val existings = props.map(_.name).toSet
-        //for news values, don't keep emptu
+        //for news values, don't keep empty
         val news = (values -- existings).collect { case(k,v) if(v.nonEmpty) => NodeProperty(k,v) }
         props.flatMap { case p@NodeProperty(name, value)  =>
           values.get(name) match {
