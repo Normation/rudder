@@ -380,7 +380,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
             <xml:group><b>Date first accepted in Rudder:</b> {DateFormaterService.getFormatedDate(creation)}<br/></xml:group>
           }.getOrElse(NodeSeq.Empty) }
           <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
-          <b>Rudder ID:</b> {sm.node.main.id.value.toUpperCase}<br/>
+          <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           { displayPolicyServerInfos(sm) }
         </div>
 
