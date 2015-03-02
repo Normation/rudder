@@ -184,7 +184,7 @@ class NodeGroupForm(
      bind("group", html,
       "pendingChangeRequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
       "name" -> groupName.toForm_!,
-      "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value.toUpperCase}</div>,
+      "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
       "description" -> groupDescription.toForm_!,
       "container" -> groupContainer.toForm_!,
       "static" -> groupStatic.toForm_!,
