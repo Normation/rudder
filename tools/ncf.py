@@ -327,7 +327,7 @@ def execute_hooks(prefix, action, path, bundle_name):
   hooks = get_hooks(prefix, action, hooks_path)
   for hook in hooks:
     hookfile = os.path.join(hooks_path,hook)
-    subprocess.call([hookfile,path,bundle_name])
+    subprocess.check_call([hookfile,path,bundle_name])
 
 def delete_technique(technique_name, alt_path=""):
   """Delete a technique directory contained in a path"""
