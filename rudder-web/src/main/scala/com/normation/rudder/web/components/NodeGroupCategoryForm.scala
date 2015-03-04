@@ -115,6 +115,11 @@ class NodeGroupCategoryForm(
         <hr class="spacer"/>
         <directive:container/>
         <hr class="spacer"/>
+        <div class="wbBaseField">
+          <span class="threeCol textright"><b>Rudder ID:</b></span>
+          <div class="twoCol"><span>{_nodeGroupCategory.id.value}</span></div>
+       </div>
+        <hr class="spacer"/>
         <lift:authz role="node_write">
         <div class="margins" align="right"><directive:save/> <directive:delete/></div>
         </lift:authz>
@@ -128,18 +133,18 @@ class NodeGroupCategoryForm(
         "textarea" #> {(n:NodeSeq) => n match {
         case input: Elem => input % ("disabled", "true")
       } }) (bind("directive", html,
-        "name" -> piName.toForm_! ,
-        "description" -> piDescription.toForm_!,
-        "container" -> piContainer.toForm_!,
+        "name" -> name.toForm_! ,
+        "description" -> description.toForm_!,
+        "container" -> container.toForm_!,
         "save" -> SHtml.ajaxSubmit("Update", onSubmit _),
         "delete" -> deleteButton,
         "notifications" -> updateAndDisplayNotifications()
       ))
     } else {
        bind("directive", html,
-        "name" -> piName.toForm_!,
-        "description" -> piDescription.toForm_!,
-        "container" -> piContainer.toForm_!,
+        "name" -> name.toForm_!,
+        "description" -> description.toForm_!,
+        "container" -> container.toForm_!,
         "save" -> { if (CurrentUser.checkRights(Edit("group")))
                  SHtml.ajaxSubmit("Update", onSubmit _)
               else NodeSeq.Empty
@@ -216,13 +221,13 @@ class NodeGroupCategoryForm(
 
 
   ///////////// fields for category settings ///////////////////
-  private[this] val piName = new WBTextField("Category name", _nodeGroupCategory.name) {
+  private[this] val name = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
-  private[this] val piDescription = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
+  private[this] val description = new WBTextAreaField("Category description", _nodeGroupCategory.description.toString) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:10em")
     override def validations =  Nil
@@ -232,7 +237,7 @@ class NodeGroupCategoryForm(
   /**
    * If there is no parent, it is its own parent
    */
-  private[this] val piContainer = parentCategory match {
+  private[this] val container = parentCategory match {
     case x:EmptyBox =>
       new WBSelectField("Parent category: ",
         Seq(_nodeGroupCategory.id.value -> _nodeGroupCategory.name),
@@ -252,7 +257,7 @@ class NodeGroupCategoryForm(
   }
 
 
-  private[this] val formTracker = new FormTracker(piName,piDescription,piContainer)
+  private[this] val formTracker = new FormTracker(name, description, container)
 
   private[this] var notifications = List.empty[NodeSeq]
 
@@ -283,8 +288,8 @@ class NodeGroupCategoryForm(
       // create the new NodeGroupCategory
       val newNodeGroup = new NodeGroupCategory(
         _nodeGroupCategory.id,
-        piName.is,
-        piDescription.is,
+        name.is,
+        description.is,
         _nodeGroupCategory.children,
         _nodeGroupCategory.items,
         _nodeGroupCategory.isSystem
@@ -292,7 +297,7 @@ class NodeGroupCategoryForm(
 
       woGroupCategoryRepository.saveGroupCategory(
           newNodeGroup
-        , NodeGroupCategoryId(piContainer.is)
+        , NodeGroupCategoryId(container.is)
         , ModificationId(uuidGen.newUuid)
         , CurrentUser.getActor
         , Some("Node Group category saved by user from UI")
