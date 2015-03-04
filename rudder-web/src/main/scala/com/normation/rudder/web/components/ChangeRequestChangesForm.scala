@@ -539,7 +539,7 @@ class ChangeRequestChangesForm(
                   val diff = diffService.diffDirective(initialDirective, initialRS, directive, rootSection, techniqueName)
                   displayDirectiveDiff(diff,directive,techniqueName,rootSection)
                 case None =>
-                  val msg = s"Could not display diff for ${directive.name} (${directive.id.value.toUpperCase})"
+                  val msg = s"Could not display diff for ${directive.name} (${directive.id.value})"
                   logger.error(msg)
                   <div>msg</div>
               }
@@ -557,7 +557,7 @@ class ChangeRequestChangesForm(
                   case Some(initialGroup) =>
                     val diff = diffService.diffNodeGroup(initialGroup, group)
                    displayGroupDiff(diff,group)
-                  case None =>  val msg = s"Could not display diff for ${group.name} (${group.id.value.toUpperCase})"
+                  case None =>  val msg = s"Could not display diff for ${group.name} (${group.id.value})"
                   logger.error(msg)
                   <div>msg</div>
 
@@ -584,7 +584,7 @@ class ChangeRequestChangesForm(
                       val diff = diffService.diffRule(initialRule, rule)
                       displayRuleDiff(diff, rule, groupLib, rootRuleCategory)
                     case None =>
-                      val msg = s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
+                      val msg = s"Could not display diff for ${rule.name} (${rule.id.value})"
                       logger.error(msg)
                       <div>{msg}</div>
                   }
@@ -596,7 +596,7 @@ class ChangeRequestChangesForm(
                 case Full(xml) =>
                   xml
                 case eb:EmptyBox =>
-                  val fail = eb ?~! s"Could not display diff for ${rule.name} (${rule.id.value.toUpperCase})"
+                  val fail = eb ?~! s"Could not display diff for ${rule.name} (${rule.id.value})"
                   logger.error(fail.messageChain)
                   <div>{fail.messageChain}</div>
             }
