@@ -23,7 +23,7 @@ function findIndex(array, elem) {
 };
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast'])
 
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
@@ -47,7 +47,7 @@ app.directive('techniquename', function($filter) {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll) {
+app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast) {
 
   // Variable we use in the whole application
 
@@ -98,11 +98,29 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
-  $scope.handle_error = function(data, status, headers, config) {
+  function errorNotification (content) {
+    ngToast.create({
+        content: content
+      , className: 	'danger'
+      , dismissOnTimeout 	: false
+      , dismissButton : true
+      , dismissOnClick : false
+    });
+  }
+
+  $scope.handle_error = function( actionName ) {
+    return function(data, status, headers, config) {
       if (status === 401) {
         $scope.authenticated = false;
+        errorNotification('Could not authenticate '+ actionName);
+      } else {
+        var errorDetails = ""
+        if (data.error !== undefined) {
+            errorDetails = ", details:\n"+ data.error
+        }
+        errorNotification('Error '+ actionName + errorDetails);
       }
-    };
+    } };
 
   // Transform a ncf technique into a valid UI technique
   // Add original_index to the method call, so we can track their modification on index
@@ -169,7 +187,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
           $scope.techniques.push(technique);
         }
       } ).
-      error($scope.handle_error);
+      error($scope.handle_error(" while fetching techniques"));
   };
 
   // Call ncf api to get genereric methods
@@ -181,7 +199,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
       } ).
-      error($scope.handle_error);
+      error($scope.handle_error(" while fetching generic methods"));
   };
 
   // Group methods by category, a category of a method is the first word in its name
@@ -499,6 +517,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var data = {params: {path: $scope.path}};
     $http.delete("/ncf/api/techniques/"+$scope.selectedTechnique.bundle_name, data).
       success(function(data, status, headers, config) {
+
+        ngToast.create({ content: $scope.originalTechnique.name+ ' deleted!'});
+
         var index = findIndex($scope.techniques,$scope.originalTechnique);
         $scope.techniques.splice(index,1);
         $scope.addNew=false;
@@ -506,7 +527,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         $scope.selectedTechnique = undefined;
         $scope.originalTechnique = undefined;
       } ).
-      error($scope.handle_error);
+      error($scope.handle_error("while deleting technique "+$scope.selectedTechnique.name));
   };
 
   $scope.setBundleName = function (technique) {
@@ -533,6 +554,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
 
+      ngToast.create({ content: technique.name+ ' saved!'});
       // Find index of the technique in the actual tree of technique (look for original technique)
       var index = findIndex($scope.techniques,origin_technique);
       if ( index === -1) {
@@ -552,11 +574,11 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     if ($scope.originalTechnique.bundle_name === undefined) {
       $http.post("/ncf/api/techniques", data).
         success(saveSuccess).
-        error($scope.handle_error);
+        error($scope.handle_error("while creating technique "+ data.technique.name));
     } else {
       $http.put("/ncf/api/techniques", data).
         success(saveSuccess).
-        error($scope.handle_error);
+        error($scope.handle_error("while saving technique "+ data.technique.name));
     }
   };
 
