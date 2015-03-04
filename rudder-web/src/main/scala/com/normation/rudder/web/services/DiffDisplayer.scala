@@ -231,7 +231,7 @@ object DiffDisplayer extends Loggable {
         case Full(fqdn) => fqdn
         case eb : EmptyBox =>
           logger.error(s"Error while looking for category ${category.value}")
-          category.value.toUpperCase()
+          category.value
       }
     }
     implicit def displayRuleCategory(ruleCategoryId: RuleCategoryId) = {
