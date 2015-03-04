@@ -298,7 +298,7 @@ class RestAuthenticationFilter(
 
               case Full(Some(principal)) =>
                 if(principal.isEnabled) {
-                  val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value.toUpperCase()})"
+                  val rest_principal = REST_USER_PREFIX + s""""${principal.name.value}"""" + s" (${principal.id.value})"
                   //cool, build an authentication token from it
                   authenticate(RudderUserDetail(
                       rest_principal

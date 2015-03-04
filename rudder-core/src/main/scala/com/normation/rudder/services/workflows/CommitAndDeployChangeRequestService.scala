@@ -285,34 +285,34 @@ class CommitAndDeployChangeRequestServiceImpl(
         // Write debug logs to understand what cause the conflict
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
         if ( initialFixed.name != currentFixed.name) {
-          debugLog(s"Rule ID ${initialFixed.id.value.toUpperCase} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
+          debugLog(s"Rule ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
         if ( initialFixed.shortDescription != currentFixed.shortDescription) {
-          debugLog(s"Rule ID ${initialFixed.id.value.toUpperCase} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
+          debugLog(s"Rule ID ${initialFixed.id.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
         }
 
         if ( initialFixed.longDescription != currentFixed.longDescription) {
-          debugLog(s"Rule ID ${initialFixed.id.value.toUpperCase} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
+          debugLog(s"Rule ID ${initialFixed.id.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
         }
 
         def displayTarget(target : RuleTarget) = {
           target match {
-            case GroupTarget(groupId) => s"group: ${groupId.value.toUpperCase}"
-            case PolicyServerTarget(nodeId) => s"policyServer: ${nodeId.value.toUpperCase}"
+            case GroupTarget(groupId) => s"group: ${groupId.value}"
+            case PolicyServerTarget(nodeId) => s"policyServer: ${nodeId.value}"
             case _ => target.target
           }
         }
         if ( initialFixed.targets != currentFixed.targets) {
-          debugLog(s"Rule ID ${initialFixed.id.value.toUpperCase} target Groups have changed: original state from CR: ${initialFixed.targets.map(displayTarget)mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.value} target Groups have changed: original state from CR: ${initialFixed.targets.map(displayTarget)mkString("[ ", ", ", " ]")}, current value: ${currentFixed.targets.map(displayTarget).mkString("[ ", ", ", " ]")}")
         }
 
         if ( initialFixed.isEnabledStatus != currentFixed.isEnabledStatus) {
-          debugLog(s"Rule ID ${initialFixed.id.value.toUpperCase} enable status has changed: original state from CR: ${initialFixed.isEnabledStatus}, current value: ${currentFixed.isEnabledStatus}")
+          debugLog(s"Rule ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabledStatus}, current value: ${currentFixed.isEnabledStatus}")
         }
 
         if ( initialFixed.directiveIds != currentFixed.directiveIds) {
-          debugLog(s"Rule ID ${initialFixed.id.value.toUpperCase} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.value.toUpperCase).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.value.toUpperCase).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Rule ID ${initialFixed.id.value} attached Directives have changed: original state from CR: ${initialFixed.directiveIds.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.directiveIds.map(_.value).mkString("[ ", ", ", " ]")}")
         }
 
         //return
@@ -344,27 +344,27 @@ class CommitAndDeployChangeRequestServiceImpl(
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
         if ( initialFixed.name != currentFixed.name) {
-          debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
+          debugLog(s"Directive ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
         if ( initialFixed.shortDescription != currentFixed.shortDescription) {
-          debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
+          debugLog(s"Directive ID ${initialFixed.id.value} short description has changed: original state from CR: ${initialFixed.shortDescription}, current value: ${currentFixed.shortDescription}")
         }
 
         if ( initialFixed.longDescription != currentFixed.longDescription) {
-          debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
+          debugLog(s"Directive ID ${initialFixed.id.value} long description has changed: original state from CR: ${initialFixed.longDescription}, current value: ${currentFixed.longDescription}")
         }
 
         if ( initialFixed.priority != currentFixed.priority) {
-          debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} priority has changed: original state from CR: ${initialFixed.priority}, current value: ${currentFixed.priority}")
+          debugLog(s"Directive ID ${initialFixed.id.value} priority has changed: original state from CR: ${initialFixed.priority}, current value: ${currentFixed.priority}")
         }
 
         if ( initialFixed.isEnabled != currentFixed.isEnabled) {
-          debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
+          debugLog(s"Directive ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
         }
 
         if ( initialFixed.techniqueVersion != currentFixed.techniqueVersion) {
-          debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion}, current value: ${currentFixed.techniqueVersion}")
+          debugLog(s"Directive ID ${initialFixed.id.value} Technique version has changed: original state from CR: ${initialFixed.techniqueVersion}, current value: ${currentFixed.techniqueVersion}")
         }
 
         for  {
@@ -373,7 +373,7 @@ class CommitAndDeployChangeRequestServiceImpl(
           currVal = currentFixed.parameters.get(key)
         } yield {
           if ( currVal != initVal) {
-            debugLog(s"Directive ID ${initialFixed.id.value.toUpperCase} parameter $key has changed : original state from CR: ${initVal.getOrElse("value is mising")}, current value: ${currVal.getOrElse("value is mising")}")
+            debugLog(s"Directive ID ${initialFixed.id.value} parameter $key has changed : original state from CR: ${initVal.getOrElse("value is mising")}, current value: ${currVal.getOrElse("value is mising")}")
           }
         }
 
@@ -409,27 +409,27 @@ class CommitAndDeployChangeRequestServiceImpl(
         debugLog("Attempt to merge Change Request (CR) failed because initial state could not be rebased on current state.")
 
         if ( initialFixed.name != currentFixed.name) {
-          debugLog(s"Group ID ${initialFixed.id.value.toUpperCase} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
+          debugLog(s"Group ID ${initialFixed.id.value} name has changed: original state from CR: ${initialFixed.name}, current value: ${currentFixed.name}")
         }
 
         if ( initialFixed.description != currentFixed.description) {
-          debugLog(s"Group ID ${initialFixed.id.value.toUpperCase} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}")
+          debugLog(s"Group ID ${initialFixed.id.value} description has changed: original state from CR: ${initialFixed.description}, current value: ${currentFixed.description}")
         }
 
         if ( initialFixed.query != currentFixed.query) {
-          debugLog(s"Group ID ${initialFixed.id.value.toUpperCase} query has changed: original state from CR: ${initialFixed.query}, current value: ${currentFixed.query}")
+          debugLog(s"Group ID ${initialFixed.id.value} query has changed: original state from CR: ${initialFixed.query}, current value: ${currentFixed.query}")
         }
 
         if ( initialFixed.isDynamic != currentFixed.isDynamic) {
-          debugLog(s"Group ID ${initialFixed.id.value.toUpperCase} dynamic status has changed: original state from CR: ${initialFixed.isDynamic}, current value: ${currentFixed.isDynamic}")
+          debugLog(s"Group ID ${initialFixed.id.value} dynamic status has changed: original state from CR: ${initialFixed.isDynamic}, current value: ${currentFixed.isDynamic}")
         }
 
         if ( initialFixed.isEnabled != currentFixed.isEnabled) {
-          debugLog(s"Group ID ${initialFixed.id.value.toUpperCase} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
+          debugLog(s"Group ID ${initialFixed.id.value} enable status has changed: original state from CR: ${initialFixed.isEnabled}, current value: ${currentFixed.isEnabled}")
         }
 
         if (initialFixed.serverList != currentFixed.serverList) {
-          debugLog(s"Group ID ${initialFixed.id.value.toUpperCase} nodes list has changed: original state from CR: ${initialFixed.serverList.map(_.value.toUpperCase).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value.toUpperCase).mkString("[ ", ", ", " ]")}")
+          debugLog(s"Group ID ${initialFixed.id.value} nodes list has changed: original state from CR: ${initialFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}, current value: ${currentFixed.serverList.map(_.value).mkString("[ ", ", ", " ]")}")
         }
 
         //return
