@@ -81,7 +81,7 @@ object JsInitContextLinkUtil extends Loggable {
       case Full(rule) => <span> {SHtml.a(() => S.redirectTo(ruleLink(id)), Text(rule.name))} (Rudder ID: {id.value})</span>
       case eb:EmptyBox => val fail = eb ?~! s"Could not find Rule with Id ${id.value}"
         logger.error(fail.msg)
-        <span> {id.value.toUpperCase} </span>
+        <span> {id.value} </span>
     }
   }
 
@@ -90,7 +90,7 @@ object JsInitContextLinkUtil extends Loggable {
       case Full((group,_)) => <span> {SHtml.a(() => S.redirectTo(groupLink(id)), Text(group.name))} (Rudder ID: {id.value})</span>
       case eb:EmptyBox => val fail = eb ?~! s"Could not find NodeGroup with Id ${id.value}"
         logger.error(fail.msg)
-        <span> {id.value.toUpperCase} </span>
+        <span> {id.value} </span>
     }
   }
 
@@ -99,7 +99,7 @@ object JsInitContextLinkUtil extends Loggable {
       case Full(directive) => <span> {SHtml.a(() => S.redirectTo(directiveLink(id)), Text(directive.name))} (Rudder ID: {id.value})</span>
       case eb:EmptyBox => val fail = eb ?~! s"Could not find Directive with Id ${id.value}"
         logger.error(fail.msg)
-        <span> {id.value.toUpperCase} </span>
+        <span> {id.value} </span>
     }
   }
   // Naive implementation that redirect simply to all Global Parameter page
