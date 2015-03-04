@@ -126,6 +126,14 @@ class RuleCategoryPopup(
       "#categoryName * "       #> categoryName.toForm_! &
       "#categoryParent *"      #> categoryParent.toForm_! &
       "#categoryDescription *" #> categoryDescription.toForm_! &
+      "#categoryId *"          #> (targetCategory match {
+                                    case None => NodeSeq.Empty
+                                    case Some(c) =>
+                                      <div class="wbBaseField" style="font-size: 11px;">
+                                        <span class="threeCol textright"><b>Rudder ID:</b></span>
+                                        <div class="twoCol"><span>{c.id.value}</span></div>
+                                      </div>
+                                  }) &
       "#saveCategory"          #> SHtml.ajaxSubmit("Save", () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
       ".notifications *"       #> updateAndDisplayNotifications()
 
