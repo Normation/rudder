@@ -174,36 +174,20 @@ class AutomaticReportLogger(
     def logReport(report:Reports, allNodes: Map[NodeId, NodeInfo]) = {
       val execDate = report.executionDate.toString("yyyy-MM-dd HH:mm:ssZ")
 
-      val ruleId =
-        if(UuidRegex.isValid(report.ruleId.value))
-          report.ruleId.value.toUpperCase()
-         else
-          report.ruleId.value
-
       val rule = "%s [%s]".format(
-            ruleId
+            report.ruleId.value
           , ruleRepository.get(report.ruleId).map(_.name).openOr("Unknown rule")
           )
 
-      val nodeId =
-        if(UuidRegex.isValid(report.nodeId.value))
-            report.nodeId.value.toUpperCase()
-          else
-            report.nodeId.value
 
       val node :String = "%s [%s]".format(
-            nodeId
+            report.nodeId.value
           , allNodes.get(report.nodeId).map(_.hostname).getOrElse("Unknown node")
           )
 
-      val directiveId =
-        if(UuidRegex.isValid(report.directiveId.value))
-            report.directiveId.value.toUpperCase()
-          else
-            report.directiveId.value
 
       val directive : String = "%s [%s]".format(
-            directiveId
+            report.directiveId.value
           , directiveRepository.getDirective(report.directiveId).map(_.name).openOr("Unknown directive")
           )
 

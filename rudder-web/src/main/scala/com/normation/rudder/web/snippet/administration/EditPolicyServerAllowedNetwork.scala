@@ -126,10 +126,10 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
       case Full(nodeInfo) =>
         <span>{nodeInfo.hostname}</span>
       case Failure(m,_,_) =>
-        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value.toUpperCase}, reason is: ${m}")
+        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, reason is: ${m}")
         <span class="error">Unknown hostname</span>
       case Empty =>
-        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value.toUpperCase}, no reasons given")
+        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, no reasons given")
         <span class="error">Unknown hostname</span>
     }
 
@@ -197,7 +197,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
     //process the list of networks
     "#allowedNetworksForm [id]" #> allowedNetworksFormId andThen
-    "#policyServerDetails" #> <h3>{"Allowed networks for policy server "}{policyServerName} {s"(Rudder ID: ${policyServerId.value.toUpperCase})"}</h3> &
+    "#policyServerDetails" #> <h3>{"Allowed networks for policy server "}{policyServerName} {s"(Rudder ID: ${policyServerId.value})"}</h3> &
     "#allowNetworkFields *" #> { (xml:NodeSeq) =>
       allowedNetworks.flatMap { case VH(i,net) =>
         val id = "network_"+ i

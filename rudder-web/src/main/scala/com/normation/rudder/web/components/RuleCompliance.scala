@@ -103,7 +103,7 @@ class RuleCompliance (
     (
       "#ruleName" #>   rule.name &
       "#ruleCategory" #> categoryService.shortFqdn(rootRuleCategory, rule.categoryId) &
-      "#rudderID" #> rule.id.value.toUpperCase &
+      "#rudderID" #> rule.id.value &
       "#ruleShortDescription" #> rule.shortDescription &
       "#ruleLongDescription" #>  rule.longDescription &
       "#compliancedetails" #> showCompliance
