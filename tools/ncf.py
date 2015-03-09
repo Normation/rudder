@@ -30,35 +30,55 @@ tags["generic_method"] = ["name", "description", "parameter", "class_prefix", "c
 tags["technique"] = ["name", "description", "version"]
 
 class NcfError(Exception):
-     def __init__(self, message):
-         self.message = message
-     def __str__(self):
-         return repr(self.message)
+  def __init__(self, message, details="", cause=None):
+    self.message = message
+    self.details = details
+    if cause is not None:
+      self.details += " caused by : " + cause.message + "\n" + cause.details
+
+  def __str__(self):
+    return repr(self.message)
+
+
+def format_errors(error_list):
+  formated_errors = []
+  for error in error_list:
+    sys.stderr.write("ERROR: " + error.message + "\n")
+    sys.stderr.write(error.details + "\n")
+    formated_errors.append( { "message": error.message, "details": error.details } )
+  sys.stderr.flush()
+  return formated_errors
+
 
 def get_root_dir():
   return os.path.realpath(os.path.dirname(__file__) + "/../")
+
 
 # This method emulates the behavior of subprocess check_output method.
 # We aim to be compatible with Python 2.6, thus this method does not exist
 # yet in subprocess.
 def check_output(command):
+  if VERBOSE == 1:
+    sys.stderr.write("VERBOSE: About to run command '" + " ".join(command) + "'\n")
+  if len(additional_path) == 0:
+    env_path = os.environ['PATH']
+  else:
+    cfpromises_path = ":".join(additional_path)
+    env_path = cfpromises_path + ":" + os.environ['PATH']
+  process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env={"PATH" : env_path})
+  output, error = process.communicate()
+  retcode = process.poll()
+  if retcode == 0:
+    sys.stderr.write(error)
+  else:
     if VERBOSE == 1:
-        print "VERBOSE: About to run command '" + " ".join(command) + "'"
-    if len(additional_path) == 0:
-      env_path = os.environ['PATH']
-    else:
-      cfpromises_path = ":".join(additional_path)
-      env_path = cfpromises_path + ":" + os.environ['PATH']
-    process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env={"PATH" : env_path})
-    output = process.communicate()
-    retcode = process.poll()
-    if retcode != 0:
-        if VERBOSE == 1:
-            print "VERBOSE: Exception triggered, Command returned error code " + retcode
-        raise subprocess.CalledProcessError(retcode, command, output=output[0])
-    if VERBOSE == 1:
-        print "VERBOSE: Command output: '" + output[0] + "'"
-    return output[0]
+      sys.stderr.write("VERBOSE: Exception triggered, Command returned error code " + retcode + "\n")
+    raise NcfError("Error while running post-hook command " + str(command), error)
+
+  if VERBOSE == 1:
+    sys.stderr.write("VERBOSE: Command output: '" + output + "'" + "\n")
+  return output
+
 
 def get_all_generic_methods_filenames(alt_path = ''):
   result = []
@@ -72,8 +92,10 @@ def get_all_generic_methods_filenames(alt_path = ''):
 
   return result
 
+
 def get_all_generic_methods_filenames_in_dir(dir):
   return get_all_cf_filenames_under_dir(dir)
+
 
 def get_all_techniques_filenames(alt_path = ''):
   result = []
@@ -88,6 +110,7 @@ def get_all_techniques_filenames(alt_path = ''):
 
   return result
 
+
 def get_all_cf_filenames_under_dir(dir):
   filenames = []
   filenames_add = filenames.append
@@ -97,11 +120,14 @@ def get_all_cf_filenames_under_dir(dir):
         filenames_add(os.path.join(root, file))
   return filenames
 
+
 def parse_technique_metadata(technique_content):
   return parse_bundlefile_metadata(technique_content, "technique")
 
+
 def parse_generic_method_metadata(technique_content):
   return parse_bundlefile_metadata(technique_content, "generic_method")
+
 
 def parse_bundlefile_metadata(content, bundle_type):
   res = {}
@@ -135,7 +161,8 @@ def parse_bundlefile_metadata(content, bundle_type):
       res['class_parameter_id'] = res['bundle_args'].index(res['class_parameter'])+1
     except:
       res['class_parameter_id'] = 0
-      raise Exception("The class_parameter name \"" + res['class_parameter'] + "\" does not seem to match any of the bundle's parameters")
+      name = res['bundle_name'] if 'bundle_name' in res else "unknown"
+      raise NcfError("The class_parameter name \"" + res['class_parameter'] + "\" does not seem to match any of the bundle's parameters in " + name)
 
   # If we found any parameters, store them in the res object
   if len(parameters) > 0:
@@ -144,9 +171,11 @@ def parse_bundlefile_metadata(content, bundle_type):
   expected_tags = tags[bundle_type] + tags["common"]
   if sorted(res.keys()) != sorted(expected_tags):
     missing_keys = [mkey for mkey in expected_tags if mkey not in set(res.keys())]
-    raise Exception("One or more metadata tags not found before the bundle agent declaration (" + ", ".join(missing_keys) + ")")
+    name = res['bundle_name'] if 'bundle_name' in res else "unknown"
+    raise NcfError("One or more metadata tags not found before the bundle agent declaration (" + ", ".join(missing_keys) + ") in " + name)
 
   return res
+
 
 def class_context_and(a, b):
   """Concatenate two CFEngine class contexts, and simplify useless cases"""
@@ -171,6 +200,7 @@ def class_context_and(a, b):
 
   return '.'.join(final_contexts)
 
+
 def parse_function_call_class_context(function_call):
   """Extract a function call from class context"""
   function_name = function_call['name']
@@ -184,7 +214,7 @@ def parse_technique_methods(technique_file):
 
   # Check file exists
   if not os.path.exists(technique_file):
-    raise Exception("No such file: " + technique_file)
+    raise NcfError("No such file: " + technique_file)
 
   out = check_output(["cf-promises", "-pjson", "-f", technique_file])
   promises = json.loads(out)
@@ -196,11 +226,11 @@ def parse_technique_methods(technique_file):
       bundle_count += 1
 
   if bundle_count > 1:
-    raise Exception("There is not exactly one bundle in this file, aborting")
+    raise NcfError("There is not exactly one bundle in " + technique_file + ", aborting")
 
   # Sanity check: the bundle must be of type agent
   if promises['bundles'][0]['bundleType'] != 'agent':
-    raise Exception("This bundle is not a bundle agent, aborting")
+    raise NcfError("This bundle is not a bundle agent in " + technique_file + ", aborting")
 
   methods_promises = [promiseType for promiseType in promises['bundles'][0]['promiseTypes'] if promiseType['name']=="methods"]
   methods = []
@@ -270,44 +300,6 @@ def parse_technique_methods(technique_file):
 
   return res
 
-def get_all_generic_methods_metadata(alt_path = ''):
-  all_metadata = {}
-
-  filenames = get_all_generic_methods_filenames(alt_path)
-
-  for file in filenames:
-    content = open(file).read()
-    try:
-      metadata = parse_generic_method_metadata(content)
-      all_metadata[metadata['bundle_name']] = metadata
-    except Exception:
-      continue # skip this file, it doesn't have the right tags in - yuk!
-
-  return all_metadata
-
-def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
-  all_metadata = {}
-
-  if alt_path != '': print "INFO: Alternative source path added: %s" % alt_path
-
-  filenames = get_all_techniques_filenames(alt_path)
-
-  for file in filenames:
-            
-    content = open(file).read()
-    try:
-      metadata = parse_technique_metadata(content)
-      all_metadata[metadata['bundle_name']] = metadata
-
-      if include_methods_calls:
-        method_calls = parse_technique_methods(file)
-        all_metadata[metadata['bundle_name']]['method_calls'] = method_calls
-    except Exception as e:
-      print "ERROR: Exception triggered, Unable to parse file " + file
-      print e
-      continue # skip this file, it doesn't have the right tags in - yuk!
-
-  return all_metadata
 
 def get_hooks(prefix, action, path):
   """Find all hooks file in directory that use the prefix and sort them"""
@@ -321,31 +313,167 @@ def get_hooks(prefix, action, path):
 
   return sorted(files)
 
+
 def execute_hooks(prefix, action, path, bundle_name):
   """Execute all hooks prefixed by prefix.action from path, all hooks take path and bundle_name as parameter"""
   hooks_path = os.path.join(path, "ncf-hooks.d")
   hooks = get_hooks(prefix, action, hooks_path)
   for hook in hooks:
     hookfile = os.path.join(hooks_path,hook)
-    subprocess.check_call([hookfile,path,bundle_name])
+    check_output([hookfile,path,bundle_name])
 
-def delete_technique(technique_name, alt_path=""):
-  """Delete a technique directory contained in a path"""
-  if alt_path == "":
-    path = os.path.join(get_root_dir(),"tree")
-  else:
-    path = alt_path
-  try:
-    # Execute pre hooks
-    execute_hooks("pre", "delete_technique", path, technique_name)
-    # Delete technique file
-    filename = os.path.realpath(os.path.join(path, "50_techniques", technique_name))
-    shutil.rmtree(filename)
-    # Execute post hooks
-    execute_hooks("post", "delete_technique", path, technique_name)
-  except Exception, e:
-    message = "Could not write technique '"+technique_name+"' from path "+path+", cause is: "+str(e)
-    raise NcfError(message)
+
+def check_technique_method_call(bundle_name, method_call):
+  """Check mandatory keys, if one is missing raise an exception"""
+  keys = [ 'method_name' ]
+  for key in keys:
+    if not key in method_call:
+      raise NcfError("Mandatory key "+key+" is missing from a method call in " + bundle_name)
+
+  for key in keys:
+    if method_call[key] == "":
+      raise NcfError("A method call must have a "+key+", but there is none in " + bundle_name)
+
+
+def check_technique_metadata(technique_metadata):
+  """Check technique metdata, if one is missing raise an exception"""
+  mandatory_keys = [ 'name', 'bundle_name', 'method_calls' ]
+  for key in mandatory_keys:
+    if not key in technique_metadata:
+      raise NcfError("Mandatory key "+key+" is missing from Technique metadata")
+
+  non_empty_keys = [ 'name', 'bundle_name']
+  for key in non_empty_keys:
+    if technique_metadata[key] == "":
+      raise NcfError("A technique must have a "+key+", but there is none")
+
+  # If there is no method call, raise an exception
+  if len(technique_metadata['method_calls']) == 0:
+    raise NcfError("A technique must have at least one method call, and there is none in Technique "+technique_metadata['bundle_name'])
+
+  for call in technique_metadata['method_calls']:
+    check_technique_method_call(technique_metadata['bundle_name'], call)
+
+
+def add_default_values_technique_method_call(method_call):
+  """Set default values on some fields in a method call"""
+  call = method_call
+  if not 'class_context' in call or call['class_context'] == "":
+    call['class_context'] = "any"
+
+  return call
+
+
+def add_default_values_technique_metadata(technique_metadata):
+  """Check the technique and set default values on some fields"""
+  check_technique_metadata(technique_metadata)
+
+  technique = technique_metadata
+  if not 'description' in technique:
+    technique['description'] = ""
+
+  if not 'version' in technique:
+    technique['version'] = "1.0"
+
+  method_calls=[]
+  for call in technique['method_calls']:
+    method_calls.append(add_default_values_technique_method_call(call))
+  technique['method_calls'] = method_calls
+  return technique
+
+
+def canonify_class_context(class_context):
+  """Transform a class context into a canonified one"""
+  # We transform the following class context:
+  # "Monday.${bundle2.var}.debian.${bundle.var}.linux"
+  # into:
+  # concat("Monday.",canonify(${bundle2.var}),".debian.",canonify(${bundle.var}),".linux")
+  # We have to canonify variables only so the class context is valid and coherent
+  return re.sub(r'(\${[^\}]*})', r'",canonify("\1"),"', class_context)
+
+
+def generate_technique_content(technique_metadata):
+  """Generate technique CFEngine file as string from its metadata"""
+
+  technique = add_default_values_technique_metadata(technique_metadata)
+
+  content = []
+  for key in [ 'name', 'description', 'version' ]:
+    content.append('# @'+ key +" "+ technique[key])
+  content.append('')
+  content.append('bundle agent '+ technique['bundle_name'])
+  content.append('{')
+  content.append('  methods:')
+
+  # Handle method calls
+  for method_call in technique["method_calls"]:
+    
+    # Treat each argument of the method_call
+    if 'args' in method_call:
+      args = ['"%s"'%re.sub(r'(?<!\\)"', r'\\"', arg) for arg in method_call['args'] ]
+      arg_value = ', '.join(args)
+    else:
+      arg_value = ""
+    class_context = canonify_class_context(method_call['class_context'])
+
+    content.append('    "method_call" usebundle => '+method_call['method_name']+'('+arg_value+'),')
+    content.append('      ifvarclass => concat("'+class_context+'");')
+
+  content.append('}')
+
+  # Join all lines with \n to get a pretty CFEngine file
+  result =  '\n'.join(content)+"\n"
+
+  return result
+
+
+# FUNCTIONS called directly by the API code
+###########################################
+
+def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
+  all_metadata = {}
+
+  if alt_path != '': sys.stderr.write("INFO: Alternative source path added: %s\n" % alt_path)
+
+  filenames = get_all_techniques_filenames(alt_path)
+  errors = []
+
+  for file in filenames:
+            
+    content = open(file).read()
+    try:
+      metadata = parse_technique_metadata(content)
+      all_metadata[metadata['bundle_name']] = metadata
+
+      if include_methods_calls:
+        method_calls = parse_technique_methods(file)
+        all_metadata[metadata['bundle_name']]['method_calls'] = method_calls
+    except NcfError as e:
+      error = NcfError("Could not parse Technique file '" + file + "'", cause=e)
+      errors.append(error)
+      continue # skip this file, it doesn't have the right tags in - yuk!
+
+  return { "data": all_metadata, "errors": format_errors(errors) }
+
+
+def get_all_generic_methods_metadata(alt_path = ''):
+  all_metadata = {}
+
+  filenames = get_all_generic_methods_filenames(alt_path)
+  errors = []
+
+  for file in filenames:
+    content = open(file).read()
+    try:
+      metadata = parse_generic_method_metadata(content)
+      all_metadata[metadata['bundle_name']] = metadata
+    except NcfError as e:
+      error = NcfError("Could not parse generic method in '" + file + "'", cause=e )
+      errors.append(error)
+      continue # skip this file, it doesn't have the right tags in - yuk!
+
+  return { "data": all_metadata, "errors": format_errors(errors) }
+
 
 def write_technique(technique_metadata, alt_path = ""):
   """Write technique directory from technique_metadata inside the target path"""
@@ -383,109 +511,31 @@ def write_technique(technique_metadata, alt_path = ""):
     # Execute post hooks
     execute_hooks("post", action, path, bundle_name)
 
-  except Exception, e:
+  except NcfError as e:
     if not 'bundle_name' in technique_metadata:
-        technique_name = ""
+      technique_name = ""
     else:
-        technique_name = "'"+technique_metadata['bundle_name']+"'"
-    message = "Could not write technique "+technique_name+" from path "+path+", cause is: "+str(e)
-    raise NcfError(message)
+      technique_name = "'"+technique_metadata['bundle_name']+"'"
+    message = "Could not write technique "+technique_name+" from path "+path+", cause is: "+ e.message
+    raise NcfError(message, e.details)
 
-def check_technique_method_call(method_call):
-  """Check mandatory keys, if one is missing raise an exception"""
-  keys = [ 'method_name' ]
-  for key in keys:
-    if not key in method_call:
-      raise NcfError("Mandatory key "+key+" is missing from a method call")
 
-  for key in keys:
-    if method_call[key] == "":
-      raise NcfError("A method call must have a "+key+", but there is none")
+def delete_technique(technique_name, alt_path=""):
+  """Delete a technique directory contained in a path"""
+  if alt_path == "":
+    path = os.path.join(get_root_dir(),"tree")
+  else:
+    path = alt_path
+  try:
+    # Execute pre hooks
+    execute_hooks("pre", "delete_technique", path, technique_name)
+    # Delete technique file
+    filename = os.path.realpath(os.path.join(path, "50_techniques", technique_name))
+    shutil.rmtree(filename)
+    # Execute post hooks
+    execute_hooks("post", "delete_technique", path, technique_name)
+  except NcfError as e:
+    message = "Could not write technique "+technique_name+" from path "+path+", cause is: "+ e.message
+    raise NcfError(message, e.details)
 
-def check_technique_metadata(technique_metadata):
-  """Check technique metdata, if one is missing raise an exception"""
-  mandatory_keys = [ 'name', 'bundle_name', 'method_calls' ]
-  for key in mandatory_keys:
-    if not key in technique_metadata:
-      raise NcfError("Mandatory key "+key+" is missing from Technique metadata")
-
-  non_empty_keys = [ 'name', 'bundle_name']
-  for key in non_empty_keys:
-    if technique_metadata[key] == "":
-      raise NcfError("A technique must have a "+key+", but there is none")
-
-  # If there is no method call, raise an exception
-  if len(technique_metadata['method_calls']) == 0:
-    raise NcfError("A technique must have at least one method call, and there is none in Technique "+technique_metadata['bundle_name'])
-
-  for call in technique_metadata['method_calls']:
-    check_technique_method_call(call)
-
-def add_default_values_technique_method_call(method_call):
-  """Set default values on some fields in a method call"""
-  call = method_call
-  if not 'class_context' in call or call['class_context'] == "":
-    call['class_context'] = "any"
-
-  return call
-
-def add_default_values_technique_metadata(technique_metadata):
-  """Check the technique and set default values on some fields"""
-  check_technique_metadata(technique_metadata)
-
-  technique = technique_metadata
-  if not 'description' in technique:
-    technique['description'] = ""
-
-  if not 'version' in technique:
-    technique['version'] = "1.0"
-
-  method_calls=[]
-  for call in technique['method_calls']:
-    method_calls.append(add_default_values_technique_method_call(call))
-  technique['method_calls'] = method_calls
-  return technique
-
-def canonify_class_context(class_context):
-  """Transform a class context into a canonified one"""
-  # We transform the following class context:
-  # "Monday.${bundle2.var}.debian.${bundle.var}.linux"
-  # into:
-  # concat("Monday.",canonify(${bundle2.var}),".debian.",canonify(${bundle.var}),".linux")
-  # We have to canonify variables only so the class context is valid and coherent
-  return re.sub(r'(\${[^\}]*})', r'",canonify("\1"),"', class_context)
-
-def generate_technique_content(technique_metadata):
-  """Generate technique CFEngine file as string from its metadata"""
-
-  technique = add_default_values_technique_metadata(technique_metadata)
-
-  content = []
-  for key in [ 'name', 'description', 'version' ]:
-    content.append('# @'+ key +" "+ technique[key])
-  content.append('')
-  content.append('bundle agent '+ technique['bundle_name'])
-  content.append('{')
-  content.append('  methods:')
-
-  # Handle method calls
-  for method_call in technique["method_calls"]:
-    
-    # Treat each argument of the method_call
-    if 'args' in method_call:
-      args = ['"%s"'%re.sub(r'(?<!\\)"', r'\\"', arg) for arg in method_call['args'] ]
-      arg_value = ', '.join(args)
-    else:
-      arg_value = ""
-    class_context = canonify_class_context(method_call['class_context'])
-
-    content.append('    "method_call" usebundle => '+method_call['method_name']+'('+arg_value+'),')
-    content.append('      ifvarclass => concat("'+class_context+'");')
-
-  content.append('}')
-
-  # Join all lines with \n to get a pretty CFEngine file
-  result =  '\n'.join(content)+"\n"
-
-  return result
 
