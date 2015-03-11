@@ -98,9 +98,13 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
-  function errorNotification (content) {
+  function errorNotification (message,details) {
+    var errorMessage = '<b>An Error occured!</b> ' + message
+    if (details !== undefined) {
+      errorMessage += '<br/>Details: ' + details
+    }
     ngToast.create({
-        content: content
+        content: errorMessage
       , className: 	'danger'
       , dismissOnTimeout 	: false
       , dismissButton : true
@@ -114,11 +118,13 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         $scope.authenticated = false;
         errorNotification('Could not authenticate '+ actionName);
       } else {
-        var errorDetails = ""
         if (data.error !== undefined) {
-            errorDetails = ", details:\n"+ data.error
+            $.each(data.error, function(index,error) {
+              errorNotification(error.message,error.details);
+            })
+        } else {
+            errorNotification('Error '+ actionName)
         }
-        errorNotification('Error '+ actionName + errorDetails);
       }
     } };
 
@@ -182,10 +188,16 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var data = {params: {path: $scope.path}}
     $http.get('/ncf/api/techniques',data).
       success(function(data, status, headers, config) {
-        for (var techKey in data) {
-          var technique = $scope.toTechUI(data[techKey]);
+
+        $.each( data.data, function(techniqueName, technique_raw) {
+          var technique = $scope.toTechUI(technique_raw);
           $scope.techniques.push(technique);
-        }
+        })
+
+        // Display single errors
+        $.each( data.errors, function(index, error) {
+          errorNotification(error.message,error.details)
+        })
       } ).
       error($scope.handle_error(" while fetching techniques"));
   };
@@ -195,9 +207,14 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var data = {params: {path: $scope.path}}
     $http.get('/ncf/api/generic_methods', data).
       success(function(data, status, headers, config) {
-        $scope.generic_methods = data;
+        $scope.generic_methods = data.data;
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
+
+        // Display single errors
+        $.each( data.errors, function(index, error) {
+          errorNotification(error.message,error.details)
+        })
       } ).
       error($scope.handle_error(" while fetching generic methods"));
   };
@@ -518,7 +535,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     $http.delete("/ncf/api/techniques/"+$scope.selectedTechnique.bundle_name, data).
       success(function(data, status, headers, config) {
 
-        ngToast.create({ content: $scope.originalTechnique.name+ ' deleted!'});
+        ngToast.create({ content: "<b>Success!</b> Technique '" + $scope.originalTechnique.name + "' deleted!"});
 
         var index = findIndex($scope.techniques,$scope.originalTechnique);
         $scope.techniques.splice(index,1);
@@ -527,7 +544,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         $scope.selectedTechnique = undefined;
         $scope.originalTechnique = undefined;
       } ).
-      error($scope.handle_error("while deleting technique "+$scope.selectedTechnique.name));
+      error($scope.handle_error("while deleting Technique '"+$scope.selectedTechnique.name+"'"));
   };
 
   $scope.setBundleName = function (technique) {
@@ -554,7 +571,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
 
-      ngToast.create({ content: technique.name+ ' saved!'});
+      ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
       // Find index of the technique in the actual tree of technique (look for original technique)
       var index = findIndex($scope.techniques,origin_technique);
       if ( index === -1) {
@@ -574,11 +591,11 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     if ($scope.originalTechnique.bundle_name === undefined) {
       $http.post("/ncf/api/techniques", data).
         success(saveSuccess).
-        error($scope.handle_error("while creating technique "+ data.technique.name));
+        error($scope.handle_error("while creating Technique '"+ data.technique.name+"'"));
     } else {
       $http.put("/ncf/api/techniques", data).
         success(saveSuccess).
-        error($scope.handle_error("while saving technique "+ data.technique.name));
+        error($scope.handle_error("while saving Technique '"+ data.technique.name+"'"));
     }
   };
 
