@@ -88,9 +88,15 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     
     'report' is expected to be the ops logger name.
    -->
-  <appender name="OPSLOG" class="ch.qos.logback.core.FileAppender">
+  <appender name="OPSLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${OPSLOG_DIR}/rudder-webapp.log</file>
     <append>true</append>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${OPSLOG_DIR}/rudder-webapp-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+      <maxHistory>30</maxHistory>
+    </rollingPolicy>
+    
     <encoder>
       <pattern>%d{MMM dd HH:mm:ss} ${HOSTNAME} rudder[%logger]: [%level] %msg%n</pattern>
     </encoder>
@@ -99,13 +105,20 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
   <!--
     A file log appender for exploitation logs about failure reports.
   -->
-    <appender name="REPORTLOG" class="ch.qos.logback.core.FileAppender">
+  <appender name="REPORTLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>${REPORT_DIR}/non-compliant-reports.log</file>
     <append>true</append>
-        <encoder>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${REPORT_DIR}/non-compliant-reports-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+      <maxHistory>365</maxHistory>
+    </rollingPolicy>
+
+    <encoder>
       <pattern>%msg%n</pattern>
     </encoder>
   </appender>
+  
 
   <!-- 
     Manage the global log level of the application.
