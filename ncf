@@ -17,7 +17,7 @@ sys.path[0:0] = [NCF_TOOLS_DIR, DEFAULT_NCF_DIR]
 import ncf
 
 def usage():
-  print "ncf init [path]"
+  print("ncf init [path]")
 
 def get_ncf_dir():
   # Try the directory this script is run from first (in case of a git clone)
@@ -35,15 +35,15 @@ def init(args):
   # First argument is dir name, unless not specified then we use current dir
   if len(args) == 0:
     init_dir = os.getcwd()
-    print "INFO: No path specified, using current directory"
+    print("INFO: No path specified, using current directory")
   else:
     init_dir = args[0]
 
-  print "INFO: Initialising in " + init_dir
+  print("INFO: Initialising in " + init_dir)
 
   # Check if this directory is already a ncf instance
   if os.path.isdir(init_dir) and set(ncf.dirs).intersection(set(os.listdir(init_dir))):
-    print "ERROR: It looks like this directory is already initialized. Aborting"
+    print("ERROR: It looks like this directory is already initialized. Aborting")
     exit(2)
 
   for component_dir in ncf.dirs:
@@ -51,7 +51,7 @@ def init(args):
     os.makedirs(target_dir)
     shutil.copy(os.path.join(get_ncf_dir(), component_dir, "README.md"), target_dir)
 
-  print "INFO: Success"
+  print("INFO: Success")
 
 if __name__ == '__main__':
   if len(sys.argv) <= 1:
