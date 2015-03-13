@@ -17,15 +17,22 @@ import ncf
 import sys
 import re
 
+# MAIN FUNCTIONS called by command line parsing
+###############################################
+
 def write_all_techniques_for_rudder(root_path):
   write_category_xml(root_path)
   techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')
+  ret = 0
   for technique, metadata in techniques.iteritems():
     try:
       write_technique_for_rudder(root_path, metadata)
-    except Exception, e:
-     print("Error: Unable to create Rudder Technique files related to ncf Technique "+technique+", skipping... (" + str(e) + ")")
-     continue
+    except Exception as e:
+      sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+technique+", skipping... (" + str(e) + ")\n")
+      ret = 1
+      continue
+  exit(ret)
+
 
 def write_one_technique_for_rudder(destination_path, bundle_name):
   write_category_xml(destination_path)
@@ -34,10 +41,36 @@ def write_one_technique_for_rudder(destination_path, bundle_name):
     try:
       metadata = techniques[bundle_name]
       write_technique_for_rudder(destination_path, metadata)
-    except Exception, e:
-     print("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+" (" + str(e) + ")")
+    except Exception as e:
+      sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+" (" + str(e) + ")\n")
+      exit(1)
   else:
-     print("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+", cannot find ncf Technique "+bundle_name)
+    sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+", cannot find ncf Technique "+bundle_name + "\n")
+    exit(1)
+
+def canonify_expected_reports(expected_reports, dest):
+
+  # Open file containing original expected_reports
+  source_file = open(expected_reports)
+
+  # Create destination file
+  dest_file = open(dest, 'w')
+  
+  # Iterate over each line (this does *not* read the whole file into memory)
+  for line in source_file:
+    # Just output comments as they are
+    if re.match("^\s*#", line):
+      dest_file.write(line)
+      continue
+
+    # Replace the second field with a canonfied version of itself (a la CFEngine)
+    fields = line.strip().split(";;")
+    fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1])
+    dest_file.write(";;".join(fields) + "\n")
+
+
+# OTHER FUNCTIONS
+#################
 
 def get_category_xml():
   """Create a category.xml content to be inserted in the ncf root directory"""
@@ -54,6 +87,7 @@ def get_category_xml():
   result = '\n'.join(content)+"\n"
   return result
 
+
 def write_category_xml(path):
   """Write the category.xml file to make Rudder acknowledge this directory as a Technique section"""
 
@@ -69,7 +103,8 @@ def write_category_xml(path):
     file.write(get_category_xml())
     file.close()
   else:
-    print "INFO: The " + category_xml_file + " file already exists. Not updating."
+    print("INFO: The " + category_xml_file + " file already exists. Not updating.")
+
 
 def write_technique_for_rudder(root_path, technique):
   """ From a technique, generate all files needed for Rudder in specified path"""
@@ -84,12 +119,14 @@ def write_technique_for_rudder(root_path, technique):
   if include_rudder_reporting:
     write_rudder_reporting_file(path,technique)
 
+
 def write_xml_metadata_file(path, technique, include_rudder_reporting = False):
   """ write metadata.xml file from a technique, to a path """
   file = open(os.path.realpath(os.path.join(path, "metadata.xml")),"w")
   content = get_technique_metadata_xml(technique, include_rudder_reporting)
   file.write(content)
   file.close()
+
 
 def write_expected_reports_file(path,technique):
   """ write expected_reports.csv file from a technique, to a path """
@@ -98,12 +135,14 @@ def write_expected_reports_file(path,technique):
   file.write(content)
   file.close()
 
+
 def write_rudder_reporting_file(path,technique):
   """ write rudder_reporting.st file from a technique, to a path """
   file = open(os.path.realpath(os.path.join(path, "rudder_reporting.st")),"w")
   content = generate_rudder_reporting(technique)
   file.write(content)
   file.close()
+
 
 def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = False):
   """Get metadata xml for a technique as string"""
@@ -144,8 +183,9 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
 
     try:
       generic_method = generic_methods[method_name]
-    except Exception, e:
-      print "Error: The method '" + method_name + "' does not exist. Aborting Technique creation..."
+    except Exception as e:
+      sys.stderr.write("Error: The method '" + method_name + "' does not exist. Aborting Technique creation..." + "\n")
+      exit(1)
 
     # Filter all method calls to get only those about that method
     filter_method_calls = [x for x in method_calls if x["method_name"] == method_name]
@@ -161,6 +201,7 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
   result =  '\n'.join(content)+"\n"
 
   return result
+
 
 def generate_section_xml(method_calls, generic_method):
   """ Generate xml section about a method used by that technique"""
@@ -181,7 +222,8 @@ def generate_section_xml(method_calls, generic_method):
   
   
   return content 
- 
+
+
 def generate_value_xml(method_call,generic_method):
   """Generate xml containing value needed for reporting from a method call"""
   try:
@@ -224,29 +266,10 @@ def get_technique_expected_reports(technique_metadata):
   return result
 
 
+
 def get_path_for_technique(root_path, technique_metadata):
   """ Generate path where file about a technique needs to be created"""
   return os.path.join(root_path, technique_metadata['bundle_name'], technique_metadata['version'])
-
-def canonify_expected_reports(expected_reports, dest):
-
-  # Open file containing original expected_reports
-  source_file = open(expected_reports)
-
-  # Create destination file
-  dest_file = open(dest, 'w')
-  
-  # Iterate over each line (this does *not* read the whole file into memory)
-  for line in source_file:
-    # Just output comments as they are
-    if re.match("^\s*#", line):
-      dest_file.write(line)
-      continue
-
-    # Replace the second field with a canonfied version of itself (a la CFEngine)
-    fields = line.strip().split(";;")
-    fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1])
-    dest_file.write(";;".join(fields) + "\n")
 
 
 def generate_rudder_reporting(technique):
@@ -298,12 +321,15 @@ def generate_rudder_reporting(technique):
 
   return result
 
+
 def usage():
+  sys.stderr.write("Can't parse parameters\n")
   print("Usage: ncf_rudder <command> [arguments]")
   print("Available commands:")
   print(" - canonify_expected_reports <source file> <destination file>")
   print(" - rudderify_techniques <destination path>")
   print(" - rudderify_technique <destination path> <bundle_name>")
+
 
 if __name__ == '__main__':
 

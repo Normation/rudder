@@ -14,6 +14,14 @@ default_path = ""
 
 import ncf
 
+def format_error(exception, when, code):
+  if not isinstance(exception, ncf.NcfError):
+    exception = ncf.NcfError("Unknown internal error during " + when, "Cause: " + str(exception) + "\n" + traceback.format_exc())
+  error = jsonify ({ "error": ncf.format_errors([exception]) })
+  error.status_code = code
+  return  error
+
+
 def check_auth(f):
   """Method to use before each API call to check authentication"""
   @wraps(f)
@@ -23,6 +31,7 @@ def check_auth(f):
       return auth
     return f(*args, **kwargs)
   return decorated
+
 
 def check_authentication_from_rudder(auth_request):
   """Send an authentication request to Rudder"""
@@ -34,12 +43,14 @@ def check_authentication_from_rudder(auth_request):
 
   return auth_response
 
+
 def no_authentication(auth_request):
   """Always accept authentication request"""
   auth_response = auth_response = jsonify( {} )
   auth_response.status_code = 200
 
   return auth_response
+
 
 def get_authentication_modules():
   """Find all available authentication modules"""
@@ -51,6 +62,7 @@ def get_authentication_modules():
   available_modules = [ module for module_name, module in authentication_modules.iteritems() if module_name in available_modules_name ]
   return available_modules
 
+
 @app.route('/api/auth', methods = ['GET'])
 def get_auth():
   """ Check authentication, should look for available modules and pass authentication on them"""
@@ -61,16 +73,12 @@ def get_auth():
         # Authentication success return it
         return authentication_result
     # all authentication have failed, return an error
-    error = jsonify ({ "error" : "Could not authenticate with ncf API"})
+    error = jsonify ({ "error" : [{"message": "Could not authenticate with ncf API"}]})
     error.status_code = 401
-    return  error
-  except :
-    errstr = traceback.format_exc()
-    sys.stderr.write(errstr)
-    sys.stderr.flush()
-    error = jsonify ({ "error": "Unknown internal error during authentication", "details": errstr})
-    error.status_code = 500
-    return  error
+    return error
+  except Exception as e:
+    return format_error(e, "authentication", 500)
+
 
 def get_path_from_args (request):
   """ Extract path argument from a request, if empty or missing use default one"""
@@ -79,6 +87,7 @@ def get_path_from_args (request):
   else:
     return default_path
 
+
 @app.route('/api/techniques', methods = ['GET'])
 @check_auth
 def get_techniques():
@@ -86,17 +95,12 @@ def get_techniques():
   try:
     # We need to get path from url params, if not present put "" as default value
     path = get_path_from_args(request)
-  
     techniques = ncf.get_all_techniques_metadata(alt_path = path)
     resp = jsonify( techniques )
     return resp
-  except :
-    errstr = traceback.format_exc()
-    sys.stderr.write(errstr)
-    sys.stderr.flush()
-    error = jsonify ({ "error": "Unknown internal error while fetching techniques", "details": errstr})
-    error.status_code = 500
-    return  error
+  except Exception as e:
+    return format_error(e, "techniques fetching", 500)
+
 
 @app.route('/api/generic_methods', methods = ['GET'])
 @check_auth
@@ -109,13 +113,9 @@ def get_generic_methods():
     generic_methods = ncf.get_all_generic_methods_metadata(alt_path = path)
     resp = jsonify( generic_methods )
     return resp
-  except :
-    errstr = traceback.format_exc()
-    sys.stderr.write(errstr)
-    sys.stderr.flush()
-    error = jsonify ({ "error": "Unknown internal error while fetching generic methods", "details": errstr})
-    error.status_code = 500
-    return  error
+  except Exception as e:
+    return format_error(e, "generic methods fetching", 500)
+
 
 @app.route('/api/techniques', methods = ['POST', "PUT"])
 @check_auth
@@ -124,7 +124,7 @@ def create_technique():
   try:
     # technique is a mandatory parameter, abort if not present
     if not "technique" in request.json:
-      return jsonify( { 'error' : "No Technique metadata provided in the request body." } ), 400
+      return format_error(ncf.NcfError("No Technique metadata provided in the request body."), "", 400)
     else:
       technique = request.json['technique']
   
@@ -133,39 +133,23 @@ def create_technique():
     else:
       path = default_path
   
-    try:
-      ncf.write_technique(technique,path)
-    except ncf.NcfError, ex:
-      return jsonify( { 'error' : ex.message } ), 500
-      
-    return jsonify( technique ), 201
-  except :
-    errstr = traceback.format_exc()
-    sys.stderr.write(errstr)
-    sys.stderr.flush()
-    error = jsonify ({ "error": "Unknown internal error while writing a technique", "details": errstr})
-    error.status_code = 500
-    return  error
+    ncf.write_technique(technique,path)
+    return jsonify({ "data": technique }), 201
+
+  except Exception as e:
+    return format_error(e, "technique writing", 500)
+
 
 @app.route('/api/techniques/<string:bundle_name>', methods = ['DELETE'])
 @check_auth
 def delete_technique(bundle_name):
   try:
     path = get_path_from_args(request)
-  
-    try:
-      ncf.delete_technique(bundle_name,path)
-    except ncf.NcfError, ex:
-      return jsonify( { 'error' : ex.message } ), 500
-  
-    return jsonify( { "bundle_name" : bundle_name } )
-  except :
-    errstr = traceback.format_exc()
-    sys.stderr.write(errstr)
-    sys.stderr.flush()
-    error = jsonify ({ "error": "Unknown internal error while deleting a technique", "details": errstr})
-    error.status_code = 500
-    return  error
+    ncf.delete_technique(bundle_name,path)
+    return jsonify({ "data": { "bundle_name" : bundle_name } })
+  except Exception as e:
+    return format_error(e, "technique deletion", 500)
+
 
 if __name__ == '__main__':
   app.run(debug = True)
