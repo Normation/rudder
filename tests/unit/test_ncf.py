@@ -157,7 +157,7 @@ class TestNcf(unittest.TestCase):
 
   def test_get_all_generic_methods_metadata(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
-    metadata = ncf.get_all_generic_methods_metadata()
+    metadata = ncf.get_all_generic_methods_metadata()["data"]
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames())
     self.assertEquals(number_generic_methods, len(metadata))
@@ -165,7 +165,7 @@ class TestNcf(unittest.TestCase):
   def test_get_all_generic_methods_metadata_with_arg(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
     alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
-    metadata = ncf.get_all_generic_methods_metadata(alternative_path)
+    metadata = ncf.get_all_generic_methods_metadata(alternative_path)["data"]
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames(alternative_path))
     self.assertEquals(number_generic_methods, len(metadata))
@@ -173,17 +173,25 @@ class TestNcf(unittest.TestCase):
   def test_get_all_techniques_metadata(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
     metadata = ncf.get_all_techniques_metadata()
+    data = metadata["data"]
+    errors = metadata["errors"]
+    all_metadata = len(data) + len(errors)
 
-    number = len(ncf.get_all_techniques_filenames())
-    self.assertEquals(number, len(metadata))
+    all_files = len(ncf.get_all_techniques_filenames())
+ 
+    self.assertEquals(all_files, all_metadata)
 
   def test_get_all_techniques_metadata_with_args(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
     alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
     metadata = ncf.get_all_techniques_metadata(alt_path=alternative_path)
+    data = metadata["data"]
+    errors = metadata["errors"]
+    all_metadata = len(data) + len(errors)
 
-    number = len(ncf.get_all_techniques_filenames(alternative_path))
-    self.assertEquals(number, len(metadata))
+    all_files = len(ncf.get_all_techniques_filenames(alternative_path))
+ 
+    self.assertEquals(all_files, all_metadata)
     
   #####################################
   # Tests for writing/delete Techniques all metadata info
@@ -249,14 +257,14 @@ class TestNcf(unittest.TestCase):
 
     broken_method_call = { "class_context": "test" }
 
-    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, broken_method_call)
+    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, "test_bundle",  broken_method_call)
 
   def test_check_nonempty_keys_method_call(self):
     """Test if a broken metadata raise a correct NcfError exception"""
 
     broken_method_call = { "method_name": "" }
 
-    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, broken_method_call)
+    self.assertRaises(ncf.NcfError, ncf.check_technique_method_call, "test_bundle", broken_method_call)
 
 
   def test_add_default_values_method_call(self):
