@@ -7,10 +7,12 @@
 
 import ncf 
 
+from pprint import pprint
+
 if __name__ == '__main__':
 
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata()
+  generic_methods = ncf.get_all_generic_methods_metadata()["data"]
   
   
   categories = {}
