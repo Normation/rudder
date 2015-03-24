@@ -22,7 +22,7 @@ import re
 
 def write_all_techniques_for_rudder(root_path):
   write_category_xml(root_path)
-  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')
+  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
   ret = 0
   for technique, metadata in techniques.iteritems():
     try:
@@ -36,7 +36,7 @@ def write_all_techniques_for_rudder(root_path):
 
 def write_one_technique_for_rudder(destination_path, bundle_name):
   write_category_xml(destination_path)
-  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')
+  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
   if bundle_name in techniques.keys():
     try:
       metadata = techniques[bundle_name]
