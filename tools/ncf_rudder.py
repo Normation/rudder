@@ -16,6 +16,8 @@ import os.path
 import ncf 
 import sys
 import re
+import codecs
+import traceback
 
 # MAIN FUNCTIONS called by command line parsing
 ###############################################
@@ -29,6 +31,7 @@ def write_all_techniques_for_rudder(root_path):
       write_technique_for_rudder(root_path, metadata)
     except Exception as e:
       sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+technique+", skipping... (" + str(e) + ")\n")
+      sys.stderr.write(traceback.format_exc())
       ret = 1
       continue
   exit(ret)
@@ -43,29 +46,31 @@ def write_one_technique_for_rudder(destination_path, bundle_name):
       write_technique_for_rudder(destination_path, metadata)
     except Exception as e:
       sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+" (" + str(e) + ")\n")
+      sys.stderr.write(traceback.format_exc())
       exit(1)
   else:
     sys.stderr.write("Error: Unable to create Rudder Technique files related to ncf Technique "+bundle_name+", cannot find ncf Technique "+bundle_name + "\n")
+    sys.stderr.write(traceback.format_exc())
     exit(1)
 
 def canonify_expected_reports(expected_reports, dest):
 
   # Open file containing original expected_reports
-  source_file = open(expected_reports)
+  source_file = codecs.open(expected_reports, encoding="utf-8")
 
   # Create destination file
-  dest_file = open(dest, 'w')
+  dest_file = codecs.open(dest, 'w', encoding="utf-8")
   
   # Iterate over each line (this does *not* read the whole file into memory)
   for line in source_file:
     # Just output comments as they are
-    if re.match("^\s*#", line):
+    if re.match("^\s*#", line, flags=re.UNICODE):
       dest_file.write(line)
       continue
 
-    # Replace the second field with a canonfied version of itself (a la CFEngine)
+    # Replace the second field with a canonified version of itself (a la CFEngine)
     fields = line.strip().split(";;")
-    fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1])
+    fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1], flags=re.UNICODE)
     dest_file.write(";;".join(fields) + "\n")
 
 
@@ -99,7 +104,7 @@ def write_category_xml(path):
   category_xml_file = os.path.join(path, "category.xml")
 
   if not os.path.exists(category_xml_file):
-    file = open(os.path.realpath(category_xml_file),"w")
+    file = codecs.open(os.path.realpath(category_xml_file), "w", encoding="utf-8")
     file.write(get_category_xml())
     file.close()
   else:
@@ -122,7 +127,7 @@ def write_technique_for_rudder(root_path, technique):
 
 def write_xml_metadata_file(path, technique, include_rudder_reporting = False):
   """ write metadata.xml file from a technique, to a path """
-  file = open(os.path.realpath(os.path.join(path, "metadata.xml")),"w")
+  file = codecs.open(os.path.realpath(os.path.join(path, "metadata.xml")), "w", encoding="utf-8")
   content = get_technique_metadata_xml(technique, include_rudder_reporting)
   file.write(content)
   file.close()
@@ -130,7 +135,7 @@ def write_xml_metadata_file(path, technique, include_rudder_reporting = False):
 
 def write_expected_reports_file(path,technique):
   """ write expected_reports.csv file from a technique, to a path """
-  file = open(os.path.realpath(os.path.join(path, "expected_reports.csv")),"w")
+  file = codecs.open(os.path.realpath(os.path.join(path, "expected_reports.csv")), "w", encoding="utf-8")
   content = get_technique_expected_reports(technique)
   file.write(content)
   file.close()
@@ -138,7 +143,7 @@ def write_expected_reports_file(path,technique):
 
 def write_rudder_reporting_file(path,technique):
   """ write rudder_reporting.st file from a technique, to a path """
-  file = open(os.path.realpath(os.path.join(path, "rudder_reporting.st")),"w")
+  file = codecs.open(os.path.realpath(os.path.join(path, "rudder_reporting.st")), "w", encoding="utf-8")
   content = generate_rudder_reporting(technique)
   file.write(content)
   file.close()
@@ -185,6 +190,7 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
       generic_method = generic_methods[method_name]
     except Exception as e:
       sys.stderr.write("Error: The method '" + method_name + "' does not exist. Aborting Technique creation..." + "\n")
+      sys.stderr.write(traceback.format_exc())
       exit(1)
 
     # Filter all method calls to get only those about that method
@@ -293,7 +299,7 @@ def generate_rudder_reporting(technique):
     generic_method = generic_methods[method_name]
 
     key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    key_value_canonified = re.sub("[^\$\{\}\w](?![^{}]+})|\$(?!{)", "_", key_value)
+    key_value_canonified = re.sub("[^\$\{\}\w](?![^{}]+})|\$(?!{)", "_", key_value, flags=re.UNICODE)
 
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
