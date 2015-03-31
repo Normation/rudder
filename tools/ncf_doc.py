@@ -16,7 +16,7 @@ if __name__ == '__main__':
   
   
   categories = {}
-  for method_name in sorted(generic_methods.iterkeys()):
+  for method_name in sorted(generic_methods.keys()):
     category_name = method_name.split('_',1)[0]
     generic_method = generic_methods[method_name]
     if (category_name in categories):
@@ -35,7 +35,7 @@ if __name__ == '__main__':
   content.append("Template: ref")
   html_content.append("<ul>")
 
-  for category in sorted(categories.iterkeys()):
+  for category in sorted(categories.keys()):
     html_content.append("<li><a href='#"+category+"'>"+category.title()+"</a></li>")
     for generic_method in categories[category]:
       name = generic_method["bundle_name"]
@@ -50,7 +50,7 @@ if __name__ == '__main__':
   htmlfile.write(html)
   htmlfile.close()
 
-  for category in sorted(categories.iterkeys()):
+  for category in sorted(categories.keys()):
     content.append('<a class="anchor" name="'+category+'"></a>')
     content.append('\n## '+category.title())
  

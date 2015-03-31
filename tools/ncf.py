@@ -135,7 +135,10 @@ def parse_bundlefile_metadata(content, bundle_type):
 
   for line in content.splitlines():
     for tag in tags[bundle_type]:
-      unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape')
+      if sys.version_info.major == 2:
+        unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape')
+      else
+        unicodeLine = line # = str(line, "UTF-8")
       match = re.match("^\s*#\s*@" + tag + "\s(([a-zA-Z_]+)\s+(.*)|.*)$", unicodeLine, re.UNICODE)
       if match :
         # tag "parameter" may be multi-valued

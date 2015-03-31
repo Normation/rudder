@@ -24,7 +24,7 @@ def write_all_techniques_for_rudder(root_path):
   write_category_xml(root_path)
   techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
   ret = 0
-  for technique, metadata in techniques.iteritems():
+  for technique, metadata in techniques.items():
     try:
       write_technique_for_rudder(root_path, metadata)
     except Exception as e:
