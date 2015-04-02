@@ -1,0 +1,65 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Schedule Simple
+# @description Trigger a repaired outcome when a job should be run
+#
+# @parameter job_id                A string to identify this job
+# @parameter agent_periodicity     How often you run the agent in minutes
+# @parameter max_execution_delay_minutes  On how many minutes you want to spread the job
+# @parameter max_execution_delay_hours    On how many hours you want to spread the job
+# @parameter start_on_minutes      At which minute should be the first run
+# @parameter start_on_hours        At which hour should be the first run
+# @parameter start_on_day_of_week  At which day of week should be the first run
+# @parameter periodicity_minutes   How often should the job run
+# @parameter periodicity_hours     How often should the job run
+# @parameter periodicity_days      How often should the job run
+# @parameter mode                  "nodups": avoid duplicate runs in the same period / "catchup": avoid duplicates and one or more run have been missed, run once before next period / "stateless": no check is done on past runs
+# 
+# @class_prefix schedule_simple
+# @class_parameter job_id
+# This bundle will define a class schedule_simple_${job_id}_{kept,repaired,not_ok,ok,reached} 
+#  _ok or _kept for when there is nothing to do
+#  _repaired if the job should run
+#  _not_ok and _reached have their usual meaning
+bundle agent schedule_simple(job_id, agent_periodicity,
+                             max_execution_delay_minutes, max_execution_delay_hours,
+                             start_on_minutes, start_on_hours, start_on_day_of_week,
+                             periodicity_minutes, periodicity_hours, periodicity_days, mode)
+
+{
+  vars:
+    any::
+      "class_prefix" string => "schedule_simple_${job_id}";
+
+  methods:
+    any::
+      "any" usebundle => schedule_simple_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
+                                                 "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
+                                                 "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
+
+      "kept"     usebundle => _classes_success("${class_prefix}"),
+                 ifvarclass => "!job_${job_id}_run.!job_${job_id}_error";
+      "repaired" usebundle => _classes_repaired("${class_prefix}"),
+                 ifvarclass => "job_${job_id}_run";
+      "error"    usebundle => _classes_failure("${class_prefix}"),
+                 ifvarclass => "job_${job_id}_error";
+
+      "report"   usebundle => _logger("Scheduling ${job_id}", "${class_prefix}");
+}
+

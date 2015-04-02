@@ -1,0 +1,224 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @agent_version >=3.6
+#
+# This collection of bundles manage time related calculations
+#
+#
+# There are 2 kind of scheduling: purely periodic and calendar based
+# For wich we are providing 2 series of methods.
+#
+# There are 6 cases for error handling, based on:
+#  * 2 miss -> 0 job, 1 job, 2 jobs
+#    if an agent doesn't run for long enough to miss 2 periods of run, we can
+#      - 0job: forget that we missed the run and continue as if nothing happened
+#      - 1job: detect that we missed at least one run and try to launch the job as soon as possible
+#      - 2job: know how many run we have missed and lanch as many jobs as was required
+#  * agent overlap -> 2 jobs, 1 job
+#    if an agent runs twice within it period (for example if the user manually runs it), we can
+#      - 1job: detect that the agent was run twice and avoid launching the job on the second time
+#      - 2job: ignore the fact and run the job twice
+# For which we gave 6 names:
+# - stateless:     2miss->0job & 2run->2job
+# - no_dups:       2miss->0job & 2run->1job
+# - at_least_once: 2miss->1job & 2run->2job
+# - catch_up:      2miss->1job & 2run->1job
+# - no_miss:       2miss->2job & 2run->2job
+# - exact_count:   2miss->2job & 2run->1job
+
+
+# Stores now(), you can change now()'s result if you want to run tests by calling this bundle with a parameter
+bundle agent ncf_date(test_timestamp)
+{
+  vars:
+    any::
+      "timestamp" int => now();
+    test::
+      "timestamp" int => "${test_timestamp}";
+
+  classes:
+    any::
+      "test" expression => regcmp("^\d+$", "${test_timestamp}");
+}
+
+# Store a unique host value based on IP + hostname
+# Splay is a predictible constant pseudorandom number
+# You can change its content if you want to run tests by calling this bundle with a parameter
+bundle agent ncf_splay(test_splay)
+{
+  vars:
+    any::
+      # maximum value of splay integer = 7 nibbles (2^28-1)
+      "splay_max" string => "268435455";
+      # pseudorandon deterministic hex number of 7 nibbles
+      "splay_hex" string => string_head(hash("${sys.host}${sys.ipv4}", "md5"), "7");
+      # decimal version of the splay integer
+      "splay" string => execresult("/usr/bin/printf '%d' 0x${splay_hex}", "noshell");
+    test::
+      "splay" string => "${test_splay}";
+
+  classes:
+    any::
+      "test" expression => regcmp("^\d+$", "${test_splay}");
+}
+
+# Generic Scheduler, manage periodicity and delay of execution
+#  The real start time is delayed by a constant number of minutes that is lower than the max_execution_delay parameter.
+#  This delay time depends on the host properties (IP and hostname)
+#  Everything is calculated in minutes.
+#  This is the basis for other schedulers and is not made to be user friendly.
+#  The outcome are variables that can be used for final decision:
+#   - job_run_id: integer between 0 and max_run_id that says when we should run
+#   - current_run_id: integer that is equal to job_run_id when we should run
+#   - max_run_id: integer that correspond to max_execution_delay, if current_run_id > max_run_id then we are after the latest expected run
+#
+# job_id: a string to identify this job
+# agent_periodicity: how often you run the agent in minutes
+# max_execution_delay: on how many minutes you want to spread the runs
+# job_periodicity: the time frame between runs in minutes 
+# minutes_from_start: the number of minutes elapsed since the first start of the job (usually: now - any_start_epoch_timestamp/60)
+#
+# If there is an error, a class is raised: job_${job_id}_error
+#   # Sample code to use in the caller, it's up to the caller to manage job miss or duplicate run
+#      # we are still within the run interval but after the maximum delay
+#      "job_${job_id}_after_delay" expression => isgreaterthan("${job_schedule_generic.current_run_id}", "${job_schedule_generic.max_run_id}");
+#      # we are still within the run interval but after the job should have run
+#      "job_${job_id}_after_run" expression => isgreaterthan("${job_schedule_generic.current_run_id}", "${job_schedule_generic.job_run_id}");
+#      # we should run now
+#      "job_${job_id}_run" expression => strcmp("${job_schedule_generic.current_run_id}", "${job_schedule_generic.job_run_id}");
+#      # if none of these, we are before the job run time
+bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, job_periodicity, minutes_from_start)
+{
+  vars:
+    any::
+      "test" string => "value";
+    noerror::
+      # shift between each run = run_periodicity % agent_periodicity = by how much the delay is incremented between each run
+      "run_shift_real" string => eval("${job_periodicity} % ${agent_periodicity}", "math", "infix");
+      "run_shift" int => "${run_shift_real}";
+
+      # max_run_id = int(max_execution_delay / agent periodicity) = min number of agent run in interval
+      "max_run_id_real" string => eval("${max_execution_delay}/${agent_periodicity}", "math", "infix");
+      "max_run_id" int => "${max_run_id_real}";
+
+      # job_run_id = int(splay / splay_max * max_run_id) = run id of agent at wich we must run the job
+      "job_run_id_real" string => eval("${ncf_splay.splay} * ${max_run_id} / ${ncf_splay.splay_max}", "math", "infix");
+      "job_run_id" int => "${job_run_id_real}";
+
+      # elapsed in period = minutes_from_start % run periodicity = duration in minutes since the last start of the run period 
+      "elapsed" string => ifelse("null_job_periodicity", "${minutes_from_start}", eval("${minutes_from_start} % ${job_periodicity}", "math", "infix"));
+
+      # current_run_id = int(elapsed / agent_periodicity) = run id of current run
+      "current_run_id_real" string => eval("${elapsed} / ${agent_periodicity}", "math", "infix");
+      "current_run_id" int => "${current_run_id_real}";
+
+  classes:
+    any::
+      # if agent_periodicity = 0 -> error
+      "job_${job_id}_error_null_agent_periodicity" expression => strcmp("${agent_periodicity}", "0"),
+                                                   scope => "namespace";
+      # if run_periodicity = 0 
+      "null_job_periodicity" expression => strcmp("${job_periodicity}", "0");
+
+      # if agent_periodicity > max_execution_delay -> warning (but it can be null)
+      "delay_too_small" expression => islessthan("${max_execution_delay}", "${agent_periodicity}");
+      "delay_null" expression => strcmp("${max_execution_delay}", "0");
+
+      # if max_execution_delay >= run_periodicity -> error
+      # this must be checked in parent too if you have multiple periodicity
+      "job_${job_id}_error_delay_too_big" not => islessthan("${max_execution_delay}", "${job_periodicity}"),
+                                          scope => "namespace",
+                                          ifvarclass => "!null_job_periodicity";
+
+      # if run_shift != 0 -> unpredictable
+      "unpredictable" not => strcmp("${run_shift}", "0");
+
+      # global error
+      "job_${job_id}_error" expression => "job_${job_id}_error_null_agent_periodicity|job_${job_id}_error_delay_too_small|job_${job_id}_error_delay_too_big",
+                            scope => "namespace";
+
+    any::
+      "noerror" expression => "!job_${job_id}_error";
+
+  reports:
+    unpredictable::
+      "Warning, there is a shift of ${run_shift} minutes between agent run period and ${job_id} run period";
+    delay_too_small.!delay_null::
+      "Warning, max_execution_delay for ${job_id} is less than your agent run period but not null, it will be ignored";
+}
+
+
+# Simple Periodic Scheduler, it raises a class on a regular perioridicity, based on a user friendly definition.
+#
+# job_id: a string to identify this job
+# agent_periodicity: how often you run the agent in minutes
+# max_execution_delay_minutes, max_execution_delay_hours: on how much time you want to spread the job
+# start_on_minutes, start_on_hours, start_on_day_of_week: when should be the first run
+# periodicity_minutes, periodicity_hours, periodicity_days: how often should the job run
+# mode: "nodups": avoid duplicate runs in the same period
+#       "catchup": avoid duplicates and one or more run have been missed, run once before next period
+#       "stateless": no check is done on past runs
+bundle agent schedule_simple_generic(job_id, agent_periodicity,
+                                     max_execution_delay_minutes, max_execution_delay_hours,
+                                     start_on_minutes, start_on_hours, start_on_day_of_week,
+                                     periodicity_minutes, periodicity_hours, periodicity_days, mode)
+{
+  vars:
+    any::
+      # max_execution_delay in minutes
+      "max_execution_delay_real" string => eval("${max_execution_delay_minutes} + 60 * ${max_execution_delay_hours}", "math", "infix");
+      "max_execution_delay" int => "${max_execution_delay_real}";
+
+      # periodicity in minutes
+      "job_periodicity_real" string => eval("${periodicity_minutes} + 60 * ${periodicity_hours} + 60 * 24 * ${periodicity_days}", "math", "infix");
+      "job_periodicity" int => "${job_periodicity_real}";
+
+      # class persistence in minutes
+      "class_persist_real" string => eval("${job_periodicity}-1", "math", "infix");
+      "class_persist" int => "${class_persist_real}";
+
+      # compute time between start_* and now
+      # (min_of_day - start_minutes) + 60 * (hour of day - start hours) + 60 * 24 * (day of week - start day)%7 
+      "minutes_from_start_real" string => eval(strftime("localtime", "%M - ${start_on_minutes} + 60 * (%H - ${start_on_hours}) + 60 * 24 * ((%u - ${start_on_day_of_week} + 7)%%7)", "${ncf_date.timestamp}"), "math", "infix");
+      "minutes_from_start" int => "${minutes_from_start_real}";
+
+  classes:
+    any::
+      "nodups" expression => strcmp("${mode}", "nodups");
+      "catchup" expression => strcmp("${mode}", "catchup");
+
+    pass2.!catchup::
+      "should_run" expression => strcmp("${schedule_generic.current_run_id}", "${schedule_generic.job_run_id}");
+    pass2.catchup::
+      "should_run" not => islessthan("${schedule_generic.current_run_id}", "${schedule_generic.job_run_id}");
+    pass2::
+      "job_${job_id}_run" expression => "should_run.!job_${job_id}_persist.!job_${job_id}_error",
+                          scope => "namespace";
+    pass2.(nodups|catchup)::
+      "job_${job_id}_persist" expression => "job_${job_id}_run",
+                              persistence => "${class_persist}";
+
+    any::
+      "pass2" expression => "any";
+
+  methods:
+    any::
+      "any" usebundle => schedule_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay}", "${job_periodicity}", "${minutes_from_start}");
+}
+

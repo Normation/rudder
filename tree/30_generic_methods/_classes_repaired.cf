@@ -1,0 +1,43 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes repaired definition
+# @description Defines repaired classes based on a prefix
+#
+# @parameter class_prefix      The prefix of the repaired class to defined
+#
+# @class_prefix 
+# @class_parameter 
+# This bundle will define a class ${class_prefix}_{repaired,reached}
+
+bundle agent _classes_repaired(class_prefix)
+{
+  vars:
+      "prefix" slist => { "promise_repaired" };
+      "suffix" slist => { "ok", "reached", "repaired" };
+
+      "${prefix}_local"
+        string     => "${prefix}_${class_prefix}",
+        classes    => always("${prefix}_${class_prefix}");
+
+      "local_${suffix}"
+        string     => "${class_prefix}_${suffix}",
+        classes    => always("${class_prefix}_${suffix}");
+}
+
+
