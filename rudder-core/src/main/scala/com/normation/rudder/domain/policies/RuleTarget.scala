@@ -227,17 +227,30 @@ object RuleTarget extends Loggable {
     , groups  : Map[NodeGroupId, Set[NodeId]]
   ) : Set[NodeId] = {
 
+    /* A Node with a server role is either:
+     *   * A node with a role (easy)
+     *   * A node that is a policy Server
+     *   * A node with the root id (in fact: Constants.ROOT_POLICY_SERVER_ID), the root policy server
+     */
+    def isANodeWithRole (nodeId : NodeId, isPolicyServer : Boolean ,serverRoles : Set[ServerRole]) : Boolean = {
+      serverRoles.size>0 || isPolicyServer || nodeId == Constants.ROOT_POLICY_SERVER_ID
+    }
     (Set[NodeId]() /: targets) { case (nodes , target) => target match {
       case AllTarget => return allNodes.keySet
       case AllTargetExceptPolicyServers => nodes ++ allNodes.collect { case(k,n) if(!n._1) => k }
       case PolicyServerTarget(nodeId) => nodes + nodeId
       case AllServersWithRole =>
-        //we have a special case for the root node that always belongs to that group, even if some weird
-        //scenario lead to the removal (or non addition) of them
-        nodes ++ allNodes.collect { case(k,n) if(n._2.size>0 || n._1 == Constants.ROOT_POLICY_SERVER_ID) => k }
+        // All nodes with server roles or policyServer (ie relay)
+        nodes ++ allNodes.collect {
+          case (nodeId,(isPolicyServer, roles)) if isANodeWithRole(nodeId,isPolicyServer,roles) =>
+            nodeId
+         }
       case AllNodesWithoutRole =>
-        //root policy server is never on the the group without roles, even if none are defined
-        nodes ++ allNodes.collect { case(k,n) if(n._2.size == 0 && n._1 != Constants.ROOT_POLICY_SERVER_ID) => k }
+        // All nodes with no server roles and not a policy server/relay)
+        nodes ++ allNodes.collect {
+          case (nodeId,(isPolicyServer, roles)) if !(isANodeWithRole(nodeId,isPolicyServer,roles)) =>
+            nodeId
+         }
 
       //here, if we don't find the group, we consider it's an error in the
       //target recording, but don't fail, just log it.
