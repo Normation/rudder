@@ -18,6 +18,7 @@
 
 # @name Schedule Simple
 # @description Trigger a repaired outcome when a job should be run
+# @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
 # @parameter agent_periodicity     How often you run the agent in minutes
