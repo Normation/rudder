@@ -15,6 +15,7 @@ import os.path
 import shutil
 import sys
 import os
+import codecs
 
 # Additionnal path to look for cf-promises
 additional_path = ["/opt/rudder/bin","/usr/sbin","/usr/local"]
@@ -135,11 +136,9 @@ def parse_bundlefile_metadata(content, bundle_type):
 
   for line in content.splitlines():
     for tag in tags[bundle_type]:
-      if sys.version_info.major == 2:
-        unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape')
-      else
-        unicodeLine = line # = str(line, "UTF-8")
-      match = re.match("^\s*#\s*@" + tag + "\s(([a-zA-Z_]+)\s+(.*)|.*)$", unicodeLine, re.UNICODE)
+      # line should already be unicode
+      #unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape') 
+      match = re.match("^\s*#\s*@" + tag + "\s(([a-zA-Z_]+)\s+(.*)|.*)$", line, flags=re.UNICODE)
       if match :
         # tag "parameter" may be multi-valued
         if tag == "parameter":
@@ -147,7 +146,7 @@ def parse_bundlefile_metadata(content, bundle_type):
         else:
           res[tag] = match.group(1)
 
-    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?.*$", line)
+    match = re.match("[^#]*bundle\s+agent\s+([0-9a-zA-Z_]+)(\(([^)]+)\))?.*$", line, flags=re.UNICODE)
     if match:
       res['bundle_name'] = match.group(1)
       res['bundle_args'] = []
@@ -312,7 +311,7 @@ def get_hooks(prefix, action, path):
   # Full regexp is prefix + action + hooks_name + filteredExtension
   regexp = prefix+"\."+action+"\..*\."+filtered_extensions
 
-  files = [f for f in os.listdir(path) if re.match(regexp, f)]
+  files = [f for f in os.listdir(path) if re.match(regexp, f, flags=re.UNICODE)]
 
   return sorted(files)
 
@@ -392,7 +391,7 @@ def canonify_class_context(class_context):
   # into:
   # concat("Monday.",canonify(${bundle2.var}),".debian.",canonify(${bundle.var}),".linux")
   # We have to canonify variables only so the class context is valid and coherent
-  return re.sub(r'(\${[^\}]*})', r'",canonify("\1"),"', class_context)
+  return re.sub(r'(\${[^\}]*})', r'",canonify("\1"),"', class_context, flags=re.UNICODE)
 
 
 def generate_technique_content(technique_metadata):
@@ -413,7 +412,7 @@ def generate_technique_content(technique_metadata):
     
     # Treat each argument of the method_call
     if 'args' in method_call:
-      args = ['"%s"'%re.sub(r'(?<!\\)"', r'\\"', arg) for arg in method_call['args'] ]
+      args = ['"%s"'%re.sub(r'(?<!\\)"', r'\\"', arg, flags=re.UNICODE) for arg in method_call['args'] ]
       arg_value = ', '.join(args)
     else:
       arg_value = ""
@@ -443,7 +442,7 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
 
   for file in filenames:
             
-    content = open(file).read()
+    content = codecs.open(file, encoding="utf-8").read()
     try:
       metadata = parse_technique_metadata(content)
       all_metadata[metadata['bundle_name']] = metadata
@@ -466,7 +465,7 @@ def get_all_generic_methods_metadata(alt_path = ''):
   errors = []
 
   for file in filenames:
-    content = open(file).read()
+    content = codecs.open(file, encoding="utf-8").read()
     try:
       metadata = parse_generic_method_metadata(content)
       all_metadata[metadata['bundle_name']] = metadata
@@ -506,7 +505,7 @@ def write_technique(technique_metadata, alt_path = ""):
 
     # Write technique file
     content = generate_technique_content(technique_metadata)
-    file = open(filename,"w")
+    file = codecs.open(filename, "w", encoding="utf-8")
     
     file.write(content)
     file.close()
