@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Schedule Simple
+# @name Schedule Simple Stateless
 # @description Trigger a repaired outcome when a job should be run
 # @agent_version >=3.6
 #
