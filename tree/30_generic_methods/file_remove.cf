@@ -19,7 +19,7 @@
 # @name File remove
 # @description Remove a file if it exists
 #
-# @parameter target     File to remove
+# @parameter target     File to remove
 #
 # @class_prefix file_remove
 # @class_parameter target
