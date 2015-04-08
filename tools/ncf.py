@@ -133,6 +133,7 @@ def parse_generic_method_metadata(technique_content):
 def parse_bundlefile_metadata(content, bundle_type):
   res = {}
   parameters = []
+  multiline = False
 
   for line in content.splitlines():
     for tag in tags[bundle_type]:
@@ -146,8 +147,19 @@ def parse_bundlefile_metadata(content, bundle_type):
         else:
           res[tag] = match.group(1)
 
-    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?.*$", line, flags=re.UNICODE)
+    # manage multiline bundle definition
+    if multiline:
+      match_line += line
+    else:
+      match_line = line
+    if re.match("[^#]*bundle\s+agent\s+(\w+)\([^)]*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL):
+      multiline = True
+
+    # read a complete bundle definition
+    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?[^(]*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL)
+#    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?.*$", line, flags=re.UNICODE)
     if match:
+      multiline = False
       res['bundle_name'] = match.group(1)
       res['bundle_args'] = []
 
