@@ -633,9 +633,10 @@ class ModificationValidationPopup(
     woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.getActor, why) match {
       case Full(optChanges) =>
         optChanges match {
-          case Some(_) => // There is a modification diff, launch a deployment.
+          case Some(diff) if diff.needDeployment =>
+            // There is a modification diff that required deployment, launch a deployment.
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-          case None => // No change, don't launch a deployment
+          case _ => // No change worthy of deployment, don't launch a deployment
         }
 
         //now, if rules were modified, also create a CR
