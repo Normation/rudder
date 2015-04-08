@@ -19,7 +19,7 @@
 # @name Directory create
 # @description Create a directory if it doesn't exist
 #
-# @parameter target Full path of directory to create (trailing '/' is optional)
+# @parameter target Full path of directory to create (trailing '/' is optional)
 #
 # @class_prefix directory_create
 # @class_parameter target
