@@ -40,6 +40,7 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
+import com.normation.rudder.domain.nodes._
 import net.liftweb.http.Req
 import net.liftweb.common._
 import com.normation.rudder.web.rest.RestUtils._
@@ -63,13 +64,17 @@ class NodeApiService4 (
 
   def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus) = {
     for {
-      node          <- nodeInfoService.getNode(nodeId)
-      nodeInventory <- inventoryRepository.get(nodeId,state)
+      inventory <- inventoryRepository.get(nodeId,state)
+      node      <- state match {
+        case AcceptedInventory => nodeInfoService.getNode(nodeId)
+        // For other state we have to define a default Node object
+        case _ => Full(Node(inventory))
+      }
     } yield {
       if(versionCompatibility <= 4) { //v4
-        serializeInventoryV4(node, nodeInventory, detailLevel)
+        serializeInventoryV4(node, inventory, detailLevel)
       } else {
-        serializeInventoryV5(node, nodeInventory, detailLevel)
+        serializeInventoryV5(node, inventory, detailLevel)
       }
     }
   }
