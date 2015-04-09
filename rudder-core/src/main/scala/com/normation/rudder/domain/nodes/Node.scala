@@ -42,6 +42,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.domain.policies.SimpleDiff
+import com.normation.inventory.domain.FullInventory
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -60,6 +61,22 @@ case class Node(
   , nodeReportingConfiguration: ReportingConfiguration
   , properties                : Seq[NodeProperty]
 ) extends HashcodeCaching
+
+case object Node {
+  def apply (inventory : FullInventory) : Node = {
+    Node(
+        inventory.node.main.id
+      , inventory.node.main.hostname
+      , inventory.node.description.getOrElse("")
+      , false
+      , false
+      , false
+      , inventory.node.inventoryDate.getOrElse(new DateTime(0))
+      , ReportingConfiguration(None,None)
+      , Seq()
+    )
+  }
+}
 
 case class NodeProperty(name: String, value: String)
 
