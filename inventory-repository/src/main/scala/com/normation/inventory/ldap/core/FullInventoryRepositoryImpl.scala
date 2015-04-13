@@ -237,6 +237,40 @@ class FullInventoryRepositoryImpl(
   }
 
 
+  override def getAllInventories(inventoryStatus : InventoryStatus): Box[Map[NodeId, FullInventory]] = {
+
+    for {
+      con  <- ldap
+      dit  = inventoryDitService.getDit(inventoryStatus)
+      // Get base tree, we will go into each subtree after
+      tree <- con.getTree(dit.BASE_DN)
+
+      // Get into Nodes subtree
+      nodeTree    <- tree.children.get(dit.NODES.rdn) match {
+                      case None => Failure(s"Could not find node inventories in ${dit.BASE_DN}")
+                      case Some(tree) => Full(tree)
+                     }
+      nodes       <- sequence(nodeTree.children.values.toSeq) { tree => mapper.nodeFromTree(tree) }
+
+      // Get into Machines subtree
+      machineTree <- tree.children.get(dit.MACHINES.rdn) match {
+                       case None => Failure(s"Could not find machine inventories in ${dit.BASE_DN}")
+                       case Some(tree) => Full(tree)
+                     }
+      machines    <- sequence(machineTree.children.values.toSeq) { tree => mapper.machineFromTree(tree) }
+
+    } yield {
+      val machineMap =  machines.map(m => (m.id, m)).toMap
+      nodes.map(
+        node => {
+          val machine = node.machineId.flatMap(mid => machineMap.get(mid._1))
+          val inventory = FullInventory(node,machine)
+          node.main.id ->  inventory
+      } ).toMap
+    }
+  }
+
+
   override def get(id:NodeId, inventoryStatus : InventoryStatus) : Box[FullInventory] = {
     for {
       con <- ldap
