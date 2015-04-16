@@ -48,6 +48,8 @@ import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.rest.node.NodeDetailLevel
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
 
 
 
@@ -65,6 +67,7 @@ trait RestDataSerializer {
   def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue
+  def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rules : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue
 
   def serializeServerInfo (srv : Srv, status : String) : JValue
 
@@ -147,6 +150,27 @@ case class RestDataSerializerImpl (
      ~ ( "enabled"          -> rule.isEnabledStatus )
      ~ ( "system"           -> rule.isSystem )
    )
+  }
+
+  def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rulesMap : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue = {
+
+    val (rules ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
+      case FullDetails =>
+        ( rulesMap.get(category.id).getOrElse(Nil).map(serializeRule(_,None))
+        , category.childs.map(serializeRuleCategory(_,category.id, rulesMap, detailLevel))
+        )
+      case MinimalDetails =>
+        ( rulesMap.get(category.id).getOrElse(Nil).map(rule => JString(rule.id.value))
+        , category.childs.map(cat => JString(cat.id.value))
+        )
+    }
+    (   ( "id" -> category.id.value)
+      ~ ( "name" -> category.name)
+      ~ ( "description" -> category.description)
+      ~ ( "parent" -> parent.value)
+      ~ ( "categories" -> categories)
+      ~ ( "rules" -> rules)
+    )
   }
 
   def serializeParameter (parameter:Parameter, crId: Option[ChangeRequestId]): JValue = {
