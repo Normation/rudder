@@ -534,6 +534,7 @@ case class RestExtractorService (
       case eb:EmptyBox => eb ?~ "error when deserializing node group category"
     }
   }
+
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
@@ -549,6 +550,16 @@ case class RestExtractorService (
     }
   }
 
+  def extractRuleCategory (params : Map[String,List[String]]) : Box[RestRuleCategory] = {
+
+    for {
+      name        <- extractOneValue(params,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValue(params, "description")()
+      parent      <- extractOneValue(params,"parent")(convertToRuleCategoryId)
+    } yield {
+      RestRuleCategory(name, description, parent)
+    }
+  }
 
   def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
     for {
@@ -631,6 +642,16 @@ case class RestExtractorService (
       enabled          <- extractJsonBoolean(json,"enabled")
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
+    }
+  }
+
+  def extractRuleCategory ( json : JValue ) : Box[RestRuleCategory] = {
+    for {
+      name        <- extractOneValueJson(json,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValueJson(json, "description")()
+      parent      <- extractOneValueJson(json,"parent")(convertToRuleCategoryId)
+    } yield {
+      RestRuleCategory(name, description, parent)
     }
   }
 
