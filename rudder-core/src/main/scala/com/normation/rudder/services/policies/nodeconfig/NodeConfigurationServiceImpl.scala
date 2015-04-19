@@ -282,7 +282,7 @@ class NodeConfigurationServiceImpl(
     val (updatedConfig, notUpdatedConfig) = newConfigCache.toSeq.partition{ p =>
       cache.get(p.id) match {
         case None => true
-        case Some(e) => e != p
+        case Some(e) => !e.equalWithoutWrittenDate(p)
       }
     }
 
