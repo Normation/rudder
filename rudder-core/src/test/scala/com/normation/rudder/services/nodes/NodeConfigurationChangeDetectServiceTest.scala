@@ -247,12 +247,12 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
       ) === Set(new RuleId("ruleId1"))
     }
 
-    "have a change if nothing is different, but previous CR is not existant" in {
+    "have no change if nothing is different, but previous CR is not existant (extending a Rule should be free)" in {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(emptyNodeConfig))
         , complexeNodeConfig
         , directiveLib
-      ) === Set(new RuleId("ruleId1"))
+      )  must beTheSameAs(Set())
     }
 
     "have a change if nothing is different, but previous CR is existant and current is non existant" in {
