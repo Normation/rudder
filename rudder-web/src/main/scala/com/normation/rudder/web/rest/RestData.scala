@@ -36,6 +36,8 @@ package com.normation.rudder.web.rest
 
 import com.normation.rudder.rule.category._
 import net.liftweb.common._
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.repository.FullNodeGroupCategory
 
 
 
@@ -51,8 +53,8 @@ case object MinimalDetails extends DetailLevel {
 }
 
 case class RestRuleCategory(
-      name           : Option[String] = None
-    , description    : Option[String] = None
+      name : Option[String] = None
+    , description : Option[String] = None
     , parent : Option[RuleCategoryId] = None
   ) {
 
@@ -79,6 +81,40 @@ case class RestRuleCategory(
         )
         case None =>
           Failure("Could not create Rule Category, cause name is not defined")
+      }
+  }
+}
+
+case class RestGroupCategory(
+      name : Option[String] = None
+    , description : Option[String] = None
+    , parent : Option[NodeGroupCategoryId] = None
+  ) {
+
+  def update(category:FullNodeGroupCategory) = {
+    val updateName = name.getOrElse(category.name)
+    val updateDescription = description.getOrElse(category.description)
+    category.copy(
+        name        = updateName
+      , description = updateDescription
+    )
+  }
+
+  def create(id : NodeGroupCategoryId) : Box[FullNodeGroupCategory]= {
+    name match {
+      case Some(name) =>
+        Full(
+          FullNodeGroupCategory(
+              id
+            , name
+            , description.getOrElse("")
+            , Nil
+            , Nil
+          )
+
+        )
+        case None =>
+          Failure("Could not create Group Category, cause name is not defined")
       }
   }
 }
