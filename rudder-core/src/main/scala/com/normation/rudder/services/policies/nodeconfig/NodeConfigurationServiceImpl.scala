@@ -90,9 +90,10 @@ class DetectChangeInNodeConfiguration extends Loggable {
     logger.trace(s"Checking changes in node '${targetConfig.nodeInfo.id.value}'")
     val changedRuleIds = currentOpt match {
       case None =>
-        //what do we do if we don't have a cache for the node ? All the target rules are "changes" ?
+        //what do we do if we don't have a cache for the node ? All the target rules are "changes" ? No, we skip,
+        // as all changes will be caught later. Otherwise, it will increase the serial of all rules applied to this node
         logger.trace("`-> No node configuration cache availabe for that node")
-        targetConfig.policyDrafts.map( _.ruleId ).toSet
+        Set[RuleId]()
       case Some(current) =>
 
         val target = NodeConfigurationCache(targetConfig)
@@ -128,8 +129,9 @@ class DetectChangeInNodeConfiguration extends Loggable {
               logger.trace(s"`-> rule with ID '${ruleId.value}' was deleted")
               Set(ruleId)
             case (None, Some(PolicyCache(ruleId, _, _))) =>
-              logger.trace(s"`-> rule with ID '${ruleId.value}' was added")
-              Set(ruleId)
+              logger.trace(s"`-> rule with ID '${ruleId.value}' was added, skipping it")
+              // Ignoring nodes addition to Rules. The node will be updated, thanks to the check on change of hash of node config
+              Set[RuleId]()
             case (Some(PolicyCache(r0, d0, c0)), Some(PolicyCache(r1, d1, c1))) =>
               //d0 and d1 are equals by construction, but keep them for future-proofing
               if(d0 == d1) {
