@@ -49,6 +49,8 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 
 /**
@@ -192,6 +194,36 @@ object RestUtils extends Loggable {
   def missingResponse(version:Int,action:String) = {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(action,false)
    }
+
+  def response (restExtractor : RestExtractorService, dataName: String) (function : Box[JValue], req : Req, errorMessage : String) (implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+    function match {
+      case Full(category : JValue) =>
+        toJsonResponse(None, ( dataName -> category))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(None, message)
+    }
+  }
+
+  def actionResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator) (function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+
+    ( for {
+      reason <- restExtractor.extractReason(req.params)
+      modId = ModificationId(uuidGen.newUuid)
+      actor = RestUtils.getActor(req)
+      categories <- function(actor,modId,reason)
+    } yield {
+      categories
+    } ) match {
+      case Full(categories : JValue) =>
+        toJsonResponse(None, ( "groupCategories" -> categories))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(None, message)
+    }
+  }
 
 }
 
