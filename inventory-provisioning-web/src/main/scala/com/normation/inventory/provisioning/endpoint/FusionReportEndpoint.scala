@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory
 import java.io.{IOException, File, FileInputStream, InputStream, FileOutputStream}
 import FusionReportEndpoint._
 import com.unboundid.ldif.LDIFChangeRecord
+import javax.servlet.http.HttpServletRequest
 
 object FusionReportEndpoint{
   val printer = PeriodFormat.getDefault
@@ -87,61 +88,76 @@ class FusionReportEndpoint(
     value = Array("/upload"),
     method = Array(RequestMethod.POST)
   )
-  def onSubmit(request:DefaultMultipartHttpServletRequest) = {
+  def onSubmit(request: HttpServletRequest) = {
+    def defaultBadAnswer(reason: String) = new ResponseEntity(s"""${reason} sent. You have to POST a request with exactly one file in attachment (with 'content-disposition': file)
+                               |For example, for curl, use: curl -F "file=@path/to/file"
+                               |""".stripMargin, HttpStatus.PRECONDITION_FAILED)
 
-    val files = request.getFileMap.values
 
-    files.size match {
-      case 0 => new ResponseEntity("""No report sent. You have to POST a request with exactly one file in attachment (with 'content-disposition': file)
-                                     |For example, for curl, use: curl -F "file=@path/to/file"
-                                     |""".stripMargin, HttpStatus.PRECONDITION_FAILED)
-      case 1 =>
-        val reportFile = files.toSeq(0)
-        //copy the session file somewhere where it won't be deleted on that method return
-        logger.info("New input report: '%s'".format(reportFile.getOriginalFilename))
-        //val reportFile = copyFileToTempDir(f)
+    request match {
+      case multipart: DefaultMultipartHttpServletRequest =>
 
-        var in : InputStream = null
-        logger.trace("Start post parsing report '%s'".format(reportFile.getOriginalFilename))
-        try {
-          in = reportFile.getInputStream
-          val start = System.currentTimeMillis
+        val files = multipart.getFileMap.values
 
-          (unmarshaller.fromXml(reportFile.getName,in) ?~! "Can't parse the input report, aborting") match {
-            case Full(report) if(null != report) =>
-              logger.info(s"Report '${reportFile.getOriginalFilename}' parsed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}, sending to save engine.\n")
-              //send report to asynchronous report processor
-              (ReportProcessor !? report) match {
-                case OkToSave =>
-                  //release connection
-                  new ResponseEntity("Report correctly received and sent to report processor.\n", HttpStatus.ACCEPTED)
-                case TooManyInQueue =>
-                  new ResponseEntity("Too many reports waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
-              }
-            case f@Failure(_,_,_) =>
-              val msg = "Error when trying to parse report: %s".format(f.failureChain.map( _.msg).mkString("\n", "\ncause: ", "\n"))
+        if(files.size <= 0) {
+          defaultBadAnswer("No inventory")
+        } else if(files.size == 1) {
+          val reportFile = files.toSeq(0)
+          //copy the session file somewhere where it won't be deleted on that method return
+          logger.info("New input inventory: '%s'".format(reportFile.getOriginalFilename))
+          //val reportFile = copyFileToTempDir(f)
+
+          var in : InputStream = null
+          logger.trace("Start post parsing inventory '%s'".format(reportFile.getOriginalFilename))
+          try {
+            in = reportFile.getInputStream
+            val start = System.currentTimeMillis
+
+            (unmarshaller.fromXml(reportFile.getName,in) ?~! "Can't parse the input inventory, aborting") match {
+              case Full(report) if(null != report) =>
+                logger.info(s"Inventory '${reportFile.getOriginalFilename}' parsed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}, sending to save engine.\n")
+                //send report to asynchronous report processor
+                (ReportProcessor !? report) match {
+                  case OkToSave =>
+                    //release connection
+                    new ResponseEntity("Inventory correctly received and sent to inventory processor.\n", HttpStatus.ACCEPTED)
+                  case TooManyInQueue =>
+                    new ResponseEntity("Too many inventories waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
+                }
+              case f@Failure(_,_,_) =>
+                val msg = "Error when trying to parse inventory: %s".format(f.failureChain.map( _.msg).mkString("\n", "\ncause: ", "\n"))
+                logger.error(msg)
+                f.rootExceptionCause.foreach { exp => logger.error("Exception was: ", exp) }
+                logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
+                new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
+              case _ =>
+                val msg = "The inventory is empty, not saving anything."
+                logger.error(msg)
+                logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
+                new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
+            }
+          } catch {
+            case e:Exception =>
+              val msg = "Exception when processing inventory '%s'".format(reportFile.getOriginalFilename)
               logger.error(msg)
-              f.rootExceptionCause.foreach { exp => logger.error("Exception was: ", exp) }
-              logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
-              new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
-            case _ =>
-              val msg = "The report is empty, not saving anything."
-              logger.error(msg)
-              logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
-              new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
+              logger.error("Reported exception is: ", e)
+              new ResponseEntity(msg+"\n", HttpStatus.PRECONDITION_FAILED)
+          } finally {
+            in.close
           }
-        } catch {
-          case e:Exception =>
-            val msg = "Exception when processing report '%s'".format(reportFile.getOriginalFilename)
-            logger.error(msg)
-            logger.error("Reported exception is: ", e)
-            new ResponseEntity(msg+"\n", HttpStatus.PRECONDITION_FAILED)
-        } finally {
-          in.close
+        } else {
+          //more than one file: we don't know the one to take, so we just ask the user to only send one file
+          defaultBadAnswer("Too many files")
         }
 
+      case _ =>
+        defaultBadAnswer("No inventory")
     }
   }
+
+
+
+
 
   //two message to know if the backend accept to process the report
   case object OkToSave
