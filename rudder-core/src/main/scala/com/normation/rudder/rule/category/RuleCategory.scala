@@ -35,12 +35,9 @@
 package com.normation.rudder.rule.category
 
 import com.normation.utils.HashcodeCaching
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import net.liftweb.common.Failure
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 
 /**
  * The Id for the server group category
@@ -72,6 +69,21 @@ case class RuleCategory(
         case Nil => Failure(s"cannot find parent category of ${category.name}")
         case _ => Failure(s"too much parents for category ${category.name}")
       }
+    }
+  }
+
+  // From a category find if a category if is contained in within it
+  // Return that category and its parent category id
+  def find (categoryId : RuleCategoryId) : Box[(RuleCategory,RuleCategoryId)] = {
+    childPath(categoryId) match {
+
+      case Full(_ :: parent :: category :: Nil) => Full((category,parent.id))
+      case Full(parent :: category :: Nil) => Full((category,parent.id))
+      case Full(category :: Nil) => Full((category,category.id))
+      case Full(_) =>
+        Failure(s"could not find category '${categoryId.value}' in category '${id.value}'" )
+      case eb:EmptyBox =>
+        eb ?~! s"could not find category '${categoryId.value}' in category '${id.value}'"
     }
   }
 
