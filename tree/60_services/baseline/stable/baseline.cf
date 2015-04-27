@@ -1,8 +1,8 @@
 # Example of the definition of a service to define the baseline site policy
-# Uses the technique ntp
+# By default, adds a line to the MOTD
 
 bundle agent baseline(path)
 {
   methods:
-      "any" usebundle => ntp;
+      "any" usebundle => file_ensure_lines_present("/etc/motd", "This machine is managed by ncf.");
 }

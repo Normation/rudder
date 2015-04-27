@@ -1,5 +1,5 @@
 # Example of the definition of a service to manage remote access
-# Use the technique openss_server
+# Uses the openssh_server Technique
 
 bundle agent remote_access(path)
 {
@@ -7,6 +7,6 @@ bundle agent remote_access(path)
     "ssh_config[Port]" string => "5190";
 
   methods:
-      #"any" usebundle => openssh_server("remote_access.ssh_config");
       "any" usebundle => openssh_server;
+
 }
