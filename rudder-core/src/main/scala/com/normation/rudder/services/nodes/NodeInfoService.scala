@@ -100,6 +100,16 @@ trait NodeInfoService {
    */
   def getAll() : Box[Map[NodeId, NodeInfo]]
 
+
+  /**
+   * Get all nodes.
+   * That method try to return the maximum
+   * of information, and will not totally fail if some information are
+   * missing (but the corresponding nodeInfos won't be present)
+   * So it is possible that getAllIds.size > getAll.size
+   */
+  def getAllNodes() : Box[Map[NodeId, Node]]
+
   /**
    * Get all systen node ids, for example
    * policy server node ids.
@@ -308,12 +318,17 @@ class NodeInfoServiceCachedImpl(
     this.nodeCache = None
   }
 
-  def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all node") { cache =>
+  def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all nodes info") { cache =>
     Full(cache.mapValues(_._2))
   }
-  def getAllSystemNodeIds(): Box[Seq[NodeId]] = withUpToDateCache("all system node") { cache =>
+  def getAllSystemNodeIds(): Box[Seq[NodeId]] = withUpToDateCache("all system nodes") { cache =>
     Full(cache.collect { case(k, (_,x,_)) if(x.isPolicyServer) => k }.toSeq)
   }
+
+  def getAllNodes(): Box[Map[NodeId, Node]] = withUpToDateCache("all nodes") { cache =>
+    Full(cache.mapValues(_._3))
+  }
+
   def getLDAPNodeInfo(nodeIds: Set[NodeId]): Box[Set[LDAPNodeInfo]] = {
     if(nodeIds.size > 0) {
       withUpToDateCache(s"${nodeIds.size} ldap node info") { cache =>
