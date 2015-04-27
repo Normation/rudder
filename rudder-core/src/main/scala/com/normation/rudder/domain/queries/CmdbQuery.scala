@@ -517,6 +517,16 @@ object CriterionComposition {
 sealed trait QueryReturnType {
   def value : String
 }
+
+case object QueryReturnType {
+  def apply(value : String) = {
+    value match {
+      case NodeReturnType.value => Full(NodeReturnType)
+      case NodeAndPolicyServerReturnType.value => Full(NodeAndPolicyServerReturnType)
+      case _ => Failure(s"Query return type '${value}' is not valid")
+    }
+  }
+}
 case object NodeReturnType extends QueryReturnType{
   override val value = "node"
 }

@@ -48,6 +48,9 @@ import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.rest.node.NodeDetailLevel
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.repository.FullNodeGroupCategory
 
 
 
@@ -61,10 +64,12 @@ trait RestDataSerializer {
   def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean) : JValue
 
   def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue
+  def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel): JValue
 
   def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue
+  def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rules : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue
 
   def serializeServerInfo (srv : Srv, status : String) : JValue
 
@@ -149,6 +154,27 @@ case class RestDataSerializerImpl (
    )
   }
 
+  def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rulesMap : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue = {
+
+    val (rules ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
+      case FullDetails =>
+        ( rulesMap.get(category.id).getOrElse(Nil).map(serializeRule(_,None))
+        , category.childs.map(serializeRuleCategory(_,category.id, rulesMap, detailLevel))
+        )
+      case MinimalDetails =>
+        ( rulesMap.get(category.id).getOrElse(Nil).map(rule => JString(rule.id.value))
+        , category.childs.map(cat => JString(cat.id.value))
+        )
+    }
+    (   ( "id" -> category.id.value)
+      ~ ( "name" -> category.name)
+      ~ ( "description" -> category.description)
+      ~ ( "parent" -> parent.value)
+      ~ ( "categories" -> categories)
+      ~ ( "rules" -> rules)
+    )
+  }
+
   def serializeParameter (parameter:Parameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
      ~ ( "id"              -> parameter.name.value )
@@ -169,6 +195,27 @@ case class RestDataSerializerImpl (
      ~ ("isDynamic"       -> group.isDynamic)
      ~ ("isEnabled"       -> group.isEnabled )
    )
+  }
+
+  def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel): JValue = {
+
+    val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
+      case FullDetails =>
+        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None)).toSeq
+        , category.subCategories.map(serializeGroupCategory(_,category.id, detailLevel))
+        )
+      case MinimalDetails =>
+        ( category.ownGroups.keys.map(id => JString(id.value) ).toSeq
+        , category.subCategories.map(cat => JString(cat.id.value))
+        )
+    }
+    (   ( "id" -> category.id.value)
+      ~ ( "name" -> category.name)
+      ~ ( "description" -> category.description)
+      ~ ( "parent" -> parent.value)
+      ~ ( "categories" -> categories)
+      ~ ( "groups" -> groups)
+    )
   }
 
   def serializeSectionVal(sv:SectionVal, sectionName:String = SectionVal.ROOT_SECTION_NAME): JValue = {

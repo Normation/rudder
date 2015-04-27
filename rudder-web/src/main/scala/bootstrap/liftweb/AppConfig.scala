@@ -517,6 +517,23 @@ object RudderConfig extends Loggable {
       , ruleApiService2
     )
 
+    val ruleApiService6 =
+    new RuleApiService6 (
+        roRuleCategoryRepository
+      , roRuleRepository
+      , woRuleCategoryRepository
+      , ruleCategoryService
+      , restDataSerializer
+    )
+
+  val ruleApi6 =
+    new RuleAPI6 (
+        ruleApiService6
+      , ruleApi2
+      , restExtractorService
+      , uuidGen
+    )
+
    val directiveApiService2 =
     new DirectiveAPIService2 (
         roDirectiveRepository
@@ -567,6 +584,21 @@ object RudderConfig extends Loggable {
         restExtractorService
       , groupApi2
       , groupApiService5
+    )
+
+    val groupApiService6 =
+    new GroupApiService6 (
+        roNodeGroupRepository
+      , woNodeGroupRepository
+      , restDataSerializer
+    )
+
+  val groupApi6 =
+    new GroupAPI6 (
+        groupApiService6
+      , groupApi5
+      , restExtractorService
+      , uuidGen
     )
 
     val nodeApiService2 =
@@ -620,6 +652,22 @@ object RudderConfig extends Loggable {
     )
   }
 
+
+
+  val nodeApi6 = {
+    new NodeAPI6 (
+        nodeApi5
+      , new NodeApiService6(
+            nodeInfoService
+          , fullInventoryRepository
+          , restExtractorService
+          , restDataSerializer
+          , queryProcessor
+        )
+      , restExtractorService
+    )
+  }
+
   val parameterApiService2 =
     new ParameterApiService2 (
         roLDAPParameterRepository
@@ -664,6 +712,7 @@ object RudderConfig extends Loggable {
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
+  val apiV6 : List[RestAPI] = nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
 
   val apis = {
     Map (
@@ -671,6 +720,7 @@ object RudderConfig extends Loggable {
       , ( ApiVersion(3) -> apiV3 )
       , ( ApiVersion(4) -> apiV4 )
       , ( ApiVersion(5) -> apiV5 )
+      , ( ApiVersion(6) -> apiV6 )
     )
   }
 
