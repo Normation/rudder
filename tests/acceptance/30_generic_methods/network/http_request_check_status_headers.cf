@@ -23,7 +23,7 @@ bundle agent init
 {
   vars:
     "nonexistant_url"       string => "http://www.normation.com/non_existant";
-    "existant_url"          string => "http://www.normation.com";
+    "existant_url"          string => "https://www.normation.com/en";
     "canon_nonexistant_url" string => canonify("${nonexistant_url}");
     "canon_existant_url"    string => canonify("${existant_url}");
     "expected_nonexistant"  string => "404";
