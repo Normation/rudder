@@ -66,7 +66,7 @@ Let's create a technique to force bash timeout on servers:
 
 Test it, run:
 
-    cf-agent -KI
+    cf-agent --no-lock --inform
     grep TMOUT /etc/profile
 
 Yep, it works !
