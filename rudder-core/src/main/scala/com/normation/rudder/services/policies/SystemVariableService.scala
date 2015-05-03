@@ -353,6 +353,8 @@ class SystemVariableServiceImpl(
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 
+      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
+      val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(children.flatMap(_.ips).distinct.sorted)
 
       // the schedule must be the default one for policy server
 
@@ -361,6 +363,7 @@ class SystemVariableServiceImpl(
           varManagedNodes.spec.name -> varManagedNodes
         , varManagedNodesId.spec.name -> varManagedNodesId
         , varManagedNodesAdmin.spec.name -> varManagedNodesAdmin
+        , varManagedNodesIp.spec.name -> varManagedNodesIp
       )
     } else {
       Map()
