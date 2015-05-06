@@ -65,7 +65,17 @@ case class NodeConfigurationCache(
   , nodeContextCache: Int
   , policyCache: Set[PolicyCache]
 
-)
+) {
+  // We need a method to correctly compare a NodeConfigurationCache that was serialized
+  // from a NodeconfigurationCache created from a NodeConfiguration (so without writtenDate)
+  def equalWithoutWrittenDate(other: NodeConfigurationCache) : Boolean = {
+    id               == other.id &&
+    nodeInfoCache    == other.nodeInfoCache &&
+    parameterCache   == other.parameterCache &&
+    nodeContextCache == other.nodeContextCache &&
+    policyCache      == other.policyCache
+  }
+}
 
 /*
  * That object should be a service, no ?
