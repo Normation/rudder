@@ -337,7 +337,8 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   // mimic the content of server_details/ShowNodeDetailsFromNode
   def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], inventoryStatus : InventoryStatus, salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
 
-    { sm.node.main.status match {
+    val deleteButton : NodeSeq= {
+       sm.node.main.status match {
           case AcceptedInventory =>
             <div id={deleteNodePopupHtmlId}  class="nodisplay" />
             <div id={errorPopupHtmlId}  class="nodisplay" />
@@ -345,21 +346,18 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
             <lift:authz role="node_write">
               {
                 if(!isRootNode(sm.node.main.id)) {
-                  <fieldset class="nodeIndernal"><legend>Action</legend>
-                    {SHtml.ajaxButton("Delete this node",
-                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest"), ("class", "dangerButton"))
-                    }
-                    <div id="test"></div>
-                  </fieldset>
-                }
+                    showDeleteButton(sm.node.main.id)
+                } else {NodeSeq.Empty}
               }
               </lift:authz> ++ {Script(OnLoad(JsRaw("""correctButtons();""") ) ) }
           case _ => NodeSeq.Empty
-        }
-    } ++
-    <fieldset class="nodeIndernal"><legend>Node characteristics</legend>
+        } }
 
+     <div  id="nodeDetails" >
+     <h3> Node characteristics</h3>
       <h4 class="tablemargin">General</h4>
+
+
         <div class="tablepadding">
           <b>Hostname:</b> {sm.node.main.hostname}<br/>
           <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
@@ -388,17 +386,42 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           }.getOrElse(NodeSeq.Empty) }
           <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
-          { displayPolicyServerInfos(sm) }
+          { displayPolicyServerInfos(sm) }<br/>
+          {
+            sm.node.publicKeys.headOption match {
+              case Some(key) =>
+                val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
+                  case (AcceptedInventory, CertifiedKey) => <span class="tw-bs">
+                                                              <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
+                                                              <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
+                                                                Inventories for this Node must be signed with this key
+                                                              </span>
+                                                            </span>
+                  case (AcceptedInventory, UndefinedKey) => <span class="tw-bs">
+                                                              <span class="glyphicon glyphicon-ok tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
+                                                              <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
+                                                                Inventories for this Node are not signed
+                                                              </span>
+                                                            </span>
+                  case _ => NodeSeq.Empty
+                }
+                val publicKeyId = s"publicKey-${sm.node.main.id.value}"
+                <b><a href="#" onclick={s"$$('#publicKey-${sm.node.main.id.value}').toggle(300); return false;"}>Display Node key {checked}</a></b>
+                <div style="width=100%; overflow:auto;"><pre id={s"publicKey-${sm.node.main.id.value}"} style="display:none;">{key.key}</pre></div> ++
+                Script(OnLoad(JsRaw("""createTooltip();""")))
+              case None => NodeSeq.Empty
+            }
+          }
         </div>
 
       <h4 class="tablemargin">Accounts</h4>
         <div class="tablepadding">
           <b>Administrator account:</b> {sm.node.main.rootUser}<br/>
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
-        </div>
-    </fieldset>
+        </div> <br/>
+        {deleteButton}
 
-
+      </div>
   }
 
   private def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
@@ -753,13 +776,16 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
   }
 
-  private[this] def showConfirmationDialog(nodeId : NodeId) : JsCmd = {
-    def cancelDelete() : JsCmd = {
-      SetHtml("test", NodeSeq.Empty) &
-      JsRaw(""" $('#boutonTest').show(); """)
+  private[this] def showDeleteButton(nodeId : NodeId) = {
+    def toggleDeletion() : JsCmd = {
+      JsRaw(""" $('#deleteButton').toggle(300); $('#confirmDeletion').toggle(300) """)
     }
-
-    val dialog =
+    SHtml.ajaxButton(
+        "Delete"
+      , { () => {toggleDeletion() } }
+      , ("id", "deleteButton")
+      , ("class", "dangerButton")
+    ) ++ <div style="display:none" id="confirmDeletion">
     <div style="margin:5px;">
      <div>
       <div>
@@ -775,22 +801,16 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       <div style="margin-top:7px">
         <span >
           {
-            SHtml.ajaxButton("Cancel", { () => { cancelDelete } })
+            SHtml.ajaxButton("Cancel", { () => { toggleDeletion } })
           }
           {
-            SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
+            SHtml.ajaxButton("Confirm", { () => {removeNode(nodeId) }}, ("class", "dangerButton") )
           }
         </span>
       </div>
     </div>
     </div>
-
-    def showDialog() : JsCmd = {
-      SetHtml("test", dialog) &
-      JsRaw(""" $('#boutonTest').hide(); correctButtons(); $('#test').stop(true, true).slideDown(1000); """)
-    }
-
-    showDialog
+</div>
   }
 
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
