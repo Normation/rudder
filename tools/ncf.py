@@ -230,7 +230,9 @@ def parse_technique_methods(technique_file):
   if not os.path.exists(technique_file):
     raise NcfError("No such file: " + technique_file)
 
-  out = check_output(["cf-promises", "-pjson", "-f", technique_file])
+  env = os.environ.copy()
+  env['RES_OPTIONS'] = 'attempts:0'
+  out = check_output(["cf-promises", "-pjson", "-f", technique_file], env=env)
   promises = json.loads(out)
 
   # Sanity check: if more than one bundle, this is a weird file and I'm quitting
