@@ -58,7 +58,8 @@ def get_root_dir():
 # This method emulates the behavior of subprocess check_output method.
 # We aim to be compatible with Python 2.6, thus this method does not exist
 # yet in subprocess.
-def check_output(command):
+def check_output(command, env = {}):
+  command_env = dict(env)
   if VERBOSE == 1:
     sys.stderr.write("VERBOSE: About to run command '" + " ".join(command) + "'\n")
   if len(additional_path) == 0:
@@ -66,7 +67,8 @@ def check_output(command):
   else:
     cfpromises_path = ":".join(additional_path)
     env_path = cfpromises_path + ":" + os.environ['PATH']
-  process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env={"PATH" : env_path})
+    command_env["PATH"] = env_path
+  process = subprocess.Popen(command, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, env=command_env)
   output, error = process.communicate()
   retcode = process.poll()
   if retcode == 0:
