@@ -141,7 +141,17 @@ class TestInventory extends Specification {
       NodeSummary(
           NodeId(name)
         , status
-        , "root", "localhost", Linux(Debian, "foo", new Version("1.0"), None, new Version("1.0")), NodeId("root")
+        , "root"
+        , "localhost"
+        , Linux(
+            Debian
+          , "foo"
+          , new Version("1.0")
+          , None
+          , new Version("1.0")
+          )
+        , NodeId("root")
+        , CertifiedKey
       )
     , machineId = Some(container)
   )
@@ -354,7 +364,17 @@ class TestInventory extends Specification {
           NodeSummary(
               NodeId("windows 2012")
             , AcceptedInventory
-            , "administrator", "localhost", Windows(Windows2012, "foo", new Version("1.0"), None, new Version("1.0")), NodeId("root")
+            , "administrator"
+            , "localhost"
+            , Windows(
+                  Windows2012
+                , "foo"
+                , new Version("1.0")
+                , None
+                , new Version("1.0")
+              )
+            , NodeId("root")
+            , UndefinedKey
           )
         , machineId = None
       )

@@ -323,6 +323,15 @@ attributetype ( InventoryAttributes:300.16
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15 )
+  
+  
+attributetype ( InventoryAttributes:300.17
+  NAME 'keyStatus'
+  DESC 'Status of security key of the Node'
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{256} )
+  
 
 #
 # A node can have some complex "logical" elements: 
@@ -938,7 +947,7 @@ objectclass ( InventoryObjectClasses:14
         nodeTechniques $ ram $ swap $ confirmed $
         inventoryDate $ receiveDate $ ipHostNumber $ osFullName $
         osArchitectureType $ lastLoggedUser $ lastLoggedUserTime $
-        environmentVariable $ process $ rudderServerRole) )
+        environmentVariable $ process $ rudderServerRole $ keyStatus) )
 
 objectclass ( InventoryObjectClasses:15
   NAME 'windowsNode'

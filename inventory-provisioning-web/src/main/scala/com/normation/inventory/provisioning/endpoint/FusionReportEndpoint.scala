@@ -52,6 +52,7 @@ import java.io.{IOException, File, FileInputStream, InputStream, FileOutputStrea
 import FusionReportEndpoint._
 import com.unboundid.ldif.LDIFChangeRecord
 import javax.servlet.http.HttpServletRequest
+import com.normation.inventory.services.core.FullInventoryRepository
 
 object FusionReportEndpoint{
   val printer = PeriodFormat.getDefault
@@ -59,9 +60,11 @@ object FusionReportEndpoint{
 
 @Controller
 class FusionReportEndpoint(
-    unmarshaller:ReportUnmarshaller,
-    reportSaver:ReportSaver[Seq[LDIFChangeRecord]],
-    queueSize: Int
+    unmarshaller:ReportUnmarshaller
+  , reportSaver:ReportSaver[Seq[LDIFChangeRecord]]
+  , queueSize: Int
+  , repo : FullInventoryRepository[Seq[LDIFChangeRecord]]
+  , digestService : InventoryDigestServiceV1
 ) extends Loggable {
 
   //start the report processor actor
@@ -89,69 +92,141 @@ class FusionReportEndpoint(
     method = Array(RequestMethod.POST)
   )
   def onSubmit(request: HttpServletRequest) = {
-    def defaultBadAnswer(reason: String) = new ResponseEntity(s"""${reason} sent. You have to POST a request with exactly one file in attachment (with 'content-disposition': file)
-                               |For example, for curl, use: curl -F "file=@path/to/file"
-                               |""".stripMargin, HttpStatus.PRECONDITION_FAILED)
+    def defaultBadAnswer(reason: String) = {
+      new ResponseEntity(
+          s"""${reason}.
+              |You have to POST a request with exactly one file in attachment (with 'content-disposition': file) with parameter name 'file'
+              |For example, for curl, use: curl -F "file=@path/to/file"
+          |""".stripMargin
+        , HttpStatus.PRECONDITION_FAILED
+      )
+    }
 
+    def save(report: InventoryReport) = {
+      (ReportProcessor !? report) match {
+      case OkToSave =>
+        //release connection
+        new ResponseEntity("Inventory correctly received and sent to inventory processor.\n", HttpStatus.ACCEPTED)
+      case TooManyInQueue =>
+        new ResponseEntity("Too many inventories waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
+      }
+    }
+
+    def parseInventory(inventoryFile : MultipartFile, signatureFile : Option[MultipartFile]) = {
+      val inventory = inventoryFile.getOriginalFilename()
+      //copy the session file somewhere where it won't be deleted on that method return
+      logger.info(s"New input inventory: '${inventory}'")
+      logger.trace(s"Start post parsing inventory '${inventory}'")
+      try {
+        val in = inventoryFile.getInputStream
+        val start = System.currentTimeMillis
+
+        (unmarshaller.fromXml(inventoryFile.getName,in) ?~! "Can't parse the input inventory, aborting") match {
+          case Full(report) =>
+            val afterParsing = System.currentTimeMillis
+            logger.info(s"Inventory '${inventory}' parsed in ${printer.print(new Duration(start, afterParsing).toPeriod)}, now checking signature")
+            // Do we have a signature ?
+            signatureFile match {
+              // Signature here, check it
+              case Some(sig) => {
+                val signatureStream = sig.getInputStream()
+                val inventoryStream = inventoryFile.getInputStream()
+                val response = for {
+                  digest       <- digestService.parse(signatureStream)
+                  (key,status) <- digestService.getKey(report)
+                  checked      <- digestService.check(key, digest, inventoryFile.getInputStream)
+                  } yield {
+                    if (checked) {
+                      // Signature is valid, send it to save engine
+                      logger.info(s"Inventory '${inventory}' signature checked in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)}, now saving")
+                      // Set the keyStatus to Certified
+                      // For now we set the status to certified since we want pending inventories to have their inventory signed
+                      // When we will have a 'pending' status for keys we should set that value instead of certified
+                      val certifiedReport = report.copy(node = report.node.copyWithMain(main => main.copy(keyStatus = CertifiedKey)))
+                      save(certifiedReport)
+                    } else {
+                      // Signature is not valid, reject inventory
+                      val msg = s"RejectiInventory '${inventory}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
+                      logger.error(msg)
+                      new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
+                    }
+                  }
+                signatureStream.close()
+                inventoryStream.close()
+                response match {
+                  case Full(response) =>
+                    // Response of signature checking is ok send it
+                    response
+                  case eb: EmptyBox =>
+                    // An error occurred while checking signature
+                    logger.error(eb)
+                    val fail = eb ?~! "Error when trying to check inventory signature"
+                    logger.error(fail.messageChain)
+                    logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+                    new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
+                }
+              }
+
+              // There is no Signature
+              case None =>
+                // Check if we need a signature or not
+                digestService.getKey(report) match {
+                  // Status is undefined => We accept unsigned inventory
+                  case Full((_,UndefinedKey)) => {
+                    save(report)
+                  }
+                  // We are in certified state, refuse inventory with no signature
+                  case Full((_,CertifiedKey))  =>
+                    val msg = s"Reject inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is missing,  you can go back to unsigned state by running the following command '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
+                    logger.error(msg)
+                    new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
+                  // An error occurred while checking inventory key status
+                  case eb: EmptyBox =>
+                    logger.error(eb)
+                    val fail = eb ?~! "Error when trying to check inventory key status"
+                    logger.error(fail.messageChain)
+                    logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+                    new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
+                }
+            }
+
+          // Error during parsing
+          case eb : EmptyBox =>
+            val fail = eb ?~! "Error when trying to parse inventory"
+            logger.error(fail.messageChain)
+            fail.rootExceptionCause.foreach { exp => logger.error(s"Exception was: ${exp}") }
+            logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+            new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
+        }
+      }
+    }
 
     request match {
       case multipart: DefaultMultipartHttpServletRequest =>
+        import scala.collection.JavaConversions._
+        val params : Map[String,MultipartFile]= multipart.getFileMap.toMap
 
-        val files = multipart.getFileMap.values
+        /*
+         * params are :
+         * * 'file' => The inventory file
+         * * 'signature' => The signature file
+         */
+        val inventoryParam = "file"
+        val signatureParam = "signature"
 
-        if(files.size <= 0) {
-          defaultBadAnswer("No inventory")
-        } else if(files.size == 1) {
-          val reportFile = files.toSeq(0)
-          //copy the session file somewhere where it won't be deleted on that method return
-          logger.info("New input inventory: '%s'".format(reportFile.getOriginalFilename))
-          //val reportFile = copyFileToTempDir(f)
-
-          var in : InputStream = null
-          logger.trace("Start post parsing inventory '%s'".format(reportFile.getOriginalFilename))
-          try {
-            in = reportFile.getInputStream
-            val start = System.currentTimeMillis
-
-            (unmarshaller.fromXml(reportFile.getName,in) ?~! "Can't parse the input inventory, aborting") match {
-              case Full(report) if(null != report) =>
-                logger.info(s"Inventory '${reportFile.getOriginalFilename}' parsed in ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}, sending to save engine.\n")
-                //send report to asynchronous report processor
-                (ReportProcessor !? report) match {
-                  case OkToSave =>
-                    //release connection
-                    new ResponseEntity("Inventory correctly received and sent to inventory processor.\n", HttpStatus.ACCEPTED)
-                  case TooManyInQueue =>
-                    new ResponseEntity("Too many inventories waiting to be saved.\n", HttpStatus.SERVICE_UNAVAILABLE)
-                }
-              case f@Failure(_,_,_) =>
-                val msg = "Error when trying to parse inventory: %s".format(f.failureChain.map( _.msg).mkString("\n", "\ncause: ", "\n"))
-                logger.error(msg)
-                f.rootExceptionCause.foreach { exp => logger.error("Exception was: ", exp) }
-                logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
-                new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
-              case _ =>
-                val msg = "The inventory is empty, not saving anything."
-                logger.error(msg)
-                logger.debug("Time to error: %s".format(printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
-                new ResponseEntity(msg, HttpStatus.PRECONDITION_FAILED)
-            }
-          } catch {
-            case e:Exception =>
-              val msg = "Exception when processing inventory '%s'".format(reportFile.getOriginalFilename)
-              logger.error(msg)
-              logger.error("Reported exception is: ", e)
-              new ResponseEntity(msg+"\n", HttpStatus.PRECONDITION_FAILED)
-          } finally {
-            in.close
+        (params.get(inventoryParam),params.get(signatureParam)) match {
+          // No inventory, error
+          case (None,_) =>
+            defaultBadAnswer("No inventory sent")
+          // Only inventory sent
+          case (Some(inventory),None) => {
+            parseInventory(inventory,None)
           }
-        } else {
-          //more than one file: we don't know the one to take, so we just ask the user to only send one file
-          defaultBadAnswer("Too many files")
+          // An inventory and signature check them!
+          case (Some(inventory), Some(signature)) => {
+            parseInventory(inventory,Some(signature))
+          }
         }
-
-      case _ =>
-        defaultBadAnswer("No inventory")
     }
   }
 

@@ -76,6 +76,7 @@ object LDAPConstants {
   val A_EV = "environmentVariable"
   val A_PROCESS = "process"
   val A_SERVER_ROLE = "rudderServerRole"
+  val A_KEY_STATUS = "keyStatus"
 
   val A_LIST_OF_IP = "ipHostNumber"
   val A_ARCH = "osArchitectureType"
@@ -326,7 +327,7 @@ object LDAPConstants {
       must = Set(A_NODE_UUID, A_OS_NAME, A_OS_FULL_NAME, A_OS_VERSION, A_OS_KERNEL_VERSION),
       may = Set(A_NAME,A_DESCRIPTION,A_PKEYS,A_AGENTS_NAME,
           A_CONTAINER_DN,A_SOFTWARE_DN,A_ACCOUNT,A_EV , A_PROCESS ,A_ROOT_USER,A_ARCH, A_LAST_LOGGED_USER, A_LAST_LOGGED_USER_TIME,
-          A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK, A_SERVER_ROLE) )
+          A_HOSTNAME,A_OS_RAM,A_OS_SWAP, A_LIST_OF_IP, A_OS_SERVICE_PACK, A_SERVER_ROLE, A_KEY_STATUS) )
 
   OC +=(OC_WINDOWS_NODE, sup = OC(OC_NODE),
       may = Set(A_WIN_USER_DOMAIN,A_WIN_COMPANY,A_WIN_KEY,A_WIN_ID) )

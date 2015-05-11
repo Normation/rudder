@@ -692,6 +692,7 @@ class InventoryMapper(
     root +=! (A_OS_KERNEL_VERSION, server.main.osDetails.kernelVersion.value)
     root +=! (A_ROOT_USER, server.main.rootUser)
     root +=! (A_HOSTNAME, server.main.hostname)
+    root +=! (A_KEY_STATUS, server.main.keyStatus.value)
     root +=! (A_POLICY_SERVER_UUID, server.main.policyServerId.value)
     root.setOpt(server.ram, A_OS_RAM, { m: MemorySize => m.size.toString })
     root.setOpt(server.swap, A_OS_SWAP, { m: MemorySize => m.size.toString })
@@ -780,6 +781,7 @@ class InventoryMapper(
       //server.main info: id, status, rootUser, hostname, osDetails: all mandatories
       inventoryStatus = ditService.getInventoryStatus(dit)
       id <- dit.NODES.NODE.idFromDN(entry.dn) ?~! missingAttr("for server id")
+      keyStatus <- entry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
       hostname <- requiredAttr(A_HOSTNAME)
       rootUser <- requiredAttr(A_ROOT_USER)
       policyServerId <- requiredAttr(A_POLICY_SERVER_UUID)
@@ -864,7 +866,16 @@ class InventoryMapper(
       accounts = entry.valuesFor(A_ACCOUNT).toSeq
       serverIps = entry.valuesFor(A_LIST_OF_IP).toSeq
       serverRoles = entry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
-      main = NodeSummary(id,inventoryStatus,rootUser,hostname, osDetails, NodeId(policyServerId))
+      main =
+        NodeSummary (
+            id
+          , inventoryStatus
+          , rootUser
+          , hostname
+          , osDetails
+          , NodeId(policyServerId)
+          , keyStatus
+        )
     } yield {
       NodeInventory(
            main

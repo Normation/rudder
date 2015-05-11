@@ -109,11 +109,15 @@ class FusionReportUnmarshaller(
        * - policy server is handled in RudderPolicyServerParsing
        * - machine id is handled in RudderMachineIdParsing
        */
-      val node = NodeInventory( NodeSummary(
-          NodeId("dummy-node-id"),
-          PendingInventory, "dummy-root", "dummy-hostname",
-          UnknownOS(),
-          NodeId("dummy-policy-server")
+      val node = NodeInventory(
+          NodeSummary(
+              NodeId("dummy-node-id")
+            , PendingInventory
+            , "dummy-root"
+            , "dummy-hostname"
+            , UnknownOS()
+            , NodeId("dummy-policy-server")
+            , UndefinedKey
       ) )
 
       //create a machine used as a template to modify - used a fake UUID that will be change latter
@@ -162,7 +166,7 @@ class FusionReportUnmarshaller(
               logger.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
           }
         }
-      } 
+      }
 
     /*
      * and now, actually parse !

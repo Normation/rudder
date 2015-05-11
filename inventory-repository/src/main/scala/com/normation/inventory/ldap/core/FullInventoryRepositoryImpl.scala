@@ -77,6 +77,10 @@ class FullInventoryRepositoryImpl(
     Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dn(id,s))).map(dn(id, _))
   }
 
+  private[this] def findDnForNode(con: RwLDAPConnection, id:NodeId): Option[DN] = {
+    Seq(AcceptedInventory, PendingInventory, RemovedInventory).find(s => con.exists(dn(id,s))).map(dn(id, _))
+  }
+
   /*
    * return the list of status for machine, in the order:
    * index 0: Accepted
@@ -296,6 +300,37 @@ class FullInventoryRepositoryImpl(
       FullInventory(server, optMachine)
     }
   }
+
+
+
+
+  override def get(id:NodeId) : Box[FullInventory] = {
+    for {
+      con <- ldap
+      nodeDn <- Box(findDnForNode(con,id)) ?~! s"Could not find Node ${id.value}"
+      tree <- con.getTree(nodeDn)
+      server <- mapper.nodeFromTree(tree)
+      //now, try to add a machine
+      optMachine <- {
+        server.machineId match {
+          case None => Full(None)
+          case Some((machineId, status)) =>
+            //here, we want to actually use the provided DN to:
+            // 1/ not make 3 existence tests each time we get a node,
+            // 2/ make the thing more debuggable. If we don't use the DN and display
+            //    information taken elsewhere, future debugging will leads people to madness
+            con.getTree(dn(machineId, status)) match {
+            case Empty => Full(None)
+            case Full(x) => mapper.machineFromTree(x).map(Some(_))
+            case f:Failure => f
+          }
+        }
+      }
+    } yield {
+      FullInventory(server, optMachine)
+    }
+  }
+
 
   override def save(inventory:FullInventory) : Box[Seq[LDIFChangeRecord]] = {
     for {
