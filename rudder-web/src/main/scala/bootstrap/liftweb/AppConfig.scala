@@ -517,6 +517,23 @@ object RudderConfig extends Loggable {
       , ruleApiService2
     )
 
+    val ruleApiService6 =
+    new RuleApiService6 (
+        roRuleCategoryRepository
+      , roRuleRepository
+      , woRuleCategoryRepository
+      , ruleCategoryService
+      , restDataSerializer
+    )
+
+  val ruleApi6 =
+    new RuleAPI6 (
+        ruleApiService6
+      , ruleApi2
+      , restExtractorService
+      , uuidGen
+    )
+
    val directiveApiService2 =
     new DirectiveAPIService2 (
         roDirectiveRepository
@@ -680,7 +697,7 @@ object RudderConfig extends Loggable {
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
-  val apiV6 : List[RestAPI] = nodeApi6 :: apiV5.filter( _ != nodeApi5)
+  val apiV6 : List[RestAPI] = nodeApi6 :: ruleApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2)
 
   val apis = {
     Map (
