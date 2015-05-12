@@ -231,7 +231,7 @@ case class RestExtractorService (
   }
 
   private[this] def convertToNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
-    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
+    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Node group '$value' not found"
   }
   private[this] def convertToRuleCategoryId (value:String) : Box[RuleCategoryId] = {
   Full(RuleCategoryId(value))
@@ -574,6 +574,17 @@ case class RestExtractorService (
     }
   }
 
+  def extractGroupCategory (params : Map[String,List[String]]) : Box[RestGroupCategory] = {
+
+    for {
+      name        <- extractOneValue(params,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValue(params, "description")()
+      parent      <- extractOneValue(params,"parent")(convertToNodeGroupCategoryId)
+    } yield {
+      RestGroupCategory(name, description, parent)
+    }
+  }
+
 
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
@@ -681,6 +692,16 @@ case class RestExtractorService (
       category    <- extractOneValueJson(json, "category")(convertToGroupCategoryId)
     } yield {
       RestGroup(name,description,Some(query),dynamic,enabled,category)
+    }
+  }
+
+  def extractGroupCategory ( json : JValue ) : Box[RestGroupCategory] = {
+    for {
+      name        <- extractOneValueJson(json,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValueJson(json, "description")()
+      parent      <- extractOneValueJson(json,"parent")(convertToNodeGroupCategoryId)
+    } yield {
+      RestGroupCategory(name, description, parent)
     }
   }
 

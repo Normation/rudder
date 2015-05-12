@@ -152,6 +152,16 @@ final case class FullNodeGroupCategory(
       subCategories.flatMap( _.allCategories ) :+ (id -> this)
   }.toMap
 
+  // A Map that allow you to get directly the parent category of a category
+  // This will return you the id of the root category for the root category
+  val parentCategories: Map[NodeGroupCategoryId, FullNodeGroupCategory] = {
+    val map ={
+      subCategories.map((_.id -> this)) ++ subCategories.flatMap(_.parentCategories)
+    }.toMap
+    map.withDefaultValue(this)
+  }
+
+
   val allTargets: Map[RuleTarget, FullRuleTargetInfo] = (
       targetInfos.map(t => (t.target.target, t)).toMap ++ subCategories.flatMap( _.allTargets)
   )
