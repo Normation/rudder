@@ -32,9 +32,8 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.rule
+package com.normation.rudder.web.rest.group
 
-import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
 import net.liftweb.common.Box
@@ -45,7 +44,6 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
-import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.web.rest.RestUtils
@@ -53,15 +51,16 @@ import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 
-class RuleAPI6(
-    serviceV6 : RuleApiService6
-  , apiV2     : RuleAPI2
+class GroupAPI6(
+    serviceV6 : GroupApiService6
+  , apiV5     : GroupAPI5
   , restExtractor : RestExtractorService
   , uuidGen   : StringUuidGenerator
-) extends RestHelper with RuleAPI with Loggable{
+) extends RestHelper with GroupAPI with Loggable{
 
-  val dataName = "ruleCategories"
+  val dataName = "groupCategories"
 
   def response ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
     RestUtils.response(restExtractor, dataName)(function, req, errorMessage)
@@ -77,77 +76,77 @@ class RuleAPI6(
       response(
           serviceV6.getCategoryTree
         , req
-        , s"Could not fetch Rule category tree"
-      ) ("GetRuleTree")
+        , s"Could not fetch Group category tree"
+      ) ("GetGroupTree")
 
 
     case Get("categories"  :: id :: Nil, req) => {
       response (
-          serviceV6.getCategoryDetails(RuleCategoryId(id))
+          serviceV6.getCategoryDetails(NodeGroupCategoryId(id))
         , req
-        , s"Could not fetch Rule category '${id}' details"
-     ) ("getRuleCategoryDetails")
+        , s"Could not fetch Group category '${id}' details"
+     ) ("getGroupCategoryDetails")
     }
 
     case Delete("categories"  :: id :: Nil, req) => {
       actionResponse(
-          serviceV6.deleteCategory(RuleCategoryId(id))
+          serviceV6.deleteCategory(NodeGroupCategoryId(id))
         , req
-        , s"Could not delete Rule category '${id}'"
-      ) ("deleteRuleCategory")
+        , s"Could not delete Group category '${id}'"
+      ) ("deleteGroupCategory")
     }
 
     case "categories" :: id :: Nil JsonPost body -> req => {
       val restCategory = for {
         json <- req.json ?~! "No JSON data sent"
-        cat <- restExtractor.extractRuleCategory(json)
+        cat <- restExtractor.extractGroupCategory(json)
       } yield {
         cat
       }
       actionResponse(
-          serviceV6.updateCategory(RuleCategoryId(id), restCategory)
+          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory)
         , req
-        , s"Could not update Rule category '${id}'"
-      ) ("updateRuleCategory")
+        , s"Could not update Group category '${id}'"
+      ) ("updateGroupCategory")
     }
 
     case Post("categories" :: id :: Nil, req) => {
-      val restCategory = restExtractor.extractRuleCategory(req.params)
+      val restCategory = restExtractor.extractGroupCategory(req.params)
       actionResponse(
-          serviceV6.updateCategory(RuleCategoryId(id), restCategory)
+          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory)
         , req
-        , s"Could not update Rule category '${id}'"
-      ) ("updateRuleCategory")
+        , s"Could not update Group category '${id}'"
+      ) ("updateGroupCategory")
     }
 
     case "categories" :: Nil JsonPut body -> req => {
       val restCategory = for {
         json <- req.json ?~! "No JSON data sent"
-        cat <- restExtractor.extractRuleCategory(json)
+        cat <- restExtractor.extractGroupCategory(json)
       } yield {
         cat
       }
-      val id = RuleCategoryId(uuidGen.newUuid)
+      val id = NodeGroupCategoryId(uuidGen.newUuid)
       actionResponse(
           serviceV6.createCategory(id, restCategory)
         , req
-        , s"Could not create Rule category"
-      ) ("createRuleCategory")
+        , s"Could not create Group category"
+      ) ("createGroupCategory")
     }
 
 
     case Put("categories" :: Nil, req) => {
-      val restCategory = restExtractor.extractRuleCategory(req.params)
-      val id = RuleCategoryId(uuidGen.newUuid)
+      val restCategory = restExtractor.extractGroupCategory(req.params)
+      val id = NodeGroupCategoryId(uuidGen.newUuid)
       actionResponse(
           serviceV6.createCategory(id, restCategory)
         , req
-        , s"Could not update Rule category '${id}' details"
-      ) ("createRuleCategory")
+        , s"Could not update Group category '${id}' details"
+      ) ("createGroupCategory")
     }
 
   }
 
-  // Rule API Version 6 fallback to Rule API v2 if request is not handled in V6
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v6Dispatch orElse apiV2.requestDispatch
+  // Group API Version 6 fallback to Group API v5 if request is not handled in V6
+  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v6Dispatch orElse apiV5.requestDispatch
 }
