@@ -92,8 +92,9 @@ case object HasKey extends KeyValueComparator { override val id = "hasKey" }
 trait ComparatorList {
   def comparators : Seq[CriterionComparator]
   def comparatorForString(s:String) : Option[CriterionComparator] = {
+    val lower = s.toLowerCase
     for(comp <- comparators) {
-      if(comp.id == s) return Some(comp)
+      if(lower == comp.id.toLowerCase) return Some(comp)
     }
     None
   }
@@ -485,8 +486,9 @@ case class ObjectCriterion(val objectType:String, val criteria:Seq[Criterion]) e
 
   //optionnaly retrieve the criterion from a "string" attribute
   def criterionForName(name:String) : (Option[Criterion]) = {
+    val lower = name.toLowerCase
     for(c <- criteria) {
-      if(c.name == name) return Some(c)
+      if(lower == c.name.toLowerCase) return Some(c)
     }
     None
   }
