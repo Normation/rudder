@@ -134,6 +134,7 @@ class TestNodeAndParameterLookup extends Specification {
         , node1.hostname
         , Linux(Debian, "test machine", new Version("1.0"), None, new Version("3.42"))
         , root.id
+        , UndefinedKey
       )
       , name                 = None
       , description          = None
