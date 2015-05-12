@@ -166,6 +166,46 @@ trait JsonQueryLexer extends QueryLexer {
         Failure("Parsing failed when processing query: "+s,Full(e),Empty)
     }
 
+
+  def failureMissing(s:String) = Failure("Missing expected '%s' query parameter".format(s))
+  def failureEmpty(param:String) = Failure("Parameter '%s' must be non empty in query".format(OBJECT))
+  def failureBadFormat(obj:String,f:Any) = Failure("Bad query format for '%s' parameter. Expecting a string, found '%s'".format(obj,f))
+
+  def parseTarget (json: JObject ) : Box[QueryReturnType] = {
+    json.values.get(TARGET) match {
+      case None => failureMissing(TARGET)
+      case Some(NodeReturnType.value) => Full(NodeReturnType)
+      case Some(NodeAndPolicyServerReturnType.value) => Full(NodeAndPolicyServerReturnType)
+      case Some(x) =>  failureBadFormat(TARGET,x)
+    }
+  }
+
+  def parseComposition(json: JObject ) : Box[Option[String]] = {
+    json.values.get(COMPOSITION) match {
+      case None => Full(None)
+      case Some(x:String) => Full(if(x.length > 0) Some(x) else None)
+      case Some(x) => failureBadFormat(COMPOSITION,x)
+    }
+  }
+
+  def parseCriterionLine(json: JObject ) : Box[List[StringCriterionLine]] = {
+    json.values.get(CRITERIA) match {
+      case None => Full(List[StringCriterionLine]())
+      case Some(arr:List[_]) =>
+        // try to parse all lines. On the first parsing error (parseCrtierion returns Failure),
+        // stop and return a Failure
+        // if all parsing are OK, return a Full(list(criterionLine)
+        ( (Full(List[StringCriterionLine]()):Box[List[StringCriterionLine]]) /: arr){
+          (opt,x) => opt.flatMap(l=> parseCriterion(x).map( _:: l))
+        } match {
+          case Full(l) => Full(l.reverse)
+          case eb: EmptyBox =>
+            val fail = eb ?~! "Parsing criteria yields an empty result, abort"
+            fail
+        }
+      case Some(x) => failureBadFormat(COMPOSITION,x)
+    }
+  }
   def jsonParse(json:JValue) : Box[StringQuery] = {
   /*
    * Structure of the Query:
@@ -181,46 +221,18 @@ trait JsonQueryLexer extends QueryLexer {
    * }
    */
 
-    def failureMissing(s:String) = Failure("Missing expected '%s' query parameter".format(s))
-    def failureEmpty(param:String) = Failure("Parameter '%s' must be non empty in query".format(OBJECT))
-    def failureBadFormat(obj:String,f:Any) = Failure("Bad query format for '%s' parameter. Expecting a string, found '%s'".format(obj,f))
 
     json match {
       case q@JObject(attrs) =>
         val values = q.values
         //target returned object
-        val target = q.values.get(TARGET) match {
-          case None => return failureMissing(TARGET)
-          case Some(NodeReturnType.value) => NodeReturnType
-          case Some(NodeAndPolicyServerReturnType.value) => NodeAndPolicyServerReturnType
-          case Some(x) => return failureBadFormat(TARGET,x)
+        for {
+          target <- parseTarget(q)
+          composition <- parseComposition(q)
+          criteria <- parseCriterionLine(q)
+        } yield {
+          StringQuery(target,composition,criteria.toSeq)
         }
-
-        //composition type
-        val composition = q.values.get(COMPOSITION) match {
-          case None => None
-          case Some(x:String) => if(x.length > 0) Some(x) else None
-          case Some(x) => return failureBadFormat(COMPOSITION,x)
-        }
-
-        //where close: array of criteria, is optional
-        val criteria = q.values.get(CRITERIA) match {
-          case None => List[StringCriterionLine]()
-          case Some(arr:List[_]) =>
-            // try to parse all lines. On the first parsing error (parseCrtierion returns Failure),
-            // stop and return a Failure
-            // if all parsing are OK, return a Full(list(criterionLine)
-            ( (Full(List[StringCriterionLine]()):Box[List[StringCriterionLine]]) /: arr){
-              (opt,x) => opt.flatMap(l=> parseCriterion(x).map( _:: l))
-            } match {
-              case Full(l) => l.reverse
-              case f@Failure(_,_,_) => return f
-              case Empty => /* that should not happen, fail */
-                return Failure("Parsing criteria yields an empty result, abort")
-            }
-          case Some(x) => return failureBadFormat(COMPOSITION,x)
-        }
-        Full(StringQuery(target,composition,criteria.toSeq))
       case x => Failure("Failed to parse the query, bad structure. Expected a JSON object, found: '%s'".format(x))
     }
   }

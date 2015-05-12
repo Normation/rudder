@@ -42,6 +42,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.repository._
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.services.queries.CmdbQueryParser._
 import com.normation.rudder.web.rest.directive.RestDirective
 import com.normation.rudder.web.rest.group.RestGroup
 import com.normation.rudder.web.rest.node._
@@ -53,6 +54,7 @@ import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.Control._
 import net.liftweb.common._
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.domain.parameters.ParameterName
@@ -64,6 +66,10 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.JsonQueryLexer
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.services.queries.StringCriterionLine
+import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.services.queries.StringQuery
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -160,6 +166,34 @@ case class RestExtractorService (
 
   private[this] def convertToQuery (value:String) : Box[Query] = {
     queryParser(value)
+  }
+
+  private[this] def convertToCriterionLine (value:String) : Box[List[StringCriterionLine]] = {
+    JsonParser.parseOpt(value) match {
+      case None => Failure("Could not parse 'select' cause in api query ")
+      case Some(value) =>
+        // Need to encapsulate this in a json Object, so it parse correctly
+        val json  = ("where" -> value)
+        queryParser.parseCriterionLine(json)
+    }
+  }
+
+  private[this] def convertToQueryCriterion (value:String) : Box[List[StringCriterionLine]] = {
+    JsonParser.parseOpt(value) match {
+      case None => Failure("Could not parse 'select' cause in api query ")
+      case Some(value) =>
+        // Need to encapsulate this in a json Object, so it parse correctly
+        val json  = (CRITERIA -> value)
+        queryParser.parseCriterionLine(json)
+    }
+  }
+
+  private[this] def convertToQueryReturnType (value:String) : Box[QueryReturnType] = {
+    QueryReturnType(value)
+  }
+
+  private[this] def convertToQueryComposition (value:String) : Box[Option[String]] = {
+    Full(Some(value))
   }
 
   private[this] def convertToMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
@@ -676,6 +710,35 @@ case class RestExtractorService (
       case Full(Some(level)) => Full(level)
       case Full(None) => Full(DefaultDetailLevel)
       case eb:EmptyBox => eb ?~ "error with node level detail"
+    }
+  }
+
+  def extractQuery (params : Map[String,List[String]]) : Box[Option[Query]] = {
+    extractOneValue(params,"query")(convertToQuery) match {
+      case Full(None) =>
+        extractOneValue(params,CRITERIA)(convertToQueryCriterion) match {
+          case Full(None) => Full(None)
+          case Full(Some(criterion)) =>
+            for {
+              // Target defaults to NodeReturnType
+              optType <- extractOneValue(params,TARGET)(convertToQueryReturnType)
+              returnType = optType.getOrElse(NodeReturnType)
+
+              // Composition defaults to None/And
+              optComposition <-extractOneValue(params,COMPOSITION)(convertToQueryComposition)
+              composition = optComposition.getOrElse(None)
+
+              // Query may fail when parsing
+              stringQuery = StringQuery(returnType,composition,criterion.toSeq)
+              query <- queryParser.parse(stringQuery)
+            } yield {
+               Some(query)
+            }
+          case eb:EmptyBox => eb ?~! "error with query"
+        }
+      case Full(query) =>
+        Full(query)
+      case eb:EmptyBox => eb ?~! "error with query"
     }
   }
 
