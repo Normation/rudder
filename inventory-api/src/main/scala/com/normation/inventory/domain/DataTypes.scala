@@ -37,6 +37,11 @@ package com.normation.inventory.domain
 
 import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
+import org.bouncycastle.openssl.PEMParser
+import java.io.StringReader
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter
+import net.liftweb.common._
 
 /**
  * A file that contains all the simple data types, like Version,
@@ -58,7 +63,16 @@ final case class SoftwareEditor(val name:String) extends HashcodeCaching { asser
 /**
  * A simple class to denote a software cryptographic public key
  */
-final case class PublicKey(val key : String) extends HashcodeCaching { assert(!isEmpty(key)) }
+final case class PublicKey(val key : String) extends HashcodeCaching { assert(!isEmpty(key))
+  def publicKey : Box[java.security.PublicKey] = {
+    val reader = new PEMParser(new StringReader(key))
+    reader.readObject() match {
+      case a : SubjectPublicKeyInfo =>
+        Full(new JcaPEMKeyConverter().getPublicKey(a))
+      case _ => Failure(s"Key '${key}' cannot be parsed as a public key")
+    }
+  }
+}
 
 
 /**

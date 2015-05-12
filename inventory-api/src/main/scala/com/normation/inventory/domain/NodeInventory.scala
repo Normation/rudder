@@ -42,7 +42,7 @@ import com.normation.inventory.domain._
 import com.normation.utils.HashcodeCaching
 import org.joda.time.DateTime
 import org.joda.time.DateTime
-import net.liftweb.common.Box
+import net.liftweb.common._
 
 sealed trait NodeElement {
   def description : Option[String]
@@ -275,9 +275,30 @@ case class NodeSummary(
   , hostname : String
   , osDetails : OsDetails
   , policyServerId : NodeId
+  , keyStatus : KeyStatus
   //agent name
   //ipss
 ) extends HashcodeCaching
+
+sealed trait KeyStatus {
+  val value : String
+}
+case object CertifiedKey extends KeyStatus {
+  val value = "certified"
+}
+case object UndefinedKey extends KeyStatus {
+  val value = "undefined"
+}
+
+object KeyStatus {
+  def apply(value : String) : Box[KeyStatus] = {
+    value match {
+      case CertifiedKey.value => Full(CertifiedKey)
+      case UndefinedKey.value => Full(UndefinedKey)
+      case _ => Failure(s"${value} is not a valid key status")
+    }
+  }
+}
 
 final case class ServerRole(value: String) extends HashcodeCaching
 

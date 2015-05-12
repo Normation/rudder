@@ -55,10 +55,15 @@ import java.io.File
 import org.slf4j.LoggerFactory
 import com.normation.inventory.ldap.provisioning.PendingNodeIfNodeWasRemoved
 import com.normation.inventory.provisioning.fusion.RudderServerRoleParsing
+import java.security.Security
+import org.bouncycastle.jce.provider.BouncyCastleProvider
 
 @Configuration
 @Import(Array(classOf[PropertyPlaceholderConfig]))
 class AppConfig {
+
+  // Set security provider with bouncy castle one
+  Security.addProvider(new BouncyCastleProvider());
 
   val logger = LoggerFactory.getLogger(classOf[AppConfig])
 
@@ -92,8 +97,6 @@ class AppConfig {
   var WAITING_QUEUE_SIZE = 50
 
   //TODO: only have a root DN here !
-
-
   @Bean
   def acceptedNodesDit = new InventoryDit(ACCEPTED_INVENTORIES_DN,SOFTWARE_INVENTORIES_DN,"Accepted Servers")
 
@@ -281,6 +284,12 @@ class AppConfig {
     ocsiUnmarshaller:ReportUnmarshaller,
     reportSaver:ReportSaver[Seq[LDIFChangeRecord]]
   ) : FusionReportEndpoint = {
-    new FusionReportEndpoint(ocsiUnmarshaller,reportSaver, WAITING_QUEUE_SIZE)
+    new FusionReportEndpoint(
+        ocsiUnmarshaller
+      , reportSaver
+      , WAITING_QUEUE_SIZE
+      , fullInventoryRepository
+      , new InventoryDigestServiceV1(fullInventoryRepository)
+    )
   }
 }
