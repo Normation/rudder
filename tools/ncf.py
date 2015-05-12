@@ -407,7 +407,8 @@ def canonify_class_context(class_context):
   # into:
   # concat("Monday.",canonify(${bundle2.var}),".debian.",canonify(${bundle.var}),".linux")
   # We have to canonify variables only so the class context is valid and coherent
-  return re.sub(r'(\${[^\}]*})', r'",canonify("\1"),"', class_context, flags=re.UNICODE)
+  regex = re.compile(r'(\${[^\}]*})', flags=re.UNICODE )
+  return regex.sub(r'",canonify("\1"),"', class_context)
 
 
 def generate_technique_content(technique_metadata):
@@ -425,10 +426,10 @@ def generate_technique_content(technique_metadata):
 
   # Handle method calls
   for method_call in technique["method_calls"]:
-    
+    regex = re.compile(r'(?<!\\)"', flags=re.UNICODE )
     # Treat each argument of the method_call
     if 'args' in method_call:
-      args = ['"%s"'%re.sub(r'(?<!\\)"', r'\\"', arg, flags=re.UNICODE) for arg in method_call['args'] ]
+      args = ['"%s"'%regex.sub(r'\\"', arg) for arg in method_call['args'] ]
       arg_value = ', '.join(args)
     else:
       arg_value = ""
