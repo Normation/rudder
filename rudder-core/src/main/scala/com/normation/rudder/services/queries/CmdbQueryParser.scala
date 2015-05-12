@@ -118,16 +118,19 @@ trait DefaultStringQueryParser extends StringQueryParser {
 
   def parseLine(line:StringCriterionLine) : Box[CriterionLine] = {
 
-    val objectType = criterionObjects.getOrElse(line.objectType ,
-      return Failure("The object type is unknown in line '%s'".format(line))
+    val objectType = criterionObjects.getOrElse(line.objectType,
+      return Failure(s"The object type '${line.objectType}' is unknown in line 'line'. Possible object types: [${
+        criterionObjects.keySet.toList.sorted.mkString(",")}] ".format(line))
     )
 
     val criterion = objectType.criterionForName(line.attribute).getOrElse {
-      return Failure("The attribute is unknown for object type '%s' in line '%s'".format(line.objectType, line))
+      return Failure(s"The attribute '${line.attribute}' is unknown for type '${line.objectType}' in line '${line}'. Possible attributes: [${
+        objectType.criteria.map(_.name).sorted.mkString(", ")}]")
     }
 
     val comparator = criterion.cType.comparatorForString(line.comparator).getOrElse {
-      return Failure("The comparator is unknown for attribute '%s' in line '%s'".format(line.attribute,line))
+      return Failure(s"The comparator '${line.comparator}' is unknown for attribute '${
+        line.attribute}' in line '${line}'. Possible comparators:: [${criterion.cType.comparators.map(_.id).sorted.mkString(", ")}]")
     }
 
     /*
