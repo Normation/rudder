@@ -77,20 +77,21 @@ div.innerDetails {
  * Node details
  **********************************/
 
-fieldset.crTree {
-  margin: 2px;
-  padding: 5px;
-  vertical-align: top;
+
+#nodeDetails {
+ padding:10px;
 }
 
-fieldset.nodeIndernal {
-  margin: 2px;
-  padding: 5px;
-  vertical-align: top;
+#node_summary #nodeDetails {
+ float:left;
+ width:50%;
+ border-right : 2px #b2b2b2 solid;
 }
 
-.nodeSummary {
-
+#node_summary #nodeGroups {
+ float:left;
+ width:50%;
+ padding:10px;
 }
 
 table.nomargin {
