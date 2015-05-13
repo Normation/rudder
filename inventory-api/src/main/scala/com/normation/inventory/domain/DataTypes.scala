@@ -56,14 +56,25 @@ import net.liftweb.common._
 final case class Manufacturer(name:String) extends HashcodeCaching { assert(!isEmpty(name)) }
 
 /**
- * A simple class to denote a softwareeditor
+ * A simple class to denote a software editor
  */
 final case class SoftwareEditor(val name:String) extends HashcodeCaching { assert(!isEmpty(name)) }
 
 /**
  * A simple class to denote a software cryptographic public key
  */
-final case class PublicKey(val key : String) extends HashcodeCaching { assert(!isEmpty(key))
+final case class PublicKey(value : String) extends HashcodeCaching { assert(!isEmpty(value))
+
+  // Value of the key may be stored (with old fusion inventory version) as one line and without rsa header and footer, we should add them if missing and format the key
+  val key = {
+    if (value.startsWith("-----BEGIN RSA PUBLIC KEY-----")) {
+      value
+    } else {
+      s"""-----BEGIN RSA PUBLIC KEY-----
+      |${value.grouped(80).mkString("\n")}
+      |-----END RSA PUBLIC KEY-----""".stripMargin
+    }
+  }
   def publicKey : Box[java.security.PublicKey] = {
     val reader = new PEMParser(new StringReader(key))
     reader.readObject() match {
@@ -72,6 +83,7 @@ final case class PublicKey(val key : String) extends HashcodeCaching { assert(!i
       case _ => Failure(s"Key '${key}' cannot be parsed as a public key")
     }
   }
+
 }
 
 
