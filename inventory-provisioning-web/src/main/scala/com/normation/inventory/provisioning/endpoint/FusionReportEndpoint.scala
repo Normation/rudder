@@ -133,7 +133,7 @@ class FusionReportEndpoint(
                 val inventoryStream = inventoryFile.getInputStream()
                 val response = for {
                   digest       <- digestService.parse(signatureStream)
-                  (key,status) <- digestService.getKey(report)
+                  (key,_) <- digestService.getKey(report)
                   checked      <- digestService.check(key, digest, inventoryFile.getInputStream)
                   } yield {
                     if (checked) {

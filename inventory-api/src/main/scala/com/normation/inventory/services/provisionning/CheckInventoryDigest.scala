@@ -150,18 +150,42 @@ class InventoryDigestServiceV1(
    * or if there was no inventory before, it will look for the key in the received inventory
    */
   def getKey (receivedInventory  : InventoryReport) : Box[(PublicKey, KeyStatus)] = {
-    for {
-      nodeInventory <- repo.get(receivedInventory.node.main.id) match {
-        case Full(storedInventory) =>
-          Full(storedInventory.node)
-        case _ =>
-          Full(receivedInventory.node)
+
+    def extractKey (node : NodeInventory) : Box[(PublicKey)]= {
+      for {
+        cfengineKey <- Box(node.publicKeys.headOption) ?~! "There is no public key in inventory"
+        publicKey <- cfengineKey.publicKey
+      } yield {
+        publicKey
       }
-      cfengineKey <- Box(nodeInventory.publicKeys.headOption) ?~! "There is no public key in inventory"
-      publicKey <- cfengineKey.publicKey
-      keyStatus = nodeInventory.main.keyStatus
-    } yield {
-      (publicKey,keyStatus)
+    }
+
+    repo.get(receivedInventory.node.main.id) match {
+      case Full(storedInventory) =>
+        val status = storedInventory.node.main.keyStatus
+        val inventory  : NodeInventory = status  match {
+          case UndefinedKey =>
+            storedInventory.node.publicKeys.headOption match {
+              case None =>
+                // There is no key and status is undefined, use received key
+                receivedInventory.node
+              case Some(key) =>
+                key.publicKey match {
+                  // Stored key is valid, use it !
+                  case Full(_) =>  storedInventory.node
+                  // Key stored is not valid and status is undefined try received key,
+                  // There treat the case of the bootstrapped key for rudder root server
+                  case _ => receivedInventory.node
+                }
+            }
+          // Certified node always use stored inventory key
+          case CertifiedKey => storedInventory.node
+        }
+
+        extractKey(inventory).map((_,status))
+      case _ =>
+        val status = receivedInventory.node.main.keyStatus
+        extractKey(receivedInventory.node).map((_,status))
     }
   }
 }
