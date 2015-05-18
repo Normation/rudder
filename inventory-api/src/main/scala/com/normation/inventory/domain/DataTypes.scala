@@ -76,11 +76,15 @@ final case class PublicKey(value : String) extends HashcodeCaching { assert(!isE
     }
   }
   def publicKey : Box[java.security.PublicKey] = {
-    val reader = new PEMParser(new StringReader(key))
-    reader.readObject() match {
-      case a : SubjectPublicKeyInfo =>
-        Full(new JcaPEMKeyConverter().getPublicKey(a))
-      case _ => Failure(s"Key '${key}' cannot be parsed as a public key")
+    try {
+      val reader = new PEMParser(new StringReader(key))
+      reader.readObject() match {
+        case a : SubjectPublicKeyInfo =>
+          Full(new JcaPEMKeyConverter().getPublicKey(a))
+        case _ => Failure(s"Key '${key}' cannot be parsed as a public key")
+      }
+    } catch {
+      case e:Exception => Failure(s"Key '${key}' cannot be parsed as a public key")
     }
   }
 
