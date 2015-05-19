@@ -70,7 +70,8 @@ def canonify_expected_reports(expected_reports, dest):
 
     # Replace the second field with a canonified version of itself (a la CFEngine)
     fields = line.strip().split(";;")
-    fields[1] = re.sub("[^a-zA-Z0-9_]", "_", fields[1], flags=re.UNICODE)
+    regex = re.compile("[^a-zA-Z0-9_]", flags=re.UNICODE )
+    fields[1] = regex.sub("_", fields[1])
     dest_file.write(";;".join(fields) + "\n")
 
 
@@ -299,7 +300,8 @@ def generate_rudder_reporting(technique):
     generic_method = generic_methods[method_name]
 
     key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    key_value_canonified = re.sub("[^\$\{\}\w](?![^{}]+})|\$(?!{)", "_", key_value, flags=re.UNICODE)
+    regex = re.compile("[^\$\{\}\w](?![^{}]+})|\$(?!{)", flags=re.UNICODE)
+    key_value_canonified = regex.sub("_", key_value)
 
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
