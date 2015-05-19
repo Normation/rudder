@@ -39,10 +39,9 @@ Screenshots:: https://www.rudder-project.org/site/documentation/screenshots/
 ===== Demo site
 
 You can see a demo version of Rudder:
-* Long term support version: http://demo-latest.rudder-project.org/rudder/
-* Latest release: https://demo-stable.rudder-project.org/rudder/
 
-Login/password is jon.doe/secret for Rudder version =< 2.10 and admin/admin for version >= 2.11.
+* Long term support version: http://demo-stable.rudder-project.org/
+* Latest release: http://demo-latest.rudder-project.org/
 
 ===== Linux packages
 
