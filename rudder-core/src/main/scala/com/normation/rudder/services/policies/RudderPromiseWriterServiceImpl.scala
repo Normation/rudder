@@ -69,6 +69,7 @@ import scala.sys.process.ProcessLogger
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.utils.Control.boxSequence
+import scala.sys.process.Process
 
 class RudderCf3PromisesFileWriterServiceImpl(
   techniqueRepository      : TechniqueRepository,
@@ -290,18 +291,19 @@ class RudderCf3PromisesFileWriterServiceImpl(
     var err = List[String]()
     val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
 
-    val errorCode = agentType match {
-      case NOVA_AGENT if(novaCheckPromises != "/bin/true") =>
-        val process: scala.sys.process.ProcessBuilder = (novaCheckPromises + " -f " + pathOfPromises + "/promises.cf")
-        process.!(processLogger)
-
-      case COMMUNITY_AGENT if(communityCheckPromises != "/bin/true") =>
-        val process: scala.sys.process.ProcessBuilder = (communityCheckPromises + " -f " + pathOfPromises + "/promises.cf")
-        process.!(processLogger)
-
-      //command is /bin/true => just return with no error (0)
-      case _ => 0
+    val checkPromises =  agentType match {
+      case NOVA_AGENT => novaCheckPromises
+      case COMMUNITY_AGENT => communityCheckPromises
     }
+
+    val errorCode = if (checkPromises != "/bin/true")  {
+      val process = Process(checkPromises + " -f " + pathOfPromises + "/promises.cf", None, ("RES_OPTIONS","attempts:0"))
+      process.!(processLogger)
+    } else {
+      //command is /bin/true => just return with no error (0)
+      0
+    }
+
     (errorCode, out.reverse ++ err.reverse)
   }
   
