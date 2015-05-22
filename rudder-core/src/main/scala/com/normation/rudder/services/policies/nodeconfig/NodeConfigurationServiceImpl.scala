@@ -34,23 +34,17 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import java.io.File
-import java.io.PrintWriter
-import org.joda.time.DateTime
 import com.normation.cfclerk.domain.Cf3PolicyDraft
+import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
-import com.normation.rudder.exceptions.TechniqueException
+import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.TemplateWriter
-import com.normation.utils.Control._
+import com.normation.utils.Control.sequence
 import net.liftweb.common._
-import net.liftweb.json.NoTypeHints
-import net.liftweb.json.Serialization
-import net.liftweb.json.Serialization.writePretty
-import com.normation.rudder.domain.reports.NodeConfigId
-
+import org.joda.time.DateTime
 
 
 /**
@@ -98,54 +92,76 @@ class DetectChangeInNodeConfiguration extends Loggable {
         val allRuleIds = (current.policyCache.map( _.ruleId ) ++ target.policyCache.map( _.ruleId )).toSet
 
         // First case : a change in the minimalnodeconfig is a change of all CRs
+        // because we don't know what directive use informations from that - this should be improved
         if (current.nodeInfoCache != target.nodeInfoCache) {
           logger.trace(s"`-> there was a change in the node inventory information")
           allRuleIds
 
-        // Second case : a change in the system variable is a change of all CRs
-        } else if(current.nodeContextCache != target.nodeContextCache) {
-          logger.trace(s"`-> there was a change in the system variables of the node")
-          allRuleIds
 
-        // Third case : a change in the parameters is a change of all CRs
+        // Second case : a change in the parameters is a change of all CRs
+        // because we don't know what parameters are used in which directives - this should be improved
         } else if(current.parameterCache != target.parameterCache) {
           logger.trace(s"`-> there was a change in the parameters of the node")
           allRuleIds
         } else {
 
           //check for different policy draft.
-          val currentDrafts = current.policyCache.map( x => (x.draftId, x) ).toMap
-          val targetDrafts = target.policyCache.map( x => (x.draftId, x) ).toMap
+
+          /*
+           * Here, we need to work rule by rule to differenciate
+           * the cases were:
+           * - a directive was added/remove/updated on an already existing rule => rule serial must be updated
+           * - a rule was fully added or remove => we don't need to change its serial,
+           *   (but the missing expected reports will be generated in ReportingServiceImpl#updateExpectedReports
+           *    in the case same serial, sub case different targets)
+           */
+
+          val currentDrafts = current.policyCache.groupBy( _.ruleId )
+          val targetDrafts = target.policyCache.groupBy( _.ruleId )
 
           //draftid in one and not the other are new,
           //for the one in both, check both ruleId and cacheValue
 
-          ((currentDrafts.keySet ++ targetDrafts.keySet).map(id => (currentDrafts.get(id), targetDrafts.get(id))).flatMap {
-            case (None, None) => //should not happen
-              Set[RuleId]()
-            case (Some(PolicyCache(ruleId, _, _)), None) =>
-              logger.trace(s"`-> rule with ID '${ruleId.value}' was deleted")
-              Set(ruleId)
-            case (None, Some(PolicyCache(ruleId, _, _))) =>
-              logger.trace(s"`-> rule with ID '${ruleId.value}' was added, skipping it")
-              // Ignoring nodes addition to Rules. The node will be updated, thanks to the check on change of hash of node config
-              Set[RuleId]()
-            case (Some(PolicyCache(r0, d0, c0)), Some(PolicyCache(r1, d1, c1))) =>
-              //d0 and d1 are equals by construction, but keep them for future-proofing
-              if(d0 == d1) {
-                if(
-                   //check that the rule is the same
-                      r0 == r1
-                   //and that the policy draft is the same (it's cache value, actually)
-                   && c0 == c1
+          ((currentDrafts.keySet ++ targetDrafts.keySet).map(id => (id, currentDrafts.get(id), targetDrafts.get(id))).flatMap {
+            case (ruleId, None, None) => //should not happen
+              Set.empty[RuleId]
 
-                ) {
-                  Set[RuleId]() //no modification
-                } else {
-                  logger.trace(s"`-> there was a change in the promise with draft ID '${d0.value}'")
-                  Set(r0,r1)
+            /*
+             * Here, the entire rule is no more applied to the node: we
+             * don't update the serial
+             */
+            case (ruleId, Some(drafts), None) =>
+              logger.trace(s"`-> rule with ID '${ruleId.value}' was deleted")
+              Set.empty[RuleId]
+
+            /*
+             * Here, the entire rule starts to be applied to the node: we
+             * don't update the serial.
+             */
+            case (ruleId, None, Some(drafts)) =>
+              logger.trace(s"`-> rule with ID '${ruleId.value}' was added")
+              Set.empty[RuleId]
+
+            /*
+             * That case is the interesting one: the rule is present in current
+             * and target configuration for the node.
+             * We check if all the drafts are the same (i.e same directives applied,
+             * and no modification in directives). On any change, update the serial.
+             */
+            case (ruleId, Some(cDrafts), Some(tDrafts)) =>
+
+              //here, we can just compare the sets for equality
+
+              if(cDrafts == tDrafts) {
+                Set.empty[RuleId]
+              } else {
+                //the set of directive which changed - because we don't have xor on set
+                val diff = ((cDrafts -- tDrafts) ++ (tDrafts -- cDrafts)).map { case PolicyCache(RuleId(rid), Cf3PolicyDraftId(did), _) =>
+                  did.replace(rid, "").replace("@@", "")
                 }
-              } else Set[RuleId]()
+                logger.trace(s"`-> there was a change in the rule with ID '${ruleId.value}', following directives are different: [${diff.mkString(", ")}]")
+                Set(ruleId)
+              }
           }) ++ {
             //we also have to add all Rule ID for a draft whose technique has been accepted since last cache generation
             //(because we need to write template again)
@@ -157,11 +173,24 @@ class DetectChangeInNodeConfiguration extends Loggable {
               logger.trace(s"`-> there was a change in the applied techniques (technique was updated) for rules ID [${ids.mkString(", ")}]")
             }
             ids
+          } ++ {
+            // we also want to add rule with system variable if there was a change on them.
+            // As we don't know here what is the system var which changed, we add any rule with at least
+            // one system var - this should be improved
+            if(current.nodeContextCache != target.nodeContextCache) {
+              val ruleIdWithSystemVariable = targetConfig.policyDrafts.flatMap { x =>
+                x.cf3PolicyDraft.variableMap.values.find { _.spec.isSystem }.map { v =>  x.ruleId}
+              }
+              logger.trace(s"`-> there was a change in the system variables of the node for rules ID [${ruleIdWithSystemVariable.map(_.value).mkString(", ")}]")
+              ruleIdWithSystemVariable
+            } else {
+              Set()
+            }
           }
         }
     }
 
-    logger.trace(s"`-> change rules for node ${targetConfig.nodeInfo.id.value}: [${changedRuleIds.map( _.value).mkString(", ")}]")
+    logger.trace(s"`-> modified rules: [${changedRuleIds.map( _.value).mkString(", ")}]")
     changedRuleIds
   }
 
@@ -282,7 +311,7 @@ class NodeConfigurationServiceImpl(
 
     val (updatedConfig, notUpdatedConfig) = newConfigCache.toSeq.partition{ p =>
       cache.get(p.id) match {
-        case None => true
+        case None    => true
         case Some(e) => !e.equalWithoutWrittenDate(p)
       }
     }
