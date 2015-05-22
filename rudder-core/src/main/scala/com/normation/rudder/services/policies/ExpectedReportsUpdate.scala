@@ -183,7 +183,7 @@ class ExpectedReportsUpdateImpl(
           logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
           confToClose += ruleId
 
-        case Some(serial) => // not the same serial
+        case Some((serial, _, nodeSet)) => // not the same serial
           logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
             confToCreate += conf
             confToClose += ruleId
@@ -194,7 +194,10 @@ class ExpectedReportsUpdateImpl(
 
     // close the expected reports that don't exist anymore
     // and the ones that need to be changed
+    //all closable = expected reports that don't exist anymore + expected reports that need to be changed
     val allClosable = (currentConfigurationsToRemove.keys ++ confToClose).toSet
+
+    logger.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
 
     for (closable <- allClosable) {
       confExpectedRepo.closeExpectedReport(closable, generationTime)
@@ -242,6 +245,8 @@ class ExpectedReportsUpdateImpl(
          case (key, value) => (key -> value.map(x => x._3))
        }.toSeq
     // now we save them
+
+    logger.debug(s"Updating expected reports for rules: ${if(groupedContent.isEmpty) "none" else s"[${groupedContent.map {case ((RuleId(v), _, _), _) => v}.mkString(", ")}]" }")
 
     for {
       createdExpectedReports   <- sequence(groupedContent) { case ((ruleId, serial, nodeConfigIds), directives) =>
