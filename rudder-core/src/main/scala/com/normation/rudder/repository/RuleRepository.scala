@@ -66,6 +66,12 @@ trait RoRuleRepository {
    */
   def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
 
+  /**
+   * Return all rules ids.
+   * Optionnaly include system rules
+   */
+  def getIds(includeSytem:Boolean = false) : Box[Set[RuleId]]
+
 }
 
 

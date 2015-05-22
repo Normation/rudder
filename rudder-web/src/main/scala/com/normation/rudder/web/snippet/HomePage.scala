@@ -133,6 +133,7 @@ class HomePage extends Loggable {
   private[this] val reportingService = RudderConfig.reportingService
   private[this] val softwareService  = RudderConfig.readOnlySoftwareDAO
   private[this] val mapper           = RudderConfig.ldapInventoryMapper
+  private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
 
   def pendingNodes(html : NodeSeq) : NodeSeq = {
@@ -163,7 +164,8 @@ class HomePage extends Loggable {
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.is
       n2 = System.currentTimeMillis
-      reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, Set())
+      userRules <- roRuleRepo.getIds()
+      reports   <- reportingService.findRuleNodeStatusReports(nodeInfos.keySet, userRules)
       n3 = System.currentTimeMillis
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n3 - n2}ms")
     } yield {
@@ -363,9 +365,7 @@ class HomePage extends Loggable {
   }
 
   private[this] def countAllRules() : Box[Int] = {
-    ldap.map { con =>
-      con.searchOne(rudderDit.RULES.dn, EQ(A_IS_SYSTEM, FALSE.toLDAPString), "1.1")
-    }.map(x => x.size)
+    roRuleRepo.getIds().map(_.size)
   }
 
   private[this] def countAllDirectives() : Box[Int] = {
