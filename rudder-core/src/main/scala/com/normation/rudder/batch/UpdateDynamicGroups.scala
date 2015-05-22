@@ -189,6 +189,9 @@ class UpdateDynamicGroups(
         //log some information
         val format = "yyyy/MM/dd HH:mm:ss"
         logger.debug("Dynamic group update started at %s, ended at %s".format(start.toString(format), end.toString(format)))
+        
+        var needDeployment = false
+
         for {
           (id,boxRes) <- results
         } {
@@ -203,9 +206,13 @@ class UpdateDynamicGroups(
               //if the diff is not empty, start a new deploy
               if(diff.added.nonEmpty || diff.removed.nonEmpty) {
                 logger.info("Dynamic group %s: added node with id: %s, removed: %s".format(id.value, addedNodes, removedNodes))
-                asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
+                // we need to trigger a deployment in this case
+                needDeployment = true
               }
           }
+        }
+        if (needDeployment) {
+          asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
         }
 
       //
