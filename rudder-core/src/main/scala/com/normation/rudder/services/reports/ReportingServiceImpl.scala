@@ -103,7 +103,7 @@ class ReportingServiceImpl(
             // must check that their are no differents nodes in the DB than in the new reports
             // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
             if (configs.keySet != nodeSet) {
-              logger.debug("Same serial %s for ruleId %s, but not same node set, it need to be closed and created".format(serial, ruleId))
+              logger.debug(s"Same serial number (${serial}) for rule '${ruleId.value}', but not same node set: it needs to be closed and created")
               confToCreate += conf
               confToClose += ruleId
             }
@@ -113,7 +113,7 @@ class ReportingServiceImpl(
             // if there is not target, then it need to be closed
           logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
 
-        case Some(serial) => // not the same serial
+        case Some((serial, nodeSet)) => // not the same serial
           logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
             confToCreate += conf
             confToClose += ruleId
@@ -122,13 +122,12 @@ class ReportingServiceImpl(
       }
     }
 
+    //all closable = expected reports that don't exist anymore + expected reports that need to be changed
+    val allClosable = currentConfigurationsToRemove.keys ++ confToClose
 
-    // close the expected reports that don't exist anymore
-    for (closable <- currentConfigurationsToRemove.keys) {
-      confExpectedRepo.closeExpectedReport(closable)
-    }
-    // close the expected reports that need to be changed
-    for (closable <- confToClose) {
+    logger.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
+
+    for (closable <- allClosable) {
       confExpectedRepo.closeExpectedReport(closable)
     }
 
@@ -173,7 +172,11 @@ class ReportingServiceImpl(
        groupBy[(RuleId, Int, Seq[NodeId])]{ case (ruleId, serial, directive, nodes) => (ruleId, serial, nodes.toSeq)}.map {
          case (key, value) => (key -> value.map(x => x._3))
        }.toSeq
+
     // now we save them
+
+    logger.debug(s"Updating expected reports for rules: ${if(groupedContent.isEmpty) "none" else s"[${groupedContent.map {case ((RuleId(v), _, _), _) => v}.mkString(", ")}]" }")
+
     sequence(groupedContent) { case ((ruleId, serial, nodes), directives) =>
       confExpectedRepo.saveExpectedReports(
                            ruleId
