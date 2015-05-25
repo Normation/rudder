@@ -45,5 +45,5 @@ bundle agent package_check_installed(package_name)
         usebundle  => _classes_failure("${class_prefix}"),
         ifvarclass => "${called_class_prefix}_repaired";
 
-      # logger is called in the package_install_version_cmp_update bundle
+      "report"           usebundle => _logger("Check that package ${package_name} is installed", "${class_prefix}");
 }
