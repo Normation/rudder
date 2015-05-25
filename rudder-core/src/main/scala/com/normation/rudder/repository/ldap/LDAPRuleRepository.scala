@@ -95,6 +95,22 @@ class RoLDAPRuleRepository(
     }
   }
 
+  def getIds(includeSystem:Boolean = false) : Box[Set[RuleId]] = {
+    val filter = if(includeSystem) IS(OC_RULE) else AND(IS(OC_RULE), EQ(A_IS_SYSTEM,false.toLDAPString))
+    for {
+      con <- ldap
+      ids <- sequence(con.searchOne(rudderDit.RULES.dn, filter, A_RULE_UUID)) { ruleEntry =>
+               for {
+                 id <- Box(ruleEntry(A_RULE_UUID)) ?~! s"Missing required attribute uuid in rule entry ${ruleEntry.dn.toString}"
+               } yield {
+                 RuleId(id)
+               }
+             }
+    } yield {
+      ids.toSet
+    }
+  }
+
 }
 
 class WoLDAPRuleRepository(
