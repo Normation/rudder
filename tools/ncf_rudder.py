@@ -83,9 +83,9 @@ def get_category_xml():
 
   content = []
   content.append('<xml>')
-  content.append('  <name>Meta Techniques</name>')
+  content.append('  <name>User Techniques</name>')
   content.append('  <description>')
-  content.append('    Meta Techniques created using the ncf framework.')
+  content.append('    Techniques created using the Technique editor.')
   content.append('  </description>')
   content.append('</xml>')
 
