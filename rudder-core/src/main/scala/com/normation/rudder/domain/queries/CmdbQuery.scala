@@ -165,7 +165,18 @@ case class BareComparator(override val comparators:CriterionComparator*) extends
 trait TStringComparator extends CriterionType {
 
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
-    if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
+    if(null == v || v.length == 0) Failure("Empty string not allowed") else {
+      comparator match {
+        case Regex | NotRegex =>
+          try {
+            val ok = java.util.regex.Pattern.compile(v) //yes, ok is not used, side effect are fabulous
+            Full(v)
+          } catch {
+            case ex: java.util.regex.PatternSyntaxException => Failure(s"The regular expression '${v}' is not valid. Expected regex syntax is the java one, documented here: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html", Full(ex), Empty)
+          }
+        case x => Full(v)
+      }
+    }
   }
   override def toLDAP(value:String) = Full(value)
 
