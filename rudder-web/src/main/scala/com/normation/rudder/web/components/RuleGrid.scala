@@ -215,7 +215,7 @@ class RuleGrid(
         "bJQueryUI": true,
         "bStateSave": true,
         "fnStateLoadParams": function (oSettings, oData) {
-          oData.aoSearchCols[1].sSearch = "";
+          oData.aoSearchCols = [];
         },
                     "fnStateSave": function (oSettings, oData) {
                       localStorage.setItem( 'DataTables_${htmlId_rulesGridId}', JSON.stringify(oData) );
