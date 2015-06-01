@@ -337,7 +337,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         , "sSearch": ""
       }
     , "fnStateLoadParams": function (oSettings, oData) {
-        oData.aoSearchCols[1].sSearch = "";
+        oData.aoSearchCols = [];
       }
     , "fnDrawCallback": function( oSettings ) {
       var rows = this._('tr', {"page":"current"});
