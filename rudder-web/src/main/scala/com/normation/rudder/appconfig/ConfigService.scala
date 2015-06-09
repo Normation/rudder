@@ -56,6 +56,8 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
+import com.normation.rudder.reports._
+import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -133,6 +135,11 @@ trait ReadConfigService {
    */
   def send_server_metrics(): Box[Option[Boolean]]
 
+  /**
+   * Report protocol
+   */
+  def rudder_syslog_protocol(): Box[SyslogProtocol]
+
 }
 
 /**
@@ -201,6 +208,11 @@ trait UpdateConfigService {
 
   def set_rudder_compliance_heartbeatPeriod(frequency : Int, actor: EventActor, reason: Option[String]) : Box[Unit]
 
+  /**
+   * Report protocol
+   */
+  def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -229,6 +241,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        send.server.metrics=none
        rudder.compliance.mode=${FullCompliance.name}
        rudder.compliance.heartbeatPeriod=1
+       rudder.syslog.protocol=UDP
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -270,6 +283,10 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     case _ => Some(false)
   }
 
+  private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value.toLowerCase match {
+    case "TCP" => SyslogTCP
+    case _ => SyslogUDP
+  }
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
 
   private[this] implicit def toUnit(p: Box[RudderWebProperty]) : Box[Unit] = p.map( _ => ())
@@ -390,6 +407,16 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     val newVal = value.map(_.toString).getOrElse("none")
     val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
     save("send_server_metrics",newVal,Some(info))
+  }
+
+
+  /**
+   * Report protocol
+   */
+  def rudder_syslog_protocol(): Box[SyslogProtocol] = get("rudder_syslog_protocol")
+  def set_rudder_syslog_protocol(protocol : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit] =  {
+    val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
+    save("rudder_syslog_protocol", protocol.value, Some(info))
   }
 
 }
