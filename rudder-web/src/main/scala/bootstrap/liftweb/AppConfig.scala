@@ -142,6 +142,7 @@ import com.normation.rudder.web.rest.compliance.ComplianceAPIService
 import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
 import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
+import com.typesafe.config.ConfigException
 
 /**
  * Define a resource for configuration.
@@ -151,6 +152,13 @@ import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
 sealed trait ConfigResource
 final case class ClassPathResource(name: String) extends ConfigResource
 final case class FileSystemResource(file: File) extends ConfigResource
+
+
+final case class AuthenticationMethods(name: String) {
+  val path = s"applicationContext-security-auth-${name}.xml"
+  val configFile = s"classpath:${path}"
+  val springBean = s"${name}AuthenticationProvider"
+}
 
 /**
  * User defined configuration variable
@@ -187,6 +195,41 @@ object RudderProperties {
       case FileSystemResource(file) => ConfigFactory.load(ConfigFactory.parseFile(file))
     }
   }
+
+  //some logic for the authentication providers
+  val authenticationMethods: Seq[AuthenticationMethods] = {
+    val names = try {
+      //config.getString can't be null by contract
+      config.getString("rudder.auth.provider").split(",").toSeq.map( _.trim).collect { case s if(s.size > 0) => s}
+    } catch {
+      //if the property is missing, use the default "file" value
+      //it can be a migration.
+      case ex: ConfigException.Missing =>  Seq("file")
+    }
+
+    //always add "rootAdmin" has the first method
+    //and de-duplicate methods
+    val auths = ("rootAdmin" +: names).distinct.map(AuthenticationMethods(_))
+
+    //for each methods, check that the provider file is present, or log an error and
+    //disable that provider
+    auths.flatMap { a =>
+      if(a.name == "rootAdmin") {
+        Some(a)
+      } else {
+        //try to instantiate
+        val cpr = new org.springframework.core.io.ClassPathResource(a.path)
+        if(cpr.exists) {
+          Some(a)
+        } else {
+          ApplicationLogger.error(s"The authentication provider '${a.name}' will not be loaded because the spring ressource file '${a.configFile}' was not found")
+          None
+        }
+      }
+    }
+
+  }
+
 }
 
 

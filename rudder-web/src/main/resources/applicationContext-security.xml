@@ -52,7 +52,6 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     </http>
 
     <http use-expressions="true">
-        
         <session-management session-authentication-strategy-ref="sas"/>
         
         <!-- 
@@ -82,14 +81,11 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 
     <!-- Disallow any session check, for demo only. A real application should enable concurrent/fixation session check  -->
     <beans:bean id="sas" class="org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy" />
-  
-    <!-- 
-      The goal of that config file is only to provide an indirection so that we are able:
-      - to use a static string in the ImportResource of AppConfigAuth (because we can't have a property here)
-      - and be able to use a dynamic resource name for the authentication. 
-     -->
-  
-    <beans:import resource="${spring.config.security}" />
-  
 
+    <!-- 
+      Other authentication beans, especially <authentication-manager>, 
+      are defined or imported in class bootstrap.liftweb.AppConfigAuth 
+    -->
+  
+    
 </beans:beans>
