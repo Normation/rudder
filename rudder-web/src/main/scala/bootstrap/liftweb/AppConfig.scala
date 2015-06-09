@@ -1267,6 +1267,7 @@ object RudderConfig extends Loggable {
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _
     , configService.send_server_metrics _
+    , configService.rudder_syslog_protocol _
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
     techniqueRepositoryImpl,

@@ -57,6 +57,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.SyslogProtocol
 
 trait SystemVariableService {
   def getGlobalSystemVariables():  Box[Map[String, Variable]]
@@ -101,6 +102,7 @@ class SystemVariableServiceImpl(
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
   , getSendMetrics                  : () => Box[Option[Boolean]]
+  , getSyslogProtocol               : () => Box[SyslogProtocol]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -136,6 +138,7 @@ class SystemVariableServiceImpl(
     val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
     val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
     val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
+    val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", getSyslogProtocol)
 
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
       "yes"
@@ -177,6 +180,7 @@ class SystemVariableServiceImpl(
         cfengineOutputsTtl ::
         storeAllCentralizedLogsInFile ::
         varSendMetrics ::
+        reportProtocol ::
         Nil
       vars.map(v => (v.spec.name,v)).toMap
     }
