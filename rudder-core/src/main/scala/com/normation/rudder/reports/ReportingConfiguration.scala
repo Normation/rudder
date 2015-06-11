@@ -140,3 +140,15 @@ class AgentRunIntervalServiceImpl(
 
 }
 
+sealed trait SyslogProtocol {
+  def value : String
+}
+
+object SyslogTCP extends SyslogProtocol {
+  val value = "TCP"
+}
+
+object SyslogUDP extends SyslogProtocol {
+  val value = "UDP"
+}
+

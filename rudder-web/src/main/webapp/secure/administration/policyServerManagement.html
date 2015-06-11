@@ -118,6 +118,33 @@
           </div>
         </div>
         <hr class="spacer" />
+        <div class="deca">
+          <h3>Protocol</h3>
+          <div class="lift:administration.PropertiesManagement.networkProtocolSection" id="networkProtocolForm">
+            <form class="lift:form.ajax">
+              <div class="wbBaseField">
+                    <label for="reportProtocol" class="threeCol textight" style="font-weight:bold;width: 50%;">
+                      <span >Use TCP in place of UDP (default) for syslog communication between node and servers:
+                        <img src="/images/icInfo.png" style="padding-left:15px; margin:0; float:none"  tooltipid="reportProtocolTooltip" title="" class="tooltipable" />
+                      </span>
+                     <div class="tooltipContent" id="reportProtocolTooltip">
+                     Rudder uses syslog to transfer report messages from nodes to relay and servers.
+                     <ul>
+                       <li><b>UDP (default):</b> the syslog never stalls an a non responsive connection, which could also stale other services on the node which use the same syslog.</li>
+                       <li><b>TCP:</b> Using TCP allows to minimize the loss in reports and the resulting compliance errors.</li>
+                     </ul>
+                     This settings is ignored on clients that don't support TCP (AIX, sysklogd, ...)
+                     </div>
+                    </label>
+                    <input id="reportProtocol" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="[save]" id="networkProtocolSubmit"/>
+              <lift:Msg id="updateNetworkProtocol">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+        <hr class="spacer" />
         
         
       </div>
