@@ -138,6 +138,8 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
+import com.normation.rudder.web.rest.compliance.ComplianceAPI6
+import com.normation.rudder.web.rest.compliance.ComplianceAPIService
 
 /**
  * Define a resource for configuration.
@@ -708,11 +710,21 @@ object RudderConfig extends Loggable {
       , changeRequestApiService3
     )
 
+  val complianceApi6 = new ComplianceAPI6(restExtractorService,
+      new ComplianceAPIService(
+          roRuleRepository
+        , nodeInfoService
+        , roNodeGroupRepository
+        , reportingService
+      )
+  )
+
+
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
-  val apiV6 : List[RestAPI] = nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
+  val apiV6 : List[RestAPI] = complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
 
   val apis = {
     Map (
