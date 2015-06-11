@@ -26,7 +26,7 @@ package com.normation.utils
  *
  * All immutable case class should extend that trait.
  *
- * WRNING: do not use that on mutable structure.
+ * WARNING: do not use that on mutable structure.
  */
 trait HashcodeCaching {
   self: Product =>
