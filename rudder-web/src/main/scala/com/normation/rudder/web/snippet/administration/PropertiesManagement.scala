@@ -54,6 +54,9 @@ import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.web.components.AgentScheduleEditForm
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.web.components.ComplianceModeEditForm
+import com.normation.rudder.reports.SyslogUDP
+import com.normation.rudder.reports.SyslogTCP
+import com.normation.rudder.reports.SyslogProtocol
 
 
 /**
@@ -83,6 +86,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
     case "sendMetricsConfiguration" => sendMetricsConfiguration
+    case "networkProtocolSection" => networkProtocolSection
   }
 
 
@@ -467,6 +471,63 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
          SHtml.ajaxSubmit("Save changes", submit _)
       }
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
+
+  def networkProtocolSection = { xml : NodeSeq =>
+    //  initial values, updated on successfull submit
+    def networkForm(initValue : SyslogProtocol) = {
+      var initReportsProtocol = initValue
+      var reportProtocol = initValue
+      def check = {
+        val noChange = initReportsProtocol == reportProtocol
+        S.notice("updateNetworkProtocol","")
+        Run(s"""$$("#networkProtocolSubmit").button( "option", "disabled",${noChange});""")
+      }
+
+      def submit = {
+        val actor = CurrentUser.getActor
+        configService.set_rudder_syslog_protocol(reportProtocol,actor,None) match {
+          case Full(_) =>
+            // Update the initial value of the form
+            initReportsProtocol = reportProtocol
+            startNewPolicyGeneration
+            S.notice("updateNetworkProtocol","Network protocol options correctly updated")
+            check
+          case eb:EmptyBox =>
+            S.error("updateNetworkProtocol","Error when saving network protocol options")
+            Noop
+        }
+      }
+
+      val checkboxInitValue = initReportsProtocol == SyslogUDP
+
+     ( "#reportProtocol" #> {
+          SHtml.ajaxCheckbox(
+              checkboxInitValue
+            , (newValue : Boolean) => {
+                reportProtocol = if (newValue) SyslogUDP else SyslogTCP
+                check
+              }
+            , ("id","reportProtocol")
+          )
+       } &
+       "#networkProtocolSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+       }
+      )(xml ++ Script(Run("correctButtons();") & check))
+
+    }
+
+    configService.rudder_syslog_protocol match {
+      case Full(value) =>
+        networkForm(value)
+      case eb: EmptyBox =>
+        // We could not read current protocol, try repairing by setting protocol to UDP and warn user
+        val actor = CurrentUser.getActor
+        configService.set_rudder_syslog_protocol(SyslogUDP,actor,Some("Property automatically reset to 'UDP' due to an error"))
+        S.error("updateNetworkProtocol","Error when fetching 'Syslog protocol' property, Setting it to UDP")
+        networkForm(SyslogUDP)
+    }
   }
 
   val agentScheduleEditForm = new AgentScheduleEditForm(
