@@ -117,7 +117,7 @@ object RuleEditForm {
 
 
   val htmlId_groupTree = "groupTree"
-  val htmlId_activeTechniquesTree = "userPiTree"
+  val htmlId_activeTechniquesTree = "directiveTree"
 }
 
 /**
