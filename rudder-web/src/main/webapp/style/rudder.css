@@ -2863,3 +2863,7 @@ input[type="number"] {
 .c3-tooltip td.name {
     padding-right: 3px;
 }
+
+.ui-button-disabled  {
+    opacity: 0.5;
+}
