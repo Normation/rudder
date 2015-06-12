@@ -51,8 +51,8 @@
 .tw-bs .progress-bar-pending {
   background-color: #5bc0de;
 }
-.tw-bs .progress-bar-noanswer {
-  background-color: #5bc0de;
+.tw-bs .progress-bar-no-report {
+  background-color: #b4b4b4;
 }
 .tw-bs .progress-bar-unknown {
   background-color: #FF6600;
