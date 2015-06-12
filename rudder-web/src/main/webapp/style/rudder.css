@@ -1555,10 +1555,6 @@ Home portlet
    color: #000;
    text-decoration: none;
 }
-.portlet img {
-   float: left;
-   margin: 0px 20px 20px 10px;
-}
 
 p img {
    float: none !important;
@@ -2863,4 +2859,8 @@ input[type="number"] {
 
 .c3-tooltip td.name {
     padding-right: 3px;
+}
+
+.filterIcon {
+  margin-bottom:-3px;
 }
