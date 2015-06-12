@@ -130,7 +130,6 @@ class AppConfig {
             new RudderPublicKeyParsing(keyNorm) ::
             RudderRootUserParsing ::
             RudderAgentNameParsing ::
-            RudderHostnameParsing ::
             RudderServerRoleParsing ::
             Nil
         )
