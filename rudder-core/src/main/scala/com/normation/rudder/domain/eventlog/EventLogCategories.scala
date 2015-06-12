@@ -279,6 +279,11 @@ final case object ModifyAgentRunStartMinuteEventType extends ModifyGlobalPropert
   val propertyName = "Agent run start minute"
 }
 
+final case object ModifyRudderSyslogProtocolEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "RudderSyslogProtocolModified"
+  val propertyName = "Rudder syslog protocol"
+}
+
 /**
  * List of event generating a modification of promises
  */
