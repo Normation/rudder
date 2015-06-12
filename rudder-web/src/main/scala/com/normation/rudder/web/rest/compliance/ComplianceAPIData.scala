@@ -149,12 +149,12 @@ object JsonCompliance {
       ~ ("directives" -> rule.directives.map { directive =>
           (
               ("id" -> directive.id.value)
-            ~ ("compliance" -> "%.2f".format(directive.compliance))
+            ~ ("compliance" -> "%.2f".format(directive.compliance.complianceWithoutPending))
             ~ ("complianceDetails" -> percents(directive.compliance))
             ~ ("components" -> directive.components.map { component =>
                 (
                     ("name" -> component.name)
-                  ~ ("compliance" -> "%.2f".format(component.compliance))
+                  ~ ("compliance" -> "%.2f".format(component.compliance.complianceWithoutPending))
                   ~ ("complianceDetails" -> percents(component.compliance))
                   ~ ("nodes" -> component.nodes.map { node =>
                       (
@@ -187,17 +187,17 @@ object JsonCompliance {
       ~ ("rules" -> n.nodeCompliances.map { rule =>
           (
               ("id" -> rule.id.value)
-            ~ ("compliance" -> "%.2f".format(rule.compliance))
+            ~ ("compliance" -> "%.2f".format(rule.compliance.complianceWithoutPending))
             ~ ("complianceDetails" -> percents(rule.compliance))
             ~ ("directives" -> rule.directives.map { directive =>
                 (
                     ("id" -> directive.id.value)
-                  ~ ("compliance" -> "%.2f".format(directive.compliance))
+                  ~ ("compliance" -> "%.2f".format(directive.compliance.complianceWithoutPending))
                   ~ ("complianceDetails" -> percents(directive.compliance))
                   ~ ("components" -> directive.components.map { case (_, component) =>
                       (
                           ("name" -> component.componentName)
-                        ~ ("compliance" -> "%.2f".format(component.compliance))
+                        ~ ("compliance" -> "%.2f".format(component.compliance.complianceWithoutPending))
                         ~ ("complianceDetails" -> percents(component.compliance))
                         ~ ("values" -> component.componentValues.map { case (_, value) =>
                             (
