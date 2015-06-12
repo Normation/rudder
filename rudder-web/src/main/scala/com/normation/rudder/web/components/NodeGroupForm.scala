@@ -192,7 +192,9 @@ class NodeGroupForm(
                    else NodeSeq.Empty
                  },
       "save" -> { if (CurrentUser.checkRights(Edit("group")))
-                    SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+                    <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
+                      SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+                    } </div>
                    else NodeSeq.Empty
                 },
       "delete" -> SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class" ,"dangerButton")),
