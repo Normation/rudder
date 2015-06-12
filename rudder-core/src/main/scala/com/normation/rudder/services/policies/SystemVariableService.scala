@@ -138,7 +138,7 @@ class SystemVariableServiceImpl(
     val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
     val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
     val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
-    val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", getSyslogProtocol)
+    val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))
 
     val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
       "yes"
