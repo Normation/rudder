@@ -1179,7 +1179,7 @@ function buildComplianceBar(compliance) {
   var noreport = compliance[5]
   if(noreport != 0) {
     var value = Number((noreport).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-pending" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-no-report" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>')
   }
 
   var missing = compliance[6]
