@@ -2753,13 +2753,13 @@ img.treeAction.noRight {
   padding-left : 5px
 }
 
-li.targetIncluded a {
+li.included a {
   background: none repeat scroll 0 0 #DDFFDD !important;
   border: 1px dotted #48A648 !important;
   padding: 0 2px 0 1px;
 }
 
-li.targetExcluded a{
+li.excluded a{
   background: none repeat scroll 0 0 #FFDDDD !important;
   border: 1px dotted #A64848 !important;
   padding: 0 2px 0 1px;
