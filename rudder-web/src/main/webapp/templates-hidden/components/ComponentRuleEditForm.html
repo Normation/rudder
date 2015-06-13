@@ -190,9 +190,34 @@
         <img onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
       </div>
 
-      <div id="selectPiField">
+      <div id="selectPiField"  style="float:left;width:55%" >
         Here comes the Directive selection field
       </div>
+      <div ng-app="ruleDirectives" id="ruleDirectives" style="float:left;width:45%" >
+        <div class="deca" id="DirectiveCtrl" ng-controller="DirectiveCtrl">
+          <div class="spacing-title targetHeader">
+            Apply these Directives:
+            <img src="/images/ic_question.png" class="targetIcon" tooltip="directiveAddExplanation"/>
+          </div>
+          <div style="background-color:#DDFFDD;" class="targetContainer">
+            <ul>
+              <li ng-show="directivesIsEmpty()">
+                <span class="targetDisplay">{{emptyDirective}}</span>
+              </li>
+              <li ng-repeat="(id, name) in directives">
+                <span class="targetDisplay">
+                    <img src="/images/tree/server_group_16x16.gif" class="targetIcon" />
+                    {{ name }}
+                    <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(id)"/>
+                </span>
+              </li>
+            </ul>
+            <hr class="spacer"/>
+          </div>
+          <hr class="spacer"/><br/>
+        </div>
+      </div>
+      
       <hr class="spacer"/>
 
       <div class="section-title spacing-title">
