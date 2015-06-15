@@ -137,4 +137,17 @@ class TestReportParsing extends Specification {
       os == Windows2012
     }
   }
+
+  "Hostname should be correctly detected" should {
+     "get node1.normation.com when it is defined as this" in {
+        val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
+        hostname == "node1.normation.com"
+     }
+
+
+    "get WIN-AI8CLNPLOV5.eu-west-1.compute.internal as the hostname" in {
+      val hostname = parser.parse("fusion-report/WIN-AI8CLNPLOV5-2014-06-20-18-15-49.ocs").node.main.hostname
+      hostname == "WIN-AI8CLNPLOV5.eu-west-1.compute.internal"
+    }
+  }
 }

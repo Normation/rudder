@@ -226,20 +226,6 @@ object RudderAgentNameParsing extends FusionReportParsingExtension with Loggable
   }
 }
 
-
-/**
-* <HOSTNAME>
-*/
-object RudderHostnameParsing extends FusionReportParsingExtension {
-  override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "HOSTNAME" }
-  override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    optText(x._1) match {
-      case None => x._2
-      case Some(e) => x._2.copy( node = x._2.node.copyWithMain { m => m.copy( hostname = e) } )
-    }
-  }
-}
-
 /**
 * <SERVER_ROLES>
 *    <SERVER_ROLE>
