@@ -456,39 +456,32 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
 /**
  *
  */
-function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, optionnalButton) {
+function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, saveButton) {
   $("#"+buttonId).button();
 
-  deactivateGrid(gridId);
-
   // all change on the form
-  $('#'+containerDivId+' > form').change(function() { deactivateGrid(gridId, optionnalButton);});
+  $('#'+containerDivId+' > form').change(function() { disableButton(saveButton);});
   // This one is for all input (text, textarea, password... and yes, button)
-  $('#'+containerDivId+' :input').change(function() { deactivateGrid(gridId, optionnalButton);});
+  $('#'+containerDivId+' :input').change(function() { disableButton(saveButton);});
 
   // all change on not the form
-  $('#'+containerDivId+' :radio').change(function() { deactivateGrid(gridId, optionnalButton);});
+  $('#'+containerDivId+' :radio').change(function() { disableButton(saveButton);});
   // This one is for all input (text, textarea, password... and yes, button)
-  $('#'+containerDivId+' :input').keyup(function() { deactivateGrid(gridId, optionnalButton);});
+  $('#'+containerDivId+' :input').keyup(function() { disableButton(saveButton);});
 
   $('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {
     if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {
-    	deactivateGrid(gridId, optionnalButton);
+      disableButton(saveButton);
     }
   });
 }
 
 /**
- * Deactive the Grid with id gridId, and if optionnalButton is set, will disable it
- * @param gridId
- * @param optionnalButton
+ * Disable button with id buttonId
+ * @param buttonId
 */
-function deactivateGrid(gridId, optionnalButton) {
-  $('#'+gridId).addClass("desactivatedGrid");
-
-  if ((optionnalButton)&&("" != optionnalButton)) {
-    $('#'+optionnalButton).button( "option", "disabled", true );
-  }
+function disableButton(buttonId) {
+  $('#'+buttonId).button( "option", "disabled", true );
 }
 
 function scrollToElement(elementId) {

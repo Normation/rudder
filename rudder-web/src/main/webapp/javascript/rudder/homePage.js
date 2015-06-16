@@ -62,7 +62,11 @@ function homePage (
     var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
     gauge.maxValue = 100; // set max gauge value
     gauge.animationSpeed = 25; // set animation speed (32 is default value)
-    gauge.set(globalGauge); // set actual value
+    // set actual value - there is a bug for value = 0, so let's pretend it's 0.1
+    gauge.set(function() {
+      if(globalGauge == 0) return 0.1;
+      else return globalGauge;
+    }()); 
     $("#gauge-value").text(globalGauge+"%");
 
   var height = $(window).height() / 2 ;
@@ -175,3 +179,4 @@ function homePageSoftware (
   ) {
   displayInventoryGraph('nodeAgents', nodeAgents)
 }
+

@@ -728,15 +728,15 @@ object RudderConfig extends Loggable {
 
   val apis = {
     Map (
-        ( ApiVersion(2) -> apiV2 )
-      , ( ApiVersion(3) -> apiV3 )
-      , ( ApiVersion(4) -> apiV4 )
-      , ( ApiVersion(5) -> apiV5 )
-      , ( ApiVersion(6) -> apiV6 )
+        ( ApiVersion(2,true) -> apiV2 )
+      , ( ApiVersion(3,true) -> apiV3 )
+      , ( ApiVersion(4,true) -> apiV4 )
+      , ( ApiVersion(5,false) -> apiV5 )
+      , ( ApiVersion(6,false) -> apiV6 )
     )
   }
 
-  val apiDispatcher = APIDispatcher(apis)
+  val apiDispatcher = APIDispatcher(apis, restExtractorService)
 
   lazy val configService: ReadConfigService with UpdateConfigService =
     new LDAPBasedConfigService(

@@ -181,15 +181,58 @@
         Directives
         <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
       </div>
-      <div id="selectPiField">
+
+      <div id="directiveTree_actions_zone" style="margin:5px 0;">
+        <img onclick="openAllNodes('#directiveTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
+        <img onclick="closeAllNodes('#directiveTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
+        <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
+        <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+        <img onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+      </div>
+
+      <div id="selectPiField"  style="float:left;width:55%" >
         Here comes the Directive selection field
       </div>
+      <div ng-app="ruleDirectives" id="ruleDirectives" style="float:left;width:45%" >
+        <div class="deca" id="DirectiveCtrl" ng-controller="DirectiveCtrl">
+          <div class="spacing-title targetHeader">
+            Apply these Directives:
+            <img src="/images/ic_question.png" class="targetIcon" tooltip="directiveAddExplanation"/>
+          </div>
+          <div style="background-color:#DDFFDD;" class="targetContainer">
+            <ul>
+              <li ng-show="directivesIsEmpty()">
+                <span class="targetDisplay">{{emptyDirective}}</span>
+              </li>
+              <li ng-repeat="(id, name) in directives">
+                <span class="targetDisplay">
+                    <img src="/images/tree/server_group_16x16.gif" class="targetIcon" />
+                    {{ name }}
+                    <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(id)"/>
+                </span>
+              </li>
+            </ul>
+            <hr class="spacer"/>
+          </div>
+          <hr class="spacer"/><br/>
+        </div>
+      </div>
+      
       <hr class="spacer"/>
 
       <div class="section-title spacing-title">
         Groups
         <lift:authz role="group_write"><a class="title-link" href= "/secure/nodeManager/groups">(Create a new Group)</a></lift:authz>
       </div>
+
+      <div id="groupTree_actions_zone" style="margin:5px 0;">
+        <img onclick="openAllNodes('#groupTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
+        <img onclick="closeAllNodes('#groupTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
+        <input style="width:100px;" id="groupSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
+        <span class="tooltipContent" id="groupSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+        <img onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+      </div>
+
       <div id="selectGroupField" style="float:left;width:55%">
         Here comes the group selection field
       </div>
