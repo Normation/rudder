@@ -52,6 +52,10 @@ import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.domain.policies.FullRuleTarget
 import com.normation.rudder.domain.policies.RuleTarget
 import net.liftweb.http.S
+import com.normation.rudder.web.model.JsInitContextLinkUtil._
+import com.normation.rudder.domain.nodes.NodeGroupId
+
+
 
 /**
  *
@@ -165,8 +169,8 @@ object DisplayNodeGroupTree extends Loggable {
       override def children = Nil
 
       val classes = {
-        val includedClass = if (included.contains(targetInfo.target.target)) {"targetIncluded"} else ""
-        val excludedClass = if (excluded.contains(targetInfo.target.target)) {"targetExcluded"} else {""}
+        val includedClass = if (included.contains(targetInfo.target.target)) {"included"} else ""
+        val excludedClass = if (excluded.contains(targetInfo.target.target)) {"excluded"} else {""}
         s"$includedClass $excludedClass"
       }
 
@@ -179,15 +183,16 @@ object DisplayNodeGroupTree extends Loggable {
       }
 
       override def body = {
-        val tooltipId = Helpers.nextFuncName
-
 
         val editButton = {
           if (!targetActions.isEmpty && ! targetInfo.isSystem) {
-              <img src="/images/icPen.png" class="treeActions treeAction noRight groupDetails" /> ++ Script(JsRaw(s"""
-                $$('#${jsId} .groupDetails').on("mouseup", function(e) {
-                  redirectTo('${S.contextPath}/secure/nodeManager/groups#{"groupId":"${groupId}"}',e);
-                } );"""))
+            val tooltipId = Helpers.nextFuncName
+            <span class="treeActions">
+              <img src="/images/icPen.png" class="tooltipable treeAction noRight groupDetails" tooltipid={tooltipId} title=""
+						    onclick={redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
+						  />
+						  <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
+            </span>
           } else {
             NodeSeq.Empty
           }
@@ -219,6 +224,7 @@ object DisplayNodeGroupTree extends Loggable {
           }
         }
         val xml  = {
+          val tooltipId = Helpers.nextFuncName
           <span class="treeGroupName tooltipable" tooltipid={tooltipId} title="" style="float:left">
             {targetInfo.name}
             { targetInfo.target match {

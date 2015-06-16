@@ -43,6 +43,7 @@ import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
@@ -260,12 +261,22 @@ class RuleEditForm(
 
   private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
 
+    //is't there an other way to do that? We already have the target/name
+    //in the tree, so there's just the existing id to find back
     val maptarget = groupLib.allTargets.map{
       case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
     }.toList.mkString("{",",","}")
 
-    val included = ruleTarget.includedTarget.targets
-    val excluded = ruleTarget.excludedTarget.targets
+    val selectedDirectives =
+      (for {
+        id <- selectedDirectiveIds
+        (_,directive) <-  directiveLib.allDirectives.get(id)
+      } yield {
+         s" ${encJs(id.value)} : ${encJs(directive.name)}"
+      }).mkString("{",",","}")
+
+    val includedTarget = ruleTarget.includedTarget.targets
+    val excludedTarget = ruleTarget.excludedTarget.targets
 
     (
       "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
@@ -285,11 +296,12 @@ class RuleEditForm(
               , usedDirectiveIds = usedDirectiveIds
               , onClickCategory = None
               , onClickTechnique = None
-              , onClickDirective = None
+              , onClickDirective = Some((_,_,d) => directiveClick(d))
+              , addEditLink = true
+              , included = selectedDirectiveIds
                 //filter techniques without directives, and categories without technique
               , keepCategory    = category => category.allDirectives.nonEmpty
               , keepTechnique   = technique => technique.directives.nonEmpty
-              , addEditLink = true
             )
           }</ul>
         }</div> } &
@@ -303,8 +315,8 @@ class RuleEditForm(
                   "include" -> includeRuleTarget _
                 , "exclude" -> excludeRuleTarget _
               )
-            , included
-            , excluded
+            , includedTarget
+            , excludedTarget
           )}</ul>
         </div> } &
       "#notifications" #>  updateAndDisplayNotifications
@@ -312,14 +324,6 @@ class RuleEditForm(
     Script(OnLoad(JsRaw("""
       correctButtons();
     """)))++ Script(
-        //a function to update the list of currently selected Directives in the tree
-        //and put the json string of ids in the hidden field.
-        JsCrVar("updateSelectedPis", AnonFunc(JsRaw("""
-          $('#selectedPis').val(JSON.stringify(
-            $.jstree._reference('#%s').get_selected().map(function(){
-              return this.id;
-            }).get()));""".format(htmlId_activeTechniquesTree)
-        ))) &
       OnLoad(
         // Initialize angular part of page and group tree
         JsRaw(s"""
@@ -331,7 +335,14 @@ class RuleEditForm(
           buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on');"""
         ) &
         //function to update list of PIs before submiting form
-        JsRaw(s"buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', -1);") &
+        JsRaw(s"""
+          angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
+          var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
+          ruleDirectiveScope.$$apply(function(){
+            ruleDirectiveScope.init(${selectedDirectives});
+          } );
+          buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', 0);
+        """) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
     )
@@ -411,23 +422,28 @@ class RuleEditForm(
     // update onclick to get the list of directives and groups in the hidden
     // fields before submitting
 
-    val newOnclick = "updateSelectedPis(); " +
-      save.attributes.asAttrMap("onclick")
-
     SHtml.hidden( { ids =>
         selectedDirectiveIds = unserializedirectiveIds(ids).toSet
       }, serializedirectiveIds(selectedDirectiveIds.toSeq)
-    ) % ( "id" -> "selectedPis") ++
+    ) % ( "id" -> "selectedDirectives") ++
     SHtml.hidden( { target =>
         ruleTarget = unserializeTarget(target)
       }, ruleTarget.target
     ) % ( "id" -> "selectedTargets") ++
-    save % ( "onclick" -> newOnclick)
+    save
   }
 
   private[this] def targetClick(targetInfo: FullRuleTargetInfo) : JsCmd = {
     val target = targetInfo.target.target.target
     JsRaw(s"""onClickTarget("${target}");""")
+  }
+
+  private[this] def directiveClick(directive: Directive) : JsCmd = {
+    JsRaw(s"""onClickDirective("${directive.id.value}", "${directive.name}");""")
+  }
+
+  private[this] def includeDirective(directive: Directive) : JsCmd = {
+    JsRaw(s"""includeDirective("${directive.id.value}", "${directive.name}");""")
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
