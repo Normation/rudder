@@ -263,7 +263,6 @@ class FusionReportUnmarshaller(
 
         ( for {
             uuid     <- boxFromOption(optText(rudder \ "UUID"), "could not parse uuid (tag UUID) from rudder specific inventory")
-            hostname <- boxFromOption(optText(rudder \ "HOSTNAME") ,"could not parse hostname (tag HOSTNAME) from rudder specific inventory")
             rootUser <- uniqueValueInSeq(agents.map(_._2), "could not parse rudder user (tag OWNER) from rudder specific inventory")
 
             policyServerId <- uniqueValueInSeq(agents.map(_._3), "could not parse policy server id (tag POLICY_SERVER_UUID) from specific inventory")
@@ -276,7 +275,6 @@ class FusionReportUnmarshaller(
                       rootUser = rootUser
                     , policyServerId = NodeId(policyServerId)
                     , id = NodeId(uuid)
-                    , hostname = hostname
                   )
                 , agentNames = agents.map(_._1)
                 , publicKeys = keys
@@ -478,6 +476,7 @@ class FusionReportUnmarshaller(
        *                  (for Windows, SuSE, etc)
        * VERSION        : version of the os
        *                  "5.08", "11.04", "N/A" for windows
+       * FQDN           : the fully qualified hostname
        */
     val osDetail:OsDetails = {
       val osType = optText(xml\\"KERNEL_NAME").getOrElse("").toLowerCase
@@ -595,7 +594,14 @@ class FusionReportUnmarshaller(
       }
     }
 
-    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail ) ) )
+    val hostname = optText(xml\\"FQDN") match {
+      case Some(host) => host
+      case None =>
+        logger.error(s"Error when parsing inventory, mandatory entry OPERATINGSYSTEM/FQDN is not defined. Please upgrade to FusionInventory 2.3 or more" )
+        "Invalid version of FusionInventory - please upgrade to 2.3+"
+    }
+
+    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail, hostname = hostname ) ) )
 
   }
 

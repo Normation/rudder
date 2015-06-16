@@ -58,7 +58,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   override def apply(report:NodeSeq) : Box[NodeSeq] = {
     val checks =
       checkId _ ::
-      checkHostname _ ::
+      checkFqdn _ ::
       checkRoot _ ::
       checkPolicyServer _ ::
       checkOS _ ::
@@ -118,14 +118,11 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  private[this] def checkHostname(report:NodeSeq) : Box[NodeSeq] = {
-    val tag = "HOSTNAME"
+  private[this] def checkFqdn(report:NodeSeq) : Box[NodeSeq] = {
+    val tag = "FQDN"
     for {
       tagHere <- {
-        checkInRudderTag(report,tag) match {
-          case full : Full[String] => full
-          case eb: EmptyBox => checkNodeSeq(report, tag) ?~! s"Missing '${tag}' attribute in report. This attribute is mandatory and must contains node hostname."
-        }
+        checkNodeSeq(report, "OPERATINGSYSTEM", true, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
       }
     } yield {
       report
