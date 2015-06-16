@@ -186,8 +186,8 @@ object RestUtils extends Loggable {
     effectiveResponse (id, message, RestError, action, prettify)
   }
 
-  def notValidVersionResponse(action:String)(implicit availableVersions : List[Int]) = {
-    val versions = "latest" :: availableVersions.map(_.toString)
+  def notValidVersionResponse(action:String)(implicit availableVersions : List[ApiVersion]) = {
+    val versions = "latest" :: availableVersions.map(_.value.toString)
     toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} "))(action,false)
    }
 
@@ -228,24 +228,24 @@ object RestUtils extends Loggable {
 }
 
 sealed case class ApiVersion (
-  value : Int
+    value : Int
+  , deprecated : Boolean
 )
 
 object ApiVersion {
 
-  def fromRequest(req:Req)( implicit availableVersions : List[Int]) : Box[ApiVersion] = {
+  def fromRequest(req:Req)( implicit availableVersions : List[ApiVersion]) : Box[ApiVersion] = {
 
-    val latest = availableVersions.max
+    val latest = availableVersions.maxBy(_.value)
     def fromString (version : String) : Box[ApiVersion] = {
       version match {
-        case "latest"  => Full(ApiVersion(latest))
+        case "latest"  => Full(latest)
         case value =>
            tryo { value.toInt } match {
              case Full(version) =>
-               if (availableVersions.contains(version)) {
-                 Full(ApiVersion(version))
-               } else {
-                 Failure(s" ${version} is not a valid api version")
+               availableVersions.find(_.value == version) match {
+                 case Some(apiVersion) => Full(apiVersion)
+                 case None => Failure(s" ${version} is not a valid api version")
                }
              // Never empty due to tryo
              case eb:EmptyBox => eb
