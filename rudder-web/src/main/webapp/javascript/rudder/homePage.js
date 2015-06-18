@@ -37,10 +37,17 @@ function homePage (
   , globalGauge
   , nodeCompliance
   , nodeComplianceColors
+  , pendingNodes
 ) {
   $("#globalCompliance").append(buildComplianceBar(globalCompliance));
   createTooltip();
 
+
+  var stats = "Compliance based on "+ pendingNodes.active + " Nodes."
+  if (pendingNodes.pending !== null) {
+    stats += "There is also " + pendingNodes.pending.nodes + " Nodes for which we are still waiting for data (" + pendingNodes.pending.percent + "%)"
+  }
+  $("#globalComplianceStats").text(stats);
   
   var opts = {
       lines: 12, // The number of lines to draw
