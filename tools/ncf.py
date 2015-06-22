@@ -30,6 +30,8 @@ tags["common"] = ["bundle_name", "bundle_args"]
 tags["generic_method"] = ["name", "description", "parameter", "class_prefix", "class_parameter", "class_parameter_id"]
 tags["technique"] = ["name", "description", "version"]
 
+multiline_tags = [ "description" ]
+
 class NcfError(Exception):
   def __init__(self, message, details="", cause=None):
     self.message = message
@@ -136,18 +138,34 @@ def parse_bundlefile_metadata(content, bundle_type):
   res = {}
   parameters = []
   multiline = False
+  previous_tag = None
 
   for line in content.splitlines():
-    for tag in tags[bundle_type]:
-      # line should already be unicode
-      #unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape') 
-      match = re.match("^\s*#\s*@" + tag + "\s(([a-zA-Z_]+)\s+(.*)|.*)$", line, flags=re.UNICODE)
-      if match :
+    # line should already be unicode
+    #unicodeLine = unicode(line,"UTF-8") #line.decode('unicode-escape')
+
+    # Parse metadata tag line
+    match = re.match("^\s*#\s*@(\w+)\s(([a-zA-Z_]+)\s+(.*)|.*)$", line, flags=re.UNICODE)
+    if match :
+      tag = match.group(1)
+      # Check ig we are a valid tag
+      if tag in tags[bundle_type]:
         # tag "parameter" may be multi-valued
         if tag == "parameter":
-          parameters.append({'name': match.group(2), 'description': match.group(3)})
+          parameters.append({'name': match.group(3), 'description': match.group(4)})
         else:
-          res[tag] = match.group(1)
+          res[tag] = match.group(2)
+        previous_tag = tag
+        continue
+
+    # Parse line without tag, if previous tag was a multiline tag
+    if previous_tag is not None and previous_tag in multiline_tags:
+      match = re.match("^\s*# (.*)$", line, flags=re.UNICODE)
+      if match:
+        res[previous_tag] += "\n"+match.group(1)
+        continue
+      else:
+        previous_tag = None
 
     # manage multiline bundle definition
     if multiline:
@@ -159,7 +177,7 @@ def parse_bundlefile_metadata(content, bundle_type):
 
     # read a complete bundle definition
     match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?[^(]*$", match_line, flags=re.UNICODE|re.MULTILINE|re.DOTALL)
-#    match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?.*$", line, flags=re.UNICODE)
+    #match = re.match("[^#]*bundle\s+agent\s+(\w+)(\(([^)]+)\))?.*$", line, flags=re.UNICODE)
     if match:
       multiline = False
       res['bundle_name'] = match.group(1)
@@ -417,8 +435,10 @@ def generate_technique_content(technique_metadata):
   technique = add_default_values_technique_metadata(technique_metadata)
 
   content = []
-  for key in [ 'name', 'description', 'version' ]:
-    content.append('# @'+ key +" "+ technique[key])
+  for metadata_key in [ 'name', 'description', 'version' ]:
+    # Add commentary for each new line in the metadata
+    metadata_value = technique[metadata_key].replace("\n", "\n# ")
+    content.append('# @'+ metadata_key +" "+ metadata_value)
   content.append('')
   content.append('bundle agent '+ technique['bundle_name'])
   content.append('{')
