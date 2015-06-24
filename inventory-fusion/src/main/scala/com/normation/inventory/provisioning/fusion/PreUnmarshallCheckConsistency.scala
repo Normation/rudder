@@ -122,7 +122,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     val tag = "FQDN"
     for {
       tagHere <- {
-        checkNodeSeq(report, "OPERATINGSYSTEM", true, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
+        checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
       }
     } yield {
       report
