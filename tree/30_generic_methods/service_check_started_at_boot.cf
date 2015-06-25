@@ -33,7 +33,7 @@ bundle agent service_check_started_at_boot(service_name)
       "command_to_check"   string => "${paths.path[systemctl]} is-enabled ${service_name}";
 
     !systemctl_utility_present.chkconfig_utility_present::
-      "command_to_check"   string => "${paths.path[chkconfig]} --list ${service_name} | grep -q 3:on";
+      "command_to_check"   string => "${paths.path[chkconfig]} --list ${service_name} | grep -q -e 3:on -e B:on";
 
     !systemctl_utility_present.!chkconfig_utility_present::
       "command_to_check"   string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service_name}";
