@@ -308,6 +308,7 @@ object RudderConfig extends Loggable {
   val eventLogRepository: EventLogRepository = logRepository
   val eventLogDetailsService: EventLogDetailsService = eventLogDetailsServiceImpl
   val reportingService: ReportingService = reportingServiceImpl
+  lazy val asyncComplianceService : AsyncComplianceService = new AsyncComplianceService(reportingService)
   val stringUuidGenerator: StringUuidGenerator = uuidGen
   val quickSearchService: QuickSearchService = quickSearchServiceImpl
   val cmdbQueryParser: CmdbQueryParser = queryParser
@@ -348,7 +349,7 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  lazy val srvGrid = new SrvGrid(roAgentRunsRepository)
+  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
