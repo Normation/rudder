@@ -39,6 +39,8 @@ var recentChanges = {};
 var recentChangesCount = {};
 var recentGraphs = {};
 
+var nodeCompliances = {};
+
 /*
  * This function is used to resort a table after its sorting datas were changed ( like sorting function below)
  */
@@ -57,6 +59,24 @@ $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
         , function (elem, index) {
             if (elem.id in ruleCompliances) {
               var compliance = ruleCompliances[elem.id];
+              return compliance[0] + compliance[1] + compliance[2]
+            }
+            return -1;
+          }
+      )
+    return data;
+};
+
+
+$.fn.dataTableExt.afnSortData['node-compliance'] = function ( oSettings, iColumn )
+{
+    var data =
+      $.map(
+          // All data of the table
+          oSettings.oApi._fnGetDataMaster(oSettings)
+        , function (elem, index) {
+            if (elem.id in nodeCompliances) {
+              var compliance = nodeCompliances[elem.id];
               return compliance[0] + compliance[1] + compliance[2]
             }
             return -1;
@@ -803,7 +823,7 @@ function createRuleComponentValueTable (contextPath) {
 function createNodeTable(gridId, data, contextPath, refresh) {
 
   var columns = [ {
-      "sWidth": "30%"
+      "sWidth": "25%"
     , "mDataProp": "name"
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
@@ -826,17 +846,29 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "machineType"
      , "sTitle": "Machine type"
   } , {
-      "sWidth": "20%"
+      "sWidth": "10%"
     , "mDataProp": "osName"
     , "sTitle": "OS name"
   } , {
-      "sWidth": "10%"
+      "sWidth": "5%"
     , "mDataProp": "osVersion"
     , "sTitle": "OS version"
   } , {
-      "sWidth": "10%"
+      "sWidth": "5%"
     , "mDataProp": "servicePack"
     , "sTitle": "OS SP"
+  } , {
+      "mDataProp": "name"
+    , "sWidth": "25%"
+    , "sTitle": "Compliance"
+    , "sSortDataType": "node-compliance"
+    , "sType" : "numeric"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var elem; //callbackElement(oData);
+        elem = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>';
+        $(nTd).empty();
+        $(nTd).prepend(elem);
+      }
   } , {
       "sWidth": "20%"
     , "mDataProp": "lastReport"
@@ -851,6 +883,16 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "oLanguage": {
         "sSearch": ""
     }
+    , "fnDrawCallback": function( oSettings ) {
+        var rows = this._('tr', {"page":"current"});
+        $.each(rows, function(index,row) {
+          // Display compliance progress bar if it has already been computed
+          var compliance = nodeCompliances[row.id]
+          if (compliance !== undefined) {
+            $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
+          }
+        })
+      }
     , "aaSorting": [[ 0, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
