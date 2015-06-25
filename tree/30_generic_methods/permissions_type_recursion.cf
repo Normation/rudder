@@ -25,7 +25,7 @@
 # @parameter group     Group of the path to edit
 # @parameter type      Type of the path to edit (all/files/directories)
 # @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
-# 
+#
 # @class_prefix permissions
 # @class_parameter path
 # This bundle will define a class permissions_${path}_{kept,repaired,not_ok,ok,reached}
@@ -40,11 +40,14 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       "is_type_files"       expression => strcmp("${type}", "files");
       "is_type_directories" expression => strcmp("${type}", "directories");
 
+      # Workaround for https://dev.cfengine.com/issues/7310
+      "is_depth_zero"       expression => strcmp("${recursion}", "0");
+
       "is_target_directory" expression => isdir("${path}");
 
   files:
 
-    is_type_all.is_target_directory::
+    is_type_all.is_target_directory.!is_depth_zero::
 
       "${path}"
         create       => "false",
@@ -52,14 +55,14 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         depth_search => recurse_with_base("${recursion}"),
         classes      => classes_generic("${class_prefix}");
 
-    is_type_all.!is_target_directory::
+    is_type_all.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
       "${path}"
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         classes      => classes_generic("${class_prefix}");
 
-    is_type_files.is_target_directory::
+    is_type_files.is_target_directory.!is_depth_zero::
 
       "${path}"
         create       => "false",
@@ -68,7 +71,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         file_select  => plain,
         classes      => classes_generic("${class_prefix}");
 
-    is_type_files.!is_target_directory::
+    is_type_files.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
       "${path}"
         create       => "false",
@@ -76,7 +79,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         file_select  => plain,
         classes      => classes_generic("${class_prefix}");
 
-    is_type_directories.is_target_directory::
+    is_type_directories.is_target_directory.!is_depth_zero::
 
       "${path}"
         create       => "false",
@@ -85,7 +88,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         file_select  => dirs,
         classes      => classes_generic("${class_prefix}");
 
-    is_type_directories.!is_target_directory:: # This case should never happen
+    is_type_directories.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
       "${path}"
         create       => "false",
