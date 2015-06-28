@@ -58,7 +58,6 @@ import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.logger.TimingDebugLogger
-
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
  *
@@ -79,7 +78,8 @@ object SrvGrid {
  * - call the display(servers) method
  */
 class SrvGrid(
-  roAgentRunsRepository : RoReportsExecutionRepository
+    roAgentRunsRepository : RoReportsExecutionRepository
+  , asyncComplianceService : AsyncComplianceService
 ) extends Loggable {
 
   private def templatePath = List("templates-hidden", "srv_grid")
@@ -132,7 +132,7 @@ class SrvGrid(
 
     JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh});""")
 
-   }
+  }
 
 
   def getTableData (
@@ -171,8 +171,14 @@ class SrvGrid(
   ) = {
     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
       val nodes = refreshNodes()
+      val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, Set(), tableId)
+
       val data = getTableData(nodes,callback)
-      JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd});""")
+      JsRaw(s"""
+          nodeCompliances = {};
+          refreshTable("${tableId}",${data.json.toJsCmd});
+          ${futureCompliances.toJsCmd}
+      """)
     } )
 
     AnonFunc("",ajaxCall)
