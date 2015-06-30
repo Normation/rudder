@@ -361,8 +361,8 @@
 }
 
 #globalCompliance .progress {
-  height:180px;
-  padding: 55px 20px
+  height:130px;
+  padding: 30px 20px
 }
 #globalCompliance .progress .progress-bar {
   line-height:70px;
