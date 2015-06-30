@@ -170,8 +170,6 @@ class HomePage extends Loggable {
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n3 - n2}ms")
     } yield {
 
-      val compliance = ComplianceLevel.sum(reports.map(_.compliance))
-
       val reportsByNode = reports.groupBy(_.nodeId).mapValues(reports => ComplianceLevel.sum(reports.map(_.compliance)))
 
       /*
@@ -213,15 +211,39 @@ class HomePage extends Loggable {
         case (a:RedChart     ,_)            => false
       }
 
+     val numberOfNodes = complianceByNode.size
+     val pendingNodes = complianceDiagram.collectFirst{
+       case p : PendingChart => p.value
+     } match {
+
+       case None => JsObj (
+           "pending" -> JsNull
+         , "active"  -> numberOfNodes
+       )
+       case Some(pending) =>
+         JsObj (
+           "pending" ->
+             JsObj (
+                 "nodes" -> pending
+               , "percent"  -> (pending * 100  / numberOfNodes).round
+             )
+         , "active"  -> (numberOfNodes - pending)
+       )
+     }
+
      val diagramData = JsArray(sorted.map(_.jsValue):_*)
 
      val diagramColor = JsObj(sorted.map(_.jsColor):_*)
 
-     val array = JsArray(
+     // Data used for compliance bar, compliance without pending
+     val compliance = ComplianceLevel.sum(reports.map(_.compliance)).copy(pending = 0)
+
+     val complianceBar = JsArray(
          JE.Num(compliance.pc_notApplicable)
        , JE.Num(compliance.pc_success)
        , JE.Num(compliance.pc_repaired)
        , JE.Num(compliance.pc_error)
+       // Do not count pending in global compliance
        , JE.Num(compliance.pc_pending)
        , JE.Num(compliance.pc_noAnswer)
        , JE.Num(compliance.pc_missing)
@@ -233,13 +255,14 @@ class HomePage extends Loggable {
 
      Script(OnLoad(JsRaw(s"""
         homePage(
-            ${array.toJsCmd}
+            ${complianceBar.toJsCmd}
           , ${globalCompliance}
           , ${diagramData.toJsCmd}
           , ${diagramColor.toJsCmd}
+          , ${pendingNodes.toJsCmd}
         )""")))
     } ) match {
-      case Full(complianceBar) => complianceBar
+      case Full(homePageCompliance) => homePageCompliance
       case eb : EmptyBox =>
         logger.error(eb)
         NodeSeq.Empty
@@ -360,7 +383,7 @@ class HomePage extends Loggable {
 
   private[this] def countAcceptedNodes() : Box[Int] = {
     ldap.map { con =>
-      con.searchOne(nodeDit.NODES.dn, NOT(IS(OC_POLICY_SERVER_NODE)), "1.1")
+      con.searchOne(nodeDit.NODES.dn, ALL, "1.1")
     }.map(x => x.size)
   }
 
