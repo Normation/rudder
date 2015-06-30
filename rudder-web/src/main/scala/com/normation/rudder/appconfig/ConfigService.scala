@@ -283,8 +283,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     case _ => Some(false)
   }
 
-  private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value.toLowerCase match {
-    case "TCP" => SyslogTCP
+  private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value match {
+    case SyslogTCP.value => // value is TCP
+      SyslogTCP
     case _ => SyslogUDP
   }
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
