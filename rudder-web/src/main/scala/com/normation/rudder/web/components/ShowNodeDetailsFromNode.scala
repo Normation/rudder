@@ -102,13 +102,16 @@ class ShowNodeDetailsFromNode(
       , () => Some(configService.rudder_compliance_heartbeatPeriod)
     )
 
-  val heartbeatConfiguration = HeartbeatConfiguration(false, 1)
   def getHeartBeat : Box[(String,Int, Boolean)] = {
     for {
       complianceMode <- configService.rudder_compliance_mode_name
+      gHeartbeat <- configService.rudder_compliance_heartbeatPeriod
       nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
     } yield {
-      val hbConf = nodeInfo.nodeReportingConfiguration.heartbeatConfiguration.getOrElse(heartbeatConfiguration)
+      // If heartbeat is not overriden, we revert to the default one
+      val defaultHeartBeat = HeartbeatConfiguration(false, gHeartbeat)
+
+      val hbConf = nodeInfo.nodeReportingConfiguration.heartbeatConfiguration.getOrElse(defaultHeartBeat)
       (complianceMode,hbConf.heartbeatPeriod,hbConf.overrides)
     }
   }
@@ -150,12 +153,12 @@ class ShowNodeDetailsFromNode(
     }
   }
 
-  val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0)
+  val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule : Box[AgentRunInterval] = {
     for {
       nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
     } yield {
-      nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(emptyInterval)
+      nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval))
     }
   }
 
