@@ -41,26 +41,12 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 
 /**
  * Utilitary tool to compute the path of a server promises (and others information) on the rootMachine
- *
- * @author nicolas
+
  *
  */
 trait PathComputer {
 
-  /**
-   * Compute the base path for a server, i.e. the full path on the root server to the data
-   * the searched server will fetch, and the backup folder
-   * Finish by the server name, with no trailing /
-   * Ex : /opt/hive/cfserved/serverA/served/serverB, /opt/hive/backup/serverA/served/serverB
-   * @param searchedNode : the server we search
-   * @return
-   */
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[((String, String))]
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[((String, String, String))]
 
-  /**
-   * Return the path of the promises for the root (we directly write its promises in its path)
-   * @param agent
-   * @return
-   */
   def getRootPath(agentType : AgentType) : String
 }
