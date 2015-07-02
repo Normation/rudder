@@ -111,8 +111,13 @@ class RudderCf3PromisesFileWriterServiceImpl(
   def getCommunityPort = communityPort
 
   /**
-   * Write the promises of all the machine
-   * It no longer change the status of the nodeconfiguration
+   * Write the promises for all the relevant nodes
+   * For each node:
+   * 1 - Promises are written to /var/rudder/share/node-uuid/rules.new/cfengine-agentType (except for root)
+   * 2 - Promises are checked there
+   * 3 - If they are all valid,
+   *    Old promises are moved to /var/rudder/backup/node-uuid/rules/cfengine-agentType (except for root)
+   *    New promises are moved to /var/rudder/share/node-uuid/rules/cfengine-agentType (except for root)
    * @param updateBatch : the container for the server to be updated
    */
   override def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[Seq[PromisesFinalMoveInfo]] = {
@@ -155,12 +160,12 @@ class RudderCf3PromisesFileWriterServiceImpl(
                              logger.error(msg)
                              throw new RuntimeException(msg)
                            }
-                           val (baseNodePath, backupNodePath) = pathComputer.computeBaseNodePath(node.nodeInfo.id, rootNodeId, allNodeConfigs) match {
+                           val (nodePromisePath, newNodePromisePath, backupNodePath) = pathComputer.computeBaseNodePath(node.nodeInfo.id, rootNodeId, allNodeConfigs) match {
                              case Full(x) => x
                              case e:EmptyBox => return (e ?~! s"Error when computing the path for node  ${node.nodeInfo.hostname} (id: ${node.nodeInfo.id.value})")
                            }
 
-                           prepareRulesForAgents(baseNodePath, backupNodePath, node, rootNodeId, templates) match {
+                           prepareRulesForAgents(nodePromisePath, newNodePromisePath, backupNodePath, node, rootNodeId, templates) match {
                              case Full(x) =>
                                folders ++= x
                              case e: EmptyBox => return (e ?~! "Error when preparing rules for agents")
@@ -196,14 +201,24 @@ class RudderCf3PromisesFileWriterServiceImpl(
   /**
    * From a base path and a base backup path, plus a node configuration, write the rules
    * for its of the agent target in it, and then check it
+   *
+   * This is a several step process, from a nodePromisePath (end path), newNodePromisePath (path where promises are written before being checked)
+   * and a backupNodePath (path where old promises will be moved), and a node, it will:
+   * 1 - get the agents types, and complete the path with cfengine-community or cfengine-noca
+   * 2 - if the node is root, it will use hardcoded paths (var/rudder/cfengine-community/inputs, var/rudder/cfengine-community/inputs.new,   /var/rudder/cfengine-community/inputs.bkp)
+   * 3 - Write the file to /var/rudder/share/node-uuid/rules.new/cfengine-agentType
+   * 4 - Check the promises there
    * Caution : a specific computation is done for the root server
-   * @param baseMachinePath
-   * @param node
-   * @param cause
-   * @return : a Set of node, base folder, new folder, backup folder (don't want to return duplicate)
+   * @params
+   *   nodePromisePath    : the path where the promises will be moved for the agent to fetch (finishing by /rules)
+   *   newNodePromisesPath: the path where the promises will be written, before being checked (finishes by /rules.new)
+   *   backupNodePath     : the path where the previous promises will be backuped
+
+   * @return : a Set of node, final destination of promises, folder where promises are written (.new), backup folder (don't want to return duplicate)
    */
   private[this] def prepareRulesForAgents(
-      baseNodePath           : String
+      nodePromisePath        : String
+    , newNodePromisesPath    : String
     , backupNodePath         : String
     , node                   : NodeConfiguration
     , rootNodeConfigurationId: NodeId
@@ -220,10 +235,10 @@ class RudderCf3PromisesFileWriterServiceImpl(
 
       val systemVariables = node.nodeContext + (varNova.spec.name -> varNova) + (varCommunity.spec.name -> varCommunity)
 
-      val (nodeRulePath, newNodePath, backupNodeRulePath, newNodeRulePath) = if(rootNodeConfigurationId == node.nodeInfo.id) {
-        (pathComputer.getRootPath(agentType), pathComputer.getRootPath(agentType) + newPostfix, pathComputer.getRootPath(agentType) + backupPostfix, pathComputer.getRootPath(agentType) + newPostfix)
+      val (nodeRulePath, backupNodeRulePath, newNodeRulePath) = if(rootNodeConfigurationId == node.nodeInfo.id) {
+        (pathComputer.getRootPath(agentType), pathComputer.getRootPath(agentType) + backupPostfix, pathComputer.getRootPath(agentType) + newPostfix)
       } else {
-        (baseNodePath, baseNodePath + newPostfix, backupNodePath, baseNodePath + newPostfix + "/rules" + agentType.toRulesPath()) // we'll want to move the root folders
+        (nodePromisePath + agentType.toRulesPath(), backupNodePath + agentType.toRulesPath(), newNodePromisesPath + agentType.toRulesPath()) // we'll want to move the root folders
       }
 
       val container = node.toContainer(newNodeRulePath)
@@ -279,7 +294,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
         return failure
       }
 
-      folders += ((node, nodeRulePath, newNodePath, backupNodeRulePath))
+      folders += ((node, nodeRulePath, newNodeRulePath, backupNodeRulePath))
     }
 
     Full(folders.toSet)

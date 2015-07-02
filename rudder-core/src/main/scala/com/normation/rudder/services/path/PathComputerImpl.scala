@@ -57,25 +57,32 @@ class PathComputerImpl(
 ) extends PathComputer with Loggable {
 
 
-  private[this] val promisesPrefix = "rules/"
+  private[this] val promisesPrefix = "/rules"
+  private[this] val newPostfix = ".new"
 
   private[this] val baseFolder = Constants.NODE_PROMISES_PARENT_DIR_BASE
   private[this] val relativeShareFolder = Constants.NODE_PROMISES_PARENT_DIR
 
   /**
-   * Compute the base path for a machine, i.e. the full path on the root server to the data
-   * the searched machine will fetch, and the backup folder
-   * Finish by the machine uuid, with no trailing /
-   * It does not contain the root machine, except if we search the root machine
-   * Ex : /var/rudder/share/uuid-a/share/uuid-b, /var/rudder/backup/uuid-a/share/uuid-b
+   * Compute
+   *  the path of promises for a node, i.e. the full path on the root server to the data
+   *  the new folder, i.e. the full path where promises are written and checked before being updated
+   *  the backup folder, the path were promises are backuped
+   * Finish with no trailing /
+   * Ex : /var/rudder/share/uuid-a/share/uuid-b/rules,/var/rudder/share/uuid-a/share/uuid-b/rules.new, /var/rudder/backup/uuid-a/share/uuid-b
+   * Caution: when used for root server, the computed path is not valid, however some magic catch it
+   * up after to correct the path
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[((String, String))] = {
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[((String, String, String))] = {
     for {
       path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs)
     } yield {
-      (FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path) , FilenameUtils.normalize(backupFolder + path))
+      (
+          FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
+        , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix)
+        , FilenameUtils.normalize(backupFolder + path + promisesPrefix))
     }
   }
 
@@ -117,11 +124,8 @@ class PathComputerImpl(
                         // root is a specific case, it is the root of everything
                         recurseComputePath(fromNodeId, root.nodeInfo.id, path, allNodeConfig)
 
-                    // If the chain is longer, then we need to add the .new for each parent folder
-                    // or else we won't have the proper paths used during backuping
-                    // This will deserve a sever refactoring
                     case policyParent =>
-                        recurseComputePath(fromNodeId, policyParent.nodeInfo.id, policyParent.nodeInfo.id.value + ".new" + "/" + relativeShareFolder + "/" + path, allNodeConfig)
+                        recurseComputePath(fromNodeId, policyParent.nodeInfo.id, policyParent.nodeInfo.id.value + "/" + relativeShareFolder + "/" + path, allNodeConfig)
                   }
       } yield {
         result
