@@ -37,15 +37,25 @@ function homePage (
   , globalGauge
   , nodeCompliance
   , nodeComplianceColors
-  , pendingNodes
+  , nodeCount
 ) {
   $("#globalCompliance").append(buildComplianceBar(globalCompliance));
   createTooltip();
 
 
-  var stats = "Compliance based on "+ pendingNodes.active + " Nodes."
-  if (pendingNodes.pending !== null) {
-    stats += "There is also " + pendingNodes.pending.nodes + " Nodes for which we are still waiting for data (" + pendingNodes.pending.percent + "%)"
+  var activeNodes = nodeCount.active + " Node."
+  if (nodeCount.active > 1) {
+    activeNodes = nodeCount.active + " Nodes."
+  }
+  var stats = "Compliance based on "+ activeNodes
+  if (nodeCount.pending !== null) {
+    var pendingNodes = nodeCount.pending.nodes + " Node"
+    var verb = "is"
+    if (nodeCount.active > 1) {
+      pendingNodes = nodeCount.pending.nodes + " Nodes"
+      verb = "are"
+    }
+    stats += " There "+ verb +" also " + pendingnodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
   }
   $("#globalComplianceStats").text(stats);
   
