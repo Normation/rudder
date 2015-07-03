@@ -362,13 +362,23 @@ class HomePage extends Loggable {
               acceptedNodesDit.SOFTWARE.SOFT.idFromDN(new DN(x)).flatMap(s => agentMap(s.value).version)
             }
         )
-      }.toMap
+      }.toMap.mapValues{_.maxBy(_.value)} // Get the max version available
 
       // take back the initial set of nodes to be sure to have one agent for each
-      val allAgents = nodeInfos.keySet.toSeq.flatMap(nodeId => agentVersionByNodeEntries.getOrElse(nodeId, Set(unknown)).toSeq )
+      val allAgents = nodeInfos.keySet.toSeq.map(nodeId => agentVersionByNodeEntries.getOrElse(nodeId, unknown) )
 
-      //now, count and version display
-      val res = allAgents.groupBy(identity).mapValues(_.size).map{case (a,b) => (a.value.split("-").head, b)}
+      // Format different version naming type into one
+      def formatVersion (version : String) : String= {
+        // All that is before '.release' (rpm relases, like 3.0.6.release), OR all until first dash ( debian releases, like 3.0.6~wheezy)
+        val versionRegexp = "(.+)(?=\\.release)|([^-]+)".r
+        versionRegexp.
+          findFirstIn(version).
+          getOrElse(version).
+          // Replace all '~' by '.' to normalize alpha/beta/rc releases and nightlies
+          replace("~", ".")
+      }
+
+      val res = allAgents.groupBy(ag => formatVersion(ag.value)).mapValues( _.size)
 
       TimingDebugLogger.debug(s"=> group and count agents: ${System.currentTimeMillis-n4}ms")
       res
