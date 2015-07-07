@@ -55,7 +55,7 @@ function homePage (
       pendingNodes = nodeCount.pending.nodes + " Nodes"
       verb = "are"
     }
-    stats += " There "+ verb +" also " + pendingnodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
+    stats += " There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
   }
   $("#globalComplianceStats").text(stats);
   
