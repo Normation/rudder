@@ -1,0 +1,7 @@
+<xml>
+    <name>phantom</name>
+    <descripton>
+      That is a false category to copy at the root of Git repos when it
+      is not the root of the PT lib. 
+    </descripton>
+</xml>

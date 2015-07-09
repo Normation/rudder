@@ -1,0 +1,81 @@
+<examples>
+
+<ok>
+<SECTIONS>
+  <SECTION name="sectA">
+  	<INPUT>
+  		<NAME>A</NAME>
+  		<DESCRIPTION>...</DESCRIPTION>
+  	</INPUT>
+  </SECTION>
+	<SECTION name="sect1" multivalued="true">
+		<SELECT>
+			<NAME>B</NAME>
+			<DESCRIPTION>...</DESCRIPTION>
+			<ITEM value="red" label="Red" />
+		</SELECT>
+		<SECTION name="sect2" displayPriority="high">
+			<SELECT1>
+				<NAME>C</NAME>
+				<DESCRIPTION>...</DESCRIPTION>
+				<ITEM value="yes" label="Yes" />
+				<ITEM value="no" label="No" />
+			</SELECT1>
+			<INPUT>
+				<NAME>D</NAME>
+				<DESCRIPTION>...</DESCRIPTION>
+			</INPUT>
+		</SECTION>
+		<SECTION name="sect3" displayPriority="low">
+			<INPUT>
+				<NAME>E</NAME>
+				<DESCRIPTION>...</DESCRIPTION>
+			</INPUT>
+		</SECTION>
+		<SECTION name="emptySect">
+		</SECTION>
+	</SECTION>
+  
+  <SECTION name="component" component="true" componentKey="C" multivalued="true"/>
+  
+  <SECTION name="sectF">
+  	<INPUT>
+  		<NAME>F</NAME>
+  		<DESCRIPTION>...</DESCRIPTION>
+  	</INPUT>
+  </SECTION>
+</SECTIONS>
+</ok>
+
+<variableUnderSections>
+<SECTIONS>
+  <INPUT>
+    <NAME>A</NAME>
+    <DESCRIPTION>...</DESCRIPTION>
+  </INPUT>
+</SECTIONS>
+</variableUnderSections>
+
+<nonUniqueSectionNames>
+<SECTIONS>
+  <SECTION name="sect"/>
+  <SECTION name="SECT"/>
+</SECTIONS>
+</nonUniqueSectionNames>
+
+<nonUniqueVariableNames>
+<SECTIONS>
+  <SECTION name="sect1">
+    <INPUT>
+      <NAME>A</NAME>
+      <DESCRIPTION>...</DESCRIPTION>
+    </INPUT>
+    <INPUT>
+      <NAME>A</NAME>
+      <DESCRIPTION>...</DESCRIPTION>
+    </INPUT>
+  </SECTION>
+</SECTIONS>
+</nonUniqueVariableNames>
+
+</examples>
