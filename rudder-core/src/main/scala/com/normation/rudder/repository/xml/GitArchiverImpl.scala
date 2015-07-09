@@ -266,11 +266,15 @@ class GitActiveTechniqueCategoryArchiverImpl(
   // TODO : keep content when moving !!!
   // well, for now, that's ok, because we can only move empty categories
   override def moveActiveTechniqueCategory(uptc:ActiveTechniqueCategory, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId,PersonIdent, Option[String])]) : Box[GitPath] = {
-    for {
-      deleted  <- deleteActiveTechniqueCategory(uptc.id, oldParents, None)
-      archived <- archiveWithRename(uptc, Some(oldParents), newParents, gitCommit)
-    } yield {
-      archived
+    if(oldParents == newParents) { //actually, an update
+      this.archiveActiveTechniqueCategory(uptc, oldParents, gitCommit)
+    } else {
+      for {
+        deleted  <- deleteActiveTechniqueCategory(uptc.id, oldParents, None)
+        archived <- archiveWithRename(uptc, Some(oldParents), newParents, gitCommit)
+      } yield {
+        archived
+      }
     }
   }
 
@@ -436,37 +440,40 @@ class GitActiveTechniqueArchiverImpl(
    * DO have to always consider a fresh new archive.
    */
   override def moveActiveTechnique(activeTechnique:ActiveTechnique, oldParents: List[ActiveTechniqueCategoryId], newParents: List[ActiveTechniqueCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) : Box[(GitPath, Seq[DirectiveNotArchived])] = {
-    for {
-      oldActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, oldParents)
-      oldActiveTechniqueDirectory =  oldActiveTechniqueFile.getParentFile
-      newActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, newParents)
-      newActiveTechniqueDirectory =  newActiveTechniqueFile.getParentFile
-      clearNew        <- tryo {
-                           if(newActiveTechniqueDirectory.exists) FileUtils.forceDelete(newActiveTechniqueDirectory)
-                           else "ok"
-                         }
-      deleteOld       <- tryo {
-                           if(oldActiveTechniqueDirectory.exists) FileUtils.forceDelete(oldActiveTechniqueDirectory)
-                           else "ok"
-                         }
-      archived        <- archiveActiveTechnique(activeTechnique, newParents, gitCommit)
-      commited        <- gitCommit match {
-                           case Some((modId, commiter, reason)) =>
-                             commitMvDirectory(
-                                 modId
-                               , commiter
-                               , toGitPath(oldActiveTechniqueDirectory)
-                               , toGitPath(newActiveTechniqueDirectory)
-                               , "Move active technique for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason))
-                             )
-                           case None => Full("OK")
-                         }
-    } yield {
-      archived
+    if(oldParents == newParents) {//actually an update
+      this.archiveActiveTechnique(activeTechnique, oldParents, gitCommit)
+    } else {
+      for {
+        oldActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, oldParents)
+        oldActiveTechniqueDirectory =  oldActiveTechniqueFile.getParentFile
+        newActiveTechniqueFile      <- newActiveTechniqueFile(activeTechnique.techniqueName, newParents)
+        newActiveTechniqueDirectory =  newActiveTechniqueFile.getParentFile
+        clearNew        <- tryo {
+                             if(newActiveTechniqueDirectory.exists) FileUtils.forceDelete(newActiveTechniqueDirectory)
+                             else "ok"
+                           }
+        deleteOld       <- tryo {
+                             if(oldActiveTechniqueDirectory.exists) FileUtils.forceDelete(oldActiveTechniqueDirectory)
+                             else "ok"
+                           }
+        archived        <- archiveActiveTechnique(activeTechnique, newParents, gitCommit)
+        commited        <- gitCommit match {
+                             case Some((modId, commiter, reason)) =>
+                               commitMvDirectory(
+                                   modId
+                                 , commiter
+                                 , toGitPath(oldActiveTechniqueDirectory)
+                                 , toGitPath(newActiveTechniqueDirectory)
+                                 , "Move active technique for technique name '%s'%s".format(activeTechnique.techniqueName.value, GET(reason))
+                               )
+                             case None => Full("OK")
+                           }
+      } yield {
+        archived
+      }
     }
   }
 }
-
 
 /**
  * A specific trait to create archive of an active technique.
@@ -644,34 +651,39 @@ class GitNodeGroupArchiverImpl(
    * - always try to do a gitMove.
    */
   override def moveNodeGroupCategory(ngc:NodeGroupCategory, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) : Box[GitPath] = {
-    val oldNgcDir = newNgFile(ngc.id, oldParents).getParentFile
-    val newNgcXmlFile = newNgFile(ngc.id, newParents)
-    val newNgcDir = newNgcXmlFile.getParentFile
+    if(oldParents == newParents) { //actually, it's an archive, not a move
+      this.archiveNodeGroupCategory(ngc, oldParents, gitCommit)
+    } else {
 
-    for {
-      archive <- writeXml(
-                     newNgcXmlFile
-                   , nodeGroupCategorySerialisation.serialise(ngc)
-                   , "Archived node group category: " + newNgcXmlFile.getPath
-                 )
-      moved   <- {
-                   if(null != oldNgcDir && oldNgcDir.exists) {
-                     if(oldNgcDir.isDirectory) {
-                       //move content except category.xml
-                       sequence(oldNgcDir.listFiles.toSeq.filter( f => f.getName != serializedCategoryName)) { f =>
-                         tryo { FileUtils.moveToDirectory(f, newNgcDir, false) }
+      val oldNgcDir = newNgFile(ngc.id, oldParents).getParentFile
+      val newNgcXmlFile = newNgFile(ngc.id, newParents)
+      val newNgcDir = newNgcXmlFile.getParentFile
+
+      for {
+        archive <- writeXml(
+                       newNgcXmlFile
+                     , nodeGroupCategorySerialisation.serialise(ngc)
+                     , "Archived node group category: " + newNgcXmlFile.getPath
+                   )
+        moved   <- {
+                     if(null != oldNgcDir && oldNgcDir.exists) {
+                       if(oldNgcDir.isDirectory) {
+                         //move content except category.xml
+                         sequence(oldNgcDir.listFiles.toSeq.filter( f => f.getName != serializedCategoryName)) { f =>
+                           tryo { FileUtils.moveToDirectory(f, newNgcDir, false) }
+                         }
                        }
-                     }
-                     //in all case, delete the file at the old directory path
-                     tryo { FileUtils.deleteQuietly(oldNgcDir) }
-                   } else Full("OK")
-                 }
-      commit  <- gitCommit match {
-                   case Some((modId, commiter, reason)) => commitMvDirectory(modId, commiter, toGitPath(oldNgcDir), toGitPath(newNgcDir), "Move archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
-                   case None => Full("ok")
-                 }
-    } yield {
-      GitPath(toGitPath(archive))
+                       //in all case, delete the file at the old directory path
+                       tryo { FileUtils.deleteQuietly(oldNgcDir) }
+                     } else Full("OK")
+                   }
+        commit  <- gitCommit match {
+                     case Some((modId, commiter, reason)) => commitMvDirectory(modId, commiter, toGitPath(oldNgcDir), toGitPath(newNgcDir), "Move archive of node group category with ID '%s'%s".format(ngc.id.value,GET(reason)))
+                     case None => Full("ok")
+                   }
+      } yield {
+        GitPath(toGitPath(archive))
+      }
     }
   }
 
@@ -739,29 +751,31 @@ class GitNodeGroupArchiverImpl(
   }
 
   override def moveNodeGroup(ng:NodeGroup, oldParents: List[NodeGroupCategoryId], newParents: List[NodeGroupCategoryId], gitCommit:Option[(ModificationId, PersonIdent, Option[String])]) : Box[GitPath] = {
-
-    for {
-      oldNgXmlFile <- newNgFile(ng.id, oldParents)
-      newNgXmlFile <- newNgFile(ng.id, newParents)
-      archive      <- writeXml(
-                          newNgXmlFile
-                        , nodeGroupSerialisation.serialise(ng)
-                        , "Archived node group: " + newNgXmlFile.getPath
-                      )
-      moved        <- {
-                       if(null != oldNgXmlFile && oldNgXmlFile.exists) {
-                         tryo { FileUtils.deleteQuietly(oldNgXmlFile) }
-                       } else Full("OK")
-                     }
-      commit       <- gitCommit match {
-                        case Some((modId, commiter, reason)) => commitMvDirectory(modId, commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
-                        case None => Full("ok")
-                      }
-    } yield {
-      GitPath(toGitPath(archive))
+    if(oldParents == newParents) { //actually, it's an update not a move
+      this.archiveNodeGroup(ng, oldParents, gitCommit)
+    } else {
+      for {
+        oldNgXmlFile <- newNgFile(ng.id, oldParents)
+        newNgXmlFile <- newNgFile(ng.id, newParents)
+        archive      <- writeXml(
+                            newNgXmlFile
+                          , nodeGroupSerialisation.serialise(ng)
+                          , "Archived node group: " + newNgXmlFile.getPath
+                        )
+        moved        <- {
+                         if(null != oldNgXmlFile && oldNgXmlFile.exists) {
+                           tryo { FileUtils.deleteQuietly(oldNgXmlFile) }
+                         } else Full("OK")
+                       }
+        commit       <- gitCommit match {
+                          case Some((modId, commiter, reason)) => commitMvDirectory(modId, commiter, toGitPath(oldNgXmlFile), toGitPath(newNgXmlFile), "Move archive of node group with ID '%s'%s".format(ng.id.value,GET(reason)))
+                          case None => Full("ok")
+                        }
+      } yield {
+        GitPath(toGitPath(archive))
+      }
     }
   }
-
 }
 
 /////////////////////////////////////////////////////////////
