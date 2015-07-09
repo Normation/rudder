@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) Cfengine AS
+#  Copyright (C) CFEngine AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -11,16 +11,16 @@
 #  GNU General Public License for more details.
 #
 #  To the extent this program is licensed as part of the Enterprise
-#  versions of Cfengine, the applicable Commerical Open Source License
+#  versions of CFEngine, the applicable Commercial Open Source License
 #  (COSL) may apply to this file if you as a licensee so wish it. See
 #  included file COSL.txt.
 ###########################################################################
 #
-# Cfengine Community Open Promise-Body Library
+# CFEngine Community Open Promise-Body Library
 #
-# This initiative started by Cfengine promotes a
+# This initiative started by CFEngine promotes a
 # standardized set of names and promise specifications
-# for template functionality within Cfengine 3.
+# for template functionality within CFEngine 3.
 #
 # The aim is to promote an industry standard for
 # naming of configuration patterns, leading to a
@@ -30,7 +30,7 @@
 # minimal to assist readability and comprehensibility.
 
 # Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by Cfengine.
+# the cfengine community, and are moderated by CFEngine.
 # No liability or warranty for misuse is implied.
 #
 # If you add to this file, please try to make the
@@ -39,7 +39,7 @@
 # the online docs
 #
 
-# For Cfengine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.5.1 to 3.5.x
 # Commands bodies
 
 ###################################################
@@ -47,6 +47,26 @@
 # purchasing a commercial version of the software.#
 ###################################################
 
+bundle agent daemonize(command)
+# Note: There will be no output from the command reported by cf-agent. This
+# bundle has no effect on windows
+#
+# **Example:**
+# ```cf3
+# methods:
+#   "Launch Daemon"
+#     usebundle => daemonize("/bin/sleep 30");
+# ```
+{
+  commands:
+    !windows::
+      "exec 1>&-; exec 2>&-; $(command) &"
+        contain => in_shell;
+
+  reports:
+    windows.(inform_mode|verbose_mode)::
+      "$(this.bundle): This bundle does not support Windows";
+}
 
 ##-------------------------------------------------------
 ## contain
@@ -125,6 +145,15 @@ body contain setuid_sh(x)
 {
 exec_owner => "$(x)";
 useshell => "true"; # canonical "useshell" but this is backwards-compatible
+}
+
+##
+
+body contain setuidgid_dir(owner,group,dir)
+{
+      exec_owner => "$(owner)";
+      exec_group => "$(group)";
+      chdir      => "$(dir)";
 }
 
 ##

@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) Cfengine AS
+#  Copyright (C) CFEngine AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -11,16 +11,16 @@
 #  GNU General Public License for more details.
 #
 #  To the extent this program is licensed as part of the Enterprise
-#  versions of Cfengine, the applicable Commerical Open Source License
+#  versions of CFEngine, the applicable Commercial Open Source License
 #  (COSL) may apply to this file if you as a licensee so wish it. See
 #  included file COSL.txt.
 ###########################################################################
 #
-# Cfengine Community Open Promise-Body Library
+# CFEngine Community Open Promise-Body Library
 #
-# This initiative started by Cfengine promotes a
+# This initiative started by CFEngine promotes a
 # standardized set of names and promise specifications
-# for template functionality within Cfengine 3.
+# for template functionality within CFEngine 3.
 #
 # The aim is to promote an industry standard for
 # naming of configuration patterns, leading to a
@@ -30,7 +30,7 @@
 # minimal to assist readability and comprehensibility.
 
 # Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by Cfengine.
+# the cfengine community, and are moderated by CFEngine.
 # No liability or warranty for misuse is implied.
 #
 # If you add to this file, please try to make the
@@ -39,11 +39,11 @@
 # the online docs
 #
 
-# For Cfengine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.5.1 to 3.5.x
 # Processes bodies
 
 ###################################################
-# If you find Cfengine useful, please consider    #
+# If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
@@ -80,4 +80,24 @@ body process_count check_range(name,lower,upper)
 {
 match_range => irange("$(lower)","$(upper)");
 out_of_range_define => { "$(name)_out_of_range" };
+}
+
+bundle agent process_kill(name)
+# Kill a process by name (can be a regular expression)
+# name the regular expression or string
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#      "kill" usebundle => process_kill("badprocess");
+# ```
+{
+  processes:
+    !windows::
+      # Signals are presented as an ordered list to the process.
+      "$(name)" signals => { "term", "kill" };
+    windows::
+      # On Windows, only the kill signal is supported, which terminates the process.
+      "$(name)" signals => { "kill" };
 }

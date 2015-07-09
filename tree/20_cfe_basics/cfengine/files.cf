@@ -1,5 +1,5 @@
 ############################################################################
-#  Copyright (C) Cfengine AS
+#  Copyright (C) CFEngine AS
 #
 #  This program is free software; you can redistribute it and/or modify it
 #  under the terms of the GNU Lesser General Public License LGPL as published by the
@@ -11,16 +11,16 @@
 #  GNU General Public License for more details.
 #
 #  To the extent this program is licensed as part of the Enterprise
-#  versions of Cfengine, the applicable Commerical Open Source License
+#  versions of CFEngine, the applicable Commercial Open Source License
 #  (COSL) may apply to this file if you as a licensee so wish it. See
 #  included file COSL.txt.
 ###########################################################################
 #
-# Cfengine Community Open Promise-Body Library
+# CFEngine Community Open Promise-Body Library
 #
-# This initiative started by Cfengine promotes a
+# This initiative started by CFEngine promotes a
 # standardized set of names and promise specifications
-# for template functionality within Cfengine 3.
+# for template functionality within CFEngine 3.
 #
 # The aim is to promote an industry standard for
 # naming of configuration patterns, leading to a
@@ -30,7 +30,7 @@
 # minimal to assist readability and comprehensibility.
 
 # Contributions to this file are voluntarily given to
-# the cfengine community, and are moderated by Cfengine.
+# the cfengine community, and are moderated by CFEngine.
 # No liability or warranty for misuse is implied.
 #
 # If you add to this file, please try to make the
@@ -39,17 +39,26 @@
 # the online docs
 #
 
-# For Cfengine Core: 3.5.1 to 3.5.x
+# For CFEngine Core: 3.5.1 to 3.5.x
 # Files bodies
 
 ###################################################
-# If you find Cfengine useful, please consider    #
+# If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
 ###################################################
 # edit_line bundles
 ###################################################
+
+bundle edit_line insert_before_if_no_line(before, string)
+#
+{
+  insert_lines:
+      "$(string)"
+        location => before($(before)),
+        comment => "Prepend a line to the file if it doesn't already exist";
+}
 
 bundle edit_line insert_lines(lines)
 {
@@ -157,6 +166,16 @@ delete_lines:
 
 ##
 
+bundle edit_line prepend_if_no_line(string)
+# **See also:** [`insert_lines`][insert_lines] in
+# [`edit_line`][bundle edit_line]
+{
+  insert_lines:
+      "$(string)"
+      location => start,
+      comment => "Prepend a line to the file if it doesn't already exist";
+}
+
 bundle edit_line append_if_no_line(str)
 {
 insert_lines:
@@ -263,25 +282,6 @@ bundle edit_line manage_variable_values_ini(tab, sectionName)
  # Based on set_variable_values_ini
  # Added delete lines section to empty out undefined variable values for INI section
 
- # CAUTION : for it to work nicely, you should use Cfengine with the commit n°3229
- # otherwise you may risk a segfault
-
- #
- # If you are running 3.2.1 or earlier or more specifically git commit # or
- # earlier you can use this to work around the segfault bug.
- # vars:
- #     "$(file)"
- #         edit_line => append_if_no_line("[#EOF#]"),
- #         create => "true",
- #         comment => "Work around bug<bug#here> where eof did not mean end
- #                     of section and thus cannot select a region. This promise
- #                     should be placed before your call to this bundle";
- #      "$(file)"
- #         edit_line   => manage_variable_values_ini("context.array", "SectionName"),
- #         create => "true",
- #         comment     => "Set the variale values only in the specified ini region";
- #
-
 {
     vars:
         "index" slist => getindices("$(tab)[$(sectionName)]");
@@ -337,25 +337,6 @@ bundle edit_line set_variable_values_ini(tab, sectionName)
 
  # Based on set_variable_values from cfengine_stdlib.cf, modified to
  # use section to define were to write, and to handle commented-out lines.
-
- # CAUTION : for it to work nicely, you should use Cfengine with the commit n°3229
- # otherwise you may risk a segfault
-
- #
- # If you are running 3.2.1 or earlier or more specifically git commit # or
- # earlier you can use this to work around the segfault bug.
- # vars:
- #     "$(file)"
- #         edit_line => append_if_no_line("[#EOF#]"),
- #         create => "true",
- #         comment => "Work around bug<bug#here> where eof did not mean end
- #                     of section and thus cannot select a region. This promise
- #                     should be placed before your call to this bundle";
- #      "$(file)"
- #         edit_line   => set_variable_values_ini("context.array", "SectionName"),
- #         create => "true",
- #         comment     => "Set the variale values only in the specified ini region";
- #
 
 {
     vars:
@@ -986,6 +967,16 @@ link_children => "true";
 when_linking_children => "if_no_such_file"; # "override_file";
 }
 
+body link_from linkfrom(source, type)
+# Make any kind of link to a file
+# source link to this
+# type the link's type (`symlink` or `hardlink`)
+{
+      source => $(source);
+      link_type => $(type);
+}
+
+
 ##-------------------------------------------------------
 ## perms
 ##-------------------------------------------------------
@@ -1026,6 +1017,29 @@ body perms owner(user)
 {
 owners => { "$(user)" };
 }
+
+body perms system_owned(mode)
+# Set the file owner and group to the system default
+# mode the access permission in octal format
+#
+# **Example:**
+#
+# ```cf3
+# files:
+#     "/etc/passwd" perms => system_owned("0644");
+# ```
+{
+      mode   => "$(mode)";
+      owners => { "root" };
+
+    freebsd|openbsd|netbsd|darwin::
+      groups => { "wheel" };
+
+    linux::
+      groups => { "root" };
+
+    solaris::
+      groups => { "sys" };
 
 ##-------------------------------------------------------
 ## ACLS (extended Unix perms)
@@ -1160,6 +1174,14 @@ body file_select size_range(from,to)
 {
 search_size => irange("$(from)","$(to)");
 file_result => "size";
+}
+
+##
+
+body file_select bigger_than(size)
+{
+      search_size => irange("0","$(size)");
+      file_result => "!size";
 }
 
 ##
