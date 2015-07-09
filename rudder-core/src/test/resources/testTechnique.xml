@@ -1,0 +1,52 @@
+<TECHNIQUE name="Test technique">
+  <DESCRIPTION>A test technique</DESCRIPTION>
+
+  <SYSTEM>true</SYSTEM>
+
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+
+  <BUNDLES>
+    <NAME>bundle1</NAME>
+    <NAME>bundle2</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="tml1"/>
+    <TML name="tml2">
+      <OUTPATH>tml2.bar</OUTPATH>
+    </TML>
+    <TML name="tml3">
+      <INCLUDED>false</INCLUDED>
+    </TML>
+  </TMLS>
+      
+  <SYSTEMVARS>
+    <NAME>BUNDLELIST</NAME>
+    <NAME>COMMUNITY</NAME>
+  </SYSTEMVARS>  
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>A</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <SECTION name="common">
+      <INPUT>
+        <NAME>A</NAME>
+        <DESCRIPTION>...</DESCRIPTION>
+      </INPUT>
+    </SECTION>
+    <SECTION name="section2" multivalued="true" component="true" componentKey="B">
+      <INPUT>
+        <NAME>B</NAME>
+        <DESCRIPTION>...</DESCRIPTION>
+      </INPUT>
+    </SECTION>
+    <SECTION name="with provided expected reports" component="true">
+      <REPORTKEYS>
+        <VALUE>val1</VALUE>
+        <VALUE>val2</VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

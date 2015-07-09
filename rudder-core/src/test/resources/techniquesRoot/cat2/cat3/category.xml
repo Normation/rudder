@@ -1,0 +1,7 @@
+<xml>
+    <name>Category 3</name>
+    <descripton>
+      That category should be ignored, as its parent is not a 
+      valid category (no category.xml descriptor)
+    </descripton>
+</xml>

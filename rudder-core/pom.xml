@@ -59,8 +59,32 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     
     <dependency>
       <groupId>com.normation</groupId>
-      <artifactId>cfclerk</artifactId>
+      <artifactId>utils</artifactId>
       <version>${rudder-version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>stringtemplate</artifactId>
+      <version>3.2.1</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>${commons-io-version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>${commons-codec-version}</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.eclipse.jgit</groupId>
+      <artifactId>org.eclipse.jgit</artifactId>
+      <version>${jgit-version}</version>
     </dependency>
 
     <dependency>
@@ -130,6 +154,5 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
       <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>  
-  
   </dependencies>
 </project>
