@@ -40,6 +40,8 @@ redhat::
  package_delete_command => "/bin/rpm -e --nodeps --allmatches";
  package_verify_command => "/bin/rpm -V";
  package_noverify_returncode => "1";
+      package_version_less_command => "$(redhat_knowledge.rpm_compare_less)";
+      package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
 }
 # Install packages using yum standard install, disable package caching
 body package_method redhat_install
@@ -65,6 +67,8 @@ redhat::
  package_delete_command => "/bin/rpm -e --nodeps --allmatches";
  package_verify_command => "/bin/rpm -V";
  package_noverify_returncode => "1";
+      package_version_less_command => "$(redhat_knowledge.rpm_compare_less)";
+      package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
 }
 
 body package_method debian_local_install
@@ -82,6 +86,11 @@ body package_method debian_local_install
   package_delete_command => "$(debian_knowledge.call_dpkg) --purge";
   package_update_command =>  "$(debian_knowledge.call_dpkg) --install";
   package_patch_command =>  "$(debian_knowledge.call_dpkg) --install";
+
+      # make correct version comparisons
+      package_version_less_command => "$(debian_knowledge.dpkg_compare_less)";
+      package_version_equal_command => "$(debian_knowledge.dpkg_compare_equal)";
+
 x86_64::
   package_name_convention => "$(name)_$(version)_amd64.deb";
 i686::
@@ -137,6 +146,8 @@ redhat::
  package_patch_command => "/usr/bin/yum -y update";
  package_delete_command => "/bin/rpm -e --nodeps --allmatches";
  package_verify_command => "/bin/rpm -V";
+      package_version_less_command => "$(redhat_knowledge.rpm_compare_less)";
+      package_version_equal_command => "$(redhat_knowledge.rpm_compare_equal)";
 
 debian::
  package_changes => "bulk";
@@ -146,6 +157,11 @@ debian::
  package_installed_regex => ".i.*"; # packages that have been uninstalled may be listed
  package_name_convention => "$(name)";
  package_list_update_ifelapsed => "240";		# 4 hours
+
+      # make correct version comparisons
+      package_version_less_command => "$(debian_knowledge.dpkg_compare_less)";
+      package_version_equal_command => "$(debian_knowledge.dpkg_compare_equal)";
+
 
 debian.have_aptitude::
    package_add_command => "$(debian_knowledge.call_aptitude) $(debian_knowledge.dpkg_options) --assume-yes install";

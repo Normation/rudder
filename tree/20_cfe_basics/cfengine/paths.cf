@@ -82,10 +82,16 @@ bundle common paths
     !(enterprise.(am_policy_hub|policy_server))::
       "path[git]"      string => "/usr/bin/git";
 
-    any::
-      "path[getfacl]"  string => "/usr/bin/getfacl";
+    !(freebsd|darwin|smartos)::
       "path[npm]"      string => "/usr/bin/npm";
       "path[pip]"      string => "/usr/bin/pip";
+
+    !(freebsd|darwin)::
+      "path[getfacl]"  string => "/usr/bin/getfacl";
+
+    freebsd|darwin::
+      "path[npm]"      string => "/usr/local/bin/npm";
+      "path[pip]"      string => "/usr/local/bin/pip";
 
     _have_bin_env::
       "path[env]"      string => "/bin/env";
@@ -143,6 +149,7 @@ bundle common paths
       "path[dmidecode]"         string => "/usr/bin/dmidecode";
       "path[echo]"              string => "/usr/bin/echo";
       "path[egrep]"             string => "/usr/bin/egrep";
+      "path[ethtool]"           string => "/usr/bin/ethtool";
       "path[find]"              string => "/usr/bin/find";
       "path[free]"              string => "/usr/bin/free";
       "path[grep]"              string => "/usr/bin/grep";
@@ -172,12 +179,11 @@ bundle common paths
       "path[journalctl]"        string => "/usr/bin/journalctl";
       "path[netctl]"            string => "/usr/bin/netctl";
 
-    freebsd|netbsd::
+    freebsd|netbsd|openbsd::
 
       "path[awk]"      string => "/usr/bin/awk";
       "path[bc]"       string => "/usr/bin/bc";
       "path[cat]"      string => "/bin/cat";
-      "path[cksum]"    string => "/usr/bin/cksum";
       "path[crontabs]" string => "/var/cron/tabs";
       "path[cut]"      string => "/usr/bin/cut";
       "path[dc]"       string => "/usr/bin/dc";
@@ -190,38 +196,39 @@ bundle common paths
       "path[grep]"     string => "/usr/bin/grep";
       "path[ls]"       string => "/bin/ls";
       "path[netstat]"  string => "/usr/bin/netstat";
-      "path[ping]"     string => "/usr/bin/ping";
       "path[perl]"     string => "/usr/bin/perl";
       "path[printf]"   string => "/usr/bin/printf";
       "path[sed]"      string => "/usr/bin/sed";
       "path[sort]"     string => "/usr/bin/sort";
       "path[tr]"       string => "/usr/bin/tr";
+
+    freebsd.!(freebsd_9_3|freebsd_10|freebsd_11)|netbsd|openbsd::
+
+      "path[ping]"     string => "/usr/bin/ping";
+
+    freebsd_9_3|freebsd_10|freebsd_11::
+
+      "path[ping]"     string => "/sbin/ping";
+
+    freebsd|netbsd::
+
+      "path[cksum]"    string => "/usr/bin/cksum";
       "path[realpath]" string => "/bin/realpath";
+
+    freebsd::
+
+      "path[getfacl]"  string => "/bin/getfacl";
+      "path[dtrace]"   string => "/usr/sbin/dtrace";
+      "path[zpool]"    string => "/sbin/zpool";
+      "path[zfs]"      string => "/sbin/zfs";
 
     openbsd::
 
-      "path[awk]"      string => "/usr/bin/awk";
-      "path[bc]"       string => "/usr/bin/bc";
-      "path[cat]"      string => "/bin/cat";
       "path[cksum]"    string => "/bin/cksum";
-      "path[crontabs]" string => "/var/cron/tabs";
-      "path[cut]"      string => "/usr/bin/cut";
-      "path[dc]"       string => "/usr/bin/dc";
-      "path[df]"       string => "/bin/df";
-      "path[diff]"     string => "/usr/bin/diff";
-      "path[dig]"      string => "/usr/sbin/dig";
-      "path[echo]"     string => "/bin/echo";
-      "path[egrep]"    string => "/usr/bin/egrep";
-      "path[find]"     string => "/usr/bin/find";
-      "path[grep]"     string => "/usr/bin/grep";
-      "path[ls]"       string => "/bin/ls";
-      "path[netstat]"  string => "/usr/bin/netstat";
-      "path[ping]"     string => "/usr/bin/ping";
-      "path[perl]"     string => "/usr/bin/perl";
-      "path[printf]"   string => "/usr/bin/printf";
-      "path[sed]"      string => "/usr/bin/sed";
-      "path[sort]"     string => "/usr/bin/sort";
-      "path[tr]"       string => "/usr/bin/tr";
+
+    smartos::
+      "path[npm]"      string => "/opt/local/bin/npm";
+      "path[pip]"      string => "/opt/local/bin/pip";
 
     solaris::
 
@@ -282,7 +289,9 @@ bundle common paths
       "path[domainname]"    string => "/bin/domainname";
       "path[echo]"          string => "/bin/echo";
       "path[egrep]"         string => "/bin/egrep";
+      "path[ethtool]"       string => "/usr/sbin/ethtool";
       "path[find]"          string => "/usr/bin/find";
+      "path[free]"          string => "/usr/bin/free";
       "path[grep]"          string => "/bin/grep";
       "path[hostname]"      string => "/bin/hostname";
       "path[init]"          string => "/sbin/init";
@@ -299,6 +308,7 @@ bundle common paths
       "path[sort]"          string => "/bin/sort";
       "path[test]"          string => "/usr/bin/test";
       "path[tr]"            string => "/usr/bin/tr";
+      "path[wc]"            string => "/usr/bin/wc";
       "path[wget]"          string => "/usr/bin/wget";
       "path[realpath]"      string => "/usr/bin/realpath";
 
@@ -329,6 +339,7 @@ bundle common paths
       "path[diff]"          string => "/usr/bin/diff";
       "path[dig]"           string => "/usr/bin/dig";
       "path[domainname]"    string => "/bin/domainname";
+      "path[dscl]"          string => "/usr/bin/dscl";
       "path[echo]"          string => "/bin/echo";
       "path[egrep]"         string => "/usr/bin/egrep";
       "path[find]"          string => "/usr/bin/find";
@@ -369,7 +380,9 @@ bundle common paths
       "path[domainname]"    string => "/bin/domainname";
       "path[echo]"          string => "/bin/echo";
       "path[egrep]"         string => "/bin/egrep";
+      "path[ethtool]"       string => "/sbin/ethtool";
       "path[find]"          string => "/usr/bin/find";
+      "path[free]"          string => "/usr/bin/free";
       "path[grep]"          string => "/bin/grep";
       "path[hostname]"      string => "/bin/hostname";
       "path[init]"          string => "/sbin/init";
@@ -386,6 +399,7 @@ bundle common paths
       "path[sort]"          string => "/usr/bin/sort";
       "path[test]"          string => "/usr/bin/test";
       "path[tr]"            string => "/usr/bin/tr";
+      "path[wc]"            string => "/usr/bin/wc";
       "path[wget]"          string => "/usr/bin/wget";
       "path[realpath]"      string => "/usr/bin/realpath";
 
@@ -414,7 +428,7 @@ bundle common paths
       "path[sysctl]"        string => "/sbin/sysctl";
 
     !suse::
-      "path[logger]"        string => "/usr/bin/logger"; 
+      "path[logger]"        string => "/usr/bin/logger";
 
     suse::
 
@@ -435,6 +449,7 @@ bundle common paths
       "path[domainname]"    string => "/bin/domainname";
       "path[echo]"          string => "/bin/echo";
       "path[egrep]"         string => "/usr/bin/egrep";
+      "path[ethtool]"       string => "/usr/sbin/ethtool";
       "path[find]"          string => "/usr/bin/find";
       "path[free]"          string => "/usr/bin/free";
       "path[grep]"          string => "/usr/bin/grep";
