@@ -304,8 +304,6 @@ body package_method apt_get
       package_version_equal_command => "$(debian_knowledge.dpkg_compare_equal)";
 }
 
-}
-
 body package_method apt_get_release(release)
 {
       package_changes => "bulk";
@@ -1243,8 +1241,6 @@ debian.!have_aptitude::
       package_add_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
       package_delete_command => "/usr/bin/pacman -Rs --noconfirm";
       package_update_command => "/usr/bin/pacman -S --noconfirm --noprogressbar --needed";
-}
-
 }
 
 ##
