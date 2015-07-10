@@ -33,7 +33,7 @@ bundle agent service_action(service_name, action)
 
     systemctl_utility_present::
 
-      "action_command"            string => "${paths.path[systemctl]} ${action} ${service_name}";
+      "action_command"            string => "${paths.path[systemctl]} ${action} ${service_name}.service";
 
     !systemctl_utility_present.service_utility_present::
 

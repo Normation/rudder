@@ -30,7 +30,7 @@ bundle agent service_ensure_started_at_boot(service_name)
   vars:
 
     systemctl_utility_present::
-      "command_to_register" string => "${paths.path[systemctl]} enable ${service_name}";
+      "command_to_register" string => "${paths.path[systemctl]} enable ${service_name}.service";
 
     !systemctl_utility_present.chkconfig_utility_present::
       "command_to_register" string => "${paths.path[chkconfig]} ${service_name} on";
