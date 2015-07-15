@@ -36,6 +36,9 @@ bundle agent file_remove(target)
       classes       => classes_generic("${class_prefix}");
 
   methods:
+    "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
+                         ifvarclass => "!${class_prefix}_reached";
+
     "report" usebundle  => _logger("Remove file ${target}", "${class_prefix}");
 
 }
