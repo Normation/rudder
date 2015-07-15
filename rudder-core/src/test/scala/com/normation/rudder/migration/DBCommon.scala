@@ -56,8 +56,6 @@ import scala.io.Source
  */
 trait DBCommon extends Specification with Loggable with Tags {
 
-  System.setProperty("test.postgres", "true")
-
   skipAllIf(System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => false
     case _ => true
