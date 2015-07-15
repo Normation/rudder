@@ -1,0 +1,1 @@
+$(sys.workdir)/bin/cf-agent -f failsafe.cf \&\& $(sys.workdir)/bin/cf-agent
