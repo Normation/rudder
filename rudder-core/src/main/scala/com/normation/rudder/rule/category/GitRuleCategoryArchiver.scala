@@ -209,41 +209,47 @@ class GitRuleCategoryArchiverImpl(
     , newParents : List[RuleCategoryId]
     , gitCommit  : Option[(ModificationId, PersonIdent, Option[String])]
   ) : Box[GitPath] = {
-    val oldCategoryDir  = categoryFile(category.id, oldParents.reverse).getParentFile
-    val newCategoryFile = categoryFile(category.id, newParents.reverse)
-    val newCategoryDir  = newCategoryFile.getParentFile
 
-    for {
-      archive <- writeXml(
-                     newCategoryFile
-                   , ruleCategorySerialisation.serialise(category)
-                   , s"Archived rule category: ${newCategoryFile.getPath}"
-                 )
-      moved   <- {
-                   if(null != oldCategoryDir && oldCategoryDir.exists) {
-                     if(oldCategoryDir.isDirectory) {
-                       //move content except category.xml
-                       val filteredDir = oldCategoryDir.listFiles.toSeq.filter( f => f.getName != categoryFileName)
-                       sequence(filteredDir) { f => tryo { FileUtils.moveToDirectory(f, newCategoryDir, false) } }
+    //guard: if source == dest, then it's an update
+    if(oldParents == newParents) {
+      this.archiveRuleCategory(category, oldParents, gitCommit)
+    } else {
+
+      val oldCategoryDir  = categoryFile(category.id, oldParents.reverse).getParentFile
+      val newCategoryFile = categoryFile(category.id, newParents.reverse)
+      val newCategoryDir  = newCategoryFile.getParentFile
+
+      for {
+        archive <- writeXml(
+                       newCategoryFile
+                     , ruleCategorySerialisation.serialise(category)
+                     , s"Archived rule category: ${newCategoryFile.getPath}"
+                   )
+        moved   <- {
+                     if(null != oldCategoryDir && oldCategoryDir.exists) {
+                       if(oldCategoryDir.isDirectory) {
+                         //move content except category.xml
+                         val filteredDir = oldCategoryDir.listFiles.toSeq.filter( f => f.getName != categoryFileName)
+                         sequence(filteredDir) { f => tryo { FileUtils.moveToDirectory(f, newCategoryDir, false) } }
+                       }
+                       //in all case, delete the file at the old directory path
+                       tryo { FileUtils.deleteQuietly(oldCategoryDir) }
+                     } else {
+                       Full("OK")
                      }
-                     //in all case, delete the file at the old directory path
-                     tryo { FileUtils.deleteQuietly(oldCategoryDir) }
-                   } else {
-                     Full("OK")
                    }
-                 }
-      commit  <- gitCommit match {
-                   case Some((modId, commiter, reason)) =>
-                     val commitMsg = s"Move archive of node group category with ID '${category.id.value}'${GET(reason)}"
-                     val oldPath = toGitPath(oldCategoryDir)
-                     val newPath = toGitPath(newCategoryDir)
-                     commitMvDirectory(modId, commiter, oldPath, newPath, commitMsg)
-                   case None =>
-                     Full("ok")
-                 }
-    } yield {
-      GitPath(toGitPath(archive))
+        commit  <- gitCommit match {
+                     case Some((modId, commiter, reason)) =>
+                       val commitMsg = s"Move archive of rule category with ID '${category.id.value}'${GET(reason)}"
+                       val oldPath = toGitPath(oldCategoryDir)
+                       val newPath = toGitPath(newCategoryDir)
+                       commitMvDirectory(modId, commiter, oldPath, newPath, commitMsg)
+                     case None =>
+                       Full("ok")
+                   }
+      } yield {
+        GitPath(toGitPath(archive))
+      }
     }
   }
-
 }
