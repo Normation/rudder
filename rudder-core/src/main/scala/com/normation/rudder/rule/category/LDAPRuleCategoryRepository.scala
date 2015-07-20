@@ -248,41 +248,6 @@ class WoLDAPRuleCategoryRepository(
   }
 
   /**
-   * Update an existing category
-   */
-  override def update(
-      category : RuleCategory
-    , modId    : ModificationId
-    , actor    : EventActor
-    , reason   : Option[String]
-  ) : Box[RuleCategory] = {
-    repo.synchronized { for {
-      con              <- ldap
-      oldCategoryEntry <- getCategoryEntry(con, category.id, "1.1") ?~! s"Entry with ID '${category.id.value}' was not found"
-      categoryEntry    =  mapper.ruleCategory2ldap(category,oldCategoryEntry.dn.getParent)
-      canAddByName     <- if (categoryExists(con, category.name, oldCategoryEntry.dn.getParent, category.id)) {
-                            Failure(s"Cannot update the Node Group Category with name ${category.name} : a category with the same name exists at the same level")
-                          } else {
-                            Full("OK")
-                          }
-      result           <- categoryMutex.writeLock { con.save(categoryEntry, removeMissingAttributes = true) }
-      updated          <- get(category.id)
-      // Maybe we have to check if the parents are system or not too
-      autoArchive      <- if(autoExportOnModify && !result.isInstanceOf[LDIFNoopChangeRecord] && !category.isSystem) {
-                             for {
-                              parents  <- getParents(category.id)
-                              commiter <- personIdentService.getPersonIdentOrDefault(actor.name)
-                              archive  <- gitArchiver.archiveRuleCategory(updated,parents.map( _.id), Some(modId,commiter, reason))
-                            } yield {
-                              archive
-                            }
-                          } else Full("ok")
-    } yield {
-      updated
-    } }
-  }
-
-   /**
    * Update and move an existing category
    */
   override def updateAndMove(
@@ -321,7 +286,7 @@ class WoLDAPRuleCategoryRepository(
                                 moved    <- gitArchiver.moveRuleCategory(updated, oldParents.map( _.id), parents.map( _.id), Some(modId,commiter, reason))
                               } yield {
                                 moved
-                              }) ?~! "Error when trying to archive automatically the category move"
+                              }) ?~! "Error when trying to  automaticallyarchive the category move or update"
                             case _ => Full("ok")
                           }
     } yield {
