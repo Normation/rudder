@@ -58,13 +58,6 @@ trait WoRuleCategoryRepository {
     , reason : Option[String]
   ) : Box[RuleCategory]
 
-  def update(
-      category : RuleCategory
-    , modId    : ModificationId
-    , actor    : EventActor
-    , reason   : Option[String]
-  ) : Box[RuleCategory]
-
   def updateAndMove(
       that   : RuleCategory
     , into   : RuleCategoryId
