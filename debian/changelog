@@ -1,0 +1,11 @@
+ncf (0.201507210500) jessie; urgency=low
+
+  * First official version
+
+ -- Benoît PECCATTE <benoit.peccatte@normation.com>  Tue, 21 Jul 2015 11:55:00 +0100
+ 
+ncf (0.2013120500) squeeze; urgency=low
+
+  * Initial release
+
+ -- Matthieu CERDA <matthieu.cerda@normation.com>  Thu, 05 Dec 2013 15:50:24 +0100
