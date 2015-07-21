@@ -1,0 +1,16 @@
+Source: ncf
+Section: admin
+Priority: extra
+Maintainer: Rudder packaging team <rudder-packaging@rudder-project.org>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.0
+Homepage: http://www.ncf.io
+
+Package: ncf
+Architecture: all
+Depends: ${misc:Depends}
+Suggests: cfengine3 (>=3.5.0), cfengine-community (>=3.5.0), rudder-agent (>=2.8.0), python (>=2.6)
+Description: CFEngine framework
+ ncf is a CFEngine framework aimed at helping newcomers on CFEngine
+ to be more quickly operationnal and old timers to spend less time
+ focusing on low level details and have more time for fun things.

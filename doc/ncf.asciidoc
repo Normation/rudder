@@ -1,0 +1,34 @@
+= ncf(1)
+:doctype: manpage
+
+== NAME
+
+ncf - CFEngine framework
+
+== SYNOPSIS
+
+*ncf* init [path]
+
+== DESCRIPTION
+
+Initialize a new ncf repository.
+This will copy the tree content in a new directory. 
+This allows you to have a live content that can be used and modified on a CFEngine server.
+
+== OPTIONS
+
+Running ncf without arguments gives a basic help line.
+
+== AUTHOR
+
+Normation SAS (contact@normation.com)
+
+== RESOURCES
+
+Main web site: https://ncf.io/
+
+Sources: https://github.com/Normation/ncf/
+
+== COPYING
+
+Copyright \(C) 2014-2015 Normation SAS.
