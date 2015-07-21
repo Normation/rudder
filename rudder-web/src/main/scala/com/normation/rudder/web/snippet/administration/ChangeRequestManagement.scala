@@ -62,6 +62,7 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowNodeId
 import com.normation.rudder.domain.eventlog.ChangeRequestLogsFilter
 import com.normation.eventlog.EventLog
+import net.liftweb.http.SHtml.SelectableOption
 
 class ChangeRequestManagement extends DispatchSnippet with Loggable {
 
@@ -222,7 +223,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     def unexpandedFilter(default:String):NodeSeq = {
       val multipleValues = ("","All") :: ("Pending","Open") :: ("^(?!Pending)","Closed") :: Nil
       val select :Elem =SHtml.select(
-          multipleValues ::: selectValues
+          (multipleValues ::: selectValues).map{ case (a,b) => SelectableOption(a,b)}
         , Full(default)
         , list => value = list
         , ("style","width:auto;")

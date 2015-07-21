@@ -13,27 +13,27 @@
       <div data-lift="lazy-load">
         <ul class="nav nav-pills nav-stacked navbar-rudder" style="border-radius:4px">
           <li ><a href="/secure/nodeManager/nodes">
-            <span class="badge pull-right"><lift:HomePage.acceptedNodes/></span>
+            <span class="badge pull-right"> <div data-lift="HomePage.acceptedNodes" > </div></span>
             Nodes</a>
           </li>
           <li ><a href="/secure/nodeManager/manageNewNode">
-            <span class="badge pull-right"><lift:HomePage.pendingNodes/></span>
+            <span class="badge pull-right" > <div data-lift="HomePage.pendingNodes" ></div></span>
             Pending nodes</a>
           </li>
           <li><a href="/secure/configurationManager/ruleManagement">
-            Rules <span class="badge pull-right"><lift:HomePage.rules/></span>
+            Rules <span class="badge pull-right" > <div data-lift="HomePage.rules" ></div></span>
             </a>
           </li>
           <li ><a href="/secure/configurationManager/directiveManagement">
-            <span class="badge pull-right"><lift:HomePage.directives/></span>
+            <span class="badge pull-right" > <div data-lift="HomePage.directives" ></div></span>
             Directives</a>
           </li>
           <li ><a href="/secure/nodeManager/groups">
-            <span class="badge pull-right"><lift:HomePage.groups/></span>
+            <span class="badge pull-right" > <div data-lift="HomePage.groups"></div></span>
             Groups</a>
           </li>
           <li ><a href="/secure/administration/techniqueLibraryManagement">
-            <span class="badge pull-right"><lift:HomePage.techniques/></span>
+            <span class="badge pull-right" > <div data-lift="HomePage.techniques" ></div></span>
             Techniques</a>
           </li>
         </ul>
@@ -68,7 +68,7 @@
         <div id="nodeOverview" class="panel panel-default">
           <div class="panel-heading">Nodes by overall compliance</div>
           <div id="nodeCompliance" class=""></div>
-          <div data-lift="lazy-load"><lift:HomePage.getAllCompliance/></div>
+          <div data-lift="lazy-load"> <div data-lift="HomePage.getAllCompliance"></div> </div>
         </div>    
       </div>
 
@@ -85,12 +85,12 @@
             <h4>By OS</h4>
             <div id="nodeOs"></div>
             <div id="nodeOsLegend"> </div>
-            <div data-lift="lazy-load"><lift:HomePage.inventoryInfo/></div>
+            <div data-lift="lazy-load"> <div data-lift="HomePage.inventoryInfo" > </div></div>
           </div>
           <div class=" col-sm-4">
             <h4>By agent version</h4>
             <div id="nodeAgents">
-              <div data-lift="lazy-load"><lift:HomePage.rudderAgentVersion/></div>
+              <div data-lift="lazy-load"> <div data-lift="HomePage.rudderAgentVersion"></div></div>
             </div>
             
             <div id="nodeAgentsLegend"> </div>

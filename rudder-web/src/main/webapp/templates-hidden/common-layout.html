@@ -5,7 +5,7 @@
     <meta name="keywords" content="" />
     
 
-    <lift:baseUrl.display />
+    <script data-lift="baseUrl.display" ></script>
     
     <link type="image/x-icon" rel="icon" href="/images/rudder-favicon.ico" />
     
@@ -30,6 +30,10 @@
     <script type="text/javascript" src="/javascript/jquery/ui/minified/jquery.ui.tabs.min.js"></script>
     <script type="text/javascript" src="/javascript/jquery/ui/minified/i18n/jquery-ui-i18n.min.js"></script>
     
+    <link type="text/css" rel="stylesheet" href="/bootstrap-3.2.0-dist/css/tw-bs-bootstrap.css" media="screen" />
+    <link type="text/css" rel="stylesheet" href="/style/bootstrap-rudder-bridge.css" media="screen" />
+    <script type="text/javascript" src="/bootstrap-3.2.0-dist/js/bootstrap.js"></script>
+    
     <script type="text/javascript" src="/javascript/c3/d3.min.js"></script>
     <script type="text/javascript" src="/javascript/c3/c3-0.4.8.js"></script>
 
@@ -40,54 +44,19 @@
     <script type="text/javascript" src="/javascript/rudder/rudder-datatable.js"></script>
     <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
     
-    <script type="text/javascript">
-      // <![CDATA[
-      $(document).ready(function() {
-        correctButtons();
-        $("a", "form").click(function() { return false; });
-        createTooltip();
-      });
-      // ]]>
-    </script>
-    <script type="text/javascript">
-      // <![CDATA[
-      $(document).ready(function() {roundTabs();});
-      // ]]>
-    </script>
-    
-    <script type="text/javascript" src="/javascript/angular/angular.min.js" />
-    <script type="text/javascript" src="/javascript/angular/angular-animate.min.js" />
-    <script type="text/javascript" src="/javascript/angular/angular-datatables.js" />
+    <script type="text/javascript" src="/javascript/angular/angular.min.js" ></script>
+    <script type="text/javascript" src="/javascript/angular/angular-animate.min.js" ></script>
+    <script type="text/javascript" src="/javascript/angular/angular-datatables.js" ></script>
     <script type="text/javascript" src="/javascript/rudder/angular/groupManagement.js" id="angular-groupManagement"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/ruleDirectives.js" id="angular-ruleDirectives"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/technique-version.js"></script>
-  
-    
-    <link type="text/css" rel="stylesheet" href="/bootstrap-3.2.0-dist/css/tw-bs-bootstrap.css" media="screen" />
-    <link type="text/css" rel="stylesheet" href="/style/bootstrap-rudder-bridge.css" media="screen" />
-    <script type="text/javascript" src="/bootstrap-3.2.0-dist/js/bootstrap.js" />
-    <script type="text/javascript">
-      // <![CDATA[
-      var bootstrapButton = $.fn.button.noConflict();
-      var bootstrapAlert = $.fn.alert.noConflict();
-      var bootstrapCarousel = $.fn.carousel.noConflict();
-      var bootstrapCollapse = $.fn.collapse.noConflict();
-      var bootstrapTooltip = $.fn.tooltip.noConflict();
-      var bootstrapPopover = $.fn.popover.noConflict();
-      var bootstrapScrollspy = $.fn.scrollspy.noConflict();
-      var bootstrapTab = $.fn.tab.noConflict();
-      var bootstrapAffix = $.fn.affix.noConflict();
-      var bootstrapModal = $.fn.modal.noConflict();
-      $.fn.bsModal = bootstrapModal
-      // ]]>
-    </script>
 
 
     <link type="text/css" rel="stylesheet" href="/style/rudder-bootstrap.css" media="screen" />
     <script type="text/javascript" src="/javascript/rudder/angular/complianceMode.js" id="angular-complianceMode"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/agentSchedule.js" id="angular-agentSchedule"></script>
     
-        <lift:SendMetricsPopup.display />
+    <script data-lift="SendMetricsPopup.display" ></script>
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->
@@ -110,23 +79,23 @@
         <!-- Base Menu -->
         <span class="lift:BootstrapMenu?linkToSelf=true;expandAll=true"></span>
         <!-- Quick Search -->
-        <lift:QuickSearchNode.render />
+         <div data-lift="QuickSearchNode.render" ></div>
         <!-- Right Menu -->
         <ul class="nav navbar-nav navbar-right">
-          <!-- Change request -->  
-          <lift:comet type="WorkflowInformation" name="workflowInfo" />  
+          <!-- Change request  -->
+          <li class="lift:comet?type=WorkflowInformation" name="workflowInfo" ></li>
           <!-- Promise Generation -->
-          <lift:authz role="deployment_read">
-            <lift:comet type="AsyncDeployment" name="deploymentStatus" />
-          </lift:authz>
+          <li class="lift:comet?type=AsyncDeployment" name="deploymentStatus"  ></li>
           <!-- Manual -->
           <li><a href="/rudder-doc">User manual</a></li>
           <!-- User -->
           <li class="dropdown">
-            <a href="#" class="dropdown-toggle lift:UserInformation.userCredentials"  data-toggle="dropdown">
-              <span style="margin-right:5px;" class="glyphicon glyphicon-user"></span>
-              <span id="openerAccount">[User name]</span>
-              <span class="caret"></span>
+            <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
+              <span data-lift="UserInformation.userCredentials">
+                <span style="margin-right:5px;" class="glyphicon glyphicon-user"></span>
+                <span id="openerAccount">[User name]</span>
+                <span class="caret"></span>
+              </span>
             </a>
             <ul class="dropdown-menu" role="menu">
               <li><a href="#" id="logout">Log out</a></li>
@@ -181,14 +150,14 @@
         <hr/>
         <div class="popupButton">
            <span>
-            <button class="simplemodal-close" onClick="$.modal.close();">
+            <button class="simplemodal-close" onclick="$.modal.close();">
                Cancel
             </button>
-            <lift:UserInformation.logout>
+            <span data-lift="UserInformation.logout">
             <a  class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" href="/logout" role="button">
                 <span class="ui-button-text red" class="logoutbutwidth">Logout</span>
             </a>
-            </lift:UserInformation.logout>
+            </span>
           </span>
         </div>
       </div>

@@ -13,7 +13,6 @@
 
   <div class="portlet-content">
    
-    <lift:node.AcceptNode.head />
     <hr class="spacer"/>
     <div id="new_servers_tab" class="tabs">
       <ul>
@@ -28,19 +27,19 @@
         </div>
         <div class="err"><lift:Msgs>[error]</lift:Msgs></div>
         <div  data-lift="lazy-load">
-          <lift:node.AcceptNode.list>
-            <pending:selectall/>
+          <div data-lift="node.AcceptNode.list">
+            <pending:selectall><</pending:selectall>
             <br/>
-            <pending:servers/>
-            <div id="acceptNodeGrid_paginate_area" class="nodisplay"/>
+            <pending:servers></pending:servers>
+            <div id="acceptNodeGrid_paginate_area" class="nodisplay"></div>
             <lift:authz role="node_write">
-            <p class="bottomButton rmargin">
-              <span><pending:accept/></span>
-              <span class="nserverrmargin"><pending:refuse/></span>
-            </p>
+              <p class="bottomButton rmargin">
+                <span><pending:accept></pending:accept></span>
+                <span class="nserverrmargin"><pending:refuse></pending:refuse></span>
+              </p>
             </lift:authz>
-            <pending:errors/>
-          </lift:node.AcceptNode.list>
+            <pending:errors></pending:errors>
+          </div>
         </div>
       </div>
       
@@ -49,13 +48,13 @@
           <p>View history of Nodes that have been accepted or refused.</p>
           <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
         </div>    
-        <lift:node.PendingHistoryGrid.displayAndInit>
-          <pending:history/>
-        </lift:node.PendingHistoryGrid.displayAndInit>
+        <div data-lift="node.PendingHistoryGrid.displayAndInit">
+          <pending:history></pending:history>
+        </div>
       </div></div>
     </div>
-    <div id="manageNewNode"/>
-    <div id="expectedPolicyZone"/>
+    <div id="manageNewNode"></div>
+    <div id="expectedPolicyZone"></div>
   
   </div>
 </div>

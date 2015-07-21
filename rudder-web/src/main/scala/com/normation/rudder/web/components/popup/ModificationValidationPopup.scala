@@ -80,7 +80,6 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.utils.Control.boxSequence
 
-
 /**
  * Validation pop-up for modification on group and directive.
  *
@@ -105,13 +104,12 @@ object ModificationValidationPopup extends Loggable {
     (for {
       xml <- Templates(path)
     } yield {
-      chooseTemplate("component", "validationPopup", xml)
+      chooseTemplate("component", "validationpopup", xml)
     }) openOr {
       logger.error("Missing template <component:validationPopup> at path: %s.html".format(path.mkString("/")))
       <div/>
     }
   }
-
 
 sealed trait Action { def displayName: String }
 final case object Save extends Action { val displayName: String = "Save" }
@@ -124,7 +122,6 @@ final case object CreateSolo extends Action { val displayName: String = "Create"
 
 //create the directive and assign it to rules (creation of directive without wf, rules modification with wf)
 final case object CreateAndModRules extends Action { val displayName: String = "Create" }
-
 
   /* Text variation for
    * - Directive and groups,
@@ -199,9 +196,6 @@ final case object CreateAndModRules extends Action { val displayName: String = "
       </div>
   }
 }
-
-
-
 
 /*
  * Pop-up logic:
@@ -334,7 +328,6 @@ class ModificationValidationPopup(
       case (true, _) => ("Submit for Validation", "wideButton", workflowMessage(false))
     }
 
-
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(name, action) &
@@ -437,7 +430,6 @@ class ModificationValidationPopup(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw("""$.modal.close();""")
   }
@@ -448,7 +440,6 @@ class ModificationValidationPopup(
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
-
 
   private[this] def onSubmitStartWorkflow() : JsCmd = {
     onSubmit()
@@ -485,7 +476,6 @@ class ModificationValidationPopup(
     }
   }
 
-
   private[this] def groupDiffFromAction(
       group        : NodeGroup
     , initialState : Option[NodeGroup]
@@ -507,7 +497,6 @@ class ModificationValidationPopup(
     }
   }
 
-
   private[this] def saveChangeRequest() : JsCmd = {
     // we only have quick change request now
     val cr = item match {
@@ -523,7 +512,6 @@ class ModificationValidationPopup(
               , updatedRules
            )
         }
-
 
         DirectiveDiffFromAction(techniqueName, directive, optOriginal).flatMap{
           case None => ruleCr()
@@ -547,7 +535,6 @@ class ModificationValidationPopup(
       case Right((nodeGroup, optParentCategory, optOriginal)) =>
         //if we have a optParentCategory, that means that we
         //have to start to move the group, and then create/save the cr.
-
 
         optParentCategory.foreach { parentCategoryId =>
           woNodeGroupRepository.move(
@@ -659,7 +646,6 @@ class ModificationValidationPopup(
     updateFormClientSide()
   }
 
-
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
@@ -670,5 +656,3 @@ class ModificationValidationPopup(
     }
   }
 }
-
-

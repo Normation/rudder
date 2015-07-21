@@ -55,11 +55,11 @@ class CreateCloneGroupPopup(
 
   def popupContent() : NodeSeq = {
     SHtml.ajaxForm( bind( "item", popupTemplate,
-      "itemName" -> piName.toForm_!,
-      "itemContainer" -> piContainer.toForm_!,
-      "itemDescription" -> piDescription.toForm_!,
-      "groupType" -> piStatic.toForm_!,
-      "itemReason" -> { piReasons.map { f =>
+      "itemname" -> piName.toForm_!,
+      "itemcontainer" -> piContainer.toForm_!,
+      "itemdescription" -> piDescription.toForm_!,
+      "grouptype" -> piStatic.toForm_!,
+      "itemreason" -> { piReasons.map { f =>
         <div>
           <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}
@@ -82,7 +82,7 @@ class CreateCloneGroupPopup(
      case Full(n) => n
   }
 
-  def popupTemplate = chooseTemplate("groups", "createCloneGroupPopup", template)
+  def popupTemplate = chooseTemplate("groups", "createclonegrouppopup", template)
 
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")

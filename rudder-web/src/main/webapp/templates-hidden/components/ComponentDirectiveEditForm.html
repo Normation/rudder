@@ -74,7 +74,7 @@
 
 <component:body>
 	<div id="container">
-		<div id="editForm" />
+		<div id="editForm" ></div>
 	</div>
 </component:body>
 
@@ -87,8 +87,8 @@
     <div class="tw-bs">
       <div class="bs-callout bs-callout-warning" id="deprecation-warning" role="alert">
         <h4>Technique version deprecated</h4>
-        <div>This Directive uses a version of this Technique that is deprecated: <span id="deprecation-message"/>.<br/>
-           Please upgrade to a new version: <span id="migrate-button"/>
+        <div>This Directive uses a version of this Technique that is deprecated: <span id="deprecation-message"></span>.<br/>
+           Please upgrade to a new version: <span id="migrate-button"></span>
         </div>
       </div>
     </div>
@@ -101,7 +101,7 @@
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
           <div style="float:left">
             The following pending change requests affect this Directive, you should check that your modification is not already pending:
-            <ul id="changeRequestList"/>
+            <ul id="changeRequestList"></ul>
           </div>
         </div>
       </div>
@@ -198,9 +198,9 @@
     </lift:authz>
     <br/>
     </div>
-  <div id="removeActionDialog" />
-  <div id="disableActionDialog" />
-  <div id="confirmUpdateActionDialog" class="nodisplay"/>
+  <div id="removeActionDialog" ></div>
+  <div id="disableActionDialog" ></div>
+  <div id="confirmUpdateActionDialog" class="nodisplay"></div>
   <div id="createCloneDirectivePopup" class="nodisplay">
 	  <lift:ignore>
 	    This div gets the content of the createDirective injected within
@@ -211,10 +211,7 @@
 
 <component:informationTab>
 <div class="page-title">Directive information</div>
-
-
       <hr class="spacer" />
-
       <div id="nameField">
         Here comes the name field
       </div>
@@ -277,13 +274,13 @@
       <div class="inner-portlet" style="float:left; margin-top:40px; min-width:150px; width:30%; overflow: auto">
         <div class="section-title" style="font-family:monospace; color: #999; border:0;'">Categories</div>
           <div class="inner-portlet-content" id="categoryTreeParent">
-            <lift:configuration.RuleManagement.viewCategories />
+            <div data-lift="configuration.RuleManagement.viewCategories" ></div>
           </div>
       </div>
       <div class="inner-portlet" style="float:left; min-width:300px; width:60%; border-left: 1px #656565 solid; margin-top:40px; padding-left:40px;">
         <div class="section-title" style="font-family:monospace; color: #999; border:0;'" id="categoryDisplay">Rules</div>
         <div class="inner-portlet-content">
-          <lift:configuration.RuleManagement.viewRules />
+          <div data-lift="configuration.RuleManagement.viewRules" ></div>
         </div>
       </div>
     </div>
