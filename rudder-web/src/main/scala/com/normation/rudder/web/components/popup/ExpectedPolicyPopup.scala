@@ -58,7 +58,7 @@ object ExpectedPolicyPopup {
     case Full(n) => n
   }
 
-  def expectedTechnique = chooseTemplate("expectedPolicyPopup","template",template)
+  def expectedTechnique = chooseTemplate("expectedpolicypopup","template",template)
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 

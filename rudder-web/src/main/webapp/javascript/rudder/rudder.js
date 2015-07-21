@@ -56,6 +56,19 @@ var #table_var#;
 
 */
 
+var bootstrapButton = $.fn.button.noConflict();
+var bootstrapAlert = $.fn.alert.noConflict();
+var bootstrapCarousel = $.fn.carousel.noConflict();
+var bootstrapCollapse = $.fn.collapse.noConflict();
+var bootstrapTooltip = $.fn.tooltip.noConflict();
+var bootstrapPopover = $.fn.popover.noConflict();
+var bootstrapScrollspy = $.fn.scrollspy.noConflict();
+var bootstrapTab = $.fn.tab.noConflict();
+var bootstrapAffix = $.fn.affix.noConflict();
+var bootstrapModal = $.fn.modal.noConflict();
+$.fn.bsModal = bootstrapModal
+
+
 /**
  * Instanciate the tooltip
  * For each element having the "tooltipable" class, when hovering it will look for it's 
@@ -726,3 +739,12 @@ function updateHashString(key, value) {
   hash[key] = value;
   window.location.hash = "#" + JSON.stringify(hash);
 }
+
+$(document).ready(function() {
+  correctButtons();
+  $("a", "form").click(function() { return false; });
+  createTooltip();
+  roundTabs();
+});
+
+

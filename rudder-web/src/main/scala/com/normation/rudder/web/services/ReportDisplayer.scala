@@ -144,7 +144,7 @@ class ReportDisplayer(
         val missing = getComponents(MissingReportType, report, directiveLib).toSet
         val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
 
-        bind("lastReportGrid",reportByNodeTemplate
+        bind("lastreportgrid",reportByNodeTemplate
           , "intro"      ->  intro
           , "grid"       -> showReportDetail(report, node)
           , "missing"    -> showMissingReports(missing)

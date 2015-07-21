@@ -75,8 +75,8 @@ object NodeGroupForm {
     xml
   }
 
-  val staticInit = chooseXml("staticInit")
-  val staticBody = chooseXml("staticBody")
+  val staticInit = chooseXml("staticinit")
+  val staticBody = chooseXml("staticbody")
   val body = chooseXml("body")
 
   private val saveButtonId = "groupSaveButtonId"
@@ -177,13 +177,13 @@ class NodeGroupForm(
      )
 
      bind("group", html,
-      "pendingChangeRequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
+      "pendingchangerequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
       "name" -> groupName.toForm_!,
-      "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
+      "rudderid" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
       "description" -> groupDescription.toForm_!,
       "container" -> groupContainer.toForm_!,
       "static" -> groupStatic.toForm_!,
-      "showGroup" -> (searchNodeComponent.is match {
+      "showgroup" -> (searchNodeComponent.is match {
                        case Full(req) => req.buildQuery
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       }),

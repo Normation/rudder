@@ -81,12 +81,13 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
  * accept or refuse them.
  *
  */
-class AcceptNode {
-  val logger               = LoggerFactory.getLogger(classOf[AcceptNode])
+class AcceptNode extends Loggable {
+
   val newNodeManager       = RudderConfig.newNodeManager
   val rudderDit            = RudderConfig.rudderDit
   val serverGrid           = RudderConfig.nodeGrid
   val serverSummaryService = RudderConfig.nodeSummaryService
+
   val diffRepos            = RudderConfig.inventoryHistoryLogRepository
   val logRepository        = RudderConfig.eventLogRepository
   val acceptedNodesDit     = RudderConfig.acceptedNodesDit
@@ -95,7 +96,7 @@ class AcceptNode {
 
   val gridHtmlId = "acceptNodeGrid"
 
-  val authedUser = {
+  def authedUser = {
      SecurityContextHolder.getContext.getAuthentication.getPrincipal match {
       case u:UserDetails => EventActor(u.getUsername)
       case _ => logger.error("No authenticated user !")
@@ -112,7 +113,6 @@ class AcceptNode {
 
   def acceptTemplate = chooseTemplate("accept_new_server","template",template)
 
-
   def refuseTemplatePath = List("templates-hidden", "Popup", "refuse_new_server")
   def templateRefuse() =  Templates(refuseTemplatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -121,12 +121,6 @@ class AcceptNode {
   }
 
   def refuseTemplate = chooseTemplate("refuse_new_server","template",templateRefuse)
-
-
-  def head() : NodeSeq =
-    <head>{
-      serverGrid.head
-    }</head>
 
   /*
    * List all server that have there isAccpeted tag to pending.
@@ -137,11 +131,9 @@ class AcceptNode {
    * On accept, isAccepted = accepted
    */
 
-
   var errors : Option[String] = None
 
   def list(html:NodeSeq) :  NodeSeq =  {
-
 
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
@@ -298,31 +290,40 @@ class AcceptNode {
    */
 
   def listNode(listNode : Seq[NodeId], template : NodeSeq) : NodeSeq = {
+
+    val serverLine = {
+      <tr>
+       <td id="server_hostname"></td>
+       <td id="server_os"></td>
+      </tr>
+    }
+
+    def displayServerLine(srv : Srv) : NodeSeq = {
+      ( "#server_hostname *" #> srv.hostname &
+        "#server_os *"       #> srv.osFullName
+      ) (serverLine)
+    }
+
     serverSummaryService.find(pendingNodeDit,listNode:_*) match {
       case Full(servers) =>
-        bind("servergrid",template,
-            "lines" ->
-              servers.flatMap { case s@Srv(id,status, hostname,ostype, osname, fullos, ips,  _, _, _) =>
-                bind("line",chooseTemplate("servergrid","lines",template),
-                    "os" -> fullos
-                  , "hostname" -> hostname
-                  , "ips" -> (ips.flatMap{ ip => <div class="ip">{ip}</div> })  // TODO : enhance this
-                )
-              }
-          , "accept" ->
-              SHtml.submit("Accept", {
-                () => { addNodes(listNode) }
-                S.redirectTo(S.uri)
-              })
-          , "refuse" ->
-              SHtml.submit("Refuse", {
-                () => refuseNodes(listNode)
-                S.redirectTo(S.uri)
-              }, ("class", "red"))
-          ,  "close" ->
-               SHtml.ajaxButton("Cancel", {
-                 () => JsRaw(" $.modal.close();") : JsCmd
-               })
+        val lines : NodeSeq = servers.flatMap(displayServerLine)
+        ("#server_lines" #> lines).apply(
+          bind("servergrid",template,
+              "accept" ->
+                SHtml.submit("Accept", {
+                  () => { addNodes(listNode) }
+                  S.redirectTo(S.uri)
+                })
+            , "refuse" ->
+                SHtml.submit("Refuse", {
+                  () => refuseNodes(listNode)
+                  S.redirectTo(S.uri)
+                }, ("class", "red"))
+            ,  "close" ->
+                 SHtml.ajaxButton("Cancel", {
+                   () => JsRaw(" $.modal.close();") : JsCmd
+                 })
+          )
         )
       case e:EmptyBox =>
         val error = e ?~! "An error occured when trying to get server details for displaying them in the popup"
@@ -352,28 +353,22 @@ class AcceptNode {
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
 
-
   def display(html:NodeSeq, nodes: Seq[Srv]) = {
-    bind("pending",html,
-      "servers" -> serverGrid.displayAndInit(nodes,"acceptNodeGrid",
-        Seq(
-            (Text("Since"),
-                   {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
-            (Text("Directive"),
-                  { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
-                      () =>  showExpectedPolicyPopup(e)
-                    }, ("class", "smallButton")
-                   )
-                  }
-               ),
-              (Text(""), { e =>
-                  <input type="checkbox" name="serverids" value={e.id.value.toString}/>
-                })
+    val servers = {
+      serverGrid.displayAndInit (
+          nodes
+        , "acceptNodeGrid"
+        , Seq( ( Text("Since")    , { e => Text(DateFormaterService.getFormatedDate(e.creationDate))})
+             , ( Text("Directive"), { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, { () =>  showExpectedPolicyPopup(e) }, ("class", "smallButton") )})
+             , ( Text("")         , { e => <input type="checkbox" name="serverids" value={e.id.value.toString}/>  })
+          )
+        , """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
+        , true
+      )
+    }
 
-        ),
-        """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
-        ,true
-      ),
+    bind("pending",html,
+      "servers" -> servers,
       "accept" -> {if (nodes.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
         () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
       }) % ("style", "width:170px")} else NodeSeq.Empty},
@@ -399,6 +394,5 @@ class AcceptNode {
       Select/deselect all <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
       </p>
       </div>
+
 }
-
-
