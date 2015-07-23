@@ -110,7 +110,7 @@ case class RuleApiService6 (
         case Some(parent) =>
           writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
         case None =>
-          writeRuleCategory.update(update, modId, actor, reason)
+          writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
       }
       category <- getCategoryInformations(update,updatedParent,MinimalDetails)
     } yield {
