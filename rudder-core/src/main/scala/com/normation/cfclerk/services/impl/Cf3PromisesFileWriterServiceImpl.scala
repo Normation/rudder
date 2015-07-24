@@ -317,7 +317,7 @@ class Cf3PromisesFileWriterServiceImpl(
     val inputs = scala.collection.mutable.Buffer[String]() // all the include file
 
     // Fetch the policies configured, with the system policies first
-    val policies =  techniqueRepository.getByIds(container.getAllIds).sortWith((x,y) => x.isSystem)
+    val policies =  sortTechniques(techniqueRepository.getByIds(container.getAllIds), container)
 
     for {
       tml <- policies.flatMap(p => p.templates)
@@ -360,6 +360,49 @@ class Cf3PromisesFileWriterServiceImpl(
         }
     )
   }
+
+  /**
+   * Sort the techniques according to the order of the associated BundleOrder of Cf3PolicyDraft.
+   * Sort at best: sort rule then directives, and take techniques on that order, only one time
+   * Sort system directive first.
+   */
+  private[this] def sortTechniques(techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[Technique] = {
+
+    def sortByOrder(tech: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[Technique] = {
+      def compareBundleOrder(a: List[BundleOrder], b: List[BundleOrder]): Boolean = {
+        BundleOrder.compareList(a, b) <= 0
+      }
+      val drafts = container.getAll().values.toSeq
+
+      //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
+      val pairs = tech.map { t =>
+        val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( (d1,d2) => compareBundleOrder(d1.order, d2.order))
+
+        //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
+        val order = tDrafts.map( _.order ).headOption.getOrElse(List(BundleOrder.default))
+
+        (t, order)
+      }
+
+      //now just sort the pair by order and keep only techniques
+      val ordered = pairs.sortWith { case ((_, o1), (_, o2)) => BundleOrder.compareList(o1, o2) <= 0 }
+
+      //some debug info to understand what order was used for each node:
+      if(logger.isDebugEnabled) {
+        logger.debug(s"Sorted Technique for path [${container.outPath}] (and their Rules and Directives used to sort):")
+        ordered.map(p => s" `-> ${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").foreach { logger.debug(_) }
+      }
+
+      ordered.map( _._1 )
+    }
+
+    //system technique go first whatever their order
+    val (sys, user) = techniques.partition { _.isSystem }
+
+    sys ++ sortByOrder(user, container)
+
+  }
+
 
   /**
    * From the container, convert the parameter into StringTemplate variable, that contains a list of
