@@ -52,6 +52,7 @@ import com.normation.rudder.services.policies.nodeconfig._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.cfclerk.domain.BundleOrder
 
 
 
@@ -102,6 +103,8 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , TrackerVariableSpec().toVariable()
     , priority = 0
     , serial = 0
+    , ruleOrder = BundleOrder("10")
+    , directiveOrder = BundleOrder("10")
     // no variable
   )
 
@@ -114,6 +117,8 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , priority = 0
     , serial = 0
     // one variable
+    , ruleOrder = BundleOrder("10")
+    , directiveOrder = BundleOrder("10")
   )
 
   private val policyOtherVaredOne = policyVaredOne.copy(
