@@ -49,4 +49,4 @@ fi
 # 4 - Start the test suite
 cd ${TEST_WORKDIR}/ncf
 echo "Beginning tests, using CFEngine version \"`/var/cfengine/bin/cf-agent -V`\""
-make
+make test
