@@ -47,6 +47,7 @@ import net.liftweb.common.Box
 import scala.collection.immutable.TreeMap
 import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.cfclerk.domain.BundleOrder
 
 /*
  * Immutable bridge between cfclerk and rudder
@@ -110,6 +111,7 @@ case class DirectiveVal(
   , trackerVariable  : TrackerVariable
   , variables        : InterpolationContext => Box[Map[String, Variable]]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
+  , directiveOrder   : BundleOrder
 ) extends HashcodeCaching {
 
   def toExpandedDirectiveVal(context: InterpolationContext) = {
@@ -131,8 +133,10 @@ case class RuleVal(
   ruleId       : RuleId,
   targets      : Set[RuleTarget],  //list of target for that directive (server groups, server ids, etc)
   directiveVals: Seq[DirectiveVal],
-  serial       : Int // the generation serial of the Rule. Do we need it ?
+  serial       : Int, // the generation serial of the Rule. Do we need it ?
+  ruleOrder    : BundleOrder
 ) extends HashcodeCaching
+
 
 /**
  * A composite class, to keep the link between the applied Directive and the Rule
@@ -141,6 +145,8 @@ case class RuleWithCf3PolicyDraft private (
     ruleId        : RuleId
   , directiveId   : DirectiveId
   , cf3PolicyDraft: Cf3PolicyDraft
+  , ruleOrder     : BundleOrder
+  , directiveOrder: BundleOrder
   , overrides     : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
 ) extends HashcodeCaching {
   val draftId = cf3PolicyDraft.id
@@ -164,6 +170,8 @@ object RuleWithCf3PolicyDraft {
   , trackerVariable: TrackerVariable
   , priority       : Int
   , serial         : Int
+  , ruleOrder      : BundleOrder
+  , directiveOrder : BundleOrder
   ): RuleWithCf3PolicyDraft = new RuleWithCf3PolicyDraft(
       ruleId
     , directiveId
@@ -174,7 +182,10 @@ object RuleWithCf3PolicyDraft {
           , trackerVariable
           , priority = priority
           , serial = serial
+          , order = List(ruleOrder, directiveOrder)
       )
+    , ruleOrder
+    , directiveOrder
     , Set()
   )
 }
