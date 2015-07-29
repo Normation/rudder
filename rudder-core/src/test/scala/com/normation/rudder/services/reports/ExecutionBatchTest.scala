@@ -131,12 +131,12 @@ class ExecutionBatchTest extends Specification {
       getComponentStatus(reports).componentValues.size === 2
     }
     "return a component with the key values foo which is repaired " in {
-      getComponentStatus(reports).componentValues("foo").messages.size === 1 and
-      getComponentStatus(reports).componentValues("foo").messages.head.reportType ===  RepairedReportType
+      getComponentStatus(reports).componentValues(Some("foo")).messages.size === 1 and
+      getComponentStatus(reports).componentValues(Some("foo")).messages.head.reportType ===  RepairedReportType
     }
     "return a component with the key values bar which is a success " in {
-      getComponentStatus(reports).componentValues("bar").messages.size === 1 and
-      getComponentStatus(reports).componentValues("bar").messages.head.reportType ===  SuccessReportType
+      getComponentStatus(reports).componentValues(Some("bar")).messages.size === 1 and
+      getComponentStatus(reports).componentValues(Some("bar")).messages.head.reportType ===  SuccessReportType
     }
 
     "only some missing reports mark them as missing, not unexpected" in {
@@ -146,12 +146,12 @@ class ExecutionBatchTest extends Specification {
       getComponentStatus(badReports).componentValues.size === 2
     }
     "with bad reports return a component with the key values foo which is unknwon " in {
-      getComponentStatus(badReports).componentValues("foo").messages.size === 2 and
-      getComponentStatus(badReports).componentValues("foo").messages.head.reportType ===  UnexpectedReportType
+      getComponentStatus(badReports).componentValues(Some("foo")).messages.size === 2 and
+      getComponentStatus(badReports).componentValues(Some("foo")).messages.head.reportType ===  UnexpectedReportType
     }
     "with bad reports return a component with the key values bar which is a success " in {
-      getComponentStatus(badReports).componentValues("bar").messages.size === 1 and
-      getComponentStatus(badReports).componentValues("bar").messages.head.reportType ===  SuccessReportType
+      getComponentStatus(badReports).componentValues(Some("bar")).messages.size === 1 and
+      getComponentStatus(badReports).componentValues(Some("bar")).messages.head.reportType ===  SuccessReportType
     }
   }
 
@@ -185,8 +185,8 @@ class ExecutionBatchTest extends Specification {
       withGood.componentValues.size === 1
     }
     "return a component with both None key repaired " in {
-      withGood.componentValues("None").messages.size === 2 and
-      withGood.componentValues("None").compliance === ComplianceLevel(success = 1, repaired = 1)
+      withGood.componentValues(None).messages.size === 2 and
+      withGood.componentValues(None).compliance === ComplianceLevel(success = 1, repaired = 1)
     }
 
     "with bad reports return a component globally unexpected " in {
@@ -196,8 +196,8 @@ class ExecutionBatchTest extends Specification {
       withBad.componentValues.size === 1
     }
     "with bad reports return a component with both None key unexpected " in {
-      withBad.componentValues("None").messages.size === 3 and
-      withBad.componentValues("None").messages.forall(x => x.reportType === UnexpectedReportType)
+      withBad.componentValues(None).messages.size === 3 and
+      withBad.componentValues(None).messages.forall(x => x.reportType === UnexpectedReportType)
     }
   }
 
@@ -230,7 +230,7 @@ class ExecutionBatchTest extends Specification {
       withGood.componentValues.size === 2
     }
     "return a component with both cfengine keys repaired " in {
-      withGood.componentValues("${sys.bla}").messages.size === 1
+      withGood.componentValues(Some("${sys.bla}")).messages.size === 1
     }
   }
 
@@ -263,12 +263,12 @@ class ExecutionBatchTest extends Specification {
       withGood.componentValues.size === 2
     }
     "return a component with the cfengine keys repaired " in {
-      withGood.componentValues("${sys.bla}").messages.size === 1 and
-      withGood.componentValues("${sys.bla}").messages.forall(x => x.reportType === RepairedReportType)
+      withGood.componentValues(Some("${sys.bla}")).messages.size === 1 and
+      withGood.componentValues(Some("${sys.bla}")).messages.forall(x => x.reportType === RepairedReportType)
     }
     "return a component with the bar key success " in {
-      withGood.componentValues("bar").messages.size === 1 and
-      withGood.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
+      withGood.componentValues(Some("bar")).messages.size === 1 and
+      withGood.componentValues(Some("bar")).messages.forall(x => x.reportType === SuccessReportType)
     }
     "with some bad reports mark them as unexpected (because the check is not done in checkExpectedComponentWithReports" in {
       withBad.compliance ===  ComplianceLevel(success = 1, unexpected = 1)
@@ -277,12 +277,12 @@ class ExecutionBatchTest extends Specification {
       withBad.componentValues.size === 2
     }
     "with bad reports return a component with bar as a success " in {
-      withBad.componentValues("bar").messages.size === 1 and
-      withBad.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
+      withBad.componentValues(Some("bar")).messages.size === 1 and
+      withBad.componentValues(Some("bar")).messages.forall(x => x.reportType === SuccessReportType)
     }
     "with bad reports return a component with the cfengine key as unexpected " in {
-      withBad.componentValues("${sys.bla}").messages.size === 1 and
-      withBad.componentValues("${sys.bla}").messages.forall(x => x.reportType === UnexpectedReportType)
+      withBad.componentValues(Some("${sys.bla}")).messages.size === 1 and
+      withBad.componentValues(Some("${sys.bla}")).messages.forall(x => x.reportType === UnexpectedReportType)
     }
   }
 
@@ -558,15 +558,15 @@ class ExecutionBatchTest extends Specification {
       aggregated.directives("policy").compliance === ComplianceLevel(success = 6, missing = 3)
     }
     "have detailed rule report for policy/component/value of 100%" in {
-      aggregated.directives("policy").components("component").componentValues("value").compliance ===
+      aggregated.directives("policy").components("component").componentValues(Some("value")).compliance ===
         ComplianceLevel(success = 3)
     }
     "have detailed rule report for policy/component/value2 of 67%" in {
-      aggregated.directives("policy").components("component").componentValues("value2").compliance ===
+      aggregated.directives("policy").components("component").componentValues(Some("value2")).compliance ===
         ComplianceLevel(success = 2, missing = 1)
     }
     "have detailed rule report for policy/component/value3 of 33%" in {
-      aggregated.directives("policy").components("component").componentValues("value3").compliance ===
+      aggregated.directives("policy").components("component").componentValues(Some("value3")).compliance ===
         ComplianceLevel(success = 1, missing = 2)
     }
   }
@@ -677,12 +677,12 @@ class ExecutionBatchTest extends Specification {
       getComponentStatus(reports).componentValues.size === 2
     }
     "return a component with the /var/cfengine in NotApplicable " in {
-      getComponentStatus(reports).componentValues("/var/cfengine").messages.size === 1 and
-      getComponentStatus(reports).componentValues("/var/cfengine").compliance.pc_notApplicable === 100
+      getComponentStatus(reports).componentValues(Some("/var/cfengine")).messages.size === 1 and
+      getComponentStatus(reports).componentValues(Some("/var/cfengine")).compliance.pc_notApplicable === 100
     }
     "return a component with the bar key success " in {
-      getComponentStatus(reports).componentValues("bar").messages.size == 1 and
-      getComponentStatus(reports).componentValues("bar").compliance.pc_success === 100
+      getComponentStatus(reports).componentValues(Some("bar")).messages.size == 1 and
+      getComponentStatus(reports).componentValues(Some("bar")).compliance.pc_success === 100
     }
   }
 

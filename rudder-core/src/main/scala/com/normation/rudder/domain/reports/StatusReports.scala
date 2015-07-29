@@ -218,7 +218,7 @@ object DirectiveStatusReport {
 final case class ComponentStatusReport(
     componentName      : String
     //only one ComponentValueStatusReport by value
-  , componentValues    : Map[String, ComponentValueStatusReport]
+  , componentValues    : Map[Option[String], ComponentValueStatusReport]
 ) extends StatusReport {
 
   override def toString() = s"${componentName}:${componentValues.values.toSeq.sortBy(_.componentValue).mkString("[", ",", "]")}"
@@ -276,11 +276,11 @@ object ComponentValueStatusReport extends Loggable {
    * Merge a set of ComponentValueStatusReport, grouping
    * them by component value
    */
-  def merge(values: Iterable[ComponentValueStatusReport]): Map[String, ComponentValueStatusReport] = {
-    val pairs = values.groupBy(_.componentValue).map { case (valueName, values) =>
+  def merge(values: Iterable[ComponentValueStatusReport]): Map[Option[String], ComponentValueStatusReport] = {
+    val pairs = values.groupBy(_.unexpandedComponentValue).map { case (unexpanded, values) =>
       //the unexpanded value should be the same on all values.
       //if not, report an error for devs
-      val (unexpanded, messages) = ((Option.empty[String],List.empty[MessageStatusReport])/:values) { case(acc,next) =>
+      /*val (unexpanded, messages) = ((Option.empty[String],List.empty[MessageStatusReport])/:values) { case(acc,next) =>
 
         val unex = (acc._1, next.unexpandedComponentValue) match {
           case (None, Some(x)) => Some(x)
@@ -294,10 +294,10 @@ object ComponentValueStatusReport extends Loggable {
         }
         (unex, acc._2 ++ next.messages)
       }
-
+*/
       (
-          valueName,
-          ComponentValueStatusReport(valueName, unexpanded, messages)
+          unexpanded,
+          ComponentValueStatusReport(unexpanded.getOrElse("None"), unexpanded, values.toList.flatMap(_.messages))
       )
 
     }
