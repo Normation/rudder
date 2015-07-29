@@ -77,7 +77,6 @@ import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
  */
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon {
-
   //clean data base
   def cleanTables() = {
     jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
@@ -90,14 +89,15 @@ class ReportingServiceTest extends DBCommon {
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     override def invalidate(nodeIds: Set[NodeId]) = ()
   }
-  val pgIn = new PostgresqlInClause(2)
-  val reportsRepo = new ReportsJdbcRepository(jdbcTemplate)
-  val slick = new SlickSchema(dataSource)
-  val findExpected = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
-  val updateExpected = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findExpected, findExpected)
-  val updateExpectedService = new ExpectedReportsUpdateImpl(updateExpected, updateExpected)
 
-  val agentRunService = new AgentRunIntervalService() {
+  lazy val pgIn = new PostgresqlInClause(2)
+  lazy val reportsRepo = new ReportsJdbcRepository(jdbcTemplate)
+  lazy val slick = new SlickSchema(dataSource)
+  lazy val findExpected = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
+  lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findExpected, findExpected)
+  lazy val updateExpectedService = new ExpectedReportsUpdateImpl(updateExpected, updateExpected)
+
+  lazy val agentRunService = new AgentRunIntervalService() {
     private[this] val interval = Duration.standardMinutes(5)
     private[this] val nodes = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), ResolvedAgentRunInterval(interval, 1))).toMap
     def getGlobalAgentRun() : Box[AgentRunInterval] = Full(AgentRunInterval(None, interval.toStandardMinutes.getMinutes, 0, 0, 0))
@@ -107,16 +107,16 @@ class ReportingServiceTest extends DBCommon {
 
   }
 
-  val roAgentRun = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
-  val woAgentRun = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roAgentRun)
+  lazy val roAgentRun = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
+  lazy val woAgentRun = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roAgentRun)
 
-  val dummyChangesCache = new CachedNodeChangesServiceImpl(null) {
+  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(null) {
     override def update(changes: Seq[ResultRepairedReport]): Box[Unit] = Full(())
     override def getCurrentValidIntervals(since: Option[DateTime]) = Seq()
     override def getChangesByInterval(since: Option[DateTime]) = Empty
   }
 
-  val updateRuns = new ReportsExecutionService(
+  lazy val updateRuns = new ReportsExecutionService(
       reportsRepo
     , woAgentRun
     , new StatusUpdateSquerylRepository(squerylConnectionProvider)
@@ -131,10 +131,10 @@ class ReportingServiceTest extends DBCommon {
   //help differentiate run number with the millis
   //perfect case: generation are followe by runs one minute latter
 
-  val gen1 = DateTime.now.minusMinutes(5*2).withMillisOfSecond(1)
-  val run1 = gen1.plusMinutes(1).withMillisOfSecond(2)
-  val gen2 = gen1.plusMinutes(5).withMillisOfSecond(3)
-  val run2 = gen2.plusMinutes(1).withMillisOfSecond(4)
+  lazy val gen1 = DateTime.now.minusMinutes(5*2).withMillisOfSecond(1)
+  lazy val run1 = gen1.plusMinutes(1).withMillisOfSecond(2)
+  lazy val gen2 = gen1.plusMinutes(5).withMillisOfSecond(3)
+  lazy val run2 = gen2.plusMinutes(1).withMillisOfSecond(4)
   //now
 //  val gen3 = gen2.plusMinutes(5).withMillisOfSecond(3)
 //  val run3 = gen3.minusMinutes(1)
@@ -330,7 +330,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// changes only mode /////////////////////////////////
 
   "Finding rule status reports for the change only mode" should {
-    val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(ChangesOnly(1)))
+    lazy val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(ChangesOnly(1)))
 
     "get r0" in {
 
@@ -461,7 +461,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// full compliance mode /////////////////////////////////
 
   "Finding rule status reports for the compliance mode" should {
-    val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(FullCompliance))
+    lazy val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(FullCompliance))
 
 
     "get r0" in {
@@ -579,7 +579,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// error only mode /////////////////////////////////
 
   "Finding node status reports for the changes only mode" should {
-    val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(ChangesOnly(1)))
+    lazy val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(ChangesOnly(1)))
 
     "get pending for node 0 on gen2 data" in {
       ComplianceDebugLogger.info("changes only / node0")
@@ -668,7 +668,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// full compliance mode /////////////////////////////////
 
   "Finding node status reports for the compliance mode" should {
-    val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(FullCompliance))
+    lazy val complianceReportingService:ReportingServiceImpl = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(FullCompliance))
 
     "get pending for node 0 on gen2 data (without msg)" in {
       ComplianceDebugLogger.info("compliance / node0")
@@ -812,8 +812,8 @@ class ReportingServiceTest extends DBCommon {
     val v = values.map { case(value, tpe, msgs) =>
       val messages = msgs.map(m => MessageStatusReport(tpe, m))
       tpe match {
-        case UnexpectedReportType => ComponentValueStatusReport(value, None, messages)
-        case _ => ComponentValueStatusReport(value, Some(value), messages)
+        case UnexpectedReportType => ComponentValueStatusReport(value, "None", messages)
+        case _ => ComponentValueStatusReport(value, value, messages)
       }
     }
     ComponentStatusReport(id, ComponentValueStatusReport.merge(v))
