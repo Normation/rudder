@@ -54,6 +54,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.Interval
 import com.normation.rudder.services.reports.NodeChanges
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
 
 
@@ -405,7 +406,7 @@ object ComplianceData extends Loggable {
       val (noExpand, values) = if(!includeMessage) {
         (true, getValuesComplianceDetails(component.componentValues.values.toSet))
       } else {
-        val noExpand  = component.componentValues.forall( x => x._1 == "None")
+        val noExpand  = component.componentValues.forall( x => x._1 == DEFAULT_COMPONENT_KEY)
 
         (noExpand, getValuesComplianceDetails(component.componentValues.values.toSet))
       }
@@ -433,7 +434,7 @@ object ComplianceData extends Loggable {
     } yield {
       val severity = ReportType.getWorseType(value.messages.map( _.reportType))
       val status = getDisplayStatusFromSeverity(severity)
-      val key = value.unexpandedComponentValue.getOrElse(value.componentValue)
+      val key = value.unexpandedComponentValue
       val messages = value.messages.flatMap( _.message)
 
       ValueComplianceLine(
