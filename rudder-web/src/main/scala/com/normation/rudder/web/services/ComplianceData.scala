@@ -245,7 +245,7 @@ case class ComplianceData(
       severity  = ReportType.getSeverityFromStatus(component.reportType)
       id        = Helpers.nextFuncName
       status    = getDisplayStatusFromSeverity(severity)
-      values    = getValuesComplianceDetails (component.componentValues, rule,includeMessage)
+      values    = getValuesComplianceDetails (component.componentValues.toSet, rule,includeMessage)
     } yield {
       val (optCallback, optNoExpand, optCompliance) = {
         if (includeMessage) {
@@ -285,7 +285,7 @@ case class ComplianceData(
       severity  = ReportType.getSeverityFromStatus(component.reportType)
       id        = Helpers.nextFuncName
       status    = getDisplayStatusFromSeverity(severity)
-      values    = getValuesComplianceDetails (component.componentValues)
+      values    = getValuesComplianceDetails (component.componentValues.toSet)
     } yield {
 
       ComponentComplianceLine (
@@ -311,7 +311,7 @@ case class ComplianceData(
    * Get compliance details of Value of a Component
    */
   def getValuesComplianceDetails (
-      values : Seq[ComponentValueRuleStatusReport]
+      values : Set[ComponentValueRuleStatusReport]
     , rule : Rule
     , includeMessage : Boolean
   ) : JsTableData[ValueComplianceLine] = {
@@ -322,7 +322,7 @@ case class ComplianceData(
         ComponentRuleStatusReport (
             entries.head.directiveId // can't fail because we are in a groupBy
           , entries.head.component  // can't fail because we are in a groupBy
-          , entries
+          , entries.toSeq
         )
       severity = ReportType.getSeverityFromStatus(component.reportType)
       status = getDisplayStatusFromSeverity(severity)
@@ -354,7 +354,7 @@ case class ComplianceData(
 
   // From Node Point of view
   def getValuesComplianceDetails (
-      values : Seq[ComponentValueStatusReport]
+      values : Set[ComponentValueStatusReport]
   ) : JsTableData[ValueComplianceLine] = {
     val valuesComplianceData = for {
       value <- values
