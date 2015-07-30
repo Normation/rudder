@@ -74,6 +74,7 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.cfclerk.domain.BundleOrder
 
 
 
@@ -435,6 +436,8 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     , trackerVariable: TrackerVariable
     , priority       : Int
     , serial         : Int
+    , ruleOrder      : BundleOrder
+    , directiveOrder : BundleOrder
   ) extends HashcodeCaching
 
 
@@ -568,6 +571,8 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
           , trackerVariable= directive.trackerVariable
           , priority       = directive.priority
           , serial         = ruleVal.serial
+          , ruleOrder      = ruleVal.ruleOrder
+          , directiveOrder = directive.directiveOrder
         )
       }
 
@@ -656,6 +661,8 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
                                 , trackerVariable = draft.trackerVariable
                                 , priority = draft.priority
                                 , serial = draft.serial
+                                , ruleOrder = draft.ruleOrder
+                                , directiveOrder = draft.directiveOrder
                               )
                             }
                           }
