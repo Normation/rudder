@@ -197,7 +197,8 @@ class ReportDisplayer(
     <tbody>{
       components.flatMap { component =>
         val severity = ReportType.getSeverityFromStatus(component.componentReportType)
-        val value = showComponentValueReport(component.componentValues++component.unexpectedCptValues,worstseverity)
+        val values  = (component.componentValues++component.unexpectedCptValues).toSet
+        val value = showComponentValueReport(values,worstseverity)
         ( "#status [class+]" #> severity &
           "#status *" #> <center>{getDisplayStatusFromSeverity(severity)}</center> &
           "#component *" #>  <b>{component.component}</b> &
@@ -208,7 +209,7 @@ class ReportDisplayer(
     </table>
   }
 
- def showComponentValueReport(values : Seq[ComponentValueStatusReport],directiveSeverity:String) : NodeSeq = {
+ def showComponentValueReport(values : Set[ComponentValueStatusReport],directiveSeverity:String) : NodeSeq = {
     val worstseverity= ReportType.getSeverityFromStatus(ReportType.getWorseType(values.map(_.cptValueReportType))).replaceAll(" ", "")
 
     <table id={Helpers.nextFuncName} cellspacing="0" style="display:none" class="noMarginGrid tablewidth ">
