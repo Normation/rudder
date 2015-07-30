@@ -234,6 +234,7 @@ case class ConfigurationExecutionBatch(
                               componentValue
                             , purgedReports
                             , expectedComponent.componentsValues
+                            , expectedComponent.componentsValues.filter(_ == componentValue).size
                             )
         } yield {
           ComponentValueStatusReport(
@@ -337,6 +338,7 @@ case class ConfigurationExecutionBatch(
       currentValue           : String
     , purgedReports          : Seq[Reports]
     , values                 : Seq[String]
+    , cardinality            : Int
   ) : (ReportType,List[String]) = {
     val unexepectedReports = purgedReports.filterNot(value => values.contains(value.keyValue))
 
@@ -350,7 +352,7 @@ case class ConfigurationExecutionBatch(
               case 0 if unexepectedReports.size==0 =>  (getNoAnswerOrPending(),Nil)
               /* Reports were received for that component, but not for that key, that's a missing report */
               case 0 =>  (UnknownReportType,Nil)
-              case x if x == values.filter( x => x == currentValue).size =>
+              case x if x == cardinality =>
                 (returnWorseStatus(filteredReports),filteredReports.map(_.message).toList)
               case _ => (UnknownReportType,filteredReports.map(_.message).toList)
             }
