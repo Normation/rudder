@@ -78,7 +78,7 @@ class Cf3PolicyDraftContainerServiceTest {
     		Map[String, Variable](variable1.spec.name -> variable1),
     		TrackerVariable(TrackerVariableSpec(), Seq()),
     		priority =0,
-    		serial = 0
+    		serial = 0, order = List()
     )
 
     policy2 = Cf3PolicyDraft(
@@ -87,7 +87,7 @@ class Cf3PolicyDraftContainerServiceTest {
     		Map[String, Variable](variable2.spec.name -> variable2, variable22.spec.name -> variable22),
         TrackerVariable(TrackerVariableSpec(), Seq()),
     		priority =0,
-    		serial = 0
+    		serial = 0, order = List()
     )
 
 
