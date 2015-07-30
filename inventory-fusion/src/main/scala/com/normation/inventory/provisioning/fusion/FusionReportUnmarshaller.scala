@@ -220,10 +220,23 @@ class FusionReportUnmarshaller(
     )
     val fullReport = processAndAddRudderElement(reportWithSoftwareIds,doc)
 
-    Full(fullReport)
+    processHostname(fullReport, doc)
   }
 
 
+  def processHostname (report : InventoryReport, xml : NodeSeq) : Box[InventoryReport] = {
+
+    def updateHostname(hostname : String ) = {
+      report.copy( node = report.node.copyWithMain(m => m.copy (hostname = hostname ) ))
+    }
+    (optText(xml \\ "RUDDER" \ "HOSTNAME"), optText(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {
+      // Rudder tag
+      case (Some(hostname),_) => Full(updateHostname(hostname))
+      // OS tag
+      case (_,Some(hostname)) => Full(updateHostname(hostname))
+      case (None,None)        => Failure("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)")
+    }
+  }
 
   /**
    * Since there is a specific rudder Tag in fusion inventory we need to process it
@@ -594,14 +607,7 @@ class FusionReportUnmarshaller(
       }
     }
 
-    val hostname = optText(xml\\"FQDN") match {
-      case Some(host) => host
-      case None =>
-        logger.error(s"Error when parsing inventory, mandatory entry OPERATINGSYSTEM/FQDN is not defined. Please upgrade to FusionInventory 2.3 or more" )
-        "Invalid version of FusionInventory - please upgrade to 2.3+"
-    }
-
-    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail, hostname = hostname ) ) )
+    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ) )
 
   }
 

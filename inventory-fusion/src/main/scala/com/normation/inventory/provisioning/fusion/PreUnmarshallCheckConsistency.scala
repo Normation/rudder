@@ -38,7 +38,7 @@ package fusion
 import com.normation.inventory.domain.InventoryReport
 import net.liftweb.common._
 import scala.xml.NodeSeq
-import com.normation.utils.Control.{pipeline,bestEffort}
+import com.normation.utils.Control.{pipeline, bestEffort}
 import com.normation.inventory.services.provisioning._
 import scala.xml.Elem
 
@@ -58,7 +58,7 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
   override def apply(report:NodeSeq) : Box[NodeSeq] = {
     val checks =
       checkId _ ::
-      checkFqdn _ ::
+      checkHostnameTags _ ::
       checkRoot _ ::
       checkPolicyServer _ ::
       checkOS _ ::
@@ -118,14 +118,13 @@ class PostUnmarshallCheckConsistency extends PreUnmarshall with Loggable {
     }
   }
 
-  private[this] def checkFqdn(report:NodeSeq) : Box[NodeSeq] = {
-    val tag = "FQDN"
-    for {
-      tagHere <- {
-        checkNodeSeq(report, "OPERATINGSYSTEM", false, Some(tag)) ?~! "Missing '%s' name attribute in report. This attribute is mandatory.".format(tag)
-      }
-    } yield {
-      report
+  private[this] def checkHostnameTags(report:NodeSeq) : Box[NodeSeq] = {
+
+    // Hostname can be found in two tags:
+    // Either RUDDER∕HOSTNAME or OPERATINGSYSTEM/FQDN
+    ( checkInRudderTag(report,"HOSTNAME"), checkNodeSeq(report, "OPERATINGSYSTEM", false, Some("FQDN")) ) match {
+      case (Full(_),_) | (_,Full(_)) => Full(report)
+      case (_:EmptyBox, _:EmptyBox) => Failure("Missing hostname tags (RUDDER∕HOSTNAME and OPERATINGSYSTEM/FQDN) in report. Having at least one of Those tags is mandatory.")
     }
   }
 

@@ -273,6 +273,7 @@
       <FULL_NAME>CentOS Linux release 6.0 (Final)</FULL_NAME>
       <KERNEL_NAME>linux</KERNEL_NAME>
       <KERNEL_VERSION>2.6.32-71.29.1.el6.x86_64</KERNEL_VERSION>
+      <FQDN>centos-6-64</FQDN>
       <NAME>CentOS</NAME>
       <VERSION>6.0</VERSION>
     </OPERATINGSYSTEM>
