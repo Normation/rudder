@@ -50,6 +50,47 @@ import net.liftweb.common._
  */
 case class Cf3PolicyDraftId(value: String) extends HashcodeCaching
 
+
+final case class BundleOrder(value: String)
+
+object BundleOrder {
+  val default: BundleOrder = BundleOrder("")
+
+  /**
+   * Comparison logic for bundle: purelly alpha-numeric.
+   * The empty string come first.
+   * The comparison is stable, meaning that a sorted list
+   * with equals values stay in the same order after a sort.
+   *
+   * The sort is case insensitive.
+   */
+  def compare(a: BundleOrder, b: BundleOrder): Int = {
+    String.CASE_INSENSITIVE_ORDER.compare(a.value, b.value)
+  }
+
+  def compareList(a: List[BundleOrder], b: List[BundleOrder]): Int = {
+
+    //only works on list of the same size
+    def compareListRec(a: List[BundleOrder], b: List[BundleOrder]): Int = {
+      (a, b) match {
+        case (ha :: ta, hb :: tb) =>
+          val comp = compare(ha,hb)
+          if(comp == 0) {
+            compareList(ta, tb)
+          } else {
+            comp
+          }
+        case _ => //we know they have the same size by construction, so it's a real equality
+          0
+      }
+    }
+
+    val maxSize = List(a.size, b.size).max
+    compareListRec(a.padTo(maxSize, BundleOrder.default), b.padTo(maxSize, BundleOrder.default))
+
+  }
+}
+
 /**
  * That policy instance object is an instance of a policy applied (bound)
  * to a particular node, so that its variable can be specialized given the node
@@ -70,6 +111,7 @@ final case class Cf3PolicyDraft(
   , priority        : Int
   , serial          : Int
   , modificationDate: DateTime = DateTime.now
+  , order           : List[BundleOrder]
 ) extends Loggable {
 
   /**

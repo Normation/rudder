@@ -99,14 +99,14 @@ class DirectiveAgregationTest {
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
     val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId),
-        Map(), trackerVariable, priority = 0, serial = 0)
+        Map(), trackerVariable, priority = 0, serial = 0, order = List())
 
     val variable = new InputVariable(InputVariableSpec("card", "varDescription1"), Seq("value" + i))
     instance.copyWithAddedVariable(variable)
   }
 
   def createDirectiveWithArrayBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0)
+    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, order = List())
 
     val variable = InputVariable(
           InputVariableSpec("card", "varDescription1", multivalued = true)
@@ -117,7 +117,7 @@ class DirectiveAgregationTest {
   }
 
   def createDirectiveWithArrayBindingAndNullValues(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0)
+    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, order = List())
 
     val values = (0 until i).map(j =>
       if (j > 0) "value" + i
@@ -166,7 +166,7 @@ class DirectiveAgregationTest {
     val machineA = new Cf3PolicyDraftContainer("machineA", Set())
 
     val instance = new Cf3PolicyDraft("id", newTechnique(TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))),
-        Map(), trackerVariable, priority = 0, serial = 0)
+        Map(), trackerVariable, priority = 0, serial = 0, order = List())
     machineA.add(createDirectiveWithArrayBinding(activeTechniqueId1,1))
     machineA.add(createDirectiveWithArrayBinding(activeTechniqueId1,2))
 
