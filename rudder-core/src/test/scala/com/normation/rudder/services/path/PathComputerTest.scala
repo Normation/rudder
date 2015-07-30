@@ -78,6 +78,7 @@ class PathComputerTest extends Specification {
   , isBroken      = false
   , isSystem      = false
   , isPolicyServer= false
+  , serverRoles   = Set()
   )
 
   private val nodeInfo = NodeInfo(
@@ -99,6 +100,7 @@ class PathComputerTest extends Specification {
   , isBroken      = false
   , isSystem      = false
   , isPolicyServer= false
+  , serverRoles   = Set()
   )
 
   private val nodeInfo2 = nodeInfo.copy(id = NodeId("name2"), name = "name2", policyServerId = nodeInfo.id )
