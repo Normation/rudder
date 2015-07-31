@@ -201,7 +201,7 @@ class CreateCloneDirectivePopup(
         parameters = directive.parameters,
         name = directiveName.is,
         shortDescription = directiveShortDescription.is,
-        isEnabled = directive.isEnabled
+        _isEnabled = directive.isEnabled
       )
       roDirectiveRepository.getActiveTechniqueAndDirective(directive.id) match {
         case Full((activeTechnique, _)) =>
