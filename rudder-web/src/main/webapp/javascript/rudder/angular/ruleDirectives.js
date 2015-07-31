@@ -1,7 +1,46 @@
 var ruleDirectives = angular.module('ruleDirectives', []);
 
 ruleDirectives.controller('DirectiveCtrl', ['$scope', function($scope) {
-    $scope.directives = [];
+    $scope.directives = {};
+    
+    //really, angular... 
+    //a call to sortDirectives is needed. 
+    //the array here is ONLY used as a cache so
+    //that angular can know when things don't change.
+    //else, we get infinite looping....
+    $scope.sortedDirectives = [];
+    
+    //needed to correctly display directive by alphaNum
+    $scope.sortDirectives = function() { 
+      var arr = [];
+      for (var o in $scope.directives) {   
+        arr.push({"id":o, "name": $scope.directives[o] });
+      } 
+      var sorted = arr.sort(function(a, b) {
+        return a.name.localeCompare(b.name);
+      });
+      
+      //test for equality... yeah..
+      //we need that because angularJS must know what is "stable", 
+      //and by default, it uses the object id. 
+      //So we have to cache the data somewhere and return that cached data
+      //if nothing changed. 
+      if(sorted.length == $scope.sortedDirectives.length) {
+        for(var i=0; i<sorted.length; i++) {
+          if(sorted[i].id != $scope.sortedDirectives[i].id ||
+             sorted[i].name != $scope.sortedDirectives[i].name 
+          ) {
+            $scope.sortedDirectives = sorted;
+            return $scope.sortedDirectives;
+          }
+        }
+      } else {
+        $scope.sortedDirectives = sorted;
+      }
+      console.log(sorted);
+      return $scope.sortedDirectives;
+    }
+    
     // Init function so values can be set from outside the scope
     // directiveIds is expected to be a json of {directiveId : directiveName }
     $scope.init = function ( selectedDirectives ) {
