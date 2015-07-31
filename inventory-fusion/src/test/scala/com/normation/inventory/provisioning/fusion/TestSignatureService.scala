@@ -105,7 +105,7 @@ class TestSignatureService extends Specification with Loggable {
   )
 
   val signed_report = parser.parse("fusion-report/signed_inventory.ocs")
-  val unsigned_report = parser.parse("fusion-report/centos-6-64-2011-09-22-12-02-27.ocs")
+  val unsigned_report = parser.parse("fusion-report/node-with-server-role-attribute.ocs")
 
   def parseSignature(path: String) = {
      val is = getInputStream(path)
@@ -148,7 +148,7 @@ class TestSignatureService extends Specification with Loggable {
       (for {
         signature <- boxedSignature
         (pubKey,_) <- TestInventoryDigestServiceV1.getKey(unsigned_report)
-        inventoryStream = getInputStream("fusion-report/centos-6-64-2011-09-22-12-02-27.ocs")
+        inventoryStream = getInputStream("fusion-report/node-with-server-role-attribute.ocs")
         check <- TestInventoryDigestServiceV1.check(pubKey, signature, inventoryStream)
       } yield {
         check

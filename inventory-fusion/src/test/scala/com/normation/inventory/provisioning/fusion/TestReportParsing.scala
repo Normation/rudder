@@ -139,9 +139,9 @@ class TestReportParsing extends Specification {
   }
 
   "Hostname should be correctly detected" should {
-     "get node1.normation.com when it is defined as this" in {
+     "get node1 when it is defined as this" in {
         val hostname = parser.parse("fusion-report/signed_inventory.ocs").node.main.hostname
-        hostname == "node1.normation.com"
+        hostname == "node1"
      }
 
 
