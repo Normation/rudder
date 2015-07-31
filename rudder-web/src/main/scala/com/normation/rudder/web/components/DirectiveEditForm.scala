@@ -408,7 +408,7 @@ class DirectiveEditForm(
           , shortDescription = piShortDescription.is
           , priority = piPriority.is
           , longDescription = piLongDescription.is
-          , isEnabled = directive.isEnabled
+          , _isEnabled = directive.isEnabled
         )
 
         displayConfirmationPopup(
@@ -449,7 +449,7 @@ class DirectiveEditForm(
   private[this] def onSubmitDisable(action: ModificationValidationPopup.Action): JsCmd = {
     displayConfirmationPopup(
         action
-      , directive.copy(isEnabled = !directive.isEnabled)
+      , directive.copy(_isEnabled = !directive._isEnabled)
       , Nil
       , Nil
     )
