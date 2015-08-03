@@ -628,7 +628,7 @@ object ExecutionBatch extends Loggable {
 
                                    val missing = expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), c) =>
                                      DirectiveStatusReport(d, Map(c.componentName ->
-                                       ComponentStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (v ->
+                                       ComponentStatusReport(c.componentName, c.groupedComponentValues.map { case(v,u) => (u ->
                                          ComponentValueStatusReport(v, u, MessageStatusReport(missingReportStatus, "") :: Nil)
                                        )}.toMap)
                                      ))
@@ -718,8 +718,8 @@ object ExecutionBatch extends Loggable {
   private[this] def buildUnexpectedDirectives(reports: Seq[Reports]): Seq[DirectiveStatusReport] = {
     reports.map { r =>
       DirectiveStatusReport(r.directiveId, Map(r.component ->
-        ComponentStatusReport(r.component, Map(r.keyValue ->
-          ComponentValueStatusReport(r.keyValue, None, MessageStatusReport(UnexpectedReportType, r.message) :: Nil)
+        ComponentStatusReport(r.component, Map(Some(r.keyValue) ->
+          ComponentValueStatusReport(r.keyValue, Some(r.keyValue), MessageStatusReport(UnexpectedReportType, r.message) :: Nil)
         )))
       )
     }
@@ -737,7 +737,7 @@ object ExecutionBatch extends Loggable {
           d.components.map { c =>
             (c.componentName, ComponentStatusReport(c.componentName,
               c.groupedComponentValues.map { case(v,uv) =>
-                (v, ComponentValueStatusReport(v, uv, MessageStatusReport(status, "") :: Nil) )
+                (uv, ComponentValueStatusReport(v, uv, MessageStatusReport(status, "") :: Nil) )
               }.toMap
             ))
           }.toMap
@@ -799,95 +799,120 @@ object ExecutionBatch extends Loggable {
 
     }
 
-
-
     //container for the kind of value for cfe
     case class ValueKind(
-        none  : Seq[(String, Option[String])] = Seq()
-      , simple: Seq[(String, Option[String])] = Seq()
-      , cfeVar: Seq[(String, Option[String])] = Seq()
+        none  : Map[Option[String],Seq[String]] = Map()
+      , simple: Map[Option[String],Seq[String]] = Map()
+      , cfeVar: Map[Option[String],Seq[String]] = Map()
     )
 
-    //now, we group values by what they look like: None, cfengine variable, simple value
-    val valueKind = (ValueKind()/:expectedComponent.groupedComponentValues) {
-      case (kind,  n@("None", _)) => kind.copy(none = kind.none :+ n)
-      case (kind,  v@(value, unexpanded)) =>
-        value match {
-          case matchCFEngineVars(_) => kind.copy(cfeVar = kind.cfeVar :+ v)
-          case _ => kind.copy(simple = kind.simple :+ v)
+    val componentMap = expectedComponent.groupedComponentValues
+    val valueKind = (ValueKind()/:componentMap) {
+      case (kind,  (v,None)) => kind.copy(none = kind.none + ((None, v +: kind.none.getOrElse(None,Seq()) )) )
+      case (kind,  (values,u)) =>
+        values match {
+          case matchCFEngineVars(_) => kind.copy(cfeVar = kind.cfeVar + ((u, values +: kind.cfeVar.getOrElse(u,Seq()))))
+          case _ => kind.copy(simple = kind.simple + ((u, values +: kind.simple.getOrElse(u,Seq()))))
         }
     }
 
-    //non report and simple values are pairs of
-    //ComponentValueStatus / reports used
-    val noneReport = if(valueKind.none.isEmpty){
-      (Seq(), Seq())
-    } else {
-      val reports = purgedReports.filter(r => r.keyValue == "None")
-      (Seq(buildComponentValueStatus(
-          "None"
+    // Regroup all None value into None component Value
+    // There should only one None report per component and
+    val (noneValue, noneReports) = {
+      if(valueKind.none.isEmpty) {
+      (None, Seq())
+      } else {
+        val reports = purgedReports.filter(r => r.keyValue == "None")
+        ( Some(buildComponentValueStatus(
+              "None"
+            , reports
+            , unexpectedStatusReports.isEmpty
+            , valueKind.none(None).size
+            , noAnswerType
+            , None
+          ))
         , reports
-        , unexpectedStatusReports.isEmpty
-        , valueKind.none.size
-        , noAnswerType
-        , getUnexpanded(valueKind.none.map( _._2))
-      )), reports)
+        )
+      }
     }
 
-    val simpleValueReports = {
-      for {
-        (value, seq) <- valueKind.simple.groupBy( _._1 ).toSeq
+    // Create a simpleValue for each unexpandedValue, with all reports matching expanded values
+    val (simpleValues, simpleReports) = {
+      val result = for {
+        (unexpandedValue, values) <- valueKind.simple
       } yield {
-        val reports = purgedReports.filter(r => r.keyValue == value)
+        val reports = purgedReports.filter(r => values.contains(r.keyValue))
         val status = buildComponentValueStatus(
-            value
+            unexpandedValue.get
           , reports
           , unexpectedStatusReports.isEmpty
-          , seq.size
+          , values.size
           , noAnswerType
-          , getUnexpanded(seq.map( _._2))
+          , unexpandedValue
         )
         (status, reports)
       }
+      (result.keys,result.values.flatten)
     }
 
-    val usedReports = noneReport._2 ++ simpleValueReports.map( _._2).flatten
+    // Remove all already parsed reports so we only look in remaining reports for Cfengine variables
+    val usedReports = noneReports ++ simpleReports
     val remainingReports = purgedReports.filterNot(x => usedReports.exists(y => x == y))
 
-    val cfeVarReports = for {
-      (pattern, seq) <- valueKind.cfeVar.groupBy( x => replaceCFEngineVars(x._1) )
-    } yield {
-      /*
-       * Here, for a given pattern, we can have different source cfengine vars, and
-       * a list of report that matches.
-       * We have no way to know what source cfe var goes to which reports.
-       * We can only check that the total number of expected reports for a given
-       * pattern is equal to the number of report that matches that pattern.
-       * If it's not the case, all is "Unexpected".
-       * Else, randomly assign values to source pattern
-       */
+    // Look into remaining reports for CFEngine variables, values are accumulated and we remove reports while we use them
+    def extractCFVarsFromReports (
+        cfVars :List[(Option[String],Seq[String])]
+      , values: Seq[ComponentValueStatusReport]
+      , remainingReports : Seq[Reports]
+    ) : (Seq[ComponentValueStatusReport], Seq[Reports]) = {
+      cfVars match {
+        case Nil =>
+          // Nothing to return results
+          (values,remainingReports)
+        case (unexpanded,patterns) :: rest =>
+          var remains = remainingReports
+          // Match our reports with our pattern, If we do not find a report, we will generate a NoAnswer MessageReport
+          val matchingReports : Seq[(Option[Reports],MessageStatusReport)]= {
+            // Accumulate result for each pattern
+            (Seq[(Option[Reports],MessageStatusReport)]() /: patterns) {
+              case (matching,pattern) =>
+                matching :+ (remains.find( _.keyValue.matches(pattern)) match {
+                  // The pattern is not found in the reports, Create a NoAnswer
+                  case None =>
+                    (None,MessageStatusReport(NoAnswerReportType,None))
+                  // We match a report, treat it
+                  case Some(report) =>
+                    remains = remains.diff(Seq(report))
+                    val messageReport = MessageStatusReport(ReportType(report), report.message)
+                    (Some(report),messageReport)
+                })
+            }
+          }
 
-      val matchingReports = remainingReports.filter(r => r.keyValue.matches(pattern))
-
-      if(matchingReports.size > seq.size) {
-        seq.map { case (value, unexpanded) =>
-          ComponentValueStatusReport(value, unexpanded, MessageStatusReport(UnexpectedReportType, None)::Nil)
-        }
-      } else {
-        //seq is >= matchingReports
-        (seq.zip(matchingReports).map { case ((value, unexpanded), r) =>
-          ComponentValueStatusReport(value, unexpanded, MessageStatusReport(ReportType(r), r.message)::Nil)
-        } ++
-        seq.drop(matchingReports.size).map { case (value, unexpanded) =>
-          ComponentValueStatusReport(value, unexpanded, MessageStatusReport(noAnswerType, None)::Nil)
-        })
+          // Generate our Value for our unexpanded value
+          val messageReports = matchingReports.map(_._2).toList
+          val value = ComponentValueStatusReport(unexpanded.getOrElse("None"), unexpanded, messageReports)
+          // Remove our used reports
+          val usedReports = matchingReports.flatMap(_._1)
+          // Process next step
+          extractCFVarsFromReports(rest, value +: values, remains)
       }
     }
 
+    // Generate our value for cfengine variables
+    val (cfeVarValues, lastReports) = extractCFVarsFromReports (valueKind.cfeVar.mapValues(_.map(replaceCFEngineVars(_))).toList, Seq(), remainingReports)
+
+
+    // Finally, if we still got some reports, generate an unexpected report
+    val lastUnexpected = lastReports.groupBy(_.keyValue).map{
+      case (value, reports) =>
+        val messageReports = reports.map(r => MessageStatusReport(UnexpectedReportType, r.message)).toList
+        ComponentValueStatusReport(value, Some(value), messageReports)
+    }
 
     ComponentStatusReport(
         expectedComponent.componentName
-      , ComponentValueStatusReport.merge(unexpectedStatusReports ++ noneReport._1 ++ simpleValueReports.map(_._1) ++ cfeVarReports.flatten)
+      , ComponentValueStatusReport.merge(unexpectedStatusReports ++ noneValue ++ simpleValues ++ cfeVarValues ++ lastUnexpected)
     )
   }
 
