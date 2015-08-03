@@ -413,70 +413,47 @@ class ExecutionBatchTest extends Specification {
      , 5)
 
 
-    "return a component globally repaired " in {
-      executionBatch.checkExpectedComponentWithReports(
+    val validBatch = executionBatch.
+      checkExpectedComponentWithReports(
           expectedComponent
         , reports
-        , NodeId("nodeId")).componentReportType == RepairedReportType
+        , NodeId("nodeId")
+      )
+    val badBatch = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent
+        , badReports
+        , NodeId("nodeId")
+      )
+
+    "return a component globally repaired " in {
+      validBatch.componentReportType == RepairedReportType
     }
     "return a component with two key values " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.size == 2
+      validBatch.componentValues.size === 2
     }
     "return a component with the key values foo which is repaired " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").size == 1 &&
-       executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").head.cptValueReportType ==  RepairedReportType
+      validBatch.componentValues.filter(x => x.componentValue == "foo").size == 1 &&
+      validBatch.componentValues.filter(x => x.componentValue == "foo").head.cptValueReportType ==  RepairedReportType
      }
      "return a component with the key values bar which is a success " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").size == 1 &&
-       executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
+      validBatch.componentValues.filter(x => x.componentValue == "bar").size == 1 &&
+      validBatch.componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
      }
 
      " with bad reports return a component globally unknwon" in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentReportType == UnknownReportType
+      badBatch.componentReportType == UnknownReportType
      }
      "with bad reports return a component with two key values " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentValues.size == 2
+      badBatch.componentValues.size == 2
     }
-    "with bad reports return a component with the key values foo which is unknwon " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").size == 1 &&
-       executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "foo").head.cptValueReportType ==  UnknownReportType
+    "with bad reports return a component with the key values foo which is unknown " in {
+      badBatch.componentValues.filter(x => x.componentValue == "foo").size == 1 &&
+      badBatch.componentValues.filter(x => x.componentValue == "foo").head.cptValueReportType ==  UnknownReportType
      }
      "with bad reports return a component with the key values bar which is a success " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").size == 1 &&
-       executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
+      badBatch.componentValues.filter(x => x.componentValue == "bar").size == 1 &&
+      badBatch.componentValues.filter(x => x.componentValue == "bar").head.cptValueReportType ==  SuccessReportType
      }
 
   }
@@ -485,21 +462,19 @@ class ExecutionBatchTest extends Specification {
   "A component, with a None keys" should {
     val executionTimestamp = new DateTime()
     val reports = Seq[Reports](
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
               )
 
     val badReports = Seq[Reports](
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "None", executionTimestamp, "message")
               )
 
     val expectedComponent = new ReportComponent(
                       "component"
-                    , 2
-                    , Seq("None", "None")
-                    , Seq("None", "None"))
+                    , 1
+                    , Seq("None")
+                    , Seq("None"))
 
     val executionBatch = new ConfigurationExecutionBatch(
        "cr",
@@ -521,51 +496,144 @@ class ExecutionBatchTest extends Specification {
      , None
      , 5)
 
+    val validBatch = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent
+        , reports
+        , NodeId("nodeId")
+      )
+    val badBatch = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent
+        , badReports
+        , NodeId("nodeId")
+      )
 
     "return a component globally repaired " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentReportType == RepairedReportType
+      validBatch.componentReportType == RepairedReportType
     }
-    "return a component with two key values " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.size == 2
+    "return a component with one key value " in {
+      validBatch.componentValues.size == 1
     }
-    "return a component with both None key repaired " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").size == 2 &&
-       executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , reports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == RepairedReportType)
+    "return a component with None key repaired " in {
+      validBatch.componentValues.filter(x => x.componentValue == "None").size == 1 &&
+      validBatch.componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == RepairedReportType)
     }
 
     "with bad reports return a component globally unknown " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentReportType == UnknownReportType
+      badBatch.componentReportType == UnknownReportType
     }
-    "with bad reports return a component with two key values " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
-        , badReports
-        , NodeId("nodeId")).componentValues.size == 2
+    "with bad reports return a component with one key value " in {
+      badBatch.componentValues.size == 1
     }
-    "with bad reports return a component with both None key unknown " in {
-      executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
+    "with bad reports return a component with None key unknown " in {
+      badBatch.componentValues.filter(x => x.componentValue == "None").size == 1 &&
+      badBatch.componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == UnknownReportType)
+    }
+  }
+
+  // Test the component part
+  "A component, that waits two reports on an unxpandedValue that can be different on two Nodes" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq(
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "node1", 12, "component", "node1", executionTimestamp, "message")
+      , new ResultRepairedReport(executionTimestamp, "cr", "policy", "node1", 12, "component", "node1", executionTimestamp, "message")
+      , new ResultRepairedReport(executionTimestamp, "cr", "policy", "node2", 12, "component", "node2", executionTimestamp, "message")
+      , new ResultRepairedReport(executionTimestamp, "cr", "policy", "node2", 12, "component", "node2", executionTimestamp, "message")
+    )
+
+    val badReports = Seq(
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "node1", 12, "component", "node1", executionTimestamp, "message")
+      , new ResultRepairedReport(executionTimestamp, "cr", "policy", "node1", 12, "component", "node1", executionTimestamp, "message")
+      , new ResultRepairedReport(executionTimestamp, "cr", "policy", "node1", 12, "component", "node1", executionTimestamp, "message")
+      , new ResultRepairedReport(executionTimestamp, "cr", "policy", "node2", 12, "component", "node2", executionTimestamp, "message")
+    )
+
+    def expectedComponent(id: String) = new ReportComponent(
+                      "component"
+                    , 2
+                    , Seq(s"${id}", s"${id}")
+                    , Seq("${rudder.node.id}", "${rudder.node.id}"))
+
+    val executionBatch = new ConfigurationExecutionBatch(
+       "cr",
+       12,
+       Seq(
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("node1"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent("node1"))
+             )
+           )
+         ),
+         DirectivesOnNodeExpectedReport(
+           Seq[NodeId]("node2"),
+           Seq(
+             DirectiveExpectedReports(
+              "policy",
+               Seq(expectedComponent("node2"))
+             )
+           )
+         )
+       ),
+       executionTimestamp,
+       reports,
+       executionTimestamp
+     , None
+     , 5)
+
+    val validBatch = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent("node1")
+        , reports.filter(_.nodeId.value == "node1")
+        , NodeId("node1")
+      )
+    val validBatch2 = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent("node2")
+        , reports.filter(_.nodeId.value == "node2")
+        , NodeId("node2")
+      )
+    val badBatch = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent("node1")
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").size == 2 &&
-       executionBatch.checkExpectedComponentWithReports(
-          expectedComponent
+        , NodeId("node1")
+      )
+    val badBatch2 = executionBatch.
+      checkExpectedComponentWithReports(
+          expectedComponent("node2")
         , badReports
-        , NodeId("nodeId")).componentValues.filter(x => x.componentValue == "None").forall(x => x.cptValueReportType == UnknownReportType)
+        , NodeId("node2")
+      )
+
+    "return a component globally repaired " in {
+      validBatch.componentReportType == RepairedReportType &&
+      validBatch2.componentReportType == RepairedReportType
+    }
+    "return a component with two key values " in {
+      (validBatch.componentValues.size + validBatch2.componentValues.size) == 2
+    }
+    "return a component with '${rudder.node.id}' key repaired " in {
+      (validBatch.componentValues ++ validBatch2.componentValues).filter(x => x.unexpandedComponentValue ==  Some("${rudder.node.id}")).size == 2 &&
+      (validBatch.componentValues ++ validBatch2.componentValues).filter(x => x.unexpandedComponentValue == Some("${rudder.node.id}")).forall(x => x.cptValueReportType == RepairedReportType)
+    }
+    "Have 4 messages in a component with '${rudder.node.id}' key " in {
+      (validBatch.componentValues ++ validBatch2.componentValues).toSeq.filter(x => x.unexpandedComponentValue ==  Some("${rudder.node.id}")).flatMap(_.message).size == 4
+    }
+
+    "with bad reports return a component globally unknown " in {
+      badBatch.componentReportType == UnknownReportType &&
+      badBatch2.componentReportType == UnknownReportType
+    }
+    "with bad reports return a component with one key value " in {
+      (badBatch.componentValues.size + badBatch2.componentValues.size) == 2
+    }
+    "with bad reports return a component with None key unknown " in {
+      (badBatch.componentValues ++ badBatch2.componentValues).filter(x => x.unexpandedComponentValue ==  Some("${rudder.node.id}")).size == 2 &&
+      (badBatch.componentValues ++ badBatch2.componentValues).filter(x => x.unexpandedComponentValue ==  Some("${rudder.node.id}")).forall(x => x.cptValueReportType == UnknownReportType)
     }
   }
 
