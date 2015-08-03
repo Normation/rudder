@@ -64,5 +64,6 @@ case class Rule(
   , isEnabledStatus : Boolean = false
   , isSystem        : Boolean = false
 ) extends HashcodeCaching {
-  def isEnabled = isEnabledStatus & !targets.isEmpty & !directiveIds.isEmpty
+  //system object must ALWAYS be ENABLED.
+  def isEnabled = isSystem || (isEnabledStatus && !targets.isEmpty && !directiveIds.isEmpty)
 }

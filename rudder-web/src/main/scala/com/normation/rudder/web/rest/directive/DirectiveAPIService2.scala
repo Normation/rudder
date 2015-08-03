@@ -218,7 +218,7 @@ case class DirectiveAPIService2 (
                   case Full(technique) =>
                     readDirective.getActiveTechnique(technique.id.name) match {
                       case Full(activeTechnique) =>
-                        val baseDirective = Directive(directiveId,technique.id.version,Map(),name,"",isEnabled = true)
+                        val baseDirective = Directive(directiveId,technique.id.version,Map(),name,"", _isEnabled = true)
                         actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique)
                       case eb:EmptyBox =>
                         val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
