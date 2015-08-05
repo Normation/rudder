@@ -134,7 +134,7 @@ sealed trait ChangeRequest {
  * Can modify any number of Directives,
  * Rules and Group.
  */
-case class ConfigurationChangeRequest(
+final case class ConfigurationChangeRequest(
     id          : ChangeRequestId
   , modId       : Option[ModificationId]
   , info        : ChangeRequestInfo
@@ -156,11 +156,10 @@ case class ConfigurationChangeRequest(
 }
 
 
-case class RollbackChangeRequest(
+final case class RollbackChangeRequest(
     id         : ChangeRequestId
   , modId      : Option[ModificationId]
   , info       : ChangeRequestInfo
-  , rollback   : Null // TODO: rollback change request
   , owner      : String
 ) extends ChangeRequest
 
