@@ -361,7 +361,7 @@ class FindExpectedReportsJdbcRepository(
       }
       (nodeId, byConfigId)
     }
-    TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: loop: ${t_byConfigId}ms for ${n} iterations (mean: ${t_byConfigId/n}")
+    TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: loop: ${t_byConfigId}ms for ${n} iterations ${if(n==0) "" else s"(mean: ${t_byConfigId/n})"}")
     res
   }
 
