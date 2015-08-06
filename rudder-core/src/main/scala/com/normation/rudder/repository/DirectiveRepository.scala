@@ -100,7 +100,7 @@ final case class FullActiveTechnique(
     , techniqueName = techniqueName
     , acceptationDatetimes = acceptationDatetimes.toMap
     , directives = directives.map( _.id )
-    , isEnabled = isEnabled
+    , _isEnabled = isEnabled
     , isSystem = isSystem
   )
 
