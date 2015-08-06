@@ -158,7 +158,7 @@ class CreateDirectivePopup(
         parameters = Map(),
         name = directiveName.is,
         shortDescription = directiveShortDescription.is,
-        isEnabled = true
+        _isEnabled = true
       )
 
       closePopup() & onSuccessCallback(directive)

@@ -405,7 +405,7 @@ class TechniqueEditForm(
         onFailureDisablePopup
       } else {
         currentActiveTechnique = currentActiveTechnique.map(
-            activeTechnique => activeTechnique.copy(isEnabled = status))
+            activeTechnique => activeTechnique.copy(_isEnabled = status))
         JsRaw("$.modal.close();") &
         statusAndDeployTechnique(activeTechnique.id, status)
       }
