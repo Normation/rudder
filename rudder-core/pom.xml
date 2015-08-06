@@ -108,18 +108,18 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 
     <dependency>
       <groupId>com.typesafe.slick</groupId>
-      <artifactId>slick_2.10</artifactId>
+      <artifactId>slick_${scala-binary-version}</artifactId>
       <version>2.1.0</version>
     </dependency> 
     <!-- slick postgresql support:  https://github.com/tminglei/slick-pg -->
     <dependency>
       <groupId>com.github.tminglei</groupId>
-      <artifactId>slick-pg_2.10</artifactId>
+      <artifactId>slick-pg_${scala-binary-version}</artifactId>
       <version>0.6.3</version>
     </dependency>
     <dependency>
       <groupId>com.github.tminglei</groupId>
-      <artifactId>slick-pg_joda-time_2.10</artifactId>
+      <artifactId>slick-pg_joda-time_${scala-binary-version}</artifactId>
       <version>0.6.3</version>
     </dependency>
 

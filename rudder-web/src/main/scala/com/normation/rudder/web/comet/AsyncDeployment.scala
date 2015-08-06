@@ -83,7 +83,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] val eventList                 = RudderConfig.eventListDisplayer
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
 
-
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
 
@@ -100,7 +99,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   override def render = {
     new RenderOut(layout)
   }
-
 
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
 
@@ -121,7 +119,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     }
 
   }
-
 
   private[this] def lastStatus  = {
 
@@ -170,14 +167,16 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   private[this] def layout = {
 
-        <li class="dropdown">
-          <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
-            <span>Status</span> <span class="badge" id="generation-status"> {statusIcon}</span><span class="caret" style="margin-left:5px"></span></a>
-          <ul class="dropdown-menu" role="menu">
-            {lastStatus}
-            <li>{currentStatus}</li>
-          </ul>
-        </li>
+    <lift:authz role="deployment_read">
+    <li class="dropdown">
+      <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
+        <span>Status</span> <span class="badge" id="generation-status"> {statusIcon}</span><span class="caret" style="margin-left:5px"></span></a>
+      <ul class="dropdown-menu" role="menu">
+        {lastStatus}
+        <li>{currentStatus}</li>
+      </ul>
+    </li>
+    </lift:authz>
   }
 
   private[this] def errorPopup = {

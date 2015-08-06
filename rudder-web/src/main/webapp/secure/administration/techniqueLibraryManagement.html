@@ -4,7 +4,7 @@
 <title>Rudder - Technique Library Management</title>
 </head>
 
-<lift:administration.TechniqueLibraryManagement.head />
+<div data-lift="administration.TechniqueLibraryManagement.head"></div>
 
 <div class="portlet">
   <div class="portlet-content">  
@@ -44,7 +44,7 @@
         </div>
       </div>
       </lift:authz>
-          <lift:administration.TechniqueLibraryManagement.systemLibrary />
+          <div data-lift="administration.TechniqueLibraryManagement.systemLibrary" ></div>
         </div>
       </div>
     </div>
@@ -61,16 +61,16 @@
           </div>
           
           <lift:authz role="technique_write">
-          <lift:administration.TechniqueLibraryManagement.userLibraryAction />
+          <div data-lift="administration.TechniqueLibraryManagement.userLibraryAction" ></div>
           </lift:authz>
-          <lift:administration.TechniqueLibraryManagement.userLibrary />
+          <div data-lift="administration.TechniqueLibraryManagement.userLibrary" ></div>
         </div>
       </div>
     </div>
     
     <hr class="spacer"/>
 
-    <lift:administration.TechniqueLibraryManagement.bottomPanel /> 
+    <div data-lift="administration.TechniqueLibraryManagement.bottomPanel" ></div> 
     
   </div>
   

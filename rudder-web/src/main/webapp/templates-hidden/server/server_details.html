@@ -1,42 +1,35 @@
 <xml:group>
 
 <lift:ignore>This part contains the search parts, with lines, and with the grid that get included behind</lift:ignore>
+
 <query:SearchNodes>
 	<div id="SearchForm">
-<content:query>
-
-      <div id="serverGrid_info_area"></div>
+  <content:query>
+    <div id="serverGrid_info_area"></div>
 
     <div id="queryParameters">
       <div class="composition">
-        <span><query:typeQuery/></span><br />
+        <label for="typeQuery">Include Rudder server components:</label>
+        <span id="typeQuery"></span>
+        <br/>
         <span style="margin:5px 0px 7px 0px">
-        Match the criteria below with this operand:
-        <span style="margin-left:5px"><query:composition/></span>
+          Match the criteria below with this operand:
+          <span style="margin-left:5px" id="composition">
+          </span>
         </span>
       </div>
 
-      <table class="searchNodes" id="query_lines">
-
-      <!-- must add an empty value to the list -->
-        <query:lines>
-          <line:error />
-          <tr class="query_line querylinecolor">
-            <td class="first"><line:objectType /></td>
-            <td><line:attributeName /></td>
-            <td><line:comparator /></td>
-            <td><line:inputValue /></td>
-            <td><line:removeLine /></td>
-            <td class="last"><line:addline/></td>
-          </tr>
-        </query:lines>
+      <table class="searchNodes" >
+        <tbody id="query_lines">
+        </tbody>
       </table>
-      <div class="nodeGroupSubmitSearch"><query:submit/></div>
+      <div class="nodeGroupSubmitSearch" id="submitSearch" >
       </div>
-</content:query>
-</div>
+    </div>
+  </content:query>
+  </div>
   <div id="gridResult">
-      <content:gridResult/>
+      <content:gridResult></content:gridResult>
   </div>
 </query:SearchNodes>
 
@@ -52,7 +45,7 @@
     <ul id="NodeDetailsTabMenu">
       <li><a href="#node_summary">Node summary</a></li>
       <li><a href="#node_inventory">Hardware</a></li>
-      <span id="extraHeader"/>
+      <li id="extraHeader"></li>
       <li><a href="#node_reports">Reports</a></li>
       <li><a href="#node_logs">Technical logs</a></li>
       <li><a href="#node_parameters">Parameters</a></li>
@@ -73,7 +66,7 @@
    </div>
   </div>
 
-  <span id="extraContent"/>
+  <span id="extraContent"></span>
 
   <div id="node_reports">
    <div id="reportsDetails">

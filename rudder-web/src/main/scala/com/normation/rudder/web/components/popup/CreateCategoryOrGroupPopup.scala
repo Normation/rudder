@@ -90,7 +90,7 @@ class CreateCategoryOrGroupPopup(
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("groups", "createGroupPopup", template)
+  def popupTemplate = chooseTemplate("groups", "creategrouppopup", template)
 
 
   private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
@@ -131,18 +131,18 @@ class CreateCategoryOrGroupPopup(
 
   def popupContent() : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemType" -> {
+      "itemtype" -> {
          groupGenerator match {
            case None => piItemType.toForm_!
            case Some(x) => NodeSeq.Empty
          }
       },
-      "itemName" -> piName.toForm_!,
-      "itemContainer" -> piContainer.toForm_!,
-      "itemDescription" -> piDescription.toForm_!,
+      "itemname" -> piName.toForm_!,
+      "itemcontainer" -> piContainer.toForm_!,
+      "itemdescription" -> piDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
-      "groupType" -> piStatic.toForm_!,
-      "itemReason" -> { piReasons.map { f =>
+      "grouptype" -> piStatic.toForm_!,
+      "itemreason" -> { piReasons.map { f =>
         <div>
           <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}

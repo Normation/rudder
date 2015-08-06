@@ -7,12 +7,10 @@
   <div class="portlet">
    <div class="portlet-content">
   
-    <lift:node.SearchNodes.head />
-  
     <div class="inner-portlet">
       <div class="inner-portlet-content">  
        <hr class="spacer"/> 
-       <div id="serverDetails" />
+       <div id="serverDetails" ></div>
       </div>
     </div>
   
@@ -27,11 +25,11 @@
      <div class="inner-portlet-content" style="overflow:auto;">
     
         <div id="SearchNodes">
-         <lift:node.SearchNodes.showQuery/>
+         <div data-lift="node.SearchNodes.showQuery"></div>
         </div>
         <lift:authz role="group_write">
        <div class="bottomButton">
-         <lift:node.SearchNodes.createGroup/>
+         <div data-lift="node.SearchNodes.createGroup"></div>
        </div>
        </lift:authz>
      </div>
@@ -50,7 +48,8 @@
     <lift:ignore>
       This div gets the content of the createCategoryOrGroup injected within
     </lift:ignore>
-    <div id="createGroupContainer"/>
+    <div id="createGroupContainer">
+    </div>
   </div>
   
   

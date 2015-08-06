@@ -2,7 +2,7 @@
 
 
 
-<component:staticInit>
+<component:staticinit >
   <head>
   <style type="text/css">
     .warnicon {
@@ -14,7 +14,7 @@
     }
   </style>
   </head>
-</component:staticInit>
+</component:staticinit>
 
 <component:staticBody>
   <div id="nodeDetailsPopup" class="nodisplay">
@@ -29,18 +29,18 @@
       <div id="serverDetails">[Here, we have the node details in tab summary, inventory, reports, etc]</div>
     
       <hr class="spacer" />
-      <div align="right">
-        <button class="simplemodal-close" onClick="return false;">
+      <div >
+        <button class="simplemodal-close" onclick="return false;">
           Close
         </button>
       </div>
     </div>
   </div>
   <div id="createCloneGroupPopup" class="nodisplay">
-    <div id="createCloneGroupContainer" />
+    <div id="createCloneGroupContainer" ></div>
   </div>
   
-  <div id="confirmUpdateActionDialog" class="nodisplay" />
+  <div id="confirmUpdateActionDialog" class="nodisplay" ></div>
 </component:staticBody>
 
 <component:body>
@@ -57,23 +57,23 @@
              Group details
            </div>
            <div class="inner-portlet-content" style="display: inline-block">
-             <group:notifications />
+             <group:notifications ></group:notifications>
              <hr class="spacer"/>
-             <group:pendingChangeRequest/>
+             <group:pendingChangeRequest></group:pendingChangeRequest>
              <hr class="spacer"/>
-             <group:name/>
+             <group:name></group:name>
              <hr class="spacer"/>
-             <group:container/>
+             <group:container></group:container>
              <hr class="spacer"/>
-             <group:static/>
+             <group:static></group:static>
              <hr class="spacer"/>
-             <group:description/>
+             <group:description></group:description>
              <hr class="spacer"/>
-             <group:rudderID/>
+             <group:rudderID></group:rudderID>
              <hr class="spacer"/>
              <div class="searchNodes section-title">Group criteria</div>
              <div id="SearchNodes">
-               <group:showGroup />
+               <group:showGroup ></group:showGroup>
              </div>
 <!--
              <lift:authz role="group_edit">
@@ -81,13 +81,13 @@
              </lift:authz>
 -->
              <div >
-               <div class="margins" align="right" style="overflow:hidden;display:block;">
-                 <div style="float:left" align="left">
-                 <lift:authz role="group_write"><group:clone/></lift:authz>
-                 <lift:authz role="group_write"><group:delete/></lift:authz>
+               <div class="margins" style="overflow:hidden;display:block;">
+                 <div style="float:left" >
+                 <lift:authz role="group_write"><group:clone></group:clone></lift:authz>
+                 <lift:authz role="group_write"><group:delete></group:delete></lift:authz>
                </div>
-               <div style="float:right" align="right">
-                 <group:save/>
+               <div style="float:right" >
+                 <group:save></group:save>
                  <div id="saveButtonToolTip" class="tooltipContent">If your 'Save' button is disabled, it means that you have updated the query without Searching for new Nodes.
                   Please click on 'Search' to enable saving again </div>
                </div>
