@@ -57,7 +57,7 @@ class MigrationTo212Test extends DBCommon {
   //we don't want the default 2.12 tables to be created
   override def sqlInit : String = ""
 
-  val db = new SlickSchema(dataSource)
+  lazy val db = new SlickSchema(dataSource)
   import db._
   import db.slickDB._
 

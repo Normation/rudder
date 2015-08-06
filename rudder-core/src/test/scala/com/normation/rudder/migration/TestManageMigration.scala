@@ -116,14 +116,16 @@ CREATE TEMP TABLE MigrationEventLog(
 );
     """
 
-  jdbcTemplate.query("SELECT * FROM pg_catalog.pg_tables ", new RowCallbackHandler(){
-      def processRow(rs: ResultSet) = {
-          val num = rs.getMetaData().getColumnCount()
-          println((for(i <- 1 to num) yield {
-            rs.getString(i)
-          }).mkString(", "))
-      }
-  })
+  if(doDatabaseConnection) {
+    jdbcTemplate.query("SELECT * FROM pg_catalog.pg_tables ", new RowCallbackHandler(){
+        def processRow(rs: ResultSet) = {
+            val num = rs.getMetaData().getColumnCount()
+            println((for(i <- 1 to num) yield {
+              rs.getString(i)
+            }).mkString(", "))
+        }
+    })
+  }
 
   //create the migration request line in DB with the
   //given parameter, and delete it

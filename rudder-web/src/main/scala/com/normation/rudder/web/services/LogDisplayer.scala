@@ -62,6 +62,7 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import org.joda.time.DateTime
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
 /**
  * Show the reports from cfengine (raw data)
@@ -128,7 +129,7 @@ class LogDisplayer(
 
         val directiveName = getDirectiveName(report.directiveId)
 
-        val value = if ("None" == report.keyValue) "-" else report.keyValue
+        val value = if (DEFAULT_COMPONENT_KEY == report.keyValue) "-" else report.keyValue
 
         ReportLine (
             report.executionDate

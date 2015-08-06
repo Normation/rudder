@@ -79,11 +79,11 @@ class ExpectedReportsTest extends DBCommon {
   }
 
   val pgIn = new PostgresqlInClause(2)
-  val findReports = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
-  val expectedReportsRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findReports, findReports)
-  val slick = new SlickSchema(dataSource)
+  lazy val findReports = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
+  lazy val expectedReportsRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findReports, findReports)
+  lazy val slick = new SlickSchema(dataSource)
 
-  val updateExpectedService = new ExpectedReportsUpdateImpl(expectedReportsRepo, expectedReportsRepo)
+  lazy val updateExpectedService = new ExpectedReportsUpdateImpl(expectedReportsRepo, expectedReportsRepo)
 
   import slick._
 
