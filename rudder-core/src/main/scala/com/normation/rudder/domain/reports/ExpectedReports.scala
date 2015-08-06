@@ -82,12 +82,12 @@ case class ReportComponent(
 ) extends HashcodeCaching {
   // Utilitary method to returns componentValues along with unexpanded values
   // The unexpanded may be none, for older version of Rudder didn't have this
-  def groupedComponentValues : Seq[(String, Option[String])] = {
-    if (componentsValues.size != unexpandedComponentsValues.size) {
+  def groupedComponentValues : Set[(String, Option[String])] = {
+    (if (componentsValues.size != unexpandedComponentsValues.size) {
       componentsValues.map((_, None))
     } else {
       componentsValues.zip(unexpandedComponentsValues.map(Some(_)))
-    }
+    }).toSet
   }
 }
 
