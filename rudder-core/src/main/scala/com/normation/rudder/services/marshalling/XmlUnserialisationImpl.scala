@@ -169,7 +169,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
             , shortDescription = shortDescription
             , longDescription = longDescription
             , priority = priority
-            , isEnabled = isEnabled
+            , _isEnabled = isEnabled
             , isSystem = isSystem
           )
         , sectionVal
@@ -241,7 +241,7 @@ class NodeGroupUnserialisationImpl(
         , query = query
         , isDynamic = isDynamic
         , serverList = serverList
-        , isEnabled = isEnabled
+        , _isEnabled = isEnabled
         , isSystem = isSystem
       )
     }
@@ -380,7 +380,7 @@ class ActiveTechniqueUnserialisationImpl extends ActiveTechniqueUnserialisation 
         , techniqueName = TechniqueName(ptName)
         , acceptationDatetimes = acceptationMap
         , directives = Nil
-        , isEnabled = isEnabled
+        , _isEnabled = isEnabled
         , isSystem = isSystem
       )
     }

@@ -53,7 +53,22 @@ import org.joda.time.DateTime
  */
 class DetectChangeInNodeConfiguration extends Loggable {
 
-  def detectChangeInNode(currentOpt: Option[NodeConfigurationCache], targetConfig: NodeConfiguration, directiveLib: FullActiveTechniqueCategory) : Set[RuleId] = {
+  /**
+   * Detect the change within a node with previous generation
+   * If there is no cache for this node, it can mean it is a new node, or we clear cached
+   *
+   * If we have a cache for other nodes, then it means it is probably a new node; we don't report changes for this node
+   * and changes will be caught by the change on rules
+   *
+   * If we don't have any cache at all, then we probably hit clear cache, and expect a full regeneration, so all rules are detected
+   * as new version of the rules (and this is reinforced by the fact that we won't be able to detect change
+   * in rules afterwards)
+   */
+  def detectChangeInNode(
+        currentOpt  : Option[NodeConfigurationCache]
+      , targetConfig: NodeConfiguration
+      , directiveLib: FullActiveTechniqueCategory
+      , cacheDefined: Boolean) : Set[RuleId] = {
     /*
      * Check if a policy draft (Cf3PolicyDraft) has a technique updated more recently
      * than the given date.
@@ -84,8 +99,16 @@ class DetectChangeInNodeConfiguration extends Loggable {
       case None =>
         //what do we do if we don't have a cache for the node ? All the target rules are "changes" ? No, we skip,
         // as all changes will be caught later. Otherwise, it will increase the serial of all rules applied to this node
-        logger.trace("`-> No node configuration cache availabe for that node")
-        Set[RuleId]()
+        if (cacheDefined) {
+          logger.trace("`-> No node configuration cache available for that node")
+          Set[RuleId]()
+        } else {
+          // there is no cache at all (no node as a cache, we can't know if it is a change or not, so we must assume
+          // we need to increase the serial)
+          logger.trace("`-> No node configuration cache available at all, increasing all serial")
+          targetConfig.policyDrafts.map( _.ruleId ).toSet
+
+        }
       case Some(current) =>
 
         val target = NodeConfigurationCache(targetConfig)
@@ -356,11 +379,15 @@ class NodeConfigurationServiceImpl(
 
   override def detectChangeInNodes(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory) : Set[RuleId] = {
     nodes.flatMap{ x =>
-      detectChangeInNode(cache.get(x.nodeInfo.id), x, directiveLib)
+      detectChangeInNode(cache.get(x.nodeInfo.id), x, directiveLib, cache.size>0)
     }.toSet
   }
 
 
-  override def detectChangeInNode(currentOpt: Option[NodeConfigurationCache], targetConfig: NodeConfiguration, directiveLib: FullActiveTechniqueCategory) : Set[RuleId] =
-    detect.detectChangeInNode(currentOpt, targetConfig, directiveLib)
+  // cacheDefined is a boolean defining if the cache of node is defined (we know what was written before) or not
+  // it change the behaviour for returning list of rules to change in case of no cache:
+  // - No cache for this node only, then don't return change for the node
+  // - No cache for any node, then we can't know, and we return a change for all rules applied to the nodes
+  override def detectChangeInNode(currentOpt: Option[NodeConfigurationCache], targetConfig: NodeConfiguration, directiveLib: FullActiveTechniqueCategory, cacheDefined: Boolean) : Set[RuleId] =
+    detect.detectChangeInNode(currentOpt, targetConfig, directiveLib, cacheDefined)
 }

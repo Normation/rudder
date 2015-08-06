@@ -180,6 +180,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(emptyNodeConfig))
         , emptyNodeConfig
         , directiveLib
+        , true
       ) must beTheSameAs(Set())
     }
 
@@ -188,6 +189,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(emptyNodeConfig))
         , emptyNodeConfig.copy(nodeInfo = nodeInfo2)
         , directiveLib
+        , true
       ) must beTheSameAs(Set())
     }
   }
@@ -200,6 +202,16 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(simpleNodeConfig))
         , simpleNodeConfig
         , directiveLib
+        , true
+      ) must beTheSameAs(Set())
+    }
+
+    "not have a change if we don't have a cache for itself, but have a global cache" in {
+      service.detectChangeInNode(
+          None
+        , simpleNodeConfig
+        , directiveLib
+        , true
       ) must beTheSameAs(Set())
     }
 
@@ -208,6 +220,16 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(simpleNodeConfig))
         , simpleNodeConfig.copy(nodeInfo = nodeInfo2)
         , directiveLib
+        , true
+      ) === Set(new RuleId("ruleId"))
+    }
+
+    "have a change if we don't have a cache for itself, and no global cachel" in {
+      service.detectChangeInNode(
+          None
+        , simpleNodeConfig
+        , directiveLib
+        , false
       ) === Set(new RuleId("ruleId"))
     }
   }
@@ -218,6 +240,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(complexeNodeConfig))
         , complexeNodeConfig
         , directiveLib
+        , true
       ) must beTheSameAs(Set())
     }
 
@@ -226,6 +249,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(complexeNodeConfig))
         , complexeNodeConfig.copy(policyDrafts = Set(policyOtherVaredOne))
         , directiveLib
+        , true
       ) === Set(new RuleId("ruleId1"))
     }
 
@@ -234,6 +258,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(complexeNodeConfig))
         , complexeNodeConfig.copy(policyDrafts = Set(nextPolicyVaredOne))
         , directiveLib
+        , true
       ) === Set(new RuleId("ruleId1"))
 
     }
@@ -243,6 +268,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(complexeNodeConfig))
         , complexeNodeConfig.copy(nodeInfo = nodeInfo2)
         , directiveLib
+        , true
       ) === Set(new RuleId("ruleId1"))
     }
 
@@ -254,6 +280,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
             , policyDrafts = Set(nextPolicyVaredOne)
           )
         , directiveLib
+        , true
       ) === Set(new RuleId("ruleId1"))
     }
 
@@ -262,6 +289,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(emptyNodeConfig))
         , complexeNodeConfig
         , directiveLib
+        , true
       )  must beTheSameAs(Set())
     }
 
@@ -270,6 +298,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(complexeNodeConfig))
         , emptyNodeConfig
         , directiveLib
+        , true
       ) === Set().empty
     }
 
@@ -278,6 +307,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(complexeNodeConfig))
         , emptyNodeConfig.copy( nodeInfo = nodeInfo2 )
         , directiveLib
+        , true
       ) === Set(new RuleId("ruleId1"))
     }
 
@@ -286,6 +316,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
           Some(NodeConfigurationCache(emptyNodeConfig))
         , complexeNodeConfig.copy( nodeInfo = nodeInfo2 )
         , directiveLib
+        , true
       ) === Set(new RuleId("ruleId1"))
     }
   }

@@ -204,11 +204,11 @@
               <li ng-show="directivesIsEmpty()">
                 <span class="targetDisplay">{{emptyDirective}}</span>
               </li>
-              <li ng-repeat="(id, name) in directives">
+              <li ng-repeat="directive in sortDirectives(directives)">
                 <span class="targetDisplay">
                     <img src="/images/tree/server_group_16x16.gif" class="targetIcon" />
-                    {{ name }}
-                    <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(id)"/>
+                    {{ directive.name }}
+                    <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(directive.id)"/>
                 </span>
               </li>
             </ul>

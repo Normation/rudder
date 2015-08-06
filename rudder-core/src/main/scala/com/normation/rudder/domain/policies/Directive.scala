@@ -114,10 +114,13 @@ case class Directive(
    * If it is not, configuration based on that policy should not be considered
    * for deployment on nodes.
    */
-  isEnabled:Boolean = false,
+  _isEnabled:Boolean = false,
 
   isSystem:Boolean = false
-) extends HashcodeCaching
+) extends HashcodeCaching {
+  //system object must ALWAYS be ENABLED.
+  def isEnabled = _isEnabled || isSystem
+}
 
 
 final case class SectionVal(

@@ -35,11 +35,13 @@
 package com.normation.rudder.domain.reports
 
 import org.joda.time.DateTime
+
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
+
 import net.liftweb.common.Loggable
-import com.normation.rudder.repository.NodeConfigIdInfo
 
 /**
  * That file contains all the kind of status reports for:
@@ -253,14 +255,17 @@ object ComponentStatusReport extends Loggable {
 
 /**
  * For a component value, store the report status
+ *
+ * In fact, we only keep unexpanded component values.
+ * Values are lost. They are not really used today
  */
 final case class ComponentValueStatusReport(
-    componentValue 		   : String
-  , unexpandedComponentValue: Option[String]
+    componentValue 		      : String
+  , unexpandedComponentValue: String
   , messages                : List[MessageStatusReport]
 ) extends StatusReport {
 
-  override def toString() = s"${componentValue}${unexpandedComponentValue.fold("")(x => "(<->"+x+")")}:${messages.mkString("[", ";", "]")}"
+  override def toString() = s"${componentValue}(<-> ${unexpandedComponentValue}):${messages.mkString("[", ";", "]")}"
 
   override val compliance = ComplianceLevel.compute(messages.map( _.reportType))
 
@@ -274,30 +279,16 @@ final case class ComponentValueStatusReport(
 object ComponentValueStatusReport extends Loggable {
   /**
    * Merge a set of ComponentValueStatusReport, grouping
-   * them by component value
+   * them by component *unexpanded* value
    */
   def merge(values: Iterable[ComponentValueStatusReport]): Map[String, ComponentValueStatusReport] = {
-    val pairs = values.groupBy(_.componentValue).map { case (valueName, values) =>
+    val pairs = values.groupBy(_.unexpandedComponentValue).map { case (unexpanded, values) =>
       //the unexpanded value should be the same on all values.
       //if not, report an error for devs
-      val (unexpanded, messages) = ((Option.empty[String],List.empty[MessageStatusReport])/:values) { case(acc,next) =>
-
-        val unex = (acc._1, next.unexpandedComponentValue) match {
-          case (None, Some(x)) => Some(x)
-          case (Some(x), None) => Some(x)
-          case (None, None) => None
-          case (Some(x), Some(y)) =>
-            if(x != y) {
-              logger.debug(s"Report for a key values where bounded to several unexpanded value. Keeping '${x}', discarding '${y}'")
-            }
-            Some(x)
-        }
-        (unex, acc._2 ++ next.messages)
-      }
-
+      val allReports = values.toList
       (
-          valueName,
-          ComponentValueStatusReport(valueName, unexpanded, messages)
+          unexpanded,
+          ComponentValueStatusReport(unexpanded, unexpanded, values.toList.flatMap(_.messages))
       )
 
     }
