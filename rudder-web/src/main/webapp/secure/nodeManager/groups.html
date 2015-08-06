@@ -15,10 +15,10 @@ input.queryInputValue, select.queryInputValue {
 </style>
 </head>
 
-<lift:node.Groups.head />
+<span data-list="node.Groups.head" ></span>
 
   <div class="col col-sm">  
-    <lift:node.Groups.groupHierarchy>
+    <div data-lift="node.Groups.groupHierarchy">
       <div class="inner-portlet" style="float:left; margin-right:15px;">
         <div class="page-title">Group hierarchy</div>
         <div class="inner-portlet-content">
@@ -46,19 +46,19 @@ input.queryInputValue, select.queryInputValue {
           <p class="note"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
         </div>
       </div>
-    </lift:node.Groups.groupHierarchy>
+    </div>
   </div>
   <div class="col col-xl">  
     <div id="ajaxItemContainer" style="width: 100%">
-      <lift:node.Groups.initRightPanel/>
+      <span data-lift="node.Groups.initRightPanel"></span>
     </div>
   </div>
 
-  <div class="spacer"/>    
+  <div class="spacer"></div>    
   <div id="createGroupPopup" class="nodisplay">
-    <div id="createGroupContainer"/>
+    <div id="createGroupContainer"></div>
   </div>
   
-  <lift:node.Groups.detailsPopup/>
+  <div data-lift="node.Groups.detailsPopup"></div>
 </lift:surround>
    

@@ -91,11 +91,6 @@ class SrvGrid(
 
   private def tableTemplate = chooseTemplate("servergrid","table",template)
 
-  /*
-   * All JS/CSS needed to have datatable working
-   */
-  def head() : NodeSeq =  DisplayNode.head
-
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
   /**

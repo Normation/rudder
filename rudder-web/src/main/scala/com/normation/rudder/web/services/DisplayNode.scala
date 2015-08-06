@@ -84,23 +84,13 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
 
-  private[this] val templatePath = List("templates-hidden", "server_details_tabs")
-  private[this] def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
-
 
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
 
 
-  private[this] def content() = chooseTemplate("serverdetails","content",template)
-
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
-    //id is not used anymore ?
     (for {
       seq <- getSoftwareService.getSoftware(softIds)
       gridDataId = htmlId(jsId,"soft_grid_data_")
@@ -141,9 +131,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def head() = chooseTemplate("serverdetails","head",template)
-
-def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
+  def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
@@ -239,10 +227,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val mainTabDeclaration : List[NodeSeq] =
- /*     { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
-      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  else NodeSeq.Empty } ::
-      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>  else NodeSeq.Empty } ::
-      */
       <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_memories_")}>Memories</a></li> ::
@@ -258,7 +242,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       { if (showExtraFields) displayTabFilesystems(jsId, sm) else Nil } ::
       { if (showExtraFields) displayTabNetworks(jsId, sm) else Nil } ::
       { if (showExtraFields) displayTabSoftware(jsId) else Nil } ::
-    //  displayTabSoftware(jsId) ::
       displayTabBios(jsId, sm) ::
       displayTabControllers(jsId, sm) ::
       displayTabMemories(jsId, sm) ::
@@ -270,10 +253,10 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       displayTabVideos(jsId, sm) ::
       Nil
 
-      <div id={htmlId(jsId,"details_")} class="sInventory">{bind("server", content,
-        "tabsDefinition" -> <ul>{mainTabDeclaration}</ul>,
-        "grid_tabs" -> tabContent.flatten
-    )}</div>
+      <div id={htmlId(jsId,"details_")} class="sInventory tabsv">
+        <ul>{mainTabDeclaration}</ul>
+        {tabContent.flatten}
+      </div>
   }
 
   /**
@@ -565,7 +548,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   private def displayTabSoftware(jsId:JsNodeId) : NodeSeq =
     displayTabGrid(jsId)("soft",
         //do not retrieve software here
-        //getNodeInventoryService.getSoftware(id)
         Full(Seq())
     ){
       ("Name", {x:Software => ?(x.name)} ) ::
@@ -581,10 +563,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         ("Mask", {x:Network => Text(x.ifMask.map{ _.getHostAddress }.mkString(", "))}) ::
         ("DHCP server", {x:Network => Text(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
         ("MAC address", {x:Network => ?(x.macAddress)}) ::
-        //("Gateway", {x:Network => Text(x.ifGateway.map{ _.getHostAddress }.mkString(", "))}) ::
-        //("Network", {x:Network => Text(x.ifSubnet.map{ _.getHostAddress }.mkString(", "))}) ::
         ("Type", {x:Network => ?(x.ifType)}) ::
-        //("Type-MIB", {x:Network => ?(x.typeMib)}) ::
         ("Speed", {x:Network => ?(x.speed)}) ::
         ("Status", {x:Network => ?(x.status)}) ::
         Nil
