@@ -56,10 +56,13 @@ import scala.io.Source
  */
 trait DBCommon extends Specification with Loggable with Tags {
 
-  skipAllIf(System.getProperty("test.postgres", "").toLowerCase match {
-    case "true" | "1" => false
-    case _ => true
-  })
+  logger.info("""Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test""")
+
+  val doDatabaseConnection = System.getProperty("test.postgres", "").toLowerCase match {
+    case "true" | "1" => true
+    case _ => false
+  }
+  skipAllIf(!doDatabaseConnection)
 
   /**
    * By default, init schema with the Rudder schema and tables, safe that

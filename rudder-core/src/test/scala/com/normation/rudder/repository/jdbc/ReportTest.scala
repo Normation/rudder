@@ -70,8 +70,8 @@ class ReportsTest extends DBCommon {
   }
 
 
-  val repostsRepo = new ReportsJdbcRepository(jdbcTemplate)
-  val slick = new SlickSchema(dataSource)
+  lazy val repostsRepo = new ReportsJdbcRepository(jdbcTemplate)
+  lazy val slick = new SlickSchema(dataSource)
 
   sequential
 
