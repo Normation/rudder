@@ -32,7 +32,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.nodes
+package com.normation.rudder.services.path
 
 import scala.collection.immutable.SortedMap
 import org.junit.runner._
@@ -50,7 +50,6 @@ import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.nodeconfig._
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.services.path.PathComputerImpl
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.rudder.reports.ReportingConfiguration

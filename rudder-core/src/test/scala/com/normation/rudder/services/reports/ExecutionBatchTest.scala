@@ -122,36 +122,37 @@ class ExecutionBatchTest extends Specification {
       , Seq("foo", "bar")
     )
 
-    val getComponentStatus = (r:Seq[Reports]) => ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, r, NoAnswerReportType)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
 
     "return a component globally repaired " in {
-      getComponentStatus(reports).compliance === ComplianceLevel(success = 1, repaired = 1)
+      withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
     }
     "return a component with two key values " in {
-      getComponentStatus(reports).componentValues.size === 2
+      withGood.componentValues.size === 2
     }
     "return a component with the key values foo which is repaired " in {
-      getComponentStatus(reports).componentValues("foo").messages.size === 1 and
-      getComponentStatus(reports).componentValues("foo").messages.head.reportType ===  RepairedReportType
+      withGood.componentValues("foo").messages.size === 1 and
+      withGood.componentValues("foo").messages.head.reportType ===  RepairedReportType
     }
     "return a component with the key values bar which is a success " in {
-      getComponentStatus(reports).componentValues("bar").messages.size === 1 and
-      getComponentStatus(reports).componentValues("bar").messages.head.reportType ===  SuccessReportType
+      withGood.componentValues("bar").messages.size === 1 and
+      withGood.componentValues("bar").messages.head.reportType ===  SuccessReportType
     }
 
     "only some missing reports mark them as missing, not unexpected" in {
-      getComponentStatus(badReports).compliance === ComplianceLevel(success = 1, unexpected = 2)
+      withBad.compliance === ComplianceLevel(success = 1, unexpected = 2)
     }
     "with bad reports return a component with two key values " in {
-      getComponentStatus(badReports).componentValues.size === 2
+      withBad.componentValues.size === 2
     }
     "with bad reports return a component with the key values foo which is unknwon " in {
-      getComponentStatus(badReports).componentValues("foo").messages.size === 2 and
-      getComponentStatus(badReports).componentValues("foo").messages.head.reportType ===  UnexpectedReportType
+      withBad.componentValues("foo").messages.size === 2 and
+      withBad.componentValues("foo").messages.head.reportType ===  UnexpectedReportType
     }
     "with bad reports return a component with the key values bar which is a success " in {
-      getComponentStatus(badReports).componentValues("bar").messages.size === 1 and
-      getComponentStatus(badReports).componentValues("bar").messages.head.reportType ===  SuccessReportType
+      withBad.componentValues("bar").messages.size === 1 and
+      withBad.componentValues("bar").messages.head.reportType ===  SuccessReportType
     }
   }
 
@@ -181,7 +182,7 @@ class ExecutionBatchTest extends Specification {
     "return a component globally repaired " in {
       withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
     }
-    "return a component with two key values " in {
+    "return a component with one key value " in {
       withGood.componentValues.size === 1
     }
     "return a component with both None key repaired " in {
@@ -192,10 +193,10 @@ class ExecutionBatchTest extends Specification {
     "with bad reports return a component globally unexpected " in {
       withBad.compliance === ComplianceLevel(unexpected = 3)
     }
-    "with bad reports return a component with two key values " in {
+    "with bad reports return a component with one key values (only None)" in {
       withBad.componentValues.size === 1
     }
-    "with bad reports return a component with both None key unexpected " in {
+    "with bad reports return a component with None key unexpected " in {
       withBad.componentValues("None").messages.size === 3 and
       withBad.componentValues("None").messages.forall(x => x.reportType === UnexpectedReportType)
     }
@@ -211,7 +212,7 @@ class ExecutionBatchTest extends Specification {
 
     val badReports = Seq[Reports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
     )
 
@@ -221,7 +222,7 @@ class ExecutionBatchTest extends Specification {
     )
 
     val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
-    val witBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
+    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
 
     "return a component globally repaired " in {
       withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
@@ -231,6 +232,71 @@ class ExecutionBatchTest extends Specification {
     }
     "return a component with both cfengine keys repaired " in {
       withGood.componentValues("${sys.bla}").messages.size === 1
+    }
+  }
+
+
+   // Test the component part
+  "A component, with generation-time known keys" should {
+    val executionTimestamp = new DateTime()
+    val reports = Seq[Reports](
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node2", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node1", executionTimestamp, "message")
+    )
+
+    val badReports = Seq[Reports](
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node1", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node1", executionTimestamp, "message"),
+        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "node2", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    )
+
+    /*
+     * Here, we must be able to decide between node1 and node2 value for the repair, because we know at generation time
+     * what is expected.
+     */
+    val expectedComponent = new ComponentExpectedReport("component", 2
+      , Seq("node1", "node2", "bar")
+      , Seq("${rudder.node.hostname}", "${rudder.node.hostname}", "bar")
+    )
+
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
+    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
+
+    "return a component with the correct number of success and repaired" in {
+      withGood.compliance === ComplianceLevel(success = 2, repaired = 1)
+    }
+
+    "return a component with two key values " in {
+      withGood.componentValues.size === 2
+    }
+
+    "return an unexpanded component key with both a success and a repaired" in {
+      val messages = withGood.componentValues("${rudder.node.hostname}").messages.map(_.reportType)
+      messages.size === 2 and
+      (messages must contain(RepairedReportType)) and
+      (messages must contain(SuccessReportType))
+    }
+
+    "return a component with the bar key success " in {
+      withGood.componentValues("bar").messages.size === 1 and
+      withGood.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
+    }
+
+    "with some bad reports mark them as unexpected (because the check is not done in checkExpectedComponentWithReports" in {
+      withBad.compliance ===  ComplianceLevel(success = 1, unexpected = 3)
+    }
+    "with bad reports return a component with two key values " in {
+      withBad.componentValues.size === 2
+    }
+    "with bad reports return a component with bar as a success " in {
+      withBad.componentValues("bar").messages.size === 1 and
+      withBad.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
+    }
+    "with bad reports return a component with the cfengine key as unexpected " in {
+      withBad.componentValues("${rudder.node.hostname}").messages.size === 3 and
+      withBad.componentValues("${rudder.node.hostname}").messages.forall(x => x.reportType === UnexpectedReportType)
     }
   }
 
@@ -244,7 +310,7 @@ class ExecutionBatchTest extends Specification {
 
     val badReports = Seq[Reports](
         new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
+        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
         new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
     )
 
@@ -270,19 +336,35 @@ class ExecutionBatchTest extends Specification {
       withGood.componentValues("bar").messages.size === 1 and
       withGood.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
     }
-    "with some bad reports mark them as unexpected (because the check is not done in checkExpectedComponentWithReports" in {
-      withBad.compliance ===  ComplianceLevel(success = 1, unexpected = 1)
+    "with some bad reports mark only one as unexpected (because the check is not done in checkExpectedComponentWithReports" in {
+      //that's because we are filtering out cfengine values step by step and we don't have any mean, for now,
+      //to know what other values should be marked as unexpected to.
+      withBad.compliance ===  ComplianceLevel(success = 1, repaired = 1, unexpected = 1)
     }
-    "with bad reports return a component with two key values " in {
-      withBad.componentValues.size === 2
+    "with bad reports return a component with three key values (one unexpected)" in {
+      withBad.componentValues.size === 3
     }
+
+    /*
+     * For the next three, the logic is that:
+     * - we successfully matched the constant value;
+     * - we successfully matched the cfengine value (taking at random the report type between
+     *   success and repaired - but we have no way to decide ! Ok, and the random is more like
+     *   "the first in the list", so it helps for the test)
+     * - have one unexpected, for the last message - and we don't have any way to decide if it
+     *   comes from a cfengine var or not !
+     */
     "with bad reports return a component with bar as a success " in {
       withBad.componentValues("bar").messages.size === 1 and
       withBad.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
     }
-    "with bad reports return a component with the cfengine key as unexpected " in {
+    "with bad reports return a component with the cfengine key as reparaired" in {
       withBad.componentValues("${sys.bla}").messages.size === 1 and
-      withBad.componentValues("${sys.bla}").messages.forall(x => x.reportType === UnexpectedReportType)
+      withBad.componentValues("${sys.bla}").messages.forall(x => x.reportType === RepairedReportType)
+    }
+    "with bad reports return a component with an unknow key as unknown " in {
+      withBad.componentValues("/var/cfengine").messages.size === 1 and
+      withBad.componentValues("/var/cfengine").messages.forall(x => x.reportType === UnexpectedReportType)
     }
   }
 
@@ -294,7 +376,7 @@ class ExecutionBatchTest extends Specification {
           , "rule"
           , 12
           , Seq(DirectiveExpectedReports("policy"
-                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() ))
+                , Seq(new ComponentExpectedReport("component", 1, Seq("value"), Seq() )) //here, we automatically must have "value" infered as unexpanded var
               )
             )
         )
@@ -668,21 +750,21 @@ class ExecutionBatchTest extends Specification {
       , Seq("/var/cfengine", "bar")
     )
 
-    val getComponentStatus = (r:Seq[Reports]) => ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, r, NoAnswerReportType)
+    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
 
     "return a component globally success " in {
-      getComponentStatus(reports).compliance === ComplianceLevel(success = 1, notApplicable = 1)
+      withGood.compliance === ComplianceLevel(success = 1, notApplicable = 1)
     }
     "return a component with two key values " in {
-      getComponentStatus(reports).componentValues.size === 2
+      withGood.componentValues.size === 2
     }
     "return a component with the /var/cfengine in NotApplicable " in {
-      getComponentStatus(reports).componentValues("/var/cfengine").messages.size === 1 and
-      getComponentStatus(reports).componentValues("/var/cfengine").compliance.pc_notApplicable === 100
+      withGood.componentValues("/var/cfengine").messages.size === 1 and
+      withGood.componentValues("/var/cfengine").compliance.pc_notApplicable === 100
     }
     "return a component with the bar key success " in {
-      getComponentStatus(reports).componentValues("bar").messages.size == 1 and
-      getComponentStatus(reports).componentValues("bar").compliance.pc_success === 100
+      withGood.componentValues("bar").messages.size == 1 and
+      withGood.componentValues("bar").compliance.pc_success === 100
     }
   }
 
