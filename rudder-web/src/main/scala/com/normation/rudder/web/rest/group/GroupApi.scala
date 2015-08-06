@@ -74,7 +74,7 @@ case class RestGroup(
         , description = updateDesc
         , query       = query
         , isDynamic   = updateisDynamic
-        , isEnabled   = updateEnabled
+        , _isEnabled  = updateEnabled
       )
 
     }

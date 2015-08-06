@@ -109,18 +109,31 @@ case class ComponentExpectedReport(
     componentName             : String
   , cardinality               : Int
 
-  //TODO: change that to have a Seq[(String, Option[String]).
+  //TODO: change that to have a Seq[(String, String).
   //or even better, un Seq[ExpectedValue] where expectedValue is the pair
   , componentsValues          : Seq[String]
   , unexpandedComponentsValues: Seq[String]
 ) extends HashcodeCaching {
-  // Utilitary method to returns componentValues along with unexpanded values
-  // The unexpanded may be none, for older version of Rudder didn't have this
-  def groupedComponentValues : Seq[(String, Option[String])] = {
-    if (componentsValues.size != unexpandedComponentsValues.size) {
-      componentsValues.map((_, None))
-    } else {
-      componentsValues.zip(unexpandedComponentsValues.map(Some(_)))
+  /**
+   * Get a normalized list of pair of (value, unexpandedvalue).
+   * We have three case to consider:
+   * - both source list have the same size => easy, just zip them
+   * - the unexpandedvalues is empty: it may happen due to old version of
+   *   rudder not having recorded them => too bad, use the expanded value
+   *   in both case
+   * - different size: why on hell do we have a data model authorizing that
+   *   and the TODO is not addressed ?
+   *   In that case, there is no good solution. We choose to:
+   *   - remove unexpanded values if it's the longer list
+   *   - complete unexpanded values with matching values in the other case.
+   */
+  def groupedComponentValues : Seq[(String, String)] = {
+    if (componentsValues.size <= unexpandedComponentsValues.size) {
+      componentsValues.zip(unexpandedComponentsValues)
+    } else { // strictly more values than unexpanded
+      val n = unexpandedComponentsValues.size
+      val unmatchedValues = componentsValues.drop(n)
+      componentsValues.take(n).zip(unexpandedComponentsValues) ++ unmatchedValues.zip(unmatchedValues)
     }
   }
 }
