@@ -68,8 +68,8 @@ class AgentRunsTest extends DBCommon {
   }
 
 
-  val roRunRepo = new RoReportsExecutionJdbcRepository(jdbcTemplate, new PostgresqlInClause(2))
-  val woRunRepo = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roRunRepo)
+  lazy val roRunRepo = new RoReportsExecutionJdbcRepository(jdbcTemplate, new PostgresqlInClause(2))
+  lazy val woRunRepo = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roRunRepo)
 
 
   val (n1, n2) = (NodeId("n1"), NodeId("n2"))

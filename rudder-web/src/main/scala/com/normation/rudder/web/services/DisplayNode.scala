@@ -63,6 +63,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.{Node => RudderNode}
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 
 /**
  * A service used to display details about a server
@@ -375,7 +376,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           <b>Operating System Type:</b> {sm.node.main.osDetails.os.kernelName}<br/>
           <b>Operating System Name:</b> {S.?("os.name."+sm.node.main.osDetails.os.name)}<br/>
           <b>Operating System Version:</b> {sm.node.main.osDetails.version.value}<br/>
-          <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse("None")}<br/>
+          <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse(DEFAULT_COMPONENT_KEY)}<br/>
         </div>
 
       <h4 class="tablemargin">Rudder information</h4>
@@ -474,7 +475,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   }
 
   private def displayPublicKeys(node:NodeInventory) : NodeSeq = <b>Public Key(s): </b> ++ {if(node.publicKeys.isEmpty) {
-          Text("None")
+          Text(DEFAULT_COMPONENT_KEY)
         } else <ul>{node.publicKeys.zipWithIndex.flatMap{ case (x,i) => (<b>{"[" + i + "] "}</b> ++ {Text(x.key.grouped(65).toList.mkString("\n"))})}}</ul> }
 
   private def displayNodeInventoryInfo(node:NodeInventory) : NodeSeq = {
