@@ -491,7 +491,7 @@ class RuleGrid(
       }
 
       val size = converted.size
-      TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data ${tData}ms (by line: ${tData/size}ms)")
+      TimingDebugLogger.trace(s"Rule grid: transforming into data: get rule data ${tData}ms for ${size} lines ${if(size == 0) "" else s"(by line: ${tData/size}ms)"}")
 
       val t2 = System.currentTimeMillis
       val res = JsTableData(lines)
