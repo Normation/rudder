@@ -81,7 +81,7 @@ case class RestDirective(
           name             = updateName
         , shortDescription = updateShort
         , longDescription  = updateLong
-        , isEnabled        = updateEnabled
+        , _isEnabled        = updateEnabled
         , parameters       = updateParameters
         , techniqueVersion = updateTechniqueVersion
         , priority         = updatePriority

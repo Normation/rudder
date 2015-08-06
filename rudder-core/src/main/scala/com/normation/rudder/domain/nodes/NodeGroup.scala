@@ -61,6 +61,9 @@ case class NodeGroup(
   , query      : Option[Query]
   , isDynamic  : Boolean = true
   , serverList : Set[NodeId]
-  , isEnabled  : Boolean
+  , _isEnabled : Boolean
   , isSystem   : Boolean = false
- ) extends HashcodeCaching
+) extends HashcodeCaching {
+  //system object must ALWAYS be ENABLED.
+  def isEnabled = _isEnabled || isSystem
+}

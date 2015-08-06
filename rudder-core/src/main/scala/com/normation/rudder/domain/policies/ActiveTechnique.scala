@@ -61,7 +61,10 @@ case class ActiveTechnique(
   , acceptationDatetimes: Map[TechniqueVersion, DateTime]
     //TODO: remove directives ids, they DON'T have to be here.
   , directives          : List[DirectiveId] = Nil
-  , isEnabled           : Boolean = true
+  , _isEnabled          : Boolean = true
   , isSystem            : Boolean = false
- ) extends HashcodeCaching
+) extends HashcodeCaching {
+  //system object must ALWAYS be ENABLED.
+  def isEnabled = _isEnabled || isSystem
+}
 
