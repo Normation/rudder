@@ -42,6 +42,16 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     This is the web front end project that manage the CMDB 
   </description>
   
+  <repositories>
+    <repository>
+      <id>Sonatype snapshot</id>
+      <name>Sonatype OSS repository - snapshots</name>
+      <url>https://oss.sonatype.org/content/groups/public</url>
+      <snapshots><enabled>true</enabled></snapshots>
+      <releases><enabled>false</enabled></releases>
+    </repository>
+  </repositories>  
+  
   <build>
     <plugins>
        <!-- this is needed to have Rudder plugins access rudder-web in jar format -->
