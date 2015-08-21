@@ -2,13 +2,17 @@
 
 <div  id="complianceMode">
   <div class="inner-portlet"  id="complianceModeController" ng-controller="complianceModeController" ng-class="{'tw-bs': isNodePage}">
-  <div class="page-title"  ng-hide="isNodePage">Configure compliance mode</div>
+  <div class="page-title"  ng-hide="isNodePage">Compliance reporting mode</div>
   <div class="portlet-content">
     <div class="intro"  ng-hide="isNodePage">
       <div>
-              If enable, Rudder will work in compliance mode, assessing that each node correctly executed all required check, 
-              and only executed the expected check. <br/>
-              When compliance is disabled, Rudder will only look for "error" and "repair" reports.
+              This setting affects the reports sent from each agent to this central server.<br/>
+              In <b>Full compliance</b> mode, a report will be sent for each configuration component that is checked, even if no
+              changes were necessary (these are known as 'success' reports). This mode is much more verbose, in terms of logs and
+              network traffic, but provides more precise reporting and may be necessary to prove compliance in your organization.<br/>
+              In <b>Changes only</b> mode, reports will only be sent when the agent makes a change or an error occurs on a node
+              (these are 'repair' or 'error' reports). This mode saves a lot of log space and bandwidth, but leads to some assumptions
+              about actual configuration status in reporting.
       </div>
     </div>
 
@@ -83,7 +87,7 @@
       </div>
       <div class="form-group" ng-hide="isNodePage    &amp;&amp; complianceMode.name === 'full-compliance'">
         <div class="pull-left control-label">
-          <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save Changes</button>
+          <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
         </div>
         <div id="heartBeatMessage" class="pull-left control-label">
           <lift:Msg id="complianceModeMessage">[messages]</lift:Msg>
