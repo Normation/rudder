@@ -58,7 +58,7 @@
     <img onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
 
     <a style="float:right" href="/secure/utilities/techniqueEditor">
-      <input style="padding:0.4em 0" type="button" value="Open Technique editor"/>
+      <input style="padding:0.4em 0" type="button" value="Edit techniques"/>
    </a>
  </div>
 
@@ -121,7 +121,7 @@
            <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated" /> <label for="displayDeprecation">Display deprecated Technique versions</label>
          <div style="text-align: center;">
            <lift:authz role="directive_write">
-             <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with last version"/>
+             <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version"/>
            </lift:authz>
          </div>         
        </fieldset>

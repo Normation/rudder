@@ -134,7 +134,7 @@ http://www.rudder-project.org/HowToContribute
 
 
 
-.For a more 'developper oriented' usage.
+.For a more 'developer oriented' usage.
 
 This project is managed thanks to Maven software project management (http://maven.apache.org/). 
 You will have to have a working Maven 3.0.x installation.
@@ -144,7 +144,7 @@ You will have to have a working Maven 3.0.x installation.
 % mvn clean install
 ----
 
-For now, the developpement environment is not trivial to set-up. We want to 
+For now, the development environment is not trivial to set-up. We want to 
 make it more easy so that an unique command will set-up the full environment, 
 but we are afraid that until that bright future become true, you will have to
 follow: http://www.rudder-project.org/foswiki/Development/SettingUpADevelopmentEnvironment
