@@ -14,14 +14,14 @@
   <div class="portlet-content"  id="agentScheduleController" ng-controller="cfagentScheduleController">
     <div class="intro">
       <div ng-if="globalRun === undefined">
-        <p>By default, the agent runs on all nodes every 5 minutes</p>
+        <p>By default, the agent runs on all nodes every 5 minutes.</p>
         <p>
-          The high frequency enables fast response time to apply changes and state
+          This high frequency enables fast response times to apply changes and state
           assessment for high-precision drift and compliance reports.
         </p>
         <p>
           You can modify this run interval below, as well as the "splay time" across nodes (a random
-          delay delay alters scheduled run time, intended to spread load across nodes).
+          delay that alters scheduled run time, in order to spread load across nodes).
         </p>
       </div>
       <div ng-if="globalRun !== undefined">
@@ -72,7 +72,7 @@
         </div>
         <div class="form-group">
           <div class="pull-left control-label">
-            <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="isUnchanged()" id="cfagentScheduleSubmit">Save Changes</button>
+            <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="isUnchanged()" id="cfagentScheduleSubmit">Save changes</button>
           </div>
           <div id="scheduleMessage" class="pull-left">
             <lift:Msg id="cfagentScheduleMessage">[messages]</lift:Msg>

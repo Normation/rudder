@@ -215,7 +215,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   }
 
   /**
-   * Show details about the server in a tabed fashion if
+   * Show details about the server in a tabbed fashion if
    * the server exists, display an error message if the
    * server is not found or if a problem occurred when fetching it
    *
@@ -228,15 +228,15 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val mainTabDeclaration : List[NodeSeq] =
-      <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_bios_")}>BIOS</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memories</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memory</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_ports_")}>Ports</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_processors_")}>Processors</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_slots_")}>Slots</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sounds</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storages</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_videos_")}>Videos</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sound</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storage</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_videos_")}>Video</a></li> ::
       Nil
 
     val tabContent =
@@ -269,10 +269,10 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>
     <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>
     <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>
-    <li><a href={htmlId_#(jsId,"sd_props_")}>Properties</a></li>
-    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment variables</a></li>
+    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment</a></li>
     <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>
     <li><a href={htmlId_#(jsId,"sd_vm_")}>Virtual machines</a></li>
+    <li><a href={htmlId_#(jsId,"sd_props_")}>Properties</a></li>
     </xml:group>
   }
 
@@ -284,10 +284,10 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     val jsId = JsNodeId(sm.node.main.id,salt)
     displayTabFilesystems(jsId, sm) ++
     displayTabNetworks(jsId, sm) ++
-    node.map(displayTabProperties(jsId, _)).getOrElse(Nil) ++
     displayTabVariable(jsId, sm) ++
     displayTabProcess(jsId, sm) ++
     displayTabVM(jsId, sm) ++
+    node.map(displayTabProperties(jsId, _)).getOrElse(Nil) ++
     displayTabSoftware(jsId)
 
   }
@@ -301,7 +301,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     val detailsId = htmlId(jsId,"details_")
     <div id={detailsId} class="tabs">
       <ul>
-        <li><a href={htmlId_#(jsId,"node_summary_")}>Node summary</a></li>
+        <li><a href={htmlId_#(jsId,"node_summary_")}>Summary</a></li>
         <li><a href={htmlId_#(jsId,"node_inventory_")}>Hardware</a></li>
         {showExtraHeader(sm, salt)}
        </ul>
@@ -816,7 +816,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     <div class="simplemodal-content">
       <div>
           <img src="/images/icfail.png" alt="Error!" height="32" width="32" class="erroricon"/>
-          <h2>There was an error while deleting the Node with id {nodeId.value}. Please contact your administrator.</h2>
+          <h2>There was an error while deleting the Node with ID {nodeId.value}. Please contact your administrator.</h2>
       </div>
       <hr class="spacer" />
       <br />
@@ -844,7 +844,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       <br />
       <div>
         <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
-        <h2>The node has been properly removed from Rudder.</h2>
+        <h2>The node has been successfully removed from Rudder.</h2>
       </div>
       <hr class="spacer" />
       <br />
