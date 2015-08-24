@@ -601,7 +601,7 @@ class ModificationValidationPopup(
 
             case _ =>
               //no change request for group creation/clone
-              logger.error("This feature is not implemented. Yell at developper for change request with groupe creation")
+              logger.error("This feature is not implemented. Please ask developers for change requests with group creation")
               formTracker.addFormError(Text("System error: feature missing"))
               onFailure
           }

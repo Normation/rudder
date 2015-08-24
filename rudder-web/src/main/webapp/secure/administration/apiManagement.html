@@ -48,11 +48,11 @@
         <div class="intro">
           <div>
             <p>
-              Configure accounts allowed to connect to Rudder API.
+              Configure accounts allowed to connect to Rudder's REST API.
             </p>
             <p>
-              An account is composed of an ID, used to identify its action (for example in event logs),
-              an authentication token which is the secret that will allow it to use Rudder APIs, and
+              An account is composed of a name, used to identify its action (for example in event logs),
+              an authentication token which is the secret that will allow it to use Rudder's API, and
               a description to explain the intent of that account.
             </p>
           </div>
@@ -146,7 +146,7 @@
                         <div>
                           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
                           <h2 id="areYouSure">You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.</h2>
-                          <span> All scripts using that authentication method won't be able to connect to Rudder REST API anymore.</span>
+                          <span> If you continue, any scripts using this will no longer be able to connect to Rudder's API.</span>
                         </div>
                         <br />
                         <hr class="spacer" />
