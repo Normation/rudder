@@ -1,0 +1,9 @@
+# @name Technique with quote
+# @description A technique with quote
+# @version 1.0
+
+bundle agent Technique_with_quote
+{
+  methods:
+    "method_call" usebundle => command_execution("/bin/echo \'Executing echo\'");
+}

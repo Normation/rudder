@@ -41,6 +41,20 @@ class TestNcfRudder(unittest.TestCase):
     self.test_metadata_xml_file = os.path.realpath('test_metadata.xml')
     self.test_metadata_xml_content = open(self.test_metadata_xml_file).read()
 
+
+    # Testing Techniques with quote
+    self.test_technique_with_quote_file = os.path.realpath('test_technique_with_quote.cf')
+    self.technique_with_quote_content = open(self.test_technique_with_quote_file).read()
+    self.technique_with_quote_metadata = ncf.parse_technique_metadata(self.technique_with_quote_content)
+    method_with_quote_calls = ncf.parse_technique_methods(self.test_technique_with_quote_file)
+    self.technique_with_quote_metadata['method_calls'] = method_with_quote_calls
+
+    self.test_expected_reports_with_quote_csv_file = os.path.realpath('test_expected_reports_with_quote.csv')
+    self.test_expected_reports_with_quote_csv_content = open(self.test_expected_reports_with_quote_csv_file).read()
+
+    self.test_metadata_with_quote_xml_file = os.path.realpath('test_metadata_with_quote.xml')
+    self.test_metadata_with_quote_xml_content = open(self.test_metadata_with_quote_xml_file).read()
+
   def test_expected_reports_from_technique(self):
     expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_metadata)
     self.assertEquals(expected_reports_string, self.test_expected_reports_csv_content)
@@ -67,6 +81,17 @@ class TestNcfRudder(unittest.TestCase):
     ncf_rudder.write_technique_for_rudder(root_path, self.any_technique_metadata)
     result = not os.path.exists(os.path.realpath(os.path.join(root_path, 'bla', '0.1', "rudder_reporting.st")))
     self.assertTrue(result)
+
+
+  # Testing Techniques with quotes
+  def test_expected_reports_with_quote(self):
+    expected_reports_string = ncf_rudder.get_technique_expected_reports(self.technique_with_quote_metadata)
+    self.assertEquals(expected_reports_string, self.test_expected_reports_with_quote_csv_content)
+
+  def test_metadate_with_quote(self):
+    metadata_xml_string = ncf_rudder.get_technique_metadata_xml(self.technique_with_quote_metadata)
+    expected_metadata_pure_xml = self.test_metadata_with_quote_xml_content
+    self.assertEquals(expected_metadata_pure_xml, metadata_xml_string)
 
   def test_rudder_reporting_content(self):
 

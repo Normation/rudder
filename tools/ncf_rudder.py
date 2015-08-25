@@ -262,7 +262,7 @@ def get_technique_expected_reports(technique_metadata):
 
     component = generic_method['name']
     key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    class_prefix = generic_method["class_prefix"]+"_"+key_value
+    class_prefix = (generic_method["class_prefix"]+"_"+key_value).replace("\\'", "\'").replace('\\"', '\"')
 
     line = technique_name+";;"+class_prefix+";;@@RUDDER_ID@@;;"+component+";;"+key_value
     
@@ -299,7 +299,7 @@ def generate_rudder_reporting(technique):
     method_name = method_call['method_name']
     generic_method = generic_methods[method_name]
 
-    key_value = method_call["args"][generic_method["class_parameter_id"]-1]
+    key_value = method_call["args"][generic_method["class_parameter_id"]-1].replace("\\'", "\'")
     regex = re.compile("[^\$\{\}\w](?![^{}]+})|\$(?!{)", flags=re.UNICODE)
     key_value_canonified = regex.sub("_", key_value)
 

@@ -1,0 +1,3 @@
+# This file contains one line per report expected by Rudder from this technique
+# Format: technique_name;;class_prefix_${key};;@@RUDDER_ID@@;;component name;;component key
+Technique_with_quote;;command_execution_/bin/echo 'Executing echo';;@@RUDDER_ID@@;;Command execution;;/bin/echo \'Executing echo\'
