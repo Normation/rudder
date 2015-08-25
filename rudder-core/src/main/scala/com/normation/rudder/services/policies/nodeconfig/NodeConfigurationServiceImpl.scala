@@ -45,6 +45,7 @@ import com.normation.rudder.services.policies.TemplateWriter
 import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import org.joda.time.DateTime
+import com.normation.cfclerk.domain.BundleOrder
 
 
 /**
@@ -293,22 +294,25 @@ class NodeConfigurationServiceImpl(
         val withSameTechnique = setDraft.toSeq.sortBy( _.cf3PolicyDraft.priority )
         //we know that the size is at least one, so keep the head, and log discard tails
 
-        //two part here: discart less priorized directive,
-        //and for same priority, take one at random (the first sorted by rule id, to keep some consistency)
+        //two part here: discard less priorized directive,
+        //and for same priority, take the first in rule/directive order
         //and add a big warning
 
         val priority = withSameTechnique.head.cf3PolicyDraft.priority
 
         val lesserPriority = withSameTechnique.dropWhile( _.cf3PolicyDraft.priority == priority)
 
-        //keep the directive with the first (alpha-num) ID - as good as other comparison.
-        val samePriority = withSameTechnique.takeWhile( _.cf3PolicyDraft.priority == priority).sortBy(_.directiveId.value)
+        //keep the directive with
+        val samePriority = withSameTechnique.takeWhile( _.cf3PolicyDraft.priority == priority).sortWith{ case (x1, x2) =>
+          BundleOrder.compareList(List(x1.ruleOrder, x1.directiveOrder), List(x2.ruleOrder, x2.directiveOrder)) <= 0
+        }
 
         val keep = samePriority.head
 
         //only one log for all discared draft
         if(samePriority.size > 1) {
-          logger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeConfig.nodeInfo.hostname}' for mono-instance (unique) technique '${keep.cf3PolicyDraft.technique.id}'. Several directives with same priority '${keep.cf3PolicyDraft.priority}' are applied. Keeping (ruleId@@directiveId) '${keep.draftId.value}', discarding: ${samePriority.tail.map(_.draftId.value).mkString("'", "', ", "'")}")
+          logger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeConfig.nodeInfo.hostname}' for mono-instance (unique) technique '${keep.cf3PolicyDraft.technique.id}'. Several directives with same priority '${keep.cf3PolicyDraft.priority}' are applied. "+
+              s"Keeping (ruleId@@directiveId) '${keep.draftId.value}' (order: ${keep.ruleOrder.value}/${keep.directiveOrder.value}, discarding: ${samePriority.tail.map(x => s"${x.draftId.value}:${x.ruleOrder.value}/${x.directiveOrder.value}").mkString("'", "', ", "'")}")
         }
         logger.trace(s"Unicity check: on node '${nodeConfig.nodeInfo.id.value}' for mono-instance (unique) technique '${keep.cf3PolicyDraft.technique.id}': keeping (ruleId@@directiveId) '${keep.draftId.value}', discarding less priorize: ${lesserPriority.map(_.draftId.value).mkString("'", "', ", "'")}")
 
