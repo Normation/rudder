@@ -1,0 +1,13 @@
+<TECHNIQUE name="Technique with quote">
+  <DESCRIPTION>A technique with quote</DESCRIPTION>
+  <BUNDLES>
+    <NAME>Technique_with_quote</NAME>
+  </BUNDLES>
+  <SECTIONS>
+    <SECTION component="true" multivalued="true" name="Command execution">
+      <REPORTKEYS>
+        <VALUE><![CDATA[/bin/echo \'Executing echo\']]></VALUE>
+      </REPORTKEYS>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>
