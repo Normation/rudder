@@ -314,38 +314,46 @@ class Cf3PromisesFileWriterServiceImpl(
   private[this] def prepareBundleVars(container: Cf3PolicyDraftContainer) : Map[String,Variable] = {
     logger.trace("Preparing bundle list and input list for container : %s ".format(container))
 
-    val inputs = scala.collection.mutable.Buffer[String]() // all the include file
-
     // Fetch the policies configured, with the system policies first
-    val policies =  sortTechniques(techniqueRepository.getByIds(container.getAllIds), container)
+    val techniques =  sortTechniques(techniqueRepository.getByIds(container.getAllIds), container)
 
-    for {
-      tml <- policies.flatMap(p => p.templates)
-    } {
-      if (tml.included) inputs += tml.outPath
+    //list of inputs file to include: all the outPath of templates that should be "included".
+    val inputs = techniques.flatMap { _.templates }.collect {
+      case template if(template.included) => template.outPath
     }
 
     // Compute the correct bundlesequence
     // ncf technique must call before-hand a bundle to register which ncf technique is being called
-    // so we must keep an ordered bundle list, and have two specific bundlesequence
     val NCF_REPORT_DEFINITION_BUNDLE_NAME = "current_technique_report_info"
 
-    val (ncfTechniques, techniques) = policies.partition(_.providesExpectedReports)
 
-    // We must exclude, from the ncf technique, the bundle ending by _rudder_reporting
-    // from the call to NCF_REPORT_DEFINITION_BUNDLE_NAME
-    // So it is only relevant to call NCF_REPORT_DEFINITION_BUNDLE_NAME for the first bundle, which is the bundle with the technique name
-    val ncfBundleSeq     = ncfTechniques.map{ techniques => techniques.bundlesequence.map(_.name) match {
-                              case head::cons => s"${NCF_REPORT_DEFINITION_BUNDLE_NAME}(${head})"::head::cons
-                              case Nil => Nil
-                            }
-                          }.flatten.mkString(", ")
+    val bundleSeq: Seq[Bundle] = techniques.flatMap { technique =>
+      // We need to remove zero-length bundle name from the bundlesequence (like, if there is no ncf bundles to call)
+      // to avoid having two successives commas in the bundlesequence
+      val techniqueBundles = technique.bundlesequence.flatMap { bundle =>
+        if(bundle.name.trim.size > 0) {
+          Some(bundle)
+        } else {
+          logger.warn(s"Technique '${technique.id}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
+          None
+        }
+      }
 
-    val nonNcfBundleSeq  = techniques.flatMap(x => x.bundlesequence.map(x =>x.name)).mkString(", \"", "\", \"", "\"")
+      //now, for each technique that provided reports (i.e: an ncf technique), we must add the
+      //NCF_REPORT_DEFINITION_BUNDLE_NAME just before the other bundle of the technique
 
-    // We need to remove zero-length bundles from the bundlesequence (like, if there is no ncf bundles to call)
-    // to avoid having two successives commas in the bundlesequence
-    val bundleSeq = Seq[String](nonNcfBundleSeq, ncfBundleSeq).filter(_.length>0)
+      //we assume that the bundle name to use as suffix of NCF_REPORT_DEFINITION_BUNDLE_NAME
+      // is the first of the provided bundle sequence for that technique
+      if(technique.providesExpectedReports) {
+        techniqueBundles match {
+          case Seq() => Seq()
+          case head +: tail => Bundle(s"${NCF_REPORT_DEFINITION_BUNDLE_NAME}(${head.name})") +: head +: tail
+        }
+      } else {
+        techniqueBundles
+      }
+    }
+
 
     Map[String, Variable](
         // Add the built in values for the files to be included and the bundle to be executed
@@ -354,7 +362,7 @@ class Cf3PromisesFileWriterServiceImpl(
           (variable.spec.name, variable)
         }
       , {
-          val variable = SystemVariable(systemVariableSpecService.get("BUNDLELIST"), Seq(bundleSeq.mkString(", ")))
+          val variable = SystemVariable(systemVariableSpecService.get("BUNDLELIST"), Seq(bundleSeq.map( _.name).mkString(", ", ", ", "")))
 
           (variable.spec.name, variable)
         }
