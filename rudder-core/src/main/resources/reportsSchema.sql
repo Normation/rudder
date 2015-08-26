@@ -193,6 +193,7 @@ CREATE TABLE Rules (
 rulePkeyId integer PRIMARY KEY default nextval('rulesId'),
 ruleId text NOT NULL CHECK (ruleId <> ''),
 serial integer NOT NULL,
+categoryid text,
 name text,
 shortdescription text,
 longdescription text,
@@ -203,8 +204,8 @@ endTime timestamp with time zone
 
 CREATE TABLE RulesGroupJoin (
 rulePkeyId integer, -- really the id of the table Rules
-groupId text NOT NULL CHECK (groupId <> ''),
-PRIMARY KEY(rulePkeyId, groupId)
+targetSerialisation text,
+PRIMARY KEY(rulePkeyId, targetSerialisation)
 );
 
 CREATE TABLE RulesDirectivesJoin (
