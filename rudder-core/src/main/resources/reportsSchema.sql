@@ -350,8 +350,8 @@ CREATE TABLE Rules (
 
 CREATE TABLE RulesGroupJoin (
   rulePkeyId integer -- really the id of the table Rules
-, groupId    text NOT NULL CHECK (groupId <> '')
-, PRIMARY KEY(rulePkeyId, groupId)
+, targetSerialisation text
+, PRIMARY KEY(rulePkeyId, targetSerialisation)
 );
 
 CREATE TABLE RulesDirectivesJoin (

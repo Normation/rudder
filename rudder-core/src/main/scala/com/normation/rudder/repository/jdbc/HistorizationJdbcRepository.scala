@@ -58,6 +58,7 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.domain.policies.RuleTarget
 
 
 class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionProvider)  extends HistorizationRepository with  Loggable {
@@ -296,11 +297,9 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 
         rule.directiveIds.map( directive => Rules.directives.insert(new SerializedRuleDirectives(serialized.id, directive.value)))
 
-        rule.targets.map(target => target match {
-          case GroupTarget(groupId) =>
-            Rules.groups.insert(new SerializedRuleGroups(serialized.id, groupId.value))
-          case _ => //
-        })
+        rule.targets.map { target =>
+          Rules.groups.insert(new SerializedRuleGroups(serialized.id, target.target))
+        }
       })
 
     } ; () //unit is expected
@@ -461,6 +460,7 @@ object Directives extends Schema {
 case class SerializedRules(
     @Column("ruleid")           ruleId           : String
   , @Column("serial")           serial           : Int
+  , @Column("categoryid")       categoryId       : String
   , @Column("name")             name             : String
   , @Column("shortdescription") shortDescription : String
   , @Column("longdescription")  longDescription  : String
@@ -474,10 +474,10 @@ case class SerializedRules(
 
 case class SerializedRuleGroups(
     @Column("rulepkeyid") rulePkeyId: Long,// really, the id (not the cr one)
-    @Column("groupid") groupId: String
+    @Column("targetserialisation") targetSerialisation: String
 ) extends KeyedEntity[CompositeKey2[Long,String]]  {
 
-  def id = compositeKey(rulePkeyId, groupId)
+  def id = compositeKey(rulePkeyId, targetSerialisation)
 }
 
 case class SerializedRuleDirectives(
@@ -498,8 +498,8 @@ object SerializedRules {
         RuleId(rule.ruleId)
       , rule.name
       , rule.serial
-      , RuleCategoryId("TODO")
-      , ruleTargets.map(x => new GroupTarget(new NodeGroupId(x.groupId))).toSet
+      , RuleCategoryId(rule.categoryId) // this is not really useful as RuleCategory are not really serialized
+      , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
       , directives.map(x => new DirectiveId(x.directiveId)).toSet
       , rule.shortDescription
       , rule.longDescription
@@ -513,8 +513,8 @@ object SerializedRules {
     SerializedRules (
         rule.id.value
       , rule.serial
+      , rule.categoryId.value
       , rule.name
-   //   , rule.category.value
       , rule.shortDescription
       , rule.longDescription
       , rule.isEnabledStatus
@@ -534,4 +534,3 @@ object Rules extends Schema {
       t.id.is(autoIncremented("rulesid"), primaryKey)))
 
 }
-
