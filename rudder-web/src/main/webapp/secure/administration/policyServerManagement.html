@@ -61,8 +61,8 @@
           <div
             class="lift:administration.EditPolicyServerAllowedNetwork.render">
             <div id="allowedNetworksForm"  class="deca">
-              <div id="policyServerDetails"/>
-              <div id="policyServerText"/>
+              <div id="policyServerDetails"></div>
+              <div id="policyServerText"></div>
 	          <form class="lift:form.ajax">
 	            <table>
 	              <thead>
@@ -79,7 +79,7 @@
 	                    value="delete" /></td>
 	                  <td><input name="network"
 	                    class="networkField" /></td>
-	                  <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
+	                  <td><span class="lift:Msg?errorClass=error">[error]</span></td>
 	                </tr>
 	              </tbody>
 	            </table>
@@ -99,7 +99,7 @@
               <div class="wbBaseField"> 
                     <label class="threeCol textight" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Require time synchronization between nodes and policy server: </span>
-                      <span id="denyBadClocksTooltip" />
+                      <span id="denyBadClocksTooltip"></span>
                     </label>
                     <input id="denyBadClocks" type="text"/>
               </div>
@@ -107,13 +107,13 @@
               <div class="wbBaseField"> 
                     <label class="threeCol textright" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Use reverse DNS lookups on nodes to reinforce authentication to policy server: </span>
-                      <span id="skipIdentifyTooltip" />
+                      <span id="skipIdentifyTooltip"></span>
                     </label>
                     <input id="skipIdentify" type="text"/>
               </div>
               <hr class="spacer"/>
               <input type="submit" value="[save]" id="cfserverNetworkSubmit"/>
-              <lift:Msg id="updateCfserverNetwork">[messages]</lift:Msg>
+              <span class="lift:Msg?id=updateCfserverNetwork">[messages]</span>
             </form>
           </div>
         </div>
@@ -140,7 +140,7 @@
               </div>
               <hr class="spacer"/>
               <input type="submit" value="[save]" id="networkProtocolSubmit"/>
-              <lift:Msg id="updateNetworkProtocol">[messages]</lift:Msg>
+              <span class="lift:Msg?id=updateNetworkProtocol">[messages]</span>
             </form>
           </div>
         </div>
@@ -149,9 +149,9 @@
         
       </div>
     </div>
-    <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"/>
+    <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
-    <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule"/>
+    <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule"></div>
     
     <div class="inner-portlet">
       <div class="page-title">Change audit logs</div>
@@ -174,15 +174,15 @@
               </div>
               <hr class="spacer"/>
               <div class="wbBaseField">       
-                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip" /></label><input id="mandatory" type="checkbox"/>
+                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip"></span></label><input id="mandatory" type="checkbox"/>
               </div>
               <hr class="spacer"/>
   		      <div class="wbBaseField"> 
-                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
+                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip"></span></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
               </div>
               <hr class="spacer"/>
               <input type="submit" value="Reload" id="changeMessageSubmit"/>
-              <lift:Msg id="updateChangeMsg">[messages]</lift:Msg>
+              <span class="lift:Msg?id=updateChangeMsg">[messages]</span>
             </form>
           </div>
         </div>
@@ -217,15 +217,15 @@ If disabled, all changes to configuration will be immediately deployed.</p>
               </div>
               <hr class="spacer"/>
               <div class="wbBaseField">       
-                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"/></label><input id="selfVal" type="checkbox"/>
+                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"></span></label><input id="selfVal" type="checkbox"/>
               </div>
               <hr class="spacer"/>
   		      <div class="wbBaseField"> 
-                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"/></label><input id="selfDep" type="checkbox"/>
+                    <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"></span></label><input id="selfDep" type="checkbox"/>
               </div>
               <hr class="spacer"/>
               <input type="submit" value="Reload" id="workflowSubmit"/>
-              <lift:Msg id="updateWorkflow">[messages]</lift:Msg>
+              <span class="lift:Msg?id=updateWorkflow">[messages]</span>
             </form>
           </div>
         </div>
@@ -249,7 +249,7 @@ These files are automatically removed to save on disk space. You can configure t
                 <div class="wbBaseField">
                   <label class="threeCol textight" style="font-weight:bold;width: 300px;">
                     <span style="float:left">Number of days to retain modified files: </span>
-                    <span id="modifiedFilesTtlTooltip" />
+                    <span id="modifiedFilesTtlTooltip"></span>
                   </label>
                   <input id="modifiedFilesTtl" type="text"/>
                 </div>
@@ -257,13 +257,13 @@ These files are automatically removed to save on disk space. You can configure t
                 <div class="wbBaseField">
                   <label class="threeCol textright" style="font-weight:bold;width: 300px;">
                     <span style="float:left">Number of days to retain agent output files: </span>
-                    <span id="cfengineOutputsTtlTooltip" />
+                    <span id="cfengineOutputsTtlTooltip"></span>
                   </label>
                   <input id="cfengineOutputsTtl" type="text"/>
                 </div>
                 <hr class="spacer"/>
                 <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
-                <lift:Msg id="updateCfengineGlobalProps">[messages]</lift:Msg>
+                <span class="lift:Msg?id=updateCfengineGlobalProps">[messages]</span>
               </form>
             </div>
           </div>
@@ -293,7 +293,7 @@ These files are automatically removed to save on disk space. You can configure t
               </div>
               <hr class="spacer"/>
               <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
-              <lift:Msg id="loggingConfiguration">[messages]</lift:Msg>
+              <span class="lift:Msg?id=loggingConfiguration">[messages]</span>
             </form>
           </div>
         </div>
@@ -327,7 +327,7 @@ These files are automatically removed to save on disk space. You can configure t
               </div>
               <hr class="spacer"/>
               <input type="submit" value="Reload" id="sendMetricsSubmit"/>
-              <lift:Msg id="sendMetricsMsg">[messages]</lift:Msg>
+              <span class="lift:Msg?id=sendMetricsMsg">[messages]</span>
             </form>
           </div>
         </div>
@@ -354,7 +354,7 @@ These files are automatically removed to save on disk space. You can configure t
             <form class="lift:form.ajax">
               <input id="clearCacheButton" type="submit"
                 value="[Clear cache]" />
-              <lift:Msg id="clearCacheNotice">[error]</lift:Msg>
+              <span class="lift:Msg?id=clearCacheNotice">[error]</span>
             </form>
           </div>
         </div>
@@ -383,8 +383,7 @@ Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateI
             <form class="lift:form.ajax">
               <input id="dyngroupReloadingButton" type="submit"
                 value="[Reload dyngroups]" />
-              <lift:msg id="dyngroupReloadingNotice"
-                errorClass="error">[error]</lift:msg>
+              <span class="lift:msg?id=dyngroupReloadingNotice&errorClass=error">[error]</span>
             </form>
           </div>
         </div>
@@ -411,7 +410,7 @@ Currently, Rudder will automatically do this update every <b id="techniqueLibrar
             id="reloadTechniqueLibForm">
             <form class="lift:form.ajax">
               <input type="submit" value="Reload" />
-              <lift:Msg id="updateLib">[messages]</lift:Msg>
+              <span class="lift:Msg?id=updateLib">[messages]</span>
             </form>
           </div>
         </div>
