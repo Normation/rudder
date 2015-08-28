@@ -34,22 +34,30 @@
 
 package com.normation.cfclerk.services
 
-import junit.framework.TestSuite
-import org.junit.Test
-import org.junit._
-import org.junit.Assert._
-import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
 import com.normation.cfclerk.domain._
-import com.normation.cfclerk.services.impl.Cf3PromisesFileWriterServiceImpl
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftContainer
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
+import com.normation.rudder.services.policies.BundleOrder
+import org.junit._
+import org.junit.Assert._
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.BlockJUnit4ClassRunner
+import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
+
+
 
 @RunWith(classOf[BlockJUnit4ClassRunner])
 class DirectiveAgregationTest {
   import scala.language.implicitConversions
   implicit def str2pId(id: String) = TechniqueId(TechniqueName(id), TechniqueVersion("1.0"))
-  implicit def str2directiveId(id: String) = Cf3PolicyDraftId(id)
+  implicit def str2directiveId(id: String) = Cf3PolicyDraftId(RuleId("r_"+id), DirectiveId("d_"+id))
 
   def compareValues(expected: Seq[(String, String)], actual1: Seq[String], actual2: Seq[String]) = {
     assertEquals(expected.size, actual1.size)
@@ -70,7 +78,7 @@ class DirectiveAgregationTest {
   val activeTechniqueId1 = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
   val activeTechniqueId2 = TechniqueId(TechniqueName("other"), TechniqueVersion("1.0"))
 
-  val templateDependencies = new Cf3PromisesFileWriterServiceImpl(
+  val prepareTemplate = new PrepareTemplateVariablesImpl(
     new DummyTechniqueRepository(Seq(
         Technique(
             activeTechniqueId1
@@ -94,19 +102,20 @@ class DirectiveAgregationTest {
           , None
           , isMultiInstance = true
         )
-    ) ),
-    new SystemVariableSpecServiceImpl())
+    ) )
+  , new SystemVariableSpecServiceImpl()
+  )
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
     val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId),
-        Map(), trackerVariable, priority = 0, serial = 0, order = List())
+        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
 
     val variable = new InputVariable(InputVariableSpec("card", "varDescription1"), Seq("value" + i))
     instance.copyWithAddedVariable(variable)
   }
 
   def createDirectiveWithArrayBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, order = List())
+    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
 
     val variable = InputVariable(
           InputVariableSpec("card", "varDescription1", multivalued = true)
@@ -117,7 +126,7 @@ class DirectiveAgregationTest {
   }
 
   def createDirectiveWithArrayBindingAndNullValues(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, order = List())
+    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
 
     val values = (0 until i).map(j =>
       if (j > 0) "value" + i
@@ -132,86 +141,64 @@ class DirectiveAgregationTest {
   // Create a Directive, with value , and add it to a server, and aggregate values
   @Test
   def simpleDirectiveTest() {
-    val node = new Cf3PolicyDraftContainer("node", Set())
+    val node = new Cf3PolicyDraftContainer(Set(), Set(
+        createDirectiveWithBinding(activeTechniqueId1, 1)
+      , createDirectiveWithBinding(activeTechniqueId1, 2)
+      , createDirectiveWithBinding(activeTechniqueId2, 3)
+    ))
 
-    node.add(createDirectiveWithBinding(activeTechniqueId1, 1))
-    node.add(createDirectiveWithBinding(activeTechniqueId1, 2))
-    node.add(createDirectiveWithBinding(activeTechniqueId2, 3))
-
-    for( id <- "id1" :: "id2" :: "id3" :: Nil) {
-      node.get(id) match {
-        case None => fail("Couldn't find the instance")
-        case Some(x) => assert(x.id.value == id)
-      }
-    }
-
-    val allVars = templateDependencies.prepareAllCf3PolicyDraftVariables(node)
+    val allVars = prepareTemplate.prepareAllCf3PolicyDraftVariables(node)
 
     assertEquals(2, allVars(activeTechniqueId1).size)
     assertTrue(allVars(activeTechniqueId1).contains("card"))
     assertTrue(allVars(activeTechniqueId1).contains(TRACKINGKEY))
 
-    compareValues(Seq(("value1", "id1@@0"), ("value2", "id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
+    compareValues(Seq(("value1", "r_id1@@d_id1@@0"), ("value2", "r_id2@@d_id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
 
     assertEquals(2, allVars(activeTechniqueId2).size)
     assertTrue(allVars(activeTechniqueId2).contains("card"))
     assertTrue(allVars(activeTechniqueId2).contains(TRACKINGKEY))
 
-    compareValues(Seq(("value3", "id3@@0")), allVars(activeTechniqueId2)("card").values, allVars(activeTechniqueId2)(TRACKINGKEY).values)
+    compareValues(Seq(("value3", "r_id3@@d_id3@@0")), allVars(activeTechniqueId2)("card").values, allVars(activeTechniqueId2)(TRACKINGKEY).values)
   }
 
   // Create a Directive with arrayed value , and add it to a server, and agregate values
   @Test
   def arrayedDirectiveTest() {
-    val machineA = new Cf3PolicyDraftContainer("machineA", Set())
-
     val instance = new Cf3PolicyDraft("id", newTechnique(TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))),
-        Map(), trackerVariable, priority = 0, serial = 0, order = List())
-    machineA.add(createDirectiveWithArrayBinding(activeTechniqueId1,1))
-    machineA.add(createDirectiveWithArrayBinding(activeTechniqueId1,2))
+        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
 
-    machineA.get("id1") match {
-      case None => fail("Couldn't find the instance")
-      case Some(x) => assert(x.id.value == "id1")
-    }
-    machineA.get("id2") match {
-      case None => fail("Couldn't find the instance")
-      case Some(x) => assert(x.id.value == "id2")
-    }
+    val machineA = new Cf3PolicyDraftContainer(Set(), Set(
+        createDirectiveWithArrayBinding(activeTechniqueId1,1)
+      , createDirectiveWithArrayBinding(activeTechniqueId1,2)
+    ))
 
-    val allVars = templateDependencies.prepareAllCf3PolicyDraftVariables(machineA)
+
+    val allVars = prepareTemplate.prepareAllCf3PolicyDraftVariables(machineA)
     assert(allVars(activeTechniqueId1).size == 2)
     assert(allVars(activeTechniqueId1).contains("card"))
     assert(allVars(activeTechniqueId1).contains(TRACKINGKEY))
 
-    compareValues(Seq(("value1", "id1@@0"), ("value2", "id2@@0"), ("value2", "id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
+    compareValues(Seq(("value1", "r_id1@@d_id1@@0"), ("value2", "r_id2@@d_id2@@0"), ("value2", "r_id2@@d_id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
 
   }
 
   // Create a Directive with arrayed & nulledvalue , and add it to a server, and agregate values
   @Test
   def arrayedAndNullDirectiveTest() {
-    val machineA = new Cf3PolicyDraftContainer("machineA", Set())
-
     val instance = createDirectiveWithArrayBindingAndNullValues(activeTechniqueId1,1)
-    machineA.add(instance)
-    machineA.add(createDirectiveWithArrayBindingAndNullValues(activeTechniqueId1,2))
+    val machineA = new Cf3PolicyDraftContainer(Set(), Set(
+        instance
+      , createDirectiveWithArrayBindingAndNullValues(activeTechniqueId1,2)
+    ))
 
-    machineA.get("id1") match {
-      case None => fail("Couldn't find the instance")
-      case Some(x) => assert(x.id.value == "id1")
-    }
-    machineA.get("id2") match {
-      case None => fail("Couldn't find the instance")
-      case Some(x) => assert(x.id.value == "id2")
-    }
 
-    val allVars = templateDependencies.prepareAllCf3PolicyDraftVariables(machineA)
+    val allVars = prepareTemplate.prepareAllCf3PolicyDraftVariables(machineA)
     assert(allVars(activeTechniqueId1).size == 2)
     assert(allVars(activeTechniqueId1).contains("card"))
     assert(allVars(activeTechniqueId1).contains(TRACKINGKEY))
 
-    compareValues(Seq((null, "id1@@0"), (null, "id2@@0"), ("value2", "id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
+    compareValues(Seq((null, "r_id1@@d_id1@@0"), (null, "r_id2@@d_id2@@0"), ("value2", "r_id2@@d_id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
 
   }
 }

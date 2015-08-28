@@ -48,9 +48,4 @@ trait LicenseRepository {
   def findLicense(nodeId:NodeId) : Option[NovaLicense]
 
   def getAllLicense() : Seq[NovaLicense]
-
-  def addLicense(license: NovaLicense) : Option[NovaLicense]
-
-  def loadLicenses() : Unit
-
 }

@@ -34,16 +34,16 @@
 
 package com.normation.rudder.services.licenses
 
+import java.io._
+
+import org.apache.commons.io._
+import org.slf4j.LoggerFactory
+
 import com.normation.inventory.domain.NodeId
-import net.liftweb.common._
-import com.normation.rudder.exceptions.NotFoundException
 import com.normation.rudder.domain.licenses.NovaLicense
 import com.normation.rudder.repository.LicenseRepository
-import org.joda.time.DateTime
-import java.io._
-import org.apache.commons.io._
-import org.slf4j.{Logger,LoggerFactory}
-import com.normation.exceptions.BusinessException
+
+import net.liftweb.common._
 
 class NovaLicenseServiceImpl(
     licenseRepository           : LicenseRepository

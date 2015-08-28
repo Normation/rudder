@@ -32,75 +32,114 @@
 *************************************************************************************
 */
 
-package com.normation.cfclerk.services.impl
+package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.services._
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.exceptions._
-import com.normation.stringtemplate.language._
-import com.normation.stringtemplate.language.formatter._
-import java.io._
-import net.liftweb.common._
-import org.antlr.stringtemplate._
-import org.antlr.stringtemplate.language._
-import org.apache.commons.io.{IOUtils,FileUtils}
-import org.joda.time._
-import org.xml.sax.SAXParseException
-import scala.io.Source
-import scala.xml._
+import com.normation.cfclerk.domain.Bundle
+import com.normation.cfclerk.domain.Cf3PromisesFileTemplateId
+import com.normation.cfclerk.domain.PARAMETER_VARIABLE
+import com.normation.cfclerk.domain.SectionVariableSpec
+import com.normation.cfclerk.domain.SystemVariable
+import com.normation.cfclerk.domain.SystemVariableSpec
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TrackerVariable
+import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.exceptions.VariableException
+import com.normation.cfclerk.services.SystemVariableSpecService
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.services.policies.BundleOrder
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import org.joda.time.DateTime
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 
-import com.normation.utils.Control.sequence
+
+trait PrepareTemplateVariables {
+
+  def prepareTemplateForAgentNodeConfiguration(
+      agentNodeConfig  : AgentNodeConfiguration
+    , nodeConfigVersion: NodeConfigId
+    , rootNodeConfigId : NodeId
+    , templates        : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
+    , allNodeConfigs   : Map[NodeId, NodeConfiguration]
+    , rudderIdCsvTag   : String
+  ): Box[(Seq[PreparedTemplates], NodePromisesPaths, Seq[String])]
+
+}
 
 /**
- * The class that handles all the writing of templates
- *
+ * This class is responsible of transforming a NodeConfiguration for a given agent type
+ * into a set of templates and variables that could be filled to string template.
  */
-class Cf3PromisesFileWriterServiceImpl(
+class PrepareTemplateVariablesImpl(
     techniqueRepository      : TechniqueRepository
   , systemVariableSpecService: SystemVariableSpecService
-  ) extends Cf3PromisesFileWriterService with Loggable {
-
-  logger.trace("Repository loaded")
-
-  private[this] val generationTimestampVariable = "GENERATIONTIMESTAMP"
-  private[this] val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
-  private[this] val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
+) extends PrepareTemplateVariables with Loggable {
 
 
-  override def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]] = {
+  /**
+   * From a base path and a base backup path, plus a node configuration, write the rules
+   * for its of the agent target in it, and then check it
+   *
+   * This is a several step process, from a nodePromisePath (end path), newNodePromisePath (path where promises are written before being checked)
+   * and a backupNodePath (path where old promises will be moved), and a node, it will:
+   * 1 - get the agents types, and complete the path with cfengine-community or cfengine-noca
+   * 2 - if the node is root, it will use hardcoded paths (var/rudder/cfengine-community/inputs, var/rudder/cfengine-community/inputs.new,   /var/rudder/cfengine-community/inputs.bkp)
+   * 3 - Write the file to /var/rudder/share/node-uuid/rules.new/cfengine-agentType
+   * 4 - Check the promises there
+   * Caution : a specific computation is done for the root server
+   * @params
+   *   nodePromisePath    : the path where the promises will be moved for the agent to fetch (finishing by /rules)
+   *   newNodePromisesPath: the path where the promises will be written, before being checked (finishes by /rules.new)
+   *   backupNodePath     : the path where the previous promises will be backuped
 
-    //list of (template id, template out path)
-    val templatesToRead = for {
-      technique <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      template  <- technique.templates
-    } yield {
-      (template.id, template.outPath)
+   * @return : a Set of node, final destination of promises, folder where promises are written (.new), backup folder (don't want to return duplicate)
+   */
+  override def prepareTemplateForAgentNodeConfiguration(
+      agentNodeConfig  : AgentNodeConfiguration
+    , nodeConfigVersion: NodeConfigId
+    , rootNodeConfigId : NodeId
+    , templates        : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
+    , allNodeConfigs   : Map[NodeId, NodeConfiguration]
+    , rudderIdCsvTag   : String
+  ): Box[(Seq[PreparedTemplates], NodePromisesPaths, Seq[String])] = {
+
+
+   logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
+
+    val container = new Cf3PolicyDraftContainer(
+          agentNodeConfig.config.parameters.map(x => ParameterEntry(x.name.value, x.value)).toSet
+        , agentNodeConfig.config.policyDrafts
+    )
+
+    //Generate for each node an unique timestamp.
+    val generationTimestamp = DateTime.now().getMillis
+
+    val tmls = {
+      val systemVariables = agentNodeConfig.config.nodeContext ++ List(
+          systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
+        , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
+        , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
+      ).map(x => (x.spec.name, x)).toMap
+
+      prepareCf3PromisesFileTemplate(container, systemVariables.toMap, templates, generationTimestamp)
     }
 
-    val now = System.currentTimeMillis()
+    logger.trace("Preparing reporting information from meta technique")
+    val csv = prepareReportingDataForMetaTechnique(container, rudderIdCsvTag)
 
-    val res = (sequence(templatesToRead) { case (templateId, templateOutPath) =>
-      for {
-        copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
-          optInputStream match {
-            case None =>
-              Failure(s"Error when trying to open template '${templateId.toString}${Cf3PromisesFileTemplate.templateExtension}'. Check that the file exists and is correctly commited in Git, or that the metadata for the technique are corrects.")
-            case Some(inputStream) =>
-              logger.trace(s"Loading template ${templateId} (from an input stream relative to ${techniqueRepository}")
-              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-              val content = IOUtils.toString(inputStream, "UTF-8")
-              Full(Cf3PromisesFileTemplateCopyInfo(content, templateId, templateOutPath))
-          }
-        }
-      } yield {
-        (copyInfo.id, copyInfo)
-      }
-    }).map( _.toMap)
 
-    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now}ms")
+    Full((tmls.values.toSeq, agentNodeConfig.paths, csv))
 
-    res
   }
+
 
   /**
    * Compute the TMLs list to be written
@@ -112,12 +151,24 @@ class Cf3PromisesFileWriterServiceImpl(
       container: Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
     , templates: Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
+    , generationTimestamp: Long
   ) : Map[TechniqueId, PreparedTemplates] = {
 
-    val rudderParametersVariable = getParametersVariable(container)
     val techniques = techniqueRepository.getByIds(container.getAllIds)
     val variablesByTechnique = prepareVariables(container, prepareBundleVars(container) ++ extraSystemVariables, techniques)
 
+    /**
+     * From the container, convert the parameter into StringTemplate variable, that contains a list of
+     * parameterName, parameterValue (really, the ParameterEntry itself)
+     * This is quite naive for the moment
+     */
+    val rudderParametersVariable = STVariable(
+        PARAMETER_VARIABLE
+      , true
+      , container.parameters.toSeq
+      , true
+    )
+    val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
 
 
     techniques.map {technique =>
@@ -125,136 +176,17 @@ class Cf3PromisesFileWriterServiceImpl(
 
       (
           technique.id
-        , PreparedTemplates(copyInfos, variablesByTechnique(technique.id) :+ rudderParametersVariable )
+        , PreparedTemplates(copyInfos, variablesByTechnique(technique.id) :+ rudderParametersVariable :+ generationVariable)
       )
     }.toMap
   }
 
-
   /**
-   * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
-   * @param folder : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
+   * Create the value of the Rudder Id from the Id of the Cf3PolicyDraft and
+   * the serial
    */
-  def movePromisesToFinalPosition(folders: Seq[PromisesFinalMoveInfo]): Seq[PromisesFinalMoveInfo] = {
-    // We need to sort the folders by "depth", so that we backup and move the deepest one first
-    val sortedFolder = folders.sortBy(x => x.baseFolder.count(_ =='/')).reverse
-
-    val newFolders = scala.collection.mutable.Buffer[PromisesFinalMoveInfo]()
-    try {
-      // Folders is a map of machine.uuid -> (base_machine_folder, backup_machine_folder, machine)
-      for (folder @ PromisesFinalMoveInfo(containerId, baseFolder, newFolder, backupFolder) <- sortedFolder) {
-        // backup old promises
-        logger.debug("Backuping old promises from %s to %s ".format(baseFolder, backupFolder))
-        backupNodeFolder(baseFolder, backupFolder)
-        try {
-          newFolders += folder
-
-          logger.debug("Copying new promises into %s ".format(baseFolder))
-          // move new promises
-          moveNewNodeFolder(newFolder, baseFolder)
-
-        } catch {
-          case ex: Exception =>
-            logger.error("Could not write promises into %s, reason : ".format(baseFolder), ex)
-            throw ex
-        }
-      }
-      folders
-    } catch {
-      case ex: Exception =>
-
-        for (folder <- newFolders) {
-          logger.info("Restoring old promises on folder %s".format(folder.baseFolder))
-          try {
-            restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder);
-          } catch {
-            case ex: Exception =>
-              logger.error("could not restore old promises into %s ".format(folder.baseFolder))
-              throw ex
-          }
-        }
-        throw ex
-    }
-
-  }
-
-  /**
-   * Write the current seq of template file a the path location, replacing the variables found in variableSet
-   * @param fileSet : the set of template to be written
-   * @param variableSet : the set of variable
-   * @param path : where to write the files
-   */
-  override def writePromisesFiles(
-      fileSet             : Set[Cf3PromisesFileTemplateCopyInfo]
-    , variableSet         : Seq[STVariable]
-    , outPath             : String
-    , expectedReportsLines: Seq[String]
-  ): Unit = {
-    try {
-      val generationVariable = getGenerationVariable()
-
-      for (fileEntry <- fileSet) {
-
-        //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-        val template = new StringTemplate(fileEntry.source, classOf[NormationAmpersandTemplateLexer]);
-        template.registerRenderer(classOf[DateTime], new DateRenderer());
-        template.registerRenderer(classOf[LocalDate], new LocalDateRenderer());
-        template.registerRenderer(classOf[LocalTime], new LocalTimeRenderer());
-
-        for (variable <- variableSet++generationVariable) {
-          // Only System Variables have nullable entries
-          if ( variable.isSystem && variable.mayBeEmpty &&
-              ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") ) ) {
-            template.setAttribute(variable.name, null)
-          } else if (!variable.mayBeEmpty && variable.values.size == 0) {
-            throw new VariableException("Mandatory variable %s is empty, can not write %s".format(variable.name, fileEntry.destination))
-          } else {
-            logger.trace(s"Adding variable ${outPath + "/" + fileEntry.destination} : ${variable.name} values ${variable.values.mkString("[",",","]")}")
-            variable.values.foreach { value => template.setAttribute(variable.name, value)
-            }
-          }
-        }
-
-        // write the files to the new promise folder
-        logger.trace("Create promises file %s %s".format(outPath, fileEntry.destination))
-        try {
-          FileUtils.writeStringToFile(new File(outPath, fileEntry.destination), template.toString)
-        } catch {
-          case e : Exception =>
-            val message = s"Bad format in Technique ${fileEntry.id.techniqueId} (file: ${fileEntry.destination}) cause is: ${e.getMessage}"
-            throw new RuntimeException(message,e)
-        }
-      }
-
-      // Writing csv file
-      val csvContent = expectedReportsLines.mkString("\n")
-      try {
-        FileUtils.writeStringToFile(new File(outPath, GENEREATED_CSV_FILENAME), csvContent)
-      } catch {
-        case e : Exception =>
-          val message = s"Impossible to write CSV file (file: ${GENEREATED_CSV_FILENAME}) cause is: ${e.getMessage}"
-          throw new RuntimeException(message,e)
-      }
-
-
-    } catch {
-      case ex: IOException => logger.error("Writing promises error : ", ex); throw new IOException("Could not create new promises", ex)
-      case ex: NullPointerException => logger.error("Writing promises error : ", ex); throw new IOException("Could not create new promises", ex)
-      case ex: VariableException => logger.error("Writing promises error in fileSet " + fileSet, ex); throw ex
-      case ex: Exception => logger.error("Writing promises error : ", ex); throw ex
-    }
-
-  }
-
-  /**
-   * Returns variable relative to a specific promise generation
-   * For the moment, only the timestamp
-   */
-  private[this] def getGenerationVariable() : Seq[STVariable]= {
-    // compute the generation timestamp
-    val promiseGenerationTimestamp = DateTime.now().getMillis()
-
-    Seq(STVariable(generationTimestampVariable, false, Seq(promiseGenerationTimestamp), true))
+  private[this] def createRudderId(cf3PolicyDraft: Cf3PolicyDraft): String = {
+    cf3PolicyDraft.id.value + "@@" + cf3PolicyDraft.serial
   }
 
   private[this] def prepareVariables(
@@ -263,7 +195,6 @@ class Cf3PromisesFileWriterServiceImpl(
     , techniques: Seq[Technique]
   ) : Map[TechniqueId,Seq[STVariable]] = {
 
-    logger.debug("Preparing the PI variables for container %s".format(container.outPath))
     val variablesValues = prepareAllCf3PolicyDraftVariables(container)
 
     // fill the variable
@@ -398,17 +329,17 @@ class Cf3PromisesFileWriterServiceImpl(
   private[this] def sortTechniques(techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
 
     def sortByOrder(tech: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
-      def compareBundleOrder(a: List[BundleOrder], b: List[BundleOrder]): Boolean = {
-        BundleOrder.compareList(a, b) <= 0
+      def compareBundleOrder(a: Cf3PolicyDraft, b: Cf3PolicyDraft): Boolean = {
+        BundleOrder.compareList(List(a.ruleOrder, a.directiveOrder), List(b.ruleOrder, b.directiveOrder)) <= 0
       }
       val drafts = container.getAll().values.toSeq
 
       //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
       val pairs = tech.map { t =>
-        val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( (d1,d2) => compareBundleOrder(d1.order, d2.order))
+        val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
 
         //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
-        val order = tDrafts.map( _.order ).headOption.getOrElse(List(BundleOrder.default))
+        val order = tDrafts.map( t => List(t.ruleOrder, t.directiveOrder)).headOption.getOrElse(List(BundleOrder.default))
 
         (t, order)
       }
@@ -418,7 +349,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
       //some debug info to understand what order was used for each node:
       if(logger.isDebugEnabled) {
-        logger.debug(s"Sorted Technique for path [${container.outPath}] (and their Rules and Directives used to sort):")
+        logger.debug(s"Sorted Technique (and their Rules and Directives used to sort):")
         ordered.map(p => s" `-> ${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").foreach { logger.debug(_) }
       }
 
@@ -430,87 +361,13 @@ class Cf3PromisesFileWriterServiceImpl(
 
 
   /**
-   * From the container, convert the parameter into StringTemplate variable, that contains a list of
-   * parameterName, parameterValue (really, the ParameterEntry itself)
-   * This is quite naive for the moment
-   */
-  private[this] def getParametersVariable(container: Cf3PolicyDraftContainer) : STVariable = {
-    STVariable(
-        PARAMETER_VARIABLE
-      , true
-      , container.parameters.toSeq
-      , true
-    )
-  }
-  /**
-   * Move the machine promises folder  to the backup folder
-   * @param machineFolder
-   * @param backupFolder
-   */
-  private[this] def backupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
-    val src = new File(nodeFolder)
-    if (src.isDirectory()) {
-      val dest = new File(backupFolder)
-      if (dest.isDirectory)
-        // force deletion of previous backup
-        FileUtils.forceDelete(dest)
-
-      FileUtils.moveDirectory(src, dest)
-    }
-  }
-  /**
-   * Move the newly created folder to the final location
-   * @param newFolder : where the promises have been written
-   * @param nodeFolder : where the promises will be
-   */
-  private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String): Unit = {
-    val src = new File(sourceFolder)
-
-    logger.debug("Moving folders from %s to %s".format(src, destinationFolder))
-
-    if (src.isDirectory()) {
-      val dest = new File(destinationFolder)
-
-      if (dest.isDirectory)
-        // force deletion of previous promises
-        FileUtils.forceDelete(dest)
-
-      FileUtils.moveDirectory(src, dest)
-
-      // force deletion of dandling new promise folder
-      if ( (src.getParentFile().isDirectory) && (src.getParent().endsWith("rules.new")))
-        FileUtils.forceDelete(src.getParentFile())
-
-    } else {
-      logger.error("Could not find freshly created promises at %s".format(sourceFolder))
-      throw new IOException("Created promises not found !!!!")
-    }
-  }
-  /**
-   * Restore (by moving) backup folder to its original location
-   * @param machineFolder
-   * @param backupFolder
-   */
-  private[this] def restoreBackupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
-    val src = new File(backupFolder)
-    if (src.isDirectory()) {
-      val dest = new File(nodeFolder)
-      // force deletion of invalid promises
-      FileUtils.forceDelete(dest)
-
-      FileUtils.moveDirectory(src, dest)
-    } else {
-      logger.error("Could not find freshly backup promises at %s".format(backupFolder))
-      throw new IOException("Backup promises could not be found, and valid promises couldn't be restored !!!!")
-    }
-  }
-
-  /**
    * Concatenate all the variables for each policy Instances.
    *
    * The serialization is done
+   *
+   * visibility needed for tests
    */
-  override def prepareAllCf3PolicyDraftVariables(cf3PolicyDraftContainer: Cf3PolicyDraftContainer): Map[TechniqueId, Map[String, Variable]] = {
+  def prepareAllCf3PolicyDraftVariables(cf3PolicyDraftContainer: Cf3PolicyDraftContainer): Map[TechniqueId, Map[String, Variable]] = {
     (for {
       // iterate over each policyName
       activeTechniqueId <- cf3PolicyDraftContainer.getAllIds
@@ -568,7 +425,7 @@ class Cf3PromisesFileWriterServiceImpl(
   /**
    * From a container, containing meta technique, fetch the csv included, and add the Rudder UUID within, and return the new lines
    */
-  def prepareReportingDataForMetaTechnique(cf3PolicyDraftContainer: Cf3PolicyDraftContainer): Seq[String] = {
+  private[this] def prepareReportingDataForMetaTechnique(cf3PolicyDraftContainer: Cf3PolicyDraftContainer, rudderTag: String ): Seq[String] = {
     (for {
       // iterate over each policyName
       activeTechniqueId <- cf3PolicyDraftContainer.getAllIds
@@ -593,7 +450,7 @@ class Cf3PromisesFileWriterServiceImpl(
                         scala.io.Source.fromInputStream(inputStream).getLines().map{ case line =>
                           line.trim.startsWith("#") match {
                             case true => line
-                            case false => line.replaceAll(TAG_OF_RUDDER_ID, rudderId)
+                            case false => line.replaceAll(rudderTag, rudderId)
                           }
                         }.toSeq
                     }
@@ -608,11 +465,6 @@ class Cf3PromisesFileWriterServiceImpl(
     }).flatten
   }
 
-  /**
-   * Create the value of the Rudder Id from the Id of the Cf3PolicyDraft and
-   * the serial
-   */
-   private def createRudderId(cf3PolicyDraft: Cf3PolicyDraft): String = {
-     cf3PolicyDraft.id.value + "@@" + cf3PolicyDraft.serial
-   }
+
 }
+

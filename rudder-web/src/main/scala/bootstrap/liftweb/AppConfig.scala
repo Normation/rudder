@@ -140,6 +140,9 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.web.rest.compliance.ComplianceAPI6
 import com.normation.rudder.web.rest.compliance.ComplianceAPIService
+import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
+import com.normation.rudder.services.policies.write.PathComputerImpl
+import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
 
 /**
  * Define a resource for configuration.
@@ -1282,21 +1285,16 @@ object RudderConfig extends Loggable {
     , configService.send_server_metrics _
     , configService.rudder_syslog_protocol _
   )
-  private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
-    techniqueRepositoryImpl,
-    pathComputer,
-    nodeInfoServiceImpl,
-    licenseRepository,
-    reportingServiceImpl,
-    systemVariableSpecService,
-    systemVariableService,
-    RUDDER_DIR_DEPENDENCIES,
-    RUDDER_DIR_UPLOADED_FILE_SHARING,
-    RUDDER_ENDPOINT_CMDB,
-    RUDDER_COMMUNITY_PORT,
-    RUDDER_COMMUNITY_CHECKPROMISES_COMMAND,
-    RUDDER_NOVA_CHECKPROMISES_COMMAND,
-    RUDDER_CFENGINE_RELOAD_SERVER_COMMAND)
+  private[this] lazy val rudderCf3PromisesFileWriterService = new Cf3PromisesFileWriterServiceImpl(
+      techniqueRepositoryImpl
+    , pathComputer
+    , licenseRepository
+    , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
+    , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
+    , RUDDER_COMMUNITY_CHECKPROMISES_COMMAND
+    , RUDDER_NOVA_CHECKPROMISES_COMMAND
+    , RUDDER_CFENGINE_RELOAD_SERVER_COMMAND
+  )
 
   //must be here because of circular dependency if in techniqueRepository
   techniqueRepositoryImpl.registerCallback(new TechniqueAcceptationUpdater(
@@ -1325,7 +1323,7 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
     val deploymentService = {
-      new DeploymentServiceImpl(
+      new PromiseGenerationServiceImpl(
           roLdapRuleRepository
         , woLdapRuleRepository
         , ruleValService
@@ -1343,11 +1341,12 @@ object RudderConfig extends Loggable {
         , globalComplianceModeService
         , globalAgentRunService
         , reportingServiceImpl
+        , rudderCf3PromisesFileWriterService
         , configService.agent_run_interval
         , configService.agent_run_splaytime
         , configService.agent_run_start_hour
         , configService.agent_run_start_minute
-    )}
+   )}
     val agent = new AsyncDeploymentAgent(
         deploymentService
       , eventLogDeploymentServiceImpl
@@ -1392,7 +1391,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val nodeConfigurationServiceImpl: NodeConfigurationService = new NodeConfigurationServiceImpl(
       rudderCf3PromisesFileWriterService
     , new LdapNodeConfigurationCacheRepository(rudderDit, rwLdap)
-    , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
   )
 //  private[this] lazy val licenseService: NovaLicenseService = new NovaLicenseServiceImpl(licenseRepository, ldapNodeConfigurationRepository, RUDDER_DIR_LICENSESFOLDER)
   private[this] lazy val reportingServiceImpl = new CachedReportingServiceImpl(

@@ -45,7 +45,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.nodeconfig._
@@ -53,6 +53,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.services.policies.write.PathComputerImpl
 
 
 
@@ -109,7 +110,7 @@ class PathComputerTest extends Specification {
 
   val rootNodeConfig = NodeConfiguration(
     nodeInfo    = root
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None
@@ -118,7 +119,7 @@ class PathComputerTest extends Specification {
 
   val nodeConfig = NodeConfiguration(
     nodeInfo    = nodeInfo
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None
@@ -127,7 +128,7 @@ class PathComputerTest extends Specification {
 
   val nodeConfig2 = NodeConfiguration(
     nodeInfo    = nodeInfo2
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None

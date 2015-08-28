@@ -156,7 +156,6 @@ class SystemVariableServiceImpl(
     for {
       agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
-      agentRunSplaytime <- getAgentRunSplaytime() ?~! "Could not retrieve the configure value for the run splay time"
       schedule <- ComputeSchedule.computeSchedule(agentRunStartHour, agentRunStartMinute, interval) ?~! "Could not compute the run schedule"
     } yield {
 
@@ -380,7 +379,7 @@ class SystemVariableServiceImpl(
      * it must not be used to assess node config stability from
      * run to run.
      * So we set it to a default value and handle it specialy in
-     * RudderCf3PromisesFileWriterServiceImpl#prepareRulesForAgents
+     * Cf3PromisesFileWriterServiceImpl#prepareRulesForAgents
      */
     val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
     val baseVariables = {

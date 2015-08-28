@@ -35,7 +35,6 @@
 package com.normation.rudder.services.policies
 
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.ExpandedRuleVal
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import com.normation.rudder.domain.reports.RuleExpectedReports
@@ -51,15 +50,13 @@ import scala.collection.mutable.{Set => MutSet}
 import scala.collection.mutable.{Map => MutMap}
 import com.normation.rudder.domain.reports.NodeConfigVersions
 import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.ExpandedDirectiveVal
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.rudder.domain.reports.RuleExpectedReports
-import com.normation.rudder.domain.policies.ExpandedRuleVal
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 
 /**
  * The purpose of that service is to handle the update of
