@@ -35,19 +35,17 @@
 package com.normation.rudder.services.policies.nodeconfig
 
 import org.joda.time.DateTime
-import com.normation.cfclerk.domain.Cf3PolicyDraftContainer
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
-import com.normation.cfclerk.domain.ParameterEntry
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.parameters.Parameter
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.write.ParameterEntry
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 
 
 case class ParameterForConfiguration(
@@ -63,7 +61,7 @@ case object ParameterForConfiguration {
 
 case class NodeConfiguration(
     nodeInfo    : NodeInfo
-  , policyDrafts: Set[RuleWithCf3PolicyDraft]
+  , policyDrafts: Set[Cf3PolicyDraft]
     //environment variable for that server
   , nodeContext : Map[String, Variable]
   , parameters  : Set[ParameterForConfiguration]
@@ -78,32 +76,21 @@ case class NodeConfiguration(
    */
   def setSerial(rules : Map[RuleId,Int]) : NodeConfiguration = {
 
-    val newRuleWithCf3PolicyDrafts = this.policyDrafts.map { r =>
-      val s = rules.getOrElse(r.ruleId, r.cf3PolicyDraft.serial)
-      r.copy(cf3PolicyDraft = r.cf3PolicyDraft.copy(serial = s))
+    val updatedCf3PolicyDrafts = this.policyDrafts.map { d =>
+      d.copy(serial = rules.getOrElse(d.id.ruleId, d.serial))
     }
 
-    this.copy(policyDrafts = newRuleWithCf3PolicyDrafts)
+    this.copy(policyDrafts = updatedCf3PolicyDrafts)
   }
 
-
-  def toContainer(outPath: String) : Cf3PolicyDraftContainer = {
-    val container = new Cf3PolicyDraftContainer(
-        outPath
-      , parameters.map(x => ParameterEntry(x.name.value, x.value)).toSet
-    )
-    policyDrafts.foreach (x =>  container.add(x.cf3PolicyDraft))
-    container
-  }
-
-  def findDirectiveByTechnique(techniqueId : TechniqueId): Map[Cf3PolicyDraftId, RuleWithCf3PolicyDraft] = {
+  def findDirectiveByTechnique(techniqueId : TechniqueId): Map[Cf3PolicyDraftId, Cf3PolicyDraft] = {
     policyDrafts.filter(x =>
-      x.cf3PolicyDraft.technique.id.name.value.equalsIgnoreCase(techniqueId.name.value) &&
-      x.cf3PolicyDraft.technique.id.version == techniqueId.version
-    ).map(x => (x.draftId, x)).toMap
+      x.technique.id.name.value.equalsIgnoreCase(techniqueId.name.value) &&
+      x.technique.id.version == techniqueId.version
+    ).map(x => (x.id, x)).toMap
   }
 
   def getTechniqueIds() : Set[TechniqueId] = {
-    policyDrafts.map( _.cf3PolicyDraft.technique.id ).toSet
+    policyDrafts.map( _.technique.id ).toSet
   }
 }

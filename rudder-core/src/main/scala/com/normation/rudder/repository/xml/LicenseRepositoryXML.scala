@@ -58,6 +58,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
   }
 
   def getAllLicense(): Seq[NovaLicense] = {
+    loadLicenses()
     licenseMap.map(x => x._2).toSeq
   }
 
@@ -69,7 +70,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
     }
 
 
-  def loadLicenses(): Unit = {
+  private[this] def loadLicenses(): Unit = {
     licenseMap.clear
 
     logger.debug("Loading document {}", licenseFile)
@@ -87,7 +88,7 @@ class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
    * @return The xml element representation of the file
    */
 
-  private def loadLicenseFile() : Elem = {
+  private[this] def loadLicenseFile() : Elem = {
     try {
       XML.loadFile(licenseFile)
     } catch {

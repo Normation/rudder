@@ -42,7 +42,6 @@ import com.normation.rudder.repository.ReportsRepository
 import org.joda.time._
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.rudder.domain.reports._
-import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
 import org.springframework.jdbc.core._
 import java.sql.ResultSet
 import java.sql.Timestamp

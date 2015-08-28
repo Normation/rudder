@@ -34,25 +34,23 @@
 
 package com.normation.rudder.services.path
 
-import scala.collection.immutable.SortedMap
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import org.joda.time.DateTime
-import com.normation.cfclerk.domain._
+import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain.COMMUNITY_AGENT
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
-import com.normation.rudder.repository.FullActiveTechnique
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.services.policies.nodeconfig._
-import com.normation.rudder.domain.policies.DirectiveId
-import net.liftweb.common.Box
-import net.liftweb.common.Full
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.services.policies.write.NodePromisesPaths
+import com.normation.rudder.services.policies.write.PathComputerImpl
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+
+import net.liftweb.common.Full
 
 
 
@@ -109,7 +107,7 @@ class PathComputerTest extends Specification {
 
   val rootNodeConfig = NodeConfiguration(
     nodeInfo    = root
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None
@@ -118,7 +116,7 @@ class PathComputerTest extends Specification {
 
   val nodeConfig = NodeConfiguration(
     nodeInfo    = nodeInfo
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None
@@ -127,13 +125,12 @@ class PathComputerTest extends Specification {
 
   val nodeConfig2 = NodeConfiguration(
     nodeInfo    = nodeInfo2
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None
   , isRootServer= false
   )
-
 
   val allNodeConfig = Map(root.id -> rootNodeConfig, nodeInfo.id -> nodeConfig, nodeInfo2.id -> nodeConfig2)
 
@@ -142,18 +139,13 @@ class PathComputerTest extends Specification {
 
   "The paths for " should {
     "the nodeConfig should be " in {
-
       pathComputer.computeBaseNodePath(nodeInfo.id, root.id, allNodeConfig) must
-      beEqualTo(Full(("/var/rudder/share/name/rules", "/var/rudder/share/name/rules.new", "/var/rudder/backup/name/rules")))
+      beEqualTo(Full(NodePromisesPaths(nodeInfo.id,"/var/rudder/share/name/rules", "/var/rudder/share/name/rules.new", "/var/rudder/backup/name/rules")))
     }
 
     "the nodeConfig2, behind a relay should be " in {
-
       pathComputer.computeBaseNodePath(nodeInfo2.id, root.id, allNodeConfig) must
-      beEqualTo(Full(("/var/rudder/share/name/share/name2/rules", "/var/rudder/share/name/share/name2/rules.new", "/var/rudder/backup/name/share/name2/rules")))
+      beEqualTo(Full(NodePromisesPaths(nodeInfo2.id, "/var/rudder/share/name/share/name2/rules", "/var/rudder/share/name/share/name2/rules.new", "/var/rudder/backup/name/share/name2/rules")))
     }
-
   }
-
-
 }

@@ -54,9 +54,6 @@ import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.rudder.domain.policies.ExpandedDirectiveVal
-import com.normation.rudder.domain.policies.ExpandedRuleVal
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.InputVariableSpec
@@ -65,6 +62,10 @@ import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.services.policies.ExpandedDirectiveVal
+import com.normation.rudder.services.policies.ExpandedRuleVal
 
 /**
  * Test on database.
@@ -302,7 +303,7 @@ class ExpectedReportsTest extends DBCommon {
     )
 
     //and so, on n1, we have an override:
-    val n1_overrides = UniqueOverrides(n1.nodeId, r1, DirectiveId("d2"), Cf3PolicyDraftId("r1@@d1"))
+    val n1_overrides = UniqueOverrides(n1.nodeId, r1, DirectiveId("d2"), Cf3PolicyDraftId(r1, DirectiveId("d1")))
 
     /*
      * And now, for the expectations
