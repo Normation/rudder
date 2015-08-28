@@ -35,8 +35,6 @@
 package com.normation.rudder.services.policies.nodeconfig
 
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common.Box
 import net.liftweb.common.Full
@@ -49,11 +47,12 @@ import com.normation.ldap.sdk.LDAPEntry
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 
 
 case class PolicyCache(
-    ruleId    : RuleId
-  , draftId   : Cf3PolicyDraftId
+    draftId   : Cf3PolicyDraftId
   , cacheValue: Int
 )
 
@@ -122,13 +121,12 @@ object NodeConfigurationCache {
      * - seriale
      */
     val policyCacheValue = {
-      nodeConfig.policyDrafts.map { case r:RuleWithCf3PolicyDraft =>
+      nodeConfig.policyDrafts.map { case r:Cf3PolicyDraft =>
         //don't take into account "overrides" in cache: having more or less
         //ignored things must not impact the cache computation
         PolicyCache(
-            r.ruleId
-          , r.draftId
-          , r.cf3PolicyDraft.serial + r.cf3PolicyDraft.technique.id.hashCode + variablesToHash(r.cf3PolicyDraft.variableMap.values)
+            r.id
+          , r.serial + r.technique.id.hashCode + variablesToHash(r.variableMap.values)
         )
       }.toSet
     }

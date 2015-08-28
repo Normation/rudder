@@ -32,21 +32,35 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.services.path
+package com.normation.rudder.services.policies.write
 
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain._
-import org.apache.commons.io.FilenameUtils
-import com.normation.rudder.domain.servers._
-import com.normation.rudder.repository._
-import com.normation.rudder.exceptions._
-import com.normation.exceptions._
-import net.liftweb.common._
-import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NOVA_AGENT
 import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.AgentType
+import net.liftweb.common.Loggable
 import com.normation.exceptions.BusinessException
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import net.liftweb.common.Full
+import net.liftweb.common.Box
+import com.normation.rudder.domain.Constants
+import org.apache.commons.io.FilenameUtils
+
+
+/**
+ * Utilitary tool to compute the path of a server promises (and others information) on the rootMachine
+
+ *
+ */
+trait PathComputer {
+
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration]): Box[NodePromisesPaths]
+
+  def getRootPath(agentType : AgentType) : String
+}
+
+
+
 
 /**
  * Utilitary tool to compute the path of a machine promises (and others information) on the rootMachine
@@ -75,14 +89,16 @@ class PathComputerImpl(
    * @param searchedNodeConfiguration : the machine we search
    * @return
    */
-  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[((String, String, String))] = {
+  def computeBaseNodePath(searchedNodeId : NodeId, rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration]): Box[NodePromisesPaths] = {
     for {
       path <- recurseComputePath(rootNodeId, searchedNodeId, "/"  + searchedNodeId.value, allNodeConfigs)
     } yield {
-      (
-          FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
+      NodePromisesPaths(
+          searchedNodeId
+        , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix)
         , FilenameUtils.normalize(baseFolder + relativeShareFolder + "/" + path + promisesPrefix + newPostfix)
-        , FilenameUtils.normalize(backupFolder + path + promisesPrefix))
+        , FilenameUtils.normalize(backupFolder + path + promisesPrefix)
+      )
     }
   }
 

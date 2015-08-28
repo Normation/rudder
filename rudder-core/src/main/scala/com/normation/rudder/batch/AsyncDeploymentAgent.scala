@@ -39,7 +39,7 @@ import net.liftweb.common._
 import net.liftweb.actor._
 import org.joda.time._
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.services.policies.DeploymentService
+import com.normation.rudder.services.policies.PromiseGenerationService
 import net.liftweb.http.ListenerManager
 import com.normation.eventlog.{EventActor,EventLog}
 import com.normation.rudder.domain.eventlog._
@@ -96,7 +96,7 @@ final case class DeploymentStatus(
  * Asyn version of the deployment service.
  */
 final class AsyncDeploymentAgent(
-    deploymentService: DeploymentService
+    deploymentService: PromiseGenerationService
   , eventLogger:EventLogDeploymentService
   , deploymentStatusSerialisation : DeploymentStatusSerialisation
 ) extends LiftActor with Loggable with ListenerManager {

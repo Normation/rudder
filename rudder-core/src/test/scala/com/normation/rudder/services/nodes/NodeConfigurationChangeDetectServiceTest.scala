@@ -45,14 +45,15 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.repository.FullActiveTechnique
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.services.policies.nodeconfig._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.cfclerk.domain.BundleOrder
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.BundleOrder
 
 
 
@@ -95,9 +96,8 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , isSystem = true
   )
 
-  private val simplePolicy = RuleWithCf3PolicyDraft(
-      RuleId("ruleId")
-    , DirectiveId("dir")
+  private val simplePolicy = Cf3PolicyDraft(
+      Cf3PolicyDraftId(RuleId("ruleId"), DirectiveId("dir"))
     , newTechnique(TechniqueId(TechniqueName("ppId"), TechniqueVersion("1.0")))
     , Map()
     , TrackerVariableSpec().toVariable()
@@ -105,12 +105,12 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , serial = 0
     , ruleOrder = BundleOrder("10")
     , directiveOrder = BundleOrder("10")
+    , overrides = Set()
     // no variable
   )
 
-  private val policyVaredOne = RuleWithCf3PolicyDraft(
-      RuleId("ruleId1")
-    , DirectiveId("dir1")
+  private val policyVaredOne = Cf3PolicyDraft(
+      Cf3PolicyDraftId(RuleId("ruleId1"), DirectiveId("dir1"))
     , newTechnique(TechniqueId(TechniqueName("ppId1"), TechniqueVersion("1.0")))
     , Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one")))
     , TrackerVariableSpec().toVariable()
@@ -119,17 +119,14 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     // one variable
     , ruleOrder = BundleOrder("10")
     , directiveOrder = BundleOrder("10")
+    , overrides = Set()
   )
 
-  private val policyOtherVaredOne = policyVaredOne.copy(
-      cf3PolicyDraft = policyVaredOne.cf3PolicyDraft.copyWithSetVariable(
+  private val policyOtherVaredOne = policyVaredOne.copyWithSetVariable(
           InputVariable(InputVariableSpec("one", ""), Seq("two"))
-      )
   )
 
-  private val nextPolicyVaredOne = policyVaredOne.copy(
-      cf3PolicyDraft = policyVaredOne.cf3PolicyDraft.copy(serial = 1)
-  )
+  private val nextPolicyVaredOne = policyVaredOne.copy(serial = 1)
 
   private val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
 
@@ -161,7 +158,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
 
   val emptyNodeConfig = NodeConfiguration(
     nodeInfo    = nodeInfo
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
+  , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
   , writtenDate = None

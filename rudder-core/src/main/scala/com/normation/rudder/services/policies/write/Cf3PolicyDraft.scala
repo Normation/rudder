@@ -32,63 +32,29 @@
 *************************************************************************************
 */
 
-package com.normation.cfclerk.domain
+package com.normation.rudder.services.policies.write
 
 
-import com.normation.cfclerk.exceptions.NotFoundException
-import org.joda.time.DateTime
-import org.joda.time.format._
-
-import scala.xml._
+import com.normation.cfclerk.domain.TrackerVariable
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import net.liftweb.common.Loggable
 import com.normation.utils.HashcodeCaching
-
-import net.liftweb.common._
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.Variable
+import org.joda.time.DateTime
+import com.normation.rudder.services.policies.BundleOrder
+import com.normation.rudder.services.policies.ExpandedDirectiveVal
+import com.normation.rudder.exceptions.NotFoundException
 
 /**
  * Unique identifier for a CFClerk policy instance
  *
  */
-case class Cf3PolicyDraftId(value: String) extends HashcodeCaching
+case class Cf3PolicyDraftId(ruleId: RuleId, directiveId: DirectiveId) extends HashcodeCaching {
 
-
-final case class BundleOrder(value: String)
-
-object BundleOrder {
-  val default: BundleOrder = BundleOrder("")
-
-  /**
-   * Comparison logic for bundle: purelly alpha-numeric.
-   * The empty string come first.
-   * The comparison is stable, meaning that a sorted list
-   * with equals values stay in the same order after a sort.
-   *
-   * The sort is case insensitive.
-   */
-  def compare(a: BundleOrder, b: BundleOrder): Int = {
-    String.CASE_INSENSITIVE_ORDER.compare(a.value, b.value)
-  }
-
-  def compareList(a: List[BundleOrder], b: List[BundleOrder]): Int = {
-
-    //only works on list of the same size
-    def compareListRec(a: List[BundleOrder], b: List[BundleOrder]): Int = {
-      (a, b) match {
-        case (ha :: ta, hb :: tb) =>
-          val comp = compare(ha,hb)
-          if(comp == 0) {
-            compareList(ta, tb)
-          } else {
-            comp
-          }
-        case _ => //we know they have the same size by construction, so it's a real equality
-          0
-      }
-    }
-
-    val maxSize = List(a.size, b.size).max
-    compareListRec(a.padTo(maxSize, BundleOrder.default), b.padTo(maxSize, BundleOrder.default))
-
-  }
+  val value = s"${ruleId.value}@@${directiveId.value}"
 }
 
 /**
@@ -111,8 +77,19 @@ final case class Cf3PolicyDraft(
   , priority        : Int
   , serial          : Int
   , modificationDate: DateTime = DateTime.now
-  , order           : List[BundleOrder]
+  , ruleOrder       : BundleOrder
+  , directiveOrder  : BundleOrder
+  , overrides       : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
 ) extends Loggable {
+
+  def toDirectiveVal(originalVariables: Map[String, Variable]) = ExpandedDirectiveVal(
+    technique         = technique
+  , directiveId       = id.directiveId
+  , priority          = priority
+  , trackerVariable   = trackerVariable
+  , variables         = variableMap
+  , originalVariables = originalVariables
+  )
 
   /**
    * Return a map of all the non system variable
@@ -207,28 +184,6 @@ final case class Cf3PolicyDraft(
     }
   }
 
-
-  /**
-   * Update a policy based on another policy. It will check for var to remove and add, and update the time accordingly
-   * Does not check for systemvar.
-   *
-   * So it actually return a Cf3PolicyDraft with the non-system variable of "other"
-   * and an updated time if they are not the same
-   *
-   */
-  def updateCf3PolicyDraft(other: Cf3PolicyDraft): Box[Cf3PolicyDraft] = {
-    if (this.id != other.id) {
-      Failure(s"Can not update variable of policy with id ${this.id} with variable with an other policy, but policy with id ${other.id} was given as parameter")
-    } else {
-      if(this.getNonSystemVariables == other.getNonSystemVariables) {
-        Full(this)
-      } else {
-        val newVariables = this.variableMap.filter( _._2.spec.isSystem ) ++ other.getNonSystemVariables
-        Full(this.copy(variableMap = newVariables, modificationDate = DateTime.now))
-      }
-    }
-  }
-
   /**
    * Search in the variables of the policy for the TrackerVariable (that should be unique for the moment),
    * and retrieve it, along with bounded variable (or itself if it's bound to nothing)
@@ -246,4 +201,109 @@ final case class Cf3PolicyDraft(
   }
 
 }
+
+
+/**
+ * A Parameter Entry has a Name and a Value, and can be freely used within the promises
+ * We need the get methods for StringTemplate, since it needs
+ * get methods, and @Bean doesn't seem to do the trick
+ */
+case class ParameterEntry(
+    parameterName : String,
+    parameterValue: String
+) {
+  // returns the name of the parameter
+  def getParameterName() : String = {
+    parameterName
+  }
+
+  // returns the _escaped_ value of the parameter,
+  // compliant with the syntax of CFEngine
+  def getEscapedValue() : String = {
+    ParameterEntry.escapeString(parameterValue)
+  }
+
+  // Returns the unescaped (raw) value of the paramter
+  def getUnescapedValue() : String = {
+    parameterValue
+  }
+}
+
+/*
+ * Escape string to be CFEngine compliant
+ * a \ witll be escaped to \\
+ * a " will be escaped to \"
+ * The parameter may be null (for legacy reason), and it should be checked
+ */
+object ParameterEntry {
+  def escapeString(x: String) : String = {
+    if (x == null)
+      x
+    else
+      x.replaceAll("""\\""", """\\\\""").replaceAll(""""""", """\\"""")
+  }
+}
+
+
+
+/**
+ * A container is just a set of key/value parameter and cf3policyDrafts
+ * whose variables have been processed to manage interdependencies
+ * (like unique variable on a node whose value is contributed by
+ * several directives).
+ *
+ * Only PrepareTemplateVariable use that, but the visibility is
+ * needed for tests.
+ *
+ */
+protected[write] class Cf3PolicyDraftContainer(
+   val parameters : Set[ParameterEntry],
+   _drafts: Set[Cf3PolicyDraft]
+) extends Loggable {
+  import scala.collection.mutable.{ Map => MutMap }
+
+  val cf3PolicyDrafts = {
+    /*
+     * Here, for each draft, we have to update all previously processed draft.
+     * So the mutmap.
+     * Could have been an recursive algo, to.
+     */
+    val inprocessing = MutMap[Cf3PolicyDraftId, Cf3PolicyDraft]() /* the target policies (the one we wish to have) */
+    for {
+      draft<- _drafts
+    } {
+      val updated = draft.updateAllUniqueVariables(inprocessing.values.toSeq).map(x => (x.id,x))
+      inprocessing ++= updated
+      inprocessing += ((draft.id, draft))
+    }
+    inprocessing.toMap
+  }
+
+  /**
+   * Returns cf3PolicyDraft by their techniqueId (might returns several of them) (not its id)
+   * Returns them in their priority order
+   * @param policyName
+   * @return
+   */
+  def findById(techniqueId: TechniqueId) = {
+    cf3PolicyDrafts.filter(x => x._2.technique.id == techniqueId).toSeq.sortBy(x => x._2.priority)
+  }
+
+  /**
+   * Returns all the cf3PolicyDraft ids defined in this container
+   * @return
+   */
+  def getAllIds(): Seq[TechniqueId] = {
+    // toSet to suppress duplicates
+    cf3PolicyDrafts.values.map(_.technique.id).toSet.toSeq
+  }
+
+  /**
+   * Returns all the policy instances
+   * @return
+   */
+  def getAll(): Map[Cf3PolicyDraftId, Cf3PolicyDraft] = cf3PolicyDrafts
+
+}
+
 
