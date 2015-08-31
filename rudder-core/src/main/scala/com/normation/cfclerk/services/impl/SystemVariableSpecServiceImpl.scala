@@ -188,6 +188,22 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
+    , SystemVariableSpec("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_system_directives, in a formatted string"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+      )
+    , SystemVariableSpec("RUDDER_SYSTEM_DIRECTIVES_INPUTS" , "The list of inputs specific to bundles RUDDER_SYSTEM_DIRECTIVES_SEQUENCE, in a formatted string"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+      )
+    , SystemVariableSpec("RUDDER_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_directives, in a formatted string"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+      )
+    , SystemVariableSpec("RUDDER_DIRECTIVES_INPUTS" , "The list of inputs specific to bundles RUDDER_DIRECTIVES_SEQUENCE, in a formatted string"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+      )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
