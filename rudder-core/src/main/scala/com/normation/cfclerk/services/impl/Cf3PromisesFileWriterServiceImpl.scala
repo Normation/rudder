@@ -312,27 +312,36 @@ class Cf3PromisesFileWriterServiceImpl(
    * @return
    */
   private[this] def prepareBundleVars(container: Cf3PolicyDraftContainer) : Map[String,Variable] = {
-    logger.trace("Preparing bundle list and input list for container : %s ".format(container))
-
-    // Fetch the policies configured, with the system policies first
-    val techniques =  sortTechniques(techniqueRepository.getByIds(container.getAllIds), container)
-
-    //list of inputs file to include: all the outPath of templates that should be "included".
-    val inputs = techniques.flatMap { _.templates }.collect {
-      case template if(template.included) => template.outPath
-    }
-
     // Compute the correct bundlesequence
     // ncf technique must call before-hand a bundle to register which ncf technique is being called
     val NCF_REPORT_DEFINITION_BUNDLE_NAME = "current_technique_report_info"
 
+    //ad-hoc data structure to store a technique and the promisee name to use for it
+    case class BundleTechnique(
+      technique: Technique
+    , promisee : String
+    )
+    implicit def pairs2BundleTechniques(seq: Seq[(Technique, List[BundleOrder])]): Seq[BundleTechnique] = {
+      seq.map( x => BundleTechnique(x._1, x._2.map(_.value).mkString("/")))
+    }
 
-    val bundleSeq: Seq[Bundle] = techniques.flatMap { technique =>
+    logger.trace(s"Preparing bundle list and input list for container : ${container} ")
+
+    // Fetch the policies configured, with the system policies first
+    val techniques: Seq[BundleTechnique] =  sortTechniques(techniqueRepository.getByIds(container.getAllIds), container)
+
+    //list of inputs file to include: all the outPath of templates that should be "included".
+    //returned the pair of (technique, outpath)
+    val inputs: Seq[(Technique, String)] = techniques.flatMap { case bt =>
+      bt.technique.templates.collect { case template if(template.included) => (bt.technique, template.outPath) }
+    }
+
+    val bundleSeq: Seq[(Technique, String, Bundle)] = techniques.flatMap { case BundleTechnique(technique, promiser) =>
       // We need to remove zero-length bundle name from the bundlesequence (like, if there is no ncf bundles to call)
       // to avoid having two successives commas in the bundlesequence
       val techniqueBundles = technique.bundlesequence.flatMap { bundle =>
         if(bundle.name.trim.size > 0) {
-          Some(bundle)
+          Some((technique, promiser, bundle))
         } else {
           logger.warn(s"Technique '${technique.id}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
           None
@@ -347,36 +356,48 @@ class Cf3PromisesFileWriterServiceImpl(
       if(technique.providesExpectedReports) {
         techniqueBundles match {
           case Seq() => Seq()
-          case head +: tail => Bundle(s"${NCF_REPORT_DEFINITION_BUNDLE_NAME}(${head.name})") +: head +: tail
+          case (t, p,b) +: tail => (t, p, Bundle(s"${NCF_REPORT_DEFINITION_BUNDLE_NAME}(${b.name})")) +: (t, p,b) +: tail
         }
       } else {
         techniqueBundles
       }
     }
 
+    //split system and user directive (technique)
+    val (systemInputs, userInputs) = inputs.partition { case (t,i) => t.isSystem }
+    val (systemBundle, userBundle) = bundleSeq.partition { case(t, p, b) => t.isSystem }
 
-    Map[String, Variable](
-        // Add the built in values for the files to be included and the bundle to be executed
-        {
-          val variable = SystemVariable(systemVariableSpecService.get("INPUTLIST"), Seq(inputs.distinct.mkString("\"", "\",\"", "\"")))
-          (variable.spec.name, variable)
-        }
-      , {
-          val variable = SystemVariable(systemVariableSpecService.get("BUNDLELIST"), Seq(bundleSeq.map( _.name).mkString(", ", ", ", "")))
+    //utilitary method for formating list of "promisee usebundle => bundlename;"
+    def formatUsebundle(x:Seq[(Technique, String, Bundle)]) = {
+      val alignWidth = x.map(_._2.size).max
+      x.map { case (t, promiser, bundle) => s""""${promiser}"${" "*Math.max(0, alignWidth - promiser.size)} usebundle => ${bundle.name};"""}.mkString( "\n")
+    }
 
-          (variable.spec.name, variable)
-        }
-    )
+    //utilitary method for formating an input list
+    def formatInputs(x: Seq[(Technique, String)]) = x.map(_._2).distinct.mkString("\"", s"""",\n${" "*14}"""", s""""\n  """)
+
+    List(
+      SystemVariable(systemVariableSpecService.get("INPUTLIST"), Seq(formatInputs(inputs)))
+    , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), Seq(bundleSeq.map( _._3.name).mkString(", ", ", ", "")))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , Seq(formatInputs(systemInputs)))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), Seq(formatUsebundle(systemBundle)))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , Seq(formatInputs(userInputs)))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), Seq(formatUsebundle(userBundle)))
+    ).map(x => (x.spec.name, x)).toMap
+
   }
 
   /**
    * Sort the techniques according to the order of the associated BundleOrder of Cf3PolicyDraft.
    * Sort at best: sort rule then directives, and take techniques on that order, only one time
    * Sort system directive first.
+   *
+   * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
+   * "system must go first") are not taken into account here !
    */
-  private[this] def sortTechniques(techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[Technique] = {
+  private[this] def sortTechniques(techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
 
-    def sortByOrder(tech: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[Technique] = {
+    def sortByOrder(tech: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
       def compareBundleOrder(a: List[BundleOrder], b: List[BundleOrder]): Boolean = {
         BundleOrder.compareList(a, b) <= 0
       }
@@ -401,14 +422,10 @@ class Cf3PromisesFileWriterServiceImpl(
         ordered.map(p => s" `-> ${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").foreach { logger.debug(_) }
       }
 
-      ordered.map( _._1 )
+      ordered
     }
 
-    //system technique go first whatever their order
-    val (sys, user) = techniques.partition { _.isSystem }
-
-    sys ++ sortByOrder(user, container)
-
+    sortByOrder(techniques, container)
   }
 
 
