@@ -31,8 +31,6 @@ limitations under the License.
     <!-- utils -->
     <module>utils</module>
     <!-- APIs -->
-    <module>authorization-api</module>
-    <module>eventlog-api</module>
     <module>historization-api</module>
   </modules>
 
