@@ -46,7 +46,7 @@ bundle agent schedule_simple(job_id, agent_periodicity,
 {
   vars:
     any::
-      "class_prefix" string => "schedule_simple_${job_id}";
+      "class_prefix" string => canonify("schedule_simple_${job_id}");
 
   methods:
     any::
