@@ -68,11 +68,21 @@ trait HistorizationService {
   /**
    * Update the policy details, based on what is on the ldap and what is on the file system.
    * A directive changed when it is deleted, renamed, changed version, changed priority,
-   * it's underlying PT changed name, description
+   * it's underlying Technique changed name, description
    */
   def updateDirectiveNames(directiveLib: FullActiveTechniqueCategory) : Box[Unit]
 
   def updatesRuleNames(rules:Seq[Rule]) : Box[Unit]
+
+  /**
+   * Update the global node schedule
+   */
+  def updateGlobalSchedule(
+        interval    : Int
+      , splaytime   : Int
+      , start_hour  : Int
+      , start_minute: Int
+  ) : Box[Unit]
 
 }
 
@@ -212,5 +222,34 @@ class HistorizationServiceImpl(
     && entry.targets == rule.targets
     && entry.directiveIds == rule.directiveIds
  )
+
+   def updateGlobalSchedule(
+        interval    : Int
+      , splaytime   : Int
+      , start_hour  : Int
+      , start_minute: Int
+  ) : Box[Unit] = {
+    try {
+      val registered = historizationRepository.getOpenedGlobalSchedule()
+
+      // we need to update if:
+      // 1 - we don't have any entry
+      // 2 - we have a result that doesn't match
+
+      registered match {
+        case Some(schedule) if (
+               schedule.interval == interval
+            && schedule.splaytime == splaytime
+            && schedule.start_hour == start_hour
+            && schedule.start_minute == start_minute) => Full()
+        case _ => Full(historizationRepository.updateGlobalSchedule(interval, splaytime, start_hour, start_minute))
+      }
+    } catch {
+      case e: Exception =>
+        val errorMsg = "Could not update the global agent execution schedule. Reason : "+e.getMessage()
+        HistorizationLogger.error(errorMsg)
+        Failure(errorMsg)
+    }
+  }
 
 }

@@ -105,11 +105,16 @@ trait DeploymentService extends Loggable {
       directiveLib    <- getDirectiveLibrary() ?~! "Could not get the directive library"
       groupLib        <- getGroupLibrary() ?~! "Could not get the group library"
       allParameters   <- getAllGlobalParameters ?~! "Could not get global parameters"
+      agentRunInterval    =  getAgentRunInterval()
+      agentRunSplaytime   <- getAgentRunSplaytime() ?~! "Could not get agent run splaytime"
+      agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not get agent run start time (minute)"
+      agentRunStartHour   <- getAgentRunStartHour() ?~! "Could not get agent run start time (hour)"
+
       timeFetchAll    =  (System.currentTimeMillis - initialTime)
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
 
       historizeTime =  System.currentTimeMillis
-      historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos)
+      historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, agentRunInterval, agentRunSplaytime, agentRunStartHour, agentRunStartMinute)
       timeHistorize =  (System.currentTimeMillis - historizeTime)
       _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
 
@@ -206,6 +211,10 @@ trait DeploymentService extends Loggable {
   def getGlobalComplianceMode(): Box[ComplianceMode]
   def getGlobalAgentRun() : Box[AgentRunInterval]
 
+  def getAgentRunInterval    : () => Int
+  def getAgentRunSplaytime   : () => Box[Int]
+  def getAgentRunStartHour   : () => Box[Int]
+  def getAgentRunStartMinute : () => Box[Int]
   /**
    * Find all modified rules.
    * For them, find all directives with variables
@@ -314,7 +323,16 @@ trait DeploymentService extends Loggable {
   /**
    * Store groups and directive in the database
    */
-  def historizeData(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Unit]
+  def historizeData(
+      rules            : Seq[Rule]
+    , directiveLib     : FullActiveTechniqueCategory
+    , groupLib         : FullNodeGroupCategory
+    , allNodeInfos     : Map[NodeId, NodeInfo]
+    , globalInterval   : Int
+    , globalSplaytime  : Int
+    , globalStartHour  : Int
+    , globalStartMinute: Int
+  ) : Box[Unit]
 
 
   protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
@@ -347,6 +365,10 @@ class DeploymentServiceImpl (
   , override val complianceModeService : ComplianceModeService
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
+  , override val getAgentRunInterval: () => Int
+  , override val getAgentRunSplaytime: () => Box[Int]
+  , override val getAgentRunStartHour: () => Box[Int]
+  , override val getAgentRunStartMinute: () => Box[Int]
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -906,12 +928,22 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
 trait DeploymentService_historization extends DeploymentService {
   def historizationService : HistorizationService
 
-  def historizeData(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Unit] = {
+  def historizeData(
+        rules            : Seq[Rule]
+      , directiveLib     : FullActiveTechniqueCategory
+      , groupLib         : FullNodeGroupCategory
+      , allNodeInfos     : Map[NodeId, NodeInfo]
+      , globalInterval   : Int
+      , globalSplaytime  : Int
+      , globalStartHour  : Int
+      , globalStartMinute: Int
+    ) : Box[Unit] = {
     for {
       _ <- historizationService.updateNodes(allNodeInfos.values.toSet)
       _ <- historizationService.updateGroups(groupLib)
       _ <- historizationService.updateDirectiveNames(directiveLib)
       _ <- historizationService.updatesRuleNames(rules)
+      _ <- historizationService.updateGlobalSchedule(globalInterval, globalSplaytime, globalStartHour, globalStartMinute)
     } yield {
       () // unit is expected
     }
