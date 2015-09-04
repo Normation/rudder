@@ -238,6 +238,21 @@ endTime timestamp with time zone
 create index nodes_id_start on Nodes (nodeId, startTime);
 create index nodes_end on Nodes (endTime);
 
+
+-- Historize the agent run global schedule
+create sequence globalscheduleid START 101;
+
+CREATE TABLE GlobalSchedule (
+id integer PRIMARY KEY default nextval('globalscheduleid'),
+interval int,
+splaytime int,
+start_hour int,
+start_minute int,
+startTime timestamp with time zone default now(),
+endTime timestamp with time zone
+);
+
+
 create sequence MigrationEventLogId start 1;
 
 CREATE TABLE MigrationEventLog(
