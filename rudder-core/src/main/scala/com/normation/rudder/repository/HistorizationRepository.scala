@@ -47,6 +47,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.repository.jdbc.SerializedNodes
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.jdbc.SerializedGroupsNodes
+import com.normation.rudder.repository.jdbc.SerializedGlobalSchedule
 
 /**
  * Repository to retrieve information about Nodes, Groups, directives, rules
@@ -127,5 +128,24 @@ trait HistorizationRepository {
    */
   def updateRules(rules : Seq[Rule], closable : Seq[String]) : Unit
 
+  /**
+   * Get the current GlobalSchedule historized (the one considered in use)
+   */
+  def getOpenedGlobalSchedule() : Option[SerializedGlobalSchedule]
+
+  /**
+   * Get all the global schedule
+   */
+  def getAllGlobalSchedule(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGlobalSchedule]
+
+  /**
+   * Update the current schedule historized by closing the previous and writing a new one
+   */
+  def updateGlobalSchedule(
+        interval    : Int
+      , splaytime   : Int
+      , start_hour  : Int
+      , start_minute: Int
+  ) : Unit
 }
 
