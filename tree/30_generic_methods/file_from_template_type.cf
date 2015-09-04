@@ -21,8 +21,8 @@
 # @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded
-# @parameter destination     Destination file
-# @parameter template_type   Template type (cfengine or mustache)
+# @parameter destination     Destination file
+# @parameter template_type   Template type (cfengine or mustache)
 #
 # @class_prefix file_from_template
 # @class_parameter destination
@@ -30,9 +30,9 @@
 
 bundle agent file_from_template_type(source_template, destination, template_type)
 {
-
   vars:
-    "class_prefix"        string => canonify("file_from_template_${destination}");
+    "old_class_prefix" string => canonify("file_from_template_${destination}");
+    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   classes:
     "template_exists" expression => fileexists("${source_template}");
@@ -43,16 +43,16 @@ bundle agent file_from_template_type(source_template, destination, template_type
       edit_template   => "${source_template}",
       template_method => "${template_type}",
       ifvarclass      => "template_exists",
-      classes         => classes_generic("${class_prefix}");
+      classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
 
     !template_exists::
 
+      "template_absent" usebundle => _classes_failure("${old_class_prefix}");
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
     any::
-
-      "report"          usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${class_prefix}");
+      "report"             usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${old_class_prefix}");
 
 }

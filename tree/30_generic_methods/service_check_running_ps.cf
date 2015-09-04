@@ -28,8 +28,8 @@
 bundle agent service_check_running_ps(service_regex)
 {
   vars:
-
-      "class_prefix" string => canonify("service_check_running_${service_regex}");
+      "old_class_prefix" string => canonify("service_check_running_${service_regex}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   classes:
     any::
@@ -39,22 +39,31 @@ bundle agent service_check_running_ps(service_regex)
   methods:
     pass2::
       "success_classes"
+        usebundle  => _classes_success("${old_class_prefix}"),
+        ifvarclass => "${old_class_prefix}_checked_ok";
+
+      "success_classes"
         usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => canonify("${class_prefix}_checked_ok");
+        ifvarclass => "has_promiser_stack.${class_prefix}_checked_ok";
+
+      "error_classes"
+        usebundle  => _classes_failure("${old_class_prefix}"),
+        ifvarclass => "${old_class_prefix}_checked_not_ok";
 
       "error_classes"
         usebundle  => _classes_failure("${class_prefix}"),
-        ifvarclass => canonify("${class_prefix}_checked_not_ok");
+        ifvarclass => "has_promiser_stack.${class_prefix}_checked_not_ok";
 
       "report"
-        usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${class_prefix}");
+        usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${old_class_prefix}");
 
   processes:
 
       "${service_regex}"
-        process_count => any_count("${class_prefix}_checked_ok");
+        process_count => any_count_two("${old_class_prefix}_checked_ok", "${class_prefix}_checked_ok");
 
       "${service_regex}"
-        restart_class => "${class_prefix}_checked_not_ok";
+        # missing new_class_prefix : we cannot put 2 classes here, so we put the only one that we are sure to work
+        restart_class => "${old_class_prefix}_checked_not_ok";
 
 }

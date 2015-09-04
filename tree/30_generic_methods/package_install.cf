@@ -27,6 +27,10 @@
 
 bundle agent package_install(package_name)
 {
+  vars:
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+  
   methods:
-      "placeholder" usebundle => package_install_version("${package_name}", "latest");
+      "install latest"     usebundle => package_install_version("${package_name}", "latest");
+      "new result classes" usebundle => _classes_copy("${class_prefix}_install_latest", "${class_prefix}");
 }

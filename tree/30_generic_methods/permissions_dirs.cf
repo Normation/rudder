@@ -20,9 +20,9 @@
 # @description Verify if a directory has the right permissions non recursively
 #
 # @parameter path      Path of the directory
-# @parameter mode      Mode to enfore
-# @parameter owner     Owner to enforce
-# @parameter group     Group to enforce
+# @parameter mode      Mode to enfore
+# @parameter owner     Owner to enforce
+# @parameter group     Group to enforce
 # 
 # @class_prefix permissions
 # @class_parameter path
@@ -30,6 +30,10 @@
 
 bundle agent permissions_dirs(path, mode, owner, group)
 {
+  vars:
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+
   methods:
-      "placeholder" usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "directories", "0");
+      "permission without recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "directories", "0");
+      "new result classes"            usebundle => _classes_copy("${class_prefix}_permission_without_recursion", "${class_prefix}");
 }

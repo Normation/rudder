@@ -32,19 +32,27 @@ bundle agent service_restart_if(service_name, trigger_class)
 
     "canonified_service_name"      string     => canonify("${service_name}");
 
-    "class_prefix"                 string     => "service_restart_${canonified_service_name}";
+    "old_class_prefix"             string     => "service_restart_${canonified_service_name}";
+    "class_prefix"                 string     => canonify(join("_", "this.callers_promisers"));
 
   methods:
 
       # Create kept class
-      "success_class"              usebundle  => _classes_success("${class_prefix}"),
-                                   # parenthesis used to negate all the class
+      "success_class"              usebundle  => _classes_success("${old_class_prefix}"),
+                                   # parenthesis used to negate all the classes
                                    ifvarclass => "!(${trigger_class})";
 
-      "restart"                    usebundle => service_action("${service_name}", "restart"),
+      "success_class"              usebundle  => _classes_success("${class_prefix}"),
+                                   # parenthesis used to negate all the classes
+                                   ifvarclass => "!(${trigger_class})";
+
+      "restart"                    usebundle  => service_action("${service_name}", "restart"),
                                    ifvarclass => "${trigger_class}";
 
-      "class copy"                 usebundle => _classes_copy("service_action_${canonified_service_name}", "${class_prefix}"),
+      "class copy"                 usebundle  => _classes_copy("service_action_${canonified_service_name}", "${old_class_prefix}"),
+                                   ifvarclass => "${trigger_class}";
+
+      "class copy"                 usebundle  => _classes_copy("${class_prefix}_restart", "${class_prefix}"),
                                    ifvarclass => "${trigger_class}";
 
       "report"                     usebundle  => _logger("Restart service ${canonified_service_name}", "service_restart_${canonified_service_name}");

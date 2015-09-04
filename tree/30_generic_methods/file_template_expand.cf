@@ -20,7 +20,7 @@
 # @description This is a bundle to expand a template in a specific location
 #
 # @parameter tml_file File name (with full path within the framework) of the template file
-# @parameter target_file File name (with full path) where to expand the template
+# @parameter target_file File name (with full path) where to expand the template
 # @parameter mode Mode of destination file
 # @parameter owner Owner of destination file
 # @parameter group Froup of destination file
@@ -33,7 +33,8 @@
 bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
 {
   vars:
-      "class_prefix" string => canonify("file_template_expand_${target_file}");
+      "old_class_prefix" string => canonify("file_template_expand_${target_file}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
       "${target_file}"
@@ -41,9 +42,8 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
         edit_template => "${me.framework_path}/${tml_file}",
         edit_defaults => no_backup,
         perms         => mog("${mode}","${owner}","${group}"),
-	classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${class_prefix}");
+      "report"             usebundle => _logger("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${old_class_prefix}");
 }

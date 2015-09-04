@@ -64,6 +64,10 @@ bundle agent configuration
   classes:
       "ncf_override_conf_file_defined" expression => fileexists("${ncf_configuration.ncf_configuration_file}");
 
+      # cfengine was patched to provide a variable to retrieve the promiser stack
+      "has_promiser_stack" expression => isvariable("this.callers_promisers"),
+                           scope => "namespace";
+
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 

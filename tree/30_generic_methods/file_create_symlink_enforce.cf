@@ -20,8 +20,8 @@
 # @description This is a bundle to create a symlink at a destination path and pointing to a source target. This is also possible to enforce its creation
 #
 # @parameter source      Source file 
-# @parameter destination Destination file
-# @parameter enforce     Force symlink if file already exist (true or false)
+# @parameter destination Destination file
+# @parameter enforce     Force symlink if file already exist (true or false)
 # 
 # @class_prefix file_create_symlink
 # @class_parameter destination
@@ -30,17 +30,17 @@
 bundle agent file_create_symlink_enforce(source, destination, enforce)
 {
   vars:
-      "class_prefix" string           => canonify("file_create_symlink_${destination}");
+      "old_class_prefix" string => canonify("file_create_symlink_${destination}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
    # Symlink
       "${destination}"
                     link_from         => ln_s("${source}"),
                     move_obstructions => "${enforce}",
-                    classes           => classes_generic("${class_prefix}"),
+                    classes           => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                     comment           => "Create the ${destination} symlink pointing to ${source}";
 
   methods:
-      "report"
-                    usebundle         => _logger("Symlink ${destination} targeting ${source}", "${class_prefix}");
+      "report"             usebundle => _logger("Symlink ${destination} targeting ${source}", "${old_class_prefix}");
 }

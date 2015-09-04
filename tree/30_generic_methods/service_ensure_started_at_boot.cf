@@ -42,7 +42,8 @@ bundle agent service_ensure_started_at_boot(service_name)
       "canonified_service_name" string => canonify("${service_name}");
       "canonified_command_name" string => canonify("${command_to_register}");
 
-      "class_prefix"            string => "service_ensure_started_at_boot_${canonified_service_name}";
+      "old_class_prefix"        string => "service_ensure_started_at_boot_${canonified_service_name}";
+      "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
 
   methods:
     !windows::
@@ -51,25 +52,33 @@ bundle agent service_ensure_started_at_boot(service_name)
 
       "define_at_boot"
         usebundle  => command_execution("${service_ensure_started_at_boot.command_to_register}"),
-        ifvarclass => "service_check_started_at_boot_${canonified_service_name}_not_ok";
+        ifvarclass => "(!has_promiser_stack.service_check_started_at_boot_${canonified_service_name}_not_ok)|(has_promiser_stack.${class_prefix}_check_at_boot_not_ok)";
 
       "already defined"
-        usebundle => _classes_success("${class_prefix}"),
+        usebundle  => _classes_success("${old_class_prefix}"),
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_ok";
 
+      "already defined"
+        usebundle  => _classes_success("${class_prefix}"),
+        ifvarclass => "${class_prefix}_check_at_boot_ok";
+
       "copy classes"
-        usebundle  => _classes_copy("command_execution_${canonified_command_name}", "${class_prefix}"),
+        usebundle  => _classes_copy("command_execution_${canonified_command_name}", "${old_class_prefix}"),
         ifvarclass => "service_check_started_at_boot_${canonified_service_name}_not_ok";
+
+      "copy classes"
+        usebundle  => _classes_copy("${class_prefix}_define_at_boot", "${class_prefix}"),
+        ifvarclass => "${class_prefix}_check_at_boot_not_ok";
 
    any::
       "report"
-        usebundle => _logger("Ensure service ${service_name} is set at boot", "${class_prefix}"),
-       ifvarclass => "${class_prefix}_reached";
+        usebundle => _logger("Ensure service ${service_name} is set at boot", "${old_class_prefix}"),
+        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   services:
     windows::
       "${service_name}"
         service_policy => "start",
         service_method => bootstart,
-        classes        => classes_generic("${class_prefix}");
+        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 }

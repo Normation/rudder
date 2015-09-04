@@ -27,7 +27,11 @@
 
 bundle agent package_verify(package_name)
 {
+  vars:
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+
   methods:
-      "placeholder" usebundle => package_verify_version("${package_name}", "latest");
+      "verify latest"      usebundle => package_verify_version("${package_name}", "latest");
+      "new result classes" usebundle => _classes_copy("${class_prefix}_verify_latest", "${class_prefix}");
 }
 

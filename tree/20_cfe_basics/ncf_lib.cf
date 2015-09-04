@@ -355,6 +355,40 @@ body classes classes_generic_return_codes(x, kept_return_code, repaired_return_c
   promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
+# WARNING !!!
+# For new class prefix migration only, this will be removed when migration is over
+# Define x and y prefixed/suffixed with promise outcome
+body classes classes_generic_two(x,y)
+{
+  !has_promiser_stack::
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+
+  has_promiser_stack::
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached", 
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+}
+
+# WARNING !!!
+# For new class prefix migration only, this will be removed when migration is over
+body process_count any_count_two(cl, cl2)
+{
+  match_range => "0,0";
+  out_of_range_define => { "$(cl)", "$(cl2)" };
+}
+
+
 # Enforce or not content of a file
 ########################################################################
 # Same as std_defs, allowing user to specify the file erase policy     #

@@ -31,19 +31,30 @@
 bundle agent package_check_installed(package_name)
 {
   vars:
-      "class_prefix"        string => canonify("package_check_installed_${package_name}");
+      "old_class_prefix"    string => canonify("package_check_installed_${package_name}");
+      "class_prefix"        string => canonify(join("_", "this.callers_promisers"));
       "called_class_prefix" string => canonify("package_install_${package_name}");
 
   methods:
-      "placeholder"      usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
+      "check install with latest version"
+        usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
+
+      "success"
+        usebundle  => _classes_success("${old_class_prefix}"),
+        ifvarclass => "${called_class_prefix}_kept";
 
       "success"
         usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "${called_class_prefix}_kept";
+        ifvarclass => "${class_prefix}_check_install_with_latest_version_kept";
+
+      "failed"
+        usebundle  => _classes_failure("${old_class_prefix}"),
+        ifvarclass => "${called_class_prefix}_repaired";
 
       "failed"
         usebundle  => _classes_failure("${class_prefix}"),
-        ifvarclass => "${called_class_prefix}_repaired";
+        ifvarclass => "${class_prefix}_check_install_with_latest_version_repaired";
 
-      "report"           usebundle => _logger("Check that package ${package_name} is installed", "${class_prefix}");
+      "report"
+        usebundle => _logger("Check that package ${package_name} is installed", "${old_class_prefix}");
 }

@@ -34,14 +34,15 @@ bundle agent package_remove(package_name)
   vars:
 
       "canonified_package_name" string => canonify("${package_name}");
-      "class_prefix"            string => "package_remove_${canonified_package_name}";
+      "old_class_prefix"        string => "package_remove_${canonified_package_name}";
+      "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
 
   packages:
       "${package_name}"
                         package_policy  => "delete",
                         package_method  => generic,
-                        classes         => classes_generic("${class_prefix}");
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "placeholder" usebundle => _logger("Remove package ${package_name}", "${class_prefix}");
+      "placeholder"        usebundle => _logger("Remove package ${package_name}", "${old_class_prefix}");
 }

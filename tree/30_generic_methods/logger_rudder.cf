@@ -43,7 +43,7 @@ bundle agent logger_rudder(message, class_prefix)
       "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
 
     (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept)::
-      "c_class_prefix" string => canonify("${class_prefix}");
+      "c_class_prefix" string => canonify("${old_class_prefix}");
 
       # 4/ Once the final expected reports file has been expanded, read in our array
       "number_lines"
@@ -147,19 +147,19 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
   methods:
       "na"
         usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
-        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+        ifvarclass => "${old_class_prefix}_noop.!${old_class_prefix}_kept.!${old_class_prefix}_repaired.!${old_class_prefix}_error";
 
       "success"
         usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
-        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
+        ifvarclass => "${old_class_prefix}_kept.!${old_class_prefix}_repaired.!${old_class_prefix}_error";
 
       "repaired"
         usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
-        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
+        ifvarclass => "${old_class_prefix}_repaired.!${old_class_prefix}_error";
 
       "error"
         usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
-        ifvarclass => "${class_prefix}_error";
+        ifvarclass => "${old_class_prefix}_error";
 }
 
 bundle agent _startExecution(identifier)

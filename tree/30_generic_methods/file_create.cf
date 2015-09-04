@@ -28,14 +28,14 @@
 bundle agent file_create(target)
 {
   vars:
-    "class_prefix" string => canonify("file_create_${target}");
+    "old_class_prefix" string => canonify("file_create_${target}");
+    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
     "${target}"
       create        => "true",
-      classes       => classes_generic("${class_prefix}");
+      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report" usebundle  => _logger("Create file ${target}", "${class_prefix}");
-
+    "report"             usebundle => _logger("Create file ${target}", "${old_class_prefix}");
 }

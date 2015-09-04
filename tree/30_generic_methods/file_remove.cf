@@ -28,17 +28,21 @@
 bundle agent file_remove(target)
 {
   vars:
-    "class_prefix" string => canonify("file_remove_${target}");
+    "old_class_prefix" string => canonify("file_remove_${target}");
+    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
     "${target}"
       delete        => tidy,
-      classes       => classes_generic("${class_prefix}");
+      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
-                         ifvarclass => "!${class_prefix}_reached";
+    "success_if_nothing" usebundle => _classes_success("${old_class_prefix}"),
+                         ifvarclass => "!${old_class_prefix}_reached";
 
-    "report" usebundle  => _logger("Remove file ${target}", "${class_prefix}");
+    "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
+                         ifvarclass => "has_promiser_stack.!${class_prefix}_reached";
+
+    "report"             usebundle => _logger("Remove file ${target}", "${old_class_prefix}");
 
 }
