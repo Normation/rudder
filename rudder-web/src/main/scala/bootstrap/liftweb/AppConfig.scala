@@ -1260,7 +1260,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val historizationService = new HistorizationServiceImpl(historizationJdbcRepository)
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
-
     val deploymentService = {
       new DeploymentServiceImpl(
           roLdapRuleRepository
@@ -1280,6 +1279,10 @@ object RudderConfig extends Loggable {
         , globalComplianceModeService
         , globalAgentRunService
         , reportingServiceImpl
+        , configService.agent_run_interval
+        , configService.agent_run_splaytime
+        , configService.agent_run_start_hour
+        , configService.agent_run_start_minute
     )}
     val agent = new AsyncDeploymentAgent(
         deploymentService

@@ -305,10 +305,50 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
     } ; () //unit is expected
   }
 
+  def getOpenedGlobalSchedule() : Option[SerializedGlobalSchedule] = {
+
+    squerylConnectionProvider.ourSession {
+      val q = from(GlobalSchedule.globalSchedule)(globalSchedule =>
+        where(globalSchedule.endTime.isNull)
+        select(globalSchedule)
+      )
+      q.toList.headOption
+    }
+  }
+
+  def getAllGlobalSchedule(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGlobalSchedule] = {
+    squerylConnectionProvider.ourSession {
+      val q = from(GlobalSchedule.globalSchedule)(globalSchedule =>
+        where(after.map(date => {
+          globalSchedule.startTime > toTimeStamp(date) or
+          (globalSchedule.endTime.isNotNull and globalSchedule.endTime.>(Some(toTimeStamp(date))))or
+          ( (fetchUnclosed === true) and globalSchedule.endTime.isNull)
+        }).getOrElse(1===1))
+        select(globalSchedule)
+      )
+      Seq() ++ q.toList
+    }
+  }
+
+
+  def updateGlobalSchedule(
+        interval    : Int
+      , splaytime   : Int
+      , start_hour  : Int
+      , start_minute: Int
+  ) : Unit = {
+    squerylConnectionProvider.ourTransaction {
+      // close the previous schedule
+      val q = update(GlobalSchedule.globalSchedule)(globalSchedule =>
+        where(globalSchedule.endTime.isNull)
+        set(globalSchedule.endTime := Some(toTimeStamp(DateTime.now())))
+      )
+      // add the new ones
+      val insertion = GlobalSchedule.globalSchedule.insert(SerializedGlobalSchedule.fromGlobalSchedule(interval, splaytime, start_hour, start_minute))
+    }
+    ()
+  }
 }
-
-
-
 
 
 //// here are some utility classes to use with the service ////
@@ -533,4 +573,40 @@ object Rules extends Schema {
   on(rules)(t => declare(
       t.id.is(autoIncremented("rulesid"), primaryKey)))
 
+}
+
+case class SerializedGlobalSchedule(
+    @Column("interval") interval: Int,
+    @Column("splaytime") splaytime: Int,
+    @Column("start_hour") start_hour: Int,
+    @Column("start_minute") start_minute: Int,
+    @Column("starttime") startTime: Timestamp,
+    @Column("endtime") endTime: Option[Timestamp]
+) extends KeyedEntity[Long] {
+  @Column("id")
+  val id = 0L
+}
+
+object SerializedGlobalSchedule {
+  def fromGlobalSchedule(
+        interval    : Int
+      , splaytime   : Int
+      , start_hour  : Int
+      , start_minute: Int) : SerializedGlobalSchedule = {
+    new SerializedGlobalSchedule(
+            interval
+          , splaytime
+          , start_hour
+          , start_minute
+          , new Timestamp(DateTime.now().getMillis)
+          , None
+    )
+  }
+}
+
+object GlobalSchedule extends Schema {
+  val globalSchedule = table[SerializedGlobalSchedule]("globalschedule")
+
+  on(globalSchedule)(t => declare(
+      t.id.is(autoIncremented("globalscheduleid"), primaryKey)))
 }
