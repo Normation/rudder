@@ -389,7 +389,7 @@ start_hour int,
 start_minute int,
 startTime timestamp with time zone default now(),
 endTime timestamp with time zone
-
+);
 /*
  *************************************************************************************
  * end
