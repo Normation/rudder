@@ -1169,19 +1169,24 @@ object RudderConfig extends Loggable {
 
   private[this] lazy val asyncDeploymentAgentImpl: AsyncDeploymentAgent = {
     val agent = new AsyncDeploymentAgent(new DeploymentServiceImpl(
-          roLdapRuleRepository,
-          woLdapRuleRepository,
-          ruleValService,
-          parameterizedValueLookupService,
-          systemVariableService,
-          nodeConfigurationServiceImpl,
-          nodeInfoServiceImpl,
-          reportingServiceImpl,
-          historizationService,
-          roNodeGroupRepository,
-          roDirectiveRepository,
-          ruleApplicationStatusImpl,
-          roParameterServiceImpl)
+          roLdapRuleRepository
+        , woLdapRuleRepository
+        , ruleValService
+        , parameterizedValueLookupService
+        , systemVariableService
+        , nodeConfigurationServiceImpl
+        , nodeInfoServiceImpl
+        , reportingServiceImpl
+        , historizationService
+        , roNodeGroupRepository
+        , roDirectiveRepository
+        , ruleApplicationStatusImpl
+        , roParameterServiceImpl
+        , configService.agent_run_interval
+        , configService.agent_run_splaytime
+        , configService.agent_run_start_hour
+        , configService.agent_run_start_minute
+        )
       , eventLogDeploymentServiceImpl
       , deploymentStatusSerialisation)
     techniqueRepositoryImpl.registerCallback(
