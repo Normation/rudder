@@ -377,6 +377,19 @@ CREATE TABLE Nodes (
 CREATE INDEX nodes_id_start ON Nodes (nodeId, startTime);
 CREATE INDEX nodes_end      ON Nodes (endTime);
 
+
+-- Historize the agent run global schedule
+CREATE SEQUENCE globalscheduleid START 101;
+
+CREATE TABLE GlobalSchedule (
+id integer PRIMARY KEY default nextval('globalscheduleid'),
+interval int,
+splaytime int,
+start_hour int,
+start_minute int,
+startTime timestamp with time zone default now(),
+endTime timestamp with time zone
+);
 /*
  *************************************************************************************
  * end
