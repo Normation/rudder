@@ -123,7 +123,7 @@ bundle agent _rudder_common_report(technique_name, status, identifier, component
     # If we need to send a report, make sure we have sent the "StartRun" message first
     send_reports.!start_run_message_sent::
       "Send start message"
-        usebundle => _startExecution,
+        usebundle => _startExecution("${identifier}"),
         action    => immediate;
 
   reports:
@@ -162,7 +162,7 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
         ifvarclass => "${class_prefix}_error";
 }
 
-bundle agent _startExecution
+bundle agent _startExecution(identifier)
 {
   vars:
     second_pass:: # This is necessary to work around a CFEngine bug that causes this to be defined all the time
@@ -177,7 +177,7 @@ bundle agent _startExecution
   reports:
     cfengine_3::
       # Send the report and define a persistant class to store the last "heartbeat" time
-      "@@Common@@log_info@@&TRACKINGKEY&@@common@@StartRun@@${g.execRun}##${g.uuid}@#Start execution with config [${g.rudder_node_config_id}]"
+      "@@Common@@log_info@@${identifier}@@common@@StartRun@@${g.execRun}##${g.uuid}@#Start execution with config [${g.rudder_node_config_id}]"
         classes => _rudder_always_classes_persist("heartbeat_sent", "${g.heartbeat_interval}");
 }
 

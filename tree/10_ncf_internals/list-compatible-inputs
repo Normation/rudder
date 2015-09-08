@@ -43,7 +43,7 @@ do
   if [ ! -d "${framework_path}/${directory}" ]; then continue; fi
 
   # first remove obsolete cache for exclude list
-  if [ -e "${exclude_file}" ]
+  if [ -f "${exclude_file}" ]
   then
     newer_files=`find "${framework_path}/${directory}" -type f -newer "${exclude_file}"`
     if [ "${newer_files}" != "" ]
@@ -53,7 +53,7 @@ do
   fi
 
   # then create cache if it doesn't exist
-  if [ -e "${exclude_file}" ]
+  if [ -f "${exclude_file}" ]
   then
     excludes=`cat "${exclude_file}"`
   else
