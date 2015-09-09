@@ -30,6 +30,7 @@ bundle agent service_check_running_ps(service_regex)
   vars:
       "old_class_prefix" string => canonify("service_check_running_${service_regex}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${service_regex}" };
 
   classes:
     any::
@@ -55,7 +56,7 @@ bundle agent service_check_running_ps(service_regex)
         ifvarclass => "has_promiser_stack.${class_prefix}_checked_not_ok";
 
       "report"
-        usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${old_class_prefix}");
+        usebundle  => _logger("Check if the service ${service_regex} is started using ps", "${old_class_prefix}", "${class_prefix}", @{args});
 
   processes:
 
@@ -63,7 +64,7 @@ bundle agent service_check_running_ps(service_regex)
         process_count => any_count_two("${old_class_prefix}_checked_ok", "${class_prefix}_checked_ok");
 
       "${service_regex}"
-        # missing new_class_prefix : we cannot put 2 classes here, so we put the only one that we are sure to work
+        # missing new_class_prefix : we cannot put 2 classes here, so we put the only one that we are sure works
         restart_class => "${old_class_prefix}_checked_not_ok";
 
 }

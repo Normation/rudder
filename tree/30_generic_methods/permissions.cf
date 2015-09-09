@@ -32,9 +32,11 @@ bundle agent permissions(path, mode, owner, group)
 {
   vars:
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${mode}", "${mode}", "${owner}", "${group}" };
 
   methods:
       "permission without recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "all", "0");
       "new result classes"            usebundle => _classes_copy("${class_prefix}_permission_without_recursion", "${class_prefix}");
-}
 
+      "report"                        usebundle => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "", "${class_prefix}", @{args});
+}

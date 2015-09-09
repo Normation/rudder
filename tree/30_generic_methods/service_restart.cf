@@ -29,10 +29,12 @@ bundle agent service_restart(service_name)
 {
   vars:
     "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+    "args"              slist => { "${service_name}" };
 
   methods:
-
       "restart always"     usebundle => service_restart_if("${service_name}","any");
 
       "new result classes" usebundle => _classes_copy("${class_prefix}_restart_always", "${class_prefix}");
+
+      "report"             usebundle => _logger("Restart service ${canonified_service_name}", "", "${class_prefix}", @{args});
 }

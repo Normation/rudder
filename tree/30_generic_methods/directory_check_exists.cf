@@ -32,6 +32,7 @@ bundle agent directory_check_exists(directory_name)
   vars:
       "old_class_prefix" string => canonify("directory_check_exists_${directory_name}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${directory_name}" };
 
   classes:
       "directory_exists" expression => isdir("${directory_name}");
@@ -46,5 +47,5 @@ bundle agent directory_check_exists(directory_name)
       "directory_doesnt_exists" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"                  usebundle => _logger("Check if directory ${directory_name} exists", "${old_class_prefix}");
+      "report"                  usebundle => _logger("Check if directory ${directory_name} exists", "${old_class_prefix}", "${class_prefix}", @{args});
 }

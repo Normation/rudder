@@ -19,29 +19,56 @@
 # @name Logger default
 # @description Standard default logging output
 #
-# @parameter message      The common part of the message to display
-# @parameter class_prefix The prefix of the class for different states
+# @parameter message          The common part of the message to display
+# @parameter old_class_prefix The prefix of the class for different states
+# @parameter class_prefix     The prefix of the class for different states
+# @parameter args             The arguments used to call the generic method (slist)
 #
 # @class_prefix
 # @class_parameter
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent _logger_default(message, class_prefix)
+bundle agent _logger_default(message, old_class_prefix, class_prefix, args)
 {
   vars:
-    "canonified_prefix" string => canonify("${class_prefix}");
+    "canonified_prefix" string => canonify("${old_class_prefix}");
+
+    "promiser_count" int => length("this.callers_promisers");
+
+    # head(length-2) -> remove logger call stack (_logger + _logger_default)
+    "nologger_len" int => eval("${promiser_count}-2", "math", "infix");
+    "promisers_list_nologger" slist => sublist("this.callers_promisers", "head", "${nologger_len}");
+
+    "promisers" string => join("/", "promisers_list_nologger");
+
+    "arg_list" string => join(",", "args");
 
   reports:
     debug::
+      "${configuration.debug} Promise called ${promisers) with ${arg_list}"; # full debug information
+
+    debug.!has_promiser_stack::
       "${configuration.debug} Promise kept, not doing anything: ${message}"
         ifvarclass => "${canonified_prefix}_kept.!${canonified_prefix}_repaired.!${canonified_prefix}_not_ok";
 
-    debug|info::
-      "${configuration.info} Promise repaired, made a change: ${message}"
-        ifvarclass => "${class_prefix}_repaired.!${canonified_prefix}_not_ok";
+    debug.has_promiser_stack::
+      "${configuration.debug} Promise kept, not doing anything: ${message}"
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_not_ok";
 
-    cfengine:: # We always want to log errors
+    (debug|info).!has_promiser_stack::
+      "${configuration.info} Promise repaired, made a change: ${message}"
+        ifvarclass => "${canonified_prefix}_repaired.!${canonified_prefix}_not_ok";
+
+    (debug|info).has_promiser_stack::
+      "${configuration.info} Promise repaired, made a change: ${message}"
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_not_ok";
+
+    !has_promiser_stack:: # We always want to log errors
       "${configuration.error} Promise could not be repaired, error encountered: ${message}"
-        ifvarclass => canonify("${class_prefix}_not_ok");
+        ifvarclass => "${canonified_prefix}_not_ok";
+
+    has_promiser_stack:: # We always want to log errors
+       "${configuration.error} Promise could not be repaired, error encountered: ${message}"
+        ifvarclass => "${class_prefix}_not_ok";
 }

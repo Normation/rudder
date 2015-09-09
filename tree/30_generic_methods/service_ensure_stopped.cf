@@ -33,6 +33,7 @@ bundle agent service_ensure_stopped(service_name)
 
     "old_class_prefix"             string => "service_ensure_stopped_${canonified_service_name}";
     "class_prefix"                 string => canonify(join("_", "this.callers_promisers"));
+    "args"                          slist => { "${service_name}" };
 
   methods:
     !windows::
@@ -63,7 +64,7 @@ bundle agent service_ensure_stopped(service_name)
 
     any::
       "report"
-        usebundle  => _logger("Ensure that service ${service_name} is stopped", "${old_class_prefix}"),
+        usebundle  => _logger("Ensure that service ${service_name} is stopped", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass =>"(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.!${class_prefix}_reached)";
 
   services:

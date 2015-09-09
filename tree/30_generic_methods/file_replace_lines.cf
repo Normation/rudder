@@ -33,6 +33,7 @@ bundle agent file_replace_lines(file, line, replacement)
   vars:
       "old_class_prefix" string => canonify("file_replace_lines_${file}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${file}", "${line}", "${replacement}" };
 
   files:
       "${file}"
@@ -42,5 +43,5 @@ bundle agent file_replace_lines(file, line, replacement)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"             usebundle => _logger("Replace line ${lines} with ${replacement} into ${file}", "${old_class_prefix}");
+      "report" usebundle => _logger("Replace line ${lines} with ${replacement} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

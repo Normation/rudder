@@ -33,6 +33,7 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
   vars:
       "old_class_prefix" string => canonify("file_ensure_line_present_in_xml_tag_${file}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${file}", "${tag}", "${line}" };
 
   classes:
       "opening_tag_exists" expression => regline("\s*<${tag}>\s*", "${file}");
@@ -52,5 +53,5 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
       "failure" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"             usebundle => _logger("Insert line(s) ${line} into ${file}", "${old_class_prefix}");
+      "report"             usebundle => _logger("Insert line(s) ${line} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

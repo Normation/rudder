@@ -29,9 +29,12 @@ bundle agent service_check_running(service_name)
 {
   vars:
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${service_name}" };
 
   methods:
       # Will be replaced later with less naive conditions (using either service, upstart, ...
       "check running with ps" usebundle => service_check_running_ps("${service_name}");
       "new result classes"    usebundle => _classes_copy("${class_prefix}_check_running_with_ps", "${class_prefix}");
+
+      "report"                usebundle => _logger("Check if the service ${service_regex} is started using ps", "", "${class_prefix}", @{args});
 }

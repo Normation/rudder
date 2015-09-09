@@ -35,6 +35,7 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
   vars:
       "old_class_prefix" string => canonify("file_template_expand_${target_file}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${tml_file}", "${target_file}", "${mode}", "${owner}", "${group}" };
 
   files:
       "${target_file}"
@@ -45,5 +46,5 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"             usebundle => _logger("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${old_class_prefix}");
+      "report"             usebundle => _logger("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

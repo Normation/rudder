@@ -19,15 +19,17 @@
 # @name Logger for Rudder
 # @description Logging output for Rudder reports
 #
-# @parameter message      The common part of the message to display
-# @parameter class_prefix The prefix of the class for different states
+# @parameter message          The common part of the message to display
+# @parameter old_class_prefix The prefix of the class for different states (empty to force new style logging only)
+# @parameter class_prefix     The prefix of the class for different states
+# @parameter args             The arguments used to call the generic method (slist)
 #
 # @class_prefix    logger_rudder
-# @class_parameter class_prefix
+# @class_parameter old_class_prefix
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent logger_rudder(message, class_prefix)
+bundle agent logger_rudder(message, old_class_prefix, class_prefix, args)
 {
   vars:
 
@@ -50,9 +52,32 @@ bundle agent logger_rudder(message, class_prefix)
         int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
-      "report_data_read" expression => isgreaterthan("${number_lines}","0");
+      "report_data_read"    expression => isgreaterthan("${number_lines}","0");
+  
+      # We want to detect if expected report data is available in v2 format.
+      # V2 format is characterized by a new field for a total of 6 fields.
+      # The file is rewritten first in .tmp file then in .res file
+      # The second rewrite is done using the edit_line below, so if the 6th field doesn't exist in the original file
+      # then it is translater to a litteral "$reports[0][5]}" in the file.
+      # If there has been no rewrite at all, then there is no 6th field at all in the final file
 
-      "keys_defined"     expression => isvariable("keys");
+      # 1/ The file has been rewritten with an empty field
+      # 5 vs 6 : because getfields and readstringarrayidx do not have the same indexing method (getfields starts at 1)
+      "expected_report_v2_csv"     not => strcmp("${report_data[6]}","${const.dollar}{reports[0][5]}");
+
+      # 2/ The file has never been rewritten
+      "expected_report_v2_res"     not => strcmp("${report_data[6]}", "${const.dollar}{report_data[6]}");
+
+      # 3/ We add another condition : the method promiser must have been rewritten in the technique
+      #    The previous version of ncf always put "method_call" as a promiser, so this indicates an old technique version
+      "method_v2"                  not => strcmp("method_call", nth("this.callers_promisers", "1"));
+
+      # 4/ we aggregate this with the availability of the promiser stack to know if we should report using v2 format
+      "report_v2"           expression => "expected_report_v2_csv.expected_report_v2_res.method_v2.has_promiser_stack";
+
+      "keys_defined"        expression => isvariable("keys");
+
+      "no_old_class_prefix" expression => strcmp("${old_class_prefix}", "");
 
   files:
 
@@ -68,24 +93,71 @@ bundle agent logger_rudder(message, class_prefix)
       # 3/ Write the final expected reports, expanded. First, empty it, then fill it
       # (can't use edit_default empty, as we are iterating over a list)
     logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
-     "${expected_reports_file}"
+      "${expected_reports_file}"
         create => "true",
         edit_line => delete_lines_matching(".*");
 
+    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
       "${expected_reports_file}"
         create    => "true",
-        edit_line => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
+        edit_line => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]};;${reports[${keys}][5]};;${reports[${keys}][6]}"),
         classes   => classes_generic("logger_rudder_final_resfile");
 
   methods:
     # no need to avoid normal ordering since this class is set when report is ready
-    report_data_read::
+    # Old reporting method, and data is ready
+    !report_v2.report_data_read.!no_old_class_prefix::
 
       # 4/ Array is ready, reporting time !!!
       "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${c_class_prefix}", "${report_data[3]}", "${report_data[4]}", "${report_data[5]}", "${message}"),
         classes    => classes_generic("logger_rudder_${c_class_prefix}");
 
+    # We HAVE the data and we CAN dot it (see /4 abvove) -> New reporting method
+    report_v2::
+      "any" usebundle => _logger_rudder_v2("${expected_reports_source}", "${message}", "${class_prefix}", @{args});
 }
+
+# Bundle that is called only if we have v2 expected report and the promiser stack
+#
+# It produces new style reports
+# It will completly override logger_rudder when we remove v1 
+# Since it uses a new logic and need to parse the original file directly it can be put appart to avoid messing with the original code
+#
+# There is one case it can conflict with the orignal one :
+#  - the expected report contains one line with a v2 style technique that matches current call
+#  - the expected report contains one line with an unrelated v1 style technique that matches the current call too
+# The answer is that you should re-run rudderify on all your techniques when you upgrade
+bundle agent _logger_rudder(expected_reports_source, message, class_prefix, args)
+{
+  vars:
+      # head(length-3) -> remove logger call stack (_logger + logger_rudder + _logger_rudder)
+      "promiser_count"  int => length("this.callers_promisers");
+      "nologger_len"    int => eval("${promiser_count}-3", "math", "infix");
+      "promiser_list_nologger" slist => sublist("this.callers_promisers", "head", "${nologger_len}");
+
+      "promisers"    string => join(" / ", "promiser_list_nologger");
+
+      "number_lines"    int => getfields("^${current_technique_report_info.technique_name};;.*?;;.*?;;.*?;;.*?;;${class_prefix}", 
+                                         "${expected_reports_source}", 
+                                         ";;", 
+                                         "report_data");
+
+      # normalize args to fit syslog output (first argument, 80 bytes max)
+      "args_line1" string => string_head(nth("args", "0"), "80");
+
+      # normalize message to fit syslog output (first line)
+      "message_lines"  slist => string_split("${message}", "${const.n}", "2");
+      "message_line1" string => nth("message_lines", "0");
+
+  classes:
+      "report_data_found" expression => isgreaterthan("${number_lines}","0");
+
+  methods:
+    report_data_found::
+      "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${class_prefix}", "${report_data[3]}", "${promisers}", "${args_line1}", "${message_line1}"),
+            classes   => classes_generic("logger_rudder_${class_prefix}");
+}
+
 
 # bundle backported from rudder (prefixed with _ to avoid conflicts)
 # all this whould be removed when we put this file back to rudder
@@ -107,7 +179,6 @@ bundle agent logger_rudder(message, class_prefix)
 # component_name : the name of the component within the Technique
 # component_key  : the value of the component reference variable (or None if undefined)
 # message        : An explanation message understandable by a human
-#
 bundle agent _rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
 {
   classes:

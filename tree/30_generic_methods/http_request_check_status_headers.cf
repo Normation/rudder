@@ -33,6 +33,7 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
   vars:
       "old_class_prefix" string => canonify("http_request_check_status_headers_${url}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${method}", "${url}", "${expected_status}", "${headers}" };
 
   classes:
     any::
@@ -41,7 +42,7 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
 
   methods:
     pass2::
-      "report"             usebundle => _logger("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${old_class_prefix}");
+      "report" usebundle => _logger("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
       "${paths.path[curl]}"
@@ -51,4 +52,3 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
         classes => classes_generic_return_codes("${old_class_prefix}", "0", "999", "1");
 
 }
-

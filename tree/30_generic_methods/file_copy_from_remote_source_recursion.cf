@@ -32,6 +32,7 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
   vars:
       "old_class_prefix" string => canonify("file_copy_from_remote_source_${destination}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${source}", "${destination}", "${recursion}" };
 
   classes:
       # depth_search prevents from copying file/symlink
@@ -62,9 +63,9 @@ bundle agent file_copy_from_remote_source_recursion(source, destination, recursi
     # directory (to apply recursion) or a file
     iteration_2.!is_dir_copy::
       "report"
-        usebundle    => _logger("Copying ${destination} from ${source}", "${old_class_prefix}");
+        usebundle    => _logger("Copying ${destination} from ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 
     iteration_2.is_dir_copy::
       "report"
-        usebundle    => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}");
+        usebundle    => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

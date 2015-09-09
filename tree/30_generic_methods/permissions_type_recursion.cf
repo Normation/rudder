@@ -35,6 +35,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
   vars:
       "old_class_prefix"        string => canonify("permissions_${path}");
       "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+      "args"                     slist => { "${path}", "${mode}", "${owner}", "${group}", "${type}", "${recursion}" };
 
   classes:
       "is_type_all"         expression => strcmp("${type}", "all");
@@ -98,5 +99,5 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"             usebundle => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${old_class_prefix}");
+      "report"             usebundle => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
