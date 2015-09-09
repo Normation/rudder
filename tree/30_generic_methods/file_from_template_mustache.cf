@@ -21,7 +21,7 @@
 # @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded
-# @parameter destination     Destination file
+# @parameter destination     Destination file
 #
 # @class_prefix file_from_template
 # @class_parameter destination
@@ -29,6 +29,10 @@
 
 bundle agent file_from_template_mustache(source_template, destination)
 {
+  vars:
+    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+
   methods:
-    "placeholder" usebundle => file_from_template_type("${source_template}", "${destination}", "mustache");
+    "file template mustache type"  usebundle => file_from_template_type("${source_template}", "${destination}", "mustache");
+    "new result classes"           usebundle => _classes_copy("${class_prefix}_file_template_mustache_type", "${class_prefix}");
 }

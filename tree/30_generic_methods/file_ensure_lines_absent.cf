@@ -20,7 +20,7 @@
 # @description This is a bundle to ensure that a line is absent in a specific location
 #
 # @parameter file File name to edit
-# @parameter lines Line(s) to remove in the file
+# @parameter lines Line(s) to remove in the file
 #
 # @class_prefix file_ensure_lines_absent
 # @class_parameter file
@@ -29,16 +29,16 @@
 bundle agent file_ensure_lines_absent(file, lines)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_lines_absent_${file}");
+      "old_class_prefix" string => canonify("file_ensure_lines_absent_${file}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
       "${file}"
         create        => "false",
         edit_line     => delete_lines_matching("${lines}"),
         edit_defaults => no_backup,
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Ensure line(s) '${lines}' absent from ${file}", "${class_prefix}");
+      "report"             usebundle => _logger("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}");
 }

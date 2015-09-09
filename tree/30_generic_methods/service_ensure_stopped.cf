@@ -31,7 +31,8 @@ bundle agent service_ensure_stopped(service_name)
 
     "canonified_service_name"      string => canonify("${service_name}");
 
-    "class_prefix"                 string => "service_ensure_stopped_${canonified_service_name}";
+    "old_class_prefix"             string => "service_ensure_stopped_${canonified_service_name}";
+    "class_prefix"                 string => canonify(join("_", "this.callers_promisers"));
 
   methods:
     !windows::
@@ -42,31 +43,32 @@ bundle agent service_ensure_stopped(service_name)
       # a success, so we have to stop the process
       "stop if running"
         usebundle  => service_stop("${service_name}"),
-        ifvarclass => "service_check_running_${canonified_service_name}_kept";
+        ifvarclass => "(!has_promiser_stack.service_check_running_${canonified_service_name}_kept)|(has_promiser_stack.${class_prefix}_check_running_kept)";
 
       # If service_check_running has no detected any process, it will not result
       # in a success so the result class of this promise should be the a success.
       "create success class"
-        usebundle => _classes_success("${class_prefix}"),
-        ifvarclass => "!service_check_running_${canonified_service_name}_kept";
+        usebundle  => _classes_success("${old_class_prefix}"),
+        ifvarclass => "(!has_promiser_stack.!service_check_running_${canonified_service_name}_kept)|(has_promiser_stack.!${class_prefix}_check_running_kept)";
  
      # If service_check_running has detected a process, the process will be
      # stopped and the result class should be the same as this promise.
       "class copy if running"
-        usebundle => _classes_copy("service_stop_${canonified_service_name}", "${class_prefix}"),
+        usebundle  => _classes_copy("service_stop_${canonified_service_name}", "${old_class_prefix}"),
         ifvarclass => "service_check_running_${canonified_service_name}_kept";
+
+      "class copy if running"
+        usebundle  => _classes_copy("${class_prefix}_stop_if_running", "${class_prefix}"),
+        ifvarclass => "has_promiser_stack.${class_prefix}_check_running_kept";
 
     any::
       "report"
-        usebundle  => _logger("Ensure that service ${service_name} is stopped", "${class_prefix}"),
-        ifvarclass =>"${class_prefix}_reached";
+        usebundle  => _logger("Ensure that service ${service_name} is stopped", "${old_class_prefix}"),
+        ifvarclass =>"(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.!${class_prefix}_reached)";
 
   services:
     windows::
       "${service_name}"
         service_policy => "stop",
-        classes        => classes_generic("${class_prefix}");
-
-
-
+        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 }

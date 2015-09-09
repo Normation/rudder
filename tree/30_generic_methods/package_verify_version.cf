@@ -28,8 +28,12 @@
 
 bundle agent package_verify_version(package_name, package_version)
 {
+  vars:
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+
   methods:
-    "placeholder" usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "verify");
+    "package verify"     usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "verify");
+    "new result classes" usebundle => _classes_copy("${class_prefix}_package_verify", "${class_prefix}");
 }
 
 

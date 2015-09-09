@@ -20,8 +20,8 @@
 # @description This is a bundle to ensure that a file or directory is copied from a local source
 #
 # @parameter source      Source file 
-# @parameter destination Destination file
-# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+# @parameter destination Destination file
+# @parameter recursion   Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 # 
 # @class_prefix file_copy_from_local_source
 # @class_parameter destination
@@ -30,7 +30,8 @@
 bundle agent file_copy_from_local_source_recursion(source, destination, recursion)
 {
   vars:
-      "class_prefix" string => canonify("file_copy_from_local_source_${destination}");
+      "old_class_prefix" string => canonify("file_copy_from_local_source_${destination}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   classes:
       # depth_search prevents from copying file/symlink
@@ -47,22 +48,22 @@ bundle agent file_copy_from_local_source_recursion(source, destination, recursio
    !is_dir_copy::
       "${destination}"
         copy_from    => ncf_local_cp_method("${source}", "digest"),
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
    is_dir_copy::
       "${destination}"
         copy_from    => ncf_local_cp_method("${source}", "digest"),
         depth_search => recurse("${recursion}"),
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-   # The reports should only be made after we know if this is a
-   # directory (to apply recursion) or a file
-   iteration_2.!is_dir_copy::
+    # The reports should only be made after we know if this is a
+    # directory (to apply recursion) or a file
+    iteration_2.!is_dir_copy::
       "report"
-        usebundle  => _logger("Copying ${destination} from ${source}", "${class_prefix}");
+        usebundle  => _logger("Copying ${destination} from ${source}", "${old_class_prefix}");
 
-   iteration_2.is_dir_copy::
+    iteration_2.is_dir_copy::
       "report"
-        usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${class_prefix}");
+        usebundle  => _logger("Copying ${destination} from ${source}, recursion level ${recursion}", "${old_class_prefix}");
 }

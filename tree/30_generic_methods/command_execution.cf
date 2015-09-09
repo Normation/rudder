@@ -28,16 +28,17 @@
 bundle agent command_execution(command_name)
 {
   vars:
-      "class_prefix"        string => canonify("command_execution_${command_name}");
+      "old_class_prefix"  string => canonify("command_execution_${command_name}");
+      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
 
   methods:
       "report"
-        usebundle => _logger("Execute the command ${command_name}", "${class_prefix}"),
-        ifvarclass => "${class_prefix}_reached";
+        usebundle  => _logger("Execute the command ${command_name}", "${old_class_prefix}"),
+        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   commands:
       "${command_name}"
         contain      => in_shell,
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
 }

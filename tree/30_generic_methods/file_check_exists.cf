@@ -30,21 +30,21 @@
 bundle agent file_check_exists(file_name)
 {
   vars:
-      "class_prefix"        string => canonify("file_check_exists_${file_name}");
+      "old_class_prefix" string => canonify("file_check_exists_${file_name}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   classes:
       "file_exists"  expression => fileexists("${file_name}");
 
   methods:
     file_exists::
-      "file_exists"
-        usebundle => _classes_success("${class_prefix}");
+      "file_exists"        usebundle => _classes_success("${old_class_prefix}");
+      "file_exists"        usebundle => _classes_success("${class_prefix}");
 
     !file_exists::
-      "file_dont_exists"
-        usebundle => _classes_failure("${class_prefix}");
+      "file_dont_exists"   usebundle => _classes_failure("${old_class_prefix}");
+      "file_dont_exists"   usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"
-        usebundle => _logger("Check if ${file_name} exists", "${class_prefix}");
+      "report"             usebundle => _logger("Check if ${file_name} exists", "${old_class_prefix}");
 }

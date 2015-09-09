@@ -44,10 +44,16 @@ bundle agent schedule_simple_stateless(job_id, agent_periodicity,
                                        periodicity_minutes, periodicity_hours, periodicity_days)
 
 {
+  vars:
+    any::
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+
   methods:
     any::
-      "any" usebundle => schedule_simple("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
-                                         "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
-                                         "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "stateless");
+      "simple scheduler"   usebundle => schedule_simple("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
+                                                        "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
+                                                        "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "stateless");
+
+      "new result classes" usebundle => _classes_copy("${class_prefix}_simple_scheduler", "${class_prefix}");
 }
 

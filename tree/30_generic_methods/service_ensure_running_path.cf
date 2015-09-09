@@ -34,7 +34,8 @@ bundle agent service_ensure_running_path(service_name, service_path)
     "canonified_service_name"      string => canonify("${service_name}");
     "canonified_service_path"      string => canonify("${service_path}");
 
-    "class_prefix"                 string => "service_ensure_running_${canonified_service_name}";
+    "old_class_prefix"             string => "service_ensure_running_${canonified_service_name}";
+    "class_prefix"                 string => canonify(join("_", "this.callers_promisers"));
 
   methods:
     !windows::
@@ -43,28 +44,32 @@ bundle agent service_ensure_running_path(service_name, service_path)
 
       "start if not running"
         usebundle  => service_start("${service_name}"),
-        ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+        ifvarclass => "(!has_promiser_stack.!service_check_running_${canonified_service_path}_kept)|(has_promiser_stack.${class_prefix}_check_running_kept)";
 
       "class copy check"
-        usebundle => _classes_success("${class_prefix}"),
+        usebundle  => _classes_success("${old_class_prefix}"),
         ifvarclass => "service_check_running_${canonified_service_path}_kept";
+
+      "class copy check"
+        usebundle  => _classes_success("${class_prefix}"),
+        ifvarclass => "${class_prefix}_check_running_kept";
  
       "class copy if not running"
-        usebundle => _classes_copy("service_start_${canonified_service_path}", "${class_prefix}"),
+        usebundle  => _classes_copy("service_start_${canonified_service_path}", "${old_class_prefix}"),
         ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+
+      "class copy if not running"
+        usebundle  => _classes_copy("${class_prefix}_start_if_not_running", "${class_prefix}"),
+        ifvarclass => "has_promiser_stack.!${class_prefix}_check_running_kept";
 
     any::
       "report"
-        usebundle  => _logger("Ensure that service ${service_name} is running", "${class_prefix}"),
-        ifvarclass => "${class_prefix}_reached";
+        usebundle  => _logger("Ensure that service ${service_name} is running", "${old_class_prefix}"),
+        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   services:
     windows::
       "${service_name}"
         service_policy => "start",
-        classes        => classes_generic("${class_prefix}");
-
-
-
-
+        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 }

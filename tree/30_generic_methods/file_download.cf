@@ -20,7 +20,7 @@
 # @description Download a file if it does not exit, using curl with a fallback on wget
 #
 # @parameter source      URL to download from
-# @parameter destination File destination
+# @parameter destination File destination
 # 
 # @class_prefix file_download
 # @class_parameter destination
@@ -44,7 +44,8 @@ bundle agent file_download(source, destination)
       "canonified_destination"    string => canonify("${destination}");
       "canonified_action_command" string => canonify("${action_command}");
 
-      "class_prefix"              string => "file_download_${canonified_destination}";
+      "old_class_prefix"          string => "file_download_${canonified_destination}";
+      "class_prefix"              string => canonify(join("_", "this.callers_promisers"));
 
   classes:
 
@@ -56,22 +57,26 @@ bundle agent file_download(source, destination)
 
       "action"                    usebundle => command_execution("${action_command}");
 
-      "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
+      "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${old_class_prefix}");
 
-      "report"                    usebundle => _logger("Download ${source} into ${destination}", "${class_prefix}"),
-                                 ifvarclass => "${class_prefix}_reached";
+      "new result classes"        usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}");
+
+      "report"                    usebundle => _logger("Download ${source} into ${destination}", "${old_class_prefix}"),
+                                 ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
     !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
 
-      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _logger("Unable to download ${source}: neither wget or curl are installed", "${class_prefix}");
+      "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
+      "new result classes"        usebundle => _classes_failure("${class_prefix}");
+      "report"                    usebundle => _logger("Unable to download ${source}: neither wget or curl are installed", "${old_class_prefix}");
 
     file_exists::
 
-      "force_success_class"       usebundle => _classes_success("${class_prefix}"),
+      "force_success_class"       usebundle => _classes_success("${old_class_prefix}"),
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
-
-      "report"                    usebundle => _logger("File ${destination} already downloaded", "${class_prefix}"),
-                                 ifvarclass => "!command_execution_${canonified_action_command}_repaired";
+      "new result classes"        usebundle => _classes_success("${class_prefix}"),
+                                 ifvarclass => "${class_prefix}_action_repaired";
+      "report"                    usebundle => _logger("File ${destination} already downloaded", "${old_class_prefix}"),
+                                 ifvarclass => "(!has_promiser_stack.!command_execution_${canonified_action_command}_repaired)|(has_promiser_stack.!${class_prefix}_action_repaired)";
 
 }

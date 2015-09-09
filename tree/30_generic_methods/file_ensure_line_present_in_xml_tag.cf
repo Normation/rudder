@@ -21,7 +21,7 @@
 #
 # @parameter file File name to edit
 # @parameter tag Name of the XML tag under which lines should be added (not including the <> brackets)
-# @parameter line Line to ensure is present inside the section
+# @parameter line Line to ensure is present inside the section
 #
 # @class_prefix file_ensure_line_present_in_xml_tag
 # @class_parameter file
@@ -31,7 +31,8 @@
 bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_line_present_in_xml_tag_${file}");
+      "old_class_prefix" string => canonify("file_ensure_line_present_in_xml_tag_${file}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   classes:
       "opening_tag_exists" expression => regline("\s*<${tag}>\s*", "${file}");
@@ -43,13 +44,13 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
       "${file}"
         edit_line     => ensure_line_in_xml_tag("${tag}", "${line}"),
         edit_defaults => no_backup,
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
     !tags_present::
+      "failure" usebundle => _classes_failure("${old_class_prefix}");
       "failure" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"
-        usebundle  => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
+      "report"             usebundle => _logger("Insert line(s) ${line} into ${file}", "${old_class_prefix}");
 }

@@ -37,7 +37,8 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 {
   vars:
       "canonified_package_name" string => canonify("${package_name}");
-      "class_prefix"            string => "package_install_${canonified_package_name}";
+      "old_class_prefix"        string => "package_install_${canonified_package_name}";
+      "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
 
   defaults:
       "action" string => "immediate", if_match_regex => "add";
@@ -62,7 +63,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
                         package_method  => debian_local_install,
-                        classes         => classes_generic("${class_prefix}"),
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action          => do_if_immediate;
 
 
@@ -72,7 +73,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
                         package_method  => apt_get,
-                        classes         => classes_generic("${class_prefix}"),
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action          => do_if_immediate;
 
 
@@ -80,14 +81,14 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => debian_local_install,
-                        classes        => classes_generic("${class_prefix}"),
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => do_if_immediate;
 
     version_not_specified.!local_package.debian::
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => apt_get,
-                        classes        => classes_generic("${class_prefix}"),
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => do_if_immediate;
 
     ## RedHat support ##
@@ -97,7 +98,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
                         package_method  => redhat_local_install,
-                        classes         => classes_generic("${class_prefix}"),
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action          => do_if_immediate;
 
     !version_not_specified.!local_package.redhat::
@@ -106,7 +107,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
                         package_method  => yum_rpm,
-                        classes         => classes_generic("${class_prefix}"),
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action          => do_if_immediate;
 
 
@@ -114,7 +115,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => redhat_local_install,
-                        classes        => classes_generic("${class_prefix}"),
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => do_if_immediate;
 
 
@@ -122,7 +123,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => yum_rpm,
-                        classes        => classes_generic("${class_prefix}"),
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => do_if_immediate;
 
     ## SUSE support ##
@@ -132,7 +133,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
                         package_method  => ncf_generic,
-                        classes         => classes_generic("${class_prefix}"),
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action          => do_if_immediate;
 
     !version_not_specified.!local_package.SuSE::
@@ -141,7 +142,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_version => "${package_version}",
                         package_select  => "${version_comparator}",
                         package_method  => ncf_generic,
-                        classes         => classes_generic("${class_prefix}"),
+                        classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action          => do_if_immediate;
 
 
@@ -149,7 +150,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => ncf_generic,
-                        classes        => classes_generic("${class_prefix}"),
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => do_if_immediate;
 
 
@@ -157,18 +158,18 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => ncf_generic,
-                        classes        => classes_generic("${class_prefix}"),
+                        classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
                         action         => do_if_immediate;
 
   methods:
     immediate.!update::
-      "Reports" usebundle => _logger("Install package ${package_name}", "${class_prefix}");
+      "Reports" usebundle => _logger("Install package ${package_name}", "${old_class_prefix}");
     immediate.update::
-      "Reports" usebundle => _logger("Install or update package ${package_name} in version ${package_version}", "${class_prefix}");
+      "Reports" usebundle => _logger("Install or update package ${package_name} in version ${package_version}", "${old_class_prefix}");
     !immediate.!version_not_specified::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed in version ${package_version}", "${class_prefix}");
+      "Reports" usebundle => _logger("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}");
     !immediate.version_not_specified.update::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed and up-to-date", "${class_prefix}");
+      "Reports" usebundle => _logger("Verify that package ${package_name} is installed and up-to-date", "${old_class_prefix}");
     !immediate.version_not_specified.!update::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed", "${class_prefix}");
+      "Reports" usebundle => _logger("Verify that package ${package_name} is installed", "${old_class_prefix}");
 }

@@ -43,7 +43,8 @@ bundle agent service_check_started_at_boot(service_name)
       "canonified_service_name" string => canonify("${service_name}");
       "canonified_command"      string => canonify("${command_to_check}");
 
-      "class_prefix"            string => "service_check_started_at_boot_${canonified_service_name}";
+      "old_class_prefix"        string => "service_check_started_at_boot_${canonified_service_name}";
+      "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
 
   classes:
 
@@ -63,12 +64,17 @@ bundle agent service_check_started_at_boot(service_name)
       "check_run"
         usebundle => command_execution("${command_to_check}");
 
-      "success" usebundle => _classes_success("${class_prefix}"),
+      "success" usebundle => _classes_success("${old_class_prefix}"),
         ifvarclass => "command_execution_${canonified_command}_repaired.!command_execution_${canonified_command}_failed";
 
-      "failure" usebundle => _classes_failure("${class_prefix}"),
+      "success" usebundle => _classes_success("${class_prefix}"),
+        ifvarclass => "has_promiser_stack.(${class_prefix}_check_run_repaired.!${class_prefix}_check_run_failed)";
+
+      "failure" usebundle => _classes_failure("${old_class_prefix}"),
         ifvarclass => "command_execution_${canonified_command}_failed";
 
-      "reports" usebundle => _logger("Ensure that service ${service_name} is defined at boot", "${class_prefix}");
+      "failure" usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass => "${class_prefix}_check_run_failed";
 
+      "reports" usebundle => _logger("Ensure that service ${service_name} is defined at boot", "${old_class_prefix}");
 }

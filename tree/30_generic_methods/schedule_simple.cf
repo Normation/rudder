@@ -46,21 +46,27 @@ bundle agent schedule_simple(job_id, agent_periodicity,
 {
   vars:
     any::
-      "class_prefix" string => canonify("schedule_simple_${job_id}");
-
+      "old_class_prefix" string => "schedule_simple_${job_id}";
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
   methods:
     any::
-      "any" usebundle => schedule_simple_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
-                                                 "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
-                                                 "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
+      "simple scheduler" usebundle => schedule_simple_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
+                                                              "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
+                                                             "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
 
+      "kept"     usebundle => _classes_success("${old_class_prefix}"),
+                 ifvarclass => "!job_${job_id}_run.!job_${job_id}_error";
       "kept"     usebundle => _classes_success("${class_prefix}"),
                  ifvarclass => "!job_${job_id}_run.!job_${job_id}_error";
+      "repaired" usebundle => _classes_repaired("${old_class_prefix}"),
+                 ifvarclass => "job_${job_id}_run";
       "repaired" usebundle => _classes_repaired("${class_prefix}"),
                  ifvarclass => "job_${job_id}_run";
+      "error"    usebundle => _classes_failure("${old_class_prefix}"),
+                 ifvarclass => "job_${job_id}_error";
       "error"    usebundle => _classes_failure("${class_prefix}"),
                  ifvarclass => "job_${job_id}_error";
 
-      "report"   usebundle => _logger("Scheduling ${job_id}", "${class_prefix}");
+      "report"             usebundle => _logger("Scheduling ${job_id}", "${old_class_prefix}");
 }
 

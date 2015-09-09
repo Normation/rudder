@@ -28,7 +28,11 @@
 
 bundle agent package_install_version(package_name, package_version)
 {
+  vars:
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+  
   methods:
-      "placeholder" usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "add");
+      "install vith version"  usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "add");
+      "new result classes"    usebundle => _classes_copy("${class_prefix}_install_vith_version", "${class_prefix}");
 }
 

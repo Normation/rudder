@@ -21,7 +21,7 @@
 #
 # @parameter file File name to edit
 # @parameter section Name of the INI-style section under which lines should be added (not including the [] brackets)
-# @parameter line Line to ensure is present inside the section
+# @parameter line Line to ensure is present inside the section
 #
 # @class_prefix file_ensure_line_present_in_ini_section
 # @class_parameter file
@@ -31,7 +31,8 @@
 bundle agent file_ensure_line_present_in_ini_section(file, section, line)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_line_present_in_ini_section_${file}");
+      "old_class_prefix"       string => canonify("file_ensure_line_present_in_ini_section_${file}");
+      "class_prefix"           string => canonify(join("_", "this.callers_promisers"));
       "section_and_blank_line" string => "[${section}]
 ";
 
@@ -54,9 +55,8 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
         create        => "true",
         edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
         edit_defaults => no_backup,
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
+      "report"             usebundle => _logger("Insert line(s) ${line} into ${file}", "${old_class_prefix}");
 }

@@ -20,7 +20,7 @@
 # @description This is a bundle to enfore the content of a file
 #
 # @parameter file  File name to edit
-# @parameter lines Line(s) to add in the file
+# @parameter lines Line(s) to add in the file
 # @parameter enforce Enforce the file to contain only line(s) defined (true or false)
 # 
 # @class_prefix file_ensure_lines_present
@@ -30,16 +30,16 @@
 bundle agent file_enforce_content(file, lines, enforce)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_lines_present_${file}");
+      "old_class_prefix" string => canonify("file_ensure_lines_present_${file}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
       "${file}"
         create        => "true",
         edit_line     => insert_lines("${lines}"),
         edit_defaults => ncf_empty_select("${enforce}"),
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Insert content ${lines} into ${file}", "${class_prefix}");
+      "report"             usebundle => _logger("Insert content ${lines} into ${file}", "${old_class_prefix}");
 }

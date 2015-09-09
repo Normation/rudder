@@ -20,8 +20,8 @@
 # @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
 #
 # @parameter file File name to edit
-# @parameter keys Array containing the keys (keys of the array), and values to define (values of the array)
-# @parameter separator Separator between key and value (for example "=" or " ")
+# @parameter keys Array containing the keys (keys of the array), and values to define (values of the array)
+# @parameter separator Separator between key and value (for example "=" or " ")
 #
 # @class_prefix file_ensure_keys_values
 # @class_parameter file
@@ -31,16 +31,16 @@
 bundle agent file_ensure_keys_values(file, keys, separator)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_keys_values_${file}");
+      "old_class_prefix" string => canonify("file_ensure_keys_values_${file}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
       "${file}"
         create        => "true",
         edit_line     => maintain_key_values("${keys}", "${separator}"),
         edit_defaults => no_backup,
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Ensure lines in format key${separator}values into ${file}", "${class_prefix}");
+      "report"             usebundle => _logger("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}");
 }

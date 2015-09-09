@@ -22,7 +22,7 @@
 # @parameter file File name to edit
 # @parameter section_start Start of the section
 # @parameter section_end End of the section
-# @parameter block Block representing the content of the section
+# @parameter block Block representing the content of the section
 #
 # @class_prefix file_ensure_block_in_section
 # @class_parameter file
@@ -31,16 +31,16 @@
 bundle agent file_ensure_block_in_section(file, section_start, section_end, block)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_block_in_section_${file}");
+      "old_class_prefix" string => canonify("file_ensure_block_in_section_${file}");
+      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
 
   files:
       "${file}"
         create        => "true",
         edit_line     => ncf_ensure_section_content("${section_start}", "${section_end}", "${block}"),
         edit_defaults => no_backup,
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Insert text block ${block} into ${file}", "${class_prefix}");
+      "report"             usebundle => _logger("Insert text block ${block} into ${file}", "${old_class_prefix}");
 }

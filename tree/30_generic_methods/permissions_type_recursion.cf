@@ -20,11 +20,11 @@
 # @description This is a bundle to ensure that a file or directory is present and has the right mode/owner/group
 #
 # @parameter path      Path to edit
-# @parameter mode      Mode of the path to edit
-# @parameter owner     Owner of the path to edit
-# @parameter group     Group of the path to edit
-# @parameter type      Type of the path to edit (all/files/directories)
-# @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+# @parameter mode      Mode of the path to edit
+# @parameter owner     Owner of the path to edit
+# @parameter group     Group of the path to edit
+# @parameter type      Type of the path to edit (all/files/directories)
+# @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 #
 # @class_prefix permissions
 # @class_parameter path
@@ -33,7 +33,8 @@
 bundle agent permissions_type_recursion(path, mode, owner, group, type, recursion)
 {
   vars:
-      "class_prefix"        string => canonify("permissions_${path}");
+      "old_class_prefix"        string => canonify("permissions_${path}");
+      "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
 
   classes:
       "is_type_all"         expression => strcmp("${type}", "all");
@@ -53,14 +54,14 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         depth_search => recurse_with_base("${recursion}"),
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
     is_type_all.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
       "${path}"
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
     is_type_files.is_target_directory.!is_depth_zero::
 
@@ -69,7 +70,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         perms        => mog("${mode}", "${owner}", "${group}"),
         depth_search => recurse("${recursion}"),
         file_select  => plain,
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
     is_type_files.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
@@ -77,7 +78,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         file_select  => plain,
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
     is_type_directories.is_target_directory.!is_depth_zero::
 
@@ -86,7 +87,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         perms        => mog("${mode}", "${owner}", "${group}"),
         depth_search => recurse_with_base("${recursion}"),
         file_select  => dirs,
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
     is_type_directories.((is_target_directory.is_depth_zero)|!is_target_directory)::
 
@@ -94,9 +95,8 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         create       => "false",
         perms        => mog("${mode}", "${owner}", "${group}"),
         file_select  => dirs,
-        classes      => classes_generic("${class_prefix}");
+        classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${class_prefix}");
+      "report"             usebundle => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${old_class_prefix}");
 }
