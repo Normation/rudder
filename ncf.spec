@@ -47,6 +47,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch: noarch
 
 # Add Requires here - order is important
+BuildRequires: python, asciidoc, libxml2, libxslt, docbook-dtds, docbook-style-xsl
 
 %description
 ncf is a CFEngine framework aimed at helping newcomers on CFEngine
