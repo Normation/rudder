@@ -1,0 +1,72 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Class combine ifthenelse
+# @description Aggregate class outcomes within an if then else structure
+#
+# @parameter test_prefix        The prefix of classes comming from the test method
+# @parameter then_outcome       The prefix of classes comming from the method called in the 'then' case (or the litteral 'success' or 'failure')
+# @parameter else_outcome       The prefix of classes comming from the method called in the 'else' case (or the litteral 'success' or 'failure')
+# @parameter destination_prefix The prefix of the destination class
+#
+# @class_prefix 
+# @class_parameter destination_prefix
+# This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# based on  the test result and the method called afterwards.
+#
+# If the 'test' call has a '_true' outcome then the 'then' result is copied to destination
+# If the 'test' call has a '_false' outcome then the 'else' result is copied to destination
+# 
+# 'then_outcome' and 'else_outcome' can be replaced by the litteral string "success" or "failure"
+# In such case, the outcome is respectively replaced by a call to _classes_success or _classes_failure
+
+bundle agent _classes_combine_ifthenelse(test_prefix, then_outcome, else_outcome, destination_prefix)
+{
+  classes:
+      "test_true"   expression => "${test_prefix}_true";
+      "test_false"  expression => "${test_prefix}_false";
+
+      "then_success"  expression => strcmp("success", "${then_outcome}");
+      "then_failure"  expression => strcmp("failure", "${then_outcome}");
+
+      "else_success"  expression => strcmp("success", "${else_outcome}");
+      "else_failure"  expression => strcmp("failure", "${else_outcome}");
+
+  methods:
+    test_true.then_success::
+      "success"    usebundle => _classes_success("${destination_prefix}");
+
+    test_true.then_failure::
+      "failure"    usebundle => _classes_failure("${destination_prefix}");
+
+    test_true.!then_success.!then_failure::
+      "copy then"  usebundle => _classes_copy("${then_outcome}", "${destination_prefix}");
+
+    test_false.else_success::
+      "success"    usebundle => _classes_success("${destination_prefix}");
+
+    test_false.else_failure::
+      "failure"    usebundle => _classes_failure("${destination_prefix}");
+
+    test_false.!else_success.!else_failure::
+      "copy else"  usebundle => _classes_copy("${else_outcome}", "${destination_prefix}");
+
+    !test_true.!test_false::
+      # this will copy if_prefix which contains a failure
+      "failure"    usebundle => _classes_copy("${test_prefix}", "${destination_prefix}");
+}
