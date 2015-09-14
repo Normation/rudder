@@ -76,7 +76,7 @@ bundle agent file_download(source, destination)
       "force_success_class"       usebundle => _classes_success("${old_class_prefix}"),
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
       "new result classes"        usebundle => _classes_success("${class_prefix}"),
-                                 ifvarclass => "${class_prefix}_action_repaired";
+                                 ifvarclass => "!${class_prefix}_action_repaired";
       "report"                    usebundle => _logger("File ${destination} already downloaded", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.!command_execution_${canonified_action_command}_repaired)|(has_promiser_stack.!${class_prefix}_action_repaired)";
 
