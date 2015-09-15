@@ -71,9 +71,17 @@ def canonify_expected_reports(expected_reports, dest):
 
     # Replace the second field with a canonified version of itself (a la CFEngine)
     fields = line.strip().split(";;")
-    regex = re.compile("[^a-zA-Z0-9_]", flags=re.UNICODE )
-    fields[1] = regex.sub("_", fields[1])
+    fields[1] = canonify(fields[1])
     dest_file.write(";;".join(fields) + "\n")
+
+def canonify(string):
+  # String should be unicode string (ie u'') which is the case if they are read from files opened with encoding="utf-8".
+  # To match cfengine behaviour we need to treat utf8 as if it was ascii (see #7195).
+  # Pure ASCII would provoke an error in python, but any 8 bits encoding that is compatible with ASCII will do
+  # since everything above 127 will be transformed to '_', so we choose arbitrarily "iso-8859-1"
+  string = string.encode("utf-8").decode("iso-8859-1")
+  regex = re.compile("[^a-zA-Z0-9_]")
+  return regex.sub("_", string)
 
 
 # OTHER FUNCTIONS
@@ -303,9 +311,12 @@ def generate_rudder_reporting(technique):
     generic_method = generic_methods[method_name]
 
     key_value = method_call["args"][generic_method["class_parameter_id"]-1]
-    regex = re.compile("[^\$\{\}\w](?![^{}]+})|\$(?!{)", flags=re.UNICODE)
+    # this regex allows to canonify everything except variables
+    regex = re.compile("[^\$\{\}a-zA-Z0-9_](?![^{}]+})|\$(?!{)")
+    # to match cfengine behaviour we need to treat utf8 as if it was ascii (see #7195)
+    # string should be unicode string (ie u'') which is the case if they are read from files opened with encoding="utf-8"
+    key_value = key_value.encode("utf-8").decode("iso-8859-1") 
     key_value_canonified = regex.sub("_", key_value)
-
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
 
