@@ -32,6 +32,7 @@ bundle agent file_check_exists(file_name)
   vars:
       "old_class_prefix" string => canonify("file_check_exists_${file_name}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${file_name}" };
 
   classes:
       "file_exists"  expression => fileexists("${file_name}");
@@ -46,5 +47,5 @@ bundle agent file_check_exists(file_name)
       "file_dont_exists"   usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"             usebundle => _logger("Check if ${file_name} exists", "${old_class_prefix}");
+      "report"             usebundle => _logger("Check if ${file_name} exists", "${old_class_prefix}", "${class_prefix}", @{args});
 }

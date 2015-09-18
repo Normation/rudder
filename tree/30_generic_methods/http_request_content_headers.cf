@@ -33,6 +33,7 @@ bundle agent http_request_content_headers(method, url, content, headers)
   vars:
       "old_class_prefix" string => canonify("http_request_content_headers_${url}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${method}", "${url}", "${content}", "${headers}" };
 
   classes:
     any::
@@ -41,7 +42,7 @@ bundle agent http_request_content_headers(method, url, content, headers)
 
   methods:
     pass2::
-      "report"             usebundle => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${old_class_prefix}");
+      "report" usebundle => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
       "/bin/echo \"${content}\" | ${paths.path[curl]}"

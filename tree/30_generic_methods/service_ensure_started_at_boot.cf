@@ -44,6 +44,7 @@ bundle agent service_ensure_started_at_boot(service_name)
 
       "old_class_prefix"        string => "service_ensure_started_at_boot_${canonified_service_name}";
       "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+      "args"                     slist => { "${service_name}" };
 
   methods:
     !windows::
@@ -72,7 +73,7 @@ bundle agent service_ensure_started_at_boot(service_name)
 
    any::
       "report"
-        usebundle => _logger("Ensure service ${service_name} is set at boot", "${old_class_prefix}"),
+        usebundle => _logger("Ensure service ${service_name} is set at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   services:

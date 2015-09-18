@@ -30,10 +30,11 @@ bundle agent service_restart_if(service_name, trigger_class)
 {
   vars:
 
-    "canonified_service_name"      string     => canonify("${service_name}");
+    "canonified_service_name"      string => canonify("${service_name}");
 
-    "old_class_prefix"             string     => "service_restart_${canonified_service_name}";
-    "class_prefix"                 string     => canonify(join("_", "this.callers_promisers"));
+    "old_class_prefix"             string => "service_restart_${canonified_service_name}";
+    "class_prefix"                 string => canonify(join("_", "this.callers_promisers"));
+    "args"                          slist => { "${service_name}",  "${trigger_class}" };
 
   methods:
 
@@ -55,5 +56,5 @@ bundle agent service_restart_if(service_name, trigger_class)
       "class copy"                 usebundle  => _classes_copy("${class_prefix}_restart", "${class_prefix}"),
                                    ifvarclass => "${trigger_class}";
 
-      "report"                     usebundle  => _logger("Restart service ${canonified_service_name}", "service_restart_${canonified_service_name}");
+      "report"                     usebundle  => _logger("Restart service ${canonified_service_name}", "service_restart_${canonified_service_name}", "${class_prefix}", @{args});
 }

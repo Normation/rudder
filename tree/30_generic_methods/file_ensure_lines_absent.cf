@@ -31,6 +31,7 @@ bundle agent file_ensure_lines_absent(file, lines)
   vars:
       "old_class_prefix" string => canonify("file_ensure_lines_absent_${file}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${file}", "${lines}" };
 
   files:
       "${file}"
@@ -40,5 +41,5 @@ bundle agent file_ensure_lines_absent(file, lines)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"             usebundle => _logger("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}");
+      "report" usebundle => _logger("Ensure line(s) '${lines}' absent from ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

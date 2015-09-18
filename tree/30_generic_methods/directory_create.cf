@@ -30,6 +30,7 @@ bundle agent directory_create(target)
   vars:
     "old_class_prefix" string => canonify("directory_create_${target}");
     "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+    "args"              slist => { "${target}" };
 
   files:
     "${target}/."
@@ -37,5 +38,5 @@ bundle agent directory_create(target)
       classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report"             usebundle => _logger("Create directory ${target}", "${old_class_prefix}");
+    "report"             usebundle => _logger("Create directory ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

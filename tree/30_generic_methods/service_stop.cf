@@ -33,6 +33,7 @@ bundle agent service_stop(service_name)
 
     "old_class_prefix"        string => "service_stop_${canonified_service_name}";
     "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+    "args"                     slist => { "${service_name}" };
 
   methods:
 
@@ -42,6 +43,6 @@ bundle agent service_stop(service_name)
 
     "class copy" usebundle => _classes_copy("${class_prefix}_stop", "${class_prefix}");
 
-    "report"     usebundle => _logger("Stop service ${service_name}", "${old_class_prefix}");
+    "report"     usebundle => _logger("Stop service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

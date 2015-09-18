@@ -29,8 +29,11 @@ bundle agent service_ensure_running(service_name)
 {
   vars:
     "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+    "args"              slist => { "${service_name}" };
 
   methods:
     "check running"      usebundle => service_ensure_running_path("${service_name}", "${service_name}");
     "new result classes" usebundle => _classes_copy("${class_prefix}_check-running", "${class_prefix}");
+
+    "report"             usebundle => _logger("Ensure that service ${service_name} is running", "", "${class_prefix}", @{args});
 }

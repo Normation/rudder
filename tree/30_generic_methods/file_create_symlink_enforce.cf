@@ -32,6 +32,7 @@ bundle agent file_create_symlink_enforce(source, destination, enforce)
   vars:
       "old_class_prefix" string => canonify("file_create_symlink_${destination}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${source}", "${destination}", "${enforce}" };
 
   files:
    # Symlink
@@ -42,5 +43,5 @@ bundle agent file_create_symlink_enforce(source, destination, enforce)
                     comment           => "Create the ${destination} symlink pointing to ${source}";
 
   methods:
-      "report"             usebundle => _logger("Symlink ${destination} targeting ${source}", "${old_class_prefix}");
+      "report" usebundle => _logger("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -48,11 +48,14 @@ bundle agent schedule_simple(job_id, agent_periodicity,
     any::
       "old_class_prefix" string => "schedule_simple_${job_id}";
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
+                                      "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
+                                      "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}" };
   methods:
     any::
       "simple scheduler" usebundle => schedule_simple_generic("${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}", 
                                                               "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
-                                                             "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
+                                                              "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}", "${mode}");
 
       "kept"     usebundle => _classes_success("${old_class_prefix}"),
                  ifvarclass => "!job_${job_id}_run.!job_${job_id}_error";
@@ -67,6 +70,6 @@ bundle agent schedule_simple(job_id, agent_periodicity,
       "error"    usebundle => _classes_failure("${class_prefix}"),
                  ifvarclass => "job_${job_id}_error";
 
-      "report"             usebundle => _logger("Scheduling ${job_id}", "${old_class_prefix}");
+      "report"    usebundle => _logger("Scheduling ${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

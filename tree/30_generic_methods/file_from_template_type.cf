@@ -33,6 +33,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
   vars:
     "old_class_prefix" string => canonify("file_from_template_${destination}");
     "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+    "args"              slist => { "${source_template}", "${destination}", "${template_type}" };
 
   classes:
     "template_exists" expression => fileexists("${source_template}");
@@ -53,6 +54,6 @@ bundle agent file_from_template_type(source_template, destination, template_type
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"             usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${old_class_prefix}");
+      "report"          usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

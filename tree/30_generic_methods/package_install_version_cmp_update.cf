@@ -39,6 +39,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "canonified_package_name" string => canonify("${package_name}");
       "old_class_prefix"        string => "package_install_${canonified_package_name}";
       "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+      "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
 
   defaults:
       "action" string => "immediate", if_match_regex => "add";
@@ -163,13 +164,13 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
   methods:
     immediate.!update::
-      "Reports" usebundle => _logger("Install package ${package_name}", "${old_class_prefix}");
+      "Reports" usebundle => _logger("Install package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
     immediate.update::
-      "Reports" usebundle => _logger("Install or update package ${package_name} in version ${package_version}", "${old_class_prefix}");
+      "Reports" usebundle => _logger("Install or update package ${package_name} in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
     !immediate.!version_not_specified::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}");
+      "Reports" usebundle => _logger("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
     !immediate.version_not_specified.update::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed and up-to-date", "${old_class_prefix}");
+      "Reports" usebundle => _logger("Verify that package ${package_name} is installed and up-to-date", "${old_class_prefix}", "${class_prefix}", @{args});
     !immediate.version_not_specified.!update::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed", "${old_class_prefix}");
+      "Reports" usebundle => _logger("Verify that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
 }

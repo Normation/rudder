@@ -49,6 +49,7 @@ bundle agent service_action(service_name, action)
 
       "old_class_prefix"          string => "service_action_${canonified_service_name}";
       "class_prefix"              string => canonify(join("_", "this.callers_promisers"));
+      "args"                       slist => { "${service_name}", "${action}" };
 
   classes:
     windows::
@@ -70,14 +71,14 @@ bundle agent service_action(service_name, action)
 
     systemctl_utility_present|service_utility_present|init_d_directory_present|(windows.is_valid_action)::
 
-      "report"                    usebundle => _logger("Run action ${action} on service ${service_name}", "${old_class_prefix}"),
+      "report"                    usebundle => _logger("Run action ${action} on service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
     (!systemctl_utility_present.!service_utility_present.!init_d_directory_present.!windows)|(windows.!is_valid_action)::
 
       "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
       "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _logger("Running ${action} on service ${service_name} is not possible yet on this system", "${old_class_prefix}");
+      "report"                    usebundle => _logger("Running ${action} on service ${service_name} is not possible yet on this system", "${old_class_prefix}", "${class_prefix}", @{args});
 
   services:
     # Restart causes the agent to fail, so we must replace it by stop and start

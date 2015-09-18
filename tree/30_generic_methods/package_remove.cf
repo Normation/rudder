@@ -36,6 +36,7 @@ bundle agent package_remove(package_name)
       "canonified_package_name" string => canonify("${package_name}");
       "old_class_prefix"        string => "package_remove_${canonified_package_name}";
       "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+      "args"                     slist => { "${package_name}" };
 
   packages:
       "${package_name}"
@@ -44,5 +45,5 @@ bundle agent package_remove(package_name)
                         classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "placeholder"        usebundle => _logger("Remove package ${package_name}", "${old_class_prefix}");
+      "placeholder"        usebundle => _logger("Remove package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -33,6 +33,7 @@ bundle agent file_ensure_keys_values(file, keys, separator)
   vars:
       "old_class_prefix" string => canonify("file_ensure_keys_values_${file}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "args"              slist => { "${file}", "${keys}", "${separator}" };
 
   files:
       "${file}"
@@ -42,5 +43,5 @@ bundle agent file_ensure_keys_values(file, keys, separator)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"             usebundle => _logger("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}");
+      "report" usebundle => _logger("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
