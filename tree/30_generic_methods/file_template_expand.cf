@@ -27,6 +27,7 @@
 #
 # @class_prefix file_template_expand
 # @class_parameter target_file
+# @deprecated Use file from template instead
 #
 # This bundle will define a class file_template_expand_${target_file}_{kept,repaired,not_ok,ok,reached}
 

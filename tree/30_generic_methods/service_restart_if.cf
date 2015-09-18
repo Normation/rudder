@@ -24,6 +24,7 @@
 # 
 # @class_prefix service_restart
 # @class_parameter service_name
+# @deprecated Use a condition with service_restart instead
 # This bundle will define a class service_restart_${canonified_service_name}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent service_restart_if(service_name, trigger_class)
