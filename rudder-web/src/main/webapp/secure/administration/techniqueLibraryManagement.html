@@ -30,11 +30,13 @@
             <span><input id="treeSearch2" type="text" placeholder="Filter" onkeyup="searchTree('#treeSearch2', '#techniqueLibraryTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/></span>
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to filter Techniques (name or description) in the tree.</span>
             <span onclick="clearSearchFieldTree('#treeSearch2', '#techniqueLibraryTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <lift:authz role="technique_write">
             <a href="/secure/utilities/techniqueEditor" class="techniqueEditorLink">
                 <input type="button" value="Edit techniques"/>
             </a>
+            </lift:authz>
           </div>
-                <lift:authz role="technique_edit">
+      <lift:authz role="technique_edit">
       <div>
         <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueLibrary" id="reloadTechniqueLibForm">
           <form class="lift:form.ajax">
