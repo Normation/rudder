@@ -342,17 +342,30 @@ body copy_from ncf_remote_cp_method(from, server, method)
 }
 
 # Define x prefixes/suffixed with promises outcome, based on return codes
-body classes classes_generic_return_codes(x, kept_return_code, repaired_return_code, failed_return_code)
+body classes classes_generic_return_codes_two(x, y, kept_return_code, repaired_return_code, failed_return_code)
 {
-  kept_returncodes => { "${kept_return_code}" };
-  repaired_returncodes => { "${repaired_return_code}" };
-  failed_returncodes =>  { "${failed_return_code}" };
+    kept_returncodes => { "${kept_return_code}" };
+    repaired_returncodes => { "${repaired_return_code}" };
+    failed_returncodes =>  { "${failed_return_code}" };
 
-  promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
-  repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
-  repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
-  repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
-  promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+  !has_promiser_stack::
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+
+  has_promiser_stack::
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
 }
 
 # WARNING !!!
