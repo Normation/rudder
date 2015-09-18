@@ -35,8 +35,12 @@ def check_auth(f):
 
 def check_authentication_from_rudder(auth_request):
   """Send an authentication request to Rudder"""
+  if request.method == "GET":
+    acl = "read"
+  else:
+    acl = "write"
   # We skip ssl certificate verification, since rudder and ncf-api are on the same domain and same virtualhost
-  auth_result = requests.get('https://localhost/rudder/authentication', cookies =  request.cookies, verify = False)
+  auth_result = requests.get('https://localhost/rudder/authentication?acl=' + acl, cookies =  request.cookies, verify = False)
 
   auth_response = jsonify( auth_result.json() )
   auth_response.status_code = auth_result.status_code
