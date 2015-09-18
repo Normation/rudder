@@ -87,9 +87,11 @@ var clearSearchFieldTree = function(inputId, treeId) {
             <span><input id="treeSearch" type="text" value="Search" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#activeTechniquesTree');" onfocus="focusSearchFieldTree('#treeSearch');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/></span>
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
             <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
+            <lift:authz role="technique_write">
             <a href="/ncf-builder/#!?path=/var/rudder/configuration-repository/ncf" class="techniqueEditorLink">
               <input type="button" value="Open Technique editor"/>
             </a>
+            </lift:authz>
           </div>
           <lift:configuration.DirectiveManagement.userLibrary />
         </div>

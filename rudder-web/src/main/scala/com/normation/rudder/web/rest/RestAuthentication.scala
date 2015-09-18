@@ -34,37 +34,44 @@
 
 package com.normation.rudder.web.rest
 
-import net.liftweb.http.rest.RestHelper
+import com.normation.rudder.authorization.Read
+import com.normation.rudder.authorization.Write
+import com.normation.rudder.web.model.CurrentUser
+
 import net.liftweb.common.Loggable
-import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.authentication.AnonymousAuthenticationToken
-import net.liftweb.http.LiftSession
-import net.liftweb.json.JsonDSL._
 import net.liftweb.http.JsonResponse
+import net.liftweb.http.LiftSession
+import net.liftweb.http.rest.RestHelper
+import net.liftweb.json.JsonDSL._
 
 object RestAuthentication extends RestHelper with Loggable {
+
 
   serve {
 
     case Get("authentication" :: Nil,  req) => {
-
       val session = LiftSession(req)
 
-      // Authentication is done via a cookie "JSESSIONID", Spring security checks it from the security context of the session
-      val (message,status) = SecurityContextHolder.getContext.getAuthentication match {
-        case null =>
-          val msg = s"Could not authenticate with authentication API: No cookie available for session ${session.uniqueId} to authenticate"
-          logger.error(msg)
-          (msg,RestError)
-        case auth => auth match {
-          case a : AnonymousAuthenticationToken =>
-            val msg = s"Could not authenticate with authentication API: cookie for session ${session.uniqueId} is not valid anymore"
+      //the result depends upon the "acl" param value, defaulted to "non read" (write).
+      val (message, status) = req.param("acl").openOr("write").toLowerCase match {
+        case "read" => //checking if current user has read rights on techniques
+          if(CurrentUser.checkRights(Read("technique"))) {
+            (session.uniqueId, RestOk)
+          } else {
+            val msg = s"Authentication API forbids read access to Techniques for user ${CurrentUser.getActor.name}"
+            logger.error(msg)
+            (msg, RestError)
+          }
+        case _ => //checking for write access - by defaults, we look for the higher priority
+          if(CurrentUser.checkRights(Write("technique"))) {
+            (session.uniqueId, RestOk)
+          } else {
+            val msg = s"Authentication API forbids write access to Techniques for user ${CurrentUser.getActor.name}"
             logger.error(msg)
             (msg,RestError)
-          case _ =>
-          ( session.uniqueId, RestOk)
-        }
+          }
       }
+
 
       val content =
         ( "action" -> "authentication" ) ~
