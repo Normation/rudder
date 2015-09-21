@@ -661,8 +661,17 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     });
   };
 
-  $scope.getMethods();
-  $scope.getTechniques();
+  $scope.reloadData = function() {
+    $scope.getMethods();
+    $scope.getTechniques();
+  }
+
+  $scope.reloadPage = function() {
+    window.top.location.reload();
+  }
+
+
+  $scope.reloadData();
   $scope.setPath();
 });
 
