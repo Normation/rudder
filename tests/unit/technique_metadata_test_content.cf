@@ -4,6 +4,9 @@
 
 bundle agent content_escaping_test
 {
+  vars:
+    "class_prefix" string => canonify(join("_", "this.callers_promisers"));
+
   methods:
     "method_call" usebundle => package_install_version("apache2", "2.2.11"),
       ifvarclass => concat("any");
