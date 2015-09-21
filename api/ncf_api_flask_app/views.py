@@ -39,13 +39,20 @@ def check_authentication_from_rudder(auth_request):
     acl = "read"
   else:
     acl = "write"
-  # We skip ssl certificate verification, since rudder and ncf-api are on the same domain and same virtualhost
-  auth_result = requests.get('https://localhost/rudder/authentication?acl=' + acl, cookies =  request.cookies, verify = False)
+  # An error may occured here and we need to catch the exception here or it will not be catched
+  try:
+    # We skip ssl certificate verification, since rudder and ncf-api are on the same domain and same virtualhost
+    auth_result = requests.get('https://localhost/rudder/authentication?acl=' + acl, cookies =  request.cookies, verify = False)
 
-  auth_response = jsonify( auth_result.json() )
-  auth_response.status_code = auth_result.status_code
+    auth_response = jsonify( auth_result.json() )
+    auth_response.status_code = auth_result.status_code
 
-  return auth_response
+    return auth_response
+  except Exception as e:
+    error = jsonify ({ "error" : [{"message": "An error while authenticating to Rudder"}]})
+    auth_response.status_code = 500
+
+    return auth_response
 
 
 def no_authentication(auth_request):
