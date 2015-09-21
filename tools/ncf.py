@@ -29,6 +29,8 @@ tags = {}
 tags["common"] = ["bundle_name", "bundle_args"]
 tags["generic_method"] = ["name", "description", "parameter", "class_prefix", "class_parameter", "class_parameter_id", "deprecated"]
 tags["technique"] = ["name", "description", "version"]
+optionnal_tags = [ "deprecated" ]
+
 
 multiline_tags = [ "description" ]
 
@@ -202,8 +204,9 @@ def parse_bundlefile_metadata(content, bundle_type):
   if len(parameters) > 0:
     res['parameter'] = parameters
 
-  expected_tags = tags[bundle_type] + tags["common"]
-  if sorted(res.keys()) != sorted(expected_tags):
+  all_tags = tags[bundle_type] + tags["common"]
+  expected_tags = [ tag for tag in all_tags if not tag in optionnal_tags]
+  if not set(res.keys()).issuperset(set(expected_tags)):
     missing_keys = [mkey for mkey in expected_tags if mkey not in set(res.keys())]
     name = res['bundle_name'] if 'bundle_name' in res else "unknown"
     raise NcfError("One or more metadata tags not found before the bundle agent declaration (" + ", ".join(missing_keys) + ") in " + name)
