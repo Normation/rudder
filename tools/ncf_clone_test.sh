@@ -15,6 +15,7 @@ set -e
 
 TEST_WORKDIR=/tmp
 TEST_DEPENDENCIES="curl lsb-release"
+BRANCH="$1"
 
 # Disable any internationalization
 LC_ALL=C
@@ -36,17 +37,17 @@ then
 	apt-get -y install cfengine-community
 fi
 
-# 3 - Clone (or update) NCF
+# 3 - Clone NCF, if missing
 if [ ! -x ${TEST_WORKDIR}/ncf ]
 then
 	cd ${TEST_WORKDIR}
 	git clone https://github.com/Normation/ncf.git
-else
-	cd ${TEST_WORKDIR}/ncf
-	git pull origin master
-fi
 
-# 4 - Start the test suite
+# 4 - Checkout correct branch and update it
 cd ${TEST_WORKDIR}/ncf
+git checkout ${BRANCH}
+git pull origin ${BRANCH}
+
+# 5 - Start the test suite
 echo "Beginning tests, using CFEngine version \"`/var/cfengine/bin/cf-agent -V`\""
 make test
