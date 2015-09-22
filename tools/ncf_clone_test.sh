@@ -42,6 +42,7 @@ if [ ! -x ${TEST_WORKDIR}/ncf ]
 then
 	cd ${TEST_WORKDIR}
 	git clone https://github.com/Normation/ncf.git
+fi
 
 # 4 - Checkout correct branch and update it
 cd ${TEST_WORKDIR}/ncf
