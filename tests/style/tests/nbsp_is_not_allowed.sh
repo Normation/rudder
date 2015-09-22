@@ -5,7 +5,7 @@ set -e
 # NBSP breaks scripts and cfengine code, they should never appear
 
 # Build fine arguments
-FIND_ARGS="-type f -not -wholename */.git/* -not -wholename */api/flask/* -not -name *.png -not -name *.eot -not -name *.ttf -not -name *.woff -not -name *.otf"
+FIND_ARGS="-type f -not -wholename */.git/* -not -wholename */api/flask/* -not -name *.png -not -name *.eot -not -name *.ttf -not -name *.woff -not -name *.otf -not -name *.js"
 
 # Automatically exclude anything from the .gitignore file
 while read line
