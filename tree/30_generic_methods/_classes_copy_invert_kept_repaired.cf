@@ -65,7 +65,7 @@ bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefi
       "error_prefix"                slist => { "repair_failed", "repair_denied", "repair_timeout" };
       "error_suffix"                slist => { "failed", "not_ok", "not_kept", "denied", "timeout", "error" };
 
-    destination_should_exists.!destination_not_exists::
+    destination_exists::
       # Copy not_repaired class, as it is a special case (only exists for error or kept, so kept classes are not exactly inverted repaired classes)
       "local_destination_prefix_not_repaired"
         string     => "${destination_prefix}_not_repaired",
@@ -111,8 +111,5 @@ bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefi
   classes:
       # this line will not ne evaluated by cfengine if destination_prefix contains a variable that do not exist
       # and it will always be evaluated to true otherwise
-      "destination_not_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
-      # previous line has been evaluated
-      "destination_should_exists" expression => "any";
-
+      "destination_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
 }

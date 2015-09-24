@@ -31,7 +31,7 @@ bundle agent file_ensure_block_present(file, block)
   vars:
       "old_class_prefix" string => canonify("file_ensure_block_present_${file}");
       "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
-      "args"              slist => { "${file}", "${block}" }
+      "args"              slist => { "${file}", "${block}" };
 
   files:
       "${file}"
