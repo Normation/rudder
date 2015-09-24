@@ -14,7 +14,7 @@ bundle common acc_path
 body common control
 {
       inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
-      bundlesequence  => { default("$(this.promise_filename)") };
+      bundlesequence  => { configuration, default("$(this.promise_filename)") };
       version => "1.0";
 }
 
@@ -24,7 +24,7 @@ bundle agent init
 {
   vars:
     "nonexistant_url"       string => "http://www.normation.com/non_existant";
-    "existant_url"          string => "http://www.normation.com";
+    "existant_url"          string => "http://www.google.fr";
     "canon_nonexistant_url" string => canonify("${nonexistant_url}");
     "canon_existant_url"    string => canonify("${existant_url}");
     "expected_nonexistant"  string => "200";
