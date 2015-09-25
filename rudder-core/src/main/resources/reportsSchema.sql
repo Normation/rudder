@@ -340,6 +340,7 @@ CREATE TABLE Rules (
   rulePkeyId       integer PRIMARY KEY default nextval('rulesId')
 , ruleId           text NOT NULL CHECK (ruleId <> '')
 , serial           integer NOT NULL
+, categoryid       text
 , name             text
 , shortdescription text
 , longdescription  text
