@@ -478,8 +478,8 @@ def get_all_techniques_metadata(include_methods_calls = True, alt_path = ''):
   errors = []
 
   for file in filenames:
-            
-    content = codecs.open(file, encoding="utf-8").read()
+    with codecs.open(file, encoding="utf-8") as fd:
+      content = fd.read()
     try:
       metadata = parse_technique_metadata(content)
       all_metadata[metadata['bundle_name']] = metadata
@@ -502,7 +502,8 @@ def get_all_generic_methods_metadata(alt_path = ''):
   errors = []
 
   for file in filenames:
-    content = codecs.open(file, encoding="utf-8").read()
+    with codecs.open(file, encoding="utf-8") as fd:
+      content = fd.read()
     try:
       metadata = parse_generic_method_metadata(content)
       all_metadata[metadata['bundle_name']] = metadata
@@ -542,10 +543,8 @@ def write_technique(technique_metadata, alt_path = ""):
 
     # Write technique file
     content = generate_technique_content(technique_metadata)
-    file = codecs.open(filename, "w", encoding="utf-8")
-    
-    file.write(content)
-    file.close()
+    with codecs.open(filename, "w", encoding="utf-8") as fd:
+      fd.write(content)
 
     # Execute post hooks
     execute_hooks("post", action, path, bundle_name)

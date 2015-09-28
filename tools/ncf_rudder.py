@@ -18,6 +18,7 @@ import sys
 import re
 import codecs
 import traceback
+from pprint import pprint
 
 # MAIN FUNCTIONS called by command line parsing
 ###############################################
@@ -184,8 +185,10 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
     method_name = methods_name.add(method_call['method_name'])
 
   # For each method used, create a section containing all calls to that method
+  methods_name_ordered = list(methods_name)
+  methods_name_ordered.sort()
   section_list = []
-  for method_name in methods_name:
+  for method_name in methods_name_ordered:
 
     try:
       generic_method = generic_methods[method_name]
