@@ -355,6 +355,18 @@ body classes classes_generic_return_codes(x, kept_return_code, repaired_return_c
   promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
+body classes classes_generic_return_code_list(x, kept_return_codes, repaired_return_codes)
+{
+  kept_returncodes => { @{kept_return_codes} };
+  repaired_returncodes => { @{repaired_return_codes} };
+
+  promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+  repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
+  repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+  repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+  promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+}
+
 # Enforce or not content of a file
 ########################################################################
 # Same as std_defs, allowing user to specify the file erase policy     #

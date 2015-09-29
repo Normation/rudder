@@ -1,0 +1,51 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Command execution result
+# @description Execute a command and create outcome classes depending on its exit code
+#
+# @parameter command        The command to run
+# @parameter kept_codes     List of codes that produce a kept status separated with commas (ex: 1,2,5)
+# @parameter repaired_codes List of codes that produce a repaired status separated with commas (ex: 3,4,6)
+# 
+# @class_prefix command_execution_result
+# @class_parameter command_name
+# 
+# This bundle will define a class command_execution_result_${command_name}_{kept,repaired,not_ok,ok,reached}
+# depending on the exit codes given in parameters.
+# If an exit code is not in the list it will lead to an error status.
+# If you want 0 to be a success you have to list it in the kept_codes list
+
+bundle agent command_execution_result(command, kept_codes, repaired_codes)
+{
+  vars:
+      "class_prefix"  string => canonify("command_execution_result_${command}");
+
+      "kept_list"     slist => splitstring("${kept_codes}", "\s*,\s*", "256");
+      "repaired_list" slist => splitstring("${repaired_codes}", "\s*,\s*", "256");
+
+  methods:
+      "report"
+        usebundle  => _logger("Execute the command ${command}", "${class_prefix}"),
+        ifvarclass => "${class_prefix}_reached";
+
+  commands:
+      "${command}"
+        contain      => in_shell,
+        classes      => classes_generic_return_code_list("${class_prefix}", @{kept_list}, @{repaired_list});
+}
