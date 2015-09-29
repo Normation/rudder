@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import unittest
 import ncf
 import ncf_rudder
 import re
 import os.path
+import sys
 import xml.etree.cElementTree as XML
 from pprint import pprint
 
@@ -145,6 +147,25 @@ class TestNcfRudder(unittest.TestCase):
   # Other required functions:
   # ncf_rudder.write_technique_for_rudder(path, technique_metadata)
   # ncf_rudder.write_all_techniques_for_rudder(path)
+
+
+  def test_canonify(self):
+    result = ncf_rudder.canonify("ascii @&_ string")
+    self.assertEquals(result, "ascii_____string")
+
+    # python/ncf reads UTF-8 files and produces u'' strings in python2 and '' strings in python3
+    # python2 tests
+    if sys.version_info[0] == 2:
+      # unicode in source file -> interpreted as unicode with u'' -> correct iso in python string (ncf builder use case)
+      result = ncf_rudder.canonify(u'héhé')
+      self.assertEquals(result, 'h__h__')
+
+    # python3 tests
+    if sys.version_info[0] == 3:
+      # unicode in source file -> correct unicode in python string (ncf builder use case)
+      result = ncf_rudder.canonify('héhé')
+      self.assertEquals(result, "h__h__")
+
 
 if __name__ == '__main__':
   unittest.main()
