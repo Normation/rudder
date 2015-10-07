@@ -33,7 +33,7 @@ bundle agent _classes_copy(source_prefix, destination_prefix)
       "prefix" slist => { "promise_kept", "promise_repaired", "repair_failed", "repair_denied", "repair_timeout" };
       "suffix" slist => { "repaired", "ok", "reached", "failed", "not_ok", "not_kept", "not_repaired", "denied", "timeout", "kept", "error" };
 
-    destination_should_exists.!destination_not_exists::
+    destination_exists::
       # Copy result classes prefixes
       "${prefix}_local_destination_prefix"
         string     => "${prefix}_${destination_prefix}",
@@ -49,8 +49,6 @@ bundle agent _classes_copy(source_prefix, destination_prefix)
   classes:
       # this line will not ne evaluated by cfengine if destination_prefix contains a variable that do not exist
       # and it will always be evaluated to true otherwise
-      "destination_not_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
-      # previous line has been evaluated
-      "destination_should_exists" expression => "any";
+      "destination_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
 }
 
