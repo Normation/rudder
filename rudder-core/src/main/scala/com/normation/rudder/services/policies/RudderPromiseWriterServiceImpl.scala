@@ -123,7 +123,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
    * @param updateBatch : the container for the server to be updated
    */
   override def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]): Box[Seq[PromisesFinalMoveInfo]] = {
-    val interestingNodeConfig = allNodeConfigs.filterKeys(k => configToWrite.exists(x => x == k)).values.toSeq
+    val interestingNodeConfig = allNodeConfigs.filterKeys(k => configToWrite.exists(x => x == k)).values.toSeq.par
     val techniqueIds = interestingNodeConfig.flatMap( _.getTechniqueIds ).toSet
 
     // CFEngine will not run automatically if someone else than user can write the promise
