@@ -149,7 +149,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
                          // A buffer of node, promisefolder, newfolder, backupfolder
                          val folders = collection.mutable.Buffer[(NodeConfiguration, String, String, String)]()
                          // Writing the policy
-                         for (node <- allNodeConfigs.filterKeys(configToWrite.contains(_)).values.toSeq) {
+                         for (node <- allNodeConfigs.filterKeys(configToWrite.contains(_)).values.toSeq.par) {
                            if (node.policyDrafts.size == 0) {
                              val msg = s"Can not write promises for node ${node.nodeInfo.hostname} (id: ${node.nodeInfo.id.value}): No policy found for node"
                              logger.error(msg)
