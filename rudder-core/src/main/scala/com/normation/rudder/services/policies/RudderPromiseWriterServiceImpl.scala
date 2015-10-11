@@ -123,7 +123,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
    * @param updateBatch : the container for the server to be updated
    */
   override def writePromisesForMachines(configToWrite: Set[NodeId], rootNodeId: NodeId, allNodeConfigs:Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]): Box[Seq[PromisesFinalMoveInfo]] = {
-    val interestingNodeConfig = allNodeConfigs.filterKeys(k => configToWrite.exists(x => x == k)).values.toSeq.par
+    val interestingNodeConfig = allNodeConfigs.filterKeys(k => configToWrite.exists(x => x == k)).values.toSeq
     val techniqueIds = interestingNodeConfig.flatMap( _.getTechniqueIds ).toSet
 
     // CFEngine will not run automatically if someone else than user can write the promise
@@ -152,7 +152,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
                          // A buffer of node, promisefolder, newfolder, backupfolder
                          val folders = collection.mutable.Buffer[(NodeConfiguration, String, String, String)]()
                          // Writing the policy
-                         for (node <- interestingNodeConfig) {
+                         for (node <- interestingNodeConfig.par) {
                            if (node.policyDrafts.size == 0) {
                              val msg = s"Can not write promises for node ${node.nodeInfo.hostname} (id: ${node.nodeInfo.id.value}): No policy found for node"
                              logger.error(msg)
