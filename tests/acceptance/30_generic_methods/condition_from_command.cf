@@ -1,0 +1,61 @@
+#######################################################
+#
+# Exit with a specific code
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+}
+
+#######################################################
+
+bundle agent test
+{
+  vars:
+    "true_codes" string => "0,1, 2";
+    "false_codes" string => "3, 4";
+
+  methods:
+    "phA" usebundle => condition_from_command("classA", "exit 0", "${true_codes}", "${false_codes}"); # true
+    "phB" usebundle => condition_from_command("classB", "exit 2", "${true_codes}", "${false_codes}"); # true
+    "phC" usebundle => condition_from_command("classC", "exit 3", "${true_codes}", "${false_codes}"); # false
+    "phD" usebundle => condition_from_command("classD", "exit 4", "${true_codes}", "${false_codes}"); # false
+    "phE" usebundle => condition_from_command("classE", "exit 5", "${true_codes}", "${false_codes}"); # error
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+    "ok_A" expression => "condition_from_command_classA_kept.!condition_from_command_classA_repaired.!condition_from_command_classA_error.classA_true.!classA_false";
+    "ok_B" expression => "condition_from_command_classB_kept.!condition_from_command_classB_repaired.!condition_from_command_classB_error.classB_true.!classB_false";
+    "ok_C" expression => "condition_from_command_classC_kept.!condition_from_command_classC_repaired.!condition_from_command_classC_error.!classC_true.classC_false";
+    "ok_D" expression => "condition_from_command_classD_kept.!condition_from_command_classD_repaired.!condition_from_command_classD_error.!classD_true.classD_false";
+    "ok_E" expression => "!condition_from_command_classE_kept.!condition_from_command_classE_repaired.condition_from_command_classE_error.!classE_true.!classE_false";
+
+    "ok"  expression => "ok_A.ok_B.ok_C.ok_D.ok_E";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}
