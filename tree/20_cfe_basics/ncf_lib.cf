@@ -324,14 +324,14 @@ body select_region ncf_section_selector(section_start, section_end)
 }
 
 
-# Modular local copy_from body
+# Modular local copy_from body
 body copy_from ncf_local_cp_method(from, method)
 {
   source      => "${from}";
   compare     => "${method}";
 }
 
-# Modular remote copy_from body
+# Modular remote copy_from body
 # This body gets the CFEngine port from ncf's configuration.
 body copy_from ncf_remote_cp_method(from, server, method)
 {
@@ -342,7 +342,7 @@ body copy_from ncf_remote_cp_method(from, server, method)
 }
 
 # Define x prefixes/suffixed with promises outcome, based on return codes
-body classes classes_generic_return_codes_two(x, y, kept_return_code, repaired_return_code, failed_return_code)
+body classes classes_generic_return_single_code_two(x, y, kept_return_code, repaired_return_code, failed_return_code)
 {
     kept_returncodes => { "${kept_return_code}" };
     repaired_returncodes => { "${repaired_return_code}" };
@@ -366,6 +366,59 @@ body classes classes_generic_return_codes_two(x, y, kept_return_code, repaired_r
                         "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_error", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached" };
     promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
                       "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+}
+
+# Define x prefixes/suffixed with promises outcome, based on return codes
+body classes classes_generic_return_code_list_two(x, y, kept_return_codes, repaired_return_codes)
+{
+    kept_returncodes => { @{kept_return_codes} };
+    repaired_returncodes => { @{repaired_return_codes} };
+  
+  !has_promiser_stack::
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+
+  has_promiser_stack::
+    promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached",
+                          "promise_repaired_$(y)", "$(y)_repaired", "$(y)_ok", "$(y)_reached" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error"};
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached" };
+}
+
+# Define x prefixes/suffixed with true/false outcome, based on return codes
+# Note that an unknown return code is an error and doesn't return false nor true, just an error.
+body classes classes_generic_return_boolean_list_two(x, y, boolean_prefix, true_return_codes, false_return_codes)
+{
+    kept_returncodes => { @{true_return_codes} };
+    repaired_returncodes => { @{false_return_codes} };
+  
+  !has_promiser_stack::
+    promise_repaired => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached", "${boolean_prefix}_false" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error"  };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached", "${boolean_prefix}_true" };
+
+  has_promiser_stack::
+    promise_repaired => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                          "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_false" };
+    repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_failed_$(y)", "$(y)_failed", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                       "repair_denied_$(y)", "$(y)_denied", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached", "${x}_error",
+                        "repair_timeout_$(y)", "$(y)_timeout", "$(y)_not_ok", "$(y)_not_kept", "$(y)_not_repaired", "$(y)_reached", "${y}_error" };
+    promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached",
+                      "promise_kept_$(y)", "$(y)_kept", "$(y)_ok", "$(y)_not_repaired", "$(y)_reached", "${boolean_prefix}_true" };
 }
 
 # WARNING !!!

@@ -49,6 +49,6 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
         args => "-I -s -o /dev/null -w \"%{http_code}\" ${url} -X ${method} -H '${headers}' | /bin/grep -q ${expected_status}",
         contain => in_shell,
         # We don't define repaired class, as we only query and expect, so using 999 to avoid using this feature
-        classes => classes_generic_return_codes_two("${old_class_prefix}", "${class_prefix}", "0", "999", "1");
+        classes => classes_generic_return_single_code_two("${old_class_prefix}", "${class_prefix}", "0", "999", "1");
 
 }
