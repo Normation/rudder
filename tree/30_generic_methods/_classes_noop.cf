@@ -19,20 +19,25 @@
 # @name Classes noop definition
 # @description Defines noop classes based on a prefix
 #
-# @parameter class_prefix      The prefix of the noop class to defined
+# @parameter destination_prefix      The prefix of the noop class to defined
 #
 # @class_prefix
 # @class_parameter
-# This bundle will define a class ${class_prefix}_noop
+# This bundle will define a class ${destination_prefix}_noop
 
-bundle agent _classes_noop(class_prefix)
+bundle agent _classes_noop(destination_prefix)
 {
   vars:
       "suffix" slist => { "noop" };
 
+    destination_exists::
       "local_${suffix}"
-        string     => "${class_prefix}_${suffix}",
-        classes    => always("${class_prefix}_${suffix}");
+        string     => "${destination_prefix}_${suffix}",
+        classes    => always("${destination_prefix}_${suffix}");
+
+  classes:
+      # this line will not ne evaluated by cfengine if destination_prefix contains a variable that do not exist
+      # and it will always be evaluated to true otherwise
+      "destination_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+
 }
-
-

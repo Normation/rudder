@@ -19,24 +19,29 @@
 # @name Classes failure definition
 # @description Defines failure classes based on a prefix
 #
-# @parameter class_prefix      The prefix of the failure class to defined
+# @parameter destination_prefix      The prefix of the failure class to defined
 #
 # @class_prefix 
 # @class_parameter 
-# This bundle will define a class ${class_prefix}_{not_kept,not_ok, not_repaired, failed, reached}
+# This bundle will define a class ${destination_prefix}_{not_kept,not_ok, not_repaired, failed, reached}
 
-bundle agent _classes_failure(class_prefix)
+bundle agent _classes_failure(destination_prefix)
 {
   vars:
       "prefix" slist => { "repair_failed" };
       "suffix" slist => { "not_kept", "not_ok", "not_repaired", "failed", "reached", "error" };
 
+    destination_exists::
       "${prefix}_local"
-        string     => "${prefix}_${class_prefix}",
-        classes    => always("${prefix}_${class_prefix}");
+        string     => "${prefix}_${destination_prefix}",
+        classes    => always("${prefix}_${destination_prefix}");
 
       "local_${suffix}"
-        string     => "${class_prefix}_${suffix}",
-        classes    => always("${class_prefix}_${suffix}");
+        string     => "${destination_prefix}_${suffix}",
+        classes    => always("${destination_prefix}_${suffix}");
 
+  classes:
+      # this line will not ne evaluated by cfengine if destination_prefix contains a variable that do not exist
+      # and it will always be evaluated to true otherwise
+      "destination_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
 }
