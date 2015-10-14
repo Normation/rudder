@@ -19,25 +19,29 @@
 # @name Classes repaired definition
 # @description Defines repaired classes based on a prefix
 #
-# @parameter class_prefix      The prefix of the repaired class to defined
+# @parameter destination_prefix      The prefix of the repaired class to defined
 #
 # @class_prefix 
 # @class_parameter 
-# This bundle will define a class ${class_prefix}_{repaired,reached}
+# This bundle will define a class ${destination_prefix}_{repaired,reached}
 
-bundle agent _classes_repaired(class_prefix)
+bundle agent _classes_repaired(destination_prefix)
 {
   vars:
       "prefix" slist => { "promise_repaired" };
       "suffix" slist => { "ok", "reached", "repaired" };
 
+    destination_exists::
       "${prefix}_local"
-        string     => "${prefix}_${class_prefix}",
-        classes    => always("${prefix}_${class_prefix}");
+        string     => "${prefix}_${destination_prefix}",
+        classes    => always("${prefix}_${destination_prefix}");
 
       "local_${suffix}"
-        string     => "${class_prefix}_${suffix}",
-        classes    => always("${class_prefix}_${suffix}");
+        string     => "${destination_prefix}_${suffix}",
+        classes    => always("${destination_prefix}_${suffix}");
+
+  classes:
+      # this line will not ne evaluated by cfengine if destination_prefix contains a variable that do not exist
+      # and it will always be evaluated to true otherwise
+      "destination_exists" expression => strcmp("${destination_prefix}", "${destination_prefix}");
 }
-
-
