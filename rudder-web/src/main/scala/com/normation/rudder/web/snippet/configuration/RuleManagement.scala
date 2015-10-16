@@ -227,7 +227,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     JsRaw("""
         var ruleId = null;
         try {
-          ruleId = JSON.parse(window.location.hash.substring(1)).ruleId ;
+          ruleId = JSON.parse(decodeURI(window.location.hash.substring(1))).ruleId ;
         } catch(e) {
           ruleId = null
         }

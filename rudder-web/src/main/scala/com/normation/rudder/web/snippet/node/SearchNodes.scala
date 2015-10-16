@@ -244,7 +244,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
     JsRaw("""
         var hash = null;
         try {
-          hash = JSON.parse(window.location.hash.substring(1));
+          hash = JSON.parse(decodeURI(window.location.hash.substring(1)));
         } catch(e) {
           hash = {}
         }
