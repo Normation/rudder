@@ -193,7 +193,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     JsRaw("""
         var groupId = null;
         try {
-          groupId = JSON.parse(window.location.hash.substring(1)).groupId ;
+          groupId = JSON.parse(decodeURI(window.location.hash.substring(1))).groupId ;
         } catch(e) {
           groupId = null
         }
