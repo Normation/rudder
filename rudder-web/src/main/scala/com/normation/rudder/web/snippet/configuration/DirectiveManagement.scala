@@ -152,7 +152,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw("""
         var directiveId = null;
         try {
-          directiveId = JSON.parse(window.location.hash.substring(1)).directiveId ;
+          directiveId = JSON.parse(decodeURI(window.location.hash.substring(1))).directiveId ;
         } catch(e) {
           directiveId = null;
         }
@@ -211,7 +211,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw(s"""
         var directiveId = null;
         try {
-          directiveId = "jsTree-" + JSON.parse(window.location.hash.substring(1)).directiveId ;
+          directiveId = "jsTree-" + JSON.parse(decodeURI(window.location.hash.substring(1))).directiveId ;
         } catch(e) {
           directiveId = '';
         }
