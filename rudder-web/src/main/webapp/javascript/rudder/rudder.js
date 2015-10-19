@@ -705,7 +705,7 @@ function correctContentHeight(selector) {
  */
 function parseURLHash() {
   try {
-    return JSON.parse(window.location.hash.substring(1));
+    return JSON.parse(decodeURI(window.location.hash.substring(1)));
   } catch(e) {
     return {};
   }
