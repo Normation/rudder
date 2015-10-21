@@ -148,8 +148,7 @@ trait PromiseGenerationService extends Loggable {
       _             =  logger.debug(s"RuleVals built in ${timeRuleVal}ms, start to expand their values.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts
-                         ) ?~! "Cannot build target configuration node"
+      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
 
@@ -266,9 +265,11 @@ trait PromiseGenerationService extends Loggable {
    * Replace all ${node.varName} vars.
    */
   def buildNodeConfigurations(
-      activeNodeIds         : Set[NodeId]
-    , ruleVals              : Seq[RuleVal]
-    , nodeContexts          : Map[NodeId, InterpolationContext]
+      activeNodeIds: Set[NodeId]
+    , ruleVals     : Seq[RuleVal]
+    , nodeContexts : Map[NodeId, InterpolationContext]
+    , groupLib     : FullNodeGroupCategory
+    , allNodeInfos : Map[NodeId, NodeInfo]
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -560,9 +561,11 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
    * allNodeInfos *must* contains the nodes info of every nodes
    */
   override def buildNodeConfigurations(
-      activeNodeIds         : Set[NodeId]
-    , ruleVals              : Seq[RuleVal]
-    , nodeContexts          : Map[NodeId, InterpolationContext]
+      activeNodeIds: Set[NodeId]
+    , ruleVals     : Seq[RuleVal]
+    , nodeContexts : Map[NodeId, InterpolationContext]
+    , groupLib     : FullNodeGroupCategory
+    , allNodeInfos : Map[NodeId, NodeInfo]
   ) : Box[Seq[NodeConfiguration]] = {
 
 
@@ -576,6 +579,13 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
 
     val seqOfMapOfPolicyDraftByNodeId = ruleVals.map { ruleVal =>
 
+      val wantedNodeIds = groupLib.getNodeIds(ruleVal.targets, allNodeInfos)
+
+      val nodeIds = wantedNodeIds.intersect(allNodeInfos.keySet)
+      if(nodeIds.size != wantedNodeIds.size) {
+        logger.error(s"Some nodes are in the target of rule ${ruleVal.ruleId.value} but are not present " +
+            s"in the system. It looks like an inconsistency error. Ignored nodes: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")
+      }
 
       val drafts: Seq[PolicyDraft] = ruleVal.directiveVals.map { directive =>
         PolicyDraft(
@@ -591,7 +601,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
         )
       }
 
-      activeNodeIds.map(id => (id, drafts)).toMap
+      nodeIds.map(id => (id, drafts)).toMap
     }
 
     //now, actually group by node

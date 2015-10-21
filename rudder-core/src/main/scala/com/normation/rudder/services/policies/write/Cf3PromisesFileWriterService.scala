@@ -129,7 +129,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
 
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
-    val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists(x => x == k)).values.toSeq
+    val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
     val techniqueIds = interestingNodeConfigs.flatMap( _.getTechniqueIds ).toSet
 
     //debug - but don't fails for debugging !
@@ -148,289 +148,45 @@ class Cf3PromisesFileWriterServiceImpl(
      * Here come the general writing process
      */
 
+    def sequencePar[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
+      val buf = scala.collection.mutable.Buffer[T]()
+      seq.par.foreach { u => f(u) match {
+        case e:EmptyBox => return e
+        case Full(x) => buf += x
+      } }
+      Full(buf)
+    }
+
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
       templates        <- readTemplateFromFileSystem(techniqueIds)
-      preparedPromises <- sequence(configAndPaths) { case agentNodeConfig =>
+      preparedPromises <- sequencePar(configAndPaths) { case agentNodeConfig =>
                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
                            prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID) ?~! "Error when preparing rules for agents"
                          }
-      promiseWritten   <- sequence(preparedPromises) { prepared =>
+      promiseWritten   <- sequencePar(preparedPromises) { prepared =>
                             writePromises(prepared._1, prepared._2, prepared._3, GENEREATED_CSV_FILENAME)
                           }
       licensesCopied   <- copyLicenses(configAndPaths)
       checked          <- checkGeneratedPromises(configAndPaths.map { x => (x.agentType, x.paths) })
-      permChanges      <- sequence(pathsInfo) { nodePaths =>
+      permChanges      <- sequencePar(pathsInfo) { nodePaths =>
                             setCFEnginePermission(nodePaths.newFolder) ?~! "cannot change permission on destination folder"
                           }
       movedPromises    <- tryo { movePromisesToFinalPosition(pathsInfo) }
-      cfeReloaded      <- reloadCFEnginePromises()
     } yield {
+
+      //the reload is just a cool simplification, it's not mandatory -
+      // - at least it does not failed the whole generation process
+      reloadCFEnginePromises()
+
       val ids = movedPromises.map { _.nodeId }.toSet
       allNodeConfigs.filterKeys { id => ids.contains(id) }.values.toSeq
     }
 
   }
 
-
-  // CFEngine will not run automatically if someone else than user can write the promise
-  private[this] def setCFEnginePermission (baseFolder:String ) : Box[String] = {
-
-    // We need to remove executable perms, then add them back only on folders (X), so no file have executable perms
-    // Then remove all permissions for group and other
-    val changePermission: scala.sys.process.ProcessBuilder = s"/bin/chmod -R u-x,u+rwX,go-rwx ${baseFolder}"
-
-    // Permissions change is inside tryo, not sure if it throws exceptions, but as it interacts with IO, we cannot be sure
-    tryo { changePermission ! } match {
-      case Full(result) =>
-        if (result != 0) {
-          Failure(s"Could not change permission for base folder ${baseFolder}")
-        } else {
-          Full("OK")
-        }
-      case eb:EmptyBox =>
-        eb ?~! "cannot change permission on destination folder"
-    }
-  }
-
-
-  private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String]) = {
-    import scala.sys.process.{Process, ProcessLogger}
-
-    var out = List[String]()
-    var err = List[String]()
-    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
-
-    val checkPromises =  agentType match {
-      case NOVA_AGENT => novaCheckPromises
-      case COMMUNITY_AGENT => communityCheckPromises
-    }
-
-    val errorCode = if (checkPromises != "/bin/true")  {
-      val process = Process(checkPromises + " -f " + pathOfPromises + "/promises.cf", None, ("RES_OPTIONS","attempts:0"))
-      process.!(processLogger)
-    } else {
-      //command is /bin/true => just return with no error (0)
-      0
-    }
-
-    (errorCode, out.reverse ++ err.reverse)
-  }
-
-  /**
-   * Force cf-serverd to reload its promises
-   * It always succeeed, even if it fails it simply delays the reloading (automatic) by the server
-   */
-  def reloadCFEnginePromises() : Box[Unit] = {
-    import scala.sys.process.{ProcessBuilder, ProcessLogger}
-    var out = List[String]()
-    var err = List[String]()
-    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
-
-    val process: ProcessBuilder = (cfengineReloadPromises)
-
-    val errorCode =  process.!(processLogger)
-
-    if (errorCode != 0) {
-      val errorMessage = s"""Failed to reload CFEngine server promises with command "${cfengineReloadPromises}" - cause is ${out.mkString(",")} ${err.mkString(",")}"""
-      logger.warn(errorMessage)
-      Failure(errorMessage)
-    } else {
-      Full( () )
-    }
-  }
-
-
-  def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]] = {
-
-    //list of (template id, template out path)
-    val templatesToRead = for {
-      technique <- techniqueRepository.getByIds(techniqueIds.toSeq)
-      template  <- technique.templates
-    } yield {
-      (template.id, template.outPath)
-    }
-
-    val now = System.currentTimeMillis()
-
-    val res = (sequence(templatesToRead) { case (templateId, templateOutPath) =>
-      for {
-        copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
-          optInputStream match {
-            case None =>
-              Failure(s"Error when trying to open template '${templateId.toString}${Cf3PromisesFileTemplate.templateExtension}'. Check that the file exists and is correctly commited in Git, or that the metadata for the technique are corrects.")
-            case Some(inputStream) =>
-              logger.trace(s"Loading template ${templateId} (from an input stream relative to ${techniqueRepository}")
-              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-              val content = IOUtils.toString(inputStream, "UTF-8")
-              Full(Cf3PromisesFileTemplateCopyInfo(content, templateId, templateOutPath))
-          }
-        }
-      } yield {
-        (copyInfo.id, copyInfo)
-      }
-    }).map( _.toMap)
-
-    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now}ms")
-
-    res
-  }
-
-
-  /**
-   * For agent needing it, copy licences to the correct path
-   */
-  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration]): Box[Seq[AgentNodeConfiguration]] = {
-
-    sequence(agentNodeConfigurations) { case x @ AgentNodeConfiguration(config, agentType, paths) =>
-
-      agentType match {
-        case NOVA_AGENT =>
-          logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
-          val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
-            config.nodeInfo.id
-          } else {
-            config.nodeInfo.policyServerId
-          }
-
-          licenseRepository.findLicense(sourceLicenceNodeId) match {
-            case None =>
-              // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
-              logger.info(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
-              Full(x)
-
-            case Some(license) =>
-              val licenseFile = new File(license.file)
-              if (licenseFile.exists) {
-                val destFile = FilenameUtils.normalize(paths.newFolder + "/license.dat")
-                  tryo { FileUtils.copyFile(licenseFile, new File(destFile) ) }.map( _ => x)
-              } else {
-                logger.error(s"Could not find the license file ${licenseFile.getAbsolutePath} for server ${sourceLicenceNodeId.value}")
-                throw new Exception("Could not find license file " +license.file)
-              }
-          }
-
-        case _ => Full(x)
-      }
-    }
-  }
-
-
-  /**
-   * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
-   * @param folder : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
-   */
-  private[this] def movePromisesToFinalPosition(folders: Seq[NodePromisesPaths]): Seq[NodePromisesPaths] = {
-    // We need to sort the folders by "depth", so that we backup and move the deepest one first
-    val sortedFolder = folders.sortBy(x => x.baseFolder.count(_ =='/')).reverse
-
-    val newFolders = scala.collection.mutable.Buffer[NodePromisesPaths]()
-    try {
-      // Folders is a map of machine.uuid -> (base_machine_folder, backup_machine_folder, machine)
-      for (folder @ NodePromisesPaths(_, baseFolder, newFolder, backupFolder) <- sortedFolder) {
-        // backup old promises
-        logger.debug("Backuping old promises from %s to %s ".format(baseFolder, backupFolder))
-        backupNodeFolder(baseFolder, backupFolder)
-        try {
-          newFolders += folder
-
-          logger.debug("Copying new promises into %s ".format(baseFolder))
-          // move new promises
-          moveNewNodeFolder(newFolder, baseFolder)
-
-        } catch {
-          case ex: Exception =>
-            logger.error("Could not write promises into %s, reason : ".format(baseFolder), ex)
-            throw ex
-        }
-      }
-      folders
-    } catch {
-      case ex: Exception =>
-
-        for (folder <- newFolders) {
-          logger.info("Restoring old promises on folder %s".format(folder.baseFolder))
-          try {
-            restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder);
-          } catch {
-            case ex: Exception =>
-              logger.error("could not restore old promises into %s ".format(folder.baseFolder))
-              throw ex
-          }
-        }
-        throw ex
-    }
-
-  }
-
-
-
-  /**
-   * Move the machine promises folder  to the backup folder
-   * @param machineFolder
-   * @param backupFolder
-   */
-  private[this] def backupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
-    val src = new File(nodeFolder)
-    if (src.isDirectory()) {
-      val dest = new File(backupFolder)
-      if (dest.isDirectory)
-        // force deletion of previous backup
-        FileUtils.forceDelete(dest)
-
-      FileUtils.moveDirectory(src, dest)
-    }
-  }
-
-  /**
-   * Move the newly created folder to the final location
-   * @param newFolder : where the promises have been written
-   * @param nodeFolder : where the promises will be
-   */
-  private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String): Unit = {
-    val src = new File(sourceFolder)
-
-    logger.debug("Moving folders from %s to %s".format(src, destinationFolder))
-
-    if (src.isDirectory()) {
-      val dest = new File(destinationFolder)
-
-      if (dest.isDirectory)
-        // force deletion of previous promises
-        FileUtils.forceDelete(dest)
-
-      FileUtils.moveDirectory(src, dest)
-
-      // force deletion of dandling new promise folder
-      if ( (src.getParentFile().isDirectory) && (src.getParent().endsWith("rules.new")))
-        FileUtils.forceDelete(src.getParentFile())
-
-    } else {
-      logger.error("Could not find freshly created promises at %s".format(sourceFolder))
-      throw new IOException("Created promises not found !!!!")
-    }
-  }
-
-  /**
-   * Restore (by moving) backup folder to its original location
-   * @param machineFolder
-   * @param backupFolder
-   */
-  private[this] def restoreBackupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
-    val src = new File(backupFolder)
-    if (src.isDirectory()) {
-      val dest = new File(nodeFolder)
-      // force deletion of invalid promises
-      FileUtils.forceDelete(dest)
-
-      FileUtils.moveDirectory(src, dest)
-    } else {
-      logger.error("Could not find freshly backup promises at %s".format(backupFolder))
-      throw new IOException("Backup promises could not be found, and valid promises couldn't be restored !!!!")
-    }
-  }
-
+  ///////////// implementation of each step /////////////
 
   /**
    * Calculate path for node configuration.
@@ -477,6 +233,97 @@ class Cf3PromisesFileWriterServiceImpl(
 
 
 
+  private[this] def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]] = {
+
+    //list of (template id, template out path)
+    val templatesToRead = for {
+      technique <- techniqueRepository.getByIds(techniqueIds.toSeq)
+      template  <- technique.templates
+    } yield {
+      (template.id, template.outPath)
+    }
+
+    val now = System.currentTimeMillis()
+
+    val res = (sequence(templatesToRead) { case (templateId, templateOutPath) =>
+      for {
+        copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
+          optInputStream match {
+            case None =>
+              Failure(s"Error when trying to open template '${templateId.toString}${Cf3PromisesFileTemplate.templateExtension}'. Check that the file exists and is correctly commited in Git, or that the metadata for the technique are corrects.")
+            case Some(inputStream) =>
+              logger.trace(s"Loading template ${templateId} (from an input stream relative to ${techniqueRepository}")
+              //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
+              val content = IOUtils.toString(inputStream, "UTF-8")
+              Full(Cf3PromisesFileTemplateCopyInfo(content, templateId, templateOutPath))
+          }
+        }
+      } yield {
+        (copyInfo.id, copyInfo)
+      }
+    }).map( _.toMap)
+
+    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now}ms")
+
+    res
+  }
+
+  private[this] def writePromises(
+      preparedTemplates     : Seq[PreparedTemplates]
+    , paths                 : NodePromisesPaths
+    , expectedReportLines   : Seq[String]
+    , expectedReportFilename: String
+  ) : Box[NodePromisesPaths] = {
+    // write the promises of the current machine and set correct permission
+    for {
+      _ <- sequence(preparedTemplates) { preparedTemplate =>
+             sequence(preparedTemplate.templatesToCopy.toSeq) { template =>
+               writePromisesFiles(template, preparedTemplate.environmentVariables , paths.newFolder, expectedReportLines, expectedReportFilename)
+             }
+           }
+    } yield {
+      paths
+    }
+  }
+
+  /**
+   * For agent needing it, copy licences to the correct path
+   */
+  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration]): Box[Seq[AgentNodeConfiguration]] = {
+
+    sequence(agentNodeConfigurations) { case x @ AgentNodeConfiguration(config, agentType, paths) =>
+
+      agentType match {
+        case NOVA_AGENT =>
+          logger.debug("Writing licence for nodeConfiguration  " + config.nodeInfo.id);
+          val sourceLicenceNodeId = if(config.nodeInfo.isPolicyServer) {
+            config.nodeInfo.id
+          } else {
+            config.nodeInfo.policyServerId
+          }
+
+          licenseRepository.findLicense(sourceLicenceNodeId) match {
+            case None =>
+              // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
+              logger.info(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
+              Full(x)
+
+            case Some(license) =>
+              val licenseFile = new File(license.file)
+              if (licenseFile.exists) {
+                val destFile = FilenameUtils.normalize(paths.newFolder + "/license.dat")
+                  tryo { FileUtils.copyFile(licenseFile, new File(destFile) ) }.map( _ => x)
+              } else {
+                logger.error(s"Could not find the license file ${licenseFile.getAbsolutePath} for server ${sourceLicenceNodeId.value}")
+                throw new Exception("Could not find license file " +license.file)
+              }
+          }
+
+        case _ => Full(x)
+      }
+    }
+  }
+
 
   /**
    * For each path of generated promises, for a given agent type, check if the promises are
@@ -492,7 +339,7 @@ class Cf3PromisesFileWriterServiceImpl(
           val now = System.currentTimeMillis
           val res = executeCfPromise(agentType, paths.newFolder)
           val spent = System.currentTimeMillis - now
-          logger.debug(s"` Execute cf-promise for '$paths.newFolder}': ${spent}ms (${spent/1000}s)")
+          logger.debug(s"` Execute cf-promises for '$paths.newFolder}': ${spent}ms (${spent/1000}s)")
           res
         } else {
           executeCfPromise(agentType, paths.newFolder)
@@ -523,19 +370,101 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
+  // CFEngine will not run automatically if someone else than user can write the promise
+  private[this] def setCFEnginePermission (baseFolder:String ) : Box[String] = {
 
-  private[this] def writePromises(preparedTemplates: Seq[PreparedTemplates], paths: NodePromisesPaths, expectedReportLines: Seq[String], expectedReportFilename: String): Box[NodePromisesPaths] = {
-    // write the promises of the current machine and set correct permission
-    for {
-      _ <- sequence(preparedTemplates) { preparedTemplate =>
-             sequence(preparedTemplate.templatesToCopy.toSeq) { template =>
-               writePromisesFiles(template, preparedTemplate.environmentVariables , paths.newFolder, expectedReportLines, expectedReportFilename)
-             }
-           }
-    } yield {
-      paths
+    // We need to remove executable perms, then add them back only on folders (X), so no file have executable perms
+    // Then remove all permissions for group and other
+    val changePermission: scala.sys.process.ProcessBuilder = s"/bin/chmod -R u-x,u+rwX,go-rwx ${baseFolder}"
+
+    // Permissions change is inside tryo, not sure if it throws exceptions, but as it interacts with IO, we cannot be sure
+    tryo { changePermission ! } match {
+      case Full(result) =>
+        if (result != 0) {
+          Failure(s"Could not change permission for base folder ${baseFolder}")
+        } else {
+          Full("OK")
+        }
+      case eb:EmptyBox =>
+        eb ?~! "cannot change permission on destination folder"
     }
   }
+
+
+  /**
+   * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
+   * @param folder : (Container identifier, (base folder, new folder of the policies, backup folder of the policies) )
+   */
+  private[this] def movePromisesToFinalPosition(folders: Seq[NodePromisesPaths]): Seq[NodePromisesPaths] = {
+    // We need to sort the folders by "depth", so that we backup and move the deepest one first
+    val sortedFolder = folders.sortBy(x => x.baseFolder.count(_ =='/')).reverse
+
+    val newFolders = scala.collection.mutable.Buffer[NodePromisesPaths]()
+    try {
+      // Folders is a map of machine.uuid -> (base_machine_folder, backup_machine_folder, machine)
+      for (folder @ NodePromisesPaths(_, baseFolder, newFolder, backupFolder) <- sortedFolder) {
+        // backup old promises
+        logger.trace("Backuping old promises from %s to %s ".format(baseFolder, backupFolder))
+        backupNodeFolder(baseFolder, backupFolder)
+        try {
+          newFolders += folder
+
+          logger.trace("Copying new promises into %s ".format(baseFolder))
+          // move new promises
+          moveNewNodeFolder(newFolder, baseFolder)
+
+        } catch {
+          case ex: Exception =>
+            logger.error("Could not write promises into %s, reason : ".format(baseFolder), ex)
+            throw ex
+        }
+      }
+      folders
+    } catch {
+      case ex: Exception =>
+
+        for (folder <- newFolders) {
+          logger.info("Restoring old promises on folder %s".format(folder.baseFolder))
+          try {
+            restoreBackupNodeFolder(folder.baseFolder, folder.backupFolder);
+          } catch {
+            case ex: Exception =>
+              logger.error("could not restore old promises into %s ".format(folder.baseFolder))
+              throw ex
+          }
+        }
+        throw ex
+    }
+
+  }
+
+  /**
+   * Force cf-serverd to reload its promises
+   * It always succeeed, even if it fails it simply delays the reloading (automatic) by the server
+   */
+  private[this] def reloadCFEnginePromises() : Box[Unit] = {
+    import scala.sys.process.{ProcessBuilder, ProcessLogger}
+    var out = List[String]()
+    var err = List[String]()
+    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
+
+    val process: ProcessBuilder = (cfengineReloadPromises)
+
+    val errorCode =  process.!(processLogger)
+
+    if (errorCode != 0) {
+      val errorMessage = s"""Failed to reload CFEngine server promises with command "${cfengineReloadPromises}" - cause is ${out.mkString(",")} ${err.mkString(",")}"""
+      logger.warn(errorMessage)
+      Failure(errorMessage)
+    } else {
+      Full( () )
+    }
+  }
+
+
+  ///////////// utilities /////////////
+
+
 
   /**
    * Write the current seq of template file a the path location, replacing the variables found in variableSet
@@ -598,5 +527,94 @@ class Cf3PromisesFileWriterServiceImpl(
 
   }
 
-}
+  private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String]) = {
+    import scala.sys.process.{Process, ProcessLogger}
 
+    var out = List[String]()
+    var err = List[String]()
+    val processLogger = ProcessLogger((s) => out ::= s, (s) => err ::= s)
+
+    val checkPromises =  agentType match {
+      case NOVA_AGENT => novaCheckPromises
+      case COMMUNITY_AGENT => communityCheckPromises
+    }
+
+    val errorCode = if (checkPromises != "/bin/true")  {
+      val process = Process(checkPromises + " -f " + pathOfPromises + "/promises.cf", None, ("RES_OPTIONS","attempts:0"))
+      process.!(processLogger)
+    } else {
+      //command is /bin/true => just return with no error (0)
+      0
+    }
+
+    (errorCode, out.reverse ++ err.reverse)
+  }
+
+
+
+
+  /**
+   * Move the machine promises folder  to the backup folder
+   * @param machineFolder
+   * @param backupFolder
+   */
+  private[this] def backupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
+    val src = new File(nodeFolder)
+    if (src.isDirectory()) {
+      val dest = new File(backupFolder)
+      if (dest.isDirectory)
+        // force deletion of previous backup
+        FileUtils.forceDelete(dest)
+
+      FileUtils.moveDirectory(src, dest)
+    }
+  }
+
+  /**
+   * Move the newly created folder to the final location
+   * @param newFolder : where the promises have been written
+   * @param nodeFolder : where the promises will be
+   */
+  private[this] def moveNewNodeFolder(sourceFolder: String, destinationFolder: String): Unit = {
+    val src = new File(sourceFolder)
+
+    logger.trace("Moving folders from %s to %s".format(src, destinationFolder))
+
+    if (src.isDirectory()) {
+      val dest = new File(destinationFolder)
+
+      if (dest.isDirectory)
+        // force deletion of previous promises
+        FileUtils.forceDelete(dest)
+
+      FileUtils.moveDirectory(src, dest)
+
+      // force deletion of dandling new promise folder
+      if ( (src.getParentFile().isDirectory) && (src.getParent().endsWith("rules.new")))
+        FileUtils.forceDelete(src.getParentFile())
+
+    } else {
+      logger.error("Could not find freshly created promises at %s".format(sourceFolder))
+      throw new IOException("Created promises not found !!!!")
+    }
+  }
+
+  /**
+   * Restore (by moving) backup folder to its original location
+   * @param machineFolder
+   * @param backupFolder
+   */
+  private[this] def restoreBackupNodeFolder(nodeFolder: String, backupFolder: String): Unit = {
+    val src = new File(backupFolder)
+    if (src.isDirectory()) {
+      val dest = new File(nodeFolder)
+      // force deletion of invalid promises
+      FileUtils.forceDelete(dest)
+
+      FileUtils.moveDirectory(src, dest)
+    } else {
+      logger.error("Could not find freshly backup promises at %s".format(backupFolder))
+      throw new IOException("Backup promises could not be found, and valid promises couldn't be restored !!!!")
+    }
+  }
+}
