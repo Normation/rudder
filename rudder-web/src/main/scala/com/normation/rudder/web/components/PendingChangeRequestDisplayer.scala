@@ -71,7 +71,7 @@ object PendingChangeRequestDisplayer extends Loggable{
           (res,cr) => res ++
           {
             if (CurrentUser.checkRights(Read("validator"))||CurrentUser.checkRights(Read("deployer"))||cr.owner == CurrentUser.getActor.name) {
-              <li><a href={JsInitContextLinkUtil.changeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
+              <li><a href={JsInitContextLinkUtil.baseChangeRequestLink(cr.id)}>CR #{cr.id}: {cr.info.name}</a></li>
             } else {
               <li>CR #{cr.id}</li>
           } }
