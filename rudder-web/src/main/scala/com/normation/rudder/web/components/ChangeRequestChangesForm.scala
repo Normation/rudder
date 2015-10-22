@@ -714,8 +714,8 @@ class ChangeRequestChangesForm(
   def displayRuleChange(ruleChange: RuleChange) = {
     val action = ruleChange.firstChange.diff match {
            case AddRuleDiff(rule) => Text(s"Create rule ${rule.name}")
-           case DeleteRuleDiff(rule) => <span>Delete rule {<a href={ruleLink(rule.id)} onclick="noBubble(event);">{rule.name}</a>}</span>
-           case ModifyToRuleDiff(rule) => <span>Modify rule {<a href={ruleLink(rule.id)} onclick="noBubble(event);">{rule.name}</a>}</span>
+           case DeleteRuleDiff(rule) => <span>Delete rule <a href={baseRuleLink(rule.id)} onclick="noBubble(event);">{rule.name}</a></span>
+           case ModifyToRuleDiff(rule) => <span>Modify rule <a href={baseRuleLink(rule.id)} onclick="noBubble(event);">{rule.name}</a></span>
          }
    displayEvent(action,ruleChange.firstChange.actor,ruleChange.firstChange.creationDate, ruleChange.firstChange.reason.getOrElse(""))
   }
@@ -723,8 +723,8 @@ class ChangeRequestChangesForm(
   def displayNodeGroupChange(groupChange: NodeGroupChange) = {
     val action = groupChange.firstChange.diff match {
            case AddNodeGroupDiff(group) => Text(s"Create group ${group.name}")
-           case DeleteNodeGroupDiff(group) => <span>Delete group {<a href={groupLink(group.id)} onclick="noBubble(event);">{group.name}</a>}</span>
-           case ModifyToNodeGroupDiff(group) => <span>Modify group {<a href={groupLink(group.id)} onclick="noBubble(event);">{group.name}</a>}</span>
+           case DeleteNodeGroupDiff(group) => <span>Delete group <a href={baseGroupLink(group.id)} onclick="noBubble(event);">{group.name}</a></span>
+           case ModifyToNodeGroupDiff(group) => <span>Modify group <a href={baseGroupLink(group.id)} onclick="noBubble(event);">{group.name}</a></span>
          }
    displayEvent(action,groupChange.firstChange.actor,groupChange.firstChange.creationDate, groupChange.firstChange.reason.getOrElse(""))
   }
@@ -733,8 +733,8 @@ class ChangeRequestChangesForm(
   def displayDirectiveChange(directiveChange: DirectiveChange) = {
     val action = directiveChange.firstChange.diff match {
            case a : AddDirectiveDiff => Text(s"Create Directive ${a.directive.name}")
-           case d : DeleteDirectiveDiff => <span>Delete Directive {<a href={directiveLink(d.directive.id)} onclick="noBubble(event);">{d.directive.name}</a>}</span>
-           case m : ModifyToDirectiveDiff => <span>Modify Directive {<a href={directiveLink(m.directive.id)} onclick="noBubble(event);">{m.directive.name}</a>}</span>
+           case d : DeleteDirectiveDiff => <span>Delete Directive <a href={baseDirectiveLink(d.directive.id)} onclick="noBubble(event);">{d.directive.name}</a></span>
+           case m : ModifyToDirectiveDiff => <span>Modify Directive <a href={baseDirectiveLink(m.directive.id)} onclick="noBubble(event);">{m.directive.name}</a></span>
          }
    displayEvent(action,directiveChange.firstChange.actor,directiveChange.firstChange.creationDate, directiveChange.firstChange.reason.getOrElse(""))
   }
@@ -742,8 +742,8 @@ class ChangeRequestChangesForm(
   def displayGlobalParameterChange(globalParameterChange: GlobalParameterChange) = {
     val action = globalParameterChange.firstChange.diff match {
            case a : AddGlobalParameterDiff => Text(s"Create Global Parameter ${a.parameter.name.value}")
-           case d : DeleteGlobalParameterDiff => <span>Delete Global Parameter {<a href={globalParameterLink(d.parameter.name)} onclick="noBubble(event);">{d.parameter.name.value}</a>}</span>
-           case m : ModifyToGlobalParameterDiff => <span>Modify Global Parameter {<a href={globalParameterLink(m.parameter.name)} onclick="noBubble(event);">{m.parameter.name.value}</a>}</span>
+           case d : DeleteGlobalParameterDiff => <span>Delete Global Parameter <a href={baseGlobalParameterLink(d.parameter.name)} onclick="noBubble(event);">{d.parameter.name.value}</a></span>
+           case m : ModifyToGlobalParameterDiff => <span>Modify Global Parameter <a href={baseGlobalParameterLink(m.parameter.name)} onclick="noBubble(event);">{m.parameter.name.value}</a></span>
          }
    displayEvent(action,globalParameterChange.firstChange.actor,globalParameterChange.firstChange.creationDate, globalParameterChange.firstChange.reason.getOrElse(""))
   }
