@@ -146,7 +146,7 @@ bundle agent _logger_rudder_v2(expected_reports_source, message, class_prefix, a
       "args_line1" string => string_head(nth("args", "0"), "80");
 
       # normalize message to fit syslog output (first line)
-      "message_lines"  slist => string_split("${message}", "${const.n}", "2");
+      "message_lines"  slist => splitstring("${message}", "${const.n}", "2");
       "message_line1" string => nth("message_lines", "0");
 
   classes:
