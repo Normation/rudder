@@ -34,39 +34,50 @@
 
 package com.normation.cfclerk.services
 
-import junit.framework.TestSuite
+import java.io.File
+
+import scala.annotation.elidable
+import scala.annotation.elidable.ASSERTION
+import scala.collection.Seq
+
+import com.normation.cfclerk.domain.Cf3PromisesFileTemplateId
+import com.normation.cfclerk.domain.RootTechniqueCategoryId
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.cfclerk.services.impl.FSTechniqueReader
+import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
+import com.normation.cfclerk.xmlparsers.Cf3PromisesFileTemplateParser
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.cfclerk.xmlparsers.TechniqueParser
+import com.normation.cfclerk.xmlparsers.VariableSpecParser
+
+import org.apache.commons.io.IOUtils
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.junit._
-import org.junit.Assert._
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import scala.collection._
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.xmlparsers.TechniqueParser
-import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
-import org.springframework.test.context.ContextConfiguration
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner
-import java.io.File
-import org.apache.commons.io.IOUtils
-import com.normation.cfclerk.services.impl._
 
-@RunWith(classOf[SpringJUnit4ClassRunner])
-@ContextConfiguration(Array("file:src/test/resources/spring-config-test.xml"))
+@RunWith(classOf[BlockJUnit4ClassRunner])
 class TestPackageReader {
-
-  @Autowired
-  val policyParser: TechniqueParser = null
-
   lazy val reader = new FSTechniqueReader(
-    policyParser,
-    "src/test/resources/techniquesRoot",
-    "metadata.xml",
-    "category.xml",
-    "expected_reports.csv")
+    {
+      val variableSpecParser = new VariableSpecParser
+      new TechniqueParser(
+          variableSpecParser
+        , new SectionSpecParser(variableSpecParser)
+        , new Cf3PromisesFileTemplateParser
+        , new SystemVariableSpecServiceImpl
+      )
+    }
+    , "src/test/resources/techniquesRoot"
+    , "metadata.xml"
+    , "category.xml"
+    , "expected_reports.csv"
+  )
 
   @Test
   def testReadPackage() {
+
     val infos = reader.readTechniques
     assertEquals(3, infos.subCategories.size)
 
