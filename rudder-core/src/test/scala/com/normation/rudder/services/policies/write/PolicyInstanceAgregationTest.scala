@@ -32,24 +32,22 @@
 *************************************************************************************
 */
 
-package com.normation.cfclerk.services
+package com.normation.rudder.services.policies.write
 
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.services.policies.write.Cf3PolicyDraft
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftContainer
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
 import com.normation.rudder.services.policies.BundleOrder
 import org.junit._
 import org.junit.Assert._
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
+import com.normation.cfclerk.services.DummyTechniqueRepository
+import scala.collection.immutable.Set
+import scala.language.implicitConversions
 
 
 

@@ -116,7 +116,7 @@ trait PromiseGenerationService extends Loggable {
       globalComplianceMode <- getGlobalComplianceMode
       nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
 
-      //from here, we can restrein the calcul on two axis:
+      //from here, we can restrain the calcul on two axis:
       // - number of nodes: only node somehow targetted by a rule have to be considered.
       // - number of rules: any rule without target or with only target with no node can be skipped
       activeRuleIds = getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)

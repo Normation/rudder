@@ -63,6 +63,17 @@ import net.liftweb.common.Loggable
 
 trait PrepareTemplateVariables {
 
+
+  /**
+   * This methods contains all the logic that allows to transform an
+   * agent node configuration (as (mostly) viewed by Rudder) into
+   * a list of path info with formatted variables that can be feed to StringTemplate
+   * to actually generate the promises with the correct variables replaced.
+   *
+   * It's also that method that handle all the special variables, like "GENERATION TIMESTAMP",
+   * "BUNDLESEQUENCE", "INPUTLIST" etc.
+   *
+   */
   def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
@@ -70,7 +81,7 @@ trait PrepareTemplateVariables {
     , templates        : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
-  ): Box[(Seq[PreparedTemplates], NodePromisesPaths, Seq[String])]
+  ): Box[(NodePromisesPaths, Seq[PreparedTemplates], Seq[String])]
 
 }
 
@@ -83,25 +94,6 @@ class PrepareTemplateVariablesImpl(
   , systemVariableSpecService: SystemVariableSpecService
 ) extends PrepareTemplateVariables with Loggable {
 
-
-  /**
-   * From a base path and a base backup path, plus a node configuration, write the rules
-   * for its of the agent target in it, and then check it
-   *
-   * This is a several step process, from a nodePromisePath (end path), newNodePromisePath (path where promises are written before being checked)
-   * and a backupNodePath (path where old promises will be moved), and a node, it will:
-   * 1 - get the agents types, and complete the path with cfengine-community or cfengine-noca
-   * 2 - if the node is root, it will use hardcoded paths (var/rudder/cfengine-community/inputs, var/rudder/cfengine-community/inputs.new,   /var/rudder/cfengine-community/inputs.bkp)
-   * 3 - Write the file to /var/rudder/share/node-uuid/rules.new/cfengine-agentType
-   * 4 - Check the promises there
-   * Caution : a specific computation is done for the root server
-   * @params
-   *   nodePromisePath    : the path where the promises will be moved for the agent to fetch (finishing by /rules)
-   *   newNodePromisesPath: the path where the promises will be written, before being checked (finishes by /rules.new)
-   *   backupNodePath     : the path where the previous promises will be backuped
-
-   * @return : a Set of node, final destination of promises, folder where promises are written (.new), backup folder (don't want to return duplicate)
-   */
   override def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
@@ -109,7 +101,7 @@ class PrepareTemplateVariablesImpl(
     , templates        : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
-  ): Box[(Seq[PreparedTemplates], NodePromisesPaths, Seq[String])] = {
+  ): Box[(NodePromisesPaths, Seq[PreparedTemplates], Seq[String])] = {
 
 
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
@@ -136,18 +128,12 @@ class PrepareTemplateVariablesImpl(
     val csv = prepareReportingDataForMetaTechnique(container, rudderIdCsvTag)
 
 
-    Full((tmls.values.toSeq, agentNodeConfig.paths, csv))
+    Full((agentNodeConfig.paths, tmls.values.toSeq, csv))
 
   }
 
 
-  /**
-   * Compute the TMLs list to be written
-   * @param container : the container of the policies we want to write
-   * @param extraVariables : optional : extra system variables that we could want to add
-   * @return
-   */
-  def prepareCf3PromisesFileTemplate(
+  private[this] def prepareCf3PromisesFileTemplate(
       container: Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
     , templates: Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
@@ -157,7 +143,7 @@ class PrepareTemplateVariablesImpl(
     val techniques = techniqueRepository.getByIds(container.getAllIds)
     val variablesByTechnique = prepareVariables(container, prepareBundleVars(container) ++ extraSystemVariables, techniques)
 
-    /**
+    /*
      * From the container, convert the parameter into StringTemplate variable, that contains a list of
      * parameterName, parameterValue (really, the ParameterEntry itself)
      * This is quite naive for the moment
@@ -464,6 +450,7 @@ class PrepareTemplateVariablesImpl(
       }
     }).flatten
   }
+
 
 
 }

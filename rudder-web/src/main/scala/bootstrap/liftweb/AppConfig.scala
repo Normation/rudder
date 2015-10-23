@@ -45,7 +45,6 @@ import com.normation.rudder.services.queries._
 import com.normation.rudder.services.licenses._
 import com.normation.rudder.services.servers._
 import com.normation.rudder.services.system._
-import com.normation.rudder.services.path._
 import com.normation.rudder.services.policies._
 import com.normation.rudder.services.reports._
 import com.normation.rudder.domain.queries._

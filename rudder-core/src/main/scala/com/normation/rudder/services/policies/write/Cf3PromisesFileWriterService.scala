@@ -119,7 +119,12 @@ class Cf3PromisesFileWriterServiceImpl(
    * Write templates for node configuration that changed since the last write.
    *
    */
-  override def writeTemplate(rootNodeId: NodeId, nodesToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]) : Box[Seq[NodeConfiguration]] = {
+  override def writeTemplate(
+      rootNodeId    : NodeId
+    , nodesToWrite  : Set[NodeId]
+    , allNodeConfigs: Map[NodeId, NodeConfiguration]
+    , versions      : Map[NodeId, NodeConfigId]
+  ) : Box[Seq[NodeConfiguration]] = {
 
     val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
     val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
@@ -148,6 +153,7 @@ class Cf3PromisesFileWriterServiceImpl(
      * Here come the general writing process
      */
 
+    //utility method to parallelized computation. Does not seem safe...
     def sequencePar[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
       val buf = scala.collection.mutable.Buffer[T]()
       seq.par.foreach { u => f(u) match {
@@ -269,8 +275,8 @@ class Cf3PromisesFileWriterServiceImpl(
   }
 
   private[this] def writePromises(
-      preparedTemplates     : Seq[PreparedTemplates]
-    , paths                 : NodePromisesPaths
+      paths                 : NodePromisesPaths
+    , preparedTemplates     : Seq[PreparedTemplates]
     , expectedReportLines   : Seq[String]
     , expectedReportFilename: String
   ) : Box[NodePromisesPaths] = {
@@ -562,10 +568,10 @@ class Cf3PromisesFileWriterServiceImpl(
     val src = new File(nodeFolder)
     if (src.isDirectory()) {
       val dest = new File(backupFolder)
-      if (dest.isDirectory)
+      if (dest.isDirectory) {
         // force deletion of previous backup
         FileUtils.forceDelete(dest)
-
+      }
       FileUtils.moveDirectory(src, dest)
     }
   }
@@ -583,16 +589,16 @@ class Cf3PromisesFileWriterServiceImpl(
     if (src.isDirectory()) {
       val dest = new File(destinationFolder)
 
-      if (dest.isDirectory)
+      if (dest.isDirectory) {
         // force deletion of previous promises
         FileUtils.forceDelete(dest)
-
+      }
       FileUtils.moveDirectory(src, dest)
 
       // force deletion of dandling new promise folder
-      if ( (src.getParentFile().isDirectory) && (src.getParent().endsWith("rules.new")))
+      if ( (src.getParentFile().isDirectory) && (src.getParent().endsWith("rules.new"))) {
         FileUtils.forceDelete(src.getParentFile())
-
+      }
     } else {
       logger.error("Could not find freshly created promises at %s".format(sourceFolder))
       throw new IOException("Created promises not found !!!!")

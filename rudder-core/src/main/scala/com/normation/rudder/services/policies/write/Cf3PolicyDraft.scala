@@ -35,7 +35,6 @@
 package com.normation.rudder.services.policies.write
 
 
-import scala.collection.mutable.{ Map => MutMap }
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
@@ -245,16 +244,23 @@ object ParameterEntry {
   }
 }
 
+
+
 /**
  * A container is just a set of key/value parameter and cf3policyDrafts
  * whose variables have been processed to manage interdependencies
  * (like unique variable on a node whose value is contributed by
  * several directives).
+ *
+ * Only PrepareTemplateVariable use that, but the visibility is
+ * needed for tests.
+ *
  */
-class Cf3PolicyDraftContainer(
+protected[write] class Cf3PolicyDraftContainer(
    val parameters : Set[ParameterEntry],
    _drafts: Set[Cf3PolicyDraft]
 ) extends Loggable {
+  import scala.collection.mutable.{ Map => MutMap }
 
   val cf3PolicyDrafts = {
     /*
