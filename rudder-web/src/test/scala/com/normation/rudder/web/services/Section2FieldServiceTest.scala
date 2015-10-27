@@ -48,7 +48,6 @@ import com.normation.cfclerk.domain._
 import com.normation.rudder.web.model._
 import org.springframework.context.{ ApplicationContext, ApplicationContextAware }
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
-import com.normation.rudder.domain.policies.RuleVal
 import org.springframework.context.annotation.{ Bean, Configuration, Import }
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Lazy

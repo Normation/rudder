@@ -39,7 +39,6 @@ import org.joda.time.DateTime
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog._
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core._
 import java.sql.ResultSet

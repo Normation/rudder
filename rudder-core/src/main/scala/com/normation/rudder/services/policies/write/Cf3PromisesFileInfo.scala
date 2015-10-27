@@ -32,9 +32,13 @@
 *************************************************************************************
 */
 
-package com.normation.cfclerk.domain
+package com.normation.rudder.services.policies.write
 
+import com.normation.cfclerk.domain.Cf3PromisesFileTemplateId
 import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.AgentType
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 
 /**
  * That file store utility case classes about information used to
@@ -67,6 +71,27 @@ case class STVariable(
   , isSystem  :Boolean
 ) extends HashcodeCaching
 
+/**
+ * A class that holds information about where to copy generated promises
+ * from their generation directory to their final directory.
+ * A back-up folder is also provided to save a copy.
+ */
+case class NodePromisesPaths(
+    nodeId      : NodeId
+  , baseFolder  : String //directory where the file have to in the end
+  , newFolder   : String //poclicies are temporarly store in a policyName.new directory
+  , backupFolder: String
+) extends HashcodeCaching
+
+/**
+ * Data structure showing for a node, for an agent type, the paths
+ * on which promises will have to be written.
+ */
+case class AgentNodeConfiguration(
+    config   : NodeConfiguration
+  , agentType: AgentType
+  , paths    : NodePromisesPaths
+)
 
 /**
  * A class that store a list of "prepared template", i.e templates with
@@ -90,14 +115,3 @@ case class Cf3PromisesFileTemplateCopyInfo(
   override def toString() = s"Promise template ${id.techniqueId}/${id.name}; destination ${destination}"
 }
 
-/**
- * A class that holds information about where to copy generated promises
- * from their generation directory to their final directory.
- * A back-up folder is also provided to save a copy.
- */
-case class PromisesFinalMoveInfo(
-    containerId : String
-  , baseFolder  : String //directory where the file have to in the end
-  , newFolder   : String //poclicies are temporarly store in a policyName.new directory
-  , backupFolder: String
-) extends HashcodeCaching

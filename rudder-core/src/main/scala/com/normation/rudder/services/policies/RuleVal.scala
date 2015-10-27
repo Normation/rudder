@@ -32,26 +32,64 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
+package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.Cf3PolicyDraft
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
+import scala.collection.immutable.TreeMap
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
+import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.utils.HashcodeCaching
 import net.liftweb.common.Box
-import scala.collection.immutable.TreeMap
-import com.normation.inventory.domain.NodeInventory
-import com.normation.rudder.domain.reports.NodeAndConfigId
-import com.normation.cfclerk.domain.BundleOrder
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.RuleTarget
 
-/*
- * Immutable bridge between cfclerk and rudder
- */
+
+final case class BundleOrder(value: String)
+
+object BundleOrder {
+  val default: BundleOrder = BundleOrder("")
+
+  /**
+   * Comparison logic for bundle: purelly alpha-numeric.
+   * The empty string come first.
+   * The comparison is stable, meaning that a sorted list
+   * with equals values stay in the same order after a sort.
+   *
+   * The sort is case insensitive.
+   */
+  def compare(a: BundleOrder, b: BundleOrder): Int = {
+    String.CASE_INSENSITIVE_ORDER.compare(a.value, b.value)
+  }
+
+  def compareList(a: List[BundleOrder], b: List[BundleOrder]): Int = {
+
+    //only works on list of the same size
+    def compareListRec(a: List[BundleOrder], b: List[BundleOrder]): Int = {
+      (a, b) match {
+        case (ha :: ta, hb :: tb) =>
+          val comp = compare(ha,hb)
+          if(comp == 0) {
+            compareList(ta, tb)
+          } else {
+            comp
+          }
+        case _ => //we know they have the same size by construction, so it's a real equality
+          0
+      }
+    }
+
+    val maxSize = List(a.size, b.size).max
+    compareListRec(a.padTo(maxSize, BundleOrder.default), b.padTo(maxSize, BundleOrder.default))
+
+  }
+}
 
 
 /**
@@ -136,59 +174,6 @@ case class RuleVal(
   serial       : Int, // the generation serial of the Rule. Do we need it ?
   ruleOrder    : BundleOrder
 ) extends HashcodeCaching
-
-
-/**
- * A composite class, to keep the link between the applied Directive and the Rule
- */
-case class RuleWithCf3PolicyDraft private (
-    ruleId        : RuleId
-  , directiveId   : DirectiveId
-  , cf3PolicyDraft: Cf3PolicyDraft
-  , ruleOrder     : BundleOrder
-  , directiveOrder: BundleOrder
-  , overrides     : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
-) extends HashcodeCaching {
-  val draftId = cf3PolicyDraft.id
-
-  def toDirectiveVal(originalVariables: Map[String, Variable]) = ExpandedDirectiveVal(
-    technique         = cf3PolicyDraft.technique
-  , directiveId       = directiveId
-  , priority          = cf3PolicyDraft.priority
-  , trackerVariable   = cf3PolicyDraft.trackerVariable
-  , variables         = cf3PolicyDraft.variableMap
-  , originalVariables = originalVariables
-  )
-}
-
-object RuleWithCf3PolicyDraft {
-  def apply(
-    ruleId         : RuleId
-  , directiveId    : DirectiveId
-  , technique      : Technique
-  , variableMap    : Map[String, Variable]
-  , trackerVariable: TrackerVariable
-  , priority       : Int
-  , serial         : Int
-  , ruleOrder      : BundleOrder
-  , directiveOrder : BundleOrder
-  ): RuleWithCf3PolicyDraft = new RuleWithCf3PolicyDraft(
-      ruleId
-    , directiveId
-    , Cf3PolicyDraft(
-            Cf3PolicyDraftId(ruleId.value + "@@" + directiveId.value)
-          , technique
-          , variableMap
-          , trackerVariable
-          , priority = priority
-          , serial = serial
-          , order = List(ruleOrder, directiveOrder)
-      )
-    , ruleOrder
-    , directiveOrder
-    , Set()
-  )
-}
 
 
 /**

@@ -40,6 +40,7 @@ import org.junit.runner._
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
+import com.normation.rudder.services.policies.BundleOrder
 
 
 
