@@ -35,7 +35,6 @@
 package com.normation.rudder.web.services
 
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleVal
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.VariableSpec
 import com.normation.rudder.web.model.{ DirectiveEditor }

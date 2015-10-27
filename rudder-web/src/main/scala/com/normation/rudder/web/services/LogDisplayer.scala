@@ -38,7 +38,6 @@ package com.normation.rudder.web.services
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.services.servers.NodeSummaryService
 import com.normation.rudder.web.model._
 import com.normation.inventory.domain.NodeId

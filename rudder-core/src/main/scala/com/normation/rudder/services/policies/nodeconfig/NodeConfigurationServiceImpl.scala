@@ -34,18 +34,18 @@
 
 package com.normation.rudder.services.policies.nodeconfig
 
-import com.normation.cfclerk.domain.Cf3PolicyDraft
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.services.policies.TemplateWriter
 import com.normation.utils.Control.sequence
 import net.liftweb.common._
 import org.joda.time.DateTime
-import com.normation.cfclerk.domain.BundleOrder
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
+import com.normation.rudder.services.policies.BundleOrder
 
 
 /**
@@ -107,13 +107,13 @@ class DetectChangeInNodeConfiguration extends Loggable {
           // there is no cache at all (no node as a cache, we can't know if it is a change or not, so we must assume
           // we need to increase the serial)
           logger.trace("`-> No node configuration cache available at all, increasing all serial")
-          targetConfig.policyDrafts.map( _.ruleId ).toSet
+          targetConfig.policyDrafts.map( _.id.ruleId ).toSet
 
         }
       case Some(current) =>
 
         val target = NodeConfigurationCache(targetConfig)
-        val allRuleIds = (current.policyCache.map( _.ruleId ) ++ target.policyCache.map( _.ruleId )).toSet
+        val allRuleIds = (current.policyCache.map( _.draftId.ruleId ) ++ target.policyCache.map( _.draftId.ruleId )).toSet
 
         // First case : a change in the minimalnodeconfig is a change of all CRs
         // because we don't know what directive use informations from that - this should be improved
@@ -140,8 +140,8 @@ class DetectChangeInNodeConfiguration extends Loggable {
            *    in the case same serial, sub case different targets)
            */
 
-          val currentDrafts = current.policyCache.groupBy( _.ruleId )
-          val targetDrafts = target.policyCache.groupBy( _.ruleId )
+          val currentDrafts = current.policyCache.groupBy( _.draftId.ruleId )
+          val targetDrafts = target.policyCache.groupBy( _.draftId.ruleId )
 
           //draftid in one and not the other are new,
           //for the one in both, check both ruleId and cacheValue
@@ -180,8 +180,8 @@ class DetectChangeInNodeConfiguration extends Loggable {
                 Set.empty[RuleId]
               } else {
                 //the set of directive which changed - because we don't have xor on set
-                val diff = ((cDrafts -- tDrafts) ++ (tDrafts -- cDrafts)).map { case PolicyCache(RuleId(rid), Cf3PolicyDraftId(did), _) =>
-                  did.replace(rid, "").replace("@@", "")
+                val diff = ((cDrafts -- tDrafts) ++ (tDrafts -- cDrafts)).map { case PolicyCache(Cf3PolicyDraftId(ruleId, directiveId), _) =>
+                  directiveId.value
                 }
                 logger.trace(s"`-> there was a change in the rule with ID '${ruleId.value}', following directives are different: [${diff.mkString(", ")}]")
                 Set(ruleId)
@@ -190,7 +190,7 @@ class DetectChangeInNodeConfiguration extends Loggable {
             //we also have to add all Rule ID for a draft whose technique has been accepted since last cache generation
             //(because we need to write template again)
             val ids = (targetConfig.policyDrafts.collect {
-              case r:RuleWithCf3PolicyDraft if(wasUpdatedSince(r.cf3PolicyDraft, current.writtenDate, directiveLib)) => r.ruleId
+              case r:Cf3PolicyDraft if(wasUpdatedSince(r, current.writtenDate, directiveLib)) => r.id.ruleId
             }).toSet
 
             if(ids.nonEmpty) {
@@ -203,7 +203,7 @@ class DetectChangeInNodeConfiguration extends Loggable {
             // one system var - this should be improved
             if(current.nodeContextCache != target.nodeContextCache) {
               val ruleIdWithSystemVariable = targetConfig.policyDrafts.flatMap { x =>
-                x.cf3PolicyDraft.variableMap.values.find { _.spec.isSystem }.map { v =>  x.ruleId}
+                x.variableMap.values.find { _.spec.isSystem }.map { v =>  x.id.ruleId}
               }
               logger.trace(s"`-> there was a change in the system variables of the node for rules ID [${ruleIdWithSystemVariable.map(_.value).mkString(", ")}]")
               ruleIdWithSystemVariable
@@ -232,9 +232,8 @@ class DetectChangeInNodeConfiguration extends Loggable {
  *
  */
 class NodeConfigurationServiceImpl(
-    policyTranslator    : TemplateWriter
+    policyTranslator    : Cf3PromisesFileWriterService
   , repository          : NodeConfigurationCacheRepository
-  , logNodeConfig       : NodeConfigurationLogger
 ) extends NodeConfigurationService with Loggable {
 
   private[this] val detect = new DetectChangeInNodeConfiguration()
@@ -254,17 +253,18 @@ class NodeConfigurationServiceImpl(
      *
      * That method check that:
      * - the directive added is not already in the NodeConfiguration (why ? perhaps a note to dev is better ?)
+     * - a technique does not exists with two versions
      * - there is at most one directive for each "unique" technique
      */
     def sanitizeOne(nodeConfig: NodeConfiguration) : Box[NodeConfiguration] = {
 
       //first of all: be sure to keep only one draft for a given draft id
-      val deduplicateDraft = nodeConfig.policyDrafts.groupBy(_.draftId).map { case (draftId, set) =>
+      val deduplicateDraft = nodeConfig.policyDrafts.groupBy(_.id).map { case (draftId, set) =>
         val main = set.head
         //compare policy draft
         //Following parameter are not relevant in that comparison (we compare directive, not rule, here:)
         if(set.size > 1) {
-          logger.error(s"The directive '${set.head.directiveId.value}' on rule '${set.head.ruleId.value}' was added several times on node '${nodeConfig.nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter at random for the promise generation.")
+          logger.error(s"The directive '${set.head.id.directiveId.value}' on rule '${set.head.id.ruleId.value}' was added several times on node '${nodeConfig.nodeInfo.id.value}' WITH DIFFERENT PARAMETERS VALUE. It's a bug, please report it. Taking one set of parameter at random for the promise generation.")
           import net.liftweb.json._
           implicit val formats = Serialization.formats(NoTypeHints)
           def r(j:JValue) = if(j == JNothing) "{}" else pretty(render(j))
@@ -279,31 +279,40 @@ class NodeConfigurationServiceImpl(
         main
       }
 
+      //now, check for technique version consistency
+      val techniqueByName = nodeConfig.policyDrafts.groupBy(x => x.technique.id.name)
+      // Filter this grouping by technique having two different version
+      val multipleVersion = techniqueByName.filter(x => x._2.groupBy(x => x.technique.id.version).size > 1).map(x => x._1).toSet
+
+      if(multipleVersion.nonEmpty) {
+        return Failure(s"There are directives based on techniques with different versions applied to the same node, please correct the version for the following directive(s): ${multipleVersion.mkString(", ")}")
+      }
+
       //now, we have to case to process:
       // - directives based on "unique" technique: we must keep only one. And to attempt to get a little stability in
       //    our generated promises, for a given technique, we will try to always choose the same directive
       //    (in case of ambiguity)
       // - other: just add them all!
 
-      val (otherDrafts, uniqueTechniqueBasedDrafts) = deduplicateDraft.partition(_.cf3PolicyDraft.technique.isMultiInstance)
+      val (otherDrafts, uniqueTechniqueBasedDrafts) = deduplicateDraft.partition(_.technique.isMultiInstance)
 
       //sort unique based draft by technique, and then check priority on each groups
 
-      val keptUniqueDraft = uniqueTechniqueBasedDrafts.groupBy(_.cf3PolicyDraft.technique.id).map { case (techniqueId, setDraft) =>
+      val keptUniqueDraft = uniqueTechniqueBasedDrafts.groupBy(_.technique.id).map { case (techniqueId, setDraft) =>
 
-        val withSameTechnique = setDraft.toSeq.sortBy( _.cf3PolicyDraft.priority )
+        val withSameTechnique = setDraft.toSeq.sortBy( _.priority )
         //we know that the size is at least one, so keep the head, and log discard tails
 
         //two part here: discard less priorized directive,
         //and for same priority, take the first in rule/directive order
         //and add a big warning
 
-        val priority = withSameTechnique.head.cf3PolicyDraft.priority
+        val priority = withSameTechnique.head.priority
 
-        val lesserPriority = withSameTechnique.dropWhile( _.cf3PolicyDraft.priority == priority)
+        val lesserPriority = withSameTechnique.dropWhile( _.priority == priority)
 
         //keep the directive with
-        val samePriority = withSameTechnique.takeWhile( _.cf3PolicyDraft.priority == priority).sortWith{ case (x1, x2) =>
+        val samePriority = withSameTechnique.takeWhile( _.priority == priority).sortWith{ case (x1, x2) =>
           BundleOrder.compareList(List(x1.ruleOrder, x1.directiveOrder), List(x2.ruleOrder, x2.directiveOrder)) <= 0
         }
 
@@ -311,12 +320,12 @@ class NodeConfigurationServiceImpl(
 
         //only one log for all discared draft
         if(samePriority.size > 1) {
-          logger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeConfig.nodeInfo.hostname}' for mono-instance (unique) technique '${keep.cf3PolicyDraft.technique.id}'. Several directives with same priority '${keep.cf3PolicyDraft.priority}' are applied. "+
-              s"Keeping (ruleId@@directiveId) '${keep.draftId.value}' (order: ${keep.ruleOrder.value}/${keep.directiveOrder.value}, discarding: ${samePriority.tail.map(x => s"${x.draftId.value}:${x.ruleOrder.value}/${x.directiveOrder.value}").mkString("'", "', ", "'")}")
+          logger.warn(s"Unicity check: NON STABLE POLICY ON NODE '${nodeConfig.nodeInfo.hostname}' for mono-instance (unique) technique '${keep.technique.id}'. Several directives with same priority '${keep.priority}' are applied. "+
+              s"Keeping (ruleId@@directiveId) '${keep.id.value}' (order: ${keep.ruleOrder.value}/${keep.directiveOrder.value}, discarding: ${samePriority.tail.map(x => s"${x.id.value}:${x.ruleOrder.value}/${x.directiveOrder.value}").mkString("'", "', ", "'")}")
         }
-        logger.trace(s"Unicity check: on node '${nodeConfig.nodeInfo.id.value}' for mono-instance (unique) technique '${keep.cf3PolicyDraft.technique.id}': keeping (ruleId@@directiveId) '${keep.draftId.value}', discarding less priorize: ${lesserPriority.map(_.draftId.value).mkString("'", "', ", "'")}")
+        logger.trace(s"Unicity check: on node '${nodeConfig.nodeInfo.id.value}' for mono-instance (unique) technique '${keep.technique.id}': keeping (ruleId@@directiveId) '${keep.id.value}', discarding less priorize: ${lesserPriority.map(_.id.value).mkString("'", "', ", "'")}")
 
-        val overrides = (samePriority.tail.map(x => (x.ruleId,x.directiveId)) ++ lesserPriority.map(x => (x.ruleId,x.directiveId))).toSet
+        val overrides = (samePriority.tail.map(x => (x.id.ruleId,x.id.directiveId)) ++ lesserPriority.map(x => (x.id.ruleId,x.id.directiveId))).toSet
         keep.copy(overrides = overrides)
 
       }
@@ -356,30 +365,6 @@ class NodeConfigurationServiceImpl(
       nodeConfigurations.keySet.intersect(nodeToKeep)
     }
   }
-
-  /**
-   * Write templates for node configuration that changed since the last write.
-   *
-   */
-  def writeTemplate(rootNodeId: NodeId, nodesToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]) : Box[Seq[NodeConfiguration]] = {
-    val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
-    //debug - but don't fails for debugging !
-    logNodeConfig.log(nodeConfigsToWrite.values.toSeq) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to write node configurations for debugging"
-        logger.error(e)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception cause was:", ex)
-        }
-      case _ => //nothing to do
-    }
-
-    val result = policyTranslator.writePromisesForMachines(nodesToWrite, rootNodeId, allNodeConfigs, versions).map(_ => nodeConfigsToWrite.values.toSeq )
-    policyTranslator.reloadCFEnginePromises()
-
-    result
-  }
-
 
   override def detectChangeInNodes(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory) : Set[RuleId] = {
     nodes.flatMap{ x =>

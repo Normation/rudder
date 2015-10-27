@@ -83,12 +83,6 @@ trait NodeConfigurationService {
   def cacheNodeConfiguration(nodeConfigurations: Set[NodeConfiguration]): Box[Set[NodeId]]
 
   /**
-   * Write the templates of ALL the given node configuration.
-   * Select them carrefully!
-   */
-  def writeTemplate(rootNodeId: NodeId, configToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]): Box[Seq[NodeConfiguration]]
-
-  /**
    * Look what are the node configuration updated compared to information in cache
    */
   def selectUpdatedNodeConfiguration(nodeConfigurations: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]): Set[NodeId]

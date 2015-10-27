@@ -48,7 +48,6 @@ import com.normation.rudder.services.policies.nodeconfig.ParameterForConfigurati
 import net.liftweb.common._
 import com.normation.utils.Control.sequence
 import scala.collection.immutable.TreeMap
-import com.normation.rudder.domain.policies.InterpolationContext
 import InterpolationContext._
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
