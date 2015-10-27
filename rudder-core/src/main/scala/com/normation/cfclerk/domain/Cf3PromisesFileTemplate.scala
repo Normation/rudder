@@ -34,9 +34,6 @@
 
 package com.normation.cfclerk.domain
 
-import net.liftweb.common._
-import org.slf4j.{Logger,LoggerFactory}
-import scala.xml._
 import com.normation.utils.HashcodeCaching
 
 
@@ -51,26 +48,10 @@ import com.normation.utils.HashcodeCaching
  * A template qualified name has a string representation
  * that is by convention "policy name" / "template name".
  */
-class Cf3PromisesFileTemplateId(val techniqueId:TechniqueId, val name:String) {
+case class Cf3PromisesFileTemplateId(val techniqueId:TechniqueId, val name:String) {
   override def toString() = techniqueId.toString + "/" + name
-
-  override def equals(other:Any) = other match {
-    case that:Cf3PromisesFileTemplateId => this.techniqueId  == that.techniqueId && this.name == that.name
-    case _ => false
-  }
-
-  override lazy val hashCode = this.techniqueId.hashCode + 61 * this.name.hashCode
 }
 
-object Cf3PromisesFileTemplateId {
-  def apply(techniqueId:TechniqueId, name:String) = new Cf3PromisesFileTemplateId(techniqueId, name)
-
-  def unapply(str:String) : Option[(TechniqueId,String)] = {
-    val parts = str.split("/").map(_.replaceAll("""\s""", ""))
-    if(parts.size == 3 && parts(1).size > 0) Some((TechniqueId(TechniqueName(parts(0)), TechniqueVersion(parts(1))),parts(2)))
-    else None
-  }
-}
 
 
 /**

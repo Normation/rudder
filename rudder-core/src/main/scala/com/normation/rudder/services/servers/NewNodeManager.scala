@@ -38,7 +38,6 @@ import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
@@ -56,7 +55,7 @@ import scala.collection.mutable.Buffer
 import net.liftweb.common._
 import Box._
 import net.liftweb.util.Helpers._
-import com.normation.cfclerk.domain.{Cf3PolicyDraftId,TechniqueId}
+import com.normation.cfclerk.domain.TechniqueId
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import com.normation.eventlog.EventActor

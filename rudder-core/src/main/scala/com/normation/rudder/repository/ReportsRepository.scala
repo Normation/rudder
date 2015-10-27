@@ -34,14 +34,15 @@
 
 package com.normation.rudder.repository
 
+import org.joda.time._
+
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
-import org.joda.time._
-import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
-import net.liftweb.common.Box
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
+
+import net.liftweb.common.Box
 
 /**
  * An overly simple repository for searching through the cfengine reports
