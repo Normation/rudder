@@ -54,8 +54,6 @@ import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.execution.AgentRun
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
 
@@ -382,12 +380,54 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       }
     }
 
+
+    /*
+     * here, we may have several runs with same nodeId/timestamp
+     * In that case, we need to keep the one with a configId, if such
+     * exists.
+     */
+    def distinctRuns(seq: Seq[AgentRun]): Seq[AgentRun] = {
+      //that one is for a list of agentRun with same id
+      def recDisctinct(runs: List[AgentRun]): AgentRun = {
+        runs match {
+          case Nil => throw new IllegalArgumentException("Error in code: distinctRuns methods should never call the recDistinct one with an empty list")
+          //easy, most common case
+          case h :: Nil => h
+          case a :: b :: t =>
+            if(a == b) {
+              recDisctinct(a :: t)
+            } else (a, b) match {
+              //by default, take the one with a configId.
+              case (AgentRun(_, Some(idA), _, _), AgentRun(_, None, _, _)) => recDisctinct(a :: t)
+              case (AgentRun(_, None, _, _), AgentRun(_, Some(idB), _, _)) => recDisctinct(b :: t)
+              //this one, with two config id, should never happen, but still...
+              //we don't care if they are the same, because we still prefer the one completed, and
+              //the one with the higher serial.
+              case (AgentRun(_, Some(idA), isCompleteA, serialA), AgentRun(_, Some(idB), isCompleteB, serialB)) =>
+                if(isCompleteA && !isCompleteB) {
+                  recDisctinct(a :: t)
+                } else if(!isCompleteA && isCompleteB) {
+                  recDisctinct(b :: t)
+                } else { //ok.. use serial...
+                  if(serialA <= serialB) {
+                    recDisctinct(a :: t)
+                  } else {
+                    recDisctinct(b :: t)
+                  }
+                }
+            }
+        }
+      }
+
+      seq.groupBy { run => run.agentRunId }.mapValues { runs => recDisctinct(runs.toList) }.values.toSeq
+    }
+
     //actual logic for getReportsfromId
     for {
       toId    <- getMaxId(lastProcessedId, endDate)
       reports <- getRuns(lastProcessedId, toId)
     } yield {
-      (reports, toId)
+      (distinctRuns(reports), toId)
     }
   }
 
