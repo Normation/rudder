@@ -1284,15 +1284,15 @@
   <DEVICEID>sovma136-2014-02-10-07-13-43</DEVICEID>
   <QUERY>INVENTORY</QUERY>
 
-<!-- Needed elements for Rudder -->  
-<UUID>aix6521e-3c81-4775-85c7-5dd7f9d5d3da</UUID>
-<USER>root</USER>
-<AGENTSNAME>
-<AGENTNAME>Community</AGENTNAME>
-</AGENTSNAME>
+<RUDDER>  
 <HOSTNAME>sovma136.labo.normation.com</HOSTNAME>
-<POLICY_SERVER>root</POLICY_SERVER>
-<!-- end of Needed elements for Rudder -->  
+<UUID>aix6521e-3c81-4775-85c7-5dd7f9d5d3da</UUID>
+<AGENT>
+<OWNER>root</OWNER>
+<AGENT_NAME>Community</AGENT_NAME>
+<POLICY_SERVER_UUID>root</POLICY_SERVER_UUID>
+</AGENT>
+</RUDDER>
 
   
 </REQUEST>
