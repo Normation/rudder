@@ -35,14 +35,20 @@
 package bootstrap.liftweb
 
 import java.io.File
-import scala.collection.JavaConversions.seqAsJavaList
+import java.util.Collection
+import org.springframework.context.ApplicationContext
+import org.springframework.context.ApplicationContextAware
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.ImportResource
+import org.springframework.context.support.ClassPathXmlApplicationContext
 import org.springframework.core.io.{ ClassPathResource => CPResource }
 import org.springframework.core.io.{ FileSystemResource => FSResource }
 import org.springframework.core.io.Resource
+import org.springframework.ldap.core.DirContextAdapter
+import org.springframework.ldap.core.DirContextOperations
 import org.springframework.security.authentication.AuthenticationProvider
+import org.springframework.security.authentication.ProviderManager
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.authentication.encoding.Md5PasswordEncoder
@@ -55,19 +61,18 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.core.userdetails.UsernameNotFoundException
+import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
 import org.springframework.security.web.AuthenticationEntryPoint
-import com.normation.authorization.Create
-import com.normation.authorization.Delete
-import com.normation.authorization.Read
-import com.normation.authorization.Rights
-import com.normation.authorization.Search
-import com.normation.authorization.Write
+import org.xml.sax.SAXParseException
+import com.normation.authorization._
 import com.normation.rudder.api.ApiToken
 import com.normation.rudder.api.RoApiAccountRepository
 import com.normation.rudder.authorization.AuthzToRights
 import com.normation.rudder.authorization.NoRights
 import com.normation.rudder.domain.logger.ApplicationLogger
+import com.normation.rudder.web.services.UserSessionLogEvent
 import com.normation.utils.HashcodeCaching
+import com.typesafe.config.ConfigException
 import javax.servlet.Filter
 import javax.servlet.FilterChain
 import javax.servlet.FilterConfig
@@ -75,16 +80,9 @@ import javax.servlet.ServletRequest
 import javax.servlet.ServletResponse
 import javax.servlet.http.HttpServletRequest
 import javax.servlet.http.HttpServletResponse
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
-import net.liftweb.common.Failure
-import org.springframework.security.ldap.userdetails.UserDetailsContextMapper
-import org.springframework.ldap.core.DirContextAdapter
-import org.springframework.ldap.core.DirContextOperations
-import java.util.Collection
-import org.xml.sax.SAXParseException
-import com.normation.rudder.web.services.UserSessionLogEvent
+import net.liftweb.common._
+import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer
+import org.springframework.context.support.AbstractApplicationContext
 
 /**
  * Spring configuration for user authentication.
@@ -96,28 +94,86 @@ import com.normation.rudder.web.services.UserSessionLogEvent
  *  <user name="name2" password="p2" />
  * </authentication>
  *
+ * Note that the main Spring application entry point is bootstrap.liftweb.AppConfig
+ * which import AppConfigAuth which itself import generic security context and
+ * dedicated authentication methods.
  */
 @Configuration
 @ImportResource(Array("classpath:applicationContext-security.xml"))
-class AppConfigAuth extends Loggable {
+class AppConfigAuth extends ApplicationContextAware {
   import AppConfigAuth._
+  import scala.collection.JavaConverters.seqAsJavaListConverter
+  import RudderProperties.config
+
+  private[this] var appCtx: ApplicationContext = null //yeah...
+
+  val logger = ApplicationLogger
+
+  def setApplicationContext(applicationContext: ApplicationContext) {
+    //prepare specific properties for new context
+    import scala.collection.JavaConverters._
+    RudderProperties.authenticationMethods.foreach { x =>
+      try {
+        // try to load all the specific properties of that auth type
+        // so that they are available from Spring
+        // the config can have 0 specif entry => try/catch
+        config.getConfig(s"rudder.auth.${x.name}").entrySet.asScala.foreach { case e =>
+          val fullKey = s"rudder.auth.${x.name}.${e.getKey}"
+          System.setProperty(fullKey, config.getString(fullKey))
+        }
+      } catch {
+        case ex: ConfigException.Missing => //does nothing - the beauty of imperative prog :(
+      }
+    }
+
+    //load additionnal beans from authentication dedicated ressource files
+
+    val propertyConfigurer = new PropertyPlaceholderConfigurer()
+    propertyConfigurer.setIgnoreResourceNotFound(true)
+    propertyConfigurer.setIgnoreUnresolvablePlaceholders(true)
+    propertyConfigurer.setSearchSystemEnvironment(true)
+    propertyConfigurer.setSystemPropertiesMode(PropertyPlaceholderConfigurer.SYSTEM_PROPERTIES_MODE_OVERRIDE)
+    propertyConfigurer.setOrder(10000)
+
+    applicationContext match {
+      case x: AbstractApplicationContext =>
+        x.addBeanFactoryPostProcessor(propertyConfigurer)
+
+      case _ => //nothing
+    }
+
+    val configuredAuthProviders = RudderProperties.authenticationMethods.filter( _.name != "rootAdmin")
+    logger.info(s"Loaded authentication provider(s): [${configuredAuthProviders.map(_.name).mkString(", ")}]")
+
+    val ctx = new ClassPathXmlApplicationContext(applicationContext)
+    ctx.addBeanFactoryPostProcessor(propertyConfigurer)
+    ctx.setConfigLocations(configuredAuthProviders.map( _.configFile ).toArray)
+    ctx.refresh
+    appCtx = ctx
+  }
+
 
   ///////////// FOR WEB INTERFACE /////////////
 
+  /**
+   * Configure the authentication provider, with always trying
+   * the root admin account first so that we always have a way to
+   * log-in into Rudder.
+   */
+  @Bean(name = Array("org.springframework.security.authenticationManager"))
+  def authenticationManager = new ProviderManager(RudderProperties.authenticationMethods.map { x =>
+      appCtx.getBean(x.springBean, classOf[AuthenticationProvider])
+  }.asJava)
 
-  @Bean def demoAuthenticationProvider : AuthenticationProvider = {
+  @Bean def rudderUserDetailsService: RudderInMemoryUserDetailsService = {
     try {
       val resource = getUserResourceFile
       //try to read and parse the file for users
       parseUsers(resource) match {
         case Some(config) =>
-          val userDetails = new RudderInMemoryUserDetailsService(config.users.map { case (login,pass,roles) =>
-            RudderUserDetail(login,pass,roles)
+          new RudderInMemoryUserDetailsService(config.encoder, config.users.map { case (login,pass,roles) =>
+            RudderUserDetail(login, pass, roles)
           }.toSet)
-          val provider = new DaoAuthenticationProvider()
-          provider.setUserDetailsService(userDetails)
-          provider.setPasswordEncoder(config.encoder)
-          provider
         case None =>
           ApplicationLogger.error("Error when trying to parse user file '%s', aborting.".format(resource.getURL.toString))
           throw new javax.servlet.UnavailableException("Error when triyng to parse user file '%s', aborting.".format(resource.getURL.toString))
@@ -134,6 +190,44 @@ class AppConfigAuth extends Loggable {
     }
   }
 
+  @Bean def fileAuthenticationProvider : AuthenticationProvider = {
+    val provider = new DaoAuthenticationProvider()
+    provider.setUserDetailsService(rudderUserDetailsService)
+    provider.setPasswordEncoder(rudderUserDetailsService.passwordEncoder)
+    provider
+  }
+
+  @Bean def rootAdminAuthenticationProvider : AuthenticationProvider = {
+    // We want to be able to disable that account.
+    // For that, we let the user either let undefined udder.auth.admin.login,
+    // or let empty udder.auth.admin.login or rudder.auth.admin.password
+
+    val set = if(config.hasPath("rudder.auth.admin.login") && config.hasPath("rudder.auth.admin.password")) {
+      val admin = RudderUserDetail(
+          config.getString("rudder.auth.admin.login")
+        , config.getString("rudder.auth.admin.password")
+        , AuthzToRights.parseRole(Seq("administrator"))
+      )
+      if(admin.login.isEmpty || admin.password.isEmpty) {
+        Set.empty[RudderUserDetail]
+      } else {
+        Set(admin)
+      }
+    } else {
+      Set.empty[RudderUserDetail]
+    }
+
+    if(set.isEmpty) {
+      logger.info("No master admin account is defined. You can defined one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file")
+    }
+
+    val provider = new DaoAuthenticationProvider()
+    provider.setUserDetailsService(new RudderInMemoryUserDetailsService(new PlaintextPasswordEncoder, set))
+    provider
+  }
+
+
+
   ///////////// FOR REST API /////////////
 
   @Bean def restAuthenticationFilter = new RestAuthenticationFilter(RudderConfig.roApiAccountRepository)
@@ -143,6 +237,7 @@ class AppConfigAuth extends Loggable {
         response.sendError( HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized" )
     }
   }
+
 
   /**
    * Map an user from XML user config file
@@ -166,8 +261,8 @@ class AppConfigAuth extends Loggable {
 /**
  *  A trivial, immutable implementation of UserDetailsService for RudderUser
  */
-class RudderInMemoryUserDetailsService(private[this] val initialUsers:Set[RudderUserDetail]) extends UserDetailsService {
-  private[this] val users = Map[String,RudderUserDetail](initialUsers.map(u => (u.login,u)).toSeq:_*)
+class RudderInMemoryUserDetailsService(val passwordEncoder: PasswordEncoder, private[this] val _users:Set[RudderUserDetail]) extends UserDetailsService {
+  private[this] val users = Map[String,RudderUserDetail](_users.map(u => (u.login,u)).toSeq:_*)
 
   @throws(classOf[UsernameNotFoundException])
   override def loadUserByUsername(username:String) : RudderUserDetail = {
@@ -200,8 +295,9 @@ case object RoleApiAuthority extends GrantedAuthority {
  * Note that authorizations are not managed by spring, but by the
  * 'authz' token of RudderUserDetail.
  */
-case class RudderUserDetail(login:String,password:String,authz:Rights, grantedAuthorities: Seq[GrantedAuthority] = Seq(RoleUserAuthority)) extends UserDetails with HashcodeCaching {
-  override val getAuthorities:java.util.Collection[GrantedAuthority] = grantedAuthorities
+case class RudderUserDetail(login:String, password:String, authz:Rights, grantedAuthorities: Seq[GrantedAuthority] = Seq(RoleUserAuthority)) extends UserDetails with HashcodeCaching {
+  import scala.collection.JavaConverters.asJavaCollectionConverter
+  override val getAuthorities:java.util.Collection[GrantedAuthority] = grantedAuthorities.asJavaCollection
   override val getPassword = password
   override val getUsername = login
   override val isAccountNonExpired = true
