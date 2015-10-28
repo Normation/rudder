@@ -48,12 +48,13 @@ class TestControl {
 
   @Test
   def stopParSequenceMinizeComputation() {
+    import scala.collection.parallel._
+    val lpar = l.par
+    lpar.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(2))
     @volatile var steps = 0
-    val res = sequencePar(l) { i => steps += 1 ; Failure(msg(i))  }
-    println(res)
-    println("steps: " + steps)
+    val res = sequencePar(lpar) { i => steps += 1 ; Failure(msg(i))  }
     assert(res.isEmpty == true, "Parallel sequence should fail on error")
-    assert(steps < l.size, "Parallel sequence traversal should minimize the number of operation")
+    assert(steps <= 2, "Parallel sequence traversal should minimize the number of operation")
   }
 
   @Test

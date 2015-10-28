@@ -21,6 +21,7 @@
 package com.normation.utils
 
 import net.liftweb.common._
+import scala.collection.parallel._
 
 /**
  *
@@ -64,9 +65,16 @@ object Control {
    *    forall i € [0, size-1], f(insep(i)) == outseq(i)
    */
   def sequencePar[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
+    sequencePar(seq.par)(f)
+  }
+
+  /**
+   * Same as above with full control on the parallel seq
+   */
+  def sequencePar[U,T](seq:ParSeq[U])(f:U => Box[T]) : Box[Seq[T]] = {
     val buf = scala.collection.mutable.Buffer[T]()
     @volatile var stop = Option.empty[EmptyBox]
-    seq.par.foreach { u => if(stop.isEmpty) f(u) match {
+    seq.foreach { u => if(stop.isEmpty) f(u) match {
       case Full(x) => buf += x
       case e:EmptyBox => stop = Some(e)
     } }
@@ -75,8 +83,6 @@ object Control {
       case None => Full(buf)
     }
   }
-
-
 
   def sequenceEmptyable[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
     val buf = scala.collection.mutable.Buffer[T]()
