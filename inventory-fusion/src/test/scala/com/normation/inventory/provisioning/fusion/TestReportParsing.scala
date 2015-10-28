@@ -39,16 +39,9 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import com.normation.utils.StringUuidGeneratorImpl
 import net.liftweb.common._
-import com.normation.inventory.domain.InventoryReport
-import com.normation.inventory.domain.ServerRole
 import scala.xml.XML
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
 import java.io.File
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NOVA_AGENT
-import com.normation.inventory.domain.Windows
-import com.normation.inventory.domain.Windows2012
+import com.normation.inventory.domain._
 
 
 /**
@@ -58,7 +51,7 @@ import com.normation.inventory.domain.Windows2012
  * with OpenLDAP Schema).
  */
 @RunWith(classOf[JUnitRunner])
-class TestReportParsing extends Specification {
+class TestReportParsing extends Specification with Loggable {
 
   private[this] implicit class TestParser(parser: FusionReportUnmarshaller) {
     def parse(reportRelativePath: String): InventoryReport = {
@@ -67,10 +60,10 @@ class TestReportParsing extends Specification {
       if(null == url) throw new NullPointerException(s"Resource with relative path '${reportRelativePath}' is null (missing resource? Spelling? Permissions?)")
       val is = url.openStream()
 
-      val report = parser.fromXml("report", is) match {
+      val report = parser.fromXml(reportRelativePath, is) match {
         case Full(e) => e
         case eb:EmptyBox =>
-          val e = eb ?~! "Parsing error"
+          val e = eb ?~! s"Parsing error with file ${reportRelativePath}"
           e.rootExceptionCause match {
             case Full(ex) => throw new Exception(e.messageChain, ex)
             case _ => throw new Exception(e.messageChain)
@@ -83,8 +76,29 @@ class TestReportParsing extends Specification {
 
     val parser = new FusionReportUnmarshaller(
         new StringUuidGeneratorImpl
-      , rootParsingExtensions = RudderServerRoleParsing ::Nil
+      , rootParsingExtensions = RudderServerRoleParsing :: Nil
     )
+
+  "All inventories in the fusion-report directory" should {
+    "be correctly parsed and give a non generic OS type" in {
+
+      val dir = new File(this.getClass.getClassLoader.getResource("fusion-report").getFile)
+      val fileNames = dir.listFiles().collect { case f if(f.getName.endsWith(".ocs") || f.getName.endsWith(".xml")) => f.getName }.toList
+
+      fileNames must contain { (f:String) =>
+        val name = "fusion-report/"+f
+        val report = parser.parse(name)
+        report.node.main.osDetails match {
+          case _:UnknownOS =>
+            logger.error(s"Inventory '${name}' has an unknown OS type")
+            failure
+          case _:Windows | _:Linux | _:Aix | _:Solaris =>
+            success
+        }
+      }.foreach
+
+    }
+  }
 
   "Machine with two ips for one interfaces" should {
 
