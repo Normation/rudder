@@ -197,6 +197,7 @@ object LDAPConstants {
   val A_OS_UNKNOWN_SOLARIS = "Unknown Solaris version"
   val A_OS_SOLARIS = "Solaris"
   val A_OS_AIX = "AIX"
+  val A_OS_FREEBSD = "FreeBSD"
   val A_OS_ORACLE = "Oracle"
   val A_OS_SCIENTIFIC = "Scientific"
 
@@ -215,6 +216,7 @@ object LDAPConstants {
   val OC_LINUX_NODE = "linuxNode"
   val OC_SOLARIS_NODE = "solarisNode"
   val OC_AIX_NODE = "aixNode"
+  val OC_FREEBSD_NODE = "freebsdNode"
   val OC_MACHINE = "machine"
   val OC_PM = "physicalMachine"
   val OC_VM = "virtualMachine"
@@ -240,6 +242,7 @@ object LDAPConstants {
   val OC_VM_SOLARIS_ZONE = "solarisZone"
   val OC_VM_QEMU = "qemu"
   val OC_VM_AIX_LPAR = "aixLpar"
+  val OC_VM_BSDJAIL = "bsdJail"
 
 
   implicit val OC = new LDAPSchema()
@@ -262,6 +265,7 @@ object LDAPConstants {
   OC +=(OC_VM_SOLARIS_ZONE, OC(OC_VM))
   OC +=(OC_VM_QEMU, OC(OC_VM))
   OC +=(OC_VM_AIX_LPAR, OC(OC_VM))
+  OC +=(OC_VM_BSDJAIL, OC(OC_VM))
 
   OC +=(OC_PE,
       must = Set(),
@@ -277,7 +281,8 @@ object LDAPConstants {
             OC_VM_VMWARE,
             OC_VM_SOLARIS_ZONE,
             OC_VM_QEMU,
-            OC_VM_AIX_LPAR
+            OC_VM_AIX_LPAR,
+            OC_VM_BSDJAIL
   )
 
   OC +=(OC_MEMORY, sup = OC(OC_PE),
@@ -355,6 +360,7 @@ object LDAPConstants {
   OC +=(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))
   OC +=(OC_SOLARIS_NODE, sup = OC(OC_UNIX_NODE))
   OC +=(OC_AIX_NODE, sup = OC(OC_UNIX_NODE))
+  OC +=(OC_FREEBSD_NODE, sup = OC(OC_UNIX_NODE))
 
   OC +=(OC_OU,
       must = Set("ou"),

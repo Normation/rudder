@@ -384,6 +384,7 @@ class InventoryMapper(
       case VirtualMachineType(SolarisZone) => OC(OC_VM_SOLARIS_ZONE)
       case VirtualMachineType(QEmu) => OC(OC_VM_QEMU)
       case VirtualMachineType(AixLPAR) => OC(OC_VM_AIX_LPAR)
+      case VirtualMachineType(BSDJail) => OC(OC_VM_BSDJAIL)
       case PhysicalMachineType => OC(OC_PM)
     }
   }
@@ -398,6 +399,7 @@ class InventoryMapper(
         case LDAPObjectClass(OC_VM_SOLARIS_ZONE,_,_,_) => Some(VirtualMachineType(SolarisZone))
         case LDAPObjectClass(OC_VM_QEMU,_,_,_)         => Some(VirtualMachineType(QEmu))
         case LDAPObjectClass(OC_VM_AIX_LPAR,_,_,_)     => Some(VirtualMachineType(AixLPAR))
+        case LDAPObjectClass(OC_VM_BSDJAIL,_,_,_)     => Some(VirtualMachineType(BSDJail))
         case LDAPObjectClass(OC_PM,_,_,_)              => Some(PhysicalMachineType)
         case _ => None
       }
@@ -667,6 +669,11 @@ class InventoryMapper(
         aix += (A_OS_NAME, A_OS_AIX)
         aix
 
+      case FreeBSD(_,_,_,_) =>
+        val freebsd = dit.NODES.NODE.freebsdModel(server.main.id)
+        freebsd += (A_OS_NAME, A_OS_FREEBSD)
+        freebsd
+
       case Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
         os match {
@@ -833,6 +840,8 @@ class InventoryMapper(
           Full(Solaris(osFullName,osVersion,osServicePack,kernelVersion))
         } else if(entry.isA(OC_AIX_NODE)) {
           Full(Aix(osFullName,osVersion,osServicePack,kernelVersion))
+        } else if(entry.isA(OC_FREEBSD_NODE)) {
+          Full(FreeBSD(osFullName,osVersion,osServicePack,kernelVersion))
         } else if(entry.isA(OC_NODE)) {
           Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
         } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))

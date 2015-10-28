@@ -468,6 +468,7 @@ class FusionReportUnmarshaller(
         case "qemu" => report.machine.copy(machineType = VirtualMachineType(QEmu) )
         case "solariszone" => report.machine.copy(machineType = VirtualMachineType(SolarisZone) )
         case "aix_lpar" => report.machine.copy(machineType = VirtualMachineType(AixLPAR) )
+        case "bsdjail" => report.machine.copy(machineType = VirtualMachineType(BSDJail) )
         case _ => report.machine.copy(machineType = VirtualMachineType(UnknownVmType) )
       }
     }
@@ -559,6 +560,8 @@ class FusionReportUnmarshaller(
 
         case("aix", _) => AixOS
 
+        case ("freebsd", _) => FreebsdOS
+
         case _  => UnknownOSType
       }
 
@@ -581,6 +584,14 @@ class FusionReportUnmarshaller(
           Linux(
               os = distrib
             , fullName = fullName
+            , version = version
+            , servicePack = servicePack
+            , kernelVersion = kernelVersion
+          )
+
+        case FreebsdOS =>
+          FreeBSD(
+              fullName = fullName
             , version = version
             , servicePack = servicePack
             , kernelVersion = kernelVersion

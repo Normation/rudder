@@ -204,13 +204,20 @@ object AixOS extends OsType {
   val name = "AIX"
 }
 
+//FreeBSD has only one flavour
+//Yes, for now, we have just one BSD
+object FreebsdOS extends OsType {
+  val kernelName = "BSD"
+  val name = "FreeBSD"
+}
 
 
 /**
- * The different OS type. For now, we know
- * three of them:
+ * The different OS type. For now, we know:
  * - Linux
  * - Solaris
+ * - AIX
+ * - FreeBSD
  * - Windows.
  * And a joker
  * - Unknown
@@ -245,6 +252,13 @@ case class Solaris(
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
 ) extends OsDetails(SolarisOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
+
+case class FreeBSD(
+    override val fullName      : String
+  , override val version       : Version
+  , override val servicePack   : Option[String]
+  , override val kernelVersion : Version
+) extends OsDetails(FreebsdOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
 case class Aix(
     override val fullName      : String
