@@ -57,6 +57,27 @@ object Control {
     Full(buf)
   }
 
+  /**
+   * Parallel version of sequence.
+   * BE CAREFUL: The resulting sequence order is lost!
+   * (i.e: you DON'T have, in case of success:
+   *    forall i € [0, size-1], f(insep(i)) == outseq(i)
+   */
+  def sequencePar[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
+    val buf = scala.collection.mutable.Buffer[T]()
+    @volatile var stop = Option.empty[EmptyBox]
+    seq.par.foreach { u => if(stop.isEmpty) f(u) match {
+      case Full(x) => buf += x
+      case e:EmptyBox => stop = Some(e)
+    } }
+    stop match {
+      case Some(e) => e
+      case None => Full(buf)
+    }
+  }
+
+
+
   def sequenceEmptyable[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
     val buf = scala.collection.mutable.Buffer[T]()
     seq.foreach { u => f(u) match {
