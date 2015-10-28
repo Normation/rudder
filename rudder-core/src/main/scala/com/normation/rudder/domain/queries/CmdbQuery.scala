@@ -328,6 +328,7 @@ case object OstypeComparator extends CriterionType {
       case "Linux"   => OC_LINUX_NODE
       case "Solaris" => OC_SOLARIS_NODE
       case "AIX"     => OC_AIX_NODE
+      case "FreeBSD" => OC_FREEBSD_NODE
       case _         => OC_UNIX_NODE
     }
     comparator match {
