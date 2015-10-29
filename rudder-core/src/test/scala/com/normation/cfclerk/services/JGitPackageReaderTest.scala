@@ -126,6 +126,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
               , "category.xml"
               , "expected_reports.csv"
               , relativePathArg
+              , "default-directive-names.conf"
             )
 
   val infos = reader.readTechniques

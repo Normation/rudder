@@ -42,12 +42,13 @@ import com.normation.utils.HashcodeCaching
 
 
 case class TechniquesInfo(
-    rootCategory: RootTechniqueCategory
+    rootCategory          : RootTechniqueCategory
     //the TechniqueCategoryId is a path from the point of view of a tree
-  , techniquesCategory: Map[TechniqueId, TechniqueCategoryId]
-  , techniques: Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]
+  , techniquesCategory    : Map[TechniqueId, TechniqueCategoryId]
+  , techniques            : Map[TechniqueName, SortedMap[TechniqueVersion, Technique]]
     //head of categories is the root category
-  , subCategories: Map[SubTechniqueCategoryId, TechniqueCategory]
+  , subCategories         : Map[SubTechniqueCategoryId, TechniqueCategory]
+  , directivesDefaultNames: Map[String, String]
 ) extends HashcodeCaching {
   val allCategories = Map[TechniqueCategoryId, TechniqueCategory]() ++ subCategories + (rootCategory.id -> rootCategory)
 }
@@ -125,5 +126,7 @@ trait TechniqueReader {
    * *any* change will be given
    */
   def getModifiedTechniques : Map[TechniqueName, TechniquesLibraryUpdateType]
+
+  def needReload() : Boolean
 }
 
