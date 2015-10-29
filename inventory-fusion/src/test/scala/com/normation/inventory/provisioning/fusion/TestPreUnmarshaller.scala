@@ -115,7 +115,7 @@ class TestPreUnmarshaller extends Specification {
 
   "Post inventory check should fail" should {
      "When there is no fqdn defined" in {
-        val noFQDN = post.check("fusion-report/centos-6-64-2011-09-22-12-02-27.ocs")
+        val noFQDN = post.check("fusion-report/centos.no_rudder_extension.no_fqdn")
         noFQDN.toOption must beNone
      }
   }
