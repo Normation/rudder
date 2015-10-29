@@ -69,8 +69,8 @@ import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
 import com.normation.stringtemplate.language.formatter.LocalTimeRenderer
 import com.normation.stringtemplate.language.formatter.DateRenderer
 import com.normation.stringtemplate.language.formatter.LocalDateRenderer
+import com.normation.utils.Control.sequencePar
 import com.normation.utils.Control.sequence
-import com.normation.utils.Control.boxSequence
 import org.antlr.stringtemplate.StringTemplate
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.IOUtils
@@ -153,15 +153,6 @@ class Cf3PromisesFileWriterServiceImpl(
      * Here come the general writing process
      */
 
-    //utility method to parallelized computation. Does not seem safe...
-    def sequencePar[U,T](seq:Seq[U])(f:U => Box[T]) : Box[Seq[T]] = {
-      val buf = scala.collection.mutable.Buffer[T]()
-      seq.par.foreach { u => f(u) match {
-        case e:EmptyBox => return e
-        case Full(x) => buf += x
-      } }
-      Full(buf)
-    }
 
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
