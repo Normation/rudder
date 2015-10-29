@@ -114,7 +114,7 @@ class CreateDirectivePopup(
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val directiveName = new WBTextField("Name", "") {
+  private[this] val directiveName = new WBTextField("Name", techniqueName) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def errorClassName = ""
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
