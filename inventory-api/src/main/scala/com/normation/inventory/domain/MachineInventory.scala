@@ -144,6 +144,7 @@ case object VMWare extends VmType("vmware") with HashcodeCaching
 case object QEmu extends VmType("qemu") with HashcodeCaching
 case object Xen extends VmType("xen") with HashcodeCaching
 case object AixLPAR extends VmType("aixlpar") with HashcodeCaching
+case object BSDJail extends VmType("bsdjail") with HashcodeCaching
 
 
 

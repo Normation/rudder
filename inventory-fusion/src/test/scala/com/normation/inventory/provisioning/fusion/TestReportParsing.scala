@@ -92,7 +92,7 @@ class TestReportParsing extends Specification with Loggable {
           case _:UnknownOS =>
             logger.error(s"Inventory '${name}' has an unknown OS type")
             failure
-          case _:Windows | _:Linux | _:Aix | _:Solaris =>
+          case _ =>
             success
         }
       }.foreach
