@@ -330,7 +330,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              Failure(s"We weren't able to get agent run interval configuration (even using default values) for some node: ${(nodeIds -- runIntervals.keySet).map(_.value).mkString(", ")}")
                            }
     } yield {
-      ExecutionBatch.computeNodeRunInfo(runIntervals, runs, nodeConfigIdInfos, compliance)
+      ExecutionBatch.computeNodesRunInfo(runIntervals, runs, nodeConfigIdInfos, compliance)
     }
   }
 
