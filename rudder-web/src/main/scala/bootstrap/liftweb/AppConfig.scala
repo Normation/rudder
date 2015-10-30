@@ -1416,6 +1416,7 @@ object RudderConfig extends Loggable {
       roLdap
     , nodeDitImpl
     , acceptedNodesDitImpl
+    , removedNodesDitImpl
     , ldapEntityMapper
   )
   private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
