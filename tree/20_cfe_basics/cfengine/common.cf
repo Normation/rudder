@@ -56,65 +56,93 @@
 ##-------------------------------------------------------
 
 body action if_elapsed(x)
+# @brief Evaluate the promise every `x` minutes
+# @param x The time in minutes between promise evaluations
 {
-ifelapsed => "$(x)";
-expireafter => "$(x)";
+      ifelapsed => "$(x)";
+      expireafter => "$(x)";
 }
 
 ##
 
 body action if_elapsed_day
+# @brief Evalute the promise once every 24 hours
 {
-ifelapsed => "1440";    # 60 x 24
-expireafter => "1400";
+      ifelapsed => "1440";    # 60 x 24
+      expireafter => "1400";
 }
 
 ##
 
 body action measure_performance(x)
+# @brief Measure repairs of the promiser every `x` minutes
+#
+# Repair-attempts are cancelled after `x` minutes.
+#
+# @param x The time in minutes between promise evaluations.
 {
-measurement_class => "Detect changes in $(this.promiser)";
-ifelapsed => "$(x)";
-expireafter => "$(x)";
+      measurement_class => "Detect changes in $(this.promiser)";
+      ifelapsed => "$(x)";
+      expireafter => "$(x)";
+}
+
+##
+
+body action measure_promise_time(identifier)
+# @brief Performance will be measured and recorded under identifier
+#
+# @param identifier Measurement name.
+{
+      measurement_class => "$(identifier)";
 }
 
 ##
 
 body action warn_only
+# @brief Warn once an hour if the promise needs to be repaired
+#
+# The promise does not get repaired.
 {
-action_policy => "warn";
-ifelapsed => "60";
+      action_policy => "warn";
+      ifelapsed => "60";
 }
 
 ##
 
 body action bg(elapsed,expire)
+# @brief Evaluate the promise in the background every `elapsed` minutes, for at most `expire` minutes
+# @param elapsed The time in minutes between promise evaluations
+# @param expire The time in minutes after which a repair-attempt gets cancelled
 {
-ifelapsed   => "$(elapsed)";
-expireafter => "$(expire)";
-background  => "true";
+      ifelapsed   => "$(elapsed)";
+      expireafter => "$(expire)";
+      background  => "true";
 }
 
 ##
 
 body action ifwin_bg
+# @brief Evaluate the promise in the background when running on Windows
 {
-windows::
-background => "true";
+    windows::
+      background => "true";
 }
 
 ##
 
 body action immediate
+# @brief Evaluate the promise at every `cf-agent` execution.
 {
-ifelapsed => "0";
+      ifelapsed => "0";
 }
 
 ##
 
 body action policy(p)
+# @brief Set the `action_policy` to `p`
+# @param p The action policy
 {
-action_policy => "$(p)";
+      action_policy => "$(p)";
 }
 
 ##
@@ -122,113 +150,145 @@ action_policy => "$(p)";
 # Log a message to log=[/file|stdout]
 
 body action log_repaired(log,message)
+# @brief Log `message` to a file `log`=[/file|stdout]
+# @param log The log file for repaired messages
+# @param message The log message
 {
-log_string => "$(sys.date), $(message)";
-log_repaired => "$(log)";
+      log_string => "$(sys.date), $(message)";
+      log_repaired => "$(log)";
 }
 
 ###
 
 body action log_verbose
+# @brief Sets the `log_level` attribute to "verbose"
 {
-log_level => "verbose";
+      log_level => "verbose";
 }
 
 ##
 
 body action sample_rate(x)
+# @brief Evaluate the promise every `x` minutes,
+# A repair-attempt is cancelled after 10 minutes
+# @param x The time in minutes between promise evaluation
 {
-ifelapsed => "$(x)";
-expireafter => "10";
+      ifelapsed => "$(x)";
+      expireafter => "10";
 }
 
 ##-------------------------------------------------------
 ## classes
 ##-------------------------------------------------------
 
-
 body classes if_repaired(x)
+# @brief Define class `x` if the promise has been repaired
+# @param x The name of the class
 {
-promise_repaired => { "$(x)" };
+      promise_repaired => { "$(x)" };
 }
 
 ##
 
 body classes if_else(yes,no)
-
+# @brief Define the classes `yes` or `no` depending on promise outcome
+# @param yes The name of the class that should be defined if the promise is kept or repaired
+# @param no The name of the class that should be defined if the promise could not be repaired
 {
-promise_kept     => { "$(yes)" };
-promise_repaired => { "$(yes)" };
-repair_failed    => { "$(no)" };
-repair_denied    => { "$(no)" };
-repair_timeout   => { "$(no)" };
+      promise_kept     => { "$(yes)" };
+      promise_repaired => { "$(yes)" };
+      repair_failed    => { "$(no)" };
+      repair_denied    => { "$(no)" };
+      repair_timeout   => { "$(no)" };
 }
 
 ##
 
 body classes cf2_if_else(yes,no)
-
-# meant to match cf2 semantics
-
+# @brief Define the classes `yes` or `no`, depending on promise outcome
+#
+# A version of `if_else` that matches CFEngine2 semantics. Neither class is set if the promise
+# does not require any repair.
+#
+# @param yes The name of the class that should be defined if the promise is repaired
+# @param no The name of the class that should be defind if teh promise could not be repaired
 {
-promise_repaired => { "$(yes)" };
-repair_failed    => { "$(no)" };
-repair_denied    => { "$(no)" };
-repair_timeout   => { "$(no)" };
+      promise_repaired => { "$(yes)" };
+      repair_failed    => { "$(no)" };
+      repair_denied    => { "$(no)" };
+      repair_timeout   => { "$(no)" };
 }
 
 ##
 
 body classes if_notkept(x)
+# @brief Define the class `x` if the promise is not kept and cannot be repaired.
+# @param x The name of the class that should be defined
 {
-repair_failed   => { "$(x)" };
-repair_denied   => { "$(x)" };
-repair_timeout  => { "$(x)" };
+      repair_failed   => { "$(x)" };
+      repair_denied   => { "$(x)" };
+      repair_timeout  => { "$(x)" };
 }
 
 ##
 
 body classes if_ok(x)
+# @brief Define the class `x` if the promise is kept or could be repaired
+# @param x The name of the class that should be defined
 {
-promise_repaired => { "$(x)" };
-promise_kept => { "$(x)" };
+      promise_repaired => { "$(x)" };
+      promise_kept => { "$(x)" };
 }
 
 ##
 
 body classes if_ok_cancel(x)
+# @brief Cancel the class `x` if the promise ks kept or repaired
+# @param x The name of the class that should be cancelled
 {
-cancel_repaired => { "$(x)" };
-cancel_kept => { "$(x)" };
+      cancel_repaired => { "$(x)" };
+      cancel_kept => { "$(x)" };
 }
 
 ##
 
 body classes cmd_repair(code,cl)
+# @brief Define the class `cl` if an external command in a `commands`, `file` or `packages`
+# promise is executed with return code `code`
+# @param code The return codes that indicate a successful repair
+# @param cl The name of the class that should be defined
+#
+# **See also:** `repaired_returncodes`
 {
-repaired_returncodes => { "$(code)" };
-promise_repaired => { "$(cl)" };
+      repaired_returncodes => { "$(code)" };
+      promise_repaired => { "$(cl)" };
 }
 
 body classes classes_generic(x)
-# Define x prefixed/suffixed with promise outcome
+# @brief Define `x` prefixed/suffixed with promise outcome
+# @param x The unique part of the classes to be defined
 {
-  promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
-  repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-  repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-  repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-  promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+      promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+      repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error","$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
 body classes scoped_classes_generic(scope, x)
-# Define x prefixed/suffixed with promise outcome
+# @brief Define `x` prefixed/suffixed with promise outcome
+# 
+# **See also:** [`scope`][Promise Types and Attributes#scope]
+#
+# @param scope The scope in which the class should be defined
+# @param x The unique part of the classes to be defined
 {
-  scope => "$(scope)";
-  promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
-  repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-  repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-  repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
-  promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
+      scope => "$(scope)";
+      promise_repaired => { "promise_repaired_$(x)", "$(x)_repaired", "$(x)_ok", "$(x)_reached" };
+      repair_failed => { "repair_failed_$(x)", "$(x)_failed", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      repair_denied => { "repair_denied_$(x)", "$(x)_denied", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      repair_timeout => { "repair_timeout_$(x)", "$(x)_timeout", "$(x)_not_ok", "$(x)_error", "$(x)_not_kept", "$(x)_not_repaired", "$(x)_reached" };
+      promise_kept => { "promise_kept_$(x)", "$(x)_kept", "$(x)_ok", "$(x)_not_repaired", "$(x)_reached" };
 }
 
 ##-------------------------------------------------------
@@ -237,36 +297,38 @@ body classes scoped_classes_generic(scope, x)
 
 body classes state_repaired(x)
 {
-promise_repaired => { "$(x)" };
-persist_time => "10";
+      promise_repaired => { "$(x)" };
+      persist_time => "10";
 }
 
 ##
 
 body classes enumerate(x)
-
-#
-# This is used by commercial editions to count
-# instances of jobs in a cluster
-#
-
+# @brief Define `x` for 15 minutes if the promise is either kept or repaired
+# This is used by commercial editions to count instances of jobs in a cluster
+# @param x The unqiue part of the class that should be defind
+# The class defined is prefixed with `mXC_`
 {
-promise_repaired => { "mXC_$(x)" };
-promise_kept => { "mXC_$(x)" };
-persist_time => "15";
+      promise_repaired => { "mXC_$(x)" };
+      promise_kept => { "mXC_$(x)" };
+      persist_time => "15";
 }
 
 ##
 
 body classes always(x)
-
-# Define a class no matter what the outcome of the promise is
-
+# @brief Define class `x` no matter what the outcome of the promise is
+# @param x The name of the class to be defined
 {
-  promise_repaired => { "$(x)" };
-  promise_kept => { "$(x)" };
-  repair_failed => { "$(x)" };
-  repair_denied => { "$(x)" };
-  repair_timeout => { "$(x)" };
+      promise_repaired => { "$(x)" };
+      promise_kept => { "$(x)" };
+      repair_failed => { "$(x)" };
+      repair_denied => { "$(x)" };
+      repair_timeout => { "$(x)" };
 }
 
+body classes kept_successful_command
+# @brief Set command to "kept" instead of "repaired" if it returns 0
+{
+      kept_returncodes => { "0" };
+}

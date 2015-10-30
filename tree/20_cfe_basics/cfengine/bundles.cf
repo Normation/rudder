@@ -52,45 +52,85 @@
 ###################################################
 
 bundle agent cronjob(commands,user,hours,mins)
-
- # For adding lines to crontab for a user
- # methods:
- #  "cron" usebundle => cronjob("/bin/ls","mark","*","5,10");
-
+# @brief Defines a cron job for `user`
+#
+# Adds a line to crontab, if necessary.
+#
+# @param commands The commands that should be run
+# @param user The owner of crontab
+# @param hours The hours at which the job should run
+# @param mins The minutes at which the job should run
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#  "cron" usebundle => cronjob("/bin/ls","mark","*","5,10");
+# ```
 {
-vars:
-  SuSE::
-   "crontab" string => "/var/spool/cron/tabs";
-  redhat|fedora::
-   "crontab" string => "/var/spool/cron";
-  freebsd::
-   "crontab" string => "/var/cron/tabs";
- !(SuSE|redhat|fedora|freebsd)::
-    "crontab" string => "/var/spool/cron/crontabs";
+  vars:
+    SuSE::
+      "crontab" string => "/var/spool/cron/tabs";
+    redhat|fedora::
+      "crontab" string => "/var/spool/cron";
+    freebsd::
+      "crontab" string => "/var/cron/tabs";
+    !(SuSE|redhat|fedora|freebsd)::
+      "crontab" string => "/var/spool/cron/crontabs";
 
-files:
+  files:
 
-!windows::
-  "$(crontab)/$(user)"
+    !windows::
+      "$(crontab)/$(user)"
 
-    comment => "A user's regular batch jobs are added to this file",
-     create => "true",
-  edit_line => append_if_no_line("$(mins) $(hours) * * * $(commands)"),
+      comment => "A user's regular batch jobs are added to this file",
+      create => "true",
+      edit_line => append_if_no_line("$(mins) $(hours) * * * $(commands)"),
       perms => mo("600","$(user)"),
-    classes => if_repaired("changed_crontab");
+      classes => if_repaired("changed_crontab");
 
-processes:
+  processes:
 
-changed_crontab::
-   "cron"
-         comment => "Most crons need to be huped after file changes",
-         signals => { "hup" };
+    changed_crontab::
+      "cron"
+      comment => "Most crons need to be huped after file changes",
+      signals => { "hup" };
 
 }
 
-# this is a workaround for the issue that recurse_with_base precludes
-# a file from being deleted
 bundle agent rm_rf(name)
+# @brief recursively remove `name` to any depth, including base
+# @depends rm_rf_depth
+# @param name the file or directory name
+#
+# This bundle will remove `name` to any depth, including `name` itself.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "bye" usebundle => rm_rf("/var/tmp/oldstuff");
+# ```
+{
+  methods:
+      "rm" usebundle => rm_rf_depth($(name),"inf");
+
+}
+
+bundle agent rm_rf_depth(name,depth)
+# @brief recursively remove `name` to depth `depth`, including base
+# @depends recurse_with_base tidy all
+# @param name the file or directory name
+# @param depth how far to descend
+#
+# This bundle will remove `name` to depth `depth`, including `name` itself.
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "bye" usebundle => rm_rf_depth("/var/tmp/oldstuff", "100");
+# ```
 {
   classes:
       "isdir" expression => isdir($(name));
@@ -98,14 +138,66 @@ bundle agent rm_rf(name)
     isdir::
       "$(name)"
       file_select => all,
-      depth_search => recurse_with_base(999),
+      depth_search => recurse_with_base($(depth)),
       delete => tidy;
+
+      "$(name)/."
+        delete => tidy;
 
     !isdir::
       "$(name)" delete => tidy;
 }
 
 bundle agent fileinfo(f)
+# @brief provide access to file stat fields from the bundle caller and report
+# file stat info for file "f" if "verbose_mode" class is defined
+# @param f file or files to stat
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "files" slist => { "/tmp/example1", "/tmp/example2" };
+#
+#   files:
+#     "$(files)"
+#       create => "true",
+#       classes => if_ok("verbose_mode"),
+#       comment => "verbose_mode is defined because the fileinfo bundle restricts the report of the file info to verbose mode";
+#
+#     "/tmp/example3"
+#       create => "true",
+#       classes => if_ok("verbose_mode"),
+#       comment => "verbose_mode is defined because the fileinfo bundle restricts the report of the file info to verbose mode";
+#
+#
+#   methods:
+#     "fileinfo" usebundle => fileinfo( @(files) );
+#     "fileinfo" usebundle => fileinfo( "/tmp/example3" );
+#
+#   reports:
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][size])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][gid])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][uid])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][ino])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][nlink])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][ctime])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][atime])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][mtime])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][mode])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][modeoct])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][permstr])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][permoct])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][type])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][devno])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][dev_minor])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][dev_major])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][basename])";
+#     "$(this.bundle): $(fileinfo.stat[/tmp/example3][dirname])";
+# }
+# ```
 {
   vars:
       "fields" slist => splitstring("size,gid,uid,ino,nlink,ctime,atime,mtime,mode,modeoct,permstr,permoct,type,devno,dev_minor,dev_major,basename,dirname", ",", 999);
@@ -115,4 +207,167 @@ bundle agent fileinfo(f)
   reports:
     verbose_mode::
       "$(this.bundle): file $(f) has $(fields) = $(stat[$(f)][$(fields)])";
+}
+
+bundle agent logrotate(log_files, max_size, rotate_levels)
+# @brief rotate specified "log_files" larger than "max_size". Keep
+# "rotate_levels" versions of the files before overwriting the oldest one
+# @depends rotate
+# @depends bigger_than
+# @param log_files single file or list of files to evaluate for rotation
+# @param max_size minimum size in bytes that the file will grow to before being rotated
+# @param rotate_levels number of rotations to keep before overwriting the oldest one
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "logdirs" slist => { "/var/log/syslog", "/var/log/maillog"};
+#
+#   methods:
+#     "logrotate" usebundle => logrotate( @(logdirs), "1M", "2" );
+#     "logrotate" usebundle => logrotate( "/var/log/mylog, "1", "5" );
+#     "logrotate" usebundle => logrotate( "/var/log/alog, "500k", "7" );
+# }
+# ```
+{
+  files:
+      "$(log_files)"
+      comment     => "Rotate file if above specified size",
+      rename      => rotate("$(rotate_levels)"),
+      file_select => bigger_than("$(max_size)");
+}
+
+bundle agent prunedir(dir, max_days)
+# @brief delete plain files inside "dir" older than "max_days" (not recursively).
+# @depends tidy
+# @depends recurse
+# @depends filetype_older_than
+# @param dir directory to examine for files
+# @param max_days maximum number of days old a files mtime is allowed to before deletion
+#
+# **Example:**
+#
+# ```cf3
+# bundle agent example
+# {
+#   vars:
+#     "dirs" slist => { "/tmp/logs", "/tmp/logs2" };
+#
+#   methods:
+#     "prunedir" usebundle => prunedir( @(dirs), "1" );
+# }
+# ```
+{
+  files:
+      "$(dir)"
+      comment       => "Delete plain files inside directory older than max_days",
+      delete        => tidy,
+      file_select   => filetype_older_than("plain", "$(max_days)"),
+      depth_search  => recurse("1");
+}
+
+bundle agent tcdb_fix
+# @brief Optimize tcdb and repair tcdb corruption
+#
+# **Example**:
+# ```cf3
+# methods:
+#   "Manage Tokyo Cabinet Corruption"
+#     usebundle => tcdb_fix,
+#     handle => "main_methods_tcdb_fix",
+#     comment => "Optimize/Repair or regenerate corrupt tcdb files";
+# ```
+# This bundle works around corruption issues with Tokyo Cabinet database files
+# in CFEngine 3.5. Find all tcdb files in $(sys.workdir) and run tchmgr
+# optimize on them. If any invalid record headers are found we remove the
+# affected database so that it can be re-created. This occurs hourly based on
+# `splayclass` and assumes a 5 minute agent execution interval.
+{
+  vars:
+
+    linux::
+      "db" slist => splitstring( execresult("/usr/bin/find $(sys.workdir) -name '*.tcdb' 2>/dev/null", "useshell"), "\n", "1000");
+
+
+  classes:
+
+      # NOTE: assumes that CFEngine is set to run every 5 minutes
+      "hourly_class" expression => splayclass("$(sys.host)$(sys.ipv4)", "hourly");
+
+    hourly_class.linux::
+      "detected_invalid_record_$(db)" expression => returnszero("/var/cfengine/bin/tchmgr optimize $(db) 2>&1 | grep -q 'invalid record header'", "useshell");
+
+
+  commands:
+
+      "$(paths.rm)"
+        args => "-f $(db)",
+        ifvarclass => canonify("detected_invalid_record_$(db)"),
+        classes => scoped_classes_generic("bundle", "absent_$(db)"),
+        handle => "fix_tcdb_commands_detected_invalid_record_rm_$(db)",
+        comment => "Invalid record headers indicate that the database corruption is beyond repair. It will be automatically re-created.";
+
+
+  reports:
+
+      "$(this.bundle) $(sys.fqhost): Detected invalid record header in $(db) - tried to repair"
+        ifvarclass => canonify("detected_invalid_record_$(db)");
+
+      "$(this.bundle) $(sys.fqhost): Repair failed, removed corrupt database: $(db)"
+        ifvarclass => canonify("absent_$(db)_repaired");
+}
+
+bundle agent url_ping(host, method, port, uri)
+# @brief ping HOST:PORT/URI using METHOD
+# @param host the host name
+# @param method the HTTP method (HEAD or GET)
+# @param port the port number, e.g. 80
+# @param uri the URI, e.g. /path/to/resource
+#
+# This bundle will send a simple HTTP request and read 20 bytes back,
+# then compare them to `200 OK.*` (ignoring leading spaces).
+#
+# If the data matches, the global class "url_ok_HOST" will be set, where
+# HOST is the canonified host name, i.e. `canonify($(host))`
+#
+# **Example:**
+#
+# ```cf3
+# methods:
+#     "check" usebundle => url_ping("cfengine.com", "HEAD", "80", "/bill/was/here");
+# reports:
+#   url_ok_cfengine_com::
+#     "CFEngine's web site is up";
+#   url_not_ok_cfengine_com::
+#     "CFEngine's web site *may* be down.  Or you're offline.";
+# ```
+{
+  vars:
+      "url_check" string => readtcp($(host),
+                                    $(port),
+                                    "$(method) $(uri) HTTP/1.1$(const.r)$(const.n)Host:$(host)$(const.r)$(const.n)$(const.r)$(const.n)",
+                                    20);
+
+      "chost" string => canonify($(host));
+
+  classes:
+      "url_ok_$(chost)"
+      scope => "namespace",
+      expression => regcmp("[^\n]*200 OK.*\n.*",
+                           $(url_check));
+
+      "url_not_ok_$(chost)"
+      scope => "namespace",
+      not => regcmp("[^\n]*200 OK.*\n.*",
+                           $(url_check));
+
+  reports:
+    verbose_mode::
+      "$(this.bundle): $(method) $(host):$(port)/$(uri) got 200 OK"
+      ifvarclass => "url_ok_$(chost)";
+      "$(this.bundle): $(method) $(host):$(port)/$(uri) did *not* get 200 OK"
+      ifvarclass => "url_not_ok_$(chost)";
 }

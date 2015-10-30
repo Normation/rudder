@@ -52,13 +52,20 @@
 ##--------------------------------------------------------------
 
 bundle common common_knowledge
+# @brief common packages knowledge bundle
+#
 # This common bundle defines general things about platforms.
 {
   vars:
       "list_update_ifelapsed" string => "240";
+      "list_update_ifelapsed_now" string => "0";
 }
 
 bundle common debian_knowledge
+# @depends paths
+# @brief common Debian knowledge bundle
+#
+# This common bundle has useful information about Debian.
 {
   vars:
       "apt_prefix" string => "/usr/bin/env DEBIAN_FRONTEND=noninteractive LC_ALL=C PATH=/bin:/sbin/:/usr/bin:/usr/sbin";

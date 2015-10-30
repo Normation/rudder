@@ -1,0 +1,138 @@
+############################################################################
+#  Copyright (C) CFEngine AS
+#
+#  This program is free software; you can redistribute it and/or modify it
+#  under the terms of the GNU Lesser General Public License LGPL as published by the
+#  Free Software Foundation; version 3.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  To the extent this program is licensed as part of the Enterprise
+#  versions of CFEngine, the applicable Commercial Open Source License
+#  (COSL) may apply to this file if you as a licensee so wish it. See
+#  included file COSL.txt.
+###########################################################################
+#
+# CFEngine Community Open Promise-Body Library
+#
+# This initiative started by CFEngine promotes a
+# standardized set of names and promise specifications
+# for template functionality within CFEngine 3.
+#
+# The aim is to promote an industry standard for
+# naming of configuration patterns, leading to a
+# de facto middleware of standardized syntax.
+#
+# Names should be intuitive and parameters should be
+# minimal to assist readability and comprehensibility.
+
+# Contributions to this file are voluntarily given to
+# the cfengine community, and are moderated by CFEngine.
+# No liability or warranty for misuse is implied.
+#
+# If you add to this file, please try to make the
+# contributions "self-documenting". Comments made
+# after the bundle/body statement are retained in
+# the online docs
+#
+
+# For CFEngine Core: 3.5.0 to 3.5.x
+# Internal hub maintenance bundles
+
+###################################################
+# If you find CFEngine useful, please consider    #
+# purchasing a commercial version of the software.#
+###################################################
+
+bundle agent cfe_internal_hub_maintain
+# @brief Executes reporting database maintenance process
+# When modifying this, the following must be considered:
+#  - Intervals less than 6 hours must be used with caution
+#       as maintenance process could take a considerable time
+#  - parameters to action => bg("<if_elapsed>", "<expireafter>")
+#       must be changed accordingly
+{
+  commands:
+
+    (Hr00|Hr06|Hr12|Hr18).Min00_05::
+
+      "$(sys.cf_hub) -m"
+      comment => "Perform hub database maintenance. This removes expired entries in the enterprise database and creates a total compliance cache for Mission Portal",
+      classes => kept_successful_command,
+      handle => "cfe_internal_start_hub_start_maintenance",
+      action => bg("60","60");
+}
+
+bundle common cfengine_enterprise_hub_ha
+{
+  vars:
+    "classification_bundles"
+        slist => { };
+
+    "management_bundles"
+        slist => { };
+}
+
+bundle agent cfe_internal_database_cleanup_consumer_status (row_count)
+# @ignore
+# @brief keep up to row_count entries in the database
+{
+
+  vars:
+      "remove_query"
+      string => "DELETE FROM status WHERE ts IN (SELECT ts FROM status ORDER BY ts DESC OFFSET $(row_count));";
+
+  commands:
+      "$(sys.bindir)/psql cfdb -c \"$(remove_query)\""
+      contain => in_shell_and_silent,
+      classes => kept_successful_command,
+      handle => "cf_database_maintain_consumer_status";
+}
+
+bundle agent cfe_internal_database_cleanup_diagnostics (settings)
+{
+  vars:
+      "index" slist => getindices("settings");
+
+      "remove_query_$(settings[$(index)][report])"
+      string => "DELETE FROM $(settings[$(index)][table]) WHERE $(settings[$(index)][time_key]) < (CURRENT_TIMESTAMP - INTERVAL '$(settings[$(index)][history_length_days]) day');";
+
+  commands:
+      "$(sys.bindir)/psql cfdb -c \"$(remove_query_$(settings[$(index)][report]))\""
+      contain => in_shell_and_silent,
+      classes => kept_successful_command,
+      handle => "cf_database_maintain_diagnostics_$(settings[$(index)][report])";
+}
+
+bundle agent cfe_internal_cleanup_agent_reports
+# @ignore
+# @brief cleanup accumulated agent reports if they grow too large
+{
+  vars:
+    any::
+      "report_files" slist => findfiles("$(sys.workdir)/state/diff/*.diff");
+      "reports_size[$(report_files)]" int => filesize("$(report_files)");
+      "tmpmap" slist => maparray("$(this.v)", reports_size);
+
+    # We need to make sure that we have diff files before summing or errors are
+    # produced in the log
+    have_diff_files::
+      "total_report_size" real => sum(tmpmap);
+
+  classes:
+      "cfe_internal_purge_diff_reports"
+        expression => isgreaterthan("$(total_report_size)","$(def.max_client_history_size)"),
+        comment => "Determine if the current sum of report diffs exceeds the max desired";
+
+      "have_diff_files"
+        expression => isgreaterthan(length(tmpmap), 0);
+
+  files:
+    cfe_internal_purge_diff_reports::
+      "$(report_files)"
+        delete => tidy,
+        handle => "cf_cleanup_agent_reports_$(report_files)";
+}

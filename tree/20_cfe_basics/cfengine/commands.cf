@@ -43,11 +43,13 @@
 # Commands bodies
 
 ###################################################
-# If you find Cfengine useful, please consider    #
+# If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
 bundle agent daemonize(command)
+# @brief Run a command as a daemon. I.e., fully detaches from Cfengine.
+# @param command The command to run detached
 # Note: There will be no output from the command reported by cf-agent. This
 # bundle has no effect on windows
 #
@@ -73,83 +75,175 @@ bundle agent daemonize(command)
 ##-------------------------------------------------------
 
 body contain silent
+# @brief suppress command output
 {
-no_output => "true";
+      no_output => "true";
 }
 
 ##
 
-body contain in_dir(s)
+body contain in_dir(dir)
+# @brief run command after switching to directory "dir"
+# @param dir directory to change into
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/bin/pwd"
+#      contain => in_dir("/tmp");
+# ```
 {
-chdir => "$(s)";
+      chdir => "$(dir)";
 }
 
 ##
 
-body contain in_dir_shell(s)
+body contain in_dir_shell(dir)
+# @brief run command after switching to directory "dir" with full shell
+# @param dir directory to change into
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/bin/pwd | /bin/cat"
+#      contain => in_dir_shell("/tmp");
+# ```
 {
-chdir => "$(s)";
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      chdir => "$(dir)";
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
 }
 
 ##
 
-body contain silent_in_dir(s)
+body contain silent_in_dir(dir)
+# @brief run command after switching to directory and suppress output
+# @param dir directory to change into
+#
+# **Example:**
+#
+# ```cf3
+#    "/bin/pwd"
+#      contain => silent_in_dir("/tmp");
+# ```
 {
-chdir => "$(s)";
-no_output => "true";
+      chdir => "$(dir)";
+      no_output => "true";
 }
 
 ##
 
 body contain in_shell
+# @brief run command in shell
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/bin/pwd | /bin/cat"
+#      contain => in_shell;
+# ```
 {
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
 }
 
 ##
 
 body contain in_shell_bg
+# @brief deprecated
+# This bundle previously had an invalid background attribute that was caught by
+# parser strictness enhancements. Backgrounding is handeled by the body action
+# background attribute.
 {
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
 }
 
 ##
 
 body contain in_shell_and_silent
+# @brief run command in shell and suppress output
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/bin/pwd | /bin/cat"
+#      contain => in_shell_and_silent,
+#      comment => "Silently run command in shell";
+# ```
 {
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
-no_output => "true";
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      no_output => "true";
 }
 
 ##
 
 body contain in_dir_shell_and_silent(dir)
+# @brief run command in shell after switching to 'dir' and suppress output
+# @param dir directory to change into
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/bin/pwd | /bin/cat"
+#      contain => in_dir_shell_and_silent("/tmp"),
+#      comment => "Silently run command in shell";
+# ```
+
 {
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
-no_output => "true";
-chdir => "$(dir)";
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      no_output => "true";
+      chdir => "$(dir)";
 }
 
 ##
 
-body contain setuid(x)
+body contain setuid(owner)
+# @brief run command as specified user
+# @param owner username or uid to run command as
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/usr/bin/id"
+#      contain => setuid("apache");
+#    "/usr/bin/id"
+#      contain => setuid("503");
+# ```
 {
-exec_owner => "$(x)";
-useshell => "false"; # canonical "noshell" but this is backwards-compatible
+      exec_owner => "$(owner)";
 }
 
 ##
 
-body contain setuid_sh(x)
+body contain setuid_sh(owner)
+# @brief run command as specified user in shell
+# @param owner username or uid to run command as
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/usr/bin/id | /bin/cat"
+#      contain => setuid("apache");
+#    "/usr/bin/id | /bin/cat"
+#      contain => setuid("503");
+# ```
 {
-exec_owner => "$(x)";
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      exec_owner => "$(owner)";
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
 }
 
 ##
 
 body contain setuidgid_dir(owner,group,dir)
+# @brief run command as specified owner and group in shell
+# @param owner username or uid to run command as
+# @param group groupname or gid to run command as
+# @param dir directory to run command from
 {
       exec_owner => "$(owner)";
       exec_group => "$(group)";
@@ -159,39 +253,85 @@ body contain setuidgid_dir(owner,group,dir)
 ##
 
 body contain setuidgid_sh(owner,group)
+# @brief run command as specified owner and group in shell
+# @param owner username or uid to run command as
+# @param group groupname or gid to run command as
 {
-exec_owner => "$(owner)";
-exec_group => "$(group)";
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      exec_owner => "$(owner)";
+      exec_group => "$(group)";
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
 }
 
 ##
 
-body contain jail(owner,root,dir)
+body contain jail(owner,jail_root,dir)
+# @brief run command as specified user in specified directory of jail
+# @param owner username or uid to run command as
+# @param jail_root path that will be the root directory for the process
+# @param dir directory to change to before running command (must be within 'jail_root')
 {
-exec_owner => "$(owner)";
-useshell => "true"; # canonical "useshell" but this is backwards-compatible
-chdir => "$(dir)";
-chroot => "$(root)";
+      exec_owner => "$(owner)";
+      useshell => "true"; # canonical "useshell" but this is backwards-compatible
+      chdir => "$(dir)";
+      chroot => "$(jail_root)";
 }
 
 ##
 
-body contain setuid_umask(uid, umask)
-###################################################
-#       | Files               | Directories       #
-###################################################
-# Umask | Octal   Symbolic    | Octal   Symbolic  #
-########+#####################+###################+
-# 000   | 666     (rw-rw-rw-) | 777     (rwxrwxrwx)
-# 002   | 664     (rw-rw-r--) | 775     (rwxrwxr-x)
-# 022   | 644     (rw-r--r--) | 755     (rwxr-xr-x)
-# 027   | 640     (rw-r-----) | 750     (rwxr-x---)
-# 077   | 600     (rw-------) | 700     (rwx------)
-# 277   | 400     (r--------) | 500     (r-x------)
+body contain setuid_umask(owner, umask)
+# @brief run command as specified user with umask
+#
+#
+# | Valid Values | Umask | Octal (files) |  Symbolic (files)  | Octal (dirs) | Symbolic (dirs) |
+# |--------------|-------|-------|-------------|-------|-------------|
+# | `0`          | `000` | `666` | `(rw-rw-rw-)` | `777` | `(rwxrwxrwx)` |
+# | `002`        | `002` | `664` | `(rw-rw-r--)` | `775` | `(rwxrwxr-x)` |
+# | `22`, `022`  | `022` | `644` | `(rw-r--r--)` | `755` | `(rwxr-xr-x)` |
+# | `27`, `027`  | `027` | `640` | `(rw-r-----)` | `750` | `(rwxr-x---)` |
+# | `77`, `077`  | `077` | `600` | `(rw-------)` | `700` | `(rwx------)` |
+# | `72`, `072`  | `072` | `604` | `(rw----r--)` | `705` | `(rwx---r-x)` |
+#
+# @param owner username or uid to run command as
+# @param umask controls permissions of created files and directories
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/usr/bin/git pull"
+#      contain => setuid_umask("git", "022");
+# ```
 {
-exec_owner => "$(uid)";
-umask => "$(umask)";
+      exec_owner => "$(owner)";
+      umask => "$(umask)";
 }
 
-
+body contain setuid_gid_umask(uid, gid, umask)
+# @brief run command as specified user with umask
+#
+#
+# | Valid Values | Umask | Octal (files) |  Symbolic (files)  | Octal (dirs) | Symbolic (dirs) |
+# |--------------|-------|-------|-------------|-------|-------------|
+# | `0`          | `000` | `666` | `(rw-rw-rw-)` | `777` | `(rwxrwxrwx)` |
+# | `002`        | `002` | `664` | `(rw-rw-r--)` | `775` | `(rwxrwxr-x)` |
+# | `22`, `022`  | `022` | `644` | `(rw-r--r--)` | `755` | `(rwxr-xr-x)` |
+# | `27`, `027`  | `027` | `640` | `(rw-r-----)` | `750` | `(rwxr-x---)` |
+# | `77`, `077`  | `077` | `600` | `(rw-------)` | `700` | `(rwx------)` |
+# | `72`, `072`  | `072` | `604` | `(rw----r--)` | `705` | `(rwx---r-x)` |
+#
+# @param uid username or uid to run command as
+# @param gid group name or gid to run command as
+# @param umask controls permissions of created files and directories
+#
+# **Example:**
+#
+# ```cf3
+#  commands:
+#    "/usr/bin/git pull"
+#      contain => setuid_gid_umask("git", "minions", "022");
+# ```
+{
+      exec_owner => "$(uid)";
+      exec_group => "$(uid)";
+      umask => "$(umask)";
+}

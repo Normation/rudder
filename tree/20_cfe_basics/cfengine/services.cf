@@ -52,20 +52,29 @@
 ##-------------------------------------------------------
 
 body service_method bootstart
+# @brief Start the service and all its dependencies at boot time
+#
+# **See also:** `service_autostart_policy`, `service_dependence_chain`
 {
-  service_autostart_policy => "boot_time";
-  service_dependence_chain => "start_parent_services";
-windows::
-  service_type => "windows";
+      service_autostart_policy => "boot_time";
+      service_dependence_chain => "start_parent_services";
+    windows::
+      service_type => "windows";
 }
 
 ##
 
 body service_method force_deps
+# @brief Start all dependendencies when this service starts, and stop all
+# dependent services when this service stops.
+#
+# The service does not get automatically started.
+#
+# **See also:** `service_autostart_policy`, `service_dependence_chain`
 {
-  service_dependence_chain => "all_related";
-windows::
-  service_type => "windows";
+      service_dependence_chain => "all_related";
+    windows::
+      service_type => "windows";
 }
 
 ##

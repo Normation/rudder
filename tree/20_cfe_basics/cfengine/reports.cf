@@ -39,82 +39,40 @@
 # the online docs
 #
 
-# For CFEngine Core: 3.5.1 to 3.5.x
-# Storage bodies
+# For CFEngine Core: 3.5.0 to 3.5.x
+# Reporting bodies
 
 ###################################################
 # If you find CFEngine useful, please consider    #
 # purchasing a commercial version of the software.#
 ###################################################
 
-##-------------------------------------------------------
-## storage promises
-##-------------------------------------------------------
-
-body volume min_free_space(free)
-# @brief Warn if the storage doesn't have at least `free` free space.
-#
-# A warnings is also generated if the storage is smaller than 10K or as
-# less than 2 file entries.
-#
-# @param free Absolute or percentage minimum disk space that should be
-# available before warning
+body report_data_select default_data_select_host
+# @brief Data to collect from remote hosts by default
+# By convention variables and classes known to be internal, (having no
+# reporting value) should be prefixed with an underscore. By default the policy
+# framework explicitly excludes these variables and classes from collection.
 {
-      check_foreign  => "false";
-      freespace      => "$(free)";
-      sensible_size  => "10000";
-      sensible_count => "2";
+      variables_include => { "sys..*", "mon..*" };
+      variables_exclude => { "_.*", ".*\._.*" };
+      classes_exclude => { "_.*" };
+      monitoring_include => { "cpu.*",
+                              "mem_total",
+                              "mem_free",
+                              "mem_cached",
+                              "mem_swap",
+                              "mem_freeswap",
+                              "loadavg",
+                              "diskfree" };
 }
 
-##
-
-body mount nfs(server,source)
-# @brief Mounts the storage at `source` on `server` via nfs protocol.
-#
-# Also modifies the file system table.
-#
-# @param server Hostname or IP of remote server
-# @param source Path of remote file system to mount
-#
-# **See also:** `nfs_p()`, `unmount()`
+body report_data_select default_data_select_policy_hub
+# @brief Data to collect from policy servers by default
+# By convention variables and classes known to be internal, (having no
+# reporting value) should be prefixed with an underscore. By default the policy
+# framework explicitly excludes these variables and classes from collection.
 {
-      mount_type => "nfs";
-      mount_source => "$(source)";
-      mount_server => "$(server)";
-      edit_fstab => "true";
-}
-
-
-##
-
-body mount nfs_p(server,source,perm)
-# @brief Mounts the storage via nfs, with `perm` passed as options to mount.
-#
-# Also modifies the file system table.
-#
-# @param server Hostname or IP of remote server
-# @param source Path of remote file system to mount
-# @param perm A string of options that's passed to the mount command
-#
-# **See also:** `nfs`, `unmount()`
-{
-      mount_type => "nfs";
-      mount_source => "$(source)";
-      mount_server => "$(server)";
-      mount_options => {"$(perm)"};
-      edit_fstab => "true";
-}
-
-##
-
-body mount unmount
-# @brief Unmounts the nfs storage.
-#
-# Also modifies the file system table.
-#
-# **See also:** `nfs()`, `nfs_p()`
-{
-      mount_type => "nfs";
-      edit_fstab => "true";
-      unmount => "true";
+      variables_include => { "sys..*", "mon..*" };
+      variables_exclude => { "_.*", ".*\._.*" };
+      classes_exclude => { "_.*" };
 }
