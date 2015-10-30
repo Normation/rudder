@@ -55,6 +55,7 @@ import com.normation.inventory.ldap.core.InventoryMapper
 import com.normation.inventory.ldap.core.InventoryDitService
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.repository.CachedRepository
+import com.normation.inventory.ldap.core.InventoryDit
 
 /**
  * A case class used to represent the minimal
@@ -122,6 +123,7 @@ class NodeInfoServiceCachedImpl(
     ldap           : LDAPConnectionProvider[RoLDAPConnection]
   , nodeDit        : NodeDit
   , inventoryDit   : InventoryDit
+  , removedDit     : InventoryDit
   , ldapMapper     : LDAPEntityMapper
 ) extends NodeInfoService with Loggable with CachedRepository {
 
@@ -139,22 +141,27 @@ class NodeInfoServiceCachedImpl(
    * That's the method that do all the logic
    */
   private[this] def withUpToDateCache[T](label: String)(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo, Node)] => Box[T]): Box[T] = this.synchronized {
-    /**
+    /*
      * Check if node related infos are up to date.
      *
-     * Here, we need to only check for attributeModifyTimestamp in
-     * node from ou=Nodes (in Rudder and and ou=AcceptedInventories)
-     * Reason:
-     * - for inventories, any new inventory change the "receiveDate" attribute,
-     *   so the node entry is modified each time, even if there is no modification
-     *   or only modification in related entries (machine, etc).
-     *   The only other inventory changes are acceptation/deletion (they modify entry).
-     *
+     * Here, we need to only check for attributeModifyTimestamp
+     * under ou=AcceptedInventories and under ou=Nodes (onelevel)
+     * and only for machines, inventory nodes, and node,
+     * and inventory nodes under ou=RemovedInventories
+     *  Reason:
+     * - only these three entries are used for node info (and none of their
+     *   subentries)
+     * - if a node is deleted, it must go to RemovedInventories (and so the
+     *   machine, but we don't care as soon as we know a node went there)
      * - for ou=Node, all modifications happen in the entry, so the modifyTimestamp
      *   is changed accordingly.
      *
      * Moreover, it is less costly to only do one search and post-filter result
      * than to do 2.
+     *
+     * Finally, we limit the result to one, because here, we just need to know if
+     * some update exists, not WHAT they are, nor the MOST RECENT one. Just that
+     * at least one exists.
      *
      * A cleaner implementation could use a two persistent search which would notify
      * when a cache becomes invalide and reset it, but the rationnal for that implementation is:
@@ -166,28 +173,34 @@ class NodeInfoServiceCachedImpl(
      */
     def isUpToDate(lastKnowModification: DateTime): Boolean = {
       val n0 = System.currentTimeMillis
-      val res = ldap.map { con =>
-        con.search(
-            nodeDit.BASE_DN
-          , Sub
+      val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
           , AND(
-                OR(
-                    // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
-                    IS(OC_RUDDER_NODE)
-                    // ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-                    // add a constraint on entryDN (onelevel below base accepted node) - LDAP
-                    // expert would become mad one that one
+               OR(
+                    // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+                    AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
+                    // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
                   , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
+                  , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
+                    // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
+                  , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
                 )
               , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.plusMillis(1)).toString)
             )
           , "1.1"
         )
+
+      val res = ldap.map { con =>
+        //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
+        try {
+          con.backed.search(searchRequest).getSearchEntries
+        } catch {
+          case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
+            e.getSearchEntries()
+        }
       } match {
         case Full(seq) =>
-          //filter DN only in ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-          // or in ou=Nodes,cn=rudder-configuration
-          val res = !seq.exists { e => e.dn.getParent == nodeDit.NODES.dn || e.dn.getParent == inventoryDit.NODES.dn }
+          //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
+          val res = seq.size <= 0
           logger.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)")
           res
         case eb: EmptyBox =>
@@ -200,11 +213,11 @@ class NodeInfoServiceCachedImpl(
       res
     }
 
-    /**
+    /*
      * Get all relevant info from backend along with the
      * date of the last modification
      */
-    def getDataFromBackend(): Box[(Map[NodeId, (LDAPNodeInfo, NodeInfo, Node)], DateTime)] = {
+    def getDataFromBackend(lastKnowModification: DateTime): Box[(Map[NodeId, (LDAPNodeInfo, NodeInfo, Node)], DateTime)] = {
       import scala.collection.mutable.{Map => MutMap}
 
       //some map of things - mutable, yes
@@ -214,18 +227,30 @@ class NodeInfoServiceCachedImpl(
 
       val t0 = System.currentTimeMillis
 
-      var lastModif = new DateTime(0)
+      var lastModif = lastKnowModification
 
       ldap.map { con =>
 
+        val deletedNodes = con.search(
+            removedDit.NODES.dn
+          , One
+          , AND(IS(OC_NODE), GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.plusMillis(1)).toString))
+          , A_MOD_TIMESTAMP
+        )
 
-        con.search(
+        val allEntries = con.search(
             nodeDit.BASE_DN
           , Sub
-          , OR(IS(OC_MACHINE), IS(OC_NODE), IS(OC_RUDDER_NODE))
+          , OR(
+                AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
+              , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
+              , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
+            )
           , searchAttributes:_*
-        ).foreach { e =>
+        )
 
+        //look for the maxed timestamp
+        (deletedNodes ++ allEntries).foreach { e =>
           e.getAsGTime(A_MOD_TIMESTAMP) match {
             case None    => //nothing
             case Some(x) =>
@@ -233,7 +258,10 @@ class NodeInfoServiceCachedImpl(
                 lastModif = x.dateTime
               }
           }
+        }
 
+        // now, create the nodeInfo
+        allEntries.foreach { e =>
           if(e.isA(OC_MACHINE)) {
             machineInventories += (e.dn.toString -> e)
           } else if(e.isA(OC_NODE)) {
@@ -274,8 +302,10 @@ class NodeInfoServiceCachedImpl(
     val t0 = System.currentTimeMillis
 
     val boxInfo = (if(nodeCache.isEmpty || !isUpToDate(lastModificationTime)) {
-      getDataFromBackend match {
+
+      getDataFromBackend(lastModificationTime) match {
         case Full((info, lastModif)) =>
+          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update: '${lastModificationTime}'")
           nodeCache = Some(info)
           lastModificationTime = lastModif
           Full(info)
@@ -285,6 +315,7 @@ class NodeInfoServiceCachedImpl(
           eb ?~! "Could not get node information from database"
       }
     } else {
+      logger.debug(s"NodeInfo cache is up to date, last modification time: '${lastModificationTime}'")
       Full(nodeCache.get) //get is ok because in a synchronized block with a test on isEmpty
     })
 
