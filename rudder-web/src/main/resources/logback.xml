@@ -28,7 +28,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
 -->
 
-<configuration>
+<!-- 
+  The scan / scan period allows to change logs parameter
+  and have them hot-reloaded in Rudder. It may have some
+  performance impact, so you may want to remove these two
+  attributes. But on the other hand, it allows to just
+  change a debug level or add new loggers and have them
+  used immediately, without a server restart. 
+ -->
+<configuration scan="true" scanPeriod="5 seconds">
   <!-- 
     This is the default logging configuration file. It will be used if you
     didn't specify the "logback.configurationFile" JVM option. 
@@ -286,12 +294,25 @@ along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
     Log level "debug" and "trace" are used and allow to trace how
     compliance computation are done (typically, for a node, what is the
     expected configuration id, what is the last reports received, is the
-    date/time ok regarding run interval and compliance mode, etc. 
+    date/time ok regarding run interval and compliance mode, etc.)
+    Trace level is quite verbose. 
   -->
   <logger name="explain_compliance" level="info" additivity="false">
     <appender-ref ref="OPSLOG" />
     <appender-ref ref="STDOUT" />
   </logger> 
+
+  <!-- 
+    You can debug specific node compliance with the node id.
+    The interesting level in that case is "trace". 
+    For example, for root node, whose ID is "root", use: 
+  -->
+  <!-- 
+  <logger name="explain_compliance.root" level="trace" additivity="false">
+    <appender-ref ref="OPSLOG" />
+    <appender-ref ref="STDOUT" />
+  </logger> 
+  -->
    
    
    
