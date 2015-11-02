@@ -560,7 +560,7 @@ class FusionReportUnmarshaller(
 
         case("aix", _) => AixOS
 
-        case ("freebsd", _) => FreebsdOS
+        case ("freebsd", _) => FreeBSD
 
         case _  => UnknownOSType
       }
@@ -589,9 +589,10 @@ class FusionReportUnmarshaller(
             , kernelVersion = kernelVersion
           )
 
-        case FreebsdOS =>
-          FreeBSD(
-              fullName = fullName
+        case FreeBSD =>
+          Bsd(
+              os = FreeBSD
+            , fullName = fullName
             , version = version
             , servicePack = servicePack
             , kernelVersion = kernelVersion

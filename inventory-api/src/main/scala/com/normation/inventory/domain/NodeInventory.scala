@@ -204,12 +204,21 @@ object AixOS extends OsType {
   val name = "AIX"
 }
 
-//FreeBSD has only one flavour
-//Yes, for now, we have just one BSD
-object FreebsdOS extends OsType {
-  val kernelName = "BSD"
-  val name = "FreeBSD"
+// The BSD familly - should I make it a subclass of LinuxType? Or Ubuntu ?
+sealed abstract class BsdType extends OsType {
+  override val kernelName = "BSD"
 }
+
+object BsdType {
+  val allKnownTypes = (
+       FreeBSD
+    :: UnknownBsdType
+    :: Nil
+  )
+}
+
+case object UnknownBsdType extends BsdType with HashcodeCaching { val name = "UnknownBSD" }
+case object FreeBSD        extends BsdType with HashcodeCaching { val name = "FreeBSD"  }
 
 
 /**
@@ -217,7 +226,7 @@ object FreebsdOS extends OsType {
  * - Linux
  * - Solaris
  * - AIX
- * - FreeBSD
+ * - BSD
  * - Windows.
  * And a joker
  * - Unknown
@@ -253,12 +262,13 @@ case class Solaris(
   , override val kernelVersion : Version
 ) extends OsDetails(SolarisOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
-case class FreeBSD(
-    override val fullName      : String
+case class Bsd(
+    override val os            : OsType
+  , override val fullName      : String
   , override val version       : Version
   , override val servicePack   : Option[String]
   , override val kernelVersion : Version
-) extends OsDetails(FreebsdOS, fullName, version, servicePack, kernelVersion) with HashcodeCaching
+) extends OsDetails(os, fullName, version, servicePack, kernelVersion) with HashcodeCaching
 
 case class Aix(
     override val fullName      : String

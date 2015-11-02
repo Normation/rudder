@@ -669,10 +669,13 @@ class InventoryMapper(
         aix += (A_OS_NAME, A_OS_AIX)
         aix
 
-      case FreeBSD(_,_,_,_) =>
-        val freebsd = dit.NODES.NODE.freebsdModel(server.main.id)
-        freebsd += (A_OS_NAME, A_OS_FREEBSD)
-        freebsd
+      case Bsd(os,_,_,_,_) =>
+        val bsd = dit.NODES.NODE.bsdModel(server.main.id)
+        os match {
+          case FreeBSD => bsd += (A_OS_NAME, A_OS_FREEBSD)
+          case _       => bsd += (A_OS_NAME, A_OS_UNKNOWN_BSD)
+        }
+        bsd
 
       case Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId) =>
         val win = dit.NODES.NODE.windowsModel(server.main.id)
@@ -840,8 +843,12 @@ class InventoryMapper(
           Full(Solaris(osFullName,osVersion,osServicePack,kernelVersion))
         } else if(entry.isA(OC_AIX_NODE)) {
           Full(Aix(osFullName,osVersion,osServicePack,kernelVersion))
-        } else if(entry.isA(OC_FREEBSD_NODE)) {
-          Full(FreeBSD(osFullName,osVersion,osServicePack,kernelVersion))
+        } else if(entry.isA(OC_BSD_NODE)) {
+          val os = osName match {
+            case A_OS_FREEBSD => FreeBSD
+            case _ => UnknownBsdType
+          }
+          Full(Bsd(os,osFullName,osVersion,osServicePack,kernelVersion))
         } else if(entry.isA(OC_NODE)) {
           Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
         } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))
