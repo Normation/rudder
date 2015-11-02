@@ -198,6 +198,7 @@ object LDAPConstants {
   val A_OS_SOLARIS = "Solaris"
   val A_OS_AIX = "AIX"
   val A_OS_FREEBSD = "FreeBSD"
+  val A_OS_UNKNOWN_BSD = "Unknown BSD flavor"
   val A_OS_ORACLE = "Oracle"
   val A_OS_SCIENTIFIC = "Scientific"
 
@@ -216,7 +217,7 @@ object LDAPConstants {
   val OC_LINUX_NODE = "linuxNode"
   val OC_SOLARIS_NODE = "solarisNode"
   val OC_AIX_NODE = "aixNode"
-  val OC_FREEBSD_NODE = "freebsdNode"
+  val OC_BSD_NODE = "bsdNode"
   val OC_MACHINE = "machine"
   val OC_PM = "physicalMachine"
   val OC_VM = "virtualMachine"
@@ -360,7 +361,7 @@ object LDAPConstants {
   OC +=(OC_LINUX_NODE, sup = OC(OC_UNIX_NODE))
   OC +=(OC_SOLARIS_NODE, sup = OC(OC_UNIX_NODE))
   OC +=(OC_AIX_NODE, sup = OC(OC_UNIX_NODE))
-  OC +=(OC_FREEBSD_NODE, sup = OC(OC_UNIX_NODE))
+  OC +=(OC_BSD_NODE, sup = OC(OC_UNIX_NODE))
 
   OC +=(OC_OU,
       must = Set("ou"),

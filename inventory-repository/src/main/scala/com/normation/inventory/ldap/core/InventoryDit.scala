@@ -183,9 +183,9 @@ case class InventoryDit(val BASE_DN:DN, val SOFTWARE_BASE_DN:DN, val name:String
         mod
       }
 
-      def freebsdModel(id:NodeId) : LDAPEntry = {
+      def bsdModel(id:NodeId) : LDAPEntry = {
         val mod = model(id)
-        mod += (A_OC,OC.objectClassNames(OC_FREEBSD_NODE).toSeq:_*)
+        mod += (A_OC,OC.objectClassNames(OC_BSD_NODE).toSeq:_*)
         mod
       }
 

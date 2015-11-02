@@ -986,8 +986,8 @@ objectclass ( InventoryObjectClasses:24
   STRUCTURAL )
 
 objectclass ( InventoryObjectClasses:25
-  NAME 'freebsdNode'
-  DESC 'A node running with FreeBSD as operating system'
+  NAME 'bsdNode'
+  DESC 'A node running with BSD as operating system'
   SUP unixNode
   STRUCTURAL )
 
