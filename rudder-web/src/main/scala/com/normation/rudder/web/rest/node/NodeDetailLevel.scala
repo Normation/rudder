@@ -108,6 +108,7 @@ object NodeDetailLevel {
         val osType = inv._2.node.main.osDetails.os match {
           case _:LinuxType   => "Linux"
           case _:WindowsType => "Windows"
+          case _:BsdType     => "BSD"
           case AixOS         => "AIX"
           case SolarisOS     => "Solaris"
           case UnknownOSType => "Unknown"
