@@ -71,6 +71,18 @@ trait SystemVariableService {
   ) : Box[Map[String, Variable]]
 }
 
+
+final case class RudderServerRole(
+    val name       : String
+  , val configValue: String
+)
+
+final case class ResolvedRudderServerRole(
+    val name       : String
+  , val configValue: Option[Iterable[String]]
+)
+
+
 class SystemVariableServiceImpl(
     licenseRepository: LicenseRepository
   , systemVariableSpecService: SystemVariableSpecService
@@ -84,11 +96,7 @@ class SystemVariableServiceImpl(
   , webdavPassword           : String
   , syslogPort               : Int
   , configurationRepository  : String
-  , rudderServerRoleLdap     : String
-  , rudderServerRoleInventoryEndpoint: String
-  , rudderServerRoleDb       : String
-  , rudderServerRoleRelayTop : String
-  , rudderServerRoleWeb      : String
+  , serverRoles              : Seq[RudderServerRole]
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
   , getSkipIdentify : () => Box[Boolean]
@@ -124,11 +132,7 @@ class SystemVariableServiceImpl(
     }
   }
 
-  lazy val definedRudderServerRoleLdap     = parseRoleContent(rudderServerRoleLdap)
-  lazy val definedRudderServerRoleDb       = parseRoleContent(rudderServerRoleDb)
-  lazy val definedRudderServerRoleRelayTop = parseRoleContent(rudderServerRoleRelayTop)
-  lazy val definedRudderServerRoleWeb      = parseRoleContent(rudderServerRoleWeb)
-  lazy val definedRudderServerRoleInventoryEnpoint = parseRoleContent(rudderServerRoleInventoryEndpoint)
+  lazy val defaultServerRoles = serverRoles.map( x => ResolvedRudderServerRole(x.name, parseRoleContent(x.configValue)))
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
@@ -211,36 +215,16 @@ class SystemVariableServiceImpl(
     val varRoleMappingValue = if (nodeConfigurationRoles.size > 0) {
       val allNodeInfosSet = allNodeInfos.values.toSet
 
-      val nodesWithRoleLdap = definedRudderServerRoleLdap match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-ldap"))
+      val roles = defaultServerRoles.map { case ResolvedRudderServerRole(name, optValue) =>
+        val nodeValue = optValue match {
+          case Some(seq) => seq
+          case None      => getNodesWithRole(allNodeInfosSet, ServerRole(name))
+        }
+        writeNodesWithRole(nodeValue, name)
       }
 
-      val nodesWithRoleInventoryEndpoint = definedRudderServerRoleInventoryEnpoint match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-inventory-endpoint"))
-      }
-
-      val nodesWithRoleDb = definedRudderServerRoleDb match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-db"))
-      }
-
-      val nodesWithRoleRelayTop = definedRudderServerRoleRelayTop match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-relay-top"))
-      }
-
-      val nodesWithRoleWeb = definedRudderServerRoleWeb match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-web"))
-      }
-
-      writeNodesWithRole(nodesWithRoleLdap, "rudder-ldap") +
-      writeNodesWithRole(nodesWithRoleInventoryEndpoint, "rudder-inventory-endpoint") +
-      writeNodesWithRole(nodesWithRoleDb, "rudder-db") +
-      writeNodesWithRole(nodesWithRoleRelayTop, "rudder-relay-top") +
-      writeNodesWithRole(nodesWithRoleWeb, "rudder-web")
+      //build the final string
+      (""/:roles) { (x,y) => x + y }
     } else {
       ""
     }
