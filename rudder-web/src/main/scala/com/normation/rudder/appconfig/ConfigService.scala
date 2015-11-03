@@ -43,6 +43,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
+import net.liftweb.common.EmptyBox
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -226,7 +227,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
       case Full(interval) =>
         cacheExecutionInterval = Some(interval)
         interval
-      case f: Failure =>
+      case f: EmptyBox =>
         val e = f ?~! "Failure when fetching the agent run interval "
         logger.error(e.messageChain)
         cacheExecutionInterval match {
