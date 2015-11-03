@@ -184,7 +184,7 @@ class RuleValServiceTest extends Specification {
         ruleVal.isDefined == true
       }
 
-      val directivesVals = ruleVal.open_!.directiveVals
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
 
       "the ruleval should have only one directiveVal" in {
         directivesVals.size == 1
@@ -218,7 +218,7 @@ class RuleValServiceTest extends Specification {
 
     "The cardinality computed " should {
       val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
-      val directivesVals = ruleVal.open_!.directiveVals
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
 
       val cardinality = directivesVals.head.toExpandedDirectiveVal(null).map { x =>
         computeCardinality.getCardinality(x)
