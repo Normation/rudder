@@ -528,6 +528,12 @@ rudder.server-roles.relay-top=autodetect
 # The hosts with the webapp role
 rudder.server-roles.web=autodetect
 
+# The hosts with the relay promises role
+rudder.server-roles.relay-promises-only=autodetect
+
+# The hosts with the cfengine mission portal role
+rudder.server-roles.cfengine-mission-portal=autodetect
+
 #########################
 # DEPRECATED properties #############################################################
 #########################
