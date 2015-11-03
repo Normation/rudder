@@ -182,7 +182,7 @@ class HomePage extends Loggable {
        * Note: node without reports are also put in "pending".
        */
 
-      val complianceByNode : List[Float] = reportsByNode.values.map { r =>
+      val complianceByNode : List[Double] = reportsByNode.values.map { r =>
         if(r.pending == r.total) -1 else  r.complianceWithoutPending
       }.toList
 
