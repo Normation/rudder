@@ -286,7 +286,7 @@ class PrepareTemplateVariablesImpl(
 
     //utilitary method for formating list of "promisee usebundle => bundlename;"
     def formatUsebundle(x:Seq[(Technique, String, Bundle)]) = {
-      val alignWidth = x.map(_._2.size).max
+      val alignWidth = if(x.size <= 0) 0 else x.map(_._2.size).max
       x.map { case (t, promiser, bundle) => s""""${promiser}"${" "*Math.max(0, alignWidth - promiser.size)} usebundle => ${bundle.name};"""}.mkString( "\n")
     }
 
