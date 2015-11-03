@@ -40,6 +40,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.policies.DirectiveId
+import net.liftweb.json.JDouble
 
 
 
@@ -144,17 +145,17 @@ object JsonCompliance {
   implicit class JsonbyRuleCompliance(rule: ByRuleRuleCompliance) {
     def toJson = (
         ("id" -> rule.id.value)
-      ~ ("compliance" -> "%.2f".format(rule.compliance.complianceWithoutPending))
+      ~ ("compliance" -> rule.compliance.complianceWithoutPending)
       ~ ("complianceDetails" -> percents(rule.compliance))
       ~ ("directives" -> rule.directives.map { directive =>
           (
               ("id" -> directive.id.value)
-            ~ ("compliance" -> "%.2f".format(directive.compliance.complianceWithoutPending))
+            ~ ("compliance" -> directive.compliance.complianceWithoutPending)
             ~ ("complianceDetails" -> percents(directive.compliance))
             ~ ("components" -> directive.components.map { component =>
                 (
                     ("name" -> component.name)
-                  ~ ("compliance" -> "%.2f".format(component.compliance.complianceWithoutPending))
+                  ~ ("compliance" -> component.compliance.complianceWithoutPending)
                   ~ ("complianceDetails" -> percents(component.compliance))
                   ~ ("nodes" -> component.nodes.map { node =>
                       (
@@ -180,24 +181,26 @@ object JsonCompliance {
   }
 
   implicit class JsonByNodeCompliance(n: ByNodeNodeCompliance) {
+
+
     def toJson = (
         ("id" -> n.id.value)
-      ~ ("compliance" -> "%.2f".format(n.compliance))
+      ~ ("compliance" -> n.compliance.complianceWithoutPending)
       ~ ("complianceDetails" -> percents(n.compliance))
       ~ ("rules" -> n.nodeCompliances.map { rule =>
           (
               ("id" -> rule.id.value)
-            ~ ("compliance" -> "%.2f".format(rule.compliance.complianceWithoutPending))
+            ~ ("compliance" -> rule.compliance.complianceWithoutPending)
             ~ ("complianceDetails" -> percents(rule.compliance))
             ~ ("directives" -> rule.directives.map { directive =>
                 (
                     ("id" -> directive.id.value)
-                  ~ ("compliance" -> "%.2f".format(directive.compliance.complianceWithoutPending))
+                  ~ ("compliance" -> directive.compliance.complianceWithoutPending)
                   ~ ("complianceDetails" -> percents(directive.compliance))
                   ~ ("components" -> directive.components.map { case (_, component) =>
                       (
                           ("name" -> component.componentName)
-                        ~ ("compliance" -> "%.2f".format(component.compliance.complianceWithoutPending))
+                        ~ ("compliance" -> component.compliance.complianceWithoutPending)
                         ~ ("complianceDetails" -> percents(component.compliance))
                         ~ ("values" -> component.componentValues.map { case (_, value) =>
                             (
@@ -239,7 +242,7 @@ object JsonCompliance {
    * the semantic of unexpected / missing and no answer is not clear at all.
    *
    */
-  private[this] def percents(c: ComplianceLevel): Map[String, String] = {
+  private[this] def percents(c: ComplianceLevel): Map[String, Double] = {
     //we want at most two decimals
     Map(
         statusDisplayName(NotApplicableReportType) -> c.pc_notApplicable
@@ -250,6 +253,6 @@ object JsonCompliance {
       , statusDisplayName(MissingReportType) -> c.pc_missing
       , statusDisplayName(NoAnswerReportType) -> c.pc_noAnswer
       , statusDisplayName(PendingReportType) -> c.pc_pending
-    ).filter { case(k, v) => v > 0 }.mapValues(percent => "%.2f".format(percent) )
+    ).filter { case(k, v) => v > 0 }.mapValues(percent => percent )
   }
 }
