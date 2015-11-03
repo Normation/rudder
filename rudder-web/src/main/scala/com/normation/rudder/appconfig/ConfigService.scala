@@ -43,6 +43,7 @@ import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
+import net.liftweb.common.EmptyBox
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.reports.FullCompliance
