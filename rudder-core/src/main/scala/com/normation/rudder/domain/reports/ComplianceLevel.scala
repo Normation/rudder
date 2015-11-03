@@ -69,8 +69,8 @@ case class ComplianceLevel(
   val complianceWithoutPending = pc_for(success+repaired+notApplicable, total-pending)
   val compliance = pc_for(success+repaired+notApplicable, total)
 
-  private[this] def pc_for(i:Int, total:Int) : Float = if(total == 0) 0 else (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toFloat
-  private[this] def pc(i:Int) : Float = pc_for(i, total)
+  private[this] def pc_for(i:Int, total:Int) : Double = if(total == 0) 0 else (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
+  private[this] def pc(i:Int) : Double = pc_for(i, total)
 
   val pc_pending       = pc(pending)
   val pc_success       = pc(success)
