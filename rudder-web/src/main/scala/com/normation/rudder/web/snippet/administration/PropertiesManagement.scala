@@ -509,7 +509,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       _ <- configService.set_agent_run_splaytime(schedule.splaytime,actor,genericReasonMessage)
     } yield {
       logger.info(s"Agent schedule updated to run interval: ${schedule.interval} min, start time: ${schedule.startHour} h ${schedule.startMinute} min, splaytime: ${schedule.splaytime} min")
-      "ok"
     }
   }
 
