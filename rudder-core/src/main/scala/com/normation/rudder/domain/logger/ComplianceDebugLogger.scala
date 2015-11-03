@@ -45,6 +45,9 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ChangesOnly
+import com.google.common.cache.CacheBuilder
+import java.util.concurrent.TimeUnit
+import com.google.common.cache.CacheLoader
 
 
 /**
@@ -56,6 +59,21 @@ import com.normation.rudder.reports.ChangesOnly
 object ComplianceDebugLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("explain_compliance")
 
+
+  //we have one logger defined by node.
+  //they automatically expires after some time.
+
+  val nodeCache = CacheBuilder.newBuilder().maximumSize(1000).expireAfterWrite(10, TimeUnit.MINUTES).build(
+                    new CacheLoader[String, Logger]() {
+                      def load(key: String) = {
+                        new Logger() {
+                          override protected def _logger = LoggerFactory.getLogger(s"explain_compliance.${key}")
+                        }
+                      }
+                    }
+                  )
+
+  def node(id: NodeId) : Logger = nodeCache.get(id.value)
 
   implicit class NodeConfigIdInfoToLog(n: NodeConfigIdInfo) {
     val toLog: String = s"${n.configId.value}/[${n.creation}-${n.endOfLife.fold("now")(_.toString)}]"
@@ -100,7 +118,7 @@ object ComplianceDebugLogger extends Logger {
     }
   }
 
-  implicit class AgentRunConfigurationToLop(map: Map[NodeId, (ComplianceMode, ResolvedAgentRunInterval)]) {
+  implicit class AgentRunConfigurationToLog(info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) {
 
     private[this] def log(c: ComplianceMode, r: ResolvedAgentRunInterval): String = {
       val h = c match {
@@ -110,9 +128,11 @@ object ComplianceDebugLogger extends Logger {
       s"run interval: ${r.interval.toStandardMinutes.getMinutes} min${h}"
     }
 
-    val toLog: String = map.map { case (id, (c, r)) =>
+    val (id, c, r) = info
+
+    val toLog: String = {
       s"[${id.value}:${c.name}, ${log(c, r)}]"
-    }.mkString("")
+    }
   }
 
 
