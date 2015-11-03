@@ -109,24 +109,43 @@ trait NodeInfoService {
   def getAllSystemNodeIds() : Box[Seq[NodeId]]
 }
 
-object NodeInfoServiceImpl {
+object NodeInfoService {
   val nodeInfoAttributes = Seq(SearchRequest.ALL_USER_ATTRIBUTES, A_OBJECT_CREATION_DATE)
+
+  val A_MOD_TIMESTAMP = "modifyTimestamp"
+
 }
 
 
-/**
- * A cache on top of node info service.
- *
+/*
+ * For test, we need a way to split the cache part from its retrieval
  */
 
-class NodeInfoServiceCachedImpl(
-    ldap           : LDAPConnectionProvider[RoLDAPConnection]
-  , nodeDit        : NodeDit
-  , inventoryDit   : InventoryDit
-  , removedDit     : InventoryDit
-  , ldapMapper     : LDAPEntityMapper
-) extends NodeInfoService with Loggable with CachedRepository {
+trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRepository {
+  import NodeInfoService._
 
+  def ldap           : LDAPConnectionProvider[RoLDAPConnection]
+  def nodeDit        : NodeDit
+  def inventoryDit   : InventoryDit
+  def removedDit     : InventoryDit
+  def ldapMapper     : LDAPEntityMapper
+
+  /**
+   * Check is LDAP directory contains updated entries compare
+   * to the date we pass in arguments.
+   * Entries may be any entry relevant for our cache, in particular,
+   * some attention must be provided to deleted entries.
+   */
+  def isUpToDate(lastKnowModification: DateTime): Boolean
+
+  /**
+   * This method must return only and all entries under:
+   * - ou=Nodes,
+   * - ou=[Node, Machine], ou=Accepted Inventories, etc
+   *
+   * attributes is the list of attributes needed in returned entries
+   */
+  def getNodeInfoEntries(con: RoLDAPConnection, attributes: Seq[String]): Seq[LDAPEntry]
 
   /*
    * Our cache
@@ -134,85 +153,12 @@ class NodeInfoServiceCachedImpl(
   private[this] var nodeCache = Option.empty[Map[NodeId, (LDAPNodeInfo, NodeInfo, Node)]]
   private[this] var lastModificationTime = new DateTime(0)
 
-  private[this] val A_MOD_TIMESTAMP = "modifyTimestamp"
-  private[this] val searchAttributes = (NodeInfoServiceImpl.nodeInfoAttributes :+ A_MOD_TIMESTAMP).toSeq
+  private[this] val searchAttributes = (nodeInfoAttributes :+ A_MOD_TIMESTAMP).toSeq
 
   /**
    * That's the method that do all the logic
    */
   private[this] def withUpToDateCache[T](label: String)(useCache: Map[NodeId, (LDAPNodeInfo, NodeInfo, Node)] => Box[T]): Box[T] = this.synchronized {
-    /*
-     * Check if node related infos are up to date.
-     *
-     * Here, we need to only check for attributeModifyTimestamp
-     * under ou=AcceptedInventories and under ou=Nodes (onelevel)
-     * and only for machines, inventory nodes, and node,
-     * and inventory nodes under ou=RemovedInventories
-     *  Reason:
-     * - only these three entries are used for node info (and none of their
-     *   subentries)
-     * - if a node is deleted, it must go to RemovedInventories (and so the
-     *   machine, but we don't care as soon as we know a node went there)
-     * - for ou=Node, all modifications happen in the entry, so the modifyTimestamp
-     *   is changed accordingly.
-     *
-     * Moreover, it is less costly to only do one search and post-filter result
-     * than to do 2.
-     *
-     * Finally, we limit the result to one, because here, we just need to know if
-     * some update exists, not WHAT they are, nor the MOST RECENT one. Just that
-     * at least one exists.
-     *
-     * A cleaner implementation could use a two persistent search which would notify
-     * when a cache becomes invalide and reset it, but the rationnal for that implementation is:
-     * - it's extremelly simple to understand the logic (if(cache is uptodate) use it else update cache)
-     * - most of the time (99.99% of it), the search will return 0 result and will be cache on OpenLDAP,
-     *   whatever the number of entries. So we talking of a request taking a couple of ms on the server
-     *   (with a vagrant VM on the same host (so, almost no network), it takes from client to server and
-     *   back ~10ms on a dev machine.
-     */
-    def isUpToDate(lastKnowModification: DateTime): Boolean = {
-      val n0 = System.currentTimeMillis
-      val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
-          , AND(
-               OR(
-                    // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
-                    AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
-                    // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
-                  , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
-                  , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
-                    // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
-                  , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
-                )
-              , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.plusMillis(1)).toString)
-            )
-          , "1.1"
-        )
-
-      val res = ldap.map { con =>
-        //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
-        try {
-          con.backed.search(searchRequest).getSearchEntries
-        } catch {
-          case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
-            e.getSearchEntries()
-        }
-      } match {
-        case Full(seq) =>
-          //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
-          val res = seq.size <= 0
-          logger.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)")
-          res
-        case eb: EmptyBox =>
-          val e = eb ?~! "Error when checking for cache expiration: invalidating it"
-          logger.debug(e.messageChain)
-          false
-      }
-      val n1 = System.currentTimeMillis
-      TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms")
-      res
-    }
-
     /*
      * Get all relevant info from backend along with the
      * date of the last modification
@@ -238,16 +184,7 @@ class NodeInfoServiceCachedImpl(
           , A_MOD_TIMESTAMP
         )
 
-        val allEntries = con.search(
-            nodeDit.BASE_DN
-          , Sub
-          , OR(
-                AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
-              , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
-              , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
-            )
-          , searchAttributes:_*
-        )
+        val allEntries = getNodeInfoEntries(con, searchAttributes)
 
         //look for the maxed timestamp
         (deletedNodes ++ allEntries).foreach { e =>
@@ -305,7 +242,7 @@ class NodeInfoServiceCachedImpl(
 
       getDataFromBackend(lastModificationTime) match {
         case Full((info, lastModif)) =>
-          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update: '${lastModificationTime}'")
+          logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update: '${lastModificationTime}' => updating cache with ${info.size} entries")
           nodeCache = Some(info)
           lastModificationTime = lastModif
           Full(info)
@@ -339,6 +276,7 @@ class NodeInfoServiceCachedImpl(
     this.nodeCache = None
   }
 
+
   def getAll(): Box[Map[NodeId, NodeInfo]] = withUpToDateCache("all node") { cache =>
     Full(cache.mapValues(_._2))
   }
@@ -361,4 +299,143 @@ class NodeInfoServiceCachedImpl(
     Box(cache.get(nodeId).map( _._2)) ?~! s"Node with ID '${nodeId.value}' was not found"
   }
 
+}
+
+/**
+ * A testing implementation, that just retrieve node info each time. Not very efficient.
+ */
+class NaiveNodeInfoServiceCachedImpl(
+    override val ldap           : LDAPConnectionProvider[RoLDAPConnection]
+  , override val nodeDit        : NodeDit
+  , override val inventoryDit   : InventoryDit
+  , override val removedDit     : InventoryDit
+  , override val ldapMapper     : LDAPEntityMapper
+) extends NodeInfoServiceCached with Loggable  {
+
+  override def isUpToDate(lastKnowModification: DateTime): Boolean = {
+    false //yes naive
+  }
+
+  /**
+   * This method must return only and all entries under:
+   * - ou=Nodes,
+   * - ou=[Node, Machine], ou=Accepted Inventories, etc
+   */
+  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String]): Seq[LDAPEntry] = {
+    val nodes = con.search(nodeDit.NODES.dn, One, BuildFilter.ALL, searchAttributes:_*)
+    val nodeInvs = con.search(inventoryDit.NODES.dn, One, BuildFilter.ALL, searchAttributes:_*)
+    val machineInvs = con.search(inventoryDit.MACHINES.dn, One, BuildFilter.ALL, searchAttributes:_*)
+
+    nodes ++ nodeInvs ++ machineInvs
+  }
+
+
+}
+
+
+
+/**
+ * A cache on top of node info service.
+ *
+ */
+
+class NodeInfoServiceCachedImpl(
+    override val ldap           : LDAPConnectionProvider[RoLDAPConnection]
+  , override val nodeDit        : NodeDit
+  , override val inventoryDit   : InventoryDit
+  , override val removedDit     : InventoryDit
+  , override val ldapMapper     : LDAPEntityMapper
+) extends NodeInfoServiceCached {
+  import NodeInfoService._
+
+
+ /*
+   * Check if node related infos are up to date.
+   *
+   * Here, we need to only check for attributeModifyTimestamp
+   * under ou=AcceptedInventories and under ou=Nodes (onelevel)
+   * and only for machines, inventory nodes, and node,
+   * and inventory nodes under ou=RemovedInventories
+   *  Reason:
+   * - only these three entries are used for node info (and none of their
+   *   subentries)
+   * - if a node is deleted, it must go to RemovedInventories (and so the
+   *   machine, but we don't care as soon as we know a node went there)
+   * - for ou=Node, all modifications happen in the entry, so the modifyTimestamp
+   *   is changed accordingly.
+   *
+   * Moreover, it is less costly to only do one search and post-filter result
+   * than to do 2.
+   *
+   * Finally, we limit the result to one, because here, we just need to know if
+   * some update exists, not WHAT they are, nor the MOST RECENT one. Just that
+   * at least one exists.
+   *
+   * A cleaner implementation could use a two persistent search which would notify
+   * when a cache becomes invalide and reset it, but the rationnal for that implementation is:
+   * - it's extremelly simple to understand the logic (if(cache is uptodate) use it else update cache)
+   * - most of the time (99.99% of it), the search will return 0 result and will be cache on OpenLDAP,
+   *   whatever the number of entries. So we talking of a request taking a couple of ms on the server
+   *   (with a vagrant VM on the same host (so, almost no network), it takes from client to server and
+   *   back ~10ms on a dev machine.
+   */
+  override def isUpToDate(lastKnowModification: DateTime): Boolean = {
+    val n0 = System.currentTimeMillis
+    val searchRequest = new SearchRequest(nodeDit.BASE_DN.toString, Sub, DereferencePolicy.NEVER, 1, 0, false
+        , AND(
+             OR(
+                  // ou=Removed Inventories,ou=Inventories,cn=rudder-configuration
+                  AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${removedDit.NODES.dn.toString}"))
+                  // ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration
+                , AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
+                , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
+                  // ou=Nodes,cn=rudder-configuration - the objectClass is used only here
+                , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
+              )
+            , GTEQ(A_MOD_TIMESTAMP, GeneralizedTime(lastKnowModification.plusMillis(1)).toString)
+          )
+        , "1.1"
+      )
+
+    val res = ldap.map { con =>
+      //here, I have to rely on low-level LDAP connection, because I need to proceed size-limit exceeded as OK
+      try {
+        con.backed.search(searchRequest).getSearchEntries
+      } catch {
+        case e:LDAPSearchException if(e.getResultCode == ResultCode.SIZE_LIMIT_EXCEEDED) =>
+          e.getSearchEntries()
+      }
+    } match {
+      case Full(seq) =>
+        //we only have interesting entries in the result, so it's up to date if we have exactly 0 entries
+        val res = seq.size <= 0
+        logger.trace(s"Cache check for node info gave '${res}' (${seq.size} entry returned)")
+        res
+      case eb: EmptyBox =>
+        val e = eb ?~! "Error when checking for cache expiration: invalidating it"
+        logger.debug(e.messageChain)
+        false
+    }
+    val n1 = System.currentTimeMillis
+    TimingDebugLogger.debug(s"Cache for nodes info expire ?: ${n1-n0}ms")
+    res
+  }
+
+  /**
+   * This method must return only and all entries under:
+   * - ou=Nodes,
+   * - ou=[Node, Machine], ou=Accepted Inventories, etc
+   */
+  override def getNodeInfoEntries(con: RoLDAPConnection, searchAttributes: Seq[String]): Seq[LDAPEntry] = {
+    con.search(
+            nodeDit.BASE_DN
+          , Sub
+          , OR(
+                AND(IS(OC_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.NODES.dn.toString}"))
+              , AND(IS(OC_MACHINE), Filter.create(s"entryDN:dnOneLevelMatch:=${inventoryDit.MACHINES.dn.toString}"))
+              , AND(IS(OC_RUDDER_NODE), Filter.create(s"entryDN:dnOneLevelMatch:=${nodeDit.NODES.dn.toString}"))
+            )
+          , searchAttributes:_*
+        )
+  }
 }

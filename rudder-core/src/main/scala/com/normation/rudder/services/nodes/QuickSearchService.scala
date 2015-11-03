@@ -47,7 +47,7 @@ import com.normation.rudder.domain.RudderDit
 import com.normation.rudder.domain.NodeDit
 import com.normation.rudder.domain.RudderLDAPConstants._
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.services.nodes.NodeInfoServiceImpl.nodeInfoAttributes
+import com.normation.rudder.services.nodes.NodeInfoService.nodeInfoAttributes
 
 import com.normation.rudder.domain.Constants._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
