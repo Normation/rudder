@@ -50,8 +50,8 @@ import com.normation.ldap.sdk._
 import com.normation.inventory.ldap.core._
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
-import com.normation.rudder.services.nodes.NodeInfoServiceImpl
 import com.normation.rudder.services.nodes.NodeInfoServiceCachedImpl
+import com.normation.rudder.services.nodes.NaiveNodeInfoServiceCachedImpl
 
 /*
  * Test query parsing.
@@ -102,7 +102,7 @@ class TestQueryProcessor extends Loggable {
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
   val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
 
-  val nodeInfoService = new NodeInfoServiceCachedImpl(ldap, nodeDit, DIT, removedDIT, ldapMapper)
+  val nodeInfoService = new NaiveNodeInfoServiceCachedImpl(ldap, nodeDit, DIT, removedDIT, ldapMapper)
 
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,
@@ -127,10 +127,21 @@ class TestQueryProcessor extends Loggable {
 
   val sr = NodeId("root") +: s
 
+  @Test def ensureNodeLoaded() {
+    //just check that we correctly loaded demo data in serve
+    val s = (for {
+      con <- ldap
+    } yield {
+      con.search("cn=rudder-configuration", Sub, BuildFilter.ALL).size
+    }).openOrThrowException("For tests")
+
+    val expected = 37+28  //37 in bootstrap and 28 in inventory-sample
+    assert(expected == s, s"Not found the expected number of entries in test LDAP directory [expected: ${expected}, found: ${s}], perhaps the demo entries where not correctly loaded")
+  }
 
   @Test def basicQueriesOnId() {
 
-    /** find back all server */
+    /* find back all server */
     val q0 = TestQuery(
       "q0",
       parser("""
@@ -140,7 +151,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s)
 
-    /** find back server 1 and 5 by id */
+    /* find back server 1 and 5 by id */
     val q1 = TestQuery(
       "q1",
       parser("""
@@ -151,7 +162,7 @@ class TestQueryProcessor extends Loggable {
       """).openOrThrowException("For tests"),
       s(1) :: s(5) :: Nil)
 
-    /** find back neither server 1 and 5 by id because of the and */
+    /* find back neither server 1 and 5 by id because of the and */
     val q2 = TestQuery(
       "q2",
       parser("""
@@ -278,7 +289,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"node", "composition":"or" , "where":[
         , { "objectType":"fileSystemLogicalElement", "attribute":"description", "comparator":"regex", "value":"matchOnM[e]" }
       ] }
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(3) :: Nil)
 
 
@@ -358,7 +369,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"nodeAndPolicyServer","composition":"or",  "where":[
         , { "objectType":"fileSystemLogicalElement" , "attribute":"mountPoint" , "comparator":"regex", "value":"[/]" }
       ] }
-      """).open_!,
+      """).openOrThrowException("For tests"),
       s(3) :: s(7) :: sr(0) ::  Nil)
 
     //test regex for "not containing word", see http://stackoverflow.com/questions/406230/regular-expression-to-match-string-not-containing-a-word
@@ -421,7 +432,7 @@ class TestQueryProcessor extends Loggable {
           {  "select":"node", "where":[
             { "objectType":"node", "attribute":"inventoryDate", "comparator":"%s"   , "value":"%s/05/2013" }
           ] }
-          """.format(comp, day)).open_!
+          """.format(comp, day)).openOrThrowException("For tests")
       , expects
     )
 
@@ -456,7 +467,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"nodeAndPolicyServer", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"exists" }
       ] }
-      """).open_!,
+      """).openOrThrowException("For tests"),
       sr)
 
     val q1 = TestQuery(
@@ -465,7 +476,7 @@ class TestQueryProcessor extends Loggable {
       {  "select":"nodeAndPolicyServer", "composition":"or", "where":[
         { "objectType":"node"   , "attribute":"nodeId"  , "comparator":"exists" }
       ] }
-      """).open_!,
+      """).openOrThrowException("For tests"),
       sr)
 
 
