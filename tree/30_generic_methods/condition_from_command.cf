@@ -1,0 +1,60 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from command 
+# @description Execute a command and create outcome classes depending on its exit code
+#
+# @parameter condition_prefix   The condition name, use ${class_prefix} to create a local condition
+# @parameter command            The command to run
+# @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
+# @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
+# 
+# @class_prefix condition_from_command
+# @class_parameter condition_prefix
+#
+# This bundle will define a class condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}
+# depending on the exit codes given in parameters.
+#
+# If the exit code is in the list, this will always produce a kept outcome class.
+# If the exit code is not in the list, this will produce an error outcome class.
+# If the exit code is in the list, this will additionnaly produce a ${condition_prefix}_true or a ${condition_prefix}_false condition.
+#
+# The created condition (class in cfengine speaking) is global to the agent.
+# To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
+# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or cfengine >= 3.8
+
+bundle agent condition_from_command(condition_prefix, command, true_codes, false_codes)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_command_${condition_prefix}");
+      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${condition_prefix}", "${command}", "${true_codes}", "${false_codes}" };
+
+      "true_list"     slist => splitstring("${true_codes}", "\s*,\s*", "256");
+      "false_list"    slist => splitstring("${false_codes}", "\s*,\s*", "256");
+
+  methods:
+      "report"
+        usebundle  => _logger("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
+
+  commands:
+      "${command}"
+        contain      => in_shell,
+        classes      => classes_generic_return_boolean_list_two("${old_class_prefix}", "${class_prefix}", "${condition_prefix}", @{true_list}, @{false_list});
+}

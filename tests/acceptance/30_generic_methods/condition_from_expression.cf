@@ -1,0 +1,52 @@
+#######################################################
+#
+# Test if only success classes are created
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, default("$(this.promise_filename)") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "ph1"         usebundle => condition_from_expression("class1", "any");
+    "ph2"         usebundle => condition_from_expression("class2", "!any");
+
+}
+
+#######################################################
+
+bundle agent check
+{
+  classes:
+      "ok_class1"  expression => "condition_from_expression_class1_ok.class1_true";
+      "ok_class2"  expression => "condition_from_expression_class2_ok.class2_false";
+
+      "ok"         expression => "ok_class1.ok_class2";
+
+  reports:
+    ok::
+      "$(this.promise_filename) Pass";
+    !ok::
+      "$(this.promise_filename) FAIL";
+}

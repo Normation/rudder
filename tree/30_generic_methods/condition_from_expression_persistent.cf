@@ -1,0 +1,59 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Condition from expression persistent
+# @description Create a new condition class that persists accross runs
+#
+# @parameter condition_prefix     The condition prefix, use ${class_prefix}_name to create a local condition
+# @parameter condition_expression The expression evaluated to create the condition (use 'any' to alwaus evaluate to true)
+# @parameter duration             The persistence suffix in minutes
+#
+# @class_prefix condition_from_expression_persistent
+# @class_parameter condition_prefix
+#
+# This bundle will define a class condition_from_expression_persistent_${condition_prefix}_{kept,ok,reached}
+#
+# This bundle will additionnaly produce a ${condition_prefix}_true or a ${condition_prefix}_false condition depending on the result on the expression
+#
+# The created condition (class in cfengine speaking) is global to the agent and is persisted accross runs.
+# The persistence duration is controlled using ${duration}. There is no way to persist indefinitly.
+# To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
+# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or cfengine >= 3.8
+# 
+bundle agent condition_from_expression_persistent(condition_prefix, condition_expression, duration)
+{
+  vars:
+      "old_class_prefix"  string => canonify("condition_from_expression_persistent_${condition_prefix}");
+      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${condition_prefix}", "${condition_expression}", "${duration}" };
+
+  classes:
+      "${condition_prefix}_true"   expression => "${condition_expression}",
+                                  persistence => "${duration}",
+                                        scope => "namespace";
+
+      "${condition_prefix}_false"  expression => "!(${condition_expression})",
+                                  persistence => "${duration}",
+                                        scope => "namespace";
+
+  methods:
+      "success" usebundle => _classes_success("${old_class_prefix}");
+      "success" usebundle => _classes_success("${class_prefix}");
+
+      "report"  usebundle => _logger("Create the persistent condition ${condition_prefix}_{true,false} with ${condition_expression}", "${old_class_prefix}", "${class_prefix}", @{args});
+}
