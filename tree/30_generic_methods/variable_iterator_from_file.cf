@@ -1,0 +1,72 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Variable iterator from file
+# @description Define a variable that will be automatically iterated over
+#
+# @parameter variable_prefix  The prefix of the variable name, use ${class_prefix} for a local variable and a static name for a global variable
+# @parameter variable_name    The variable to define, the full name will be variable_prefix.variable_name
+# @parameter file_name        The path to the file
+# @parameter separator_regex  Regular expression that is used to split the value into items ( usually: \n )
+# @parameter comments_regex   Regular expression that is used to remove comments ( usually: \s*#.*?(?=\n) )
+# 
+# @class_prefix variable_iterator_from_file
+# @class_parameter variable_name
+# 
+# This bundle will define a class variable_iterator_from_file_${variable_name}_{kept,repaired,not_ok,ok,reached}
+#
+# The generated variable is a special variable (slist in cfengine speaking) that is automatically
+# iterated over. When you call a generic method with this variable as a parameter, n calls will be made,
+# one for each items of the variable.
+# Note: there is a limit of 10000 items
+# Note: empty items are ignored
+#
+# To use the generated variable, you must use the form ${variable_prefix.variable_name} with each name replaced with the parameters of this method.
+# 
+# To create a local variable, use ${class_prefix} as a prefix so that it is garanteed to be unique to this technique instance.
+# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or cfengine >= 3.8
+# to create a global variable, use a static name that you can reuse in other techniques.
+# Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
+# Please note that only global variables are available within templates.
+
+bundle agent variable_iterator_from_file(variable_prefix, variable_name, file_name, separator_regex, comments_regex)
+{
+  vars:
+      "old_class_prefix"  string => canonify("variable_iterator_from_file_${variable_name}");
+      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "args"               slist => { "${variable_prefix}", "${variable_name}", "${file_name}", "${separator_regex}", "${comments_regex}" };
+
+      # define the variable within the class_prefix namespace
+      "${variable_prefix}.${variable_name}" slist => readstringlist("${file_name}", "${comments_regex}", "${separator_regex}", "10000", "0");
+
+  classes:
+     "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+
+  methods:
+    !variable_defined::
+      "error"    usebundle => _classes_failure("${old_class_prefix}");
+      "error"    usebundle => _classes_failure("${class_prefix}");
+
+    variable_defined::
+      "success"  usebundle => _classes_success("${old_class_prefix}");
+      "success"  usebundle => _classes_success("${class_prefix}");
+
+    any::
+      "report"
+        usebundle  => _logger("Set the iterator ${variable_prefix}.${variable_name} value to ${file_name} content", "${old_class_prefix}", "${class_prefix}", @{args});
+}
