@@ -117,7 +117,7 @@ class WoLDAPNodeRepository(
    * If the node is a system one, the methods fails.
    */
   private[this] def update(nodeId: NodeId, updateNode: Node => Node, logAction: (Node, Node) => Box[EventLog]) : Box[Node] = {
-    import com.normation.rudder.services.nodes.NodeInfoServiceImpl.{nodeInfoAttributes => attrs}
+    import com.normation.rudder.services.nodes.NodeInfoService.{nodeInfoAttributes => attrs}
     repo.synchronized { for {
       con           <- ldap
       existingEntry <- con.get(nodeDit.NODES.NODE.dn(nodeId.value), attrs:_*) ?~! s"Cannot update node with id ${nodeId.value} : there is no node with that id"
