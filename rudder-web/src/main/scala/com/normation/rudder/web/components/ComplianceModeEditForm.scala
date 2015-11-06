@@ -76,7 +76,7 @@ class ComplianceModeEditForm (
   def templatePath = List("templates-hidden", "components", "ComponentComplianceMode")
   def template() =  Templates(templatePath) match {
      case Empty | Failure(_,_,_) =>
-       error(s"Template for Compliance mode configuration not found. I was looking for ${templatePath.mkString("/")}.html")
+       sys.error(s"Template for Compliance mode configuration not found. I was looking for ${templatePath.mkString("/")}.html")
      case Full(n) => n
   }
   def agentScheduleTemplate = chooseTemplate("property", "complianceMode", template)
