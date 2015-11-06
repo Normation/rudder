@@ -1226,24 +1226,13 @@ class EventListDisplayer(
       {rawData}
     </div>
 
-
-  private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
-    nodeInfoService.getNodeInfo(id) match {
-      case t: EmptyBox =>
-        <span>Node (Rudder ID: {id.value})</span>
-      case Full(node) =>
-        <span>Node "<a href={nodeLink(id)}>{node.hostname}</a>" (Rudder ID: {id.value})</span>
-    }
-  }
-
   private[this] def nodeGroupDetails(nodes: Set[NodeId]): NodeSeq = {
     val res = nodes.toSeq match {
       case Seq() => NodeSeq.Empty
       case t =>
         nodes
         .toSeq
-        .map { id => nodeNodeSeqLink(id: NodeId)
-        }
+        .map { id => createNodeLink(id) }
         .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
     }
     (

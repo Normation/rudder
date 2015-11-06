@@ -67,7 +67,7 @@ class AgentScheduleEditForm(
   def templatePath = List("templates-hidden", "components", "ComponentAgentSchedule")
   def template() =  Templates(templatePath) match {
      case Empty | Failure(_,_,_) =>
-       error("Template for Agent Schedule configuration not found. I was looking for %s.html"
+       sys.error("Template for Agent Schedule configuration not found. I was looking for %s.html"
            .format(templatePath.mkString("/")))
      case Full(n) => n
   }

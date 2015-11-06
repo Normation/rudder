@@ -241,7 +241,7 @@ class HistorizationServiceImpl(
                schedule.interval == interval
             && schedule.splaytime == splaytime
             && schedule.start_hour == start_hour
-            && schedule.start_minute == start_minute) => Full()
+            && schedule.start_minute == start_minute) => Full(())
         case _ => Full(historizationRepository.updateGlobalSchedule(interval, splaytime, start_hour, start_minute))
       }
     } catch {
