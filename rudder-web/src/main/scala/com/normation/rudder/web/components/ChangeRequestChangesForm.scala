@@ -437,7 +437,7 @@ class ChangeRequestChangesForm(
                        l match {
                          case Nil => Text("None")
                          case _ => l
-                           .map(id => <li><a href={nodeLink(id)}>{id.value}</a></li>)
+                           .map(id => <li>{createNodeLink(id)}</li>)
                        }
                      }
                   </ul> ) &

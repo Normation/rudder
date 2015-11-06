@@ -620,8 +620,9 @@ div#Detail {
   padding: 0;
 }
 
-.dataTables_refresh .refreshButton span {
+.dataTables_refresh .refreshButton .ui-button-text {
   padding: 8px;
+  line-height: 0;
 }
 
 .paginate {
@@ -2868,3 +2869,36 @@ input[type="number"] {
 .ui-button-disabled  {
     opacity: 0.5;
 }
+
+#backButton {
+	float: left;
+  margin: 10px 40px;
+	font-style:bold;
+}
+
+#CRStatus {
+	background-color:#2E2D2D;
+	color:#F79D10;
+	float: right;
+	font-size: 15px;
+	font-weight: bold;
+	padding: 7px;
+	margin-right: 40px;
+	cursor:default;
+	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+#nameTitle {
+	margin-left: 40px;
+	font-weight: bold;
+	font-size: 25px;
+}
+
+#CRLastAction {
+	margin-left: 40px;
+	font-size: 15px;
+	margin-bottom:5px;
+	font-style:italic;
+}
+  
+  
