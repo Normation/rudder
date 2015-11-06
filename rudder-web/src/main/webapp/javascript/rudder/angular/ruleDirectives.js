@@ -37,7 +37,6 @@ ruleDirectives.controller('DirectiveCtrl', ['$scope', function($scope) {
       } else {
         $scope.sortedDirectives = sorted;
       }
-      console.log(sorted);
       return $scope.sortedDirectives;
     }
     
