@@ -58,7 +58,6 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers.chooseTemplate
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 
-
 /**
  *
  * Snippet that handle the "searchNodes" page.
@@ -73,7 +72,6 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
  * immemorial times (see http://caniuse.com/hashchange for details)
  *
  */
-
 
 object SearchNodes {
   private val serverPortletPath = List("templates-hidden", "server", "server_details")
@@ -105,7 +103,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
-
   var srvList : Box[Seq[NodeInfo]] = Empty
 
   setNodeGroupCategoryForm(None)
@@ -120,7 +117,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
 
   var activateSubmitButton = true
-
 
   def head(html:NodeSeq) : NodeSeq = {
     import net.liftweb.json._
@@ -202,10 +198,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
       val sc = setNodeGroupCategoryForm(q)
 
       q match {
-        case f:Failure =>
-          logger.debug(f.messageChain)
+        case e:EmptyBox =>
+          val fail = e ?~! s"Could not parse ${query} as a valid query"
+          logger.error(fail.messageChain)
           Noop
-        case e:EmptyBox => Noop
         case Full(q)    =>
           Replace("SearchNodes", queryForm(sc)) &
           JsRaw("correctButtons(); $('#SubmitSearch').click();")
@@ -217,7 +213,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
       , function(x) { ${SHtml.ajaxCall(JsVar("x") , executeQuery   _ )._2.toJsCmd} }
     )""")
   }
-
 
   /**
    * Create the popup
@@ -255,4 +250,3 @@ class SearchNodes extends StatefulSnippet with Loggable {
     SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
   }
 }
-
