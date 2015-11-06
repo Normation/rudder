@@ -62,6 +62,7 @@ object JsInitContextLinkUtil extends Loggable {
   private[this] val roRuleRepository      = RudderConfig.roRuleRepository
   private[this] val roGroupRepository     = RudderConfig.roNodeGroupRepository
   private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
+  private[this] val nodeInfoService       = RudderConfig.nodeInfoService
 
   def baseGroupLink(id:NodeGroupId) =
     s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
@@ -143,6 +144,15 @@ object JsInitContextLinkUtil extends Loggable {
       case eb:EmptyBox => val fail = eb ?~! s"Could not find Directive with Id ${id.value}"
         logger.error(fail.msg)
         <span> {id.value} </span>
+    }
+  }
+
+  def createNodeLink(id: NodeId) = {
+    nodeInfoService.getNodeInfo(id) match {
+      case t: EmptyBox =>
+        <span>Node {id.value}</span>
+      case Full(node) =>
+        <span>Node <a href={baseNodeLink(id)}>{node.hostname}</a> (Rudder ID: {id.value})</span>
     }
   }
   // Naive implementation that redirect simply to all Global Parameter page
