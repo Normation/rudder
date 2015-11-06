@@ -115,7 +115,6 @@ object RuleEditForm {
       chooseTemplate("component", "form", xml)
     }) openOr Nil
 
-
   val htmlId_groupTree = "groupTree"
   val htmlId_activeTechniquesTree = "userPiTree"
 }
@@ -198,7 +197,6 @@ class RuleEditForm(
                 s"#${htmlId_EditZone} *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
                 ClearClearable &
               "#ruleForm" #> formContent &
-              "#details"  #> new RuleCompliance(rule,directiveLib, nodeInfos, rootRuleCategory).display &
               actionButtons()
             ).apply(body)
 
@@ -228,6 +226,7 @@ class RuleEditForm(
             | $$("#editRuleZone").bind( "show", function(event, ui) {
             | if(ui.panel.id== 'ruleComplianceTab') { ${ruleComplianceTabAjax}; }
             | });
+            |${Replace("details", new RuleCompliance(rule,directiveLib, nodeInfos, rootRuleCategory).display).toJsCmd};
             """.stripMargin('|')
           )
         )
@@ -519,7 +518,6 @@ class RuleEditForm(
       , rule
     )
   }
-
 
   // Create the popup for workflow
   private[this] def displayConfirmationPopup(
