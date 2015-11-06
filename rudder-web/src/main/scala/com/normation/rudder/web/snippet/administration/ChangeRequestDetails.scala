@@ -34,7 +34,6 @@
 
 package com.normation.rudder.web.snippet.administration
 
-
 import net.liftweb.common._
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.http._
@@ -61,7 +60,6 @@ import com.normation.rudder.services.workflows.WorkflowAction
 import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
 
-
 object ChangeRequestDetails {
 
   private[this] val templatePathList = "templates-hidden" :: "components" :: "ComponentChangeRequest" :: Nil
@@ -77,14 +75,13 @@ object ChangeRequestDetails {
 
   val header = chooseNodes("header")
   val popup = chooseNodes("popup")
-  val popupContent = chooseNodes("popupContent")
-  val actionButtons = chooseNodes("actionButtons")
-  def unmergeableWarning = chooseNodes("warnUnmergeable")
+  val popupContent = chooseNodes("popupcontent")
+  val actionButtons = chooseNodes("actionbuttons")
+  def unmergeableWarning = chooseNodes("warnunmergeable")
 }
 
 class ChangeRequestDetails extends DispatchSnippet with Loggable {
   import ChangeRequestDetails._
-
 
   private[this] val techRepo = RudderConfig.techniqueRepository
   private[this] val rodirective = RudderConfig.roDirectiveRepository
@@ -247,9 +244,8 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       case (None,Some(_)) => step
       case (Some(date),Some(stepDate)) => if (date.isAfter(stepDate)) action else step
     }
-    val link = <b style="margin-top:10px"> ← Back to change request list</b>
-    ( "#backButton *" #> SHtml.a(() => S.redirectTo("/secure/utilities/changeRequests"),link) &
-      "#CRName *" #> s"CR #${cr.id}: ${cr.info.name}" &
+    ( "#backButton [href]" #> "/secure/utilities/changeRequests" &
+      "#nameTitle *" #> s"CR #${cr.id}: ${cr.info.name}" &
       "#CRStatus *" #> workflowService.findStep(cr.id).map(x => Text(x.value)).openOr(<div class="error">Cannot find the status of this change request</div>) &
       "#CRLastAction *" #> s"${ last }"
     ) (header)
@@ -265,7 +261,6 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       }
     }.openOr(NodeSeq.Empty)
   }
-
 
   def ChangeStepPopup(action:String,nextSteps:Seq[(WorkflowNodeId,(ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId])],cr:ChangeRequest) = {
     type stepChangeFunction = (ChangeRequestId,EventActor, Option[String]) => Box[WorkflowNodeId]
@@ -288,7 +283,6 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
         <span id="CRStatus">
           {next}
         </span>
-
 
     def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
       new WBTextAreaField("Message", "") {
