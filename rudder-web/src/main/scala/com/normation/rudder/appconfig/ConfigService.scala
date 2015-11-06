@@ -197,7 +197,7 @@ trait UpdateConfigService {
       _ <- set_rudder_compliance_mode_name(name,actor, reason)
       u <- name match {
              case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(frequency, actor, reason)
-             case _ => Full()
+             case _ => Full(())
            }
     } yield {
       u
