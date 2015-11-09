@@ -135,7 +135,6 @@ class HomePage extends Loggable {
   private[this] val mapper           = RudderConfig.ldapInventoryMapper
   private[this] val roRuleRepo       = RudderConfig.roRuleRepository
 
-
   def pendingNodes(html : NodeSeq) : NodeSeq = {
     displayCount(countPendingNodes, "pending nodes")
   }
@@ -250,7 +249,6 @@ class HomePage extends Loggable {
        , JE.Num(compliance.pc_unexpected)
      )
 
-
      val globalCompliance = compliance.complianceWithoutPending.round
 
      Script(OnLoad(JsRaw(s"""
@@ -313,7 +311,6 @@ class HomePage extends Loggable {
      )""")))
   }
 
-
   /**
    * Get the count of agent version name -> size for accepted nodes
    */
@@ -332,6 +329,7 @@ class HomePage extends Loggable {
       n2               =  System.currentTimeMillis
       agentSoftEntries =  con.searchOne(acceptedNodesDit.SOFTWARE.dn, EQ(A_NAME, "rudder-agent"))
       agentSoftDn      =  agentSoftEntries.map(_.dn.toString).toSet
+
       agentSoft        <- sequence(agentSoftEntries){ entry =>
                             mapper.softwareFromEntry(entry) ?~! "Error when mapping LDAP entry %s to a software".format(entry)
                           }
@@ -344,9 +342,14 @@ class HomePage extends Loggable {
                               , OR(agentSoft.map(x => EQ(A_SOFTWARE_DN, acceptedNodesDit.SOFTWARE.SOFT.dn(x.id).toString)):_*)
                               , A_NODE_UUID, A_SOFTWARE_DN
                             )
-                            //only get interesting entries control - that make a huge difference in perf
-                            sr.addControl(new MatchedValuesRequestControl(agentSoftDn.map(dn => MatchedValuesFilter.createEqualityFilter(A_SOFTWARE_DN, dn)).toSeq:_*))
-                            con.search(sr)
+                            // Skip if there is no rudder-agent packages in software DN
+                            if (! agentSoftDn.isEmpty) {
+                              //only get interesting entries control - that make a huge difference in perf
+                              sr.addControl(new MatchedValuesRequestControl(agentSoftDn.map(dn => MatchedValuesFilter.createEqualityFilter(A_SOFTWARE_DN, dn)).toSeq:_*))
+                              con.search(sr)
+                            } else {
+                              Seq()
+                            }
                           }
       n4               =  System.currentTimeMillis
       _                =  TimingDebugLogger.debug(s"Get nodes for agent: ${n4-n3}ms")
@@ -419,7 +422,6 @@ class HomePage extends Loggable {
     }.map(x => x.size)
   }
 
-
   private[this] def displayCount( count : () => Box[Int], name : String) ={
     Text((count() match {
       case Empty => 0
@@ -429,6 +431,5 @@ class HomePage extends Loggable {
       case Full(x) => x
     }).toString)
   }
-
 
 }
