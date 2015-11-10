@@ -69,6 +69,9 @@ import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
 
 /**
  *
@@ -127,7 +130,6 @@ class ReportingServiceTest extends DBCommon {
 
   import slick._
 
-
   //help differentiate run number with the millis
   //perfect case: generation are followe by runs one minute latter
 
@@ -161,10 +163,8 @@ class ReportingServiceTest extends DBCommon {
  * TODO: need to test for "overridden" unique directive on a node
  */
 
-
   //BE CAREFULL: we don't compare on expiration dates!
   val EXPIRATION_DATE = new DateTime(0)
-
 
   val allNodes_t1 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t1"), gen1, Some(gen2) ))).toMap
   val allNodes_t2 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t2"), gen2, None ))).toMap
@@ -250,7 +250,6 @@ class ReportingServiceTest extends DBCommon {
     updateExpected.addNodeConfigIdInfo(allNodes_t2.mapValues(_.configId), gen2).openOrThrowException("I should be able to add node config id info")
   }
 
-
   "Testing set-up for expected reports and agent run" should {  //be in ExpectedReportsTest!
     //essentially test the combination of in/in(values clause
 
@@ -330,7 +329,15 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// changes only mode /////////////////////////////////
 
   "Finding rule status reports for the change only mode" should {
-    lazy val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(ChangesOnly(1)))
+    lazy val errorOnlyReportingService =
+      new ReportingServiceImpl(
+          findExpected
+        , reportsRepo
+        , roAgentRun
+        , findExpected
+        , agentRunService
+        , () => Full(GlobalComplianceMode(ChangesOnly,1))
+      )
 
     "get r0" in {
 
@@ -411,7 +418,6 @@ class ReportingServiceTest extends DBCommon {
       val r = errorOnlyReportingService.findDirectiveRuleStatusReportsByRule(RuleId("r2"))
       val result = r.openOrThrowException("'Test failled'")
 
-
       val expected = Seq(
           /**
            * changed not to long ago => pending
@@ -458,11 +464,11 @@ class ReportingServiceTest extends DBCommon {
     }
   }
 
+  val fullCompliance = GlobalComplianceMode(FullCompliance, 1)
   ///////////////////////////////// full compliance mode /////////////////////////////////
 
   "Finding rule status reports for the compliance mode" should {
-    lazy val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(FullCompliance))
-
+    lazy val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(fullCompliance))
 
     "get r0" in {
 
@@ -579,7 +585,14 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// error only mode /////////////////////////////////
 
   "Finding node status reports for the changes only mode" should {
-    lazy val errorOnlyReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(ChangesOnly(1)))
+    lazy val errorOnlyReportingService =
+      new ReportingServiceImpl(
+          findExpected
+        , reportsRepo
+        , roAgentRun
+        , findExpected
+        , agentRunService
+        , () => Full(GlobalComplianceMode(ChangesOnly,1)))
 
     "get pending for node 0 on gen2 data" in {
       ComplianceDebugLogger.info("changes only / node0")
@@ -668,7 +681,7 @@ class ReportingServiceTest extends DBCommon {
   ///////////////////////////////// full compliance mode /////////////////////////////////
 
   "Finding node status reports for the compliance mode" should {
-    lazy val complianceReportingService:ReportingServiceImpl = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(FullCompliance))
+    lazy val complianceReportingService:ReportingServiceImpl = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(fullCompliance))
 
     "get pending for node 0 on gen2 data (without msg)" in {
       ComplianceDebugLogger.info("compliance / node0")
@@ -703,7 +716,6 @@ class ReportingServiceTest extends DBCommon {
           ))
       ))
     }
-
 
     /*
      * This case is a little touchy because node2 sent reports for gen1/run1,

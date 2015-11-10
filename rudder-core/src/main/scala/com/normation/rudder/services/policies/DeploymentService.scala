@@ -78,7 +78,7 @@ import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
 import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-
+import com.normation.rudder.reports.GlobalComplianceMode
 
 /**
  * The main service which deploy modified rules and
@@ -124,7 +124,6 @@ trait PromiseGenerationService extends Loggable {
       timeFetchAll    =  (System.currentTimeMillis - initialTime)
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
 
-
       nodeContextsTime =  System.currentTimeMillis
       nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, allInventories, globalParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
       timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
@@ -140,7 +139,6 @@ trait PromiseGenerationService extends Loggable {
       _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
       ///// end ignoring
 
-
       ruleValTime   =  System.currentTimeMillis
                        //only keep actually applied rules in a format where parameter analysis on directive is done.
       ruleVals      <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
@@ -151,7 +149,6 @@ trait PromiseGenerationService extends Loggable {
       config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
-
 
       sanitizeTime        =  System.currentTimeMillis
       _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
@@ -202,8 +199,6 @@ trait PromiseGenerationService extends Loggable {
     result
   }
 
-
-
   /**
    * Snapshot all information needed:
    * - node infos
@@ -240,7 +235,6 @@ trait PromiseGenerationService extends Loggable {
    */
   def findDependantRules() : Box[Seq[Rule]]
 
-
   /**
    * Rule vals are just rules with a analysis of parameter
    * on directive done, so that we will be able to bind them
@@ -256,8 +250,6 @@ trait PromiseGenerationService extends Loggable {
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
   ): Box[Map[NodeId, InterpolationContext]]
-
-
 
   /**
    * From a list of ruleVal, find the list of all impacted nodes
@@ -282,7 +274,6 @@ trait PromiseGenerationService extends Loggable {
    * If passed with an empty set, actually forget all node configuration.
    */
   def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Set[NodeId]]
-
 
   /**
    * Get the actual cached values for NodeConfiguration
@@ -310,7 +301,6 @@ trait PromiseGenerationService extends Loggable {
    * Return the list of configuration successfully written.
    */
   def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]]
-
 
   /**
    * Set the expected reports for the rule
@@ -347,7 +337,6 @@ trait PromiseGenerationService extends Loggable {
     , globalStartHour  : Int
     , globalStartMinute: Int
   ) : Box[Unit]
-
 
   protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
     NodeConfigId(config.hashCode.toString)
@@ -426,7 +415,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary()
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
-  override def getGlobalComplianceMode(): Box[ComplianceMode] = complianceModeService.getComplianceMode
+  override def getGlobalComplianceMode(): Box[GlobalComplianceMode] = complianceModeService.getGlobalComplianceMode
   override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getGlobalAgentRun()
   override def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId] = {
      rules.filter(r => ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
@@ -435,8 +424,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     }).map(_.id).toSet
 
   }
-
-
 
   /**
    * Build interpolation contexts.
@@ -478,7 +465,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
         }
       }.map( _.toMap)
     }
-
 
     for {
       globalSystemVariables <- systemVarService.getGlobalSystemVariables()
@@ -535,7 +521,6 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
 trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService with Loggable {
   def roNodeGroupRepository: RoNodeGroupRepository
 
-
   /**
    * This is the draft of the policy, not yet a cfengine policy, but a level of abstraction between both
    */
@@ -551,9 +536,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , directiveOrder : BundleOrder
   ) extends HashcodeCaching
 
-
-
-
    /**
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual Cf3PolicyDraft they will have.
@@ -568,14 +550,11 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , allNodeInfos : Map[NodeId, NodeInfo]
   ) : Box[Seq[NodeConfiguration]] = {
 
-
     //step 1: from RuleVals to expanded rules vals
     //1.1: group by nodes (because parameter expansion is node sensitive
     //1.3: build node config, binding ${rudder.parameters} parameters
 
-
     //1.1: group by nodes
-
 
     val seqOfMapOfPolicyDraftByNodeId = ruleVals.map { ruleVal =>
 
@@ -675,7 +654,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
 
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
@@ -710,7 +688,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
   }
 
   def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]] = nodeConfigurationService.getNodeConfigurationCache()
-
 
   /**
    * Detect changes in rules and update their serial
@@ -803,7 +780,6 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   def reportingService : ExpectedReportsUpdate
   def complianceCache  : CachedFindRuleNodeStatusReports
@@ -883,7 +859,6 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
       }
     ).toMap
 
-
     //we also want to build the list of overriden directive based on unique techniques.
     val overriden = configs.flatMap { nodeConfig =>
       nodeConfig.policyDrafts.flatMap( x => x.overrides.map { case (ruleId, directiveId) =>
@@ -898,7 +873,6 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     complianceCache.invalidate(nodeIds)
   }
 }
-
 
 trait PromiseGeneration_historization extends PromiseGenerationService {
   def historizationService : HistorizationService
@@ -924,7 +898,4 @@ trait PromiseGeneration_historization extends PromiseGenerationService {
     }
   }
 
-
-
 }
-

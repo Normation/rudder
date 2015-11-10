@@ -44,25 +44,54 @@ import net.liftweb.json._
  * - error_only: only report for repaired and error reports.
  */
 
-sealed trait ComplianceMode {
-  def name: String
+sealed trait ComplianceModeName {
+  val name : String
 }
 
-final case object FullCompliance extends ComplianceMode {
+case object FullCompliance extends ComplianceModeName {
   val name = "full-compliance"
 }
-final case class ChangesOnly (
-  heartbeatPeriod : Int
-)extends ComplianceMode {
-  val name = ChangesOnly.name
-}
 
-object ChangesOnly {
+case object ChangesOnly extends ComplianceModeName {
   val name = "changes-only"
 }
 
+case object ReportDisabled extends ComplianceModeName {
+  val name = "reports-disabled"
+}
+
+object ComplianceModeName {
+  val allModes : List[ComplianceModeName] = FullCompliance :: ChangesOnly :: ReportDisabled :: Nil
+
+  def parse (value : String) : Box[ComplianceModeName] = {
+    allModes.find { _.name == value } match {
+      case None =>
+         Failure(s"Unable to parse the compliance mode name '${value}'. was expecting ${allModes.map(_.name).mkString("'", "' or '", "'")}.")
+      case Some(mode) =>
+        Full(mode)
+    }
+  }
+}
+
+sealed trait ComplianceMode {
+  def mode: ComplianceModeName
+  def heartbeatPeriod : Int
+  val name = mode.name
+}
+
+case class GlobalComplianceMode (
+    mode : ComplianceModeName
+  , heartbeatPeriod : Int
+) extends ComplianceMode
+
+case class NodeComplianceMode (
+    mode : ComplianceModeName
+  , heartbeatPeriod : Int
+  , overrideGlobal : Boolean
+) extends ComplianceMode
+
 trait ComplianceModeService {
-  def getComplianceMode : Box[ComplianceMode]
+  def getGlobalComplianceMode : Box[GlobalComplianceMode]
 }
 
 class ComplianceModeServiceImpl (
@@ -70,21 +99,16 @@ class ComplianceModeServiceImpl (
   , readHeartbeatFreq  : () => Box[Int]
 ) extends ComplianceModeService {
 
-  def getComplianceMode : Box[ComplianceMode] = {
-     readComplianceMode() match {
-       case Full(FullCompliance.name) =>  Full(FullCompliance)
-       case Full(ChangesOnly.name) =>
-         readHeartbeatFreq() match {
-           case Full(freq) => Full(ChangesOnly(freq))
-           case eb : EmptyBox =>
-             val fail = eb ?~! "Could not get heartbeat period"
-             fail
-         }
-       case Full(value) =>
-         Failure(s"Unable to parse the compliance mode name. was expecting '${FullCompliance.name}' or '${ChangesOnly.name}' and got '${value}'")
-       case eb : EmptyBox =>
-         val fail = eb ?~! "Could not get compliance mode name"
-         fail
-     }
+  def getGlobalComplianceMode : Box[GlobalComplianceMode] = {
+    for {
+      modeName       <- readComplianceMode()
+      mode           <- ComplianceModeName.parse(modeName)
+      heartbeat      <- readHeartbeatFreq()
+    } yield {
+      GlobalComplianceMode(
+          mode
+        , heartbeat
+      )
+    }
   }
 }

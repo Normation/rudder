@@ -57,7 +57,7 @@ import com.normation.rudder.web.components.ComplianceModeEditForm
 import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
-
+import com.normation.rudder.reports.GlobalComplianceMode
 
 /**
  * This class manage the displaying of user configured properties.
@@ -89,9 +89,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "networkProtocolSection" => networkProtocolSection
   }
 
-
   def changeMessageConfiguration = { xml : NodeSeq =>
-
 
     // initial values
     var initEnabled = configService.rudder_ui_changeMessage_enabled
@@ -144,7 +142,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       )
     }
 
-
     // Rendering
     ( "#configurationRepoPath" #> RudderConfig.RUDDER_DIR_GITROOT &
       "#enabled" #> {
@@ -191,7 +188,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
         initExplanation match {
           case Full(value) =>
-
 
             SHtml.ajaxText(
                 value
@@ -257,7 +253,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var enabled = initEnabled.getOrElse(false)
     var selfVal = initSelfVal.getOrElse(false)
     var selfDep = initSelfDep.getOrElse(false)
-
 
     def submit = {
       configService.set_rudder_workflow_enabled(enabled).foreach(updateOk => initEnabled = Full(enabled))
@@ -374,11 +369,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     //convention: we negate on server i/o, not anywhere else
     var initNoSkipIdentify = configService.cfengine_server_skipidentify.map( !_ )
 
-
     // form values
     var denyBadClocks = initDenyBadClocks.getOrElse(false)
     var noSkipIdentify = initNoSkipIdentify.getOrElse(false)
-
 
     def submit = {
       configService.set_cfengine_server_denybadclocks(denyBadClocks).foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
@@ -427,7 +420,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                By default, copying configuration policy to nodes requires system clocks to be synchronized
                to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.
             </div>
-
 
           case _ => NodeSeq.Empty
         }
@@ -536,12 +528,17 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     , () => startNewPolicyGeneration
   )
 
-  val complianceModeEditForm = new ComplianceModeEditForm(
-      () => configService.rudder_compliance_mode().map(a => (a._1,a._2,true))
-    , (complianceMode,heartbeatPeriod,_) =>  {
-          configService.set_rudder_compliance_mode(complianceMode,heartbeatPeriod,CurrentUser.getActor,genericReasonMessage)}
-    , () => startNewPolicyGeneration
-  )
+  val complianceModeEditForm = {
+    val globalMode = configService.rudder_compliance_mode()
+    new ComplianceModeEditForm[GlobalComplianceMode](
+        globalMode
+      , (complianceMode) => {
+          configService.set_rudder_compliance_mode(complianceMode,CurrentUser.getActor,genericReasonMessage)
+        }
+      , () => startNewPolicyGeneration
+      , globalMode
+    )
+  }
 
   def getSchedule() : Box[AgentRunInterval] = {
     for {
@@ -576,18 +573,15 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
   def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
-
   def cfengineGlobalProps = { xml : NodeSeq =>
 
     //  initial values, updated on successful submit
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
 
-
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
-
 
     def submit = {
       // first, check if the content are effectively Int
@@ -740,5 +734,3 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } ) apply (xml ++ Script(Run("correctButtons();")))
   }
 }
-
-
