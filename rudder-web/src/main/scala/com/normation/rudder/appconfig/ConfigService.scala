@@ -110,26 +110,22 @@ trait ReadConfigService {
    */
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
 
-
   /**
-   * Compliance mode:
-   * - "compliance": full compliance mode, where "success" execution reports are sent
-   *   back from node to server, and taken into account for compliance reports,
-   * - "error_only": only error and repaired are going to the server.
+   * Compliance mode: See ComplianceMode class for more details
    */
-  def rudder_compliance_mode(): Box[(String,Int)] = {
+  def rudder_compliance_mode(): Box[GlobalComplianceMode] = {
     for {
         name <- rudder_compliance_mode_name
+        modeName <- ComplianceModeName.parse(name)
         period <- rudder_compliance_heartbeatPeriod
     } yield {
-      (name,period)
+      GlobalComplianceMode(modeName,period)
     }
   }
 
   def rudder_compliance_mode_name(): Box[String]
 
   def rudder_compliance_heartbeatPeriod(): Box[Int]
-
 
   /**
    * Send Metrics
@@ -192,11 +188,11 @@ trait UpdateConfigService {
   /**
    * Set the compliance mode
    */
-  def set_rudder_compliance_mode(name : String, frequency : Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+  def set_rudder_compliance_mode(mode : ComplianceMode, actor: EventActor, reason: Option[String]): Box[Unit] = {
     for {
-      _ <- set_rudder_compliance_mode_name(name,actor, reason)
-      u <- name match {
-             case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(frequency, actor, reason)
+      _ <- set_rudder_compliance_mode_name(mode.name,actor, reason)
+      u <- mode.name match {
+             case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(mode.heartbeatPeriod, actor, reason)
              case _ => Full(())
            }
     } yield {
@@ -343,7 +339,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
         }
     }
 
-
   }
   def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
     cacheExecutionInterval = Some(value)
@@ -399,7 +394,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     save("rudder_compliance_heartbeatPeriod", value, Some(info))
   }
 
-
   /**
    * Send Metrics
    */
@@ -410,7 +404,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
     save("send_server_metrics",newVal,Some(info))
   }
-
 
   /**
    * Report protocol

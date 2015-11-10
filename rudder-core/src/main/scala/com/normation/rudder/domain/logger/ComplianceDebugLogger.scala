@@ -49,7 +49,6 @@ import com.google.common.cache.CacheBuilder
 import java.util.concurrent.TimeUnit
 import com.google.common.cache.CacheLoader
 
-
 /**
  * Log information about compliance.
  * This log is intended to be used in debug & trace level.
@@ -58,7 +57,6 @@ import com.google.common.cache.CacheLoader
  */
 object ComplianceDebugLogger extends Logger {
   override protected def _logger = LoggerFactory.getLogger("explain_compliance")
-
 
   //we have one logger defined by node.
   //they automatically expires after some time.
@@ -121,9 +119,9 @@ object ComplianceDebugLogger extends Logger {
   implicit class AgentRunConfigurationToLog(info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) {
 
     private[this] def log(c: ComplianceMode, r: ResolvedAgentRunInterval): String = {
-      val h = c match {
-        case FullCompliance => ""
-        case ChangesOnly(_) => s", hearbeat every ${r.heartbeatPeriod} run(s)"
+      val h = c.mode match {
+        case ChangesOnly => s", hearbeat every ${r.heartbeatPeriod} run(s)"
+        case _ => ""
       }
       s"run interval: ${r.interval.toStandardMinutes.getMinutes} min${h}"
     }
@@ -135,7 +133,4 @@ object ComplianceDebugLogger extends Logger {
     }
   }
 
-
 }
-
-
