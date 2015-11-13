@@ -45,7 +45,7 @@ object CfclerkXmlConstants {
   val SECTION_ROOT_NAME = "SECTIONS"
 
 
-
+  val RUDDER_CONFIGURATION_REPOSITORY = "RUDDER_CONFIGURATION_REPOSITORY"
 
   /* tag names */
 
@@ -65,7 +65,7 @@ object CfclerkXmlConstants {
   //promise templates
   val PROMISE_TEMPLATES_ROOT = "TMLS"
   val PROMISE_TEMPLATE = "TML"
-  val PROMISE_TEMPLATE_NAME = "name" //attribte
+  val PROMISE_TEMPLATE_NAME = "name" //attribute
   val PROMISE_TEMPLATE_OUTPATH = "OUTPATH"
   val PROMISE_TEMPLATE_INCLUDED = "INCLUDED"
 

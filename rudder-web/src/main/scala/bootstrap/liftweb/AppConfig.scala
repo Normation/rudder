@@ -967,7 +967,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val variableSpecParser = new VariableSpecParser
   private[this] lazy val sectionSpecParser = new SectionSpecParser(variableSpecParser)
   private[this] lazy val techniqueParser = {
-    new TechniqueParser(variableSpecParser,sectionSpecParser,new Cf3PromisesFileTemplateParser,systemVariableSpecService)
+    new TechniqueParser(variableSpecParser,sectionSpecParser,systemVariableSpecService)
   }
 
   private[this] lazy val userPropertyServiceImpl = new StatelessUserPropertyService(
