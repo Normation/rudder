@@ -43,17 +43,17 @@ function homePage (
   createTooltip();
 
 
-  var activeNodes = nodeCount.active + " Node."
-  if (nodeCount.active > 1) {
-    activeNodes = nodeCount.active + " Nodes."
+  var activeNodes = nodeCount.active + " Nodes."
+  if (nodeCount.active === 1) {
+    activeNodes = nodeCount.active + " Node."
   }
   var stats = "Compliance based on "+ activeNodes
   if (nodeCount.pending !== null) {
-    var pendingNodes = nodeCount.pending.nodes + " Node"
-    var verb = "is"
-    if (nodeCount.active > 1) {
-      pendingNodes = nodeCount.pending.nodes + " Nodes"
-      verb = "are"
+    var pendingNodes = nodeCount.pending.nodes + " Nodes"
+    var verb = "are"
+    if (nodeCount.active === 1) {
+      pendingNodes = nodeCount.pending.nodes + " Node"
+      verb = "is"
     }
     stats += " There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
   }
