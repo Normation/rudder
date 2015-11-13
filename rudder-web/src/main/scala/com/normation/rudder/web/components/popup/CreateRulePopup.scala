@@ -73,8 +73,7 @@ class CreateOrCloneRulePopup(
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("rule", "createRulePopup", template)
-
+  def popupTemplate = chooseTemplate("rule", "createrulepopup", template)
 
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
@@ -95,10 +94,10 @@ class CreateOrCloneRulePopup(
 
     SHtml.ajaxForm(bind("item", popupTemplate,
       "title" -> { if(clonedRule.isDefined) "Clone a rule" else "Create a new rule" },
-      "itemName" -> ruleName.toForm_!,
+      "itemname" -> ruleName.toForm_!,
       "category" -> category.toForm_!,
-      "itemShortDescription" -> ruleShortDescription.toForm_!,
-      "itemReason" -> { reason.map { f =>
+      "itemshortdescription" -> ruleShortDescription.toForm_!,
+      "itemreason" -> { reason.map { f =>
         <div>
           <div style="margin:10px 0px 5px 0px; color:#444">
             {userPropertyService.reasonsFieldExplanation}
@@ -106,7 +105,7 @@ class CreateOrCloneRulePopup(
           {f.toForm_!}
         </div>
       } },
-      "cloneNotice" -> {
+      "clonenotice" -> {
         if(clonedRule.isDefined)
           <br/>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
@@ -178,7 +177,6 @@ class CreateOrCloneRulePopup(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
@@ -208,7 +206,6 @@ class CreateOrCloneRulePopup(
           , isEnabledStatus = !clonedRule.isDefined
       )
 
-
       woRuleRepository.create(rule, ModificationId(uuidGen.newUuid),CurrentUser.getActor, reason.map( _.is )) match {
           case Full(x) =>
             closePopup() & onSuccessCallback(rule)
@@ -224,11 +221,9 @@ class CreateOrCloneRulePopup(
     }
   }
 
-
   private[this] def onFailure : JsCmd = {
     updateFormClientSide()
   }
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors
