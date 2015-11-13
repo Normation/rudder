@@ -66,7 +66,7 @@ object RuleModificationValidationPopup extends Loggable {
     (for {
       xml <- Templates(path)
     } yield {
-      chooseTemplate("component", "validationPopup", xml)
+      chooseTemplate("component", "validationpopup", xml)
     }) openOr {
       logger.error("Missing template <component:validationPopup> at path: %s.html".format(path.mkString("/")))
       <div/>
@@ -196,7 +196,6 @@ class RuleModificationValidationPopup(
     }
   }
 
-
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
@@ -240,7 +239,6 @@ class RuleModificationValidationPopup(
   }
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
-
 
   private[this] def closePopup() : JsCmd = {
     JsRaw("""$.modal.close();""")
@@ -309,7 +307,6 @@ class RuleModificationValidationPopup(
         }
     }
   }
-
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))

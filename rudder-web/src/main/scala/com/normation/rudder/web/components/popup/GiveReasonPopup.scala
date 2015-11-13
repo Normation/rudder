@@ -58,7 +58,6 @@ import com.normation.rudder.domain.policies.ActiveTechniqueId
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
-
 class GiveReasonPopup(
     onSuccessCallback : (ActiveTechniqueId) => JsCmd = { (ActiveTechniqueId) => Noop }
   , onFailureCallback : (String, String) => JsCmd = { (String1, String2) => Noop }
@@ -75,8 +74,7 @@ class GiveReasonPopup(
            .format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("reason", "giveReasonPopup", template)
-
+  def popupTemplate = chooseTemplate("reason", "givereasonpopup", template)
 
   private[this] val uuidGen                     = RudderConfig.stringUuidGenerator
   private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
@@ -108,7 +106,6 @@ class GiveReasonPopup(
         ("id","createATCSaveButton") % ("tabindex","3")
     ))
   }
-
 
 ///////////// fields for category settings ///////////////////
   private[this] val crReasons = {
@@ -144,7 +141,6 @@ class GiveReasonPopup(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
@@ -156,7 +152,6 @@ class GiveReasonPopup(
     SetHtml("createActiveTechniquesContainer", popupContent(NodeSeq.Empty))&
     initJs
   }
-
 
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
@@ -198,13 +193,10 @@ class GiveReasonPopup(
       }
   }
 
-
-
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors
