@@ -153,7 +153,6 @@ sealed trait ConfigResource
 final case class ClassPathResource(name: String) extends ConfigResource
 final case class FileSystemResource(file: File) extends ConfigResource
 
-
 final case class AuthenticationMethods(name: String) {
   val path = s"applicationContext-security-auth-${name}.xml"
   val configFile = s"classpath:${path}"
@@ -165,8 +164,6 @@ final case class AuthenticationMethods(name: String) {
  * (from properties file or alike)
  */
 object RudderProperties {
-
-
 
   val JVM_CONFIG_FILE_KEY = "rudder.configFile"
   val DEFAULT_CONFIG_FILE_NAME = "configuration.properties"
@@ -231,10 +228,6 @@ object RudderProperties {
   }
 
 }
-
-
-
-
 
 /**
  * Static initialization of Rudder services.
@@ -411,7 +404,6 @@ object RudderConfig extends Loggable {
   lazy val roAgentRunsRepository : RoReportsExecutionRepository = cachedAgentRunRepository
   lazy val woAgentRunsRepository : WoReportsExecutionRepository = cachedAgentRunRepository
 
-
   //all cache that need to be cleared are stored here
   lazy val clearableCache: Seq[CachedRepository] = Seq(
       cachedAgentRunRepository
@@ -448,13 +440,11 @@ object RudderConfig extends Loggable {
     )
   }
 
-
   val roRuleCategoryRepository : RoRuleCategoryRepository = roLDAPRuleCategoryRepository
   val ruleCategoryService      : RuleCategoryService = new RuleCategoryService()
   val woRuleCategoryRepository : WoRuleCategoryRepository = woLDAPRuleCategoryRepository
 
   val changeRequestEventLogService : ChangeRequestEventLogService = new ChangeRequestEventLogServiceImpl(eventLogRepository)
-
 
   val xmlSerializer = XmlSerializerImpl(
       ruleSerialisation
@@ -527,7 +517,6 @@ object RudderConfig extends Loggable {
   //////////////////////////////////////////////////////////////////////////////////////////
   ///////////////////////////////////////// REST ///////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////////////////
-
 
   val restExtractorService =
     RestExtractorService (
@@ -671,8 +660,6 @@ object RudderConfig extends Loggable {
       , restExtractorService
     )
 
-
-
   def nodeApi4Builder(version: Int) = {
     val fixedApiService2 = nodeApiService2.copy(fixedTag = true)
     val fixedApi2 = nodeApi2.copy(apiV2 = fixedApiService2)
@@ -704,8 +691,6 @@ object RudderConfig extends Loggable {
       , restExtractorService
     )
   }
-
-
 
   val nodeApi6 = {
     new NodeAPI6 (
@@ -754,7 +739,6 @@ object RudderConfig extends Loggable {
       , configService.rudder_workflow_enabled
     )
 
-
   val changeRequestApi3 =
     new ChangeRequestAPI3 (
         restExtractorService
@@ -769,7 +753,6 @@ object RudderConfig extends Loggable {
         , reportingService
       )
   )
-
 
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
@@ -825,7 +808,6 @@ object RudderConfig extends Loggable {
       }
     }
   }
-
 
   //
   // Concrete implementation.
@@ -916,7 +898,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val fullInventoryFromLdapEntries: FullInventoryFromLdapEntries = new FullInventoryFromLdapEntriesImpl(inventoryDitService, inventoryMapper)
   private[this] lazy val ldapDiffMapper = new LDAPDiffMapper(ldapEntityMapper, queryParser)
 
-
   private[this] lazy val activeTechniqueCategoryUnserialisation = new ActiveTechniqueCategoryUnserialisationImpl
   private[this] lazy val activeTechniqueUnserialisation = new ActiveTechniqueUnserialisationImpl
   private[this] lazy val directiveUnserialisation = new DirectiveUnserialisationImpl
@@ -972,8 +953,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val techniqueParser = {
     new TechniqueParser(variableSpecParser,sectionSpecParser,new Cf3PromisesFileTemplateParser,systemVariableSpecService)
   }
-
-
 
   private[this] lazy val userPropertyServiceImpl = new StatelessUserPropertyService(
       configService.rudder_ui_changeMessage_enabled
@@ -1164,7 +1143,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val groupLibReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   private[this] lazy val nodeReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
   private[this] lazy val parameterReadWriteMutex = ScalaLock.java2ScalaRWLock(new java.util.concurrent.locks.ReentrantReadWriteLock(true))
-
 
   private[this] lazy val roLdapDirectiveRepository = new RoLDAPDirectiveRepository(
         rudderDitImpl, roLdap, ldapEntityMapper, techniqueRepositoryImpl, uptLibReadWriteMutex)
@@ -1443,7 +1421,7 @@ object RudderConfig extends Loggable {
         , roAgentRunsRepository
         , findExpectedRepo
         , globalAgentRunService
-        , globalComplianceModeService.getComplianceMode _
+        , globalComplianceModeService.getGlobalComplianceMode _
       )
     , nodeInfoServiceImpl
   )
@@ -1606,7 +1584,6 @@ object RudderConfig extends Loggable {
    * Event log migration
    */
 
-
   private[this] lazy val migrationRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
 
   private[this] lazy val eventLogsMigration_2_3 = new EventLogsMigration_2_3(
@@ -1676,8 +1653,6 @@ object RudderConfig extends Loggable {
    * **************************************************
    */
 
-
-
   private[this] lazy val ruleCategoriesDirectory = new File(new File(RUDDER_DIR_GITROOT),ruleCategoriesDirectoryName)
 
   private[this] lazy val allChecks = new SequentialImmediateBootStrapChecks(
@@ -1704,8 +1679,6 @@ object RudderConfig extends Loggable {
         , uuidGen
       )
   )
-
-
 
   //////////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////// Directive Editor and web fields //////////////////////////////
@@ -1819,14 +1792,12 @@ object RudderConfig extends Loggable {
  val aggregateReportScheduler = new FindNewReportsExecution(executionService,RUDDER_REPORTS_EXECUTION_INTERVAL)
 }
 
-
 /**
  * Spring configuration for services
  */
 @Configuration
 @Import(Array(classOf[AppConfigAuth]))
 class AppConfig extends Loggable {
-
 
   ////////////////////// Snippet plugins & extension register //////////////////////
   import com.normation.plugins.{ SnippetExtensionRegister, SnippetExtensionRegisterImpl }

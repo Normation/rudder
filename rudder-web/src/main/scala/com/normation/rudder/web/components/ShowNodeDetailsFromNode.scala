@@ -62,6 +62,11 @@ import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.NodeComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
 
 object ShowNodeDetailsFromNode {
 
@@ -93,32 +98,34 @@ class ShowNodeDetailsFromNode(
 
   def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
-  //val nodeInfo = nodeInfoService.getNodeInfo(nodeId)
+   def complianceModeEditForm = {
+    val (globalMode, nodeMode) = {
+      val modes = getHeartBeat
+      (modes.map(_._1),modes.map(_._2))
+    }
 
-   def complianceModeEditForm = new ComplianceModeEditForm(
-        () => getHeartBeat
+    new ComplianceModeEditForm(
+        nodeMode
       , saveHeart
       , () => Unit
-      , () => Some(configService.rudder_compliance_heartbeatPeriod)
+      , globalMode
     )
-
-  def getHeartBeat : Box[(String,Int, Boolean)] = {
+  }
+  def getHeartBeat : Box[(GlobalComplianceMode,NodeComplianceMode)] = {
     for {
-      complianceMode <- configService.rudder_compliance_mode_name
-      gHeartbeat <- configService.rudder_compliance_heartbeatPeriod
+      globalMode <- configService.rudder_compliance_mode()
       nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
     } yield {
       // If heartbeat is not overriden, we revert to the default one
-      val defaultHeartBeat = HeartbeatConfiguration(false, gHeartbeat)
-
+      val defaultHeartBeat = HeartbeatConfiguration(false, globalMode.heartbeatPeriod)
       val hbConf = nodeInfo.nodeReportingConfiguration.heartbeatConfiguration.getOrElse(defaultHeartBeat)
-      (complianceMode,hbConf.heartbeatPeriod,hbConf.overrides)
+      val nodeMode =  NodeComplianceMode(globalMode.mode,hbConf.heartbeatPeriod,hbConf.overrides)
+      (globalMode,nodeMode)
     }
   }
 
-
-  def saveHeart(complianceMode : String, frequency: Int, overrides : Boolean) : Box[Unit] = {
-    val heartbeatConfiguration = HeartbeatConfiguration(overrides, frequency)
+  def saveHeart(complianceMode : NodeComplianceMode) : Box[Unit] = {
+    val heartbeatConfiguration = HeartbeatConfiguration(complianceMode.overrideGlobal, complianceMode.heartbeatPeriod)
     val modId = ModificationId(uuidGen.newUuid)
     for {
       result <- nodeRepo.updateNodeHeartbeat(nodeId, heartbeatConfiguration, modId, CurrentUser.getActor, None)
@@ -126,8 +133,6 @@ class ShowNodeDetailsFromNode(
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }
   }
-
-
 
    def agentScheduleEditForm = new AgentScheduleEditForm(
         () => getSchedule
@@ -230,7 +235,6 @@ class ShowNodeDetailsFromNode(
       "#node_tabs [id]" #> s"details_${id}"
     ).apply(serverDetailsTemplate)
   }
-
 
   /**
    * Javascript to initialize a tree.
