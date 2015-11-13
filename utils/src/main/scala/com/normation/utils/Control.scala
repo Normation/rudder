@@ -74,10 +74,15 @@ object Control {
   def sequencePar[U,T](seq:ParSeq[U])(f:U => Box[T]) : Box[Seq[T]] = {
     val buf = scala.collection.mutable.Buffer[T]()
     @volatile var stop = Option.empty[EmptyBox]
-    seq.foreach { u => if(stop.isEmpty) f(u) match {
-      case Full(x) => buf += x
-      case e:EmptyBox => stop = Some(e)
-    } }
+    seq.foreach { u =>
+      if(stop.isEmpty) { f(u) match {
+        case Full(x) =>
+          buf.synchronized{
+            buf += x
+          }
+        case e:EmptyBox => stop = Some(e)
+    } } }
+
     stop match {
       case Some(e) => e
       case None => Full(buf)
@@ -93,7 +98,6 @@ object Control {
     } }
     Full(buf)
   }
-
 
   /**
    * A version of sequence that will try to reach the end and accumulate
