@@ -51,9 +51,9 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.services.nodes.NodeInfoService
-
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import com.normation.rudder.reports.GlobalComplianceMode
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -65,9 +65,8 @@ class ReportingServiceImpl(
   , val agentRunRepository  : RoReportsExecutionRepository
   , val nodeConfigInfoRepo  : RoNodeConfigIdInfoRepository
   , val runIntervalService  : AgentRunIntervalService
-  , val getComplianceMode   : () => Box[ComplianceMode]
+  , val getGlobalComplianceMode   : () => Box[GlobalComplianceMode]
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
-
 
 class CachedReportingServiceImpl(
     val defaultFindRuleNodeStatusReports: ReportingServiceImpl
@@ -143,7 +142,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }.mkString("\n", "\n", "")
   }
 
-
   /**
    * Invalidate some keys in the cache. That won't charge them again
    * immediately
@@ -157,7 +155,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }
     ()
   }
-
 
   /**
    * For the nodeIds in parameter, check that the cache is:
@@ -234,7 +231,6 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
 
 }
 
-
 trait DefaultFindRuleNodeStatusReports extends ReportingService {
 
   def confExpectedRepo  : FindExpectedReportRepository
@@ -242,7 +238,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def agentRunRepository: RoReportsExecutionRepository
   def nodeConfigInfoRepo: RoNodeConfigIdInfoRepository
   def runIntervalService: AgentRunIntervalService
-  def getComplianceMode : () => Box[ComplianceMode]
+  def getGlobalComplianceMode : () => Box[GlobalComplianceMode]
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
     /*
@@ -321,7 +317,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     }
 
     for {
-      compliance        <- getComplianceMode()
+      compliance        <- getGlobalComplianceMode()
       runs              <- agentRunRepository.getNodesLastRun(nodeIds)
       nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
       runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)
@@ -333,7 +329,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       ExecutionBatch.computeNodesRunInfo(runIntervals, runs, nodeConfigIdInfos, compliance)
     }
   }
-
 
   /*
    * Given a set of agent runs and expected reports, retrieve the corresponding
@@ -377,4 +372,3 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     }.toSeq
   }
 }
-

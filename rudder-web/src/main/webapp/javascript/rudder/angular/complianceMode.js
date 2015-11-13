@@ -51,7 +51,7 @@ function updateAgentRun (run) {
 var complianceModeModule = angular.module("complianceMode", ['ngAnimate'])
 complianceModeModule.controller("complianceModeController", function($scope) {
 
-  $scope.complianceMode = { name : "full-compliance", heartbeatPeriod : 1, overrides : true};
+  $scope.complianceMode = { name : "full-compliance", heartbeatPeriod : 1};
   $scope.globalValue
   $scope.agentRun = 5;
   if (currentAgentRun !== undefined) {
@@ -62,17 +62,23 @@ complianceModeModule.controller("complianceModeController", function($scope) {
   $scope.savedValue;
   $scope.contextPath;
 
- $scope.init = function(complianceMode, heartbeatFreq,overrides, globalValue, callback, contextPath) {
-   $scope.complianceMode.name=complianceMode;
-   $scope.complianceMode.heartbeatPeriod=heartbeatFreq;
-   $scope.complianceMode.overrides=overrides;
+ $scope.init = function(complianceMode, globalValue, isNodePage, callback, contextPath, allModes) {
+   $scope.complianceMode=complianceMode;
    $scope.globalValue = globalValue;
-   $scope.isNodePage = globalValue !== undefined
+   $scope.isNodePage =  isNodePage;
    $scope.callback=callback;
    $scope.contextPath=contextPath;
    $scope.savedValue = angular.copy($scope.complianceMode)
    
   }
+ 
+ $scope.disableHeartbeat = function(){
+   if ($scope.isNodePage) {
+     return false;
+   } else {
+     return $scope.complianceMode.overrides;
+   }
+ }
 
   $scope.onChange = function() {
     $("#complianceModeMessage").empty();

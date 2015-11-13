@@ -48,10 +48,8 @@ import com.normation.rudder.domain.logger.ComplianceDebugLogger._
 import com.normation.rudder.domain.policies.Directive
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports._
-import com.normation.rudder.reports.ComplianceMode
 import com.normation.utils.Control.sequence
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.ChangesOnly
+import com.normation.rudder.reports._
 import com.normation.rudder.reports.execution.AgentRunId
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies.DirectiveId
@@ -59,7 +57,6 @@ import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.policies.SerialedRuleId
-import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
@@ -161,7 +158,6 @@ case class VersionNotFound(
   , lastRunConfigId: Option[NodeConfigId]
 ) extends ErrorNoConfigData
 
-
 /*
  * No report of interest (either none, or
  * some but too old for our situation)
@@ -170,15 +166,12 @@ case class NoReportInInterval(
     expectedConfigId: NodeConfigIdInfo
 ) extends NoReport
 
-
-
 case class Pending(
     expectedConfigId   : NodeConfigIdInfo
   , optLastRun         : Option[(DateTime, NodeConfigIdInfo)]
   , expirationDateTime : DateTime
   , missingReportStatus: ReportType
 ) extends NoReport with ExpiringStatus with MissingReportStatus
-
 
 /*
  * the case where we have a version on the run,
@@ -193,7 +186,6 @@ case class UnexpectedVersion(
   , expectedExpiration: DateTime
 ) extends Unexpected with LastRunAvailable
 
-
 case class ComputeCompliance(
     lastRunDateTime    : DateTime
   , lastRunConfigId    : NodeConfigIdInfo
@@ -201,9 +193,6 @@ case class ComputeCompliance(
   , expirationDateTime : DateTime
   , missingReportStatus: ReportType
 ) extends Ok with LastRunAvailable with ExpiringStatus with MissingReportStatus
-
-
-
 
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
@@ -254,7 +243,6 @@ object ExecutionBatch extends Loggable {
     , complianceMode        : ComplianceMode
   )
 
-
   /*
    * Utility method to factor out common logging task and be assured that
    * the log message is actually sync with the info type.
@@ -278,9 +266,10 @@ object ExecutionBatch extends Loggable {
     , complianceMode   : ComplianceMode
   ): Map[NodeId, RunAndConfigInfo] = {
 
-    val missingReportType = complianceMode match {
+    val missingReportType = complianceMode.mode match {
       case FullCompliance => MissingReportType
-      case ChangesOnly(_) => SuccessReportType
+      case ChangesOnly => SuccessReportType
+      case ReportDisabled => MissingReportType
     }
 
     /*
@@ -293,12 +282,12 @@ object ExecutionBatch extends Loggable {
     /*
      * How long time a run is valid before receiving any report (but not after an update)
      */
-    def runValidityTime(runIntervalInfo: ResolvedAgentRunInterval) = complianceMode match {
-      case ChangesOnly(_) =>
+    def runValidityTime(runIntervalInfo: ResolvedAgentRunInterval) = complianceMode.mode match {
+      case ChangesOnly =>
         //expires after run*heartbeat period - we need an other run before that.
         val heartbeat = Duration.standardMinutes((runIntervalInfo.interval.getStandardMinutes * runIntervalInfo.heartbeatPeriod ))
         heartbeat.plus(GRACE_TIME_PENDING)
-      case FullCompliance =>
+      case FullCompliance | ReportDisabled =>
         updateValidityTime(runIntervalInfo)
     }
 
@@ -480,7 +469,6 @@ object ExecutionBatch extends Loggable {
     , agentExecutionReports: Seq[Reports]
   ) : Seq[RuleNodeStatusReport] = {
 
-
     //a method to get the expected reports for the given configId and log a debug message is none
     //are found - because they really should have
     def getExpectedReports(configId: NodeConfigId): Map[SerialedRuleId, RuleNodeExpectedReports] = {
@@ -573,12 +561,9 @@ object ExecutionBatch extends Loggable {
         ComplianceDebugLogger.node(nodeId).warn(s"Can not get compliance for node with ID '${nodeId.value}' because it has no configuration id initialised nor sent reports (node just added ?)")
         Seq()
 
-
     }
 
   }
-
-
 
   /**
    * That method only take care of the low level logic of comparing
@@ -616,7 +601,6 @@ object ExecutionBatch extends Loggable {
       // full compliance and "success" when on changes only.
     , missingReportStatus      : ReportType
   ): Seq[RuleNodeStatusReport] = {
-
 
     val complianceForRun: Map[SerialedRuleId, RuleNodeStatusReport] = (for {
       (   SerialedRuleId(ruleId, serial)
@@ -722,7 +706,6 @@ object ExecutionBatch extends Loggable {
     computed ++ newStatus
   }
 
-
   private[this] def getUnexpanded(seq: Seq[Option[String]]): Option[String] = {
     val unexpanded = seq.toSet
     if(unexpanded.size > 1) {
@@ -730,7 +713,6 @@ object ExecutionBatch extends Loggable {
     }
     unexpanded.head
   }
-
 
   private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Seq[RuleNodeStatusReport] = {
     reports.groupBy(x => (x.ruleId, x.serial)).map { case ((ruleId, serial), seq) =>
@@ -788,7 +770,6 @@ object ExecutionBatch extends Loggable {
       )
     }.toSeq
   }
-
 
   /**
    * Allows to calculate the status of component for a node.
@@ -961,7 +942,6 @@ object ExecutionBatch extends Loggable {
 
     // Generate our value for cfengine variables
     val (cfeVarValues, lastReports) = extractCFVarsFromReports (valueKind.cfeVar.mapValues(_.map(replaceCFEngineVars(_))).toList, Seq(), remainingReports)
-
 
     // Finally, if we still got some reports, generate an unexpected report.
     /*
