@@ -330,7 +330,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
     sequence(toCheck) { case (agentType, paths) =>
       // Check the promises
-      val (errorCode, errors) =  {
+      val (errorCode, errors, checkCommand) =  {
         if(logger.isDebugEnabled) {
           //current time millis for debuging info
           val now = System.currentTimeMillis
@@ -347,7 +347,7 @@ class Cf3PromisesFileWriterServiceImpl(
         /*
          * we want to put any cfengine error or output as a technical detail, because:
          * - between version of cf-agent, it does not seems consistant what goes to sterr and what goes to stdout
-         * - even sdtout message can be quiet crytic, like:
+         * - even stdout messages can be quite cryptic, like:
          *   ''' Fatal cfengine error: Validation: Scalar item in built-in FnCall
          *       fileexists-arg => { Download a file } in rvalue is out of bounds
          *       (value should match pattern "?(/.*)) '''
@@ -356,6 +356,7 @@ class Cf3PromisesFileWriterServiceImpl(
          * and "error/technical details"
          */
         val completeErrorMsg = ( s"The generated promises are invalid!errormessage!cf-promise check fails for promises generated at '${paths.newFolder}'"
+                               + "<-Command to check generated promises is: '" + checkCommand + "'"
                                + (if(errors.isEmpty) "" else errors.mkString("<-", "<-", ""))
                                )
         val failure = Failure(completeErrorMsg)
@@ -524,7 +525,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
   }
 
-  private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String]) = {
+  private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String], String) = {
     import scala.sys.process.{Process, ProcessLogger}
 
     var out = List[String]()
@@ -536,15 +537,17 @@ class Cf3PromisesFileWriterServiceImpl(
       case COMMUNITY_AGENT => communityCheckPromises
     }
 
+    val checkCommand = checkPromises + " -f " + pathOfPromises + "/promises.cf"
+
     val errorCode = if (checkPromises != "/bin/true")  {
-      val process = Process(checkPromises + " -f " + pathOfPromises + "/promises.cf", None, ("RES_OPTIONS","attempts:0"))
+      val process = Process(checkCommand, None, ("RES_OPTIONS","attempts:0"))
       process.!(processLogger)
     } else {
       //command is /bin/true => just return with no error (0)
       0
     }
 
-    (errorCode, out.reverse ++ err.reverse)
+    (errorCode, out.reverse ++ err.reverse, checkCommand)
   }
 
 
