@@ -291,7 +291,14 @@ class PrepareTemplateVariablesImpl(
     }
 
     //utilitary method for formating an input list
-    def formatInputs(x: Seq[(Technique, String)]) = x.map(_._2).distinct.mkString("\"", s"""",\n${" "*14}"""", s""""\n  """)
+    def formatInputs(x: Seq[(Technique, String)]) = {
+      val inputs = x.map(_._2).distinct
+      if (inputs.isEmpty) {
+        ""
+      } else {
+        inputs.mkString("\"", s"""",\n${" "*14}"""", s""""\n  """)
+      }
+    }
 
     List(
       SystemVariable(systemVariableSpecService.get("INPUTLIST"), Seq(formatInputs(inputs)))
