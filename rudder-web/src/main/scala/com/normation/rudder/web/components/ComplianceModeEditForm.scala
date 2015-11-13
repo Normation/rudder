@@ -34,7 +34,6 @@
 
 package com.normation.rudder.web.components
 
-
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
@@ -54,108 +53,177 @@ import net.liftweb.util.PassThru
 import net.liftweb.util.ClearNodes
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
-import ComplianceModeEditForm._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.model.CurrentUser
-
-
+import com.normation.rudder.reports.ComplianceModeName
+import net.liftweb.json.JsonAST._
+import net.liftweb.json.Printer
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.NodeComplianceMode
+import scala.reflect.runtime.universe._
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.NodeComplianceMode
 
 /**
  * Component to display and configure the compliance Mode (and it's heartbeat)
  */
 
-class ComplianceModeEditForm (
-    getConfigureCallback : () => Box[(String,Int,Boolean)]
-  , saveConfigureCallback: (String,Int,Boolean) => Box[Unit]
+class ComplianceModeEditForm [T <: ComplianceMode] (
+    getConfigureCallback : Box[T]
+  , saveConfigureCallback: Function1[T,Box[Unit]]
   , startNewPolicyGeneration: () => Unit
-  , getGlobalConfiguration : () => Option[Box[Int]] = () => None
-) extends DispatchSnippet with Loggable  {
-
+  , getGlobalConfiguration : Box[GlobalComplianceMode]
+) (implicit tt : TypeTag[T]) extends DispatchSnippet with Loggable  {
 
   // Html template
   def templatePath = List("templates-hidden", "components", "ComponentComplianceMode")
   def template() =  Templates(templatePath) match {
-     case Empty | Failure(_,_,_) =>
+     case _ : EmptyBox =>
        sys.error(s"Template for Compliance mode configuration not found. I was looking for ${templatePath.mkString("/")}.html")
      case Full(n) => n
   }
-  def agentScheduleTemplate = chooseTemplate("property", "complianceMode", template)
+  def complianceModeTemplate = chooseTemplate("property", "compliancemode", template)
 
   def dispatch = {
     case "complianceMode" => (xml) => complianceModeConfiguration
   }
 
-  def submit(jsonSchedule:String) = {
-    parseJsonSchedule(jsonSchedule) match {
+  val isNodePage : Boolean = {
+    typeOf[T] match {
+      case t if t =:= typeOf[GlobalComplianceMode] => false
+      case t if t =:= typeOf[NodeComplianceMode] => true
+    }
+  }
+
+  def submit(jsonMode:String) = {
+    parseJsonMode(jsonMode) match {
       case eb:EmptyBox =>
-        val e = eb ?~! s"Error when trying to parse user data: '${jsonSchedule}'"
+        val e = eb ?~! s"Error when trying to parse user data: '${jsonMode}'"
         logger.error(e.messageChain)
         S.error("complianceModeMessage", e.messageChain)
-      case Full((name,frequency,overrides)) =>
-        saveConfigureCallback(name,frequency,overrides)  match {
+      case Full(complianceMode : T) =>
+        saveConfigureCallback(complianceMode)  match {
           case eb:EmptyBox =>
-            val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
+            val e = eb ?~! s"Error when trying to store in base new compliance mode: '${jsonMode}'"
             logger.error(e.messageChain)
             S.error("complianceModeMessage", e.messageChain)
 
           case Full(success) =>
             // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
             startNewPolicyGeneration()
-            S.notice("complianceModeMessage", "Agent schedule saved")
+            S.notice("complianceModeMessage", "Compliance mode saved")
         }
     }
   }
 
   /**
-   * Parse a json input into a cf-agent Scedule
+   * Parse a json input into a valid complianceMode
    */
-  def parseJsonSchedule(s: String) : Box[(String,Int,Boolean)] = {
+  def parseJsonMode(s: String) : Box[ComplianceMode] = {
     import net.liftweb.json._
     val json = parse(s)
 
-    ( for {
-        JField("name"  , JString(name)) <- json
-        JField("heartbeatPeriod"  , JInt(frequency)) <- json
-        JField("overrides"  , JBool(overrides)) <- json
-    } yield {
-      (name,frequency.toInt,overrides)
-    } ) match {
-      case head :: _ =>
-        Full(head)
-      case Nil =>
-        Failure(s"Could not parse ${s} as a valid cf-agent schedule")
+    def parseOverride(jsonMode : JObject) : Box[Boolean] = {
+      jsonMode.values.get("overrides") match {
+        case Some(JBool(bool)) => Full(bool)
+        case Some(allow_override : Boolean) => Full(allow_override)
+        case Some(json : JValue) => Failure(s"'${render(json)}' is not a valid value for compliance mode 'override' attribute")
+        // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
+        case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'override' attribute")
+        case None => Failure("compliance mode 'overrides' parameter must not be empty ")
+      }
     }
+
+    def parseMode(jsonMode: JObject) : Box[ComplianceModeName]= {
+      jsonMode.values.get("name") match {
+        case Some(JString(mode)) => ComplianceModeName.parse(mode)
+        case Some(mode : String) => ComplianceModeName.parse(mode)
+        case Some(json : JValue) => Failure(s"'${(json)}' is not a valid value for compliance mode 'name' attribute")
+        // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
+        case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'name' attribute")
+        case None => Failure("compliance mode 'name' parameter must not be empty ")
+      }
+    }
+
+    def parseHeartbeat(jsonMode: JObject) : Box[Int]= {
+      jsonMode.values.get("heartbeatPeriod") match {
+        case Some(JInt(heartbeat)) => Full(heartbeat.toInt)
+        case Some(heartbeat : BigInt) => Full(heartbeat.toInt)
+        case Some(json : JValue) => Failure(s"'${(json)}' is not a valid value for compliance mode 'heartbeatPeriod' attribute")
+        // Should not happen, values in lift json are only JValues, but since we type any we have to add it unless we will have a warning
+        case Some(any) => Failure(s"'${any}' is not a valid value for compliance mode 'heartbeatPeriod' attribute")
+        case None => Failure("compliance mode 'heartbeatPeriod' parameter must not be empty ")
+      }
+    }
+    json match {
+      case obj : JObject =>
+        for {
+          mode <- parseMode(obj)
+          heartbeat <- parseHeartbeat(obj)
+          complianceMode <-
+            typeOf[T] match {
+              case t if t =:= typeOf[GlobalComplianceMode] =>
+                Full(GlobalComplianceMode(mode,heartbeat))
+              case t if t =:= typeOf[NodeComplianceMode] =>
+                for {
+                  overrides <- parseOverride(obj)
+                } yield {
+                  NodeComplianceMode(mode,heartbeat,overrides)
+                }
+          }
+        } yield {
+          complianceMode
+        }
+      case _ =>
+        Failure(s"Could not parse ${s} as a valid compliance mode")
+    }
+  }
+
+  def toJs (mode : ComplianceMode )= {
+    def json : JValue = {
+      import net.liftweb.json.JsonDSL._
+      val baseMode =
+        ( "name"            -> mode.name ) ~
+        ( "heartbeatPeriod" -> mode.heartbeatPeriod)
+
+      mode match {
+        case node : NodeComplianceMode =>
+        baseMode ~ ( "overrides" -> node.overrideGlobal)
+        case _ => baseMode
+      }
+    }
+
+    Printer.compact(render(json))
   }
 
   def complianceModeConfiguration = {
 
-
     val transform = (for {
-      (complianceMode, frequency,overrides) <- getConfigureCallback()
-      globalRun <- getGlobalConfiguration() match {
-                     case None => Full("undefined")
-                     case Some(g) => g.map(_.toString())
-                   }
+      complianceMode <- getConfigureCallback
+      globalMode <- getGlobalConfiguration
     } yield {
       val callback = AnonFunc("complianceMode",SHtml.ajaxCall(JsVar("complianceMode"), submit))
+
+      val allModes = ComplianceModeName.allModes.mkString("['", "' , '", "']")
       s"""
        angular.bootstrap("#complianceMode", ['complianceMode']);
        var scope = angular.element($$("#complianceModeController")).scope();
           scope.$$apply(function(){
-            scope.init("${complianceMode}", ${frequency}, ${overrides}, ${globalRun} ,${callback.toJsCmd}, "${S.contextPath}");
+            scope.init(${toJs(complianceMode)}, ${toJs(globalMode)}, ${isNodePage} ,${callback.toJsCmd}, "${S.contextPath}", ${allModes});
           } );
       """
     }) match {
       case eb:EmptyBox =>
-        val e = eb ?~! "Error when retrieving agent schedule from the database"
+        val e = eb ?~! "Error when retrieving compliance mode from the database"
         logger.error(e.messageChain)
         e.rootExceptionCause.foreach { ex => logger.error(s"Root exception was: ${ex}") }
 
-        ( "#complianceMode" #> "Error when retrieving agent schedule from the database. Please, contact an admin or try again later"  )
+        ( "#complianceMode" #> "Error when retrieving compliance mode from the database. Please, contact an admin or try again later"  )
       case Full(initScheduleParam) =>
         ( "#complianceMode *+" #> Script(OnLoad(JsRaw(initScheduleParam)) & Noop) )
     }
 
-    transform(agentScheduleTemplate);
+    transform(complianceModeTemplate);
    }
 }
