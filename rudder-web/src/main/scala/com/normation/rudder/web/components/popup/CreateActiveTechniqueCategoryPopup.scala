@@ -52,7 +52,6 @@ import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
-
 class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
@@ -64,8 +63,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("technique", "createCategoryPopup", template)
-
+  def popupTemplate = chooseTemplate("technique", "createcategorypopup", template)
 
   private[this] val activeTechniqueCategoryRepository   = RudderConfig.roDirectiveRepository
   private[this] val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
@@ -83,9 +81,9 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemName" -> categoryName.toForm_!,
-      "itemContainer" -> categoryContainer.toForm_!,
-      "itemDescription" -> categoryDescription.toForm_!,
+      "itemname" -> categoryName.toForm_!,
+      "itemcontainer" -> categoryContainer.toForm_!,
+      "itemdescription" -> categoryDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3")
@@ -121,7 +119,6 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
@@ -132,7 +129,6 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
     SetHtml("createActiveTechniquesCategoryContainer", popupContent(NodeSeq.Empty))&
     initJs
   }
-
 
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
@@ -166,13 +162,10 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
     }
   }
 
-
-
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors
