@@ -12,7 +12,11 @@
               network traffic, but provides more precise reporting and may be necessary to prove compliance in your organization.<br/>
               In <b>Changes only</b> mode, reports will only be sent when the agent makes a change or an error occurs on a node
               (these are 'repair' or 'error' reports). This mode saves a lot of log space and bandwidth, but leads to some assumptions
-              about actual configuration status in reporting.
+              about actual configuration status in reporting.<br/>
+              In <b>Disabled</b> mode, no reports will be sent, and rudder-agent will not re-configure the local syslog to send reports.
+              This mode uses no log space or bandwidth, but will also not allow you to check if your configuration policy 
+              is successfully applied. We do not recommend using this mode except for setups where you have another
+              feedback mechanism in place.
       </div>
     </div>
 
@@ -32,10 +36,16 @@
           Changes only
         </label>
      </div>
+      <div class="radio">
+        <label>
+          <input type="radio" ng-model="complianceMode.name"  value="reports-disabled"/>
+          Disabled
+        </label>
+     </div>
      </div>
           
       </div>
-      <div ng-hide="complianceMode.name === 'full-compliance'" class="animate-hide">
+      <div ng-hide="complianceMode.name !== 'changes-only'" class="animate-hide">
         <div class="page-title">Agent run heartbeat</div>
         <div class="portlet-content" >
           <div class="intro">
@@ -52,8 +62,8 @@
               (no errors and no repairs). This frequency can be changed to send a heartbeat only every N runs.<br/>
               This setting is defined as a default for all nodes in the global  
               <a href="{{contextPath}}/secure/administration/policyServerManagement#complianceMode">Settings</a>.<br/>
-              The current global setting is to run every <b>{{globalValue}} runs</b>,
-              (so every <b>{{globalValue * agentRun}} minutes)</b>.<br/>
+              The current global setting is to run every <b>{{globalValue.heartbeatPeriod}} runs</b>,
+              (so every <b>{{globalValue.heartbeatPeriod * agentRun}} minutes)</b>.<br/>
               You may override this global setting just for this node below:
             </div>
           </div>
@@ -69,7 +79,7 @@
           <div class="form-group " ng-class="{ 'has-error' : complianceModeForm.heartbeat.$invalid }">
             <label class="control-label pull-left" for="heartbeat">Send heartbeat every</label>
             <div class="pull-left col-sm-1">
-              <input type="number" min="1" integer="" required="" max="{{checkMaximumValue()}}" class="form-control input-sm" name="heartbeat" id="heartbeat" ng-disabled="!complianceMode.overrides" ng-model="complianceMode.heartbeatPeriod"/>
+              <input type="number" min="1" integer="" required="" max="{{checkMaximumValue()}}" class="form-control input-sm" name="heartbeat" id="heartbeat" ng-disabled="disableHeartbeat()" ng-model="complianceMode.heartbeatPeriod"/>
             </div>
             <label class="control-label pull-left" for="heartbeat">runs</label>
           </div>

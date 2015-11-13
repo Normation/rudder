@@ -34,7 +34,6 @@
 
 package com.normation.rudder.web.components
 
-
 import bootstrap.liftweb.RudderConfig
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.common._
@@ -71,7 +70,7 @@ class AgentScheduleEditForm(
            .format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def agentScheduleTemplate = chooseTemplate("schedule", "agentSchedule", template)
+  def agentScheduleTemplate = chooseTemplate("schedule", "agentschedule", template)
 
   def dispatch = {
     case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration

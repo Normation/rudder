@@ -71,7 +71,6 @@ trait SystemVariableService {
   ) : Box[Map[String, Variable]]
 }
 
-
 final case class RudderServerRole(
     val name       : String
   , val configValue: String
@@ -81,7 +80,6 @@ final case class ResolvedRudderServerRole(
     val name       : String
   , val configValue: Option[Iterable[String]]
 )
-
 
 class SystemVariableServiceImpl(
     licenseRepository: LicenseRepository
@@ -295,17 +293,17 @@ class SystemVariableServiceImpl(
         // A policy server is always sending heartbeat
         1
       } else {
-        globalComplianceMode match {
-          case FullCompliance =>
-            1
-          case ChangesOnly(globalFrequency) =>
+        globalComplianceMode.mode match {
+          case ChangesOnly =>
             nodeInfo.nodeReportingConfiguration.heartbeatConfiguration match {
               // It overrides! use it to compute the new heartbeatInterval
               case Some(heartbeatConf) if heartbeatConf.overrides =>
                 heartbeatConf.heartbeatPeriod
               case _ =>
-                globalFrequency
+                globalComplianceMode.heartbeatPeriod
             }
+          case _ =>
+            1
         }
       }
     }
@@ -344,7 +342,6 @@ class SystemVariableServiceImpl(
       val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(children.flatMap(_.ips).distinct.sorted)
 
       // the schedule must be the default one for policy server
-
 
       Map(
           varManagedNodes.spec.name -> varManagedNodes

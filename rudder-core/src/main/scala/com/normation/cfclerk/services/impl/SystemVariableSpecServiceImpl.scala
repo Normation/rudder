@@ -42,7 +42,7 @@ import com.normation.cfclerk.domain.IntegerVType
 import com.normation.cfclerk.domain.BooleanVType
 import com.normation.cfclerk.domain.BasicStringVType
 import com.normation.cfclerk.domain.RegexConstraint
-
+import com.normation.rudder.reports.ComplianceModeName
 
 class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
@@ -164,8 +164,14 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                           , constraint = Constraint(
                                               typeName = BasicStringVType(
                                                   regex = Some(RegexConstraint(
-                                                      pattern = "(full-compliance|changes-only)"
-                                                    , errorMsg = s"Forbiden value, only 'full-compliane' and 'changes-only' are authorized"
+                                                      pattern = {
+                                                        val allModes = ComplianceModeName.allModes.map(_.name).mkString("(", "|", ")")
+                                                        allModes
+                                                      }
+                                                    , errorMsg = {
+                                                        val allModes = ComplianceModeName.allModes.map(_.name).mkString("'", "' or '", "'")
+                                                        s"Forbiden value, only ${allModes} are authorized"
+                                                      }
                                                   ))
                                               )
                                             , default=Some("full-compliance")

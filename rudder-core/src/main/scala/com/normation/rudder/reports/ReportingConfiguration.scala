@@ -94,8 +94,14 @@ trait AgentRunIntervalService {
 
 }
 
-class AgentRunIntervalServiceImpl(
-  nodeInfoService: NodeInfoService, readGlobalInterval: () => Box[Int], readGlobalStartHour: () => Box[Int], readGlobalStartMinute: () => Box[Int], readGlobalSplaytime: () => Box[Int], readGlobalHeartbeat: () => Box[Int]) extends AgentRunIntervalService {
+class AgentRunIntervalServiceImpl (
+    nodeInfoService: NodeInfoService
+  , readGlobalInterval: () => Box[Int]
+  , readGlobalStartHour: () => Box[Int]
+  , readGlobalStartMinute: () => Box[Int]
+  , readGlobalSplaytime: () => Box[Int]
+  , readGlobalHeartbeat: () => Box[Int]
+) extends AgentRunIntervalService {
 
   override def getGlobalAgentRun(): Box[AgentRunInterval] = {
     for {
@@ -151,4 +157,3 @@ object SyslogTCP extends SyslogProtocol {
 object SyslogUDP extends SyslogProtocol {
   val value = "UDP"
 }
-

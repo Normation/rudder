@@ -34,7 +34,6 @@
 
 package com.normation.rudder.services.reports
 
-
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -51,6 +50,10 @@ import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.policies.SerialedRuleId
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ReportDisabled
 
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
@@ -72,7 +75,6 @@ class ExecutionBatchTest extends Specification {
     }.toMap
   }
 
-
   def getNodeStatusReportsByRule(
       ruleExpectedReports   : Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , reportsParam          : Seq[Reports]
@@ -80,15 +82,15 @@ class ExecutionBatchTest extends Specification {
     , complianceMode        : ComplianceMode
   ): Seq[RuleNodeStatusReport] = {
 
-
     val res = (for {
       (nodeId, expected) <- ruleExpectedReports.toSeq
     } yield {
       val runTime = reportsParam.headOption.map( _.executionTimestamp).getOrElse(DateTime.now)
       val info = NodeConfigIdInfo(expected.keySet.head, DateTime.now.minusDays(1), None)
-      val runInfo = complianceMode match {
+      val runInfo = complianceMode.mode match {
         case FullCompliance => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), MissingReportType)
-        case ChangesOnly(heartbeatPeriod) => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), SuccessReportType)
+        case ChangesOnly => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), SuccessReportType)
+        case ReportDisabled => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), MissingReportType)
       }
 
       ExecutionBatch.getNodeStatusReports(nodeId, runInfo, expected, reportsParam)
@@ -98,8 +100,6 @@ class ExecutionBatchTest extends Specification {
   }
 
   val getNodeStatusByRule = (getNodeStatusReportsByRule _).tupled
-
-
 
    //Test the component part
   "A component, with two different keys" should {
@@ -235,7 +235,6 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
-
    // Test the component part
   "A component, with generation-time known keys" should {
     val executionTimestamp = new DateTime()
@@ -368,6 +367,7 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
+  val fullCompliance = GlobalComplianceMode(FullCompliance, 1)
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 
     val param = (
@@ -381,13 +381,10 @@ class ExecutionBatchTest extends Specification {
             )
         )
       , Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value", DateTime.now(), "message"))
-      , FullCompliance
+      , fullCompliance
     )
 
-
-
     val nodeStatus = (getNodeStatusReportsByRule _).tupled(param)
-
 
     "have one detailed reports when we create it with one report" in {
       nodeStatus.size ==1
@@ -396,7 +393,6 @@ class ExecutionBatchTest extends Specification {
     "have one detailed success node when we create it with one success report" in {
       nodeStatus.head.nodeId === str2nodeId("one")
     }
-
 
     "have one detailed rule success directive when we create it with one success report" in {
       nodeStatus.head.directives.head._1 === DirectiveId("policy")
@@ -419,7 +415,7 @@ class ExecutionBatchTest extends Specification {
             )
         )
       , Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value",DateTime.now(), "message"))
-      , FullCompliance
+      , fullCompliance
     )
 
     val nodeStatus = getNodeStatusByRule(param)
@@ -450,7 +446,7 @@ class ExecutionBatchTest extends Specification {
              new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
            , new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message")
          )
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -465,6 +461,7 @@ class ExecutionBatchTest extends Specification {
   }
 
    "A detailed execution Batch, with one component, cardinality one, two nodes, including one not responding" should {
+
     val param = (
         buildExpected(
             Seq("one", "two")
@@ -476,7 +473,7 @@ class ExecutionBatchTest extends Specification {
             )
         )
       , Seq[Reports](new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value",DateTime.now(), "message"))
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -504,7 +501,7 @@ class ExecutionBatchTest extends Specification {
              new ResultSuccessReport(DateTime.now(), "rule", "policy", "one", 12, "component", "value", DateTime.now(), "message")
            , new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value", DateTime.now(), "message")
          )
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -541,7 +538,7 @@ class ExecutionBatchTest extends Specification {
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component2", "value",DateTime.now(), "message"),
           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message")
         )
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
     val aggregated = AggregatedStatusReport(nodeStatus.toSet)
@@ -583,7 +580,7 @@ class ExecutionBatchTest extends Specification {
           new ResultSuccessReport(DateTime.now(), "rule", "policy2", "two", 12, "component", "value",DateTime.now(), "message"),
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
         )
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
     val aggregated = AggregatedStatusReport(nodeStatus.toSet)
@@ -628,7 +625,7 @@ class ExecutionBatchTest extends Specification {
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "two", 12, "component", "value2",DateTime.now(), "message"),
           new ResultSuccessReport(DateTime.now(), "rule", "policy", "three", 12, "component", "value",DateTime.now(), "message")
         )
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
     val aggregated = AggregatedStatusReport(nodeStatus.toSet)
@@ -666,7 +663,7 @@ class ExecutionBatchTest extends Specification {
             )
         )
       , Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "one", 12, "component", """some\"text""",new DateTime(), "message"))
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
 
@@ -694,7 +691,7 @@ class ExecutionBatchTest extends Specification {
             )
         )
       , Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/\"test""", new DateTime(), "message"))
-      , FullCompliance
+      , fullCompliance
     )
 
     val nodeStatus = getNodeStatusByRule(param)
@@ -721,7 +718,7 @@ class ExecutionBatchTest extends Specification {
             )
         )
       , Seq[Reports](new ResultSuccessReport(new DateTime(), "rule", "policy", "nodeId", 12, "component", """/var/cfengine/inputs/"test""", new DateTime(), "message"))
-      , FullCompliance
+      , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
 
