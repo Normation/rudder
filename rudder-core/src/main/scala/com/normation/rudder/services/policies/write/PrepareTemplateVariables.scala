@@ -296,7 +296,7 @@ class PrepareTemplateVariablesImpl(
       if (inputs.isEmpty) {
         ""
       } else {
-        x.map(_._2).distinct.mkString("\"", s"""",\n${" "*14}"""", s""""\n  """)
+        inputs.mkString("\"", s"""",\n${" "*14}"""", s""""\n  """)
       }
     }
 
