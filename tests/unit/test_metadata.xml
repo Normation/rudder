@@ -3,6 +3,9 @@
   <BUNDLES>
     <NAME>bla</NAME>
   </BUNDLES>
+  <FILES>
+    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/bla/bla.cf" />
+  </FILES>
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Package install version">
       <REPORTKEYS>

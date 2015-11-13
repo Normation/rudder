@@ -170,6 +170,10 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
     content.append('    <TML name="rudder_reporting"/>')
     content.append('  </TMLS>')
 
+  content.append('  <FILES>')
+  content.append('    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/'+technique_metadata['bundle_name']+'/'+technique_metadata['bundle_name']+'.cf" />')
+  content.append('  </FILES>')
+
   content.append('  <SECTIONS>')
 
   method_calls = technique_metadata["method_calls"]  
