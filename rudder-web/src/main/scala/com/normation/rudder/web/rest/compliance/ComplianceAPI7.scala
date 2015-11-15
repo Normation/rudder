@@ -46,12 +46,11 @@ import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
 
 
-class ComplianceAPI6 (
+class ComplianceAPI7 (
     restExtractor    : RestExtractorService
   , complianceService: ComplianceAPIService
+  , v6compatibility  : Boolean = false // if true, enforce v6 compatible outputs
 ) extends ComplianceAPI with Loggable {
-
-
 
   import net.liftweb.json.JsonDSL._
   import JsonCompliance._
@@ -66,9 +65,18 @@ class ComplianceAPI6 (
       implicit val action = "getRulesCompliance"
       implicit val prettify = restExtractor.extractPrettify(req.params)
 
-      complianceService.getRulesCompliance() match {
+      (for {
+        level <- restExtractor.extractComplianceLevel(req.params)
+        rules <- complianceService.getRulesCompliance()
+      } yield {
+        if(v6compatibility) {
+          rules.map( _.toJsonV6 )
+        } else {
+          rules.map( _.toJson(level.getOrElse(10) ) ) //by default, all details are displayed
+        }
+      }) match {
         case Full(rules) =>
-          toJsonResponse(None, ( "rules" -> rules.map( _.toJson ) ) )
+          toJsonResponse(None, ( "rules" -> rules ) )
 
         case eb: EmptyBox =>
           val message = (eb ?~ (s"Could not get compliance for all rules")).messageChain
@@ -84,9 +92,18 @@ class ComplianceAPI6 (
       implicit val action = "getRuleCompliance"
       implicit val prettify = restExtractor.extractPrettify(req.params)
 
-      complianceService.getRuleCompliance(RuleId(ruleId)) match {
+      (for {
+        level <- restExtractor.extractComplianceLevel(req.params)
+        rule  <- complianceService.getRuleCompliance(RuleId(ruleId))
+      } yield {
+        if(v6compatibility) {
+          rule.toJsonV6
+        } else {
+          rule.toJson(level.getOrElse(10) ) //by default, all details are displayed
+        }
+      }) match {
         case Full(rule) =>
-          toJsonResponse(None,( "rules" -> List(rule).map( _.toJson ) ) )
+          toJsonResponse(None,( "rules" -> List(rule) ) )
 
         case eb: EmptyBox =>
           val message = (eb ?~ (s"Could not get compliance for rule '${ruleId}'")).messageChain
@@ -101,9 +118,18 @@ class ComplianceAPI6 (
       implicit val action = "getNodesCompliance"
       implicit val prettify = restExtractor.extractPrettify(req.params)
 
-      complianceService.getNodesCompliance() match {
+      (for {
+        level <- restExtractor.extractComplianceLevel(req.params)
+        nodes <- complianceService.getNodesCompliance()
+      } yield {
+        if(v6compatibility) {
+          nodes.map( _.toJsonV6 )
+        } else {
+          nodes.map( _.toJson(level.getOrElse(10)) )
+        }
+      })match {
         case Full(nodes) =>
-          toJsonResponse(None, ("nodes" -> nodes.map( _.toJson ) ) )
+          toJsonResponse(None, ("nodes" -> nodes ) )
 
         case eb: EmptyBox =>
           val message = (eb ?~ ("Could not get compliances for nodes")).messageChain
@@ -118,9 +144,18 @@ class ComplianceAPI6 (
       implicit val action = "getNodeCompliance"
       implicit val prettify = restExtractor.extractPrettify(req.params)
 
-      complianceService.getNodeCompliance(NodeId(nodeId)) match {
+      (for {
+        level <- restExtractor.extractComplianceLevel(req.params)
+        node  <- complianceService.getNodeCompliance(NodeId(nodeId))
+      } yield {
+        if(v6compatibility) {
+          node.toJsonV6
+        } else {
+          node.toJson(level.getOrElse(10))
+        }
+      })match {
         case Full(node) =>
-          toJsonResponse(None, ("nodes" -> List(node).map( _.toJson) ) )
+          toJsonResponse(None, ("nodes" -> List(node) ))
 
         case eb: EmptyBox =>
           val message = (eb ?~ (s"Could not get compliance for node '${nodeId}'")).messageChain

@@ -45,6 +45,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.nodes.NodeInfo
 import net.liftweb.common.Full
+import com.normation.rudder.reports.GlobalComplianceMode
 
 
 
@@ -57,6 +58,7 @@ class ComplianceAPIService(
   , nodeInfoService : NodeInfoService
   , nodeGroupRepo   : RoNodeGroupRepository
   , reportingService: ReportingService
+  , val getGlobalComplianceMode: () => Box[GlobalComplianceMode]
 ) {
 
 
@@ -69,6 +71,7 @@ class ComplianceAPIService(
     for {
       groupLib      <- nodeGroupRepo.getFullGroupLibrary()
       nodeInfos     <- nodeInfoService.getAll()
+      compliance    <- getGlobalComplianceMode()
       reportsByRule <- reportingService.findRuleNodeStatusReports(
                         nodeInfos.keySet, rules.map(_.id).toSet
                       ).map( _.groupBy(_.ruleId))
@@ -84,6 +87,7 @@ class ComplianceAPIService(
           (rule.id, ByRuleRuleCompliance(
               rule.id
             , ComplianceLevel(noAnswer = nodeIds.size)
+            , compliance.mode
             , Seq()
           ))
         }).toMap
@@ -102,6 +106,7 @@ class ComplianceAPIService(
           ByRuleRuleCompliance(
               ruleId
             , ComplianceLevel.sum(reports.map(_.compliance))
+            , compliance.mode
             , byDirectives.map{ case (directiveId, nodeDirectives) =>
                 ByRuleDirectiveCompliance(
                     directiveId
@@ -173,6 +178,7 @@ class ComplianceAPIService(
                         case None => Full(allNodeInfos)
                         case Some(id) => Box(allNodeInfos.get(id)).map(info => Map(id -> info)) ?~! s"The node with ID '${id.value}' is not known on Rudder"
                       }
+      compliance   <- getGlobalComplianceMode()
       reports      <- reportingService.findRuleNodeStatusReports(
                         nodeInfos.keySet, rules.map(_.id).toSet
                       ).map( _.groupBy( _.nodeId ) )
@@ -192,6 +198,7 @@ class ComplianceAPIService(
           (nodeId, ByNodeNodeCompliance(
               nodeId
             , ComplianceLevel(noAnswer = rulesForNode.size)
+            , compliance.mode
             , (rulesForNode.map { rule =>
                 ByNodeRuleCompliance(
                     rule.id
@@ -211,6 +218,7 @@ class ComplianceAPIService(
           ByNodeNodeCompliance(
               ruleId
             , ComplianceLevel.sum(ruleNodeStatusReports.map(_.compliance))
+            , compliance.mode
             , ruleNodeStatusReports.toSeq.map(r =>
                ByNodeRuleCompliance(
                     r.ruleId

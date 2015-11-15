@@ -41,6 +41,8 @@ import com.normation.rudder.domain.reports._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.json.JDouble
+import net.liftweb.json.JsonAST
+import com.normation.rudder.reports.ComplianceModeName
 
 
 
@@ -75,6 +77,7 @@ case class ByRuleRuleCompliance(
     id             : RuleId
     //compliance by nodes
   , compliance     : ComplianceLevel
+  , mode           : ComplianceModeName
   , directives     : Seq[ByRuleDirectiveCompliance]
 )
 
@@ -107,6 +110,7 @@ case class ByNodeNodeCompliance(
     id             : NodeId
     //compliance by nodes
   , compliance     : ComplianceLevel
+  , mode           : ComplianceModeName
   , nodeCompliances: Seq[ByNodeRuleCompliance]
 )
 
@@ -143,83 +147,152 @@ object JsonCompliance {
 
 
   implicit class JsonbyRuleCompliance(rule: ByRuleRuleCompliance) {
-    def toJson = (
+    def toJsonV6 = (
         ("id" -> rule.id.value)
       ~ ("compliance" -> rule.compliance.complianceWithoutPending)
       ~ ("complianceDetails" -> percents(rule.compliance))
-      ~ ("directives" -> rule.directives.map { directive =>
-          (
-              ("id" -> directive.id.value)
-            ~ ("compliance" -> directive.compliance.complianceWithoutPending)
-            ~ ("complianceDetails" -> percents(directive.compliance))
-            ~ ("components" -> directive.components.map { component =>
-                (
-                    ("name" -> component.name)
-                  ~ ("compliance" -> component.compliance.complianceWithoutPending)
-                  ~ ("complianceDetails" -> percents(component.compliance))
-                  ~ ("nodes" -> component.nodes.map { node =>
-                      (
-                          ("id" -> node.id.value)
-                        ~ ("values" -> node.values.map { value =>
-                            (
-                              ("value" -> value.componentValue)
-                                ~ ("reports" -> value.messages.map { report =>
-                                    (
-                                        ("status" -> statusDisplayName(report.reportType))
-                                      ~ ("message" -> report.message)
-                                    )
-                                })
-                            )
-                        })
-                      )
-                    })
-                )
-              })
-          )
+      ~ ("directives" -> directives(rule.directives, 10) )
+    )
+
+    /*
+     * level:
+     * - up to 1 : rules,
+     * - 2: rules & directives
+     * - 3: rules, directives, components
+     * - 4 and up: rules, directives, components, node and component values
+     */
+
+    def toJson(level: Int) = (
+        ("id" -> rule.id.value)
+      ~ ("compliance" -> rule.compliance.complianceWithoutPending)
+      ~ ("mode" -> rule.mode.name)
+      ~ ("complianceDetails" -> percents(rule.compliance))
+      ~ ("directives" -> directives(rule.directives, level) )
+    )
+
+
+    private[this] def directives(directives: Seq[ByRuleDirectiveCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 2) None
+      else Some( directives.map { directive =>
+        (
+            ("id" -> directive.id.value)
+          ~ ("compliance" -> directive.compliance.complianceWithoutPending)
+          ~ ("complianceDetails" -> percents(directive.compliance))
+          ~ ("components" -> components(directive.components, level))
+        )
        })
-   )
+    }
+
+    private[this] def components(components: Seq[ByRuleComponentCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 3) None
+      else Some(components.map { component =>
+        (
+            ("name" -> component.name)
+          ~ ("compliance" -> component.compliance.complianceWithoutPending)
+          ~ ("complianceDetails" -> percents(component.compliance))
+          ~ ("nodes" -> nodes(component.nodes, level))
+        )
+      })
+    }
+
+    private[this] def nodes(nodes: Seq[ByRuleNodeCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 4) None
+      else Some(nodes.map { node =>
+        (
+            ("id" -> node.id.value)
+          ~ ("values" -> node.values.map { value =>
+              (
+                ("value" -> value.componentValue)
+                  ~ ("reports" -> value.messages.map { report =>
+                      (
+                          ("status" -> statusDisplayName(report.reportType))
+                        ~ ("message" -> report.message)
+                      )
+                  })
+              )
+          })
+        )
+      })
+    }
+
   }
 
   implicit class JsonByNodeCompliance(n: ByNodeNodeCompliance) {
-
-
-    def toJson = (
+    def toJsonV6 = (
         ("id" -> n.id.value)
       ~ ("compliance" -> n.compliance.complianceWithoutPending)
       ~ ("complianceDetails" -> percents(n.compliance))
-      ~ ("rules" -> n.nodeCompliances.map { rule =>
-          (
-              ("id" -> rule.id.value)
-            ~ ("compliance" -> rule.compliance.complianceWithoutPending)
-            ~ ("complianceDetails" -> percents(rule.compliance))
-            ~ ("directives" -> rule.directives.map { directive =>
-                (
-                    ("id" -> directive.id.value)
-                  ~ ("compliance" -> directive.compliance.complianceWithoutPending)
-                  ~ ("complianceDetails" -> percents(directive.compliance))
-                  ~ ("components" -> directive.components.map { case (_, component) =>
-                      (
-                          ("name" -> component.componentName)
-                        ~ ("compliance" -> component.compliance.complianceWithoutPending)
-                        ~ ("complianceDetails" -> percents(component.compliance))
-                        ~ ("values" -> component.componentValues.map { case (_, value) =>
-                            (
-                              ("value" -> value.componentValue)
-                                ~ ("reports" -> value.messages.map { report =>
-                                    (
-                                        ("status" -> statusDisplayName(report.reportType))
-                                      ~ ("message" -> report.message)
-                                    )
-                                })
-                            )
-                        })
-                      )
-                    })
-                )
-             })
-         )
-        })
+      ~ ("rules" -> rules(n.nodeCompliances, 10))
     )
+
+    /*
+     * level:
+     * - up to 1 : nodes,
+     * - 2: nodes & rules
+     * - 3: nodes, rules, directives
+     * - 4: nodes, rules, directives, components
+     * - 5 and up: nodes, rules, directives, components and component values
+     */
+
+    def toJson(level: Int) = (
+        ("id" -> n.id.value)
+      ~ ("compliance" -> n.compliance.complianceWithoutPending)
+      ~ ("mode" -> n.mode.name)
+      ~ ("complianceDetails" -> percents(n.compliance))
+      ~ ("rules" -> rules(n.nodeCompliances, level))
+    )
+
+    private[this] def rules(rules: Seq[ByNodeRuleCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 2) None
+      else Some(rules.map { rule =>
+        (
+            ("id" -> rule.id.value)
+          ~ ("compliance" -> rule.compliance.complianceWithoutPending)
+          ~ ("complianceDetails" -> percents(rule.compliance))
+          ~ ("directives" -> directives(rule.directives, level))
+       )
+      })
+    }
+
+    private[this] def directives(directives: Seq[ByNodeDirectiveCompliance], level: Int): Option[JsonAST.JValue] = {
+      if(level < 3) None
+      else Some(directives.map { directive =>
+        (
+            ("id" -> directive.id.value)
+          ~ ("compliance" -> directive.compliance.complianceWithoutPending)
+          ~ ("complianceDetails" -> percents(directive.compliance))
+          ~ ("components" -> components(directive.components, level))
+        )
+      })
+    }
+
+    private[this] def components(components: Map[String, ComponentStatusReport], level: Int): Option[JsonAST.JValue] = {
+      if(level < 4) None
+      else Some(components.map { case (_, component) =>
+        (
+            ("name" -> component.componentName)
+          ~ ("compliance" -> component.compliance.complianceWithoutPending)
+          ~ ("complianceDetails" -> percents(component.compliance))
+          ~ ("values" -> values(component.componentValues, level))
+        )
+      })
+    }
+
+    private[this] def values(componentValues: Map[String, ComponentValueStatusReport], level: Int): Option[JsonAST.JValue] = {
+      if(level < 5) None
+      else Some(componentValues.map { case (_, value) =>
+          (
+            ("value" -> value.componentValue)
+              ~ ("reports" -> value.messages.map { report =>
+                  (
+                      ("status" -> statusDisplayName(report.reportType))
+                    ~ ("message" -> report.message)
+                  )
+              })
+          )
+      })
+    }
+
   }
 
   private[this] def statusDisplayName(r: ReportType): String = {

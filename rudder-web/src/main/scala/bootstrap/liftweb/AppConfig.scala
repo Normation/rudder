@@ -137,7 +137,7 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
-import com.normation.rudder.web.rest.compliance.ComplianceAPI6
+import com.normation.rudder.web.rest.compliance.ComplianceAPI7
 import com.normation.rudder.web.rest.compliance.ComplianceAPIService
 import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterServiceImpl
 import com.normation.rudder.services.policies.write.PathComputerImpl
@@ -745,28 +745,44 @@ object RudderConfig extends Loggable {
       , changeRequestApiService3
     )
 
-  val complianceApi6 = new ComplianceAPI6(restExtractorService,
-      new ComplianceAPIService(
+  private[this] val complianceAPIService = new ComplianceAPIService(
           roRuleRepository
         , nodeInfoService
         , roNodeGroupRepository
         , reportingService
+        , globalComplianceModeService.getGlobalComplianceMode _
       )
-  )
 
+  val complianceApi6 = new ComplianceAPI7(restExtractorService, complianceAPIService, v6compatibility = true)
+  val complianceApi7 = new ComplianceAPI7(restExtractorService, complianceAPIService)
+
+  // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
+  // Add change request support
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
+  // Add inventory support on nodes
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
+  // Allow empty query for groups, add key-values support on nodes
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
+  // Add compliance endpoint and filtering off node/rule/group results
   val apiV6 : List[RestAPI] = complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
+  // apiv7 just add compatible changes on compliances, adding "level" option and "compliance mode" attribute in response
+  val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
 
   val apis = {
     Map (
+        //Rudder 2.7
         ( ApiVersion(2,true) -> apiV2 )
+        //Rudder 2.8
       , ( ApiVersion(3,true) -> apiV3 )
+        //Rudder 2.10
       , ( ApiVersion(4,true) -> apiV4 )
+        //Rudder 3.0
       , ( ApiVersion(5,false) -> apiV5 )
+        //Rudder 3.1
       , ( ApiVersion(6,false) -> apiV6 )
+        //Rudder 3.2
+      , ( ApiVersion(7,false) -> apiV7 )
     )
   }
 

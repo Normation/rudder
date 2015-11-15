@@ -626,6 +626,19 @@ case class RestExtractorService (
     Box(json.extractOpt[RestNode]) ?~! "Error when extracting node information"
   }
 
+  /*
+   * Looking for parameter: "level=2"
+   */
+  def extractComplianceLevel(params : Map[String, List[String]]) : Box[Option[Int]] = {
+    params.get("level") match {
+      case None | Some(Nil) => Full(None)
+      case Some(h :: tail) => //only take into account the first level param is several are passed
+        try { Full(Some(h.toInt)) }
+        catch {
+          case ex:NumberFormatException => Failure(s"level (displayed level of compliance details) must be an integer, was: '${h}'")
+        }
+    }
+  }
 
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
     for {
