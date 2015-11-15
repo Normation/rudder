@@ -963,7 +963,7 @@ object NodeConfigIdSerializer {
         case x::Nil => Seq(NodeConfigIdInfo(x._1, x._2, None))
         case t => t.sliding(2).map {
             //we know the size of the list is 2
-            case x::Nil => throw new IllegalArgumentException("An impossible state was reached, please contact the dev about it!")
+            case _::Nil | Nil => throw new IllegalArgumentException("An impossible state was reached, please contact the dev about it!")
             case x::y::t => NodeConfigIdInfo(x._1, x._2, Some(y._2))
           }.toVector :+ {
             val x = t.last

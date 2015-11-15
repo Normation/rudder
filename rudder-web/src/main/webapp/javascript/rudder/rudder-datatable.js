@@ -1191,14 +1191,26 @@ function buildComplianceBar(compliance) {
     compliance[index] = compliance[index] - toRemove
   }
 
-  var notApplicable = compliance[0]
+  var reportsDisabled = compliance[0]
+  var notApplicable = compliance[1]
+  var success = compliance[2]
+  var repaired = compliance[3]
+  var error = compliance[4]
+  var pending = compliance[5]
+  var noreport = compliance[6]
+  var missing = compliance[7]
+  var unknown = compliance[8]
+  
+  if(reportsDisabled != 0) {
+    var value = Number((reportsDisabled).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+reportsDisabled+'%" title="Reports Disabled: '+reportsDisabled+'%">'+value+'%</div>')
+  }
+  
   if(notApplicable != 0) {
     var value = Number((notApplicable).toFixed(0));
     content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notApplicable+'%" title="Not applicable: '+notApplicable+'%">'+value+'%</div>')
   }
 
-  var success = compliance[1]
-  var repaired = compliance[2]
   var okStatus = success + repaired
   if(okStatus != 0) {
     var text = []
@@ -1212,20 +1224,16 @@ function buildComplianceBar(compliance) {
     content.append('<div class="progress-bar progress-bar-success" style="width:'+okStatus+'%" title="'+text.join("\n")+'">'+value+'%</div>')
   }
 
-  var pending = compliance[4]
   if(pending != 0) {
     var value = Number((pending).toFixed(0));
     content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">'+value+'%</div>')
   }
 
-  var noreport = compliance[5]
   if(noreport != 0) {
     var value = Number((noreport).toFixed(0));
     content.append('<div class="progress-bar progress-bar-no-report" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>')
   }
 
-  var missing = compliance[6]
-  var unknown = compliance[7]
   var unexpected = missing + unknown
   if(unexpected != 0) {
     var text = []
@@ -1239,7 +1247,6 @@ function buildComplianceBar(compliance) {
     content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unexpected+'%" title="'+text.join("\n")+'">'+value+'%</div>')
   }
 
-  var error = compliance[3]
   if(error != 0) {
     var value = Number((error).toFixed(0));
     content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">'+value+'%</div>')

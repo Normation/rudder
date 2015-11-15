@@ -54,6 +54,9 @@ import com.normation.rudder.services.nodes.NodeInfoService
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.ReportsDisabled
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -150,7 +153,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
     cache = cache -- nodeIds
     //preload new results
-    future {
+    Future {
       checkAndUpdateCache(nodeIds)
     }
     ()
@@ -219,7 +222,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     cache = Map()
     logger.debug("Compliance cache cleared")
     //reload it for future use
-    future {
+    Future {
       for {
         infos <- nodeInfoService.getAll
       } yield {
@@ -269,8 +272,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      */
     val t0 = System.currentTimeMillis
     for {
+      complianceMode      <- getGlobalComplianceMode()
       // we want compliance on these nodes
-      runInfos            <- getNodeRunInfos(nodeIds)
+      runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
 
       // that gives us configId for runs, and expected configId (some may be in both set)
       expectedConfigId    =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigId.configId) }
@@ -289,7 +293,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _                   =  TimingDebugLogger.debug(s"Compliance: get expected reports: ${t2-t1}ms")
 
       // compute the status
-      nodeStatusReports   <- buildNodeStatusReports(runInfos, allExpectedReports, ruleIds)
+      nodeStatusReports   <- buildNodeStatusReports(runInfos, allExpectedReports, ruleIds, complianceMode.mode)
 
       t3                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
@@ -304,7 +308,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * of each node, and try to discover the run linked information (datetime, config id).
    *
    */
-  private[this] def getNodeRunInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, RunAndConfigInfo]] = {
+  private[this] def getNodeRunInfos(nodeIds: Set[NodeId], complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
     def findVersionById(id: NodeConfigId, infos: Seq[NodeConfigIdInfo]): Option[NodeConfigIdInfo] ={
       infos.find { i => i.configId == id}
     }
@@ -317,8 +321,11 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     }
 
     for {
-      compliance        <- getGlobalComplianceMode()
-      runs              <- agentRunRepository.getNodesLastRun(nodeIds)
+      runs              <- complianceMode.mode match {
+                            //this is an optimisation to avoid querying the db in that case
+                             case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
+                             case _ => agentRunRepository.getNodesLastRun(nodeIds)
+                           }
       nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
       runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)
       //just a validation that we have all nodes interval
@@ -326,7 +333,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              Failure(s"We weren't able to get agent run interval configuration (even using default values) for some node: ${(nodeIds -- runIntervals.keySet).map(_.value).mkString(", ")}")
                            }
     } yield {
-      ExecutionBatch.computeNodesRunInfo(runIntervals, runs, nodeConfigIdInfos, compliance)
+      ExecutionBatch.computeNodesRunInfo(runIntervals, runs, nodeConfigIdInfos, complianceMode)
     }
   }
 
@@ -340,6 +347,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       runInfos          : Map[NodeId, RunAndConfigInfo]
     , allExpectedReports: Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , ruleIds           : Set[RuleId]
+    , complianceModeName: ComplianceModeName
   ): Box[Seq[RuleNodeStatusReport]] = {
 
     val now = DateTime.now
@@ -357,10 +365,16 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     for {
       /*
        * now get reports for agent rules.
-       * We don't want to reach for node reports that are out of date, i.e in full compliance mode,
-       * reports older that agent's run interval + 5 minutes compare to now
+       * We want to do a batch query for all nodes to be able to minimize number of requests.
+       *
+       * We don't want to do the query if we are in "reports-disabled" mode, since in that mode,
+       * either we don't have reports (expected) or we have reports that will be out of date
+       * (for ex. just after a change in the option).
        */
-      reports <- reportsRepository.getExecutionReports(agentRunIds, ruleIds)
+      reports <- complianceModeName match {
+                                      case ReportsDisabled => Full(Map[NodeId,Seq[Reports]]())
+                                      case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds)
+                                    }
     } yield {
       //we want to have nodeStatus for all asked node, not only the ones with reports
       runInfos.flatMap { case(nodeId, runInfo) =>
