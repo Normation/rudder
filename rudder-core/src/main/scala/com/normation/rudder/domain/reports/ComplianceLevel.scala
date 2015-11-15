@@ -35,11 +35,13 @@
 package com.normation.rudder.domain.reports
 
 import org.joda.time.DateTime
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.common.Loggable
+import com.normation.rudder.reports.ReportsDisabled
+import net.liftweb.http.js.JE
+import net.liftweb.http.js.JE.JsArray
 
 /**
  * That file define a "compliance level" object, which store
@@ -52,45 +54,48 @@ import net.liftweb.common.Loggable
 //simple data structure to hold percentages of different compliance
 //the ints are actual numbers, percents are computed with the pc_ variants
 case class ComplianceLevel(
-    pending      : Int = 0
-  , success      : Int = 0
-  , repaired     : Int = 0
-  , error        : Int = 0
-  , unexpected   : Int = 0
-  , missing      : Int = 0
-  , noAnswer     : Int = 0
-  , notApplicable: Int = 0
+    pending        : Int = 0
+  , success        : Int = 0
+  , repaired       : Int = 0
+  , error          : Int = 0
+  , unexpected     : Int = 0
+  , missing        : Int = 0
+  , noAnswer       : Int = 0
+  , notApplicable  : Int = 0
+  , reportsDisabled: Int = 0
 ) {
 
-  override def toString() = s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable}]"
+  override def toString() = s"[p:${pending} s:${success} r:${repaired} e:${error} u:${unexpected} m:${missing} nr:${noAnswer} na:${notApplicable} rd:${reportsDisabled}]"
 
-  val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable
+  val total = pending+success+repaired+error+unexpected+missing+noAnswer+notApplicable+reportsDisabled
 
-  val complianceWithoutPending = pc_for(success+repaired+notApplicable, total-pending)
+  val complianceWithoutPending = pc_for(success+repaired+notApplicable, total-pending-reportsDisabled)
   val compliance = pc_for(success+repaired+notApplicable, total)
 
   private[this] def pc_for(i:Int, total:Int) : Double = if(total == 0) 0 else (i * 100 / BigDecimal(total)).setScale(2, BigDecimal.RoundingMode.HALF_UP).toDouble
   private[this] def pc(i:Int) : Double = pc_for(i, total)
 
-  val pc_pending       = pc(pending)
-  val pc_success       = pc(success)
-  val pc_repaired      = pc(repaired)
-  val pc_error         = pc(error)
-  val pc_unexpected    = pc(unexpected)
-  val pc_missing       = pc(missing)
-  val pc_noAnswer      = pc(noAnswer)
-  val pc_notApplicable = pc(notApplicable)
+  val pc_pending         = pc(pending)
+  val pc_success         = pc(success)
+  val pc_repaired        = pc(repaired)
+  val pc_error           = pc(error)
+  val pc_unexpected      = pc(unexpected)
+  val pc_missing         = pc(missing)
+  val pc_reportsDisabled = pc(reportsDisabled)
+  val pc_noAnswer        = pc(noAnswer)
+  val pc_notApplicable   = pc(notApplicable)
 
   def +(compliance: ComplianceLevel): ComplianceLevel = {
     ComplianceLevel(
-        pending       = this.pending + compliance.pending
-      , success       = this.success + compliance.success
-      , repaired      = this.repaired + compliance.repaired
-      , error         = this.error + compliance.error
-      , unexpected    = this.unexpected + compliance.unexpected
-      , missing       = this.missing + compliance.missing
-      , noAnswer      = this.noAnswer + compliance.noAnswer
-      , notApplicable = this.notApplicable + compliance.notApplicable
+        pending         = this.pending + compliance.pending
+      , success         = this.success + compliance.success
+      , repaired        = this.repaired + compliance.repaired
+      , error           = this.error + compliance.error
+      , unexpected      = this.unexpected + compliance.unexpected
+      , missing         = this.missing + compliance.missing
+      , noAnswer        = this.noAnswer + compliance.noAnswer
+      , notApplicable   = this.notApplicable + compliance.notApplicable
+      , reportsDisabled = this.reportsDisabled + compliance.reportsDisabled
     )
   }
 
@@ -111,6 +116,7 @@ object ComplianceLevel {
         case MissingReportType       => compliance.copy(missing = compliance.missing + 1)
         case NoAnswerReportType      => compliance.copy(noAnswer = compliance.noAnswer + 1)
         case PendingReportType       => compliance.copy(pending = compliance.pending + 1)
+        case DisabledReportType      => compliance.copy(reportsDisabled = compliance.reportsDisabled + 1)
       }
     }
   }
@@ -119,4 +125,25 @@ object ComplianceLevel {
    if(compliances.isEmpty) ComplianceLevel()
    else compliances.reduce( _ + _)
  }
+}
+
+
+object ComplianceLevelSerialisation {
+
+  //transform the compliance percent to a list with a given order:
+  // pc_reportDisabled, pc_notapplicable, pc_success, pc_repaired,
+  // pc_error, pc_pending, pc_noAnswer, pc_missing, pc_unknown
+  implicit class ComplianceLevelToJs(compliance: ComplianceLevel) {
+    def toJsArray(): JsArray = JsArray (
+        JE.Num(compliance.pc_reportsDisabled)
+      , JE.Num(compliance.pc_notApplicable)
+      , JE.Num(compliance.pc_success)
+      , JE.Num(compliance.pc_repaired)
+      , JE.Num(compliance.pc_error)
+      , JE.Num(compliance.pc_pending)
+      , JE.Num(compliance.pc_noAnswer)
+      , JE.Num(compliance.pc_missing)
+      , JE.Num(compliance.pc_unexpected)
+    )
+  }
 }

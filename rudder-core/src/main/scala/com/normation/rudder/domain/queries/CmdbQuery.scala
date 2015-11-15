@@ -304,7 +304,7 @@ case object LongComparator extends CriterionType {
 
 case object MemoryComparator extends CriterionType {
   override val comparators = OrderedComparators.comparators
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
+  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(MemorySize.parse(v).isDefined) Full(v)
     else Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
   }

@@ -304,6 +304,7 @@ object JsonCompliance {
       case UnexpectedReportType => "unexpectedUnknownComponent"
       case MissingReportType => "unexpectedMissingComponent"
       case NoAnswerReportType => "noReport"
+      case DisabledReportType => "reportsDisabled"
       case PendingReportType => "applying"
     }
   }
@@ -325,6 +326,7 @@ object JsonCompliance {
       , statusDisplayName(UnexpectedReportType) -> c.pc_unexpected
       , statusDisplayName(MissingReportType) -> c.pc_missing
       , statusDisplayName(NoAnswerReportType) -> c.pc_noAnswer
+      , statusDisplayName(DisabledReportType) -> c.pc_reportsDisabled
       , statusDisplayName(PendingReportType) -> c.pc_pending
     ).filter { case(k, v) => v > 0 }.mapValues(percent => percent )
   }
