@@ -54,18 +54,8 @@ trait JsTableLine extends Loggable {
 
   def json : JsObj
 
-  //transform the compliance percent to a list with a given order:
-  //pc_notapplicable, pc_success, pc_repaired, pc_error,pc_pending, pc_noAnswer,  pc_missing, pc_unknown
-  def jsCompliance(compliance: ComplianceLevel) = JsArray(
-      JE.Num(compliance.pc_notApplicable)
-    , JE.Num(compliance.pc_success)
-    , JE.Num(compliance.pc_repaired)
-    , JE.Num(compliance.pc_error)
-    , JE.Num(compliance.pc_pending)
-    , JE.Num(compliance.pc_noAnswer)
-    , JE.Num(compliance.pc_missing)
-    , JE.Num(compliance.pc_unexpected)
-  )
+  import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
+  def jsCompliance(compliance: ComplianceLevel) = compliance.toJsArray()
 
 }
 

@@ -102,7 +102,7 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
         val e = eb ?~! s"Error when trying to parse user data: '${jsonMode}'"
         logger.error(e.messageChain)
         S.error("complianceModeMessage", e.messageChain)
-      case Full(complianceMode : T) =>
+      case Full(complianceMode: T) =>
         saveConfigureCallback(complianceMode)  match {
           case eb:EmptyBox =>
             val e = eb ?~! s"Error when trying to store in base new compliance mode: '${jsonMode}'"
