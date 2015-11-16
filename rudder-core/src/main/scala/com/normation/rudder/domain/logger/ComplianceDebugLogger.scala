@@ -90,6 +90,10 @@ object ComplianceDebugLogger extends Logger {
          s"[NoReportInInterval: expected NodeConfigId: ${expectedConfigId.toLog}|"+
          s" last run: none available (or too old)]"
 
+      case ReportsDisabledInInterval(expectedConfigId) =>
+         s"ReportsDisabledInInterval: expected NodeConfigId: ${expectedConfigId.toLog}|"+
+         s" last run: none available (compliance mode is reports-disabled)]"
+
       case Pending(expectedConfigId, optLastRun, expirationDateTime, missingStatus) =>
         s"[Pending: until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}]"
@@ -107,12 +111,13 @@ object ComplianceDebugLogger extends Logger {
     }
 
     val logName =  c match {
-      case    NoRunNoInit       => "NoRunNoInit"
-      case _: VersionNotFound   => "VersionNotFound"
-      case _: NoReportInInterval=> "NoReportInInterval"
-      case _: Pending           => "Pending"
-      case _: UnexpectedVersion => "UnexpectedVersion"
-      case _: ComputeCompliance => "ComputeCompliance"
+      case    NoRunNoInit               => "NoRunNoInit"
+      case _: VersionNotFound           => "VersionNotFound"
+      case _: NoReportInInterval        => "NoReportInInterval"
+      case _: ReportsDisabledInInterval => "ReportsDisabledInInterval"
+      case _: Pending                   => "Pending"
+      case _: UnexpectedVersion         => "UnexpectedVersion"
+      case _: ComputeCompliance         => "ComputeCompliance"
     }
   }
 

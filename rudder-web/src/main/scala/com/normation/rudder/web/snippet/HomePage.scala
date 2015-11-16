@@ -80,6 +80,11 @@ sealed trait ComplianceLevelPieChart{
   }
 }
 
+case class DisabledChart (value : Int) extends ComplianceLevelPieChart{
+  val label = "Reports Disabled"
+  val color = "#b4b4b4"
+}
+
 case class GreenChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Perfect (100%)"
   val color = "#5cb85c"
@@ -160,6 +165,14 @@ class HomePage extends Loggable {
   }
 
   def getAllCompliance = {
+
+    trait ChartType
+    case object PendingChartType extends ChartType
+    case object DisabledChartType extends ChartType
+    case class ColoredChartType(value: Double) extends ChartType
+
+
+
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.is
       n2 = System.currentTimeMillis
@@ -181,77 +194,73 @@ class HomePage extends Loggable {
        * Note: node without reports are also put in "pending".
        */
 
-      val complianceByNode : List[Double] = reportsByNode.values.map { r =>
-        if(r.pending == r.total) -1 else  r.complianceWithoutPending
+      val complianceByNode : List[ChartType] = reportsByNode.values.map { r =>
+        if(r.pending == r.total) { PendingChartType }
+        else if(r.reportsDisabled == r.total) { DisabledChartType }
+        else { ColoredChartType(r.complianceWithoutPending) }
       }.toList
 
-      val complianceDiagram : List[ComplianceLevelPieChart] = (complianceByNode.groupBy{compliance =>
-             if (compliance == -1)  PendingChart
-        else if (compliance == 100) GreenChart
-        else if (compliance >= 75)  BlueChart
-        else if (compliance >= 50)  OrangeChart
-        else                        RedChart
-      }.map {
-        case (PendingChart, compliance) => PendingChart(compliance.size)
-        case (GreenChart  , compliance) => GreenChart(compliance.size)
-        case (BlueChart   , compliance) => BlueChart(compliance.size)
-        case (OrangeChart , compliance) => OrangeChart(compliance.size)
-        case (RedChart    , compliance) => RedChart(compliance.size)
-        case (_           , compliance) => RedChart(compliance.size)
+      val complianceDiagram : List[ComplianceLevelPieChart] = (complianceByNode.groupBy{compliance => compliance match {
+        case PendingChartType               => PendingChart
+        case DisabledChartType              => DisabledChart
+        case ColoredChartType(100)          => GreenChart
+        case ColoredChartType(x) if x >= 75 => BlueChart
+        case ColoredChartType(x) if x >= 50 => OrangeChart
+        case ColoredChartType(_)            => RedChart
+      } }.map {
+        case (PendingChart , compliance) => PendingChart(compliance.size)
+        case (DisabledChart, compliance) => DisabledChart(compliance.size)
+        case (GreenChart   , compliance) => GreenChart(compliance.size)
+        case (BlueChart    , compliance) => BlueChart(compliance.size)
+        case (OrangeChart  , compliance) => OrangeChart(compliance.size)
+        case (RedChart     , compliance) => RedChart(compliance.size)
+        case (_            , compliance) => RedChart(compliance.size)
       }).toList
 
-     val sorted = complianceDiagram.sortWith{
-        case (a:PendingChart ,_)            => true
-        case (a:GreenChart   ,_)            => true
-        case (a:BlueChart    ,_:GreenChart) => false
-        case (a:BlueChart    ,_)            => true
-        case (_:OrangeChart  , ( _:GreenChart| _:BlueChart)) => false
-        case (a:OrangeChart  ,_)            => true
-        case (a:RedChart     ,_)            => false
+      val sorted = complianceDiagram.sortWith{
+        case (_:PendingChart  ,_)            => true
+        case (_:DisabledChart ,_)            => true
+        case (_:GreenChart    ,_)            => true
+        case (_:BlueChart     ,_:GreenChart) => false
+        case (_:BlueChart     ,_)            => true
+        case (_:OrangeChart   , ( _:GreenChart| _:BlueChart)) => false
+        case (_:OrangeChart   ,_)            => true
+        case (_:RedChart      ,_)            => false
       }
 
-     val numberOfNodes = complianceByNode.size
-     val pendingNodes = complianceDiagram.collectFirst{
-       case p : PendingChart => p.value
-     } match {
+      val numberOfNodes = complianceByNode.size
+      val pendingNodes = complianceDiagram.collectFirst{
+        case p : PendingChart => p.value
+      } match {
 
-       case None => JsObj (
-           "pending" -> JsNull
-         , "active"  -> numberOfNodes
-       )
-       case Some(pending) =>
-         JsObj (
-           "pending" ->
-             JsObj (
-                 "nodes" -> pending
-               , "percent"  -> (pending * 100  / numberOfNodes).round
-             )
-         , "active"  -> (numberOfNodes - pending)
-       )
-     }
+        case None => JsObj (
+            "pending" -> JsNull
+          , "active"  -> numberOfNodes
+        )
+        case Some(pending) =>
+          JsObj (
+            "pending" ->
+              JsObj (
+                  "nodes" -> pending
+                , "percent"  -> (pending * 100  / numberOfNodes).round
+              )
+          , "active"  -> (numberOfNodes - pending)
+        )
+      }
 
-     val diagramData = JsArray(sorted.map(_.jsValue):_*)
+      val diagramData = JsArray(sorted.map(_.jsValue):_*)
 
-     val diagramColor = JsObj(sorted.map(_.jsColor):_*)
+      val diagramColor = JsObj(sorted.map(_.jsColor):_*)
 
-     // Data used for compliance bar, compliance without pending
-     val compliance = ComplianceLevel.sum(reports.map(_.compliance)).copy(pending = 0)
+      // Data used for compliance bar, compliance without pending
+      val compliance = ComplianceLevel.sum(reports.map(_.compliance)).copy(pending = 0)
 
-     val complianceBar = JsArray(
-         JE.Num(compliance.pc_notApplicable)
-       , JE.Num(compliance.pc_success)
-       , JE.Num(compliance.pc_repaired)
-       , JE.Num(compliance.pc_error)
-       // Do not count pending in global compliance
-       , JE.Num(compliance.pc_pending)
-       , JE.Num(compliance.pc_noAnswer)
-       , JE.Num(compliance.pc_missing)
-       , JE.Num(compliance.pc_unexpected)
-     )
+      import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
+      val complianceBar = compliance.toJsArray
 
-     val globalCompliance = compliance.complianceWithoutPending.round
+      val globalCompliance = compliance.complianceWithoutPending.round
 
-     Script(OnLoad(JsRaw(s"""
+      Script(OnLoad(JsRaw(s"""
         homePage(
             ${complianceBar.toJsCmd}
           , ${globalCompliance}
