@@ -166,6 +166,14 @@ case class NoReportInInterval(
     expectedConfigId: NodeConfigIdInfo
 ) extends NoReport
 
+/*
+ * No report of interest but expected because
+ * we are on the correct mode for that
+ */
+case class ReportsDisabledInInterval(
+    expectedConfigId: NodeConfigIdInfo
+) extends NoReport
+
 case class Pending(
     expectedConfigId   : NodeConfigIdInfo
   , optLastRun         : Option[(DateTime, NodeConfigIdInfo)]
@@ -269,7 +277,7 @@ object ExecutionBatch extends Loggable {
     val missingReportType = complianceMode.mode match {
       case FullCompliance => MissingReportType
       case ChangesOnly => SuccessReportType
-      case ReportDisabled => MissingReportType
+      case ReportsDisabled => DisabledReportType
     }
 
     /*
@@ -287,7 +295,7 @@ object ExecutionBatch extends Loggable {
         //expires after run*heartbeat period - we need an other run before that.
         val heartbeat = Duration.standardMinutes((runIntervalInfo.interval.getStandardMinutes * runIntervalInfo.heartbeatPeriod ))
         heartbeat.plus(GRACE_TIME_PENDING)
-      case FullCompliance | ReportDisabled =>
+      case FullCompliance | ReportsDisabled =>
         updateValidityTime(runIntervalInfo)
     }
 
@@ -296,14 +304,22 @@ object ExecutionBatch extends Loggable {
       ComplianceDebugLogger.node(nodeId).debug(s"Node run configuration: ${(nodeId, complianceMode, runInfos).toLog }")
     }
 
+
     nodeIds.map { case (nodeId, intervalInfo) =>
       implicit val _n = nodeId
       val optInfo = nodeConfigIdInfos.getOrElse(nodeId, None)
 
-      val runInfo = {
+      //special case if we are on "reports-disabled" mode
+      val runInfo = if(complianceMode.mode == ReportsDisabled) {
+        optInfo match {
+          case Some(configs) if(configs.nonEmpty) =>
+            runType(s"compliance mode is set to '${}', it's ok to not having reports", ReportsDisabledInInterval(configs.maxBy(_.creation.getMillis)))
+          case _ =>
+            runType(s"nodeId has no configuration ID version (it should, even in ${ReportsDisabled.name} compliance mode", NoRunNoInit)
+        }
+      } else {
 
         val optRun = runs.getOrElse(nodeId, None)
-        val optInfo = nodeConfigIdInfos.getOrElse(nodeId, None)
 
         (optRun, optInfo) match {
           case (None, None) =>
@@ -335,6 +351,7 @@ object ExecutionBatch extends Loggable {
 
         }
       }
+
       (nodeId, runInfo)
     }.toMap
   }
@@ -486,6 +503,18 @@ object ExecutionBatch extends Loggable {
     ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: ${runInfo.toLog}")
 
     runInfo match {
+
+
+      case ReportsDisabledInInterval(expectedConfig) =>
+        ComplianceDebugLogger.node(nodeId).trace(s"Compliance mode is ${ReportsDisabled.name}, so we don't have to try to merge/compare with expected reports")
+        buildRuleNodeStatusReport(
+            //these reports don't really expires - without change, it will
+            //always be the same.
+            MergeInfo(nodeId, None, Some(expectedConfig.configId), END_OF_TIME)
+          , getExpectedReports(expectedConfig.configId)
+          , DisabledReportType
+        )
+
 
       case ComputeCompliance(lastRunDateTime, lastRunConfigId, expectedConfigId, expirationTime, missingReportStatus) =>
         ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run ${lastRunConfigId.toLog} and expect reports ${expectedConfigId.toLog}")

@@ -56,12 +56,12 @@ case object ChangesOnly extends ComplianceModeName {
   val name = "changes-only"
 }
 
-case object ReportDisabled extends ComplianceModeName {
+case object ReportsDisabled extends ComplianceModeName {
   val name = "reports-disabled"
 }
 
 object ComplianceModeName {
-  val allModes : List[ComplianceModeName] = FullCompliance :: ChangesOnly :: ReportDisabled :: Nil
+  val allModes : List[ComplianceModeName] = FullCompliance :: ChangesOnly :: ReportsDisabled :: Nil
 
   def parse (value : String) : Box[ComplianceModeName] = {
     allModes.find { _.name == value } match {

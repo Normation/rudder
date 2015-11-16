@@ -37,6 +37,7 @@ package com.normation.rudder.web.services
 import net.liftweb.http.js.JsCmd
 import net.liftweb.common.Box
 import com.normation.rudder.domain.reports.ComplianceLevel
+import com.normation.rudder.domain.reports.ComplianceLevelSerialisation._
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import com.normation.inventory.domain.NodeId
@@ -145,19 +146,10 @@ class AsyncComplianceService (
                     $$("#compliance-bar-${value}").html('<div class="tw-bs"><span class="text-center text-muted">no data available</span></div>');
                     """
                   case Some(compliance) =>
-                    val array = JsArray (
-                        JE.Num(compliance.pc_notApplicable)
-                      , JE.Num(compliance.pc_success)
-                      , JE.Num(compliance.pc_repaired)
-                      , JE.Num(compliance.pc_error)
-                      , JE.Num(compliance.pc_pending)
-                      , JE.Num(compliance.pc_noAnswer)
-                      , JE.Num(compliance.pc_missing)
-                      , JE.Num(compliance.pc_unexpected)
-                    )
+                    val array = compliance.toJsArray.toJsCmd
                     s"""
-                    $$("#compliance-bar-${value}").html(buildComplianceBar(${array.toJsCmd}));
-                    ${kind.jsContainer}['${value}'] = ${array.toJsCmd};
+                    $$("#compliance-bar-${value}").html(buildComplianceBar(${array}));
+                    ${kind.jsContainer}['${value}'] = ${array};
                     """
                 }
               }

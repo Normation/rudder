@@ -53,7 +53,7 @@ import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
-import com.normation.rudder.reports.ReportDisabled
+import com.normation.rudder.reports.ReportsDisabled
 
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
@@ -90,7 +90,7 @@ class ExecutionBatchTest extends Specification {
       val runInfo = complianceMode.mode match {
         case FullCompliance => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), MissingReportType)
         case ChangesOnly => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), SuccessReportType)
-        case ReportDisabled => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), MissingReportType)
+        case ReportsDisabled => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), DisabledReportType)
       }
 
       ExecutionBatch.getNodeStatusReports(nodeId, runInfo, expected, reportsParam)

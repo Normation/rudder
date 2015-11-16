@@ -96,6 +96,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
 
+  private[this] var boxGroupLib = getFullGroupLibrary()
+
   val mainDispatch = {
     RudderConfig.configService.rudder_workflow_enabled match {
       case Full(workflowEnabled) =>
@@ -128,8 +130,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
-
-  private[this] var boxGroupLib = getFullGroupLibrary()
 
   private[this] var selectedCategoryId = boxGroupLib.map(_.id)
 
