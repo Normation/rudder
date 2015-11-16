@@ -296,7 +296,7 @@ class PrepareTemplateVariablesImpl(
       if (inputs.isEmpty) {
         ""
       } else {
-        inputs.mkString("\"", s"""",\n${" "*14}"""", s""""\n  """)
+        inputs.mkString("\"", s"""",\n${" "*4}"""", s"""",""")
       }
     }
 
