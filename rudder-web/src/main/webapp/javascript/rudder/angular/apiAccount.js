@@ -113,7 +113,7 @@ $scope.columnDefs = [
       , 'bSortable': false
       , "sWidth": "10%"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      var color = sData ? "#CCFFCC" : "#FF6655";
+      var color = sData ? "#5cb85c" : "#d9534f";
           var content  = $(" <b>"+$scope.accountDisabled(sData)+"</b>")
       $(nTd).empty();
           $(nTd).attr("style","text-align:center;  background-color:"+color);

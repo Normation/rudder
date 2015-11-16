@@ -86,11 +86,11 @@ object RuleGrid {
     <head>
       <style type="text/css">
         #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
-        .greenCompliance {{ background-color: #CCFFCC }}
-        .orangeCompliance  {{ background-color: #FFBB66 }}
-        .redCompliance  {{ background-color: #FF6655 }}
-        .noCompliance   {{ background-color:#BBAAAA; }}
-        .applyingCompliance {{ background-color:#CCCCCC; }}
+        .greenCompliance {{ background-color: #5cb85c }}
+        .orangeCompliance  {{ background-color: #FF6600 }}
+        .redCompliance  {{ background-color: #d9534f }}
+        .noCompliance   {{ background-color:#b4b4b4; }}
+        .applyingCompliance {{ background-color:#5bc0de; }}
         .compliance {{ text-align: center; }}
         .statusCell {{font-weight:bold}}
       </style>
