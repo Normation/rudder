@@ -2382,56 +2382,56 @@ td.nestedImg{
 }
 
 tr.Success {
-  background-color:#CCFFCC;
+  background-color:#5cb85c;
 }
 tr.Applying {
-  background-color:#CCCCCC;
+  background-color:#5bc0de;
 }
 tr.Repaired {
-  background-color:#FFFA66;
+  background-color:#FFFF66;
 }
 tr.Warn {
-  background-color:#FF9922;
+  background-color:#FF9147;
 }
 tr.Unknown {
-    background-color: #FFBB66;
+    background-color: #FF6600;
 }
 tr.Error {
-  background-color:#FF6655;
+  background-color:#d9534f;
 }
 tr.NoAnswer {
-  background-color:#BBAAAA;
+  background-color:#b4b4b4;
 }
 tr.NotApplicable {
-  background-color:#CFCFFF;
+  background-color:#8dcd8d;
 }
 
 td.Success {
-  background-color:#CCFFCC;
+  background-color:#5cb85c;
 }
 td.Applying {
-  background-color:#CCCCCC;
+  background-color:#5bc0de;
 }
 td.Repaired {
-  background-color:#FFFA66;
+  background-color:#FFFF66;
 }
 td.Warn {
-  background-color:#FF9922;
+  background-color:#FF9147;
 }
 td.Unknown {
-    background-color: #FFBB66;
+    background-color: #ff6600;
 }
 td.Error {
-  background-color:#FF6655;
+  background-color:#d9534f;
 }
 td.NoAnswer {
-  background-color:#BBAAAA;
+  background-color:#b4b4b4;
 }
 td.NotApplicable {
-  background-color:#CFCFFF;
+  background-color:#8dcd8d;
 }
 td.Missing {
-  background-color:#FFBB66;
+  background-color:#FF9147;
 }
 
 td.details{
