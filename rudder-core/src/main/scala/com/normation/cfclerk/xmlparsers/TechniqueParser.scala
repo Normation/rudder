@@ -50,7 +50,6 @@ import net.liftweb.common._
 class TechniqueParser(
     variableSpecParser           : VariableSpecParser
   , sectionSpecParser            : SectionSpecParser
-  , cf3PromisesFileTemplateParser: Cf3PromisesFileTemplateParser
   , systemVariableSpecService    : SystemVariableSpecService
 ) extends Loggable {
 
@@ -61,13 +60,13 @@ class TechniqueParser(
         case Some(nameAttr) if (TechniqueParser.isValidId(id.name.value) && nonEmpty(nameAttr.text)) =>
 
           val name = nameAttr.text
-          val compatible = try Some(CompatibleParser.parseXml((node \ COMPAT_TAG).head)) catch { case _:Exception => None }
+          val compatible = try Some(parseCompatibleTag((node \ COMPAT_TAG).head)) catch { case _:Exception => None }
 
           val rootSection = sectionSpecParser.parseSectionsInPolicy(node, id, name)
 
           val description = ??!((node \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
 
-          val templates = (node \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => cf3PromisesFileTemplateParser.parseXml(id, xml) )
+          val templates = (node \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml) )
 
           val bundlesequence = (node \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => Bundle(xml.text) )
 
@@ -177,6 +176,87 @@ class TechniqueParser(
     }.toSet
   }
 
+  /**
+   * Parse a template file tag in metadata.xml.
+   *
+   * The tag looks like:
+   * <TML name="someIdentification">
+   *   <OUTPATH>some_out_path_name</OUTPATH> (optional, default to "techniqueId/templateName.cf")
+   *   <INCLUDED>true</INCLUDED> (optional, default to true)
+   * </TML>
+   *
+   * if name content start with RUDDER_CONFIGURATION_REPOSITORY, the path must be considered relative
+   * to root of configuration repository in place of relative to the technique.
+   * 
+   */
+  def parseTemplate(techniqueId: TechniqueId, node: Node): TechniqueTemplate = {
+
+    def fileToList(f: java.io.File): List[String] = {
+      if(f == null) {
+        Nil
+      } else {
+        fileToList(f.getParentFile) ::: f.getName :: Nil
+      }
+    }
+
+    //the default out path for a template with name "name" is "techniqueName/techniqueVersion/name.cf
+    def defaultOutPath(name: String) = s"${techniqueId.name.value}/${techniqueId.version.toString}/${name}${TechniqueTemplate.promiseExtension}"
+
+    if(node.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> node, but actually get: ${node}")
+
+    val outPath = (node \ PROMISE_TEMPLATE_OUTPATH).text match {
+      case "" => None
+      case path => Some(path)
+    }
+    val included = !((node \ PROMISE_TEMPLATE_INCLUDED).text == "false")
+
+    val id = node.attribute(PROMISE_TEMPLATE_NAME) match {
+      case Some(attr) if (attr.size == 1) =>
+        // some checking on name
+        val n = attr.text.trim
+        if(n.startsWith("/") || n.endsWith("/")) {
+          throw new ParsingException(s"Error when parsing xml ${node}. Template name must not start nor end with '/'")
+        } else {
+
+          if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY+"/")) {
+
+            val path = new java.io.File(n.substring(RUDDER_CONFIGURATION_REPOSITORY.length + 1))
+            val name = path.getName
+            //here, getName can't be empty since n does not end by "/"
+            TechniqueResourceIdByPath(fileToList(path.getParentFile), name)
+          } else {
+            if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY)) { //most likely an user error, issue a warning
+              logger.warn(s"Template name '${n}' for technique ${techniqueId} starts ${RUDDER_CONFIGURATION_REPOSITORY} which is not followed by a '/'. " +
+                  "If you meant to use a relative path from configuration-repository directory, it is an error.")
+            }
+            TechniqueResourceIdByName(techniqueId, n)
+          }
+        }
+
+      case _ => throw new ParsingException(s"Error when parsing xml ${node}. Template name is not defined")
+    }
+    TechniqueTemplate(id, outPath.getOrElse(defaultOutPath(id.name)), included)
+  }
+
+
+  /**
+   * Parse a <compatible> marker
+   * @param node example :
+   * <COMPATIBLE>
+   * <OS>Ubuntu</OS>
+   * <OS>debian-5</OS>
+   * <AGENT version=">= 3.5">cfengine-community</AGENT>
+   * </COMPATIBLE>
+   * @return A compatible variable corresponding to the entry node
+   */
+  def parseCompatibleTag(node: Node): Compatible = {
+    if(node.label != COMPAT_TAG) throw new ParsingException("CompatibleParser was expecting a <%s> node and get:\n%s".format(COMPAT_TAG, node))
+    val os = node \ COMPAT_OS map (n =>
+      OperatingSystem(n.text, (n \ "@version").text))
+    val agents = node \ COMPAT_AGENT map (n =>
+      Agent(n.text, (n \ "@version").text))
+    Compatible(os, agents)
+  }
 }
 
 object TechniqueParser {

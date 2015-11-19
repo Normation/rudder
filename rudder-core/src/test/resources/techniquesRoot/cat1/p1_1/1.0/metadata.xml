@@ -1,9 +1,12 @@
 <TECHNIQUE name="Package 1_1">
     <DESCRIPTION>A package</DESCRIPTION>
     <DISPLAY>true</DISPLAY>
-    <TEMPLATE>
-      <NAME>p1_1/theTemplate</NAME>
-    </TEMPLATE>
-    <CONFIGURATIONPOLICY>true</CONFIGURATIONPOLICY>
-    <TMLS></TMLS>
+    <TMLS>
+      <TML name="theTemplate"/>
+      <TML name="RUDDER_CONFIGURATION_REPOSITORY/template">
+        <OUTPATH>bob.txt</OUTPATH>
+        <INCLUDED>false</INCLUDED>
+      </TML>
+      <TML name="RUDDER_CONFIGURATION_REPOSITORY/libdir/template2" />
+    </TMLS>
 </TECHNIQUE>   

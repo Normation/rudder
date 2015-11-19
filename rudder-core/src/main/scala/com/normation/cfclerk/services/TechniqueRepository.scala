@@ -57,7 +57,7 @@ trait TechniqueRepository {
    * Retrieve the template path for templateName relative to
    * the root of the policy package category tree
    */
-  def getTemplateContent[T](templateName: Cf3PromisesFileTemplateId)(useIt: Option[InputStream] => T): T
+  def getTemplateContent[T](templateName: TechniqueResourceId)(useIt: Option[InputStream] => T): T
 
   /**
    * Retrieve the reporting descriptor file content

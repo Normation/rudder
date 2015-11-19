@@ -34,11 +34,11 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.cfclerk.domain.Cf3PromisesFileTemplateId
 import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.AgentType
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.cfclerk.domain.TechniqueResourceId
 
 /**
  * That file store utility case classes about information used to
@@ -99,7 +99,7 @@ case class AgentNodeConfiguration(
  * parameter in them.
  */
 case class PreparedTemplates(
-    templatesToCopy     : Set[Cf3PromisesFileTemplateCopyInfo]
+    templatesToCopy     : Set[TechniqueTemplateCopyInfo]
   , environmentVariables: Seq[STVariable]
 ) extends HashcodeCaching
 
@@ -107,11 +107,11 @@ case class PreparedTemplates(
  * A class that store information about a template to copy somewhere.
  * It gives what template to copy where.
  */
-case class Cf3PromisesFileTemplateCopyInfo(
+case class TechniqueTemplateCopyInfo(
     source     : String  // content of the template as a string
-  , id         : Cf3PromisesFileTemplateId
+  , id         : TechniqueResourceId
   , destination: String
 ) extends HashcodeCaching {
-  override def toString() = s"Promise template ${id.techniqueId}/${id.name}; destination ${destination}"
+  override def toString() = s"Promise template ${id.name}; destination ${destination}"
 }
 
