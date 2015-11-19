@@ -68,7 +68,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   def getTechniquePath(id: TechniqueId): Option[String] = get(id).map(_ => id.name.value)
 
-  def getTemplateContent[T](templateName: Cf3PromisesFileTemplateId)(useIt: Option[InputStream] => T): T = ???
+  def getTemplateContent[T](templateName: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
   def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
   def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
   def getAll(): Map[TechniqueId, Technique] = { policyMap }
@@ -91,7 +91,7 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   override def getTechniqueVersions(name:TechniqueName) : SortedSet[TechniqueVersion] = SortedSet.empty[TechniqueVersion]
 
-  def manageDependencies(chosenTemplate: Seq[Cf3PromisesFileTemplateId] , includeExternalDependencies : Boolean = true) : Seq[Cf3PromisesFileTemplateId] = {
+  def manageDependencies(chosenTemplate: Seq[TechniqueResourceId] , includeExternalDependencies : Boolean = true) : Seq[TechniqueResourceId] = {
     Seq()
   }
 

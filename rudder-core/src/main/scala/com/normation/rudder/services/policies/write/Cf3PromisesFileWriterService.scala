@@ -37,7 +37,6 @@ package com.normation.rudder.services.policies.write
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-
 import net.liftweb.common.Box
 import java.io.IOException
 import java.io.File
@@ -45,14 +44,13 @@ import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.services.TechniqueRepository
 import com.normation.cfclerk.exceptions.VariableException
 import com.normation.cfclerk.domain.Bundle
-import com.normation.cfclerk.domain.Cf3PromisesFileTemplateId
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
-import com.normation.cfclerk.domain.Cf3PromisesFileTemplate
+import com.normation.cfclerk.domain.TechniqueTemplate
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.cfclerk.domain.TrackerVariableSpec
@@ -86,6 +84,7 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
+import com.normation.cfclerk.domain.TechniqueResourceId
 
 
 /**
@@ -230,7 +229,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
 
 
-  private[this] def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]] = {
+  private[this] def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[TechniqueResourceId, TechniqueTemplateCopyInfo]] = {
 
     //list of (template id, template out path)
     val templatesToRead = for {
@@ -247,12 +246,12 @@ class Cf3PromisesFileWriterServiceImpl(
         copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
           optInputStream match {
             case None =>
-              Failure(s"Error when trying to open template '${templateId.toString}${Cf3PromisesFileTemplate.templateExtension}'. Check that the file exists and is correctly commited in Git, or that the metadata for the technique are corrects.")
+              Failure(s"Error when trying to open template '${templateId.toString}${TechniqueTemplate.templateExtension}'. Check that the file exists and is correctly commited in Git, or that the metadata for the technique are corrects.")
             case Some(inputStream) =>
               logger.trace(s"Loading template ${templateId} (from an input stream relative to ${techniqueRepository}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
               val content = IOUtils.toString(inputStream, "UTF-8")
-              Full(Cf3PromisesFileTemplateCopyInfo(content, templateId, templateOutPath))
+              Full(TechniqueTemplateCopyInfo(content, templateId, templateOutPath))
           }
         }
       } yield {
@@ -471,7 +470,7 @@ class Cf3PromisesFileWriterServiceImpl(
    * @param path : where to write the files
    */
   private[this] def writePromisesFiles(
-      templateInfo          : Cf3PromisesFileTemplateCopyInfo
+      templateInfo          : TechniqueTemplateCopyInfo
     , variableSet           : Seq[STVariable]
     , outPath               : String
     , expectedReportsLines  : Seq[String]
@@ -509,9 +508,9 @@ class Cf3PromisesFileWriterServiceImpl(
 
       for {
         _ <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), template.toString) } ?~!
-               s"Bad format in Technique ${templateInfo.id.techniqueId} (file: ${templateInfo.destination})"
+               s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
         _ <- tryo { FileUtils.writeStringToFile(new File(outPath, expectedReportFilename), csvContent) } ?~!
-               s"Bad format in Technique ${templateInfo.id.techniqueId} (file: ${expectedReportFilename})"
+               s"Bad format in Technique ${templateInfo.id.toString} (file: ${expectedReportFilename})"
       } yield {
         outPath
       }

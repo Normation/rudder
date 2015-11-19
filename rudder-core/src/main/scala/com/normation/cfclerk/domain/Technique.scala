@@ -84,7 +84,7 @@ case class Technique(
     id                     : TechniqueId
   , name                   : String
   , description            : String
-  , templates              : Seq[Cf3PromisesFileTemplate]
+  , templates              : Seq[TechniqueTemplate]
   , bundlesequence         : Seq[Bundle]
   , trackerVariableSpec    : TrackerVariableSpec
   , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version
@@ -104,7 +104,7 @@ case class Technique(
   /**
    * Utity method that retrieve the map of all template full name for that policy
    */
-  val templatesMap: Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplate] = templates.map(t => (t.id, t)).toMap
+  val templatesMap: Map[TechniqueResourceId, TechniqueTemplate] = templates.map(t => (t.id, t)).toMap
 
   def toLongString: String = {
     "## %s [%s-%s] ## \n  -> unique:%-5s \n  -> %s\n  -> templates: %s".format(

@@ -58,13 +58,23 @@ class TechniqueTest extends Specification {
 
   val techniqueParser = {
     val varParser = new VariableSpecParser
-    new TechniqueParser(varParser, new SectionSpecParser(varParser), new Cf3PromisesFileTemplateParser, new SystemVariableSpecServiceImpl())
+    new TechniqueParser(varParser, new SectionSpecParser(varParser), new SystemVariableSpecServiceImpl())
   }
 
   val id = TechniqueId(TechniqueName("foo"), TechniqueVersion("1.0"))
 
   val technique = techniqueParser.parseXml(doc, id, true)
 
+
+  "Compatible OS and Agents" should {
+    val xml = <COMPATIBLE><OS>debian-5</OS><OS>windowsXP</OS><AGENT version=">= 3.5">cfengine-community</AGENT></COMPATIBLE>
+    val os = List(OperatingSystem("debian-5"), OperatingSystem("windowsXP"))
+    val agents = List(Agent("cfengine-community", ">= 3.5"))
+    val compatible = Compatible(os, agents)
+    "works so that parsing : " + xml + " yields " + compatible.toString in {
+      techniqueParser.parseCompatibleTag(xml) === compatible
+    }
+  }
 
   "The technique described" should {
 
@@ -97,17 +107,17 @@ class TechniqueTest extends Specification {
     }
 
     "'tml1' is included and has default outpath" in {
-      val tml = technique.templatesMap(Cf3PromisesFileTemplateId(id,"tml1"))
+      val tml = technique.templatesMap(TechniqueResourceIdByName(id,"tml1"))
       tml.included === true and tml.outPath === "foo/1.0/tml1.cf"
     }
 
     "'tml2' is included and has tml2.bar outpath" in {
-      val tml = technique.templatesMap(Cf3PromisesFileTemplateId(id,"tml2"))
+      val tml = technique.templatesMap(TechniqueResourceIdByName(id,"tml2"))
       tml.included === true and tml.outPath === "tml2.bar"
     }
 
     "'tml3' is not included and has default outpath" in {
-      val tml = technique.templatesMap(Cf3PromisesFileTemplateId(id,"tml3"))
+      val tml = technique.templatesMap(TechniqueResourceIdByName(id,"tml3"))
       tml.included === false and tml.outPath === "foo/1.0/tml3.cf"
     }
 
