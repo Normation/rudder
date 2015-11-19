@@ -33,13 +33,14 @@
             <h3 class="modal-title">Unsaved changes</h3>
           </div>
           <div class="modal-body">
-            Some changes made on Technique '{{technique.name}}' were not saved.
-            If you switch before saving, all your changes will be lost.
+            Some changes made on Technique '{{technique.name}}' were not saved.<br/>
+            If you switch before saving, all your changes will be lost.<br/>
+            <span class="text-danger" ng-if="editForm.$invalid">Technique cannot be saved because it has some errors</span>
           </div>
           <div class="modal-footer">
             <button class="btn btn-default pull-left" ng-click="cancel()">Cancel</button>
             <button class="btn btn-default" ng-click="discard()">Discard Changes</button>
-            <button class="btn btn-default" ng-click="save()">Save Changes</button>
+            <button class="btn btn-default" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes</button>
           </div>
         </script>
         </script>
@@ -103,14 +104,14 @@
             </div>
         </div>
 
-        <div  class="container Override row fill" ng-if="!authenticated" >
+        <div  class="container Override row fill" ng-hide="authenticated" >
             <div class="col-md-12 ncf_col text-center">
                 <h1>You are not authenticated in ncf-builder</h1>
                 <div>Please try again by clicking <a href="" ng-click="reloadPage()">here</a></div>
             </div>
         </div>
             
-        <div  class="container Override row fill" ng-if="authenticated" >
+        <div  class="container Override row fill" ng-show="authenticated" >
             <div class="col-md-2 ncf_col" style=" border-right:5px #DDDDDD solid; ">
                 <div class="title">Library</div>
                 <h3 >Techniques</h3>
@@ -139,12 +140,13 @@
                 </table>
             </div>
 
-            <div class="col-md-5 ncf_col"  ng-if="selectedTechnique"  style="border-right:5px #DDDDDD solid; padding-left: 0px;" >
-                <form class="form-horizontal editForm" name="editForm" style="margin-bottom:70px;padding-left: 15px;" novalidate ng-submit="!checkSelectedTechnique() && saveTechnique()">
+            <form class="form-horizontal editForm" name="editForm" novalidate >
+            <div ng-if="selectedTechnique" > 
+            <div class="col-md-5 ncf_col" >
                     <div class="title">Technique</div>
                     <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
                         <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin btn-delete" ng-click="confirmPopup('Delete','Technique', deleteTechnique, selectedTechnique, selectedTechnique.name)">Delete</a>
-                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup)">Clone</a>
+                        <a ng-disabled="isNotSaved()" class="btn btn-default pull-right top-margin right-margin" ng-click="checkSelect(selectedTechnique,clonePopup )">Clone</a>
                     </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = true" is-open="isopen">
@@ -152,7 +154,7 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 General information
                             </accordion-heading>
-                            <div class="form-group">
+                            <div class="form-group" show-errors>
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
                                     <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required>
@@ -179,28 +181,35 @@
                                         <a target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
                                             <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
                                         </a>
-                                    </span>
-                                    <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
-                                    <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
-                                    <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
-                                    <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
-                                </h4>
-                                <br style="clear:both"/>
-                                <h5 class="pull-left method-margin" >
-                                    {{getClassParameter(method_call)}}
-                                </h5>
-                                <br style="clear:both"/>
-                                <h4 class="pull-left method-margin">
-                                    <small class="pull-left" >
-                                        {{getMethodDescription(method_call)}}
-                                    </small>
-                                </h4>
-                            </div>
-                        </li>
-                    </ul>
-                </form>
+                                  </span>
+                                  <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
+                                  <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
+                                  <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
+                                  <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
+                              </h4>
+                              <div ng-form="arg_method" ng-repeat="arg in method_call.args track by $index">
+                                <input ng-hide="true" type="text" ng-model="arg" required ></input>
+                                <br style="clear:both" ng-if="arg_method.$invalid"/>
+                                <h5 ng-if="arg_method.$invalid" class=" pull-left method-margin text-danger">
+                                  Empty value in '{{getArgName($index,method_call)}}'
+                                </h5>    
+                              </div>
+                              <br style="clear:both" ng-if="getClassParameter(method_call) !== undefined"/>
+                              <h5 class="pull-left method-margin" >
+                                  {{getClassParameter(method_call)}}
+                              </h5>
+                              <br style="clear:both"/>
+                              <h4 class="pull-left method-margin">
+                                  <small class="pull-left" >
+                                      {{getMethodDescription(method_call)}}
+                                  </small>
+                              </h4>
+                          </div>
+                      </li>
+                  </ul>
+            </div>
 
-                <div class="col-md-5 fixed-footer">
+                <div class="col-md-5 col-md-offset-2 fixed-footer">
                     <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': addNew}">
                         <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                         Add methods
@@ -209,7 +218,7 @@
                     <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
                 </div>
             </div>
-
+            </form>
 
             <div class="col-md-5 ncf_col" style="vertical-align:top; padding-left:0px;" ng-if="selectedMethod">
                 <div style="padding-left:15px;margin-bottom:95px;">
@@ -262,10 +271,12 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 Parameters
                             </accordion-heading>
-                            <div class="form-group method-parameter" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
-                                <label for="param-{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
-                                <textarea msd-elastic class="form-control" rows="1" id="param-{{$index}}" ng-model="selectedMethod.args[$index]" placeholder=""></textarea>
+                              <form class="" role="form">
+                            <div class="form-group method-parameter" show-errors ng-form="subForm" style="margin: 15px 10px" ng-repeat="arg in selectedMethod.args track by $index">
+                                <label class="control-label" for="param-{{$index}}">{{getArgName($index,selectedMethod)}}:</label>
+                                <textarea msd-elastic name="param" class="form-control" rows="1" ng-required="true" id="param-{{$index}}" ng-model="selectedMethod.args[$index]" placeholder=""></textarea>
                             </div>
+                          </form>
                         </accordion-group>
                     </accordion>
                 </div>
