@@ -131,7 +131,7 @@ class TechniqueRepositoryImpl(
   override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T =
     techniqueReader.getMetadataContent(techniqueId)(useIt)
 
-  override def getTemplateContent[T](templateName: Cf3PromisesFileTemplateId)(useIt: Option[InputStream] => T): T =
+  override def getTemplateContent[T](templateName: TechniqueResourceId)(useIt: Option[InputStream] => T): T =
     techniqueReader.getTemplateContent(templateName)(useIt)
 
   override def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T =

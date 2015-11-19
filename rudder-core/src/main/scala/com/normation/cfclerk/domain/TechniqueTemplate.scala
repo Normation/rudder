@@ -40,17 +40,31 @@ import com.normation.utils.HashcodeCaching
 
 
 /**
- * Representation of a template qualified name.
- * A template is linked to a policy, so that two
- * different policies can have templates with identical
- * names.
+ * Representation of a technique resource id.
  *
- * A template qualified name has a string representation
- * that is by convention "policy name" / "template name".
+ * A resource may be either defined relatively to a technique, or relatively to
+ * the configuration-repository directory (the git root directory).
+ * Template filename extension is mandatory to be ".st".
  */
-case class Cf3PromisesFileTemplateId(val techniqueId:TechniqueId, val name:String) {
-  override def toString() = techniqueId.toString + "/" + name
+sealed trait TechniqueResourceId {
+  def name: String
 }
+
+/**
+ * A template resource whose path is relative to the technique directory (i.e, where the metadata.xml file is).
+ * It can be a path like "subdirectory/myTemplate"
+ * The name must not contain the extension.
+ */
+final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: String) extends TechniqueResourceId
+
+/**
+ * A template resource whose path is relative to the configuration-repository directory (i.e, the git root
+ * directory)
+ * ParentDirectories is the list of directory names from that root directory to the file.
+ * For example, an empty list means that the template is in configuration-repository directory.
+ * Name is an unix compliant file name, without the ".st" extension.
+ */
+final case class TechniqueResourceIdByPath(parentDirectories: List[String], name: String) extends TechniqueResourceId
 
 
 
@@ -64,26 +78,32 @@ case class Cf3PromisesFileTemplateId(val techniqueId:TechniqueId, val name:Strin
  * it is written at outPath/name
  *
  */
-case class Cf3PromisesFileTemplate(
-  /*
-   * This is the template identifier of the file.
-   * The path of the matching template will be derived from that name by adding
-   * the template extension to the end of the name.
-   * (by default, ".st")
-   */
-  id      : Cf3PromisesFileTemplateId,
-  included: Boolean, // by default, we include the template in the promises.cf
-  /*
-   *  Path where to PUT the template (e.g. for resources for ips)
-   *  This path is relative to the "cf-engine" root directory on the
-   *  server.
-   *  It must be the full path, with the name of the cf-engine promise.
-   *  By default, it will be set to: ${POLICY NAME}/${template name}.cf
-   */
-  outPath : String
-) extends HashcodeCaching
+final case class TechniqueTemplate(
+    /*
+     * This is the template identifier of the file.
+     * The real file name in git will be derived from that name by adding
+     * the template ".st" extension to the end of the name.
+     * Path to the file depends upon the type of Technique template
+     */
+  id: TechniqueResourceId
 
-object Cf3PromisesFileTemplate {
+    /*
+     *  Path where to PUT the template (e.g. for resources for ips)
+     *  This path is relative to the "cf-engine" root directory on the
+     *  server.
+     *  It must be the full path, with the name of the cf-engine promise.
+     *  By default, it will be set to: ${POLICY NAME}/${template name}.cf
+     */
+  , outPath: String
+
+    /*
+     * Does this template must be included in the list of
+     * file to include in promise.cf ?
+     */
+  , included: Boolean
+)
+
+object TechniqueTemplate {
   val templateExtension = ".st"
   val promiseExtension = ".cf"
 }

@@ -384,18 +384,29 @@ class GitTechniqueReader(
     }
   }
 
-  override def getTemplateContent[T](cf3PromisesFileTemplateId: Cf3PromisesFileTemplateId)(useIt : Option[InputStream] => T) : T = {
-    //build a treewalk with the path, given by Cf3PromisesFileTemplateId.toString
-    val path = cf3PromisesFileTemplateId.toString + Cf3PromisesFileTemplate.templateExtension
+  override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt : Option[InputStream] => T) : T = {
+    //build a treewalk with the path, given by TechniqueTemplateId
+    val filenameFilter = {
+      val name = techniqueResourceId.name + TechniqueTemplate.templateExtension
+      techniqueResourceId match {
+        case TechniqueResourceIdByName(tid, _) =>
+          new FileTreeFilter(canonizedRelativePath, s"${tid.name}/${tid.version.toString}/${name}")
+        case TechniqueResourceIdByPath(Nil, _) =>
+          new FileTreeFilter(None, name)
+        case TechniqueResourceIdByPath(parents, _) =>
+          new FileTreeFilter(Some(parents.mkString("/")), name)
+      }
+    }
+
     //has package id are unique among the whole tree, we are able to find a
-    //template only base on the packageId + name.
+    //template only base on the techniqueId + name.
 
     var is : InputStream = null
     try {
       useIt {
         //now, the treeWalk
         val tw = new TreeWalk(repo.db)
-        tw.setFilter(new FileTreeFilter(canonizedRelativePath, path))
+        tw.setFilter(filenameFilter)
         tw.setRecursive(true)
         tw.reset(revisionProvider.currentRevTreeId)
         var ids = List.empty[ObjectId]
@@ -404,18 +415,18 @@ class GitTechniqueReader(
         }
         ids match {
           case Nil =>
-            logger.error("Template with id %s was not found".format(cf3PromisesFileTemplateId))
+            logger.error(s"Template with id ${techniqueResourceId.toString} was not found")
             None
           case h :: Nil =>
             is = repo.db.open(h).openStream
             Some(is)
           case _ =>
-            logger.error(s"There is more than one Technique with id '${cf3PromisesFileTemplateId.techniqueId}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
+            logger.error(s"There is more than one Technique with name '${techniqueResourceId.name}' which is forbidden. Please check if several categories have that Technique and rename or delete the clones")
             None
       } }
     } catch {
       case ex:FileNotFoundException =>
-        logger.debug( () => "Template %s does not exists".format(path),ex)
+        logger.debug( () => s"Technique Template ${techniqueResourceId.toString} does not exists", ex)
         useIt(None)
     } finally {
       if(null != is) {
