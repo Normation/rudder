@@ -78,7 +78,6 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   val policyParser: TechniqueParser = new TechniqueParser(
       variableSpecParser,
       new SectionSpecParser(variableSpecParser),
-      new Cf3PromisesFileTemplateParser,
       new SystemVariableSpecServiceImpl
   )
 
@@ -92,6 +91,27 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
 
 
   FileUtils.copyDirectory(new File("src/test/resources/techniquesRoot") , ptLib)
+
+  /*
+   * to check template outside of techniques lib, create a new one at the same level as gitRoot,
+   * and an other into a sub dir:
+   *
+   * - gitRoot
+   * -- template.st
+   * -- libdir
+   *      --- template2.st
+   */
+  val template = new File(gitRoot, "template.st")
+  val templateId = TechniqueResourceIdByPath(Nil, "template")
+  val templateContent = "this is some template content"
+  template.getParentFile.mkdirs
+  FileUtils.writeStringToFile(template, templateContent)
+  val template2 = new File(new File(gitRoot, "libdir"), "template2.st")
+  val template2Id = TechniqueResourceIdByPath(List("libdir"), "template2")
+  val template2Content = "this is template2 content"
+  template2.getParentFile.mkdirs
+  FileUtils.writeStringToFile(template2, template2Content)
+
 
   val repo = new GitRepositoryProviderImpl(gitRoot.getAbsolutePath)
 
@@ -129,7 +149,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   "cat1 sub category" should {
     val cat1 = infos.subCategories( R / "cat1" )
     val packages = cat1.packageIds.toSeq
-    val tmlId = Cf3PromisesFileTemplateId(packages(0), "theTemplate")
+    val tmlId = TechniqueResourceIdByName(packages(0), "theTemplate")
     "be named 'cat1'" in  cat1.name === "cat1"
     "has no description" in cat1.description === ""
     "has two packages..." in cat1.packageIds.size === 2
@@ -138,10 +158,29 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
     ".... that provides expected_reports.csv" in infos.techniques(packages(0).name)(packages(0).version).providesExpectedReports === true
     "...and version 2.0" in packages(1).version === TechniqueVersion("2.0")
     ".... that DOES NOT provide expected_reports.csv" in infos.techniques(packages(1).name)(packages(1).version).providesExpectedReports === false
+    "...with 3 templates" in {
+      infos.techniques(packages(0).name)(packages(0).version).templates.toSet === Set(
+        TechniqueTemplate(tmlId, s"p1_1/1.0/${tmlId.name}.cf", true)
+      , TechniqueTemplate(templateId, s"bob.txt", false)
+      , TechniqueTemplate(template2Id, s"p1_1/1.0/${template2Id.name}.cf", true)
+      )
+    }
     "...with a template from which we can read 'The template content\\non two lines.'" in {
       reader.getTemplateContent(tmlId){
         case None => ko("Can not open an InputStream for " + tmlId.toString)
         case Some(is) => IOUtils.toString(is) === "The template content\non two lines."
+      }
+    }
+    "...with an absolute template from which we can read " in {
+      reader.getTemplateContent(templateId){
+        case None => ko("Can not open an InputStream for " + templateId.toString)
+        case Some(is) => IOUtils.toString(is) === templateContent
+      }
+    }
+    "...with an absolute template2 from which we can read " in {
+      reader.getTemplateContent(template2Id){
+        case None => ko("Can not open an InputStream for " + template2Id.toString)
+        case Some(is) => IOUtils.toString(is) === template2Content
       }
     }
   }

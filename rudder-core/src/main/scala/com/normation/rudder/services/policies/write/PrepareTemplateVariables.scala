@@ -35,7 +35,6 @@
 package com.normation.rudder.services.policies.write
 
 import com.normation.cfclerk.domain.Bundle
-import com.normation.cfclerk.domain.Cf3PromisesFileTemplateId
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
 import com.normation.cfclerk.domain.SystemVariable
@@ -59,6 +58,9 @@ import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueResourceId
 
 
 trait PrepareTemplateVariables {
@@ -78,7 +80,7 @@ trait PrepareTemplateVariables {
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
-    , templates        : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
+    , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
   ): Box[(NodePromisesPaths, Seq[PreparedTemplates], Seq[String])]
@@ -98,7 +100,7 @@ class PrepareTemplateVariablesImpl(
       agentNodeConfig  : AgentNodeConfiguration
     , nodeConfigVersion: NodeConfigId
     , rootNodeConfigId : NodeId
-    , templates        : Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
+    , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
   ): Box[(NodePromisesPaths, Seq[PreparedTemplates], Seq[String])] = {
@@ -121,7 +123,7 @@ class PrepareTemplateVariablesImpl(
         , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
       ).map(x => (x.spec.name, x)).toMap
 
-      prepareCf3PromisesFileTemplate(container, systemVariables.toMap, templates, generationTimestamp)
+      prepareTechniqueTemplate(container, systemVariables.toMap, templates, generationTimestamp)
     }
 
     logger.trace("Preparing reporting information from meta technique")
@@ -133,10 +135,10 @@ class PrepareTemplateVariablesImpl(
   }
 
 
-  private[this] def prepareCf3PromisesFileTemplate(
+  private[this] def prepareTechniqueTemplate(
       container: Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
-    , templates: Map[Cf3PromisesFileTemplateId, Cf3PromisesFileTemplateCopyInfo]
+    , templates: Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , generationTimestamp: Long
   ) : Map[TechniqueId, PreparedTemplates] = {
 
@@ -158,7 +160,8 @@ class PrepareTemplateVariablesImpl(
 
 
     techniques.map {technique =>
-      val copyInfos = templates.filterKeys(_.techniqueId == technique.id).values.toSet
+      val techniqueResourceIds = technique.templatesMap.keySet
+      val copyInfos = templates.filterKeys(k => techniqueResourceIds.contains(k)).values.toSet
 
       (
           technique.id
