@@ -108,15 +108,19 @@ trait TechniqueReader {
   def checkreportingDescriptorExistence(techniqueId: TechniqueId) : Boolean
 
   /**
-   * Read the content of a template, if the template is known by that
+   * Read the content of a resource, if the resources is known by that
    * TechniqueReader.
-   * If the template exists, then a Some(input stream), open at the
+   *
+   * Optionnaly, give an extension to happen to the resource name
+   * (used for example for template)
+   *
+   * If the resources exists, then a Some(input stream), open at the
    * beginning of the template is given to the caller.
    * If not, a None is given.
    * The implementation must take care of correct closing of the input
    * stream and any I/O exception.
    */
-  def getTemplateContent[T](templateName: TechniqueResourceId)(useIt : Option[InputStream] => T) : T
+  def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => T) : T
 
   /**
    * An indicator that the underlying policy template library changed and that the content
