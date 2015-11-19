@@ -67,7 +67,7 @@ class DirectiveAgregationTest {
     }
   }
 
-  def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
+  def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
 
   import scala.collection.immutable.Set
   val trackerVariableSpec = TrackerVariableSpec(Some("card"))
@@ -84,6 +84,7 @@ class DirectiveAgregationTest {
           , "DESCRIPTION"
           , Seq()
           , Seq()
+          , Seq()
           , trackerVariableSpec
           , SectionSpec(name="root", children=Seq())
           , None
@@ -93,6 +94,7 @@ class DirectiveAgregationTest {
             activeTechniqueId2
           , "name"
           , "DESCRIPTION"
+          , Seq()
           , Seq()
           , Seq()
           , trackerVariableSpec

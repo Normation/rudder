@@ -9,4 +9,8 @@
       </TML>
       <TML name="RUDDER_CONFIGURATION_REPOSITORY/libdir/template2" />
     </TMLS>
+    <FILES>
+      <FILE name="RUDDER_CONFIGURATION_REPOSITORY/libdir/file1.txt" />
+      <FILE name="file2.txt"><OUTPATH>file2</OUTPATH></FILE>
+    </FILES>
 </TECHNIQUE>   

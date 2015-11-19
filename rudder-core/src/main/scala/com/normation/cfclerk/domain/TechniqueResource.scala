@@ -66,7 +66,23 @@ final case class TechniqueResourceIdByName(techniqueId: TechniqueId, name: Strin
  */
 final case class TechniqueResourceIdByPath(parentDirectories: List[String], name: String) extends TechniqueResourceId
 
+final case class TechniqueFile(
+    /*
+     * This is the identifier of the file.
+     * Path to the file depends upon the type of resource, either
+     * relative to the technique or to the configuration-repository
+     */
+    id: TechniqueResourceId
 
+    /*
+     *  Path where to PUT the template (e.g. for resources for ips)
+     *  This path is relative to the "cf-engine" root directory on the
+     *  server.
+     *  It must be the full path, with the name of the cf-engine promise.
+     *  By default, it will be set to: ${POLICY NAME}/${template name}.cf
+     */
+  , outPath: String
+)
 
 /**
  * The Tml class holds the representation of a template, containing the template name,
@@ -83,9 +99,10 @@ final case class TechniqueTemplate(
      * This is the template identifier of the file.
      * The real file name in git will be derived from that name by adding
      * the template ".st" extension to the end of the name.
-     * Path to the file depends upon the type of Technique template
+     * Path to the file depends upon the type of resource, either
+     * relative to the technique or to the configuration-repository
      */
-  id: TechniqueResourceId
+    id: TechniqueResourceId
 
     /*
      *  Path where to PUT the template (e.g. for resources for ips)
