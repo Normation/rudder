@@ -112,6 +112,13 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   template2.getParentFile.mkdirs
   FileUtils.writeStringToFile(template2, template2Content)
 
+  val f1 = new File(new File(gitRoot, "libdir"), "file1.txt")
+  val f1Content = "this is the content of file 1"
+  val file1 = TechniqueResourceIdByPath(List("libdir"), f1.getName)
+  FileUtils.writeStringToFile(f1, f1Content)
+
+  val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersion("1.0")), "file2.txt")
+
 
   val repo = new GitRepositoryProviderImpl(gitRoot.getAbsolutePath)
 
@@ -130,6 +137,15 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
 
   val infos = reader.readTechniques
   val R = RootTechniqueCategoryId
+
+  //utility to assert the content of a ressource equals some string
+  def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
+    val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
+    reader.getResourceContent(id, ext) {
+        case None => ko("Can not open an InputStream for " + id.toString)
+        case Some(is) => IOUtils.toString(is) === expectedContent
+      }
+  }
 
   "The test lib" should {
     "have 3 categories" in infos.subCategories.size === 3
@@ -166,22 +182,25 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
       )
     }
     "...with a template from which we can read 'The template content\\non two lines.'" in {
-      reader.getTemplateContent(tmlId){
-        case None => ko("Can not open an InputStream for " + tmlId.toString)
-        case Some(is) => IOUtils.toString(is) === "The template content\non two lines."
-      }
+      assertResourceContent(tmlId, true, "The template content\non two lines.")
     }
     "...with an absolute template from which we can read " in {
-      reader.getTemplateContent(templateId){
-        case None => ko("Can not open an InputStream for " + templateId.toString)
-        case Some(is) => IOUtils.toString(is) === templateContent
-      }
+      assertResourceContent(templateId, true, templateContent)
     }
     "...with an absolute template2 from which we can read " in {
-      reader.getTemplateContent(template2Id){
-        case None => ko("Can not open an InputStream for " + template2Id.toString)
-        case Some(is) => IOUtils.toString(is) === template2Content
-      }
+      assertResourceContent(template2Id, true, template2Content)
+    }
+    "...with 2 files" in {
+      infos.techniques(packages(0).name)(packages(0).version).files.toSet === Set(
+        TechniqueFile(file1, s"p1_1/1.0/${file1.name}")
+      , TechniqueFile(file2, s"file2")
+      )
+    }
+    "...with a file1 from which we can read" in {
+      assertResourceContent(file1, false, f1Content)
+    }
+    "...with a file2 from which we can read" in {
+      assertResourceContent(file2, false, "This is the content of file 2")
     }
   }
 

@@ -54,17 +54,19 @@ trait TechniqueRepository {
   def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T
 
   /**
-   * Retrieve the template path for templateName relative to
-   * the root of the policy package category tree
+   * Get the template content for the given id
    */
-  def getTemplateContent[T](templateName: TechniqueResourceId)(useIt: Option[InputStream] => T): T
+  def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T
+
+  /**
+   * Get the file content for the given id
+   */
+  def getFileContent[T](techniqueResourceId: TechniqueResourceId)(useIt: Option[InputStream] => T): T
 
   /**
    * Retrieve the reporting descriptor file content
    */
   def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T
-
-  //  def packageDirectory : File
 
 
   /*

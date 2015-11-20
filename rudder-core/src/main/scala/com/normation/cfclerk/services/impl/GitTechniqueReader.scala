@@ -384,10 +384,10 @@ class GitTechniqueReader(
     }
   }
 
-  override def getTemplateContent[T](techniqueResourceId: TechniqueResourceId)(useIt : Option[InputStream] => T) : T = {
+  override def getResourceContent[T](techniqueResourceId: TechniqueResourceId, postfixName: Option[String])(useIt : Option[InputStream] => T) : T = {
     //build a treewalk with the path, given by TechniqueTemplateId
     val filenameFilter = {
-      val name = techniqueResourceId.name + TechniqueTemplate.templateExtension
+      val name = techniqueResourceId.name + postfixName.getOrElse("")
       techniqueResourceId match {
         case TechniqueResourceIdByName(tid, _) =>
           new FileTreeFilter(canonizedRelativePath, s"${tid.name}/${tid.version.toString}/${name}")
@@ -596,7 +596,9 @@ class GitTechniqueReader(
 
   private[this] val dummyTechnique = Technique(
       TechniqueId(TechniqueName("dummy"),TechniqueVersion("1.0"))
-    , "dummy", "dummy", Seq(), Seq(), TrackerVariableSpec(), SectionSpec("ROOT"), None)
+    , "dummy", "dummy", Seq(), Seq(), Seq(), TrackerVariableSpec()
+    , SectionSpec("ROOT"), None
+ )
 
   private[this] def processTechnique(
       is:InputStream

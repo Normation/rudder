@@ -85,6 +85,7 @@ case class Technique(
   , name                   : String
   , description            : String
   , templates              : Seq[TechniqueTemplate]
+  , files                  : Seq[TechniqueFile]
   , bundlesequence         : Seq[Bundle]
   , trackerVariableSpec    : TrackerVariableSpec
   , rootSection            : SectionSpec //be careful to not split it from the TechniqueId, else you will not have the good spec for the version

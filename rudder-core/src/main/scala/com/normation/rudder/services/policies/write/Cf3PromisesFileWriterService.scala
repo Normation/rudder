@@ -34,57 +34,41 @@
 
 package com.normation.rudder.services.policies.write
 
+import java.io.File
+import java.io.IOException
+import com.normation.cfclerk.domain.PARAMETER_VARIABLE
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueFile
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.cfclerk.domain.TechniqueTemplate
+import com.normation.cfclerk.exceptions.VariableException
+import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.COMMUNITY_AGENT
+import com.normation.inventory.domain.NOVA_AGENT
+import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-import net.liftweb.common.Box
-import java.io.IOException
-import java.io.File
-import com.normation.cfclerk.services.SystemVariableSpecService
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.cfclerk.exceptions.VariableException
-import com.normation.cfclerk.domain.Bundle
-import com.normation.cfclerk.domain.TrackerVariable
-import com.normation.cfclerk.domain.SystemVariable
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.PARAMETER_VARIABLE
-import com.normation.cfclerk.domain.SectionVariableSpec
-import com.normation.cfclerk.domain.TechniqueTemplate
-import com.normation.cfclerk.domain.SystemVariableSpec
-import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.inventory.domain.AgentType
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.{COMMUNITY_AGENT, NOVA_AGENT}
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.LicenseRepository
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.policies.SystemVariableService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-import com.normation.rudder.services.reports.ReportingService
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
 import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
-import com.normation.stringtemplate.language.formatter.LocalTimeRenderer
 import com.normation.stringtemplate.language.formatter.DateRenderer
 import com.normation.stringtemplate.language.formatter.LocalDateRenderer
-import com.normation.utils.Control.sequencePar
-import com.normation.utils.Control.sequence
+import com.normation.stringtemplate.language.formatter.LocalTimeRenderer
+import com.normation.utils.Control._
 import org.antlr.stringtemplate.StringTemplate
 import org.apache.commons.io.FileUtils
-import org.apache.commons.io.IOUtils
 import org.apache.commons.io.FilenameUtils
-import org.joda.time.LocalTime
-import org.joda.time.LocalDate
+import org.apache.commons.io.IOUtils
 import org.joda.time.DateTime
+import org.joda.time.LocalDate
+import org.joda.time.LocalTime
+import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
-import net.liftweb.common.Full
-import net.liftweb.common.Box
-import net.liftweb.common.Failure
-import net.liftweb.common.Loggable
-import net.liftweb.common.EmptyBox
-import com.normation.rudder.services.policies.BundleOrder
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
-import com.normation.cfclerk.domain.TechniqueResourceId
 
 
 /**
@@ -113,6 +97,14 @@ class Cf3PromisesFileWriterServiceImpl(
   , cfengineReloadPromises   : String
 ) extends Cf3PromisesFileWriterService with Loggable {
 
+  val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
+  val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
+
+  val newPostfix = ".new"
+  val backupPostfix = ".bkp"
+
+
+
 
   /**
    * Write templates for node configuration that changed since the last write.
@@ -125,11 +117,6 @@ class Cf3PromisesFileWriterServiceImpl(
     , versions      : Map[NodeId, NodeConfigId]
   ) : Box[Seq[NodeConfiguration]] = {
 
-    val TAG_OF_RUDDER_ID = "@@RUDDER_ID@@"
-    val GENEREATED_CSV_FILENAME = "rudder_expected_reports.csv"
-
-    val newPostfix = ".new"
-    val backupPostfix = ".bkp"
 
 
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
@@ -150,6 +137,19 @@ class Cf3PromisesFileWriterServiceImpl(
 
     /*
      * Here come the general writing process
+     *
+     * The general algorithm flow as following:
+     * - for all nodes, for each of its agent, build path and configuration (both node&agent related)
+     * - then, for each node/agent, prepare for each techniques the context variable to use, and the expected reports file to construct
+     * - then, actually write things. For a node/agent, write into the ".new" directory:
+     *   - for each technique:
+     *   	   - the corresponding promises with templates filled
+     *       - other resources files
+     *   - the expected reports file
+     *   - the bundle file
+     * - then, copy the license, if applicable
+     * - then, check generated promises and changes file permissions
+     * - and finally, move everything to each node rules directory
      */
 
 
@@ -159,10 +159,15 @@ class Cf3PromisesFileWriterServiceImpl(
       templates        <- readTemplateFromFileSystem(techniqueIds)
       preparedPromises <- sequencePar(configAndPaths) { case agentNodeConfig =>
                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                           prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID) ?~! "Error when preparing rules for agents"
+                           Full(prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID))
                          }
       promiseWritten   <- sequencePar(preparedPromises) { prepared =>
-                            writePromises(prepared._1, prepared._2, prepared._3, GENEREATED_CSV_FILENAME)
+                            for {
+                              _ <- writePromises(prepared.paths, prepared.preparedTechniques)
+                              _ <- writeExpectedReportsCsv(prepared.paths, prepared.expectedReportsCsv, GENEREATED_CSV_FILENAME)
+                            } yield {
+                              "OK"
+                            }
                           }
       licensesCopied   <- copyLicenses(configAndPaths)
       checked          <- checkGeneratedPromises(configAndPaths.map { x => (x.agentType, x.paths) })
@@ -241,17 +246,17 @@ class Cf3PromisesFileWriterServiceImpl(
 
     val now = System.currentTimeMillis()
 
-    val res = (sequence(templatesToRead) { case (templateId, templateOutPath) =>
+    val res = (sequencePar(templatesToRead) { case (templateId, templateOutPath) =>
       for {
         copyInfo <- techniqueRepository.getTemplateContent(templateId) { optInputStream =>
           optInputStream match {
             case None =>
-              Failure(s"Error when trying to open template '${templateId.toString}${TechniqueTemplate.templateExtension}'. Check that the file exists and is correctly commited in Git, or that the metadata for the technique are corrects.")
+              Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
             case Some(inputStream) =>
               logger.trace(s"Loading template ${templateId} (from an input stream relative to ${techniqueRepository}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
               val content = IOUtils.toString(inputStream, "UTF-8")
-              Full(TechniqueTemplateCopyInfo(content, templateId, templateOutPath))
+              Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
           }
         }
       } yield {
@@ -260,21 +265,35 @@ class Cf3PromisesFileWriterServiceImpl(
     }).map( _.toMap)
 
     logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now}ms")
-
     res
   }
 
+  private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[String] = {
+    val path = new File(paths.newFolder, csvFilename)
+    for {
+        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n")) } ?~!
+               s"Can not write the expected reports CSV file at path '${path.getAbsolutePath}'"
+    } yield {
+      path.getAbsolutePath
+    }
+  }
+
   private[this] def writePromises(
-      paths                 : NodePromisesPaths
-    , preparedTemplates     : Seq[PreparedTemplates]
-    , expectedReportLines   : Seq[String]
-    , expectedReportFilename: String
+      paths            : NodePromisesPaths
+    , preparedTechniques: Seq[PreparedTechnique]
   ) : Box[NodePromisesPaths] = {
     // write the promises of the current machine and set correct permission
     for {
-      _ <- sequence(preparedTemplates) { preparedTemplate =>
-             sequence(preparedTemplate.templatesToCopy.toSeq) { template =>
-               writePromisesFiles(template, preparedTemplate.environmentVariables , paths.newFolder, expectedReportLines, expectedReportFilename)
+      _ <- sequence(preparedTechniques) { preparedTechnique =>
+             for {
+               templates <-  sequence(preparedTechnique.templatesToProcess.toSeq) { template =>
+                               writePromisesFiles(template, preparedTechnique.environmentVariables , paths.newFolder)
+                             }
+               files     <- sequence(preparedTechnique.filesToCopy.toSeq) { file =>
+                              copyResourceFile(file, paths.newFolder)
+                            }
+             } yield {
+               "OK"
              }
            }
     } yield {
@@ -335,7 +354,7 @@ class Cf3PromisesFileWriterServiceImpl(
           val now = System.currentTimeMillis
           val res = executeCfPromise(agentType, paths.newFolder)
           val spent = System.currentTimeMillis - now
-          logger.debug(s"` Execute cf-promises for '$paths.newFolder}': ${spent}ms (${spent/1000}s)")
+          logger.debug(s"` Execute cf-promises for '${paths.newFolder}': ${spent}ms (${spent/1000}s)")
           res
         } else {
           executeCfPromise(agentType, paths.newFolder)
@@ -437,7 +456,7 @@ class Cf3PromisesFileWriterServiceImpl(
 
   /**
    * Force cf-serverd to reload its promises
-   * It always succeeed, even if it fails it simply delays the reloading (automatic) by the server
+   * It always succeed, even if it fails it simply delays the reloading (automatic) by the server
    */
   private[this] def reloadCFEnginePromises() : Box[Unit] = {
     import scala.sys.process.{ProcessBuilder, ProcessLogger}
@@ -462,6 +481,27 @@ class Cf3PromisesFileWriterServiceImpl(
   ///////////// utilities /////////////
 
 
+  /**
+   * Copy a resource file from a technique to the node promises directory
+   */
+  private[this] def copyResourceFile(file: TechniqueFile, rulePath: String): Box[String] = {
+    val destination = new File(rulePath+"/"+file.outPath)
+
+    techniqueRepository.getFileContent(file.id) { optStream =>
+      optStream match {
+        case None => Failure(s"Can not open the technique reource file ${file.id} for reading")
+        case Some(s) =>
+          try {
+            FileUtils.copyInputStreamToFile(s, destination)
+            Full(destination.getAbsolutePath)
+          } catch {
+            case ex: Exception => Failure(s"Error when copying technique resoure file '${file.id}' to '${destination.getAbsolutePath}')", Full(ex), Empty)
+          }
+      }
+
+    }
+  }
+
 
   /**
    * Write the current seq of template file a the path location, replacing the variables found in variableSet
@@ -473,8 +513,6 @@ class Cf3PromisesFileWriterServiceImpl(
       templateInfo          : TechniqueTemplateCopyInfo
     , variableSet           : Seq[STVariable]
     , outPath               : String
-    , expectedReportsLines  : Seq[String]
-    , expectedReportFilename: String
   ): Box[String] = {
 
     //here, we need a big try/catch, because almost anything in string template can
@@ -483,10 +521,10 @@ class Cf3PromisesFileWriterServiceImpl(
     try {
 
       //string template does not allows "." in path name, so we are force to use a templateGroup by policy template (versions have . in them)
-      val template = new StringTemplate(templateInfo.source, classOf[NormationAmpersandTemplateLexer]);
-      template.registerRenderer(classOf[DateTime], new DateRenderer());
-      template.registerRenderer(classOf[LocalDate], new LocalDateRenderer());
-      template.registerRenderer(classOf[LocalTime], new LocalTimeRenderer());
+      val template = new StringTemplate(templateInfo.content, classOf[NormationAmpersandTemplateLexer])
+      template.registerRenderer(classOf[DateTime], new DateRenderer())
+      template.registerRenderer(classOf[LocalDate], new LocalDateRenderer())
+      template.registerRenderer(classOf[LocalTime], new LocalTimeRenderer())
 
       for (variable <- variableSet) {
         // Only System Variables have nullable entries
@@ -504,13 +542,10 @@ class Cf3PromisesFileWriterServiceImpl(
 
       // write the files to the new promise folder
       logger.trace("Create promises file %s %s".format(outPath, templateInfo.destination))
-      val csvContent = expectedReportsLines.mkString("\n")
 
       for {
         _ <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), template.toString) } ?~!
                s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
-        _ <- tryo { FileUtils.writeStringToFile(new File(outPath, expectedReportFilename), csvContent) } ?~!
-               s"Bad format in Technique ${templateInfo.id.toString} (file: ${expectedReportFilename})"
       } yield {
         outPath
       }
