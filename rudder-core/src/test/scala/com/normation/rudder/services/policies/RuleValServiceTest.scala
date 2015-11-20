@@ -115,6 +115,7 @@ class RuleValServiceTest extends Specification {
       , ""
       , Seq()
       , Seq()
+      , Seq()
       , TrackerVariableSpec(None)
       , makeRootSectionSpec
       , None

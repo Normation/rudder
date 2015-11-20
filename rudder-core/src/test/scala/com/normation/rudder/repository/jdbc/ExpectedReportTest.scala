@@ -271,6 +271,7 @@ class ExpectedReportsTest extends DBCommon {
       , "description"
       , Seq()
       , Seq()
+      , Seq()
       , TrackerVariableSpec()
       , SectionSpec("root", isComponent = true, componentKey = Some("foo"), children = Seq(fooSpec))
       , None

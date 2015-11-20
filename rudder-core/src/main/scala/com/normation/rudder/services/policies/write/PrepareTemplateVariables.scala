@@ -34,6 +34,8 @@
 
 package com.normation.rudder.services.policies.write
 
+import scala.annotation.migration
+
 import com.normation.cfclerk.domain.Bundle
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
@@ -41,6 +43,7 @@ import com.normation.cfclerk.domain.SystemVariable
 import com.normation.cfclerk.domain.SystemVariableSpec
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueResourceId
 import com.normation.cfclerk.domain.TrackerVariable
 import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.cfclerk.domain.Variable
@@ -53,14 +56,12 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+
 import org.joda.time.DateTime
-import net.liftweb.common.Box
+
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.TechniqueResourceId
-import com.normation.cfclerk.domain.TechniqueResourceId
 
 
 trait PrepareTemplateVariables {
@@ -83,7 +84,7 @@ trait PrepareTemplateVariables {
     , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
-  ): Box[(NodePromisesPaths, Seq[PreparedTemplates], Seq[String])]
+  ): AgentNodeWritableConfiguration
 
 }
 
@@ -103,8 +104,7 @@ class PrepareTemplateVariablesImpl(
     , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
-  ): Box[(NodePromisesPaths, Seq[PreparedTemplates], Seq[String])] = {
-
+  ): AgentNodeWritableConfiguration = {
 
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
 
@@ -116,34 +116,33 @@ class PrepareTemplateVariablesImpl(
     //Generate for each node an unique timestamp.
     val generationTimestamp = DateTime.now().getMillis
 
-    val tmls = {
+    val preparedTemplate = {
       val systemVariables = agentNodeConfig.config.nodeContext ++ List(
           systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
         , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
         , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
       ).map(x => (x.spec.name, x)).toMap
 
-      prepareTechniqueTemplate(container, systemVariables.toMap, templates, generationTimestamp)
+      prepareTechniqueTemplate(agentNodeConfig.config.nodeInfo.id, container, systemVariables.toMap, templates, generationTimestamp)
     }
 
-    logger.trace("Preparing reporting information from meta technique")
-    val csv = prepareReportingDataForMetaTechnique(container, rudderIdCsvTag)
+    logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
+    val csv = ExpectedReportsCsv(prepareReportingDataForMetaTechnique(container, rudderIdCsvTag))
 
-
-    Full((agentNodeConfig.paths, tmls.values.toSeq, csv))
-
+    AgentNodeWritableConfiguration(agentNodeConfig.paths, preparedTemplate.values.toSeq, csv)
   }
 
 
   private[this] def prepareTechniqueTemplate(
-      container: Cf3PolicyDraftContainer
+      nodeId: NodeId // for log message
+    , container: Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
-    , templates: Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
+    , allTemplates: Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , generationTimestamp: Long
-  ) : Map[TechniqueId, PreparedTemplates] = {
+  ) : Map[TechniqueId, PreparedTechnique] = {
 
     val techniques = techniqueRepository.getByIds(container.getAllIds)
-    val variablesByTechnique = prepareVariables(container, prepareBundleVars(container) ++ extraSystemVariables, techniques)
+    val variablesByTechnique = prepareVariables(nodeId, container, prepareBundleVars(nodeId, container) ++ extraSystemVariables, techniques)
 
     /*
      * From the container, convert the parameter into StringTemplate variable, that contains a list of
@@ -160,12 +159,14 @@ class PrepareTemplateVariablesImpl(
 
 
     techniques.map {technique =>
-      val techniqueResourceIds = technique.templatesMap.keySet
-      val copyInfos = templates.filterKeys(k => techniqueResourceIds.contains(k)).values.toSet
-
+      val techniqueTemplatesIds = technique.templatesMap.keySet
+      // this is an optimisation to avoid re-redeading template each time, for each technique. We could
+      // just, from a strict correctness point of view, just do a techniquerepos.getcontent for each technique.template here
+      val techniqueTemplates = allTemplates.filterKeys(k => techniqueTemplatesIds.contains(k)).values.toSet
+      val variables = variablesByTechnique(technique.id) :+ rudderParametersVariable :+ generationVariable
       (
           technique.id
-        , PreparedTemplates(copyInfos, variablesByTechnique(technique.id) :+ rudderParametersVariable :+ generationVariable)
+        , PreparedTechnique(techniqueTemplates, variables, technique.files.toSet)
       )
     }.toMap
   }
@@ -179,7 +180,8 @@ class PrepareTemplateVariablesImpl(
   }
 
   private[this] def prepareVariables(
-      container: Cf3PolicyDraftContainer
+      nodeId: NodeId // for log message
+    , container : Cf3PolicyDraftContainer
     , systemVars: Map[String, Variable]
     , techniques: Seq[Technique]
   ) : Map[TechniqueId,Seq[STVariable]] = {
@@ -200,9 +202,9 @@ class PrepareTemplateVariablesImpl(
           case x : SystemVariableSpec => systemVars.get(x.name) match {
               case None =>
                 if(x.constraint.mayBeEmpty) { //ok, that's expected
-                  logger.debug("Variable system named %s not found in the extended variables environnement ".format(x.name))
+                  logger.trace(s"[${nodeId.value}] Variable system named '${x.name}' not found in the extended variables environnement")
                 } else {
-                  logger.warn("Mandatory variable system named %s not found in the extended variables environnement ".format(x.name))
+                  logger.warn(s"[${nodeId.value}] Mandatory variable system named '${x.name}' not found in the extended variables environnement ")
                 }
                 None
               case Some(sysvar) => Some(x.toVariable(sysvar.values))
@@ -231,7 +233,7 @@ class PrepareTemplateVariablesImpl(
    * @param extraVariables : optional : extra system variables that we could want to add
    * @return
    */
-  private[this] def prepareBundleVars(container: Cf3PolicyDraftContainer) : Map[String,Variable] = {
+  private[this] def prepareBundleVars(nodeId: NodeId, container: Cf3PolicyDraftContainer) : Map[String,Variable] = {
     // Compute the correct bundlesequence
     // ncf technique must call before-hand a bundle to register which ncf technique is being called
     val NCF_REPORT_DEFINITION_BUNDLE_NAME = "current_technique_report_info"
@@ -245,10 +247,10 @@ class PrepareTemplateVariablesImpl(
       seq.map( x => BundleTechnique(x._1, x._2.map(_.value).mkString("/")))
     }
 
-    logger.trace(s"Preparing bundle list and input list for container : ${container} ")
+    logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
 
     // Fetch the policies configured, with the system policies first
-    val techniques: Seq[BundleTechnique] =  sortTechniques(techniqueRepository.getByIds(container.getAllIds), container)
+    val techniques: Seq[BundleTechnique] =  sortTechniques(nodeId, techniqueRepository.getByIds(container.getAllIds), container)
 
     //list of inputs file to include: all the outPath of templates that should be "included".
     //returned the pair of (technique, outpath)
@@ -263,7 +265,7 @@ class PrepareTemplateVariablesImpl(
         if(bundle.name.trim.size > 0) {
           Some((technique, promiser, bundle))
         } else {
-          logger.warn(s"Technique '${technique.id}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
+          logger.warn(s"Technique '${technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
           None
         }
       }
@@ -322,7 +324,7 @@ class PrepareTemplateVariablesImpl(
    * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
    * "system must go first") are not taken into account here !
    */
-  private[this] def sortTechniques(techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
+  private[this] def sortTechniques(nodeId: NodeId, techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
 
     def sortByOrder(tech: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
       def compareBundleOrder(a: Cf3PolicyDraft, b: Cf3PolicyDraft): Boolean = {
@@ -345,8 +347,8 @@ class PrepareTemplateVariablesImpl(
 
       //some debug info to understand what order was used for each node:
       if(logger.isDebugEnabled) {
-        logger.debug(s"Sorted Technique (and their Rules and Directives used to sort):")
-        ordered.map(p => s" `-> ${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").foreach { logger.debug(_) }
+        val sorted = ordered.map(p => s"${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
+        logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
       }
 
       ordered
