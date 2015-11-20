@@ -67,6 +67,7 @@ class TechniqueParser(
           val description = ??!((node \ TECHNIQUE_DESCRIPTION).text).getOrElse(name)
 
           val templates = (node \ PROMISE_TEMPLATES_ROOT \\ PROMISE_TEMPLATE).map(xml => parseTemplate(id, xml) )
+          val files = (node \ FILES \\ FILE).map(xml => parseFile(id, xml) )
 
           val bundlesequence = (node \ BUNDLES_ROOT \\ BUNDLE_NAME).map(xml => Bundle(xml.text) )
 
@@ -90,6 +91,7 @@ class TechniqueParser(
             , name
             , description
             , templates
+            , files
             , bundlesequence
             , trackerVariableSpec
             , rootSection
@@ -177,19 +179,23 @@ class TechniqueParser(
   }
 
   /**
-   * Parse a template file tag in metadata.xml.
+   * Parse a resource file tag in metadata.xml.
    *
    * The tag looks like:
    * <TML name="someIdentification">
    *   <OUTPATH>some_out_path_name</OUTPATH> (optional, default to "techniqueId/templateName.cf")
    *   <INCLUDED>true</INCLUDED> (optional, default to true)
    * </TML>
+   * or for file:
+   * <FILE name="someIdentification">
+   *   <OUTPATH>some_out_path_name</OUTPATH> (optional, default to "techniqueId/templateName.cf")
+   * </FILE>
    *
    * if name content start with RUDDER_CONFIGURATION_REPOSITORY, the path must be considered relative
    * to root of configuration repository in place of relative to the technique.
-   * 
+   *
    */
-  def parseTemplate(techniqueId: TechniqueId, node: Node): TechniqueTemplate = {
+  private[this] def parseResource(techniqueId: TechniqueId, node: Node, isTemplate:Boolean): (TechniqueResourceId, String) = {
 
     def fileToList(f: java.io.File): List[String] = {
       if(f == null) {
@@ -200,22 +206,19 @@ class TechniqueParser(
     }
 
     //the default out path for a template with name "name" is "techniqueName/techniqueVersion/name.cf
-    def defaultOutPath(name: String) = s"${techniqueId.name.value}/${techniqueId.version.toString}/${name}${TechniqueTemplate.promiseExtension}"
-
-    if(node.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> node, but actually get: ${node}")
+    def defaultOutPath(name: String) = s"${techniqueId.name.value}/${techniqueId.version.toString}/${name}${if(isTemplate) TechniqueTemplate.promiseExtension else ""}"
 
     val outPath = (node \ PROMISE_TEMPLATE_OUTPATH).text match {
       case "" => None
       case path => Some(path)
     }
-    val included = !((node \ PROMISE_TEMPLATE_INCLUDED).text == "false")
 
     val id = node.attribute(PROMISE_TEMPLATE_NAME) match {
       case Some(attr) if (attr.size == 1) =>
         // some checking on name
         val n = attr.text.trim
         if(n.startsWith("/") || n.endsWith("/")) {
-          throw new ParsingException(s"Error when parsing xml ${node}. Template name must not start nor end with '/'")
+          throw new ParsingException(s"Error when parsing xml ${node}. Resource name must not start nor end with '/'")
         } else {
 
           if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY+"/")) {
@@ -226,18 +229,33 @@ class TechniqueParser(
             TechniqueResourceIdByPath(fileToList(path.getParentFile), name)
           } else {
             if(n.startsWith(RUDDER_CONFIGURATION_REPOSITORY)) { //most likely an user error, issue a warning
-              logger.warn(s"Template name '${n}' for technique ${techniqueId} starts ${RUDDER_CONFIGURATION_REPOSITORY} which is not followed by a '/'. " +
-                  "If you meant to use a relative path from configuration-repository directory, it is an error.")
+              logger.warn(s"Resource named '${n}' for technique '${techniqueId}' starts with ${RUDDER_CONFIGURATION_REPOSITORY} which is not followed by a '/'. " +
+                  "If you meant to use a relative path from configuration-repository directory for the resource, it is an error.")
             }
             TechniqueResourceIdByName(techniqueId, n)
           }
         }
 
-      case _ => throw new ParsingException(s"Error when parsing xml ${node}. Template name is not defined")
+      case _ => throw new ParsingException(s"Error when parsing xml ${node}. Resource name is not defined")
     }
-    TechniqueTemplate(id, outPath.getOrElse(defaultOutPath(id.name)), included)
+    (id, outPath.getOrElse(defaultOutPath(id.name)))
   }
 
+  /**
+   * A file is almost exactly like a Template, safe the include that we don't care of.
+   */
+  def parseFile(techniqueId: TechniqueId, node: Node): TechniqueFile = {
+    if(node.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> node, but actually get: ${node}")
+    val (id, out) = parseResource(techniqueId, node, false)
+    TechniqueFile(id, out)
+  }
+
+  def parseTemplate(techniqueId: TechniqueId, node: Node): TechniqueTemplate = {
+    if(node.label != PROMISE_TEMPLATE) throw new ParsingException(s"Error: try to parse a <${PROMISE_TEMPLATE}> node, but actually get: ${node}")
+    val included = !((node \ PROMISE_TEMPLATE_INCLUDED).text == "false")
+    val (id, out) = parseResource(techniqueId, node, true)
+    TechniqueTemplate(id, out, included)
+  }
 
   /**
    * Parse a <compatible> marker

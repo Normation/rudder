@@ -62,9 +62,12 @@ object CfclerkXmlConstants {
   val BUNDLES_ROOT = "BUNDLES"
   val BUNDLE_NAME = "NAME"
 
-  //promise templates
+  //promise templates / files
   val PROMISE_TEMPLATES_ROOT = "TMLS"
   val PROMISE_TEMPLATE = "TML"
+  val FILES = "FILES"
+  val FILE = "FILE"
+
   val PROMISE_TEMPLATE_NAME = "name" //attribute
   val PROMISE_TEMPLATE_OUTPATH = "OUTPATH"
   val PROMISE_TEMPLATE_INCLUDED = "INCLUDED"

@@ -42,19 +42,19 @@ import scala.collection.SortedSet
 class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends TechniqueRepository {
 
   var returnedVariable = collection.mutable.Set[VariableSpec]()
-  val policy1 = Technique(TechniqueId(TechniqueName("policy1"), TechniqueVersion("1.0")), "policy1", "", Seq(), Seq(Bundle("one")), TrackerVariableSpec(), SectionSpec(name="root", children=Seq(InputVariableSpec("$variable1", "a variable1"))), None)
+  val policy1 = Technique(TechniqueId(TechniqueName("policy1"), TechniqueVersion("1.0")), "policy1", "", Seq(), Seq(), Seq(Bundle("one")), TrackerVariableSpec(), SectionSpec(name="root", children=Seq(InputVariableSpec("$variable1", "a variable1"))), None)
 
   val sections = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable2", "a variable2", multivalued = true), InputVariableSpec("$variable22", "a variable22")))
-  val policy2 = Technique(TechniqueId(TechniqueName("policy2"), TechniqueVersion("1.0")), "policy2", "", Seq(), Seq(Bundle("two")), TrackerVariableSpec(), sections, None)
+  val policy2 = Technique(TechniqueId(TechniqueName("policy2"), TechniqueVersion("1.0")), "policy2", "", Seq(), Seq(), Seq(Bundle("two")), TrackerVariableSpec(), sections, None)
 
   val sections3 = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable3", "a variable3")))
-  val policy3 = Technique(TechniqueId(TechniqueName("policy3"), TechniqueVersion("1.0")), "policy3", "", Seq(), Seq(Bundle("three")), TrackerVariableSpec(), sections3, None)
+  val policy3 = Technique(TechniqueId(TechniqueName("policy3"), TechniqueVersion("1.0")), "policy3", "", Seq(), Seq(), Seq(Bundle("three")), TrackerVariableSpec(), sections3, None)
 
   val sections4 = SectionSpec(name="root", children=Seq(InputVariableSpec("$variable4", "an variable4")))
-  val policy4 = Technique(TechniqueId(TechniqueName("policy4"), TechniqueVersion("1.0")), "policy4", "", Seq(), Seq(Bundle("four")), TrackerVariableSpec(), sections4, None)
+  val policy4 = Technique(TechniqueId(TechniqueName("policy4"), TechniqueVersion("1.0")), "policy4", "", Seq(), Seq(), Seq(Bundle("four")), TrackerVariableSpec(), sections4, None)
 
   val sectionsFoo = SectionSpec(name="root", children=Seq(InputVariableSpec("$bar", "bar")))
-  val foo = Technique(TechniqueId(TechniqueName("foo"), TechniqueVersion("1.0")), "foo", "", Seq(), Seq(Bundle("foo")), TrackerVariableSpec(), sectionsFoo, None)
+  val foo = Technique(TechniqueId(TechniqueName("foo"), TechniqueVersion("1.0")), "foo", "", Seq(), Seq(), Seq(Bundle("foo")), TrackerVariableSpec(), sectionsFoo, None)
 
   val policyMap = Map(policy1.id -> policy1,
     policy2.id -> policy2,
@@ -64,41 +64,32 @@ class DummyTechniqueRepository(policies: Seq[Technique] = Seq()) extends Techniq
 
   def this() = this(Seq()) //Spring need that...
 
-  def techniqueDirectory: File = new File("/")
+  override def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
+  override def getTemplateContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+  override def getFileContent[T](id: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
+  override def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
+  override def getAll(): Map[TechniqueId, Technique] = { policyMap }
 
-  def getTechniquePath(id: TechniqueId): Option[String] = get(id).map(_ => id.name.value)
-
-  def getTemplateContent[T](templateName: TechniqueResourceId)(useIt: Option[InputStream] => T): T = ???
-  def getMetadataContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
-  def getReportingDetailsContent[T](techniqueId: TechniqueId)(useIt: Option[InputStream] => T): T = ???
-  def getAll(): Map[TechniqueId, Technique] = { policyMap }
-
-  def get(policyName: TechniqueId): Option[Technique] = {
+  override def get(policyName: TechniqueId): Option[Technique] = {
     policyMap.get(policyName)
   }
 
-  def getByIds(policiesName: Seq[TechniqueId]): Seq[Technique] = {
+  override def getByIds(policiesName: Seq[TechniqueId]): Seq[Technique] = {
     policiesName.map(x => policyMap(x))
   }
 
-  def getLastTechniqueByName(policyName: TechniqueName): Option[Technique] = {
+  override def getLastTechniqueByName(policyName: TechniqueName): Option[Technique] = {
     policyMap.get(TechniqueId(policyName, TechniqueVersion("1.0")))
   }
 
-  def getByName(policyName: TechniqueName) = ???
+  override def getByName(policyName: TechniqueName) = ???
 
-  def getTechniquesInfo = ???
+  override def getTechniquesInfo = ???
 
   override def getTechniqueVersions(name:TechniqueName) : SortedSet[TechniqueVersion] = SortedSet.empty[TechniqueVersion]
 
-  def manageDependencies(chosenTemplate: Seq[TechniqueResourceId] , includeExternalDependencies : Boolean = true) : Seq[TechniqueResourceId] = {
-    Seq()
-  }
-
-  def getTechniqueLibrary: RootTechniqueCategory = null
-  def getTechniqueCategory(id: TechniqueCategoryId): Box[TechniqueCategory] = null
-  def getParentTechniqueCategory(id: TechniqueCategoryId): Box[TechniqueCategory] = null
-  def getParents_TechniqueCategory(id: TechniqueCategoryId): Box[List[TechniqueCategory]] = null
-  def getParentTechniqueCategory_forTechnique(id: TechniqueId): Box[TechniqueCategory] = null
+  override def getTechniqueLibrary: RootTechniqueCategory = null
+  override def getTechniqueCategory(id: TechniqueCategoryId): Box[TechniqueCategory] = null
+  override def getParentTechniqueCategory_forTechnique(id: TechniqueId): Box[TechniqueCategory] = null
 
 }
