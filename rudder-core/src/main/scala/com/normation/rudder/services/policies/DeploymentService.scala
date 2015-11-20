@@ -484,7 +484,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     }
 
     for {
-      globalSystemVariables <- systemVarService.getGlobalSystemVariables()
+      globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
       parameters            <-  buildParams(globalParameters) ?~! "Can not parsed global parameter (looking for interpolated variables)"
     } yield {
       (nodeIds.flatMap { nodeId:NodeId =>
