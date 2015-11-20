@@ -71,99 +71,12 @@ import net.liftweb.common.Full
 @RunWith(classOf[JUnitRunner])
 class TestNodeAndParameterLookup extends Specification {
 
+  import NodeConfigData._
+
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
   val compiler = new InterpolatedValueCompilerImpl()
   val lookupService = new RuleValServiceImpl(compiler)
-
-  val id1 = NodeId("node1")
-  val hostname1 = "node1.localhost"
-  val admin1 = "root"
-  val rootId = NodeId("root")
-  val rootHostname = "root.localhost"
-  val rootAdmin = "root"
-
-  private val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
-
-
-  val node1 = NodeInfo(
-      id            = id1
-    , name          = "node1"
-    , description   = ""
-    , hostname      = hostname1
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("192.168.0.10")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= admin1
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set()
-    , emptyNodeReportingConfiguration
-  )
-
-  val root = NodeInfo(
-      id            = rootId
-    , name          = "root"
-    , description   = ""
-    , hostname      = rootHostname
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("192.168.0.100")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= rootAdmin
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set()
-    , emptyNodeReportingConfiguration
-  )
-
-  val nodeInventory1: NodeInventory = NodeInventory(
-      NodeSummary(
-          node1.id
-        , AcceptedInventory
-        , node1.localAdministratorAccountName
-        , node1.hostname
-        , Linux(Debian, "test machine", new Version("1.0"), None, new Version("3.42"))
-        , root.id
-        , UndefinedKey
-      )
-      , name                 = None
-      , description          = None
-      , ram                  = None
-      , swap                 = None
-      , inventoryDate        = None
-      , receiveDate          = None
-      , archDescription      = None
-      , lastLoggedUser       = None
-      , lastLoggedUserTime   = None
-      , agentNames           = Seq()
-      , publicKeys           = Seq()
-      , serverIps            = Seq()
-      , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
-      , softwareIds          = Seq()
-      , accounts             = Seq()
-      , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
-      , processes            = Seq()
-      , vms                  = Seq()
-      , networks             = Seq()
-      , fileSystems          = Seq()
-      , serverRoles          = Set()
-  )
 
   val context = InterpolationContext(
         parameters      = Map()

@@ -1,0 +1,67 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<TECHNIQUE name="Distribute the policy to servers">
+  <DESCRIPTION>Distribute policy</DESCRIPTION>
+  
+  <SYSTEM>true</SYSTEM>
+
+  <BUNDLES>
+    <NAME>install_rsyslogd</NAME>
+    <NAME>propagatePromises</NAME>
+    <NAME>sendInventoryToCmdb</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <!-- Note that the policy server is set via the common.xml -->
+    <TML name="propagatePromises"/>
+    <TML name="rsyslogConf"/>
+    <TML name="clientlist">
+      <OUTPATH>clientlist/clientlist.cf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder-rsyslog-root">
+      <OUTPATH>distributePolicy/rsyslog.conf/rudder-rsyslog-root.conf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder-rsyslog-relay">
+      <OUTPATH>distributePolicy/rsyslog.conf/rudder-rsyslog-relay.conf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder-ncf-conf">
+      <OUTPATH>distributePolicy/ncf/ncf.conf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+  </TMLS>
+
+  <SYSTEMVARS>
+    <NAME>CMDBENDPOINT</NAME>
+    <NAME>CLIENTSFOLDERS</NAME>
+    <NAME>SYSLOGPORT</NAME>
+    <NAME>SHARED_FILES_FOLDER</NAME>
+    <NAME>STORE_ALL_CENTRALIZED_LOGS_IN_FILE</NAME>
+    <NAME>MANAGED_NODES_IP</NAME>
+    <NAME>AUTHORIZED_NETWORKS</NAME>
+    <NAME>NOVA</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <!-- The following sections are for reporting only -->
+    <SECTION name="Propagate promises" component="true"/>
+    <SECTION name="Send inventories to CMDB" component="true"/>
+    <SECTION name="Configure ncf" component="true"/>
+  </SECTIONS>
+</TECHNIQUE>
