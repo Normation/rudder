@@ -260,9 +260,9 @@ protected[write] class Cf3PolicyDraftContainer(
    val parameters : Set[ParameterEntry],
    _drafts: Set[Cf3PolicyDraft]
 ) extends Loggable {
-  import scala.collection.mutable.{ Map => MutMap }
 
   val cf3PolicyDrafts = {
+    import scala.collection.mutable.{ Map => MutMap }
     /*
      * Here, for each draft, we have to update all previously processed draft.
      * So the mutmap.

@@ -34,11 +34,12 @@
 
 package com.normation.rudder.services.policies.write
 
-import com.normation.utils.HashcodeCaching
-import com.normation.inventory.domain.NodeId
-import com.normation.inventory.domain.AgentType
-import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueResourceId
+import com.normation.inventory.domain.AgentType
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.utils.HashcodeCaching
 
 /**
  * That file store utility case classes about information used to
@@ -49,6 +50,61 @@ import com.normation.cfclerk.domain.TechniqueResourceId
  * (String, String, String) parameter is not really telling.
  */
 
+
+/**
+ * Data structure that holds all the configuration about a node/agent,
+ * as Rudder model view them (i.e, before preparing them so that they
+ * can be written as CFEngine rules)
+ */
+case class AgentNodeConfiguration(
+    config   : NodeConfiguration
+  , agentType: AgentType
+  , paths    : NodePromisesPaths
+)
+
+
+/**
+ * Data structure that hold all the information to actually write
+ * configuration for a node/agent in a CFEngine compatible way:
+ * - the path where to write things,
+ * - it's techniques template with their variables,
+ * - it's technique other resources,
+ * - the expected reports csv file content
+ */
+final case class AgentNodeWritableConfiguration(
+    paths             : NodePromisesPaths
+  , preparedTechniques: Seq[PreparedTechnique]
+  , expectedReportsCsv: ExpectedReportsCsv
+)
+
+/**
+ * Data structure that holds information about where to copy generated promises
+ * from their generation directory to their final directory.
+ * A back-up folder is also provided to save a copy.
+ */
+case class NodePromisesPaths(
+    nodeId      : NodeId
+  , baseFolder  : String //directory where the file have to in the end
+  , newFolder   : String //poclicies are temporarly store in a policyName.new directory
+  , backupFolder: String
+) extends HashcodeCaching
+
+/**
+ * A class that store the list of expected reports as lines
+ * of the "expected reports csv" file to write for a node/agent.
+ */
+case class ExpectedReportsCsv(lines: Seq[String])
+
+/**
+ * A class that store a list of "prepared template", i.e templates with
+ * their destination computed and all the variables to use to replace
+ * parameter in them.
+ */
+case class PreparedTechnique(
+    templatesToProcess  : Set[TechniqueTemplateCopyInfo]
+  , environmentVariables: Seq[STVariable]
+  , filesToCopy         : Set[TechniqueFile]
+) extends HashcodeCaching
 
 /**
  * A "string template variable" is a variable destinated to be
@@ -72,46 +128,13 @@ case class STVariable(
 ) extends HashcodeCaching
 
 /**
- * A class that holds information about where to copy generated promises
- * from their generation directory to their final directory.
- * A back-up folder is also provided to save a copy.
- */
-case class NodePromisesPaths(
-    nodeId      : NodeId
-  , baseFolder  : String //directory where the file have to in the end
-  , newFolder   : String //poclicies are temporarly store in a policyName.new directory
-  , backupFolder: String
-) extends HashcodeCaching
-
-/**
- * Data structure showing for a node, for an agent type, the paths
- * on which promises will have to be written.
- */
-case class AgentNodeConfiguration(
-    config   : NodeConfiguration
-  , agentType: AgentType
-  , paths    : NodePromisesPaths
-)
-
-/**
- * A class that store a list of "prepared template", i.e templates with
- * their destination computed and all the variables to use to replace
- * parameter in them.
- */
-case class PreparedTemplates(
-    templatesToCopy     : Set[TechniqueTemplateCopyInfo]
-  , environmentVariables: Seq[STVariable]
-) extends HashcodeCaching
-
-/**
  * A class that store information about a template to copy somewhere.
  * It gives what template to copy where.
  */
 case class TechniqueTemplateCopyInfo(
-    source     : String  // content of the template as a string
-  , id         : TechniqueResourceId
+    id         : TechniqueResourceId
   , destination: String
+  , content    : String //template content as a file
 ) extends HashcodeCaching {
   override def toString() = s"Promise template ${id.name}; destination ${destination}"
 }
-
