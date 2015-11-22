@@ -24,7 +24,7 @@
 # @parameter repaired_codes List of codes that produce a repaired status separated with commas (ex: 3,4,6)
 # 
 # @class_prefix command_execution_result
-# @class_parameter command_name
+# @class_parameter command
 # 
 # This bundle will define a class command_execution_result_${command_name}_{kept,repaired,not_ok,ok,reached}
 # depending on the exit codes given in parameters.
