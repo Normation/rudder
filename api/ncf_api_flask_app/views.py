@@ -50,9 +50,9 @@ def check_authentication_from_rudder(auth_request):
     return auth_response
   except Exception as e:
     error = jsonify ({ "error" : [{"message": "An error while authenticating to Rudder"}]})
-    auth_response.status_code = 500
+    error.status_code = 500
 
-    return auth_response
+    return error
 
 
 def no_authentication(auth_request):
