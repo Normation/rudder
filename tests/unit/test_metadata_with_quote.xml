@@ -4,7 +4,9 @@
     <NAME>Technique_with_quote</NAME>
   </BUNDLES>
   <FILES>
-    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/Technique_with_quote/Technique_with_quote.cf" />
+    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/Technique_with_quote/Technique_with_quote.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
   </FILES>
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Command execution">
