@@ -20,7 +20,7 @@
 # @description This is a bundle to enfore the content of a file
 #
 # @parameter file  File name to edit
-# @parameter lines Line(s) to add in the file
+# @parameter lines Line(s) to add in the file
 # @parameter enforce Enforce the file to contain only line(s) defined (true or false)
 # 
 # @class_prefix file_ensure_lines_present

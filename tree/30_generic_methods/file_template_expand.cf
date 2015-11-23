@@ -20,7 +20,7 @@
 # @description This is a bundle to expand a template in a specific location
 #
 # @parameter tml_file File name (with full path within the framework) of the template file
-# @parameter target_file File name (with full path) where to expand the template
+# @parameter target_file File name (with full path) where to expand the template
 # @parameter mode Mode of destination file
 # @parameter owner Owner of destination file
 # @parameter group Froup of destination file
@@ -39,9 +39,9 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
       "${target_file}"
         create        => "true",
         edit_template => "${me.framework_path}/${tml_file}",
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
         perms         => mog("${mode}","${owner}","${group}"),
-	classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic("${class_prefix}");
 
   methods:
       "report"
