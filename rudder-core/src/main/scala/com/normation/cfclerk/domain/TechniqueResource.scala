@@ -36,9 +36,6 @@ package com.normation.cfclerk.domain
 
 import com.normation.utils.HashcodeCaching
 
-
-
-
 /**
  * Representation of a technique resource id.
  *
@@ -82,6 +79,12 @@ final case class TechniqueFile(
      *  By default, it will be set to: ${POLICY NAME}/${template name}.cf
      */
   , outPath: String
+
+    /*
+     * Does this template must be included in the list of
+     * file to include in promise.cf ?
+     */
+  , included: Boolean
 )
 
 /**
@@ -124,4 +127,3 @@ object TechniqueTemplate {
   val templateExtension = ".st"
   val promiseExtension = ".cf"
 }
-
