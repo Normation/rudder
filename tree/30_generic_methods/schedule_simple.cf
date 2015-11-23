@@ -70,6 +70,6 @@ bundle agent schedule_simple(job_id, agent_periodicity,
       "error"    usebundle => _classes_failure("${class_prefix}"),
                  ifvarclass => "job_${job_id}_error";
 
-      "report"    usebundle => _logger("Scheduling ${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"    usebundle => _log("Scheduling ${job_id}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

@@ -59,6 +59,6 @@ bundle agent schedule_simple_stateless(job_id, agent_periodicity,
 
       "new result classes" usebundle => _classes_copy("${class_prefix}_simple_scheduler", "${class_prefix}");
 
-      "report"             usebundle => _logger("Scheduling ${job_id}", "", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Scheduling ${job_id}", "", "${class_prefix}", @{args});
 }
 

@@ -45,5 +45,5 @@ bundle agent package_remove(package_name)
                         classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "placeholder"        usebundle => _logger("Remove package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "placeholder"        usebundle => _log("Remove package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

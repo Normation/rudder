@@ -44,6 +44,6 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
 
   methods:
       "report"
-        usebundle  => _logger("Set line ${name}=${value} in section ${section} into ${file}", "${class_prefix}");
+        usebundle  => _log("Set line ${name}=${value} in section ${section} into ${file}", "${class_prefix}");
 }
 

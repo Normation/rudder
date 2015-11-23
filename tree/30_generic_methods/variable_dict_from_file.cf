@@ -60,7 +60,7 @@ bundle agent variable_dict_from_file(variable_prefix, variable_name, file_name)
 
     any::
       "report"
-        usebundle  => _logger("Set the dict ${variable_prefix}.${variable_name} to the content of ${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log("Set the dict ${variable_prefix}.${variable_name} to the content of ${file_name}", "${old_class_prefix}", "${class_prefix}", @{args});
   reports:
     "${file_name} -> ${${variable_prefix}.${variable_name}}";
 }

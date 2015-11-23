@@ -43,6 +43,6 @@ bundle agent service_stop(service_name)
 
     "class copy" usebundle => _classes_copy("${class_prefix}_stop", "${class_prefix}");
 
-    "report"     usebundle => _logger("Stop service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"     usebundle => _log("Stop service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

@@ -43,5 +43,5 @@ bundle agent service_reload(service_name)
 
     "class copy" usebundle => _classes_copy("${class_prefix}_reload", "${class_prefix}");
 
-    "report"     usebundle => _logger("Reload service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"     usebundle => _log("Reload service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

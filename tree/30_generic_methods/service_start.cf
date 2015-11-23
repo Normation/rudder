@@ -43,6 +43,6 @@ bundle agent service_start(service_name)
 
     "class copy" usebundle => _classes_copy("${class_prefix}_start", "${class_prefix}");
 
-    "report"     usebundle => _logger("Start service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"     usebundle => _log("Start service ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

@@ -73,7 +73,7 @@ bundle agent service_ensure_started_at_boot(service_name)
 
    any::
       "report"
-        usebundle => _logger("Ensure service ${service_name} is set at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle => _log("Ensure service ${service_name} is set at boot", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   services:

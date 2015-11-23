@@ -36,5 +36,5 @@ bundle agent package_verify_version(package_name, package_version)
     "package verify"     usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "verify");
     "new result classes" usebundle => _classes_copy("${class_prefix}_package_verify", "${class_prefix}");
 
-    "report"             usebundle => _logger("Verify that package ${package_name} is installed in version ${package_version}", "", "${class_prefix}", @{args});
+    "report"             usebundle => _log("Verify that package ${package_name} is installed in version ${package_version}", "", "${class_prefix}", @{args});
 }

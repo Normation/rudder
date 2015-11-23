@@ -164,13 +164,13 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
 
   methods:
     immediate.!update::
-      "Reports" usebundle => _logger("Install package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log("Install package ${package_name}", "${old_class_prefix}", "${class_prefix}", @{args});
     immediate.update::
-      "Reports" usebundle => _logger("Install or update package ${package_name} in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log("Install or update package ${package_name} in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
     !immediate.!version_not_specified::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log("Verify that package ${package_name} is installed in version ${package_version}", "${old_class_prefix}", "${class_prefix}", @{args});
     !immediate.version_not_specified.update::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed and up-to-date", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log("Verify that package ${package_name} is installed and up-to-date", "${old_class_prefix}", "${class_prefix}", @{args});
     !immediate.version_not_specified.!update::
-      "Reports" usebundle => _logger("Verify that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
+      "Reports" usebundle => _log("Verify that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
 }

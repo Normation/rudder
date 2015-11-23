@@ -60,5 +60,5 @@ bundle agent variable_string(variable_prefix, variable_name, value)
 
     any::
       "report"
-        usebundle  => _logger("Set the string ${variable_prefix}.${variable_name} to value ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log("Set the string ${variable_prefix}.${variable_name} to value ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

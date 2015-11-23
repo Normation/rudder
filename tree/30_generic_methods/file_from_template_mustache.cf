@@ -37,5 +37,5 @@ bundle agent file_from_template_mustache(source_template, destination)
     "file template mustache type"  usebundle => file_from_template_type("${source_template}", "${destination}", "mustache");
     "new result classes"           usebundle => _classes_copy("${class_prefix}_file_template_mustache_type", "${class_prefix}");
 
-    "report"                       usebundle => _logger("Build file ${destination} from template ${source_template}", "", "${class_prefix}", @{args});
+    "report"                       usebundle => _log("Build file ${destination} from template ${source_template}", "", "${class_prefix}", @{args});
 }

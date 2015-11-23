@@ -35,6 +35,6 @@ bundle agent package_verify(package_name)
       "verify latest"      usebundle => package_verify_version("${package_name}", "latest");
       "new result classes" usebundle => _classes_copy("${class_prefix}_verify_latest", "${class_prefix}");
 
-      "report"             usebundle => _logger("Verify that package ${package_name} is installed", "", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Verify that package ${package_name} is installed", "", "${class_prefix}", @{args});
 }
 

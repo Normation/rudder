@@ -47,5 +47,5 @@ bundle agent directory_check_exists(directory_name)
       "directory_doesnt_exists" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"                  usebundle => _logger("Check if directory ${directory_name} exists", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                  usebundle => _log("Check if directory ${directory_name} exists", "${old_class_prefix}", "${class_prefix}", @{args});
 }

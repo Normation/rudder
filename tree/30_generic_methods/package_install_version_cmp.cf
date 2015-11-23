@@ -42,5 +42,5 @@ bundle agent package_install_version_cmp(package_name, version_comparator, packa
       "install or update"  usebundle => package_install_version_cmp_update("${package_name}", "${version_comparator}", "${package_version}", "${action}", "true");
       "new result classes" usebundle => _classes_copy("${class_prefix}_install_or_update", "${class_prefix}");
 
-      "report"             usebundle => _logger("Install package ${package_name} version ${package_version}", "", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Install package ${package_name} version ${package_version}", "", "${class_prefix}", @{args});
 }

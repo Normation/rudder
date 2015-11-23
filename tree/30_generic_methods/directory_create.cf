@@ -38,5 +38,5 @@ bundle agent directory_create(target)
       classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-    "report"             usebundle => _logger("Create directory ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"             usebundle => _log("Create directory ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
