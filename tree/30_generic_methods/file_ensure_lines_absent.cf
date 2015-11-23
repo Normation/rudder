@@ -35,7 +35,7 @@ bundle agent file_ensure_lines_absent(file, lines)
       "${file}"
         create        => "false",
         edit_line     => delete_lines_matching("${lines}"),
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic("${class_prefix}");
 
   methods:

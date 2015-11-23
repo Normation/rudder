@@ -20,11 +20,11 @@
 # @description This is a bundle to ensure that a file or directory is present and has the right mode/owner/group
 #
 # @parameter path      Path to edit
-# @parameter mode      Mode of the path to edit
-# @parameter owner     Owner of the path to edit
-# @parameter group     Group of the path to edit
-# @parameter type      Type of the path to edit (all/files/directories)
-# @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
+# @parameter mode      Mode of the path to edit
+# @parameter owner     Owner of the path to edit
+# @parameter group     Group of the path to edit
+# @parameter type      Type of the path to edit (all/files/directories)
+# @parameter recursion Recursion depth to enforce for this path (0, 1, 2, ..., inf)
 #
 # @class_prefix permissions
 # @class_parameter path

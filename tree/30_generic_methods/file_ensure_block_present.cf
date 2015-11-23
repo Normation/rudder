@@ -35,7 +35,7 @@ bundle agent file_ensure_block_present(file, block)
       "${file}"
         create        => "true",
         edit_line     => ncf_insert_block("${block}"),
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
 	classes       => classes_generic("${class_prefix}");
 
   methods:

@@ -21,8 +21,8 @@
 # @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded
-# @parameter destination     Destination file
-# @parameter template_type   Template type (cfengine or mustache)
+# @parameter destination     Destination file
+# @parameter template_type   Template type (cfengine or mustache)
 #
 # @class_prefix file_from_template
 # @class_parameter destination
@@ -42,6 +42,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
       create          => "true",
       edit_template   => "${source_template}",
       template_method => "${template_type}",
+      edit_defaults   => ncf_empty_select("false"),
       ifvarclass      => "template_exists",
       classes         => classes_generic("${class_prefix}");
 
