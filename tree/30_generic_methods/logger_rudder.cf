@@ -1,0 +1,40 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Logger for Rudder - legacy interface (DEPRECATED)
+# @description Logging output for Rudder reports. This interface is for compatiblity with older generic methods and techniques, and is replaced by log_rudder.
+#
+# @parameter message              The common part of the message to display
+# @parameter old_class_prefix     The prefix of the class for different states (0.x version, empty to force new style logging only)
+#
+# @class_prefix    logger_rudder
+# @class_parameter old_class_prefix
+# The three states are kept, repaired and not_ok
+# (as defined in the classes_generic of the cfengine_stdlib)
+
+bundle agent logger_rudder(message, old_class_prefix)
+{
+
+  methods:
+      "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "${old_class_prefix}", "", "");
+
+  reports:
+    cfengine::
+      "WARNING: DEPRECATED logger_rudder interface called. Please use log_rudder instead (${old_class_prefix}: ${message})";
+
+}
