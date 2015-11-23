@@ -36,6 +36,7 @@ package com.normation.rudder.repository
 
 import com.normation.rudder.domain.licenses.NovaLicense
 import com.normation.inventory.domain.NodeId
+import net.liftweb.common.Box
 
 /**
  * Repository des licences Nova
@@ -44,8 +45,10 @@ import com.normation.inventory.domain.NodeId
  */
 trait LicenseRepository {
 
-
-  def findLicense(nodeId:NodeId) : Option[NovaLicense]
-
-  def getAllLicense() : Seq[NovaLicense]
+  /**
+   * Get all licenses from repository.
+   * If new licences were added on the underlying storage,
+   * they are retrieved.
+   */
+  def getAllLicense() : Box[Map[NodeId, NovaLicense]]
 }

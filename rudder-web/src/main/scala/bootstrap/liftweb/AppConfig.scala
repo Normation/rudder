@@ -42,7 +42,6 @@ import com.normation.rudder.batch._
 import com.normation.rudder.services.nodes._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.queries._
-import com.normation.rudder.services.licenses._
 import com.normation.rudder.services.servers._
 import com.normation.rudder.services.system._
 import com.normation.rudder.services.policies._
@@ -1298,8 +1297,7 @@ object RudderConfig extends Loggable {
     )
 
   private[this] lazy val systemVariableService: SystemVariableService = new SystemVariableServiceImpl(
-      licenseRepository
-    , systemVariableSpecService
+      systemVariableSpecService
     , psMngtService
     , RUDDER_DIR_DEPENDENCIES
     , RUDDER_ENDPOINT_CMDB
@@ -1325,7 +1323,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val rudderCf3PromisesFileWriterService = new Cf3PromisesFileWriterServiceImpl(
       techniqueRepositoryImpl
     , pathComputer
-    , licenseRepository
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
     , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
     , RUDDER_COMMUNITY_CHECKPROMISES_COMMAND
@@ -1367,6 +1364,7 @@ object RudderConfig extends Loggable {
         , systemVariableService
         , nodeConfigurationServiceImpl
         , nodeInfoServiceImpl
+        , licenseRepository
         , updateExpectedReports
         , historizationService
         , roNodeGroupRepository
