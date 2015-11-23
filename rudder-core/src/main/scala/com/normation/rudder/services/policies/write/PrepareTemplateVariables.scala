@@ -63,9 +63,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
 
-
 trait PrepareTemplateVariables {
-
 
   /**
    * This methods contains all the logic that allows to transform an
@@ -132,7 +130,6 @@ class PrepareTemplateVariablesImpl(
     AgentNodeWritableConfiguration(agentNodeConfig.paths, preparedTemplate.values.toSeq, csv)
   }
 
-
   private[this] def prepareTechniqueTemplate(
       nodeId: NodeId // for log message
     , container: Cf3PolicyDraftContainer
@@ -156,7 +153,6 @@ class PrepareTemplateVariablesImpl(
       , true
     )
     val generationVariable = STVariable("GENERATIONTIMESTAMP", false, Seq(generationTimestamp), true)
-
 
     techniques.map {technique =>
       val techniqueTemplatesIds = technique.templatesMap.keySet
@@ -250,15 +246,18 @@ class PrepareTemplateVariablesImpl(
     logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
 
     // Fetch the policies configured, with the system policies first
-    val techniques: Seq[BundleTechnique] =  sortTechniques(nodeId, techniqueRepository.getByIds(container.getAllIds), container)
+    val bundleTechniques: Seq[BundleTechnique] =  sortTechniques(nodeId, techniqueRepository.getByIds(container.getAllIds), container)
 
     //list of inputs file to include: all the outPath of templates that should be "included".
     //returned the pair of (technique, outpath)
-    val inputs: Seq[(Technique, String)] = techniques.flatMap { case bt =>
-      bt.technique.templates.collect { case template if(template.included) => (bt.technique, template.outPath) }
+    val inputs: Seq[(Technique, String)] = bundleTechniques.flatMap {
+      case bt =>
+        bt.technique.templates.collect { case template if(template.included) => (bt.technique, template.outPath) } ++
+        bt.technique.files.collect { case file if(file.included) => (bt.technique, file.outPath) }
+
     }
 
-    val bundleSeq: Seq[(Technique, String, Bundle)] = techniques.flatMap { case BundleTechnique(technique, promiser) =>
+    val bundleSeq: Seq[(Technique, String, Bundle)] = bundleTechniques.flatMap { case BundleTechnique(technique, promiser) =>
       // We need to remove zero-length bundle name from the bundlesequence (like, if there is no ncf bundles to call)
       // to avoid having two successives commas in the bundlesequence
       val techniqueBundles = technique.bundlesequence.flatMap { bundle =>
@@ -356,7 +355,6 @@ class PrepareTemplateVariablesImpl(
 
     sortByOrder(techniques, container)
   }
-
 
   /**
    * Concatenate all the variables for each policy Instances.
@@ -463,7 +461,4 @@ class PrepareTemplateVariablesImpl(
     }).flatten
   }
 
-
-
 }
-
