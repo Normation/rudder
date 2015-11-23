@@ -46,6 +46,28 @@ app.directive('techniquename', function($filter) {
   };
 });
 
+app.directive('showErrors', function() {
+  return {
+    restrict: 'A',
+    require:  '^form',
+    link: function (scope, el, attrs, formCtrl) {
+      // find the text box element, which has the 'name' attribute
+      var inputEl   = el[0].querySelector("[name]");
+      // convert the native text box element to an angular element
+      var inputNgEl = angular.element(inputEl);
+      // get the name on the text box so we know the property to check
+      // on the form controller
+      var inputName = inputNgEl.attr('name');
+
+      el.toggleClass('has-error', formCtrl[inputName].$invalid);
+      // only apply the has-error class after the user leaves the text box
+      inputNgEl.bind('blur', function() {
+        el.toggleClass('has-error', formCtrl[inputName].$invalid);
+      })
+    }
+  }
+});
+
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast) {
 
@@ -80,6 +102,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       $scope.path = path;
     }
   };
+
 
   // Define path by getting url params now
   $scope.setPath();
@@ -484,21 +507,26 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
   // Get the class value generated from a class prefix and a class kind (kept,repaired,error, ...)
   $scope.getClassKind= function(method_call,kind) {
+    var param = $scope.getClassParameter(method_call)
+    if (param === undefined) {
+      param=""
+    }
     // do not canonify what is between ${ }
-    var param = $scope.getClassParameter(method_call).replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/[^\${}\w](?![^{}]+})|\$(?!{)/g,"_");
+    param = param.replace(/\\'/g, "'").replace(/\\"/g, '"').replace(/[^\${}\w](?![^{}]+})|\$(?!{)/g,"_");
     return  $scope.getClassPrefix(method_call)+"_"+param +"_"+kind
   }
 
+
+  $scope.checkMethodCall = function(method_call) {}
   // Check if the selected technique is correct
   // selected technique is correct if:
-  // * name is not empty
   // * There is at least one method call
   $scope.checkSelectedTechnique= function() {
-     var res = $scope.selectedTechnique.name === undefined || $scope.selectedTechnique.name === "" || $scope.selectedTechnique.method_calls.length === 0;
+     var res = $scope.selectedTechnique.method_calls.length === 0;
      if ($scope.selectedTechnique.isClone) {
        return res
      } else {
-       return res || $scope.isUnchanged($scope.selectedTechnique)
+       return res ||  $scope.isUnchanged($scope.selectedTechnique)
      }
   }
 
@@ -610,9 +638,10 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       templateUrl: 'SaveChangesModal.html',
       controller: SaveChangesModalCtrl,
       resolve: {
-        technique: function () {
-          return $scope.originalTechnique;
-        }
+          technique: function () {
+            return $scope.originalTechnique;
+          }
+        , editForm  : function() { return  $scope.editForm }
       }
     });
 
@@ -645,7 +674,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   $scope.confirmPopup = function(actionName,kind,action,elem, name) {
-
     var modalInstance = $modal.open({
       templateUrl: 'template/confirmModal.html',
       controller: confirmModalCtrl,
@@ -715,8 +743,9 @@ var cloneModalCtrl = function ($scope, $modalInstance, technique, techniques) {
   };
 };
 
-var SaveChangesModalCtrl = function ($scope, $modalInstance, technique) {
-
+var SaveChangesModalCtrl = function ($scope, $modalInstance, technique, editForm) {
+  console.log(editForm)
+  $scope.editForm = editForm;
   $scope.technique = technique;
   $scope.save = function() {
     $modalInstance.close(true);

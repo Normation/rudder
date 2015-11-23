@@ -454,7 +454,6 @@ body process_count any_count_two(cl, cl2)
   out_of_range_define => { "$(cl)", "$(cl2)" };
 }
 
-
 # Enforce or not content of a file
 ########################################################################
 # Same as std_defs, allowing user to specify the file erase policy     #

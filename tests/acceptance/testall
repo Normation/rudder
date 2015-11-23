@@ -126,7 +126,7 @@ echo =========================
 echo
 
 usage() {
-  echo "testall [-q] [--gainroot=<command>] [--agent=<agent>] [--cfpromises=<cf-promises>] [--cfserverd=<cf-serverd>] [--cfkey=<cf-key>] [--no-nova] [--staging] [--unsafe] [--no-network] [--gdb] [--printlog] [<test> <test>...]"
+  echo "testall [-q] [--gainroot=<command>] [--agent=<agent>] [--cfpromises=<cf-promises>] [--cfserverd=<cf-serverd>] [--cfkey=<cf-key>] [--no-nova] [--staging] [--unsafe] [--no-network] [--gdb] [--printlog] [--info] [--verbose] [<test> <test>...]"
   echo
   echo "If no test is given, all standard tests are run:"
   echo "  Tests with names of form <file>.cf are expected to run succesfully"
@@ -166,6 +166,10 @@ usage() {
   echo " --printlog   print the full test.log output immediately."
   echo
   echo " --gdb   Run test under GDB"
+  echo
+  echo " --info  Run test in info mode"
+  echo
+  echo " --verbose Run test in verbose mode"
 }
 
 runtest() {
@@ -393,6 +397,10 @@ while true; do
       PRINTLOG=1;;
     --gdb)
       GDB=1;;
+    --info)
+      VERBOSE=-I;;
+    --verbose)
+      VERBOSE=-v;;
     -*)
       echo "Unknown option: $1"
       exit 1;;
@@ -408,10 +416,30 @@ CF_SERVERD=${CF_SERVERD:-${DEFCF_SERVERD}}
 CF_KEY=${CF_KEY:-${DEFCF_KEY}}
 LIBTOOL=${LIBTOOL:-${DEFLIBTOOL}}
 
-if [ ! -x "$AGENT" -o ! -x "$CF_PROMISES" -o ! -x "$CF_SERVERD" -o ! -x "$CF_KEY" ]
-then
-	echo "ERROR can't find cf-agent or other binary. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance?  Check '$AGENT', '$CF_PROMISES', '$CF_SERVERD', and '$CF_KEY'"
-	exit 1
+if [ ! -x "$AGENT" ]; then
+  echo "ERROR can't find cf-agent. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-agent = '$AGENT'"
+  exit 1
+fi
+if [ ! -x "$CF_PROMISES" ]; then
+  CF_PROMISES="$(dirname $AGENT)/cf-promises"
+  if [ ! -x "$CF_PROMISES" ]; then
+    echo "ERROR can't find cf-promises. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-promises = '$CF_PROMISES'"
+    exit 1
+  fi
+fi
+if [ ! -x "$CF_SERVERD" ]; then
+  CF_SERVERD="$(dirname $AGENT)/cf-serverd"
+  if [ ! -x "$CF_SERVERD" ]; then
+    echo "ERROR can't find cf-serverd. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-serverd = '$CF_SERVERD'"
+    exit 1
+  fi
+fi
+if [ ! -x "$CF_KEY" ]; then
+  CF_KEY="$(dirname $AGENT)/cf-key"
+  if [ ! -x "$CF_KEY" ]; then
+    echo "ERROR can't find cf-key. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-key = '$CF_KEY'"
+    exit 1
+  fi
 fi
 
 if [ "$UNSAFE_TESTS" = "1" -a "$GAINROOT" = "fakeroot" ]; then

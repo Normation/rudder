@@ -7,6 +7,11 @@
     <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/bla/bla.cf" />
   </FILES>
   <SECTIONS>
+    <SECTION component="true" multivalued="true" name="Package install">
+      <REPORTKEYS>
+        <VALUE><![CDATA[openssh-server]]></VALUE>
+      </REPORTKEYS>
+    </SECTION>
     <SECTION component="true" multivalued="true" name="Package install version">
       <REPORTKEYS>
         <VALUE><![CDATA[${bla.apache_package_name}]]></VALUE>
@@ -15,11 +20,6 @@
     <SECTION component="true" multivalued="true" name="Service start">
       <REPORTKEYS>
         <VALUE><![CDATA[${bla.apache_package_name}]]></VALUE>
-      </REPORTKEYS>
-    </SECTION>
-    <SECTION component="true" multivalued="true" name="Package install">
-      <REPORTKEYS>
-        <VALUE><![CDATA[openssh-server]]></VALUE>
       </REPORTKEYS>
     </SECTION>
   </SECTIONS>

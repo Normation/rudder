@@ -93,6 +93,15 @@ a:hover {
     padding-right: 0;
 }
 
+.editForm .ncf_col {
+  border-right:5px #DDDDDD solid;
+  padding-left: 15px;
+  margin-bottom:70px;
+}
+
+.editForm .fixed-footer {
+  left: 16.66666667%
+}
 
 .right-panel {
   padding-left: 0;

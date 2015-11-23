@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import unittest
 import ncf
@@ -11,8 +12,10 @@ class TestNcf(unittest.TestCase):
   def setUp(self):
     self.test_technique_file = os.path.realpath('test_technique.cf')
     self.test_generic_method_file = 'test_generic_method.cf'
-    self.technique_content = open(self.test_technique_file).read()
-    self.generic_method_content = open(self.test_generic_method_file).read()
+    with open(self.test_technique_file) as fd:
+      self.technique_content = fd.read()
+    with open(self.test_generic_method_file) as fd:
+      self.generic_method_content = fd.read()
     
     self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)
     method_calls = ncf.parse_technique_methods(self.test_technique_file)
@@ -25,14 +28,15 @@ class TestNcf(unittest.TestCase):
           ]
         }
     self.technique_metadata_test_content = os.path.realpath('technique_metadata_test_content.cf')
-    self.technique_test_expected_content = open(self.technique_metadata_test_content).read()
     all_tags = ncf.tags["generic_method"]+ncf.tags["common"]
     self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags ]
 
+    with open(self.technique_metadata_test_content) as fd:
+      self.technique_test_expected_content = fd.read()
 
 
   def test_get_ncf_root_dir(self):
-    self.assertEquals(ncf.get_root_dir(), os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../"))
+    self.assertEqual(ncf.get_root_dir(), os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../"))
 
   #####################################
   # Generic tests for parsing .cf files
@@ -138,7 +142,7 @@ class TestNcf(unittest.TestCase):
     filenames.sort()
     list_methods_files.sort()
 
-    self.assertEquals(filenames, list_methods_files)
+    self.assertEqual(filenames, list_methods_files)
 
   def test_get_all_techniques_filenames(self):
     """test_get_all_techniques_filenames should return a list of all techniques files"""
@@ -156,14 +160,14 @@ class TestNcf(unittest.TestCase):
     filenames.sort()
     list_methods_files.sort()
 
-    self.assertEquals(filenames, list_methods_files)
+    self.assertEqual(filenames, list_methods_files)
 
   def test_get_all_generic_methods_metadata(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
     metadata = ncf.get_all_generic_methods_metadata()["data"]
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames())
-    self.assertEquals(number_generic_methods, len(metadata))
+    self.assertEqual(number_generic_methods, len(metadata))
 
   def test_get_all_generic_methods_metadata_with_arg(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
@@ -171,7 +175,7 @@ class TestNcf(unittest.TestCase):
     metadata = ncf.get_all_generic_methods_metadata(alternative_path)["data"]
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames(alternative_path))
-    self.assertEquals(number_generic_methods, len(metadata))
+    self.assertEqual(number_generic_methods, len(metadata))
 
   def test_get_all_techniques_metadata(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
@@ -182,7 +186,7 @@ class TestNcf(unittest.TestCase):
 
     all_files = len(ncf.get_all_techniques_filenames())
  
-    self.assertEquals(all_files, all_metadata)
+    self.assertEqual(all_files, all_metadata)
 
   def test_get_all_techniques_metadata_with_args(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
@@ -194,7 +198,7 @@ class TestNcf(unittest.TestCase):
 
     all_files = len(ncf.get_all_techniques_filenames(alternative_path))
  
-    self.assertEquals(all_files, all_metadata)
+    self.assertEqual(all_files, all_metadata)
     
   #####################################
   # Tests for writing/delete Techniques all metadata info
@@ -228,7 +232,7 @@ class TestNcf(unittest.TestCase):
     result = '\n'.join(expected_result)+"\n"
     generated_result = ncf.generate_technique_content(self.technique_metadata)
 
-    self.assertEquals(result, generated_result)
+    self.assertEqual(result, generated_result)
 
   def test_check_mandatory_keys_technique_metadata(self):
     """Test if a broken metadata raise a correct NcfError exception"""
@@ -300,7 +304,7 @@ class TestNcf(unittest.TestCase):
   def test_generate_technique_content(self):
     """Check that generate_technique_content works correctly - including escaping " in arguments"""
     content = ncf.generate_technique_content(self.technique_metadata_test)
-    self.assertEquals(self.technique_test_expected_content, content)
+    self.assertEqual(self.technique_test_expected_content, content)
 
   def test_parse_technique_methods_unescape_double_quotes(self):
     test_parse_technique_methods_unescape_double_quotes_calls = ncf.parse_technique_methods(self.technique_metadata_test_content)
@@ -308,7 +312,7 @@ class TestNcf(unittest.TestCase):
         { 'method_name': u'package_install_version', 'class_context': u'any', 'promiser': u'method_call', 'args': [u'apache2', u'2.2.11'] },
         { 'method_name': u'file_replace_lines', 'class_context': u'redhat', 'promiser': u'method_call', 'args': [u'/etc/httpd/conf/httpd.conf', u'ErrorLog "/var/log/httpd/error_log"', u'ErrorLog "/projet/logs/httpd/error_log"'] }
                       ]
-    self.assertEquals(expected_result, test_parse_technique_methods_unescape_double_quotes_calls)
+    self.assertEqual(expected_result, test_parse_technique_methods_unescape_double_quotes_calls)
 
     
   #####################################
@@ -331,16 +335,16 @@ class TestNcf(unittest.TestCase):
 
   def test_class_context_and(self):
     """Ensure the class_context_and method behaves as expected for various cases"""
-    self.assertEquals("b", ncf.class_context_and("any", "b"))
-    self.assertEquals("a", ncf.class_context_and("a", "any"))
-    self.assertEquals("a.b", ncf.class_context_and("a", "b"))
-    self.assertEquals("a.B", ncf.class_context_and("a", "B"))
-    self.assertEquals("(a.b).c", ncf.class_context_and("a.b", "c"))
-    self.assertEquals("(a|b).(c&d)", ncf.class_context_and("a|b", "c&d"))
-    self.assertEquals("c&d", ncf.class_context_and("any", "c&d"))
-    self.assertEquals("c.d", ncf.class_context_and("any", "c.d"))
-    self.assertEquals("a|b", ncf.class_context_and("a|b", "any"))
-    self.assertEquals("any", ncf.class_context_and("any", "any"))
+    self.assertEqual("b", ncf.class_context_and("any", "b"))
+    self.assertEqual("a", ncf.class_context_and("a", "any"))
+    self.assertEqual("a.b", ncf.class_context_and("a", "b"))
+    self.assertEqual("a.B", ncf.class_context_and("a", "B"))
+    self.assertEqual("(a.b).c", ncf.class_context_and("a.b", "c"))
+    self.assertEqual("(a|b).(c&d)", ncf.class_context_and("a|b", "c&d"))
+    self.assertEqual("c&d", ncf.class_context_and("any", "c&d"))
+    self.assertEqual("c.d", ncf.class_context_and("any", "c.d"))
+    self.assertEqual("a|b", ncf.class_context_and("a|b", "any"))
+    self.assertEqual("any", ncf.class_context_and("any", "any"))
 
 if __name__ == '__main__':
   unittest.main()
