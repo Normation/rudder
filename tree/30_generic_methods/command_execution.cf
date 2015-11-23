@@ -34,7 +34,7 @@ bundle agent command_execution(command_name)
 
   methods:
       "report"
-        usebundle  => _logger("Execute the command ${command_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle  => _log("Execute the command ${command_name}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   commands:

@@ -62,14 +62,14 @@ bundle agent file_download(source, destination)
 
       "new result classes"        usebundle => _classes_copy("${class_prefix}_action", "${class_prefix}");
 
-      "report"                    usebundle => _logger("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                    usebundle => _log("Download ${source} into ${destination}", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
     !_stdlib_path_exists_curl.!_stdlib_path_exists_wget.!file_exists::
 
       "force_failure_class"       usebundle => _classes_failure("${old_class_prefix}");
       "new result classes"        usebundle => _classes_failure("${class_prefix}");
-      "report"                    usebundle => _logger("Unable to download ${source}: neither wget or curl are installed", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"                    usebundle => _log("Unable to download ${source}: neither wget or curl are installed", "${old_class_prefix}", "${class_prefix}", @{args});
 
     file_exists::
 
@@ -77,7 +77,7 @@ bundle agent file_download(source, destination)
                                  ifvarclass => "!command_execution_${canonified_action_command}_repaired";
       "new result classes"        usebundle => _classes_success("${class_prefix}"),
                                  ifvarclass => "!${class_prefix}_action_repaired";
-      "report"                    usebundle => _logger("File ${destination} already downloaded", "${old_class_prefix}", "${class_prefix}", @{args}),
+      "report"                    usebundle => _log("File ${destination} already downloaded", "${old_class_prefix}", "${class_prefix}", @{args}),
                                  ifvarclass => "(!has_promiser_stack.!command_execution_${canonified_action_command}_repaired)|(has_promiser_stack.!${class_prefix}_action_repaired)";
 
 }

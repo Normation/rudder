@@ -1,5 +1,7 @@
+#!/bin/sh
+
 #####################################################################################
-# Copyright 2014 Normation SAS
+# Copyright 2015 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -15,28 +17,25 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 #####################################################################################
+set -e
 
-# @name File create
-# @description Create a file if it doesn't exist
-#
-# @parameter target     File to create
-#
-# @class_prefix file_create
-# @class_parameter target
-# This bundle will define a class file_create_${target}_{kept,repaired,not_ok,ok,reached}
+# Check that all generic_methods use the new _log interface with 4 args and not the old _logger interface with 2 args
 
-bundle agent file_create(target)
-{
-  vars:
-    "old_class_prefix" string => canonify("file_create_${target}");
-    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
-    "args"              slist => { "${target}" };
+FILES_TO_CHECK=`find "${NCF_TREE}/30_generic_methods/" -name "*.cf"`
+NB_ERROR=0
+for f in ${FILES_TO_CHECK}
+do
+  NB_BUNDLE=$(egrep "[^#]*usebundle\s*=>\s*_?logger(_default|_rudder|)\(" $f | wc -l)
+  if [ $NB_BUNDLE -ne 0 ]; then
+    echo "File $f uses deprecated _logger interface"
+    NB_ERROR=`expr $NB_ERROR + 1`
+  fi
+done
 
-  files:
-    "${target}"
-      create        => "true",
-      classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
+if [ $NB_ERROR -eq 0 ]; then
+  echo "R: $0 Pass"
+else
+  echo "R: $0 Fail"
+fi
 
-  methods:
-    "report" usebundle => _log("Create file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
-}
+exit $NB_ERROR

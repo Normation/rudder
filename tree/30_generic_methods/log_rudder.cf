@@ -1,0 +1,287 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Log for Rudder
+# @description Logging output for Rudder reports
+#
+# @parameter message              The common part of the message to display
+# @parameter old_class_prefix     The prefix of the class for different states (0.x version, empty to force new style logging only)
+# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
+# @parameter args                 The arguments used to call the generic method (slist)
+#
+# @class_prefix    logger_rudder
+# @class_parameter old_class_prefix
+# The three states are kept, repaired and not_ok
+# (as defined in the classes_generic of the cfengine_stdlib)
+
+bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
+{
+  vars:
+
+      "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
+      "expected_reports_temp"   string => "${expected_reports_source}.tmp";
+      "expected_reports_file"   string => "${expected_reports_source}.res";
+
+    logger_rudder_temp_resfile_repaired::
+      # 2/ If the temporary file has been updated, read it to get all values in an array, and canonify the first entry
+      "dim" int => readstringarrayidx("reports", "${expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
+      "keys" slist => getindices("reports");
+
+      "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
+
+    (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept)::
+      "c_class_prefix" string => canonify("${old_class_prefix}");
+
+      # 4/ Once the final expected reports file has been expanded, read in our array
+      "number_lines"
+        int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
+
+  classes:
+      "report_data_read"    expression => isgreaterthan("${number_lines}","0");
+  
+      # We want to detect if expected report data is available in v2 format.
+      # V2 format is characterized by a new field for a total of 6 fields.
+      # The file is rewritten first in .tmp file then in .res file
+      # The second rewrite is done using the edit_line below, so if the 6th field doesn't exist in the original file
+      # then it is translater to a litteral "$reports[0][5]}" in the file.
+      # If there has been no rewrite at all, then there is no 6th field at all in the final file
+
+      # 1/ The file has been rewritten with an empty field
+      # 5 vs 6 : because getfields and readstringarrayidx do not have the same indexing method (getfields starts at 1)
+      "expected_report_v2_csv"     not => strcmp("${report_data[6]}","${const.dollar}{reports[0][5]}");
+
+      # 2/ The file has never been rewritten
+      "expected_report_v2_res"     not => strcmp("${report_data[6]}", "${const.dollar}{report_data[6]}");
+
+      # 3/ We add another condition : the method promiser must have been rewritten in the technique
+      #    The previous version of ncf always put "method_call" as a promiser, so this indicates an old technique version
+      "method_v2"                  not => strcmp("method_call", nth("this.callers_promisers", "1"));
+
+      # 4/ We check that the new class_prefix is not empty, otherwise the v2 method would break
+      "class_prefix_v2"            not => strcmp("${origin_class_prefix}", "");
+
+      # 5/ we aggregate this with the availability of the promiser stack to know if we should report using v2 format
+      "report_v2"           expression => "expected_report_v2_csv.expected_report_v2_res.method_v2.has_promiser_stack.class_prefix_v2";
+
+      "keys_defined"        expression => isvariable("keys");
+
+      "no_old_class_prefix" expression => strcmp("${old_class_prefix}", "");
+
+  files:
+
+      # 1/ First, check if the temporary file needs to be updated (The Rudder
+      # provided expected reports file has changed). If so, expand the variables
+      # in it into a temporary file.
+    !logger_rudder_temp_resfile_repaired::
+      "${expected_reports_temp}"
+        create        => "true",
+        edit_template => "${expected_reports_source}",
+        classes       => classes_generic("logger_rudder_temp_resfile");
+
+      # 3/ Write the final expected reports, expanded. First, empty it, then fill it
+      # (can't use edit_default empty, as we are iterating over a list)
+    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
+      "${expected_reports_file}"
+        create => "true",
+        edit_line => delete_lines_matching(".*");
+
+    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
+      "${expected_reports_file}"
+        create    => "true",
+        edit_line => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]};;${reports[${keys}][5]};;${reports[${keys}][6]}"),
+        classes   => classes_generic("logger_rudder_final_resfile");
+
+  methods:
+    # no need to avoid normal ordering since this class is set when report is ready
+    # Old reporting method, and data is ready
+    !report_v2.report_data_read.!no_old_class_prefix::
+
+      # 4/ Array is ready, reporting time !!!
+      "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${c_class_prefix}", "${report_data[3]}", "${report_data[4]}", "${report_data[5]}", "${message}"),
+        classes    => classes_generic("logger_rudder_${c_class_prefix}");
+
+    # We HAVE the data and we CAN dot it (see /4 abvove) -> New reporting method
+    report_v2::
+      "call _log_rudder_v2" usebundle => _log_rudder_v2("${expected_reports_source}", "${message}", "${origin_class_prefix}", @{args});
+}
+
+# Bundle that is called only if we have v2 expected report and the promiser stack
+#
+# It produces new style reports
+# It will completly override log_rudder when we remove v1 
+# Since it uses a new logic and need to parse the original file directly it can be put appart to avoid messing with the original code
+#
+# There is one case it can conflict with the orignal one :
+#  - the expected report contains one line with a v2 style technique that matches current call
+#  - the expected report contains one line with an unrelated v1 style technique that matches the current call too
+# The answer is that you should re-run rudderify on all your techniques when you upgrade
+bundle agent _log_rudder_v2(expected_reports_source, message, class_prefix, args)
+{
+  vars:
+      # We need to remove the final few promisers from the list of callers_promisers
+      # log call stack (_log + log_rudder + _log_rudder_v2 or _logger + _log + log_rudder + _log_rudder_v2 or logger_rudder + log_rudder + _log_rudder_v2)
+      # 1/ We search for known promisers from _log, _logger, logger_rudder, log_rudder, log_rudder_v2 and remove them
+      "promiser_list"             slist => { @{this.callers_promisers} };
+      "promiser_list_nologgerint" slist => filter("(wrapper for logger_rudder|wrapper for log_rudder|legacy _logger wrapper|legacy logger_rudder wrapper|call _log_rudder_v2)", promiser_list, "true", "true", 999);
+
+      # 2/ We remove the last promiser, which is the original call to any of the above logger methods
+      "promiser_count"   int => length("promiser_list_nologgerint");
+      "nologger_len"  string => eval("${promiser_count}-1", "math", "infix");
+      "nologger_len_int" int => "${nologger_len}";
+      "promiser_list_nologger" slist => sublist("promiser_list_nologgerint", "head", "${nologger_len_int}");
+
+      "promisers"     string => join(" / ", "promiser_list_nologger");
+
+      "number_lines"     int => getfields("^${current_technique_report_info.technique_name};;.*?;;.*?;;.*?;;.*?;;${class_prefix}", 
+                                         "${expected_reports_source}", 
+                                         ";;", 
+                                         "report_data");
+
+      # normalize args to fit syslog output (first argument, 80 bytes max)
+      "args_line1" string => string_head(nth("args", "0"), "80");
+
+      # normalize message to fit syslog output (first line)
+      "message_lines"  slist => splitstring("${message}", "${const.n}", "2");
+      "message_line1" string => nth("message_lines", "0");
+
+  classes:
+      "report_data_found" expression => isgreaterthan("${number_lines}","0");
+
+  methods:
+    report_data_found::
+      "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${class_prefix}", "${report_data[3]}", "${promisers}", "${args_line1}", "${message_line1}"),
+            classes   => classes_generic("logger_rudder_${class_prefix}");
+}
+
+
+# bundle backported from rudder (prefixed with _ to avoid conflicts)
+# all this whould be removed when we put this file back to rudder
+# 
+#
+# Create and send a report to the server
+# This bundle takes 6 parameters :
+# technique_name : the name of the technique, human readable
+# status         : the status of the Component, among the following values
+#    result_success
+#    result_error
+#    result_repaired
+#    log_repaired (for logging only)
+#    log_warn     (for logging only)
+#    log_info     (for logging only)
+#    log_debug    (for logging only)
+#    log_trace    (for logging only)
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (or None if undefined)
+# message        : An explanation message understandable by a human
+bundle agent _rudder_common_report(technique_name, status, identifier, component_name, component_key, message)
+{
+  classes:
+    changes_only::
+      "send_reports" or => {
+                            strcmp("${status}", "result_error") ,
+                            strcmp("${status}", "result_repaired") ,
+                            strcmp("${status}", "log_warn") ,
+                            strcmp("${status}", "log_repaired") ,
+                           };
+
+  methods:
+    # If we need to send a report, make sure we have sent the "StartRun" message first
+    send_reports.!start_run_message_sent::
+      "Send start message"
+        usebundle => _startExecution("${identifier}"),
+        action    => immediate;
+
+  reports:
+    !changes_only|send_reports::
+      "@@${technique_name}@@${status}@@${identifier}@@${component_name}@@${component_key}@@${g.execRun}##${g.uuid}@#${message}";
+}
+
+#
+# Automatically create reports based on existing classes starting by
+# class_prefix (as defined by the body classes rudder_common_classes)
+# Takes 6 parameters
+# technique_name : the name of the technique, human readable
+# class_prefix   : the prefix of a set of classes to reporting on (suffixes with "kept", "repaired" or "error")
+# identifier     : the identifier of the current Rule and Directive
+# component_name : the name of the component within the Technique
+# component_key  : the value of the component reference variable (None if it does not exists)
+# message_prefix : The begining of an explanation message understandable by a human
+#
+bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identifier, component_name, component_key, message_prefix)
+{
+  methods:
+      "na"
+        usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
+        ifvarclass => "${old_class_prefix}_noop.!${old_class_prefix}_kept.!${old_class_prefix}_repaired.!${old_class_prefix}_error";
+
+      "success"
+        usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
+        ifvarclass => "${old_class_prefix}_kept.!${old_class_prefix}_repaired.!${old_class_prefix}_error";
+
+      "repaired"
+        usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
+        ifvarclass => "${old_class_prefix}_repaired.!${old_class_prefix}_error";
+
+      "error"
+        usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
+        ifvarclass => "${old_class_prefix}_error";
+}
+
+bundle agent _startExecution(identifier)
+{
+  vars:
+    second_pass:: # This is necessary to work around a CFEngine bug that causes this to be defined all the time
+      # Define a global class to show we have sent a "StartRun" report
+      "dummy_string" string => "dummy_content",
+        classes => always("start_run_message_sent");
+
+  classes:
+      # Dummy class to work around a CFEngine bug
+      "second_pass" expression => "any";
+
+  reports:
+    cfengine_3::
+      # Send the report and define a persistant class to store the last "heartbeat" time
+      "@@Common@@log_info@@${identifier}@@common@@StartRun@@${g.execRun}##${g.uuid}@#Start execution with config [${g.rudder_node_config_id}]"
+        classes => _rudder_always_classes_persist("heartbeat_sent", "${g.heartbeat_interval}");
+}
+
+#
+# Always define a class, with the given persist time
+# Define the class for ${persist} minutes
+#
+body classes _rudder_always_classes_persist(always, persist)
+{
+  promise_kept     => { "${always}" };
+  promise_repaired => { "${always}" };
+  repair_failed    => { "${always}" };
+  repair_denied    => { "${always}" };
+  repair_timeout   => { "${always}" };
+
+  persist_time     => "${persist}";
+}
+
+#
+# Define the current Technique we are doing report on
+# Must be called before the reporting
+bundle agent current_technique_report_info(name) {
+  vars:
+    "technique_name" string => "${name}";
+}
+

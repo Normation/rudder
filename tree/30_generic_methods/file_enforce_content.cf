@@ -42,5 +42,5 @@ bundle agent file_enforce_content(file, lines, enforce)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report" usebundle => _logger("Insert content ${lines} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Insert content ${lines} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

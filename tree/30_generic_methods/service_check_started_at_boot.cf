@@ -77,5 +77,5 @@ bundle agent service_check_started_at_boot(service_name)
       "failure" usebundle => _classes_failure("${class_prefix}"),
         ifvarclass => "${class_prefix}_check_run_failed";
 
-      "reports" usebundle => _logger("Ensure that service ${service_name} is defined at boot", "${old_class_prefix}", "${class_prefix}", @{args});
+      "reports" usebundle => _log("Ensure that service ${service_name} is defined at boot", "${old_class_prefix}", "${class_prefix}", @{args});
 }

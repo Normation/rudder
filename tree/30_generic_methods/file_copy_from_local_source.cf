@@ -36,5 +36,5 @@ bundle agent file_copy_from_local_source(source, destination)
       "copy without recursion" usebundle => file_copy_from_local_source_recursion("${source}", "${destination}", "0");
       "new result classes"     usebundle => _classes_copy("${class_prefix}_copy_without_recursion", "${class_prefix}");
 
-      "report"                 usebundle => _logger("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});
+      "report"                 usebundle => _log("Copying ${destination} from ${source}", "", "${class_prefix}", @{args});
 }

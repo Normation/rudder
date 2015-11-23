@@ -99,5 +99,5 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         classes      => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report"             usebundle => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

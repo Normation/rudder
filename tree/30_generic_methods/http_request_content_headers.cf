@@ -42,7 +42,7 @@ bundle agent http_request_content_headers(method, url, content, headers)
 
   methods:
     pass2::
-      "report" usebundle => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Performing a HTTP ${method} request on ${url} with specific content", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
       "/bin/echo \"${content}\" | ${paths.path[curl]}"

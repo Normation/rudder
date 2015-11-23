@@ -66,5 +66,5 @@ bundle agent variable_iterator(variable_prefix, variable_name, value, separator)
 
     any::
       "report"
-        usebundle  => _logger("Set the iterator ${variable_prefix}.${variable_name} value to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log("Set the iterator ${variable_prefix}.${variable_name} value to ${value}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

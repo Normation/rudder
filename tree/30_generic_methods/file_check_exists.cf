@@ -47,5 +47,5 @@ bundle agent file_check_exists(file_name)
       "file_dont_exists"   usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"             usebundle => _logger("Check if ${file_name} exists", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"             usebundle => _log("Check if ${file_name} exists", "${old_class_prefix}", "${class_prefix}", @{args});
 }

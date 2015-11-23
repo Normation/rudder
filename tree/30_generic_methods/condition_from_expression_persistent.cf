@@ -55,5 +55,5 @@ bundle agent condition_from_expression_persistent(condition_prefix, condition_ex
       "success" usebundle => _classes_success("${old_class_prefix}");
       "success" usebundle => _classes_success("${class_prefix}");
 
-      "report"  usebundle => _logger("Create the persistent condition ${condition_prefix}_{true,false} with ${condition_expression}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report"  usebundle => _log("Create the persistent condition ${condition_prefix}_{true,false} with ${condition_expression}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

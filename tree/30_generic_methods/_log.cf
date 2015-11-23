@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2015 Normation SAS
+# Copyright 2013-2015 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,28 +16,24 @@
 #
 #####################################################################################
 
-# @name Logger for Rudder - legacy interface (DEPRECATED)
-# @description Logging output for Rudder reports. This interface is for compatiblity with older generic methods and techniques, and is replaced by log_rudder.
+# @name Log
+# @description Standard logging output
 #
 # @parameter message              The common part of the message to display
-# @parameter old_class_prefix     The prefix of the class for different states (0.x version, empty to force new style logging only)
+# @parameter old_class_prefix     The prefix of the class for different states (0.x version)
+# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
+# @parameter args                 The arguments used to call the generic method (slist)
 #
-# @class_prefix    logger_rudder
+# @class_prefix
 # @class_parameter old_class_prefix
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent logger_rudder(message, old_class_prefix)
+bundle agent _log(message, old_class_prefix, origin_class_prefix, args)
 {
-
-  vars:
-      "empty_slist" slist => { cf_null };
-
   methods:
-      "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "${old_class_prefix}", "", @{empty_slist});
-
-  reports:
-    cfengine::
-      "WARNING: DEPRECATED logger_rudder interface called. Please use log_rudder instead (${old_class_prefix}: ${message})";
-
+      # Report using the appropriate bundle(s)
+      "wrapper for ${configuration.enabled_loggers}"
+        usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${origin_class_prefix}", "@{args}"),
+        comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${origin_class_prefix}, @{args}";
 }

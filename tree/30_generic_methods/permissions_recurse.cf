@@ -38,5 +38,5 @@ bundle agent permissions_recurse(path, mode, owner, group)
       "permission with recursion"  usebundle => permissions_type_recursion("${path}", "${mode}", "${owner}", "${group}", "all", "inf");
       "new result classes"         usebundle => _classes_copy("${class_prefix}_permission_with_recursion", "${class_prefix}");
 
-      "report"                     usebundle => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "", "${class_prefix}", @{args});
+      "report"                     usebundle => _log("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "", "${class_prefix}", @{args});
 }

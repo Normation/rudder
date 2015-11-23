@@ -43,5 +43,5 @@ bundle agent file_replace_lines(file, line, replacement)
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report" usebundle => _logger("Replace line ${lines} with ${replacement} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Replace line ${lines} with ${replacement} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

@@ -36,6 +36,6 @@ bundle agent package_install_version(package_name, package_version)
       "install vith version"  usebundle => package_install_version_cmp("${package_name}", "==", "${package_version}", "add");
       "new result classes"    usebundle => _classes_copy("${class_prefix}_install_vith_version", "${class_prefix}");
 
-      "report"                usebundle => _logger("Install package ${package_name} version ${package_version}", "", "${class_prefix}", @{args});
+      "report"                usebundle => _log("Install package ${package_name} version ${package_version}", "", "${class_prefix}", @{args});
 }
 

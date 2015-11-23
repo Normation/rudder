@@ -43,5 +43,5 @@ bundle agent file_create_symlink_enforce(source, destination, enforce)
                     comment           => "Create the ${destination} symlink pointing to ${source}";
 
   methods:
-      "report" usebundle => _logger("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Symlink ${destination} targeting ${source}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

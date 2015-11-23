@@ -18,13 +18,15 @@
 bundle agent test_generic_method(test_arg1, test_arg2)
 {
   vars:
-   "class_prefix"     string => canonify("test_generic_method_${test_arg1}");
+   "old_class_prefix"  string => canonify("test_generic_method_${test_arg1}");
+   "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+   "args"               slist => { "${test_arg1}", "${test_arg2}" };
 
   packages:
     "${package_name}" package_action => "add";
 
   methods:
     "success"         usebundle => _classes_success("${class_prefix}");
-    "report"          usebundle => _logger("Test Generic Method ${service_name}", "${class_prefix}");
+    "report"          usebundle => _log("Test Generic Method ${service_name}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

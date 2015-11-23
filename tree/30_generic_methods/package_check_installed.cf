@@ -57,5 +57,5 @@ bundle agent package_check_installed(package_name)
         ifvarclass => "${class_prefix}_check_install_with_latest_version_repaired";
 
       "report"
-        usebundle  => _logger("Check that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log("Check that package ${package_name} is installed", "${old_class_prefix}", "${class_prefix}", @{args});
 }

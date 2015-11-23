@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2013 Normation SAS
+# Copyright 2013-5 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,24 +16,26 @@
 #
 #####################################################################################
 
-# @name Logger
-# @description Standard logging output
+# @name Logger - legacy interface (DEPRECATED)
+# @description Standard logging output. This interface is for compatiblity with older generic methods and techniques, and is replaced by _log.
 #
 # @parameter message              The common part of the message to display
 # @parameter old_class_prefix     The prefix of the class for different states (0.x version)
-# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
-# @parameter args                 The arguments used to call the generic method (slist)
 #
 # @class_prefix
 # @class_parameter old_class_prefix
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent _logger(message, old_class_prefix, origin_class_prefix, args)
+bundle agent _logger(message, old_class_prefix)
 {
+  vars:
+      "empty_slist" slist => { cf_null };
+
   methods:
-      # Report using the appropriate bundle(s)
-      "${configuration.enabled_loggers}"
-        usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${origin_class_prefix}", "@{args}"),
-        comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${origin_class_prefix}, @{args}";
+      "legacy _logger wrapper" usebundle => _log("${message}", "${old_class_prefix}", "", @{empty_slist});
+
+  reports:
+    cfengine::
+      "WARNING: DEPRECATED _logger interface called. Please use _log instead (${old_class_prefix}: ${message})";
 }

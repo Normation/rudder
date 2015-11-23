@@ -43,5 +43,5 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-      "report" usebundle => _logger("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Insert text block ${block} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }

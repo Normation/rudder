@@ -50,7 +50,7 @@ bundle agent condition_from_command(condition_prefix, command, true_codes, false
 
   methods:
       "report"
-        usebundle  => _logger("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${old_class_prefix}", "${class_prefix}", @{args}),
+        usebundle  => _log("Execute the test command ${command} to create ${condition_prefix}_{true,false}", "${old_class_prefix}", "${class_prefix}", @{args}),
         ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
   commands:

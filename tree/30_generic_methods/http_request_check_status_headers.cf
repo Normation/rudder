@@ -42,7 +42,7 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
 
   methods:
     pass2::
-      "report" usebundle => _logger("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${old_class_prefix}", "${class_prefix}", @{args});
+      "report" usebundle => _log("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${old_class_prefix}", "${class_prefix}", @{args});
 
   commands:
       "${paths.path[curl]}"

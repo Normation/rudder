@@ -44,6 +44,6 @@ bundle agent file_remove(target)
     "success_if_nothing" usebundle => _classes_success("${class_prefix}"),
                          ifvarclass => "has_promiser_stack.!${class_prefix}_reached";
 
-    "report"             usebundle => _logger("Remove file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
+    "report"             usebundle => _log("Remove file ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
