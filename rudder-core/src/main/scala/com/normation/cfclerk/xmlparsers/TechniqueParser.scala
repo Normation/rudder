@@ -189,6 +189,7 @@ class TechniqueParser(
    * or for file:
    * <FILE name="someIdentification">
    *   <OUTPATH>some_out_path_name</OUTPATH> (optional, default to "techniqueId/templateName.cf")
+   *   <INCLUDED>false</INCLUDED> (optional, default to false)
    * </FILE>
    *
    * if name content start with RUDDER_CONFIGURATION_REPOSITORY, the path must be considered relative
@@ -246,8 +247,10 @@ class TechniqueParser(
    */
   def parseFile(techniqueId: TechniqueId, node: Node): TechniqueFile = {
     if(node.label != FILE) throw new ParsingException(s"Error: try to parse a <${FILE}> node, but actually get: ${node}")
+    // Default value for FILE is false, so we should only check if the value is true and if it is empty it
+    val included = (node \ PROMISE_TEMPLATE_INCLUDED).text == "true"
     val (id, out) = parseResource(techniqueId, node, false)
-    TechniqueFile(id, out)
+    TechniqueFile(id, out, included)
   }
 
   def parseTemplate(techniqueId: TechniqueId, node: Node): TechniqueTemplate = {
