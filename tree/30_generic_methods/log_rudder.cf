@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2013 Normation SAS
+# Copyright 2015 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Logger for Rudder
+# @name Log for Rudder
 # @description Logging output for Rudder reports
 #
 # @parameter message              The common part of the message to display
@@ -29,7 +29,7 @@
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent logger_rudder(message, old_class_prefix, origin_class_prefix, args)
+bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
 {
   vars:
 
@@ -72,8 +72,11 @@ bundle agent logger_rudder(message, old_class_prefix, origin_class_prefix, args)
       #    The previous version of ncf always put "method_call" as a promiser, so this indicates an old technique version
       "method_v2"                  not => strcmp("method_call", nth("this.callers_promisers", "1"));
 
-      # 4/ we aggregate this with the availability of the promiser stack to know if we should report using v2 format
-      "report_v2"           expression => "expected_report_v2_csv.expected_report_v2_res.method_v2.has_promiser_stack";
+      # 4/ We check that the new class_prefix is not empty, otherwise the v2 method would break
+      "class_prefix_v2"            not => strcmp("${origin_class_prefix}", "");
+
+      # 5/ we aggregate this with the availability of the promiser stack to know if we should report using v2 format
+      "report_v2"           expression => "expected_report_v2_csv.expected_report_v2_res.method_v2.has_promiser_stack.class_prefix_v2";
 
       "keys_defined"        expression => isvariable("keys");
 
@@ -114,26 +117,32 @@ bundle agent logger_rudder(message, old_class_prefix, origin_class_prefix, args)
 
     # We HAVE the data and we CAN dot it (see /4 abvove) -> New reporting method
     report_v2::
-      "any" usebundle => _logger_rudder_v2("${expected_reports_source}", "${message}", "${origin_class_prefix}", @{args});
+      "call _log_rudder_v2" usebundle => _log_rudder_v2("${expected_reports_source}", "${message}", "${origin_class_prefix}", @{args});
 }
 
 # Bundle that is called only if we have v2 expected report and the promiser stack
 #
 # It produces new style reports
-# It will completly override logger_rudder when we remove v1 
+# It will completly override log_rudder when we remove v1 
 # Since it uses a new logic and need to parse the original file directly it can be put appart to avoid messing with the original code
 #
 # There is one case it can conflict with the orignal one :
 #  - the expected report contains one line with a v2 style technique that matches current call
 #  - the expected report contains one line with an unrelated v1 style technique that matches the current call too
 # The answer is that you should re-run rudderify on all your techniques when you upgrade
-bundle agent _logger_rudder_v2(expected_reports_source, message, class_prefix, args)
+bundle agent _log_rudder_v2(expected_reports_source, message, class_prefix, args)
 {
   vars:
-      # head(length-3) -> remove logger call stack (_logger + logger_rudder + _logger_rudder)
-      "promiser_count"  int => length("this.callers_promisers");
-      "nologger_len" string => eval("${promiser_count}-3", "math", "infix");
-      "promiser_list_nologger" slist => sublist("this.callers_promisers", "head", "${nologger_len}");
+      # We need to remove the final few promisers from the list of callers_promisers
+      # log call stack (_log + log_rudder + _log_rudder_v2 or _logger + _log + log_rudder + _log_rudder_v2 or logger_rudder + log_rudder + _log_rudder_v2)
+      # 1/ We search for known promisers from _log, _logger, logger_rudder, log_rudder, log_rudder_v2 and remove them
+      "promisers_list"            slist => { @{this.callers_promisers} };
+      "promiser_list_nologgerint" slist => filter("(wrapper for logger_rudder|wrapper for log_rudder|legacy _logger wrapper|legacy logger_rudder wrapper|call _log_rudder_v2)", promisers_list, "true", "true", 9999);
+
+      # 2/ We remove the last promiser, which is the original call to any of the above logger methods
+      "promiser_count"  int => length("this.promiser_list_nologgerint");
+      "nologger_len" string => eval("${promiser_count}-1", "math", "infix");
+      "promiser_list_nologger" slist => sublist("this.promiser_list_nologgerint", "head", "${nologger_len}");
 
       "promisers"    string => join(" / ", "promiser_list_nologger");
 

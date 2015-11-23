@@ -1,5 +1,5 @@
 #####################################################################################
-# Copyright 2013 Normation SAS
+# Copyright 2013-2015 Normation SAS
 #####################################################################################
 #
 # This program is free software: you can redistribute it and/or modify
@@ -16,7 +16,7 @@
 #
 #####################################################################################
 
-# @name Logger
+# @name Log
 # @description Standard logging output
 #
 # @parameter message              The common part of the message to display
@@ -29,11 +29,11 @@
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent _logger(message, old_class_prefix, origin_class_prefix, args)
+bundle agent _log(message, old_class_prefix, origin_class_prefix, args)
 {
   methods:
       # Report using the appropriate bundle(s)
-      "${configuration.enabled_loggers}"
+      "wrapper for ${configuration.enabled_loggers}"
         usebundle => ${configuration.enabled_loggers}("${message}", "${old_class_prefix}", "${origin_class_prefix}", "@{args}"),
         comment   => "Call the ${method} bundle with arguments ${old_class_prefix}, ${origin_class_prefix}, @{args}";
 }
