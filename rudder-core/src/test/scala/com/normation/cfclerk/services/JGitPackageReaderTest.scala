@@ -51,7 +51,6 @@ import org.specs2.specification.Step
 import org.specs2.specification.Fragments
 import org.eclipse.jgit.api.Git
 
-
 /**
  * Details of tests executed in each instances of
  * the test.
@@ -89,7 +88,6 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
     logger.info("Git repository will be in: " + gitRoot.getPath)
   } else sys.error("Can not create directory: " + ptLib.getPath)
 
-
   FileUtils.copyDirectory(new File("src/test/resources/techniquesRoot") , ptLib)
 
   /*
@@ -118,7 +116,6 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   FileUtils.writeStringToFile(f1, f1Content)
 
   val file2 = TechniqueResourceIdByName(TechniqueId(TechniqueName("p1_1"), TechniqueVersion("1.0")), "file2.txt")
-
 
   val repo = new GitRepositoryProviderImpl(gitRoot.getAbsolutePath)
 
@@ -192,8 +189,8 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
     }
     "...with 2 files" in {
       infos.techniques(packages(0).name)(packages(0).version).files.toSet === Set(
-        TechniqueFile(file1, s"p1_1/1.0/${file1.name}")
-      , TechniqueFile(file2, s"file2")
+        TechniqueFile(file1, s"p1_1/1.0/${file1.name}", false)
+      , TechniqueFile(file2, s"file2", false)
       )
     }
     "...with a file1 from which we can read" in {
@@ -238,7 +235,6 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   }
 
 }
-
 
 /**
  * A test case where git repos and technique lib root are the same
