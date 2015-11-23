@@ -103,6 +103,11 @@ class Cf3PromisesFileWriterServiceImpl(
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
 
+  // Loading licenses
+  val licenses = licenseRepository.getAllLicense()
+  if (licenses.size > 0) {
+    logger.debug(s"${licenses.size} Licenses loaded")
+  }
 
 
 
