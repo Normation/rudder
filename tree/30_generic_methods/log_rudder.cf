@@ -136,17 +136,18 @@ bundle agent _log_rudder_v2(expected_reports_source, message, class_prefix, args
       # We need to remove the final few promisers from the list of callers_promisers
       # log call stack (_log + log_rudder + _log_rudder_v2 or _logger + _log + log_rudder + _log_rudder_v2 or logger_rudder + log_rudder + _log_rudder_v2)
       # 1/ We search for known promisers from _log, _logger, logger_rudder, log_rudder, log_rudder_v2 and remove them
-      "promisers_list"            slist => { @{this.callers_promisers} };
-      "promiser_list_nologgerint" slist => filter("(wrapper for logger_rudder|wrapper for log_rudder|legacy _logger wrapper|legacy logger_rudder wrapper|call _log_rudder_v2)", promisers_list, "true", "true", 9999);
+      "promiser_list"             slist => { @{this.callers_promisers} };
+      "promiser_list_nologgerint" slist => filter("(wrapper for logger_rudder|wrapper for log_rudder|legacy _logger wrapper|legacy logger_rudder wrapper|call _log_rudder_v2)", promiser_list, "true", "true", 999);
 
       # 2/ We remove the last promiser, which is the original call to any of the above logger methods
-      "promiser_count"  int => length("this.promiser_list_nologgerint");
-      "nologger_len" string => eval("${promiser_count}-1", "math", "infix");
-      "promiser_list_nologger" slist => sublist("this.promiser_list_nologgerint", "head", "${nologger_len}");
+      "promiser_count"   int => length("promiser_list_nologgerint");
+      "nologger_len"  string => eval("${promiser_count}-1", "math", "infix");
+      "nologger_len_int" int => "${nologger_len}";
+      "promiser_list_nologger" slist => sublist("promiser_list_nologgerint", "head", "${nologger_len_int}");
 
-      "promisers"    string => join(" / ", "promiser_list_nologger");
+      "promisers"     string => join(" / ", "promiser_list_nologger");
 
-      "number_lines"    int => getfields("^${current_technique_report_info.technique_name};;.*?;;.*?;;.*?;;.*?;;${class_prefix}", 
+      "number_lines"     int => getfields("^${current_technique_report_info.technique_name};;.*?;;.*?;;.*?;;.*?;;${class_prefix}", 
                                          "${expected_reports_source}", 
                                          ";;", 
                                          "report_data");

@@ -23,7 +23,7 @@ set -e
 
 FILES_TO_CHECK=`find "${NCF_TREE}/30_generic_methods/" -name "*.cf"`
 NB_ERROR=0
-for f in $FILES_TO_CHECK
+for f in ${FILES_TO_CHECK}
 do
   NB_BUNDLE=$(egrep "[^#]*usebundle\s*=>\s*_?logger(_default|_rudder|)\(" $f | wc -l)
   if [ $NB_BUNDLE -ne 0 ]; then

@@ -30,8 +30,11 @@
 bundle agent logger_rudder(message, old_class_prefix)
 {
 
+  vars:
+      "empty_slist" slist => { cf_null };
+
   methods:
-      "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "${old_class_prefix}", "", "");
+      "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "${old_class_prefix}", "", @{empty_slist});
 
   reports:
     cfengine::

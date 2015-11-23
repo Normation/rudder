@@ -21,15 +21,13 @@
 #
 # @parameter message              The common part of the message to display
 # @parameter old_class_prefix     The prefix of the class for different states (0.x version)
-# @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
-# @parameter args                 The arguments used to call the generic method (slist)
 #
 # @class_prefix
 # @class_parameter old_class_prefix
 # The three states are kept, repaired and not_ok
 # (as defined in the classes_generic of the cfengine_stdlib)
 
-bundle agent _logger(message, old_class_prefix, origin_class_prefix, args)
+bundle agent _logger(message, old_class_prefix)
 {
   vars:
       "empty_slist" slist => { cf_null };
