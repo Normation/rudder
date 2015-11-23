@@ -44,7 +44,7 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
     tags_present::
       "${file}"
         edit_line     => ensure_line_in_xml_tag("${tag}", "${line}"),
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:

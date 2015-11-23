@@ -47,7 +47,7 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
       "${file}"
         create        => "true",
         edit_line     => ncf_insert_block("${section_and_blank_line}"),
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
         ifvarclass    => "section_absent",
         comment       => "Add section to file with a blank line";
 
@@ -55,7 +55,7 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
       "${file}"
         create        => "true",
         edit_line     => ensure_line_in_ini_section("${section}", "${line}"),
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:

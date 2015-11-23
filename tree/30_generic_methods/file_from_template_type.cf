@@ -43,6 +43,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
       create          => "true",
       edit_template   => "${source_template}",
       template_method => "${template_type}",
+      edit_defaults   => ncf_empty_select("false"),
       ifvarclass      => "template_exists",
       classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 

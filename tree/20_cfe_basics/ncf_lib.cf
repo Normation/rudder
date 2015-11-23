@@ -462,5 +462,5 @@ body edit_defaults ncf_empty_select(select)
 {
         empty_file_before_editing => "${select}";
         max_file_size             => "1024000";
-        edit_backup               => "false";
+        edit_backup               => "timestamp";
 }

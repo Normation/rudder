@@ -42,11 +42,11 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
       "${file}"
         create        => "true",
         edit_line     => set_variable_values_ini("file_ensure_key_value_present_in_ini_section.content", "${section}"),
-        edit_defaults => no_backup,
-        classes       => classes_generic("${class_prefix}");
+        edit_defaults => ncf_empty_select("false"),
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
       "report"
-        usebundle  => _log("Set line ${name}=${value} in section ${section} into ${file}", "${class_prefix}", "${class_prefix}", @{args});
+        usebundle  => _log("Set line ${name}=${value} in section ${section} into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
 

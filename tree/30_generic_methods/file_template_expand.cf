@@ -42,7 +42,7 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
       "${target_file}"
         create        => "true",
         edit_template => "${me.framework_path}/${tml_file}",
-        edit_defaults => no_backup,
+        edit_defaults => ncf_empty_select("false"),
         perms         => mog("${mode}","${owner}","${group}"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
