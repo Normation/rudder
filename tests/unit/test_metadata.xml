@@ -4,7 +4,9 @@
     <NAME>bla</NAME>
   </BUNDLES>
   <FILES>
-    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/bla/bla.cf" />
+    <FILE name="RUDDER_CONFIGURATION_REPOSITORY/ncf/50_techniques/bla/bla.cf">
+      <INCLUDED>true</INCLUDED>
+    </FILE>
   </FILES>
   <SECTIONS>
     <SECTION component="true" multivalued="true" name="Package install">
