@@ -34,80 +34,55 @@
 
 package com.normation.rudder.repository.xml
 
-import scala.collection._
-import com.normation.rudder.repository.LicenseRepository
-import com.normation.rudder.domain.licenses.NovaLicense
-import org.xml.sax.SAXParseException
-import org.slf4j.{Logger,LoggerFactory}
-import org.apache.commons.io.FileUtils
-import java.io.File
-import scala.xml._
-import com.normation.rudder.exceptions._
 import java.io.FileNotFoundException
+import scala.xml.Elem
+import scala.xml.XML
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.exceptions.ParsingException
+import com.normation.rudder.repository.LicenseRepository
+import org.xml.sax.SAXParseException
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 
-class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository {
+class LicenseRepositoryXML(licenseFile : String) extends LicenseRepository with Loggable {
 
-  val logger = LoggerFactory.getLogger(classOf[LicenseRepositoryXML])
+  override def getAllLicense(): Box[Map[NodeId, NovaLicense]] = {
+    logger.debug(s"Loading document ${licenseFile}")
+    try {
+      val doc = loadLicenseFile()
 
-  val licenseMap = mutable.Map[String, NovaLicense]()
-
-
-  def findLicense(nodeId: NodeId): Option[NovaLicense] = {
-    licenseMap.get(nodeId.value)
-  }
-
-  def getAllLicense(): Seq[NovaLicense] = {
-    loadLicenses()
-    licenseMap.map(x => x._2).toSeq
-  }
-
-    def addLicense(license: NovaLicense): Option[NovaLicense] = {
-      logger.debug("Adding a license {}", license)
-      licenseMap.put(license.uuid, license)
-      saveLicenseFile()
-      findLicense(NodeId(license.uuid))
-    }
-
-
-  private[this] def loadLicenses(): Unit = {
-    licenseMap.clear
-
-    logger.debug("Loading document {}", licenseFile)
-    val doc = loadLicenseFile()
-
-    for (elt <- (doc \\"licenses" \ "license")) {
-      logger.debug("Loading License")
-      val license = NovaLicense.parseXml(elt)
-      licenseMap.put(license.uuid, license)
+      val licenses = (for {
+        elt <- (doc \\"licenses" \ "license")
+      } yield {
+        NovaLicense.parseXml(elt)
+      })
+      Full(licenses.map(x => (x.uuid, x)).toMap)
+    } catch {
+      case ex: Exception => Failure(s"Failed to load licenses from file: ${licenseFile}", Full(ex), Empty)
     }
   }
 
-    /**
+  /**
    * Load the license file
    * @return The xml element representation of the file
    */
-
   private[this] def loadLicenseFile() : Elem = {
     try {
       XML.loadFile(licenseFile)
     } catch {
-      case e : SAXParseException => logger.error("Cannot parse license file"); throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
-      case e : java.net.MalformedURLException =>  logger.error("Cannot read license file {}" + licenseFile); throw new FileNotFoundException("License file not found : " + licenseFile )
+      case e : SAXParseException =>
+        logger.error("Cannot parse license file")
+        throw new ParsingException("Unexpected issue (unvalid xml?) with the config file " )
+      case e : java.net.MalformedURLException =>
+        logger.error(s"Cannot read license file ${licenseFile}")
+        throw new FileNotFoundException("License file not found : " + licenseFile )
       case e : java.io.FileNotFoundException =>
         logger.debug(s"License file ${licenseFile} not found, this may be a problem if using the Windows Plugin")
         <licenses/>
     }
   }
-
-
-  private def saveLicenseFile() = {
-    FileUtils.writeStringToFile(new File(licenseFile), this.toXml.toString)
-  }
-
-
-  def toXml =
-    <licenses>
-      {licenseMap.iterator.map( license => license._2 .toXml)}
-    </licenses>
 }

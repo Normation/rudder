@@ -69,6 +69,7 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
+import com.normation.rudder.domain.licenses.NovaLicense
 
 
 /**
@@ -81,7 +82,13 @@ trait Cf3PromisesFileWriterService {
    * Write templates for node configuration that changed since the last write.
    *
    */
-  def writeTemplate(rootNodeId: NodeId, nodesToWrite: Set[NodeId], allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId]) : Box[Seq[NodeConfiguration]]
+  def writeTemplate(
+      rootNodeId    : NodeId
+    , nodesToWrite  : Set[NodeId]
+    , allNodeConfigs: Map[NodeId, NodeConfiguration]
+    , versions      : Map[NodeId, NodeConfigId]
+    , allLicenses   : Map[NodeId, NovaLicense]
+  ) : Box[Seq[NodeConfiguration]]
 }
 
 
@@ -89,7 +96,6 @@ trait Cf3PromisesFileWriterService {
 class Cf3PromisesFileWriterServiceImpl(
     techniqueRepository      : TechniqueRepository
   , pathComputer             : PathComputer
-  , licenseRepository        : LicenseRepository
   , logNodeConfig            : NodeConfigurationLogger
   , prepareTemplate          : PrepareTemplateVariables
   , communityCheckPromises   : String
@@ -115,6 +121,7 @@ class Cf3PromisesFileWriterServiceImpl(
     , nodesToWrite  : Set[NodeId]
     , allNodeConfigs: Map[NodeId, NodeConfiguration]
     , versions      : Map[NodeId, NodeConfigId]
+    , allLicenses   : Map[NodeId, NovaLicense]
   ) : Box[Seq[NodeConfiguration]] = {
 
 
@@ -169,7 +176,7 @@ class Cf3PromisesFileWriterServiceImpl(
                               "OK"
                             }
                           }
-      licensesCopied   <- copyLicenses(configAndPaths)
+      licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
       checked          <- checkGeneratedPromises(configAndPaths.map { x => (x.agentType, x.paths) })
       permChanges      <- sequencePar(pathsInfo) { nodePaths =>
                             setCFEnginePermission(nodePaths.newFolder) ?~! "cannot change permission on destination folder"
@@ -304,7 +311,7 @@ class Cf3PromisesFileWriterServiceImpl(
   /**
    * For agent needing it, copy licences to the correct path
    */
-  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration]): Box[Seq[AgentNodeConfiguration]] = {
+  private[this] def copyLicenses(agentNodeConfigurations: Seq[AgentNodeConfiguration], licenses: Map[NodeId, NovaLicense]): Box[Seq[AgentNodeConfiguration]] = {
 
     sequence(agentNodeConfigurations) { case x @ AgentNodeConfiguration(config, agentType, paths) =>
 
@@ -317,7 +324,7 @@ class Cf3PromisesFileWriterServiceImpl(
             config.nodeInfo.policyServerId
           }
 
-          licenseRepository.findLicense(sourceLicenceNodeId) match {
+          licenses.get(sourceLicenceNodeId) match {
             case None =>
               // we are in the "free case", just log-debug it (as we already informed the user that there is no license)
               logger.info(s"Not copying missing license file into '${paths.newFolder}' for node '${config.nodeInfo.hostname}' (${config.nodeInfo.id.value}).")
