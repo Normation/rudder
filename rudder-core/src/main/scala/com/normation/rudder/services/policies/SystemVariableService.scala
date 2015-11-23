@@ -58,6 +58,7 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.domain.licenses.NovaLicense
 
 trait SystemVariableService {
   def getGlobalSystemVariables():  Box[Map[String, Variable]]
@@ -65,6 +66,7 @@ trait SystemVariableService {
   def getSystemVariables(
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allLicences           : Map[NodeId, NovaLicense]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
@@ -82,8 +84,7 @@ final case class ResolvedRudderServerRole(
 )
 
 class SystemVariableServiceImpl(
-    licenseRepository: LicenseRepository
-  , systemVariableSpecService: SystemVariableSpecService
+    systemVariableSpecService: SystemVariableSpecService
   , policyServerManagementService: PolicyServerManagementService
   // Variables definitions
   , toolsFolder              : String
@@ -196,6 +197,7 @@ class SystemVariableServiceImpl(
   def getSystemVariables(
         nodeInfo              : NodeInfo
       , allNodeInfos          : Map[NodeId, NodeInfo]
+      , allLicenses           : Map[NodeId, NovaLicense]
       , globalSystemVariables : Map[String, Variable]
       , globalAgentRun        : AgentRunInterval
       , globalComplianceMode  : ComplianceMode
@@ -246,7 +248,7 @@ class SystemVariableServiceImpl(
 
     // Set the licences for the Nova
     val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
-      licenseRepository.findLicense(nodeInfo.policyServerId) match {
+      allLicenses.get(nodeInfo.policyServerId) match {
         case None =>
           logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
           //that's the default value
