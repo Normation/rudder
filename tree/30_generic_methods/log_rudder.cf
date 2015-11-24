@@ -228,19 +228,19 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
   methods:
       "na"
         usebundle  => _rudder_common_report("${technique_name}", "result_na", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was not applicable"),
-        ifvarclass => "${old_class_prefix}_noop.!${old_class_prefix}_kept.!${old_class_prefix}_repaired.!${old_class_prefix}_error";
+        ifvarclass => "${class_prefix}_noop.!${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "success"
         usebundle  => _rudder_common_report("${technique_name}", "result_success", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was correct"),
-        ifvarclass => "${old_class_prefix}_kept.!${old_class_prefix}_repaired.!${old_class_prefix}_error";
+        ifvarclass => "${class_prefix}_kept.!${class_prefix}_repaired.!${class_prefix}_error";
 
       "repaired"
         usebundle  => _rudder_common_report("${technique_name}", "result_repaired", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} was repaired"),
-        ifvarclass => "${old_class_prefix}_repaired.!${old_class_prefix}_error";
+        ifvarclass => "${class_prefix}_repaired.!${class_prefix}_error";
 
       "error"
         usebundle  => _rudder_common_report("${technique_name}", "result_error", "${identifier}", "${component_name}", "${component_key}", "${message_prefix} could not be repaired"),
-        ifvarclass => "${old_class_prefix}_error";
+        ifvarclass => "${class_prefix}_error";
 }
 
 bundle agent _startExecution(identifier)
