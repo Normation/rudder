@@ -31,7 +31,8 @@ bundle agent file_copy_from_local_source_recursion(source, destination, recursio
 {
   vars:
       "old_class_prefix" string => canonify("file_copy_from_local_source_${destination}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}", "${recursion}" };
 
   classes:

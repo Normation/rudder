@@ -35,7 +35,8 @@
 bundle agent package_install_version_cmp(package_name, version_comparator, package_version, action)
 {
   vars:
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}" };
 
   methods:

@@ -31,7 +31,8 @@ bundle agent directory_check_exists(directory_name)
 {
   vars:
       "old_class_prefix" string => canonify("directory_check_exists_${directory_name}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${directory_name}" };
 
   classes:

@@ -46,7 +46,8 @@ bundle agent schedule_simple_nodups(job_id, agent_periodicity,
 {
   vars:
     any::
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${job_id}", "${agent_periodicity}", "${max_execution_delay_minutes}", "${max_execution_delay_hours}",
                                       "${start_on_minutes}", "${start_on_hours}", "${start_on_day_of_week}",
                                       "${periodicity_minutes}", "${periodicity_hours}", "${periodicity_days}" };

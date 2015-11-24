@@ -32,7 +32,8 @@ bundle agent file_ensure_keys_values(file, keys, separator)
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_keys_values_${file}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${keys}", "${separator}" };
 
   files:

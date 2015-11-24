@@ -42,7 +42,8 @@ bundle agent condition_from_command(condition_prefix, command, true_codes, false
 {
   vars:
       "old_class_prefix"  string => canonify("condition_from_command_${condition_prefix}");
-      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${condition_prefix}", "${command}", "${true_codes}", "${false_codes}" };
 
       "true_list"     slist => splitstring("${true_codes}", "\s*,\s*", "256");

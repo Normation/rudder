@@ -39,7 +39,8 @@ bundle agent condition_from_expression_persistent(condition_prefix, condition_ex
 {
   vars:
       "old_class_prefix"  string => canonify("condition_from_expression_persistent_${condition_prefix}");
-      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${condition_prefix}", "${condition_expression}", "${duration}" };
 
   classes:

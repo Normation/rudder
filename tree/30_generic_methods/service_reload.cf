@@ -32,7 +32,8 @@ bundle agent service_reload(service_name)
     "canonified_service_name" string => canonify("${service_name}");
 
     "old_class_prefix"        string => "service_reload_${canonified_service_name}";
-    "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+    "class_prefix"      string => canonify(join("_", "promisers"));
     "args"                    slist => { "${service_name}" };
 
   methods:
