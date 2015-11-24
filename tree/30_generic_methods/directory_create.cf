@@ -29,7 +29,8 @@ bundle agent directory_create(target)
 {
   vars:
     "old_class_prefix" string => canonify("directory_create_${target}");
-    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+    "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${target}" };
 
   files:

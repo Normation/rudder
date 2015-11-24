@@ -33,7 +33,8 @@ bundle agent file_ensure_key_value_present_in_ini_section(file, section, name, v
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_key_value_present_in_ini_section_${file}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${section}", "${name}", "${value}" };
 
       "content[${section}][${name}]" string => "${value}";

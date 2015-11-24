@@ -45,7 +45,8 @@ bundle agent file_download(source, destination)
       "canonified_action_command" string => canonify("${action_command}");
 
       "old_class_prefix"          string => "file_download_${canonified_destination}";
-      "class_prefix"              string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                       slist => { "${source}", "${destination}" };
 
   classes:

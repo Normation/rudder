@@ -48,7 +48,8 @@ bundle agent service_action(service_name, action)
       "canonified_action_command" string => canonify("${action_command}");
 
       "old_class_prefix"          string => "service_action_${canonified_service_name}";
-      "class_prefix"              string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                       slist => { "${service_name}", "${action}" };
 
   classes:

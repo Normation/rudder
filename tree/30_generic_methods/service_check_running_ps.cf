@@ -29,7 +29,8 @@ bundle agent service_check_running_ps(service_regex)
 {
   vars:
       "old_class_prefix" string => canonify("service_check_running_${service_regex}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${service_regex}" };
 
   classes:

@@ -32,7 +32,8 @@ bundle agent file_replace_lines(file, line, replacement)
 {
   vars:
       "old_class_prefix" string => canonify("file_replace_lines_${file}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${line}", "${replacement}" };
 
   files:

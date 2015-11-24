@@ -35,7 +35,8 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
 {
   vars:
       "old_class_prefix" string => canonify("file_template_expand_${target_file}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${tml_file}", "${target_file}", "${mode}", "${owner}", "${group}" };
 
   files:

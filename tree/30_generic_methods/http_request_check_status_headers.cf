@@ -32,7 +32,8 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
 {
   vars:
       "old_class_prefix" string => canonify("http_request_check_status_headers_${url}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${method}", "${url}", "${expected_status}", "${headers}" };
 
   classes:

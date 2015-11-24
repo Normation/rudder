@@ -29,7 +29,8 @@
 bundle agent file_create_symlink(source, destination)
 {
   vars:
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${source}", "${destination}" };
 
   methods:

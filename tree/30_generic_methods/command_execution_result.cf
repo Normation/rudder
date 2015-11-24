@@ -35,7 +35,8 @@ bundle agent command_execution_result(command, kept_codes, repaired_codes)
 {
   vars:
       "old_class_prefix"  string => canonify("command_execution_result_${command}");
-      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${command}", "${kept_codes}", "${repaired_codes}" };
 
       "kept_list"     slist => splitstring("${kept_codes}", "\s*,\s*", "256");

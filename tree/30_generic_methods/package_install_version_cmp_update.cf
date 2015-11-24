@@ -38,7 +38,8 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
   vars:
       "canonified_package_name" string => canonify("${package_name}");
       "old_class_prefix"        string => "package_install_${canonified_package_name}";
-      "class_prefix"            string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"                     slist => { "${package_name}", "${version_comparator}", "${package_version}", "${action}", "${update_policy}" };
 
   defaults:

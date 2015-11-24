@@ -32,7 +32,8 @@ bundle agent file_from_template_type(source_template, destination, template_type
 {
   vars:
     "old_class_prefix" string => canonify("file_from_template_${destination}");
-    "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+    "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${source_template}", "${destination}", "${template_type}" };
 
   classes:

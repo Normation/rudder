@@ -32,7 +32,8 @@ bundle agent http_request_content_headers(method, url, content, headers)
 {
   vars:
       "old_class_prefix" string => canonify("http_request_content_headers_${url}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${method}", "${url}", "${content}", "${headers}" };
 
   classes:

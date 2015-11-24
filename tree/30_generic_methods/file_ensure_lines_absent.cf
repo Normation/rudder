@@ -30,7 +30,8 @@ bundle agent file_ensure_lines_absent(file, lines)
 {
   vars:
       "old_class_prefix" string => canonify("file_ensure_lines_absent_${file}");
-      "class_prefix"     string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"              slist => { "${file}", "${lines}" };
 
   files:

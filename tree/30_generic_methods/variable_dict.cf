@@ -41,7 +41,8 @@ bundle agent variable_dict(variable_prefix, variable_name, value)
 {
   vars:
       "old_class_prefix"  string => canonify("variable_dict_${variable_name}");
-      "class_prefix"      string => canonify(join("_", "this.callers_promisers"));
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${variable_prefix}", "${variable_name}", "${value}" };
 
       # define the variable within the class_prefix namespace
