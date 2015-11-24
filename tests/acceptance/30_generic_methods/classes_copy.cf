@@ -37,9 +37,10 @@ bundle agent test
     "ph2" usebundle => file_ensure_lines_absent("${init.file}", "sample one"); # should get success
     "ph3" usebundle => file_ensure_lines_absent("/dev/zero", "sample three"); # should get failed
 
-    "ph1"  usebundle => _classes_copy("file_ensure_lines_absent_${init.file_canon}","global_classA");
     "ph2"  usebundle => _classes_copy("file_ensure_lines_present_${init.file_canon}","global_classB");
+    "ph1"  usebundle => _classes_copy("file_ensure_lines_absent_${init.file_canon}","global_classA");
     "ph3"  usebundle => _classes_copy("file_ensure_lines_absent__dev_zero","global_classC");
+    "ph4"  usebundle => _classes_copy("file_ensure_lines_absent_${init.file_canon}","");
 
 }
 
@@ -51,7 +52,8 @@ bundle agent check
       "ok_repaired" expression => "(global_classA_ok.global_classA_reached.global_classA_kept.global_classA_not_repaired.promise_kept_global_classA).!(global_classA_repaired|promise_repaired_global_classA)";
       "ok_success"  expression => "(global_classB_ok.global_classB_reached.global_classB_repaired.promise_repaired_global_classB).!(global_classB_kept|global_classB_not_repaired|promise_kept_global_classB)";
       "ok_error"    expression => "(global_classC_failed.repair_failed_global_classC.global_classC_not_ok.global_classC_not_kept.global_classC_not_repaired.global_classC_reached).!(global_classC_kept|promise_kept_global_classC|global_classC_repaired|promise_repaired_global_classC)";
-      "ok"          expression => "ok_success.ok_repaired.ok_error";
+      "ok_no_empty" expression => "(!_ok.!_reached.!_kept.!_not_repaired.!promise_kept_)";
+      "ok"          expression => "ok_success.ok_repaired.ok_error.ok_no_empty";
 
   reports:
     ok::

@@ -31,6 +31,7 @@ bundle agent _classes_failure(class_prefix)
       "prefix" slist => { "repair_failed" };
       "suffix" slist => { "not_kept", "not_ok", "not_repaired", "failed", "reached", "error" };
 
+    destination_exists::
       "${prefix}_local"
         string     => "${prefix}_${class_prefix}",
         classes    => always("${prefix}_${class_prefix}");
@@ -38,5 +39,9 @@ bundle agent _classes_failure(class_prefix)
       "local_${suffix}"
         string     => "${class_prefix}_${suffix}",
         classes    => always("${class_prefix}_${suffix}");
+
+  classes:
+      "destination_exists" not => strcmp("${class_prefix}", "");
+
 
 }
