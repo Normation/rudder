@@ -34,30 +34,20 @@
 
 package com.normation.rudder.domain.licenses
 
+import scala.xml.NodeSeq
+import com.normation.inventory.domain.NodeId
 import org.joda.time.DateTime
-import org.joda.time.format._
+import org.joda.time.format.ISODateTimeFormat
+import org.slf4j.LoggerFactory
 
-
-import org.slf4j.{Logger,LoggerFactory}
-import scala.xml._
-
-class NovaLicense(val uuid : String, val licenseNumber : Int, val expirationDate : DateTime, val file : String) {
-
-  def toXml =
-    <license>
-      <uuid>{uuid}</uuid>
-      <licenseNumber>{licenseNumber}</licenseNumber>
-      <expirationDate>{expirationDate}</expirationDate>
-      <file>{file}</file>
-    </license>
-}
+class NovaLicense(val uuid : NodeId, val licenseNumber : Int, val expirationDate : DateTime, val file : String)
 
 object NovaLicense {
 
   val LOGGER = LoggerFactory.getLogger(classOf[NovaLicense])
 
   def parseXml(node: NodeSeq) : NovaLicense  = {
-    LOGGER.info("Reading license of machine {} ", (node\"uuid").text);
-    new NovaLicense((node\"uuid").text, (node\"licenseNumber").text.toInt, ISODateTimeFormat.dateTimeParser.parseDateTime((node\"expirationDate").text), (node\"file").text)
+    LOGGER.info("Reading license of node {} ", (node\"uuid").text);
+    new NovaLicense( NodeId((node\"uuid").text), (node\"licenseNumber").text.toInt, ISODateTimeFormat.dateTimeParser.parseDateTime((node\"expirationDate").text), (node\"file").text)
   }
 }
