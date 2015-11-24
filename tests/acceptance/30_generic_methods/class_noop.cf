@@ -31,6 +31,7 @@ bundle agent test
 {
   methods:
     "ph1"         usebundle => _classes_noop("my_class");
+    "ph1"         usebundle => _classes_noop("");
 
 }
 
@@ -43,7 +44,8 @@ bundle agent check
       "ok_success"  expression => "!(promise_kept_my_class|my_class_kept|my_class_not_repaired|my_class_ok|my_class_reached)";
       "ok_repaired" expression => "!(promise_repaired_my_class|my_class_repaired)";
       "ok_error"    expression => "!(repair_failed_my_class|repair_denied_class_my_class|repair_timeout_my_class|my_class_failed|my_class_not_ok|my_class_not_kept|my_class_denied|my_class_timeout)";
-      "ok"          and        => { "ok_noop", "ok_success", "ok_repaired", "ok_error" };
+      "ok_no_empty" expression => "!_noop";
+      "ok"          and        => { "ok_noop", "ok_success", "ok_repaired", "ok_error", "ok_no_empty" };
 
   reports:
     ok::
