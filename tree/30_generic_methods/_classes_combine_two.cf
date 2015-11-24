@@ -35,7 +35,7 @@ bundle agent _classes_combine_two(first_prefix, second_prefix, destination_prefi
       "first_reached"  expression => "${first_prefix}_reached";
       "second_reached" expression => "${second_prefix}_reached";
 
-    first_reached.second_reached::
+    destination_exists.first_reached.second_reached::
       "${destination_prefix}_ok"               expression => "${first_prefix}_ok.${second_prefix}_ok",
                                                scope => "namespace";
 
@@ -83,6 +83,13 @@ bundle agent _classes_combine_two(first_prefix, second_prefix, destination_prefi
 
       "${destination_prefix}_not_repaired"     expression => "!${destination_prefix}_repaired",
                                                scope => "namespace";
+
+  classes:
+    # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+    # and it will always be evaluated to true otherwise
+    "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+    "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+    "destination_exists"         and => { "destination_defined", "destination_not_empty" };
 
   methods:
     first_reached.!second_reached::
