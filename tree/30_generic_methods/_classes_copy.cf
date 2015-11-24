@@ -47,7 +47,7 @@ bundle agent _classes_copy(source_prefix, destination_prefix)
         classes    => always("${destination_prefix}_${suffix}");
 
   classes:
-      # this line will not ne evaluated by cfengine if destination_prefix contains a variable that do not exist
+      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
       # and it will always be evaluated to true otherwise
       "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
       "destination_not_empty"      not => strcmp("${destination_prefix}", "");

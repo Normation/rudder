@@ -39,7 +39,7 @@ bundle agent _classes_combine_four(first_prefix, second_prefix, third_prefix, fo
       "third_reached"  expression => "${third_prefix}_reached";
       "fourth_reached" expression => "${fourth_prefix}_reached";
 
-    first_reached.second_reached.third_reached.fourth_reached::
+    destination_defined.first_reached.second_reached.third_reached.fourth_reached::
       "${destination_prefix}_ok"               expression => "${first_prefix}_ok.${second_prefix}_ok.${third_prefix}_ok.${fourth_prefix}_ok",
                                                scope => "namespace";
 
@@ -87,6 +87,14 @@ bundle agent _classes_combine_four(first_prefix, second_prefix, third_prefix, fo
 
       "${destination_prefix}_not_repaired"     expression => "!${destination_prefix}_repaired",
                                                scope => "namespace";
+
+  classes:
+    # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+    # and it will always be evaluated to true otherwise
+    "destination_defined" expression => strcmp("${destination_prefix}", "${destination_prefix}");
+    "destination_not_empty"      not => strcmp("${destination_prefix}", "");
+    "destination_exists"         and => { "destination_defined", "destination_not_empty" };
+
   methods:
     !first_reached::
       "no first"    usebundle => _classes_combine_three("${second_prefix}", "${third_prefix}", "${fourth_prefix}", "${destination_prefix}");
@@ -99,4 +107,5 @@ bundle agent _classes_combine_four(first_prefix, second_prefix, third_prefix, fo
 
     first_reached.second_reached.third_reached.!fourth_reached::
       "no fourth"   usebundle => _classes_combine_three("${first_prefix}", "${second_prefix}", "${third_prefix}", "${destination_prefix}");
+
 }
