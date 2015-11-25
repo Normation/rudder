@@ -586,7 +586,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           toList.sortWith( treeUtilService.sortPtCategory( _ , _ ) ).
           map(jsTreeNodeOf_ptCategory(_)
         ) ++
-        category.packageIds.map( _.name ).
+        category.techniqueIds.map( _.name ).
           flatMap(x => treeUtilService.getPt(x,logger)).toList.
           sortWith((x,y) =>  treeUtilService.sortPt(x.id.name, y.id.name ) ).map(jsTreeNodeOf_pt( _ ) )
 
