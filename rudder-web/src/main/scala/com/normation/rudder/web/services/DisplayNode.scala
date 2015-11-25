@@ -92,11 +92,9 @@ object DisplayNode extends Loggable {
     case Full(n) => n
   }
 
-
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
-
 
   private[this] def content() = chooseTemplate("serverdetails","content",template)
 
@@ -481,7 +479,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         logger.error(e.messageChain)
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
       case Full(policyServerDetails) =>
-        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.nodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
     }
   }
 
@@ -561,7 +559,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     }<div id={htmlId(jsId,eltName + "_grid_") + "_paginate_area"} class="paginate"/>
     </div>
   }
-
 
   private def displayTabSoftware(jsId:JsNodeId) : NodeSeq =
     displayTabGrid(jsId)("soft",
@@ -769,8 +766,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         </span>
       </div>
     </div> ;
-
-
 
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw(s""" createPopup("${deleteNodePopupHtmlId}") """)
