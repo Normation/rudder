@@ -134,7 +134,7 @@ class CheckInitUserTemplateLibrary(
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //Techniques
-                  bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
+                  bestEffort(fromCat.techniqueIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
                       activeTechnique <- woDirectiveRepos.addTechniqueInUserLibrary(
                           newUserPTCat.id

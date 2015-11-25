@@ -85,11 +85,9 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
 
-
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
-
 
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
     (for {
@@ -341,7 +339,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
      <h3> Node characteristics</h3>
       <h4 class="tablemargin">General</h4>
 
-
         <div class="tablepadding">
           <b>Hostname:</b> {sm.node.main.hostname}<br/>
           <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
@@ -464,7 +461,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         logger.error(e.messageChain)
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
       case Full(policyServerDetails) =>
-        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.nodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
     }
   }
 
@@ -544,7 +541,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     }<div id={htmlId(jsId,eltName + "_grid_") + "_paginate_area"} class="paginate"/>
     </div>
   }
-
 
   private def displayTabSoftware(jsId:JsNodeId) : NodeSeq =
     displayTabGrid(jsId)("soft",
@@ -748,8 +744,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         </span>
       </div>
     </div> ;
-
-
 
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw(s""" createPopup("${deleteNodePopupHtmlId}") """)
