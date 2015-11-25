@@ -37,7 +37,6 @@ package com.normation.cfclerk.services
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
-import scala.collection._
 import com.normation.cfclerk.domain._
 import java.io.File
 import org.apache.commons.io.IOUtils
@@ -58,6 +57,9 @@ import org.eclipse.jgit.api.Git
  * of that file.
  */
 trait JGitPackageReaderSpec extends Specification with Loggable {
+
+  // Set sequential execution
+  sequential
 
   def gitRoot : File
   def ptLib : File
@@ -84,7 +86,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   //we use a different directory for git repos and ptlib
 
   if(true == ptLib.mkdirs) {
-    logger.info("Created a new directory to store the policy template library: " + ptLib.getPath)
+    logger.info("Created a new directory to store the technique library: " + ptLib.getPath)
     logger.info("Git repository will be in: " + gitRoot.getPath)
   } else sys.error("Can not create directory: " + ptLib.getPath)
 
@@ -152,27 +154,27 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
     val rootCat = infos.rootCategory
     "be named 'Root category'" in "Root category" === rootCat.name
     "has no description" in "" === rootCat.description
-    "has one policy package..." in 1 === rootCat.packageIds.size
-    "...with name p_root_1" in "p_root_1" === rootCat.packageIds.head.name.value
-    "...with version 1.0" in "1.0" === rootCat.packageIds.head.version.toString
+    "has one policy technique..." in 1 === rootCat.techniqueIds.size
+    "...with name p_root_1" in "p_root_1" === rootCat.techniqueIds.head.name.value
+    "...with version 1.0" in "1.0" === rootCat.techniqueIds.head.version.toString
     "has 1 valid subcategory (because cat2 has no category.xml descriptor)" in 1 === rootCat.subCategoryIds.size
     "...with name cat1" in rootCat.subCategoryIds.head === rootCat.id / "cat1"
   }
 
   "cat1 sub category" should {
     val cat1 = infos.subCategories( R / "cat1" )
-    val packages = cat1.packageIds.toSeq
-    val tmlId = TechniqueResourceIdByName(packages(0), "theTemplate")
+    val techniques = cat1.techniqueIds.toSeq
+    val tmlId = TechniqueResourceIdByName(techniques(0), "theTemplate")
     "be named 'cat1'" in  cat1.name === "cat1"
     "has no description" in cat1.description === ""
-    "has two packages..." in cat1.packageIds.size === 2
-    "...with the same name p1_1" in cat1.packageIds.forall(id => "p1_1" === id.name.value)
-    "...and version 1.0" in packages(0).version === TechniqueVersion("1.0")
-    ".... that provides expected_reports.csv" in infos.techniques(packages(0).name)(packages(0).version).providesExpectedReports === true
-    "...and version 2.0" in packages(1).version === TechniqueVersion("2.0")
-    ".... that DOES NOT provide expected_reports.csv" in infos.techniques(packages(1).name)(packages(1).version).providesExpectedReports === false
+    "has two techniques..." in cat1.techniqueIds.size === 2
+    "...with the same name p1_1" in cat1.techniqueIds.forall(id => "p1_1" === id.name.value)
+    "...and version 1.0" in techniques(0).version === TechniqueVersion("1.0")
+    ".... that provides expected_reports.csv" in infos.techniques(techniques(0).name)(techniques(0).version).providesExpectedReports === true
+    "...and version 2.0" in techniques(1).version === TechniqueVersion("2.0")
+    ".... that DOES NOT provide expected_reports.csv" in infos.techniques(techniques(1).name)(techniques(1).version).providesExpectedReports === false
     "...with 3 templates" in {
-      infos.techniques(packages(0).name)(packages(0).version).templates.toSet === Set(
+      infos.techniques(techniques(0).name)(techniques(0).version).templates.toSet === Set(
         TechniqueTemplate(tmlId, s"p1_1/1.0/${tmlId.name}.cf", true)
       , TechniqueTemplate(templateId, s"bob.txt", false)
       , TechniqueTemplate(template2Id, s"p1_1/1.0/${template2Id.name}.cf", true)
@@ -188,7 +190,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
       assertResourceContent(template2Id, true, template2Content)
     }
     "...with 2 files" in {
-      infos.techniques(packages(0).name)(packages(0).version).files.toSet === Set(
+      infos.techniques(techniques(0).name)(techniques(0).version).files.toSet === Set(
         TechniqueFile(file1, s"p1_1/1.0/${file1.name}", false)
       , TechniqueFile(file2, s"file2", false)
       )
@@ -205,32 +207,55 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
     val cat1_1 = infos.subCategories( R / "cat1" / "cat1_1" )
     "be named 'Category 1.1 name'" in  cat1_1.name === "Category 1.1 name"
     "has description 'Category 1.1 description'" in cat1_1.description === "Category 1.1 description"
-    "has 0 package " in cat1_1.packageIds.size === 0
+    "has 0 technique " in cat1_1.techniqueIds.size === 0
   }
 
   "cat1/cat1_1/cat1_1_1 sub category" should {
     val cat1_1_1 = infos.subCategories( R / "cat1" / "cat1_1" / "cat1_1_1" )
     "be named 'Category 1.1 name'" in  cat1_1_1.name === "cat1_1_1"
     "has no description" in cat1_1_1.description === ""
-    "has two packages..." in cat1_1_1.packageIds.size === 2
+    "has two techniques..." in cat1_1_1.techniqueIds.size === 2
     "...with name p1_1_1_1 and p1_1_1_2" in {
-      Seq("p1_1_1_1", "p1_1_1_2").forall(name => cat1_1_1.packageIds.exists(id => id.name.value == name)) === true
+      Seq("p1_1_1_1", "p1_1_1_2").forall(name => cat1_1_1.techniqueIds.exists(id => id.name.value == name)) === true
     }
     "...and the same version 1.0" in {
-      cat1_1_1.packageIds.forall(id => id.version === TechniqueVersion("1.0"))
+      cat1_1_1.techniqueIds.forall(id => id.version === TechniqueVersion("1.0"))
     }
   }
 
   "if we modify policy cat1/p1_1/2.0, it" should {
-    val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
-    val newFile = new File(gitRoot.getAbsoluteFile + "/" + newPath)
-    FileUtils.writeStringToFile(newFile, "Some content for the new file")
-    val git = new Git(repo.db)
-    git.add.addFilepattern(newPath).call
-    git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
+    "have update technique" in {
+      reader.readTechniques() //be sure there is no current modification
+      val newPath = reader.canonizedRelativePath.map( _ + "/").getOrElse("") + "cat1/p1_1/2.0/newFile.st"
+      val newFile = new File(gitRoot.getAbsoluteFile + "/" + newPath)
+      FileUtils.writeStringToFile(newFile, "Some content for the new file")
+      val git = new Git(repo.db)
+      git.add.addFilepattern(newPath).call
+      git.commit.setMessage("Modify PT: cat1/p1_1/2.0").call
 
-    "have update package" in {
-      reader.getModifiedTechniques.size === 1
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersion("2.0") -> VersionAdded)))
+    }
+
+    "and after a read, no more modification" in {
+      reader.readTechniques() //be sure there is no current modification
+      reader.getModifiedTechniques.size === 0
+    }
+
+  }
+
+  "if we modify technique cat1/p1_1/1.0 external file, it" should {
+    "have update technique" in {
+
+      val name = "libdir/file1.txt"  // no slash at the begining of git path
+      reader.readTechniques()
+      val newFile = new File(gitRoot.getAbsolutePath + "/" + name)
+      FileUtils.writeStringToFile(newFile, "Some more content for the new file arg arg arg")
+      val git = new Git(repo.db)
+      git.add.addFilepattern(name).call
+      git.commit.setMessage("Modify file /libdir/file1.txt in technique: cat1/p1_1/1.0").call
+      val n = TechniqueName("p1_1")
+      reader.getModifiedTechniques === Map(n -> TechniqueUpdated(n, Map(TechniqueVersion("1.0") -> VersionUpdated)))
     }
   }
 

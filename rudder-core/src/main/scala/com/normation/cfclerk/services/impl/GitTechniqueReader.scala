@@ -201,7 +201,7 @@ class GitTechniqueReader(
       val diffFmt = new DiffFormatter(null)
       diffFmt.setRepository(repo.db)
       val diffPathEntries : Set[(TechniquePath, ChangeType)] =
-        diffFmt.scan(revisionProvider.currentRevTreeId,nextId).flatMap { diffEntry =>
+        diffFmt.scan(revisionProvider.currentRevTreeId, nextId).flatMap { diffEntry =>
           Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
         }.toSet
       diffFmt.release
@@ -213,13 +213,10 @@ class GitTechniqueReader(
        * datetime saved.
        */
       val modifiedTechnique : Set[(TechniqueId, ChangeType)] = diffPathEntries.flatMap { case (path, changeType) =>
-        allKnownTechniquePaths.find { techniquePath =>
+        allKnownTechniquePaths.find { case (techniquePath, _) =>
           path.path.startsWith(techniquePath.path)
-        }.map { techniquePath =>
-          val parts = techniquePath.path.split("/")
-          val id = TechniqueId(TechniqueName(parts(parts.size - 2)), TechniqueVersion(parts(parts.size - 1)))
-
-          (id, changeType)
+        }.map { case (n, techniqueId) =>
+          (techniqueId, changeType)
         }
       }
 
@@ -627,13 +624,13 @@ class GitTechniqueReader(
             val cat = techniquesInfo.rootCategory.getOrElse(
                 throw new RuntimeException("Can not find the parent (root) caterogy %s for package %s".format(descriptorFile.getParent, TechniqueId))
             )
-            techniquesInfo.rootCategory = Some(cat.copy(packageIds = cat.packageIds + techniqueId ))
+            techniquesInfo.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
             true
 
           case sid:SubTechniqueCategoryId =>
             techniquesInfo.subCategories.get(sid) match {
               case Some(cat) =>
-                techniquesInfo.subCategories(sid) = cat.copy(packageIds = cat.packageIds + techniqueId )
+                techniquesInfo.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
                 true
               case None =>
                 logger.error("Can not find the parent caterogy %s for package %s".format(descriptorFile.getParent, TechniqueId))
@@ -748,14 +745,29 @@ class GitTechniqueReader(
    * Root is "/", so that a package "P1" is denoted
    * /P1, a package P2 in sub category cat1 is denoted
    * /cat1/P2, etc.
+   * As we may have files&templates outside technique, we
+   * need to keep track of there relative id
    */
-  private[this] def getTechniquePath(techniqueInfos:TechniquesInfo) : Set[TechniquePath] = {
-   var set = scala.collection.mutable.Set[TechniquePath]()
-   techniqueInfos.rootCategory.packageIds.foreach { p => set += TechniquePath( "/" + p.toString) }
-   techniqueInfos.subCategories.foreach { case (id,cat) =>
-     val path = id.toString
-     cat.packageIds.foreach { p => set += TechniquePath(path + "/" + p.toString) }
+  private[this] def getTechniquePath(techniqueInfos:TechniquesInfo) : Set[(TechniquePath, TechniqueId)] = {
+    var set = scala.collection.mutable.Set[(TechniquePath, TechniqueId)]()
+    techniqueInfos.rootCategory.techniqueIds.foreach { id =>
+      set += ((TechniquePath( "/" + id.toString), id))
+    }
+    techniqueInfos.subCategories.foreach { case (id,cat) =>
+      val path = id.toString
+      cat.techniqueIds.foreach { t => set += ((TechniquePath(path + "/" + t.toString), t)) }
+    }
+    //also add template "by path"
+    val techniques = techniqueInfos.techniques.flatMap { case(_, set) => set.map { case(_, t) => t } }
+    techniques.foreach { t =>
+      val byPath = t.templates.collect { case TechniqueTemplate(id@TechniqueResourceIdByPath(_,_),_,_) => id } ++
+                   t.files.collect { case TechniqueFile(id@TechniqueResourceIdByPath(_,_),_,_) => id }
+      byPath.foreach { resource =>
+        //here, "/" is needed at the begining because diffEntry have one, so if we don't
+        //add it, we won't find is back in modifiedTechnique and diffPathEntries
+        set += ((TechniquePath(resource.parentDirectories.mkString("/", "/", "/") + resource.name), t.id))
+      }
+    }
+    set.toSet
    }
-   set.toSet
-  }
 }
