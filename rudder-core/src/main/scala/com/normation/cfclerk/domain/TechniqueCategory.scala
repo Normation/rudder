@@ -159,7 +159,7 @@ sealed trait TechniqueCategory {
   val name : String
   val description : String
   val subCategoryIds: Set[SubTechniqueCategoryId]
-  val packageIds : SortedSet[TechniqueId]
+  val techniqueIds : SortedSet[TechniqueId]
   val isSystem : Boolean
 
   require(subCategoryIds.forall(sc => sc.parentId == id),
@@ -173,7 +173,7 @@ case class RootTechniqueCategory(
     name          : String
   , description   : String
   , subCategoryIds: Set[SubTechniqueCategoryId] = Set()
-  , packageIds    : SortedSet[TechniqueId] = SortedSet()
+  , techniqueIds  : SortedSet[TechniqueId] = SortedSet()
   , isSystem      : Boolean = false
 ) extends TechniqueCategory with HashcodeCaching {
   type A = RootTechniqueCategoryId.type
@@ -185,7 +185,7 @@ case class SubTechniqueCategory(
   , name            : String
   , description     : String
   , subCategoryIds  : Set[SubTechniqueCategoryId] = Set()
-  , packageIds      : SortedSet[TechniqueId] = SortedSet()
+  , techniqueIds    : SortedSet[TechniqueId] = SortedSet()
   , isSystem        : Boolean = false
 ) extends TechniqueCategory with HashcodeCaching {
   type A = SubTechniqueCategoryId
