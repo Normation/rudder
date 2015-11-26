@@ -96,7 +96,7 @@ class TechniqueRepositoryImpl(
   override def update(modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Map[TechniqueName, TechniquesLibraryUpdateType]] = {
     try {
       val modifiedPackages = techniqueReader.getModifiedTechniques
-      if (modifiedPackages.nonEmpty || /* first time init */ null == techniqueInfosCache) {
+      if (techniqueReader.needReload() || /* first time init */ null == techniqueInfosCache) {
         logger.info("Reloading technique library, " + {
           if (modifiedPackages.isEmpty) "no modified techniques found"
           else {
