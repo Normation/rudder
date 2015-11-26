@@ -2910,3 +2910,7 @@ li.targetExcluded a{
 form .tw-bs input {
   width: auto;
 }
+
+#createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
+	width : 500px;
+}
