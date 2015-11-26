@@ -214,7 +214,7 @@ class CreateOrUpdateGlobalParameterPopup(
     override def inputField =( action match {
       case "delete" => super.inputField % ("disabled" -> "true")
       case _ => super.inputField
-    }) % ("style" -> "height:3em")  % ("tabindex","3")
+    })  % ("tabindex","3")
     override def errorClassName = ""
     override def validations = Nil
   }
