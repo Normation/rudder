@@ -162,7 +162,7 @@ class RuleCategoryPopup(
   private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
     override def subContainerClassName = "twoColPopup"
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:3em") % ("tabindex","4")
+    override def inputField = super.inputField  % ("tabindex","4")
     override def errorClassName = "threeColErrors"
     override def validations =  Nil
 
