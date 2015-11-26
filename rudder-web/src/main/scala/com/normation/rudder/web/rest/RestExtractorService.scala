@@ -75,7 +75,6 @@ case class RestExtractorService (
   , workflowService      : WorkflowService
 ) extends Loggable {
 
-
   /*
    * Params Extractors
    */
@@ -112,7 +111,6 @@ case class RestExtractorService (
       case _              => Failure(s"Not a good value for parameter ${key}")
     }
   }
-
 
   private[this] def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[Option[T]] = {
     json \\ key match {
@@ -181,8 +179,6 @@ case class RestExtractorService (
         case eb : EmptyBox => eb ?~! "Parameter Name should be at least 3 characters long"
       }
   }
-
-
 
   private[this] def convertToDirectiveParam (value:String) : Box[Map[String,Seq[String]]] = {
     parseSectionVal(parse(value)).map(SectionVal.toMapVariables(_))
@@ -267,7 +263,6 @@ case class RestExtractorService (
     }
   }
 
-
   /*
    * Converting ruletarget.
    *
@@ -312,7 +307,6 @@ case class RestExtractorService (
     }
   }
 
-
   /*
    * Convert List Functions
    */
@@ -341,7 +335,6 @@ case class RestExtractorService (
       }
 
     }
-
 
     def parseSections(section:JValue) : Box[Map[String,Seq[SectionVal]]] = {
       section \ "sections" match {
@@ -515,7 +508,6 @@ case class RestExtractorService (
     }
   }
 
-
   def extractGroup (params : Map[String,List[String]]) : Box[RestGroup] = {
     for {
       name        <- extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
@@ -528,7 +520,6 @@ case class RestExtractorService (
       RestGroup(name,description,query,dynamic,enabled,category)
     }
   }
-
 
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
@@ -640,7 +631,7 @@ case class RestExtractorService (
   def extractParameterFromJSON (json : JValue) : Box[RestParameter] = {
     for {
       description <- extractOneValueJson(json, "description")()
-      overridable <- extractOneValueJson(json, "overridable")( convertToBoolean)
+      overridable <- extractJsonBoolean(json, "overridable")
       value       <- extractOneValueJson(json, "value")()
     } yield {
       RestParameter(value,description,overridable)
@@ -678,6 +669,5 @@ case class RestExtractorService (
       case eb:EmptyBox => eb ?~ "error with node level detail"
     }
   }
-
 
 }

@@ -2867,3 +2867,7 @@ input[type="number"] {
 .ui-button-disabled  {
     opacity: 0.5;
 }
+
+#createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
+	width : 500px;
+}
