@@ -55,8 +55,10 @@ class DeployOnTechniqueCallback(
 
   override def updatedTechniques(techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
     reason.foreach( msg => logger.info(msg) )
-    logger.debug("Ask for a policy update since technique library was reloaded")
-    asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+    if(techniqueIds.nonEmpty) {
+      logger.debug("Ask for a policy update since technique library was reloaded")
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+    }
   }
 }
 

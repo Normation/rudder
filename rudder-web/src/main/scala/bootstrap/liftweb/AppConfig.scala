@@ -142,6 +142,7 @@ import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
 import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
 import com.typesafe.config.ConfigException
+import org.apache.commons.io.FileUtils
 
 /**
  * Define a resource for configuration.
@@ -992,6 +993,29 @@ object RudderConfig extends Loggable {
       ApplicationLogger.error("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_DIR_GITROOT, RUDDER_DIR_TECHNIQUES))
       throw new RuntimeException("The Technique library root directory must be a sub-directory of '%s', but it is configured to be: '%s'".format(RUDDER_DIR_GITROOT, RUDDER_DIR_TECHNIQUES))
     }
+
+    //create a demo default-directive-names.conf if none exists
+    val defaultDirectiveNames = new File(RUDDER_DIR_TECHNIQUES, "default-directive-names.conf")
+    if(!defaultDirectiveNames.exists) {
+      FileUtils.writeStringToFile(defaultDirectiveNames, """
+        |#
+        |# This file contains the default name that a directive gets in Rudder UI creation pop-up.
+        |# The file format is a simple key=value file, with key being the techniqueName
+        |# or techniqueName/version and the value being the name to use.
+        |# An empty value will lead to an empty default name.
+        |# For a new Directive, we will try to lookup "TechniqueName/version" and if not
+        |# available "TechniqueName" from this file. If neither key is available, the
+        |# pop-up will use the actual Technique name as default.
+        |# Don't forget to commit the file to have modifications seen by Rudder.
+        |#
+        |
+        |# Default pattern for new directive from "userManagement" technique:
+        |userManagement=User: <name> Login: <login>
+        |# For userManagement version 2.0, prefer that pattern in new Directives:
+        |userManagement/2.0: User 2.0 [LOGIN]
+        |""".stripMargin)
+    }
+
     val relativePath = RUDDER_DIR_TECHNIQUES.substring(gitSlash.size, RUDDER_DIR_TECHNIQUES.size)
     new GitTechniqueReader(
         techniqueParser
@@ -999,6 +1023,7 @@ object RudderConfig extends Loggable {
       , gitRepo
       , "metadata.xml", "category.xml", "expected_reports.csv"
       , Some(relativePath)
+      , "default-directive-names.conf"
     )
   }
   private[this] lazy val historizationJdbcRepository = new HistorizationJdbcRepository(squerylDatasourceProvider)

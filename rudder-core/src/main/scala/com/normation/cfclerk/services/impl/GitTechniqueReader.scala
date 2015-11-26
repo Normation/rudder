@@ -72,6 +72,7 @@ import scala.collection.JavaConversions._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
 import org.eclipse.jgit.diff.DiffEntry.ChangeType
+import org.apache.commons.io.IOUtils
 
 /**
  *
@@ -133,7 +134,8 @@ class GitTechniqueReader(
   val techniqueDescriptorName: String, //full (with extension) conventional name for policy descriptor
   val categoryDescriptorName : String, //full (with extension) name of the descriptor for categories
   val reportingDescriptorName: String, //the name of the file for expected_report.csv. It must be only the name, not the path.
-  val relativePathToGitRepos : Option[String]
+  val relativePathToGitRepos : Option[String],
+  val directiveDefaultName   : String //full (with extension) name of the file containing default name for directive (default-directive-names.conf)
   ) extends TechniqueReader with Loggable {
 
   reader =>
@@ -442,7 +444,7 @@ class GitTechniqueReader(
    */
   override def readTechniques : TechniquesInfo = {
     reader.synchronized {
-      if(modifiedTechniquesCache.nonEmpty) {
+      if(needReload) {
         currentTechniquesInfoCache = nextTechniquesInfoCache._2
         revisionProvider.setCurrentRevTreeId(nextTechniquesInfoCache._1)
         modifiedTechniquesCache = Map()
@@ -452,6 +454,7 @@ class GitTechniqueReader(
   }
 
 
+  override def needReload() = revisionProvider.currentRevTreeId != nextTechniquesInfoCache._1
 
   private[this] def processRevTreeId(id:ObjectId, parseDescriptor:Boolean = true) : TechniquesInfo = {
     /*
@@ -491,8 +494,41 @@ class GitTechniqueReader(
         rootCategory = techniqueInfos.rootCategory.get,
         techniquesCategory = techniqueInfos.techniquesCategory.toMap,
         techniques = techniqueInfos.techniques.map { case(k,v) => (k, SortedMap.empty[TechniqueVersion,Technique] ++ v)}.toMap,
-        subCategories = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories
+        subCategories = Map[SubTechniqueCategoryId, SubTechniqueCategory]() ++ techniqueInfos.subCategories,
+        processDirectiveDefaultName(id)
       )
+  }
+
+  private[this] def processDirectiveDefaultName(revTreeId: ObjectId) : Map[String, String] = {
+      //a first walk to find categories
+      val tw = new TreeWalk(repo.db)
+      tw.setFilter(new FileTreeFilter(canonizedRelativePath, directiveDefaultName))
+      tw.setRecursive(true)
+      tw.reset(revTreeId)
+
+      val prop = new java.util.Properties()
+
+      //now, for each potential path, look if the cat or policy
+      //is valid
+      while(tw.next) {
+        //we need to filter out directories
+        if(tw.getNameString == directiveDefaultName) {
+          var is : InputStream = null
+          try {
+            is = repo.db.open(tw.getObjectId(0)).openStream
+            prop.load(is)
+          } catch {
+            case ex: Exception =>
+              logger.error(s"Error when trying to load directive default name from '${directiveDefaultName}' No specific default naming rules will be available. ", ex)
+              Map()
+          } finally {
+            IOUtils.closeQuietly(is)
+          }
+        }
+      }
+      import scala.collection.JavaConverters._
+      prop.asScala.toMap
+
   }
 
   private[this] def processTechniques(revTreeId: ObjectId, techniqueInfos : InternalTechniquesInfo, parseDescriptor:Boolean) : Unit = {

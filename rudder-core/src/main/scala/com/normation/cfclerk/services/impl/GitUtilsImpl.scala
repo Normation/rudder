@@ -188,4 +188,3 @@ class FileTreeFilter(rootDirectory:Option[String], fileName: String) extends Tre
   override lazy val toString = "[.*/%s]".format(fileName)
 }
 
-
