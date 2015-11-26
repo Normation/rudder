@@ -21,8 +21,8 @@ export PATH
 
 # split version numbers
 version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
-cfengine_major=`printf ${cfengine_version} | sed -e "s/${version_regex}/\\1/"`
-cfengine_minor=`printf ${cfengine_version} | sed -e "s/${version_regex}/\\2/"`
+cfengine_major=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\1/"`
+cfengine_minor=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\2/"`
 
 # Last parameters not named to keep them as a quoted array
 for directory in "$@"
