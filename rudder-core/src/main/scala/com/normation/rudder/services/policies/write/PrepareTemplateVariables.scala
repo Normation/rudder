@@ -86,6 +86,74 @@ trait PrepareTemplateVariables {
 
 }
 
+object PrepareTemplateVariables extends Loggable {
+
+  /*
+   * utilitary method for formating list of "promisee usebundle => bundlename;"
+   */
+  def formatMethodsUsebundle(x:Seq[(String, Bundle)]): String = {
+
+    val alignWidth = if(x.size <= 0) 0 else x.map(_._1.size).max
+    x.map { case (promiser, bundle) =>
+      val escaped = ParameterEntry.escapeString(promiser)
+      //the promiser value (may) comes from user input, so we need to escape "
+      s""""${escaped}"${" "*Math.max(0, alignWidth - escaped.size)} usebundle => ${bundle.name};"""
+    }.mkString( "\n")
+  }
+
+  /*
+   * utilitary method for formating an input list
+   */
+  def formatBundleFileInputs(x: Seq[String]) = {
+    val inputs = x.distinct
+    if (inputs.isEmpty) {
+      ""
+    } else {
+      inputs.mkString("\"", s"""",\n"""", s"""",""")
+    }
+  }
+
+  /*
+   * Sort the techniques according to the order of the associated BundleOrder of Cf3PolicyDraft.
+   * Sort at best: sort rule then directives, and take techniques on that order, only one time
+   * Sort system directive first.
+   *
+   * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
+   * "system must go first") are not taken into account here !
+   */
+  def sortTechniques(nodeId: NodeId, techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
+
+    def compareBundleOrder(a: Cf3PolicyDraft, b: Cf3PolicyDraft): Boolean = {
+      BundleOrder.compareList(List(a.ruleOrder, a.directiveOrder), List(b.ruleOrder, b.directiveOrder)) <= 0
+    }
+
+    val drafts = container.getAll().values.toSeq
+
+    //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
+    val pairs = techniques.map { t =>
+      val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
+
+      //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
+      val order = tDrafts.map( t => List(t.ruleOrder, t.directiveOrder)).headOption.getOrElse(List(BundleOrder.default))
+
+      (t, order)
+    }
+
+    //now just sort the pair by order and keep only techniques
+    val ordered = pairs.sortWith { case ((_, o1), (_, o2)) => BundleOrder.compareList(o1, o2) <= 0 }
+
+    //some debug info to understand what order was used for each node:
+    if(logger.isDebugEnabled) {
+      val sorted = ordered.map(p => s"${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
+      logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
+    }
+
+    ordered
+
+  }
+}
+
+
 /**
  * This class is responsible of transforming a NodeConfiguration for a given agent type
  * into a set of templates and variables that could be filled to string template.
@@ -94,6 +162,8 @@ class PrepareTemplateVariablesImpl(
     techniqueRepository      : TechniqueRepository
   , systemVariableSpecService: SystemVariableSpecService
 ) extends PrepareTemplateVariables with Loggable {
+
+  import PrepareTemplateVariables._
 
   override def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
@@ -288,72 +358,17 @@ class PrepareTemplateVariablesImpl(
     val (systemInputs, userInputs) = inputs.partition { case (t,i) => t.isSystem }
     val (systemBundle, userBundle) = bundleSeq.partition { case(t, p, b) => t.isSystem }
 
-    //utilitary method for formating list of "promisee usebundle => bundlename;"
-    def formatUsebundle(x:Seq[(Technique, String, Bundle)]) = {
-      val alignWidth = if(x.size <= 0) 0 else x.map(_._2.size).max
-      x.map { case (t, promiser, bundle) => s""""${promiser}"${" "*Math.max(0, alignWidth - promiser.size)} usebundle => ${bundle.name};"""}.mkString( "\n")
-    }
 
-    //utilitary method for formating an input list
-    def formatInputs(x: Seq[(Technique, String)]) = {
-      val inputs = x.map(_._2).distinct
-      if (inputs.isEmpty) {
-        ""
-      } else {
-        inputs.mkString("\"", s"""",\n${" "*4}"""", s"""",""")
-      }
-    }
 
     List(
-      SystemVariable(systemVariableSpecService.get("INPUTLIST"), Seq(formatInputs(inputs)))
+      SystemVariable(systemVariableSpecService.get("INPUTLIST"), Seq(formatBundleFileInputs(inputs.map(_._2))))
     , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), Seq(bundleSeq.map( _._3.name).mkString(", ", ", ", "")))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , Seq(formatInputs(systemInputs)))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), Seq(formatUsebundle(systemBundle)))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , Seq(formatInputs(userInputs)))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), Seq(formatUsebundle(userBundle)))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , Seq(formatBundleFileInputs(systemInputs.map(_._2))))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), Seq(formatMethodsUsebundle(systemBundle.map(x => (x._2,x._3)))))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , Seq(formatBundleFileInputs(userInputs.map(_._2))))
+    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), Seq(formatMethodsUsebundle(userBundle.map(x => (x._2,x._3)))))
     ).map(x => (x.spec.name, x)).toMap
 
-  }
-
-  /**
-   * Sort the techniques according to the order of the associated BundleOrder of Cf3PolicyDraft.
-   * Sort at best: sort rule then directives, and take techniques on that order, only one time
-   * Sort system directive first.
-   *
-   * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
-   * "system must go first") are not taken into account here !
-   */
-  private[this] def sortTechniques(nodeId: NodeId, techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
-
-    def sortByOrder(tech: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
-      def compareBundleOrder(a: Cf3PolicyDraft, b: Cf3PolicyDraft): Boolean = {
-        BundleOrder.compareList(List(a.ruleOrder, a.directiveOrder), List(b.ruleOrder, b.directiveOrder)) <= 0
-      }
-      val drafts = container.getAll().values.toSeq
-
-      //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
-      val pairs = tech.map { t =>
-        val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
-
-        //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
-        val order = tDrafts.map( t => List(t.ruleOrder, t.directiveOrder)).headOption.getOrElse(List(BundleOrder.default))
-
-        (t, order)
-      }
-
-      //now just sort the pair by order and keep only techniques
-      val ordered = pairs.sortWith { case ((_, o1), (_, o2)) => BundleOrder.compareList(o1, o2) <= 0 }
-
-      //some debug info to understand what order was used for each node:
-      if(logger.isDebugEnabled) {
-        val sorted = ordered.map(p => s"${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
-        logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
-      }
-
-      ordered
-    }
-
-    sortByOrder(techniques, container)
   }
 
   /**
