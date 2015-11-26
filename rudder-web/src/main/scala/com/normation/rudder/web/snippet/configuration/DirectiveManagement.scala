@@ -396,8 +396,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def newCreationPopup(technique: Technique, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean) : NodeSeq = {
+    val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
+    val directiveDefaultName = allDefaults.get(technique.id.toString).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
     new CreateDirectivePopup(
-        technique.name, technique.description, technique.id.version,
+        technique.name, technique.description, technique.id.version, directiveDefaultName,
         onSuccessCallback = { (directive : Directive) =>
           updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true)
           //Update UI
