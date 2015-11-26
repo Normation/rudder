@@ -2902,3 +2902,6 @@ input[type="number"] {
 }
   
   
+#createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
+	width : 500px;
+}
