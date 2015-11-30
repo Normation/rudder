@@ -77,10 +77,12 @@
 
         <div class="deca" ng-controller="AccountCtrl">
         <div ng-show="errorTable" style="width:100%; text-align:center; color:red" > {{errorTable.errorDetails}} </div>
-          <button ng-click="addAccount();"   >
-            Add API Account
-          </button>
-
+        
+          <lift:authz role="administration_write">
+            <button ng-click="addAccount();"   >
+              Add API Account
+            </button>
+          </lift:authz>
           <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="accounts" id="accountGrid">
             <thead><tr class="head tablewidth">
                 <th style="width:100px">Account Name</th>
