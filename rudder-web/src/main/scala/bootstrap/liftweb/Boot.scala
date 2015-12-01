@@ -124,7 +124,6 @@ class Boot extends Loggable {
     // Fix relative path to css resources
     LiftRules.fixCSS("style" :: "style" :: Nil, Empty)
 
-
     // i18n
     LiftRules.resourceNames = "default" :: "ldapObjectAndAttributes" :: "eventLogTypeNames" :: Nil
 
@@ -156,11 +155,8 @@ class Boot extends Loggable {
       }
     }}
 
-
     //init autocomplete widget
     AutoComplete.init()
-
-
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
@@ -210,26 +206,25 @@ class Boot extends Loggable {
             >> TestAccess( () => userIsAllowed("/secure/index",Read("directive") ) )
       )
 
-
     def administrationMenu =
       Menu("AdministrationHome", <span>Administration</span>) /
         "secure" / "administration" / "index" >> TestAccess ( ()
-            => userIsAllowed("/secure/index",Write("administration")) ) submenus (
+            => userIsAllowed("/secure/index",Read("administration"), Read("technique")) ) submenus (
 
           Menu("policyServerManagement", <span>Settings</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/index",Write("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
 
         , Menu("pluginManagement", <span>Plugins</span>) /
             "secure" / "administration" / "pluginManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
 
         , Menu("databaseManagement", <span>Reports Database</span>) /
             "secure" / "administration" / "databaseManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
 
         , Menu("TechniqueLibraryManagement", <span>Techniques</span>) /
             "secure" / "administration" / "techniqueLibraryManagement"
@@ -238,9 +233,8 @@ class Boot extends Loggable {
         , Menu("apiManagement", <span>API Accounts</span>) /
             "secure" / "administration" / "apiManagement"
             >> LocGroup("administrationGroup")
-            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Write("administration")) )
+            >> TestAccess ( () => userIsAllowed("/secure/administration/policyServerManagement",Read("administration")) )
       )
-
 
     def utilitiesMenu = {
       // if we can't get the workflow property, default to false
@@ -288,7 +282,6 @@ class Boot extends Loggable {
       )
     }
 
-
     val rootMenu = List(
         Menu("Home", <span>Home</span>) / "secure" / "index"
       , Menu("Login") / "index" >> Hidden
@@ -298,10 +291,8 @@ class Boot extends Loggable {
       , administrationMenu
     ).map( _.toMenu )
 
-
     ////////// import and init modules //////////
     val newSiteMap = initPlugins(rootMenu.map( _.toMenu ))
-
 
     //not sur why we are using that ?
     //SiteMap.enforceUniqueLinks = false
