@@ -26,15 +26,15 @@ bundle agent init
     "file"       string => "${tmp}/test";
     "file_canon" string => canonify("${file}");
     "mode"       string => "640";
-    "owner"      string => "nobody";
-    "group"      string => "daemon";
+    "owner"      string => "bin";
+    "group"      string => "bin";
     "type"       string => "files";
     "recursion"  string => "0";
 
   files:
     "${file}"
       create => "true",
-      perms  => mog("000", "root", "root");
+      perms  => mog("000", "root", "0");
 
 }
 
@@ -51,9 +51,11 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "permissions_test_mode"  string => "/usr/bin/test $(/usr/bin/stat -c %a ${init.file}) = \"${init.mode}\"";
-    "permissions_test_owner" string => "/usr/bin/test $(/usr/bin/stat -c %U ${init.file}) = \"${init.owner}\"";
-    "permissions_test_group" string => "/usr/bin/test $(/usr/bin/stat -c %G ${init.file}) = \"${init.group}\"";
+    "owner_id"                  int => getuid("${init.owner}");
+    "group_id"                  int => getgid("${init.group}");
+    "permissions_test_mode"  string => "/usr/bin/test $(${test_utils.file_perms} ${init.file}) = \"${init.mode}\"";
+    "permissions_test_owner" string => "/usr/bin/test $(${test_utils.file_owner} ${init.file}) = \"${owner_id}\"";
+    "permissions_test_group" string => "/usr/bin/test $(${test_utils.file_group} ${init.file}) = \"${group_id}\"";
 
   classes:
     # By default, permissions_type_recursion should create the file if it doesn't exist
