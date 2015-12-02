@@ -1,7 +1,7 @@
 all: clean test doc
 
 test:
-	type fakeroot 2>/dev/null || { echo "fakeroot is required but not found." ; exit 1 ; }
+	[ `id | cut -d\( -f2 | cut -d\) -f1` = 'root' ] || type fakeroot 2>/dev/null || { echo "Not running as root and fakeroot not found." ; exit 1 ; }
 	cd tests/style/ && ./testall
 	cd tests/unit/ && ./testall
 	cd tests/acceptance/ && ./testall --no-network
@@ -44,7 +44,7 @@ clean:
 	rm -rf tests/acceptance/workdir/
 	rm -f doc/all_generic_methods.txt
 	rm -f doc/generic_methods.md
-	find $(CURDIR) -iname "*.pyc" -delete
+	find $(CURDIR) -name "*.[pP][yY][cC]" -exec rm "{}" \;
 
 distclean: clean
 

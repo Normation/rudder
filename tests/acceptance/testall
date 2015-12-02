@@ -23,6 +23,8 @@
 # included file COSL.txt.
 #
 
+set -e
+
 #
 # Detect and replace non-POSIX shell
 #
@@ -66,12 +68,14 @@ LOG=test.log
 SUMMARY=summary.log
 XML=test.xml
 XMLTMP=xml.tmp
-BASE_WORKDIR="$(pwd)/workdir"
+BASE_WORKDIR="`pwd`/workdir"
 QUIET=
 STAGING_TESTS=${STAGING_TESTS:-0}
 NETWORK_TESTS=${NETWORK_TESTS:-1}
 UNSAFE_TESTS=${UNSAFE_TESTS:-0}
-GAINROOT=${GAINROOT:-fakeroot}
+
+# Only use fakeroot by default if we are are not already root
+[ `id | cut -d\( -f2 | cut -d\) -f1` = 'root' ] && GAINROOT="" || GAINROOT=${GAINROOT:-fakeroot}
 
 PASSED_TESTS=0
 FAILED_TESTS=0
@@ -112,7 +116,7 @@ unix_seconds() {
   # Last resort if Perl fails - the extended cpio interchange format has
   # the file modification timestamp in columns 48-59, in octal.
   : > $BASE_WORKDIR/x
-  echo "ibase=8;$(pax -wx cpio $BASE_WORKDIR/$$.seconds | cut -c 48-59)" | bc 2>/dev/null
+  echo "ibase=8;`pax -wx cpio $BASE_WORKDIR/$$.seconds | cut -c 48-59`" | bc 2>/dev/null
   rm $BASE_WORKDIR/x
 }
 
@@ -205,9 +209,9 @@ runtest() {
   ) >> "$LOG"
 
   if [ -z "$SKIP" ]; then
-    TEST_START_TIME=$(unix_seconds)
+    TEST_START_TIME=`unix_seconds`
 
-    FLATNAME="$(echo "$TEST" | sed 's,[./],_,g')"
+    FLATNAME="`echo "$TEST" | sed 's,[./],_,g'`"
 
     # Prepare workdir
     WORKDIR="$BASE_WORKDIR/$FLATNAME"
@@ -249,14 +253,14 @@ export CFENGINE_TEST_OVERRIDE_WORKDIR TEMP NCF_TREE NCF_TESTS_ACCEPTANCE
     if [ "$GDB" = 1 ]; then
       $GAINROOT "$WORKDIR/runtest"
     else
-      OUT=$($GAINROOT "$WORKDIR/runtest")
+      OUT=`$GAINROOT "$WORKDIR/runtest"`
     fi
     RETVAL=$?
     echo "$OUT" >> "$LOG"
     echo >> "$LOG"
     echo "Return code is $RETVAL." >> "$LOG"
 
-    TEST_END_TIME=$(unix_seconds)
+    TEST_END_TIME=`unix_seconds`
     echo "              "time=\"$(($TEST_END_TIME - $TEST_START_TIME)) seconds\"\> >> "$XMLTMP"
 
     # Some states are output by default.cf.sub, therefore check for both TEST
@@ -421,21 +425,21 @@ if [ ! -x "$AGENT" ]; then
   exit 1
 fi
 if [ ! -x "$CF_PROMISES" ]; then
-  CF_PROMISES="$(dirname $AGENT)/cf-promises"
+  CF_PROMISES="`dirname $AGENT`/cf-promises"
   if [ ! -x "$CF_PROMISES" ]; then
     echo "ERROR can't find cf-promises. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-promises = '$CF_PROMISES'"
     exit 1
   fi
 fi
 if [ ! -x "$CF_SERVERD" ]; then
-  CF_SERVERD="$(dirname $AGENT)/cf-serverd"
+  CF_SERVERD="`dirname $AGENT`/cf-serverd"
   if [ ! -x "$CF_SERVERD" ]; then
     echo "ERROR can't find cf-serverd. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-serverd = '$CF_SERVERD'"
     exit 1
   fi
 fi
 if [ ! -x "$CF_KEY" ]; then
-  CF_KEY="$(dirname $AGENT)/cf-key"
+  CF_KEY="`dirname $AGENT`/cf-key"
   if [ ! -x "$CF_KEY" ]; then
     echo "ERROR can't find cf-key. Are you sure you're running this from OBJDIR or OBJDIR/tests/acceptance? Check cf-key = '$CF_KEY'"
     exit 1
@@ -460,14 +464,15 @@ if [ $# -gt 0 ]; then
     if [ -f $test ]; then
       TESTS="$TESTS${TESTS:+ }$test"
     elif [ -d $test ]; then
-      ADDTESTS=$(find "$test" -name '*.cf' | sort)
+      ADDTESTS=`find "$test" -name '*.cf' | sort`
       TESTS="$TESTS${TESTS:+ }$ADDTESTS"
     else
       echo "Unable to open test file/directory: $test"
     fi
   done
 else
-  TESTS=$(find "$(dirname $0)" -name '*.cf' | sort)
+  MYDIR=`dirname $0`
+  TESTS=`find "${MYDIR}" -name '*.cf' | sort`
 fi
 
 #
@@ -483,11 +488,11 @@ fi
 # Now run the tests
 #
 
-TESTS_COUNT=$(echo $TESTS | wc -w)
-START_TIME=$(unix_seconds)
+TESTS_COUNT=`echo $TESTS | wc -w`
+START_TIME=`unix_seconds`
 
 ( echo ======================================================================
-  echo Testsuite started at $(date "+%F %T")
+  echo Testsuite started at `date "+%F %T"`
   echo ----------------------------------------------------------------------
   echo Total tests: $TESTS_COUNT
   echo
@@ -495,8 +500,8 @@ START_TIME=$(unix_seconds)
 
 
 ( echo \<\?xml version=\"1.0\" encoding=\"UTF-8\"\?\>
-  echo \<testsuite name=\"$(pwd)\"
-  echo "           "timestamp=\"$(date "+%F %T")\"
+  echo \<testsuite name=\"`pwd`\"
+  echo "           "timestamp=\"`date "+%F %T"`\"
   echo "           hostname=\"localhost\""
   echo "           "tests=\"$TESTS_COUNT\"
 ) > "$XML"
@@ -504,21 +509,21 @@ START_TIME=$(unix_seconds)
   echo -n "" > "$XMLTMP"
 
 for test in $TESTS; do
-  echo "    "\<testcase name=\"$(basename $test)\" >> "$XMLTMP"
+  echo "    "\<testcase name=\"`basename $test`\" >> "$XMLTMP"
   echo "              "classname=\"$test\" >> "$XMLTMP"
   if [ -n "$USE_VALGRIND" ]; then
-    runtest "valgrind --leak-check=full --show-reachable=yes $AGENT" "$test"
+    runtest "valgrind --leak-check=full --show-reachable=yes $AGENT" "$test" || true
   else
-    runtest $AGENT "$test"
+    runtest $AGENT "$test" || true
   fi
   echo "    "\<\/testcase\> >> "$XMLTMP"
 done
 
-END_TIME=$(unix_seconds)
+END_TIME=`unix_seconds`
 
 ( echo
   echo ======================================================================
-  echo Testsuite finished at $(date  "+%F %T") \($(($END_TIME - $START_TIME)) seconds\)
+  echo Testsuite finished at `date  "+%F %T"` \($(($END_TIME - $START_TIME)) seconds\)
 ) | tee -a "$LOG" | tee -a "$SUMMARY" >&7
 
 ( echo

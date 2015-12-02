@@ -9,9 +9,26 @@ bundle common ncf_inputs
      # long string to be built, causing CFEngine to error out, so we rebuild
      # the full paths using maplist below
      "generic_ncf_files"
-        string => execresult("/bin/bash -c \"cd ${ncf_tree} && /usr/bin/find 10_ncf_internals/configuration.cf 10_ncf_internals/expand_configuration.cf 20_cfe_basics 30_generic_methods 40_it_ops_knowledge -name '*.cf' -printf '%p\n'\"", "noshell");
+        string => execresult("/bin/bash -c \"cd ${ncf_tree} && /usr/bin/find 10_ncf_internals/configuration.cf 10_ncf_internals/expand_configuration.cf 20_cfe_basics 30_generic_methods 40_it_ops_knowledge -name '*.cf' -print\"", "noshell");
 
      "default_files_relative" slist => splitstring("${generic_ncf_files}", "\n", 10000);
      "default_files"          slist => maplist("${ncf_tree}/${this}", default_files_relative);
 
+}
+
+bundle common test_utils {
+
+  vars:
+    have_perl::
+      "file_perms" string => "${paths.perl} -e 'printf \"%03o\\n\", (stat)[2] & 07777, $_ for @ARGV'";
+      "file_owner" string => "${paths.perl} -e 'printf \"%d\\n\", (stat)[4], $_ for @ARGV'";
+      "file_group" string => "${paths.perl} -e 'printf \"%d\\n\", (stat)[5], $_ for @ARGV'";
+    pass2.!have_perl::
+      "file_perms" string => "/usr/bin/stat -c %a ${file}";
+      "file_owner" string => "/usr/bin/stat -c %u ${file}";
+      "file_group" string => "/usr/bin/stat -c %g ${file}";
+
+  classes:
+      "have_perl" expression => fileexists("${paths.perl}");
+      "pass2"     expression => "any";
 }

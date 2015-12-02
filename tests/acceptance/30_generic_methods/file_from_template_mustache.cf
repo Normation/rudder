@@ -47,14 +47,14 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "file_length_check" string => "/bin/cat ${init.destination_file} | wc -l";
+    "file_length_check" string => "/usr/bin/test `/bin/cat ${init.destination_file} | wc -l` = '1'";
     "file_content_check" string => "/bin/cat ${init.destination_file} | head -n1 | grep '^sys.host is: ${sys.host}$'";
 
   classes:
     # By default, should create the file if it doesn't exist
     "file_exists"      expression => fileexists("${init.destination_file}");
     "file_length_ok"
-      expression => strcmp(execresult("${file_length_check}", "useshell"), "1"),
+      expression => returnszero("${file_length_check}", "useshell"),
       ifvarclass => canonify("file_from_template_${init.destination_file}_reached");
     "file_content_ok"
       expression => returnszero("${file_content_check}", "useshell"),

@@ -33,7 +33,7 @@ bundle agent init
   files:
     "${file}"
       create => "true",
-      perms  => mog("000", "root", "root");
+      perms  => mog("000", "root", "0");
 }
 
 #######################################################
