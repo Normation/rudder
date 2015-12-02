@@ -22,7 +22,7 @@ bundle common service_knowledge
       "systemctl_utility_present"  expression => fileexists("${paths.path[systemctl]}");
       "service_utility_present"    expression => fileexists("${paths.path[service]}");
       "chkconfig_utility_present"  expression => fileexists("${paths.path[chkconfig]}");
-      "update_rcd_utility_present" expression => fileexists("${paths.path[update_rcd]}");
+      "update_rcd_utility_present" expression => fileexists("${paths.path[update_rc_d]}");
 
       "startsrc_utility_present"   expression => fileexists("/usr/bin/startsrc");
       "lssrc_utility_present"      expression => fileexists("/usr/bin/lssrc");

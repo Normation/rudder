@@ -35,7 +35,7 @@ bundle agent service_ensure_started_at_boot(service_name)
     !systemctl_utility_present.chkconfig_utility_present::
       "command_to_register" string => "${paths.path[chkconfig]} ${service_name} on";
     !systemctl_utility_present.update_rcd_utility_present::
-      "command_to_register" string => "${paths.path[update_rcd]} ${service_name} defaults";
+      "command_to_register" string => "${paths.path[update_rc_d]} ${service_name} defaults";
 
     !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.chitab_utility_present::
       "command_to_register" string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service_name}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:respawn:\3/'`\"";
