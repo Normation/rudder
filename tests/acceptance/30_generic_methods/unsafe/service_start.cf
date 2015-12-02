@@ -22,10 +22,13 @@ body common control
 bundle agent init
 {
   vars:
-    "service_name"  string => "cron";
+    !aix::
+      "service_name"  string => "cron";
+    aix::
+      "service_name"  string => "syslogd";
 
   processes:
-    "crond"
+    "${service_name}"
       signals => { "term", "kill" };
 
 }

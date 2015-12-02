@@ -16,12 +16,18 @@
 #
 #####################################################################################
 
-bundle common linux_knowledge
+bundle common service_knowledge
 {
   classes:
       "systemctl_utility_present"  expression => fileexists("${paths.path[systemctl]}");
       "service_utility_present"    expression => fileexists("${paths.path[service]}");
       "chkconfig_utility_present"  expression => fileexists("${paths.path[chkconfig]}");
       "update_rcd_utility_present" expression => fileexists("${paths.path[update_rcd]}");
+
+      "startsrc_utility_present"   expression => fileexists("/usr/bin/startsrc");
+      "lssrc_utility_present"      expression => fileexists("/usr/bin/lssrc");
+      "lsitab_utility_present"     expression => fileexists("/usr/sbin/lsitab");
+      "chitab_utility_present"     expression => fileexists("/usr/sbin/chitab");
+
       "init_d_directory_present"   expression => isdir("/etc/init.d");
 }

@@ -36,22 +36,30 @@ bundle agent service_ensure_running_path(service_name, service_path)
 
     "class_prefix"                 string => "service_ensure_running_${canonified_service_name}";
 
-  methods:
-    !windows::
-      "check running"
-        usebundle  => service_check_running("${service_path}");
+  classes:
+    # This method can be called as a substitution if service_ensure_running is called directly, with service_path=service_name
+    # In this case, we don't need to call service_check_running_ps but can use better OS-specific methods if available
+    "real_path"                       not => strcmp("${service_name}", "${service_path}");
 
+  methods:
+    !windows.real_path::
+      "check running" usebundle  => service_check_running_ps("${service_path}");
+
+    !windows.!real_path::
+      "check running" usebundle  => service_check_running("${service_name}");
+
+    !windows::
       "start if not running"
         usebundle  => service_start("${service_name}"),
-        ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+        ifvarclass => "(real_path.!service_check_running_${canonified_service_path}_kept)|(!real_path.!service_check_running_${canonified_service_name})";
 
-      "class copy check"
+      "class if running"
         usebundle => _classes_success("${class_prefix}"),
-        ifvarclass => "service_check_running_${canonified_service_path}_kept";
+        ifvarclass => "(real_path.service_check_running_${canonified_service_path}_kept)|(!real_path.service_check_running_${canonified_service_name})";
  
       "class copy if not running"
         usebundle => _classes_copy("service_start_${canonified_service_path}", "${class_prefix}"),
-        ifvarclass => "!service_check_running_${canonified_service_path}_kept";
+        ifvarclass => "(real_path.!service_check_running_${canonified_service_path}_kept)|(!real_path.!service_check_running_${canonified_service_name})";
 
     any::
       "report"

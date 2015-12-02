@@ -25,7 +25,9 @@ bundle agent init
   vars:
     redhat::
       "service_script" string => "sshd";
-    !redhat::
+    aix::
+      "service_script" string => "syslogd";
+    !(redhat|aix)::
       "service_script" string => "ssh";
 }
 
