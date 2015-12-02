@@ -26,7 +26,7 @@ bundle agent init
     "tmp"         string => getenv("TEMP", 1024);
     "file"        string => "${tmp}/test";
     "file_canon"  string => canonify("${file}");
-    "line_to_add" string => "This is a test line!";
+    "line_to_add" string => "This is a test line.";
 
   commands:
     "/bin/echo"
@@ -48,16 +48,14 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "line_exists_test" string => "/bin/grep \"^${init.line_to_add}$\" \"${init.file}\" | wc -l";
-    "nb_lines" 
-      string     => execresult("${line_exists_test}", "useshell"),
-      ifvarclass => canonify("file_ensure_lines_present_${init.file}_reached");
+    "line_exists_test" string => "/usr/bin/test `/bin/grep \"^${init.line_to_add}$\" \"${init.file}\" | wc -l` = '1'";
 
   classes:
     # By default, file_ensure_lines_present should create the file if it doesn't exist
     "file_exists" expression => fileexists("${init.file}");
     
-    "line_exists" expression => strcmp("${nb_lines}", "1");
+    "line_exists" expression => returnszero("${line_exists_test}", "useshell"),
+                  ifvarclass => canonify("file_ensure_lines_present_${init.file}_reached");
 
     "ok"          expression => "file_exists.line_exists.file_ensure_lines_present_${init.file_canon}_ok.!file_ensure_lines_present_${init.file_canon}_error.file_ensure_lines_present_${init.file_canon}_kept.!file_ensure_lines_present_${init.file_canon}_repaired";
 

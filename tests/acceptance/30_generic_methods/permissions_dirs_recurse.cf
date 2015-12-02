@@ -26,21 +26,21 @@ bundle agent init
     "directory"       string => "${tmp}/test";
     "directory_canon" string => canonify("${directory}");
     "mode"            string => "750";
-    "owner"           string => "nobody";
-    "group"           string => "daemon";
+    "owner"           string => "bin";
+    "group"           string => "bin";
 
   files:
     "${directory}/."
       create => "true",
-      perms  => mog("000", "root", "root");
+      perms  => mog("000", "root", "0");
 
     "${directory}/file1/."
       create => "true",
-      perms  => mog("000", "root", "root");
+      perms  => mog("000", "root", "0");
 
     "${directory}/file2/."
       create => "true",
-      perms  => mog("000", "root", "root");
+      perms  => mog("000", "root", "0");
 
 }
 

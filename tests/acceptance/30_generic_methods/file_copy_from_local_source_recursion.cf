@@ -30,7 +30,7 @@ bundle agent init
 
     "mode"                   string => "644";
     "owner"                  string => "root";
-    "group"                  string => "root";
+    "group"                  string => "0";
 
   files:
     "${source_file}"
@@ -52,9 +52,10 @@ bundle agent test
 bundle agent check
 {
   vars:
-    "permissions_test_mode"  string => "/usr/bin/test $(/usr/bin/stat -c %a ${init.destination_file}) = \"${init.mode}\"";
-    "permissions_test_owner" string => "/usr/bin/test $(/usr/bin/stat -c %U ${init.destination_file}) = \"${init.owner}\"";
-    "permissions_test_group" string => "/usr/bin/test $(/usr/bin/stat -c %G ${init.destination_file}) = \"${init.group}\"";
+    "owner_id"                  int => getuid("${init.owner}");
+    "permissions_test_mode"  string => "/usr/bin/test $(${test_utils.file_perms} ${init.destination_file}) = \"${init.mode}\"";
+    "permissions_test_owner" string => "/usr/bin/test $(${test_utils.file_owner} ${init.destination_file}) = \"${owner_id}\"";
+    "permissions_test_group" string => "/usr/bin/test $(${test_utils.file_group} ${init.destination_file}) = \"${init.group}\"";
 
   classes:
     # By default, file_copy_from_local_source_type_recursion should create the file if it doesn't exist
