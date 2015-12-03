@@ -83,8 +83,10 @@
 	                </tr>
 	              </tbody>
 	            </table>
-	            <input id="addNetworkButton" type="submit" value="Add a network" />
-	            <input id="submitAllowedNetwork" type="submit" value="Submit" />
+              <lift:authz role="administration_write">
+	              <input id="addNetworkButton" type="submit" value="Add a network" />
+	              <input id="submitAllowedNetwork" type="submit" value="Submit" />
+              </lift:authz>
 	          </form>
             </div>
             <hr class="spacer" />
@@ -112,8 +114,11 @@
                     <input id="skipIdentify" type="text"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="[save]" id="cfserverNetworkSubmit"/>
-              <span class="lift:Msg?id=updateCfserverNetwork">[messages]</span>
+              <lift:authz role="administration_write">
+                <input type="submit" value="[save]" id="cfserverNetworkSubmit"/>
+                <span class="lift:Msg?id=updateCfserverNetwork">[messages]</span>
+              </lift:authz>
+              <lift:Msg id="updateCfserverNetwork">[messages]</lift:Msg>
             </form>
           </div>
         </div>
@@ -181,8 +186,11 @@
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip"></span></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="Reload" id="changeMessageSubmit"/>
-              <span class="lift:Msg?id=updateChangeMsg">[messages]</span>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Reload" id="changeMessageSubmit"/>
+                <span class="lift:Msg?id=updateChangeMsg">[messages]</span>
+              </lift:authz>
+              <lift:Msg id="updateChangeMsg">[messages]</lift:Msg>
             </form>
           </div>
         </div>
@@ -224,8 +232,11 @@ If disabled, all changes to configuration will be immediately deployed.</p>
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"></span></label><input id="selfDep" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="Reload" id="workflowSubmit"/>
-              <span class="lift:Msg?id=updateWorkflow">[messages]</span>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Reload" id="workflowSubmit"/>
+                <span class="lift:Msg?id=updateWorkflow">[messages]</span>
+              </lift:authz>
+              <lift:Msg id="updateWorkflow">[messages]</lift:Msg>
             </form>
           </div>
         </div>
@@ -262,8 +273,11 @@ These files are automatically removed to save on disk space. You can configure t
                   <input id="cfengineOutputsTtl" type="text"/>
                 </div>
                 <hr class="spacer"/>
-                <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
-                <span class="lift:Msg?id=updateCfengineGlobalProps">[messages]</span>
+                <lift:authz role="administration_write">
+                  <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
+                  <span class="lift:Msg?id=updateCfengineGlobalProps">[messages]</span>
+                </lift:authz>
+                <lift:Msg id="updateCfengineGlobalProps">[messages]</lift:Msg>
               </form>
             </div>
           </div>

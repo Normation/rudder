@@ -164,8 +164,11 @@
                     <span id="cleanParam">
                       <span id="modeSelector"></span> all reports older than: <input
                         id="reportFromDate" value="" />
-                      <button id="archiveReports">Start cleaning
-                        reports</button></span>
+                        
+                       <lift:authz role="administration_write">
+                        <button id="archiveReports">Start cleaning reports</button>
+                        </lift:authz>
+                      </span>
                         <span id="confirm"> </span>
                     </div>
                     <lift:Msgs>
