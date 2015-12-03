@@ -46,7 +46,7 @@ bundle agent _log_default(message, old_class_prefix, origin_class_prefix, args)
 
   reports:
     debug::
-      "${configuration.debug} Promise called ${promisers) with ${arg_list}"; # full debug information
+      "${configuration.debug} Promise called ${promisers} with ${arg_list}"; # full debug information
 
     debug.!has_promiser_stack::
       "${configuration.debug} Promise kept, not doing anything: ${message}"
