@@ -111,22 +111,22 @@ bundle agent schedule_generic(job_id, agent_periodicity, max_execution_delay, jo
     noerror::
       # shift between each run = run_periodicity % agent_periodicity = by how much the delay is incremented between each run
       "run_shift_real" string => eval("${job_periodicity} % ${agent_periodicity}", "math", "infix");
-      "run_shift" int => "${run_shift_real}";
+      "run_shift" string => format("%d", "${run_shift_real}");
 
       # max_run_id = int(max_execution_delay / agent periodicity) = min number of agent run in interval
       "max_run_id_real" string => eval("${max_execution_delay}/${agent_periodicity}", "math", "infix");
-      "max_run_id" int => "${max_run_id_real}";
+      "max_run_id" string => format("%d", "${max_run_id_real}");
 
       # job_run_id = int(splay / splay_max * max_run_id) = run id of agent at wich we must run the job
       "job_run_id_real" string => eval("${ncf_splay.splay} * ${max_run_id} / ${ncf_splay.splay_max}", "math", "infix");
-      "job_run_id" int => "${job_run_id_real}";
+      "job_run_id" string => format("%d", "${job_run_id_real}");
 
       # elapsed in period = minutes_from_start % run periodicity = duration in minutes since the last start of the run period 
       "elapsed" string => ifelse("null_job_periodicity", "${minutes_from_start}", eval("${minutes_from_start} % ${job_periodicity}", "math", "infix"));
 
       # current_run_id = int(elapsed / agent_periodicity) = run id of current run
       "current_run_id_real" string => eval("${elapsed} / ${agent_periodicity}", "math", "infix");
-      "current_run_id" int => "${current_run_id_real}";
+      "current_run_id" string => format("%d", "${current_run_id_real}");
 
   classes:
     any::
@@ -183,20 +183,20 @@ bundle agent schedule_simple_generic(job_id, agent_periodicity,
     any::
       # max_execution_delay in minutes
       "max_execution_delay_real" string => eval("${max_execution_delay_minutes} + 60 * ${max_execution_delay_hours}", "math", "infix");
-      "max_execution_delay" int => "${max_execution_delay_real}";
+      "max_execution_delay" string => format("%d", "${max_execution_delay_real}");
 
       # periodicity in minutes
       "job_periodicity_real" string => eval("${periodicity_minutes} + 60 * ${periodicity_hours} + 60 * 24 * ${periodicity_days}", "math", "infix");
-      "job_periodicity" int => "${job_periodicity_real}";
+      "job_periodicity" string => format("%d", "${job_periodicity_real}");
 
       # class persistence in minutes
       "class_persist_real" string => eval("${job_periodicity}-1", "math", "infix");
-      "class_persist" int => "${class_persist_real}";
+      "class_persist" string => format("%d", "${class_persist_real}");
 
       # compute time between start_* and now
       # (min_of_day - start_minutes) + 60 * (hour of day - start hours) + 60 * 24 * (day of week - start day)%7 
       "minutes_from_start_real" string => eval(strftime("localtime", "%M - ${start_on_minutes} + 60 * (%H - ${start_on_hours}) + 60 * 24 * ((%u - ${start_on_day_of_week} + 7)%%7)", "${ncf_date.timestamp}"), "math", "infix");
-      "minutes_from_start" int => "${minutes_from_start_real}";
+      "minutes_from_start" string => format("%d", "${minutes_from_start_real}");
 
   classes:
     any::
