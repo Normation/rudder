@@ -23,12 +23,12 @@ bundle common test_utils {
       "file_perms" string => "${paths.perl} -e 'printf \"%03o\\n\", (stat)[2] & 07777, $_ for @ARGV'";
       "file_owner" string => "${paths.perl} -e 'printf \"%d\\n\", (stat)[4], $_ for @ARGV'";
       "file_group" string => "${paths.perl} -e 'printf \"%d\\n\", (stat)[5], $_ for @ARGV'";
-    pass2.!have_perl::
+    test_utils_pass2.!have_perl::
       "file_perms" string => "/usr/bin/stat -c %a ${file}";
       "file_owner" string => "/usr/bin/stat -c %u ${file}";
       "file_group" string => "/usr/bin/stat -c %g ${file}";
 
   classes:
       "have_perl" expression => fileexists("${paths.perl}");
-      "pass2"     expression => "any";
+      "test_utils_pass2"     expression => "any";
 }
