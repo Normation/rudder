@@ -25,7 +25,9 @@ bundle agent init
   vars:
     redhat::
       "service" string => "sshd";
-    !redhat::
+    aix::
+      "service" string => "syslogd";
+    !(redhat|aix)::
       "service" string => "ssh";
 }
 
@@ -36,7 +38,7 @@ bundle agent test
 
   methods:
 
-      "ph" usebundle => service_management("${init.service}", "reload");
+      "ph" usebundle => service_action("${init.service}", "reload");
 
 }
 
@@ -45,7 +47,7 @@ bundle agent test
 bundle agent check
 {
   classes:
-      "ok" expression => "service_management_${init.service}_reached.service_management_${init.service}_repaired.!service_management_${init.service}_kept.!service_management_${init.service}_error";
+      "ok" expression => "service_action_${init.service}_reached.service_action_${init.service}_repaired.!service_action_${init.service}_kept.!service_action_${init.service}_error";
 
   reports:
     ok::

@@ -1,0 +1,68 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service check running with SRC
+# @description Check if a service is running using SRC (AIX System Resource Controller)
+#
+# @parameter service_name Subsystem name in SRC
+#
+# @class_prefix service_check_running
+# @class_parameter service_name
+# This bundle will define a class service_check_running_${service_name}_{kept,not_ok}
+
+bundle agent _service_check_running_src(service_name)
+{
+  vars:
+
+      "old_class_prefix"  string => canonify("service_check_running_${service_name}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${service_name}" };
+
+      "check_command" string => "/usr/bin/lssrc -s ${service_name} | grep -q 'active'";
+      "check_command_canon" string => canonify("${check_command}");
+
+  methods:
+
+    lssrc_utility_present::
+      "check if subsystem is running" usebundle => command_execution_result("${check_command}", "0", "1");
+
+      "success_classes"
+        usebundle  => _classes_success("${old_class_prefix}"),
+        ifvarclass => "command_execution_result_${check_command_canon}_kept";
+
+      "success_classes"
+        usebundle  => _classes_success("${class_prefix}"),
+        ifvarclass => "has_promiser_stack.${class_prefix}_check_if_subsystem_is_running_kept";
+
+      "failure_class"
+        usebundle => _classes_failure("${old_class_prefix}"),
+        ifvarclass => canonify("command_execution_result_${check_command}_repaired");
+
+      "failure_class"
+        usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass => "has_promiser_stack.${class_prefix}_check_if_subsystem_is_running_repaired";
+
+      "report"
+        usebundle  => _log("Check if the service ${service_name} is started using SRC", "${old_class_prefix}", "${class_prefix}", @{args});
+
+    !lssrc_utility_present::
+      "force_failure_class" usebundle => _classes_failure("${class_prefix}");
+      "report"              usebundle => _log("Can't check if service ${service_name} is running, lssrc is not available", "${old_class_prefix}", "${class_prefix}", @{args});
+
+}

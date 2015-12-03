@@ -35,7 +35,10 @@ bundle agent service_check_started_at_boot(service_name)
     pass2.!systemctl_utility_present.chkconfig_utility_present::
       "command_to_check"   string => "${paths.path[chkconfig]} --list ${service_name} | grep -q -e 3:on -e B:on";
 
-    pass2.(!(systemctl_utility_present|chkconfig_utility_present)|broken_systemctl)::
+    pass2.!systemctl_utility_present.!chkconfig_utility_present.lsitab_utility_present::
+      "command_to_check"   string => "/usr/sbin/lsitab -a | egrep '^${service_name}:[0-9]+:(respawn|boot|bootwait|wait|once|initdefault|sysinit):'";
+
+    pass2.(!(systemctl_utility_present|chkconfig_utility_present|lsitab_utility_present)|broken_systemctl)::
       "command_to_check"   string => "${paths.path[test]} -f /etc/rc`runlevel | ${paths.path[cut]} -d' ' -f2`.d/S??${service_name}";
 
     any::
