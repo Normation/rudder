@@ -34,7 +34,6 @@
 
 package com.normation.rudder.web.snippet.index
 
-
 //lift std import
 import scala.xml._
 import net.liftweb.common._
@@ -55,6 +54,14 @@ import com.normation.rudder.authorization._
 class Administration {
 
   def index(xhtml:NodeSeq) : NodeSeq = {
+    if ( CurrentUser.checkRights(Read("administration")) ) {
       S.redirectTo("policyServerManagement")
+    } else {
+      if ( CurrentUser.checkRights(Read("technique")) ) {
+        S.redirectTo("techniqueLibraryManagement")
+      } else {
+        S.redirectTo("/secure/index")
+      }
+    }
   }
 }
