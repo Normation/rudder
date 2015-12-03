@@ -39,7 +39,15 @@ bundle agent service_action(service_name, action)
 
       "action_command"            string => "${paths.path[service]} ${service_name} ${action}";
 
-    !systemctl_utility_present.!service_utility_present.init_d_directory_present::
+    !systemctl_utility_present.!service_utility_present.startsrc_utility_present::
+      "svc_action_cmd[restart]"   string => "/usr/bin/stopsrc -s ${service_name} && until /usr/bin/lssrc -s ${service_name} | ${paths.grep} -q inoperative; do ${paths.perl} -e 'select(undef,undef,undef,.25)'; done; /usr/bin/startsrc -s ${service_name}";
+      "svc_action_cmd[refresh]"   string => "/usr/bin/refresh -s ${service_name}";
+      "svc_action_cmd[reload]"    string => "${svc_action_cmd[refresh]}";
+      "svc_action_cmd[start]"     string => "/usr/bin/startsrc -s ${service_name}";
+      "svc_action_cmd[stop]"      string => "/usr/bin/stopsrc -s ${service_name}";
+      "action_command"            string => "${svc_action_cmd[${action}]}";
+
+    !systemctl_utility_present.!service_utility_present.!startsrc_utility_present.init_d_directory_present::
 
       "action_command"            string => "/etc/init.d/${service_name} ${action}";
 
@@ -61,18 +69,18 @@ bundle agent service_action(service_name, action)
 
   methods:
 
-    systemctl_utility_present|service_utility_present|init_d_directory_present::
+    systemctl_utility_present|service_utility_present|init_d_directory_present|startsrc_utility_present::
 
       "action"                    usebundle => command_execution("${action_command}");
 
       "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
 
-    systemctl_utility_present|service_utility_present|init_d_directory_present|(windows.is_valid_action)::
+    systemctl_utility_present|service_utility_present|init_d_directory_present|startsrc_utility_present|(windows.is_valid_action)::
 
       "report"                    usebundle => _logger("Run action ${action} on service ${service_name}", "${class_prefix}"),
                                  ifvarclass => "${class_prefix}_reached";
 
-    (!systemctl_utility_present.!service_utility_present.!init_d_directory_present.!windows)|(windows.!is_valid_action)::
+    (!systemctl_utility_present.!service_utility_present.!init_d_directory_present.!startsrc_utility_present.!windows)|(windows.!is_valid_action)::
 
       "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
       "report"                    usebundle => _logger("Running ${action} on service ${service_name} is not possible yet on this system", "${class_prefix}");

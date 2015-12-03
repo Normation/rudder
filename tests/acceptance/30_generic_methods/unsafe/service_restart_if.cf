@@ -25,7 +25,9 @@ bundle agent init
   vars:
     redhat::
       "service_script_1" string => "crond";
-    !redhat::
+    aix::
+      "service_script_1" string => "syslogd";
+    !redhat.!aix::
       "service_script_1" string => "cron";
     any::
       "service_script_2" string => "my_service";

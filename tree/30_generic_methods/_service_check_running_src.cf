@@ -1,0 +1,56 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Service check running with SRC
+# @description Check if a service is running using SRC (AIX System Resource Controller)
+#
+# @parameter service_name Subsystem name in SRC
+#
+# @class_prefix service_check_running
+# @class_parameter service_name
+# This bundle will define a class service_check_running_${service_name}_{kept,not_ok}
+
+bundle agent _service_check_running_src(service_name)
+{
+  vars:
+
+      "class_prefix"  string => canonify("service_check_running_${service_name}");
+
+      "check_command" string => "/usr/bin/lssrc -s ${service_name} | grep -q 'active'";
+
+  methods:
+
+    lssrc_utility_present::
+      "check is subsystem is running" usebundle => command_execution_result("${check_command}", "0", "1");
+
+      "success_classes"
+        usebundle  => _classes_success("${class_prefix}"),
+        ifvarclass => canonify("command_execution_result_${check_command}_kept");
+
+      "failure_class"
+        usebundle => _classes_failure("${class_prefix}"),
+        ifvarclass => canonify("command_execution_result_${check_command}_repaired");
+
+      "report"
+        usebundle  => _logger("Check if the service ${service_name} is started using SRC", "${class_prefix}");
+
+    !lssrc_utility_present::
+      "force_failure_class" usebundle => _classes_failure("${class_prefix}");
+      "report"              usebundle => _logger("Can't check if service ${service_name} is running, lssrc is not available", "${class_prefix}");
+
+}
