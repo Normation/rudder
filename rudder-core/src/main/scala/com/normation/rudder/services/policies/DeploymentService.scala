@@ -100,19 +100,31 @@ trait DeploymentService extends Loggable {
 
     val result = for {
       //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
-      allRules        <- findDependantRules() ?~! "Could not find dependant rules"
-      allNodeInfos    <- getAllNodeInfos ?~! "Could not get Node Infos"
-      allInventories  <- getAllInventories ?~! "Could not get Node inventories"
-      directiveLib    <- getDirectiveLibrary() ?~! "Could not get the directive library"
-      groupLib        <- getGroupLibrary() ?~! "Could not get the group library"
-      allParameters   <- getAllGlobalParameters ?~! "Could not get global parameters"
+
+      allRules            <- findDependantRules() ?~! "Could not find dependant rules"
+      fetch1Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime}ms")
+      allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
+      fetch2Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time}ms")
+      directiveLib        <- getDirectiveLibrary() ?~! "Could not get the directive library"
+      fetch3Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time}ms")
+      groupLib            <- getGroupLibrary() ?~! "Could not get the group library"
+      fetch4Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time}ms")
+      allParameters       <- getAllGlobalParameters ?~! "Could not get global parameters"
+      fetch5Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched global parameters in ${fetch4Time-fetch3Time}ms")
       agentRunInterval    =  getAgentRunInterval()
       agentRunSplaytime   <- getAgentRunSplaytime() ?~! "Could not get agent run splaytime"
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not get agent run start time (minute)"
       agentRunStartHour   <- getAgentRunStartHour() ?~! "Could not get agent run start time (hour)"
+      fetch6Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched run infos in ${fetch4Time-fetch3Time}ms")
 
-      timeFetchAll    =  (System.currentTimeMillis - initialTime)
-      _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
+      timeFetchAll        =  (System.currentTimeMillis - initialTime)
+      _                   =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
 
       historizeTime =  System.currentTimeMillis
       historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, agentRunInterval, agentRunSplaytime, agentRunStartHour, agentRunStartMinute)
@@ -135,7 +147,6 @@ trait DeploymentService extends Loggable {
       config          <- buildNodeConfigurations(
                              ruleVals
                            , allNodeInfos
-                           , allInventories
                            , groupLib
                            , allParameters
                            , globalSystemVariables
@@ -251,7 +262,6 @@ trait DeploymentService extends Loggable {
   def buildNodeConfigurations(
       ruleVals             : Seq[RuleVal]
     , allNodeInfos         : Map[NodeId, NodeInfo]
-    , allInventories       : Map[NodeId, NodeInventory]
     , groupLib             : FullNodeGroupCategory
     , parameters           : Seq[GlobalParameter]
     , globalSystemVariable : Map[String, Variable]
@@ -500,7 +510,6 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
   private[this] def buildInterpolationContext(
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
-    , allInventories        : Map[NodeId, NodeInventory]
     , parameters            : Map[ParameterName, InterpolationContext => Box[String]]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
@@ -510,7 +519,6 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     (nodeIds.flatMap { nodeId:NodeId =>
       (for {
         nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-        inventory    <- Box(allInventories.get(nodeId)) ?~! s"Inventory for node with ID ${nodeId.value} was not found"
         policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
 
         nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
@@ -518,7 +526,6 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
         (nodeId, InterpolationContext(
                       nodeInfo
                     , policyServer
-                    , inventory
                     , nodeContext
                     , parameters
                   )
@@ -552,7 +559,6 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
   override def buildNodeConfigurations(
       ruleVals              : Seq[RuleVal]
     , allNodeInfos          : Map[NodeId, NodeInfo]
-    , allInventories        : Map[NodeId, NodeInventory]
     , groupLib              : FullNodeGroupCategory
     , parameters            : Seq[GlobalParameter]
     , globalSystemVariables : Map[String, Variable]
@@ -640,7 +646,6 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
       buildInterpolationContext(
           policyDraftByNode.keySet
         , allNodeInfos
-        , allInventories
         , interpolatedParameters
         , globalSystemVariables
         , globalAgentRun
