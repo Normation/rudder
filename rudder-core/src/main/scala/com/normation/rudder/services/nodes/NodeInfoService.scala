@@ -243,6 +243,7 @@ trait NodeInfoServiceCached extends NodeInfoService  with Loggable with CachedRe
       getDataFromBackend(lastModificationTime) match {
         case Full((info, lastModif)) =>
           logger.debug(s"NodeInfo cache is not up to date, last modification time: '${lastModif}', last cache update: '${lastModificationTime}' => updating cache with ${info.size} entries")
+          logger.debug(s"NodeInfo cache updated entries: [${info.keySet.map{ _.value }.mkString(", ")}]")
           nodeCache = Some(info)
           lastModificationTime = lastModif
           Full(info)
