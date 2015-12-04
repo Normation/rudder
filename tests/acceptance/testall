@@ -402,9 +402,9 @@ while true; do
     --gdb)
       GDB=1;;
     --info)
-      VERBOSE=-I;;
+      VERBOSE="-I -D debug";;
     --verbose)
-      VERBOSE=-v;;
+      VERBOSE="-v -D debug";;
     -*)
       echo "Unknown option: $1"
       exit 1;;
