@@ -4,8 +4,8 @@ test:
 	[ `id | cut -d\( -f2 | cut -d\) -f1` = 'root' ] || type fakeroot 2>/dev/null || { echo "Not running as root and fakeroot not found." ; exit 1 ; }
 	cd tests/style/ && ./testall
 	cd tests/unit/ && ./testall
-	cd tests/acceptance/ && ./testall --no-network
-	cd tests/acceptance/ && ./testall
+	cd tests/acceptance/ && ./testall --info --no-network
+	cd tests/acceptance/ && ./testall --info
 
 doc:
 	ls tree/30_generic_methods/*.cf | xargs egrep -h "^\s*bundle\s+agent\s+" | sed -r "s/\s*bundle\s+agent\s+//" | sort > doc/all_generic_methods.txt
