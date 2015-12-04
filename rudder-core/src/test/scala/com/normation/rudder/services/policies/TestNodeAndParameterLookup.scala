@@ -162,7 +162,6 @@ class TestNodeAndParameterLookup extends Specification {
   val context = InterpolationContext(
         parameters      = Map()
       , nodeInfo        = node1
-      , inventory       = nodeInventory1
       , policyServerInfo= root
         //environment variable for that server
       , nodeContext     = Map()
