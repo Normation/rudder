@@ -110,6 +110,7 @@ object TechniqueEditForm {
   val htmlId_addToActiveTechniques = "addToActiveTechniques"
   val htmlId_userCategoryDetails = "userCategoryDetails"
   val htmlId_addUserCategoryForm = "addUserCategoryForm"
+
 }
 
 /**
@@ -117,7 +118,8 @@ object TechniqueEditForm {
  */
 class TechniqueEditForm(
   htmlId_technique:String, //HTML id for the div around the form
-  val technique:Technique,
+  val technique: Option[Technique],
+  val activeTechnique: Option[ActiveTechnique],
   userCategoryLibrary:Option[ActiveTechniqueCategory],
   //JS to execute on form success (update UI parts)
   //there are call by name to have the context matching their execution when called
@@ -147,8 +149,17 @@ class TechniqueEditForm(
 //  }
 
 
-  private[this] var currentActiveTechnique = roActiveTechniqueRepository.getActiveTechnique(technique.id.name)
+  private[this] var currentActiveTechnique: Box[ActiveTechnique] =  Box(activeTechnique).or(Box(technique).flatMap(t => roActiveTechniqueRepository.getActiveTechnique(t.id.name)))
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
+
+  currentActiveTechnique match {
+    case f: Failure =>
+      logger.warn(s"An error was encountered when trying to find a technique in user library: ${f.messageChain}")
+      f.rootExceptionCause.foreach { ex =>
+        logger.warn("Root exception was: " , ex)
+      }
+    case _ => //
+  }
 
 
   //////////////////////////// public methods ////////////////////////////
@@ -210,7 +221,9 @@ class TechniqueEditForm(
         case e:EmptyBox => NodeSeq.Empty
         case Full(activeTechnique) => (
           ClearClearable &
-          //activation button: show disactivate if activated
+          //if no technique, no disable button
+          "#disableButton" #> ( (button:NodeSeq) => if(technique.isDefined) button else NodeSeq.Empty ) andThen
+          //activation button: show disable if activated
           "#disableButtonLabel" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
           "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
           "#dialogdisableWarning" #> dialogDisableWarning(activeTechnique) &
@@ -220,14 +233,30 @@ class TechniqueEditForm(
           } }
         )(xml)
       } } &
-      "#techniqueName" #> technique.name &
-      "#compatibility" #> (if (!technique.compatible.isEmpty) technique.compatible.head.toHtml else NodeSeq.Empty) &
-      "#techniqueDescription" #>  technique.description &
-      "#techniqueLongDescription" #>  technique.longDescription &
-      "#breadcrumpReferenceCategory" #> showReferenceLibBreadcrump &
-      "#clientCategoryZone" #> showTechniqueUserCategory &
-      "#templateParameters" #> showParameters() &
-      "#isSingle *" #> showIsSingle &
+      ".groupedEditZone" #> ((div:NodeSeq) => technique match {
+          case None =>
+            <div class="groupedEditZone">
+						No technique were found in the file system for the selection.
+						This most likelly mean that the technique was deleted on the it.
+				  </div>
+          case Some(t) =>
+            (
+              "#techniqueName" #> t.name &
+              "#compatibility" #> (if (!t.compatible.isEmpty) t.compatible.head.toHtml else NodeSeq.Empty) &
+              "#techniqueDescription" #>  t.description &
+              "#techniqueLongDescription" #>  t.longDescription &
+              "#isSingle *" #> showIsSingle(t)
+            )(div)
+      }) &
+      ".editZone" #> ((div:NodeSeq) => technique match {
+          case None => NodeSeq.Empty
+          case Some(t) =>
+            (
+              "#breadcrumpReferenceCategory" #> showReferenceLibBreadcrump(t) &
+              "#templateParameters" #> showParameters(t) &
+              "#clientCategoryZone" #> showTechniqueUserCategory(t)
+            )(div)
+      }) &
       "#editForm [id]" #> htmlId_technique
     )(crForm) ++
     Script(OnLoad(JsRaw("""
@@ -436,7 +465,7 @@ class TechniqueEditForm(
   /////////////////////////////////////////////////////////////////////////
 
 
-  def showReferenceLibBreadcrump() : NodeSeq = {
+  def showReferenceLibBreadcrump(technique:Technique) : NodeSeq = {
     <ul class="inlinenotop">{findBreadCrump(technique).map { cat =>
       <li class="inlineml">&#187; {cat.name}</li> } }
     </ul>
@@ -450,7 +479,7 @@ class TechniqueEditForm(
    * - display a "click on a category" message if not set in user lib and no category previously chosen
    * - else display an add button to add in the current category
    */
-  def showTechniqueUserCategory() : NodeSeq = {
+  def showTechniqueUserCategory(technique:Technique) : NodeSeq = {
     <div id={htmlId_addToActiveTechniques}>Client category: {
         findUserBreadCrump(technique) match {
           case Some(listCat) =>
@@ -479,7 +508,7 @@ class TechniqueEditForm(
                   )
 
                   //update UI
-                  Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory() ) &
+                  Replace(htmlId_addToActiveTechniques, showTechniqueUserCategory(technique) ) &
                   onSuccessCallback()
                 }
 
@@ -493,7 +522,7 @@ class TechniqueEditForm(
     }</div>
   }
 
-  private[this] def showParameters() : NodeSeq = {
+  private[this] def showParameters(technique: Technique) : NodeSeq = {
     directiveEditorService.get(technique.id, DirectiveId("just-for-read-only")) match {
       case Full(pe) => pe.toHtmlNodeSeq
       case e:EmptyBox =>
@@ -503,7 +532,7 @@ class TechniqueEditForm(
     }
   }
 
-  private[this] def showIsSingle() : NodeSeq = {
+  private[this] def showIsSingle(technique: Technique) : NodeSeq = {
     <span>
       {
         if(technique.isMultiInstance) {
