@@ -126,6 +126,7 @@ class NewNodeManagerImpl(
   , val inventoryHistoryLogRepository : InventoryHistoryLogRepository
   , val eventLogRepository : EventLogRepository
   , override val updateDynamicGroups : UpdateDynamicGroups
+  , val cacheToClear: List[CachedRepository]
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -222,6 +223,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def eventLogRepository : EventLogRepository
 
   def updateDynamicGroups : UpdateDynamicGroups
+
+  def cacheToClear: List[CachedRepository]
 
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
@@ -449,8 +452,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       }
     }) match {
       case Full(seq) => //ok, cool
-        logger.debug("Accepted inventories: %s".format(sm.node.main.id.value))
-        updateDynamicGroups.startManualUpdate
+        logger.info(s"New node accepted and managed by Rudder: ${id.value}")
+        cacheToClear.foreach { _.clearCache }
         acceptationResults
       case e:EmptyBox => //on an error here, rollback all accpeted
         logger.error((e ?~! "Error when trying to execute accepting new server post-processing. Rollback.").messageChain)

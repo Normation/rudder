@@ -1445,6 +1445,7 @@ object RudderConfig extends Loggable {
       , inventoryHistoryLogRepository
       , eventLogRepository
       , dyngroupUpdaterBatch
+      , List(nodeInfoServiceImpl)
     )
   }
 
