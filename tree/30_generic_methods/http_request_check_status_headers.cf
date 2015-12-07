@@ -45,6 +45,10 @@ bundle agent http_request_check_status_headers(method, url, expected_status, hea
     pass2::
       "report" usebundle => _log("Performing a HTTP ${method} request on ${url}, expecting status ${expected_status}", "${old_class_prefix}", "${class_prefix}", @{args});
 
+    !_stdlib_path_exists_curl::
+      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
+      "report"                    usebundle => _logger("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${class_prefix}");
+
   commands:
       "${paths.path[curl]}"
         args => "-I -s -o /dev/null -w \"%{http_code}\" ${url} -X ${method} -H '${headers}' | /bin/grep -q ${expected_status}",
