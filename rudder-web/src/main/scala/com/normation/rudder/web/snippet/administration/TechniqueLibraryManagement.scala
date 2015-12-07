@@ -123,10 +123,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   private[this] val techniqueId: Box[String] = S.param("techniqueId")
 
   //create a new Technique edit form and update currentTechniqueDetails
-  private[this] def updateCurrentTechniqueDetails(technique:Technique) = {
+  private[this] def updateCurrentTechniqueDetails(technique: Option[Technique], activeTechnique: Option[ActiveTechnique]) = {
     currentTechniqueDetails.set(Full(new TechniqueEditForm(
         htmlId_editForm,
         technique,
+        activeTechnique,
         currentTechniqueCategoryDetails.is.map( _.getCategory ),
         { () => Replace(htmlId_activeTechniquesTree, userLibrary) }
         //we don't need/want an error callback here - the error is managed in the form.
@@ -322,7 +323,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       technique
     }) match {
       case Full(technique) =>
-        updateCurrentTechniqueDetails(technique)
+        updateCurrentTechniqueDetails(Some(technique), None)
         showTechniqueDetails()
       case _ =>
         <div id={htmlId_bottomPanel}>
@@ -505,7 +506,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id).flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
-      updateCurrentTechniqueDetails(technique)
+      updateCurrentTechniqueDetails(Some(technique), Some(activeTechnique))
     }
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
@@ -536,8 +537,8 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
 
   //ajax function that update the bottom of the page when a Technique is clicked
-  private[this] def onClickTemplateNode(technique : Technique): JsCmd = {
-    updateCurrentTechniqueDetails(technique)
+  private[this] def onClickTemplateNode(technique : Option[Technique], activeTechnique: Option[ActiveTechnique]): JsCmd = {
+    updateCurrentTechniqueDetails(technique, activeTechnique)
 
     //update UI
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
@@ -560,7 +561,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       override def body = {
         val tooltipid = Helpers.nextFuncName
         SHtml.a(
-            { () => onClickTemplateNode(technique) },
+            { () => onClickTemplateNode(Some(technique), None) },
             <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span>
             <div class="tooltipContent" id={tooltipid}><h3>{technique.name}</h3><div>{technique.description}</div></div>
         )
@@ -621,11 +622,19 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         case Some(technique) =>
           new JsTreeNode {
             override def body = {
-              val tooltipid = Helpers.nextFuncName
+              val tooltipid0 = Helpers.nextFuncName
+              val tooltipid1 = Helpers.nextFuncName
+              val numberDirectives = s"${activeTechnique.directives.size} directive(s) are based on that Technique"
               SHtml.a(
-                { () => onClickTemplateNode(technique) },
-                  <span class="treeTechniqueName tooltipable" tooltipid={tooltipid} title={technique.description}>{technique.name}</span>
-                  <div class="tooltipContent" id={tooltipid}><h3>{technique.name}</h3><div>{technique.description}</div></div>
+                { () => onClickTemplateNode(Some(technique), Some(activeTechnique)) },
+                  (
+                  <span class="treeTechniqueName tooltipable" tooltipid={tooltipid0} title={technique.description}>{technique.name}</span>
+                  <div class="tooltipContent" id={tooltipid0}><h3>{technique.name}</h3><div>{technique.description}</div></div>
+                  <span class="tooltipable" tooltipid={tooltipid1} title={numberDirectives}>
+                    {s" (${activeTechnique.directives.size})"}
+                  </span>
+                  <div class="tooltipContent" id={tooltipid1}>{numberDirectives}</div>
+                  )
                 )
             }
             override def children = Nil
@@ -652,14 +661,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           new JsTreeNode {
             override def body = {
               val tooltipid = Helpers.nextFuncName
-              <a href="#">
+              SHtml.a(
+                { () => onClickTemplateNode(None, Some(activeTechnique)) },
                   <span class="error treeTechniqueName tooltipable" tooltipid={tooltipid} title={activeTechnique.techniqueName.value}>{activeTechnique.techniqueName.value}</span>
                   <div class="tooltipContent" id={tooltipid}>
                     <h3>Missing technique {activeTechnique.techniqueName.value}</h3>
                     <div>The technique is missing on the repository. Active technique based on it are disable until the technique is putted back on the repository</div>
                   </div>
-              </a>
-            }
+                )
+             }
             override def children = Nil
             override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> activeTechnique.techniqueName.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
           }
@@ -673,7 +683,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       (
         currentTechniqueDetails.is match {
           case Full(form) =>
-            updateCurrentTechniqueDetails(form.technique)
+            updateCurrentTechniqueDetails(form.technique, form.activeTechnique)
 
             //update UI
             SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
