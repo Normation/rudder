@@ -80,6 +80,8 @@ import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.AgentRunInterval
 
 /**
  * The main service which deploy modified rules and
@@ -102,18 +104,26 @@ trait PromiseGenerationService extends Loggable {
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
 
     val result = for {
-      //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups => ~ 100MB)
-      allRules        <- findDependantRules() ?~! "Could not find dependant rules"
-      allNodeInfos    <- getAllNodeInfos ?~! "Could not get Node Infos"
-      allInventories  <- getAllInventories ?~! "Could not get Node inventories"
-      directiveLib    <- getDirectiveLibrary() ?~! "Could not get the directive library"
-      groupLib        <- getGroupLibrary() ?~! "Could not get the group library"
-      globalParameters<- getAllGlobalParameters ?~! "Could not get global parameters"
-      globalAgentRun  <- getGlobalAgentRun
-      agentRunInterval    =  getAgentRunInterval()
-      agentRunSplaytime   <- getAgentRunSplaytime() ?~! "Could not get agent run splaytime"
-      agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not get agent run start time (minute)"
-      agentRunStartHour   <- getAgentRunStartHour() ?~! "Could not get agent run start time (hour)"
+      //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
+
+      allRules            <- findDependantRules() ?~! "Could not find dependant rules"
+      fetch1Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime}ms")
+      allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
+      fetch2Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time}ms")
+      directiveLib        <- getDirectiveLibrary() ?~! "Could not get the directive library"
+      fetch3Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time}ms")
+      groupLib            <- getGroupLibrary() ?~! "Could not get the group library"
+      fetch4Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time}ms")
+      allParameters       <- getAllGlobalParameters ?~! "Could not get global parameters"
+      fetch5Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time}ms")
+      globalAgentRun       <- getGlobalAgentRun
+      fetch6Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time}ms")
       globalComplianceMode <- getGlobalComplianceMode
       nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
@@ -127,7 +137,7 @@ trait PromiseGenerationService extends Loggable {
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
 
       nodeContextsTime =  System.currentTimeMillis
-      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, allInventories, allLicenses, globalParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
+      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
       timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
       _                =  logger.debug(s"Node contexts built in ${timeNodeContexts}ms, start to build new node configurations.")
 
@@ -136,7 +146,7 @@ trait PromiseGenerationService extends Loggable {
       ///// this thing has nothing to do with promise generation and should be
       ///// else where. You can ignore it if you want to understand generation process.
       historizeTime =  System.currentTimeMillis
-      historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, agentRunInterval, agentRunSplaytime, agentRunStartHour, agentRunStartMinute)
+      historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
       timeHistorize =  (System.currentTimeMillis - historizeTime)
       _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
       ///// end ignoring
@@ -248,7 +258,6 @@ trait PromiseGenerationService extends Loggable {
   def getNodeContexts(
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
-    , allInventories        : Map[NodeId, NodeInventory]
     , allLicenses           : Map[NodeId, NovaLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
@@ -336,10 +345,7 @@ trait PromiseGenerationService extends Loggable {
     , directiveLib     : FullActiveTechniqueCategory
     , groupLib         : FullNodeGroupCategory
     , allNodeInfos     : Map[NodeId, NodeInfo]
-    , globalInterval   : Int
-    , globalSplaytime  : Int
-    , globalStartHour  : Int
-    , globalStartMinute: Int
+    , globalAgentRun   : AgentRunInterval
   ) : Box[Unit]
 
   protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
@@ -446,7 +452,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getNodeContexts(
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
-    , allInventories        : Map[NodeId, NodeInventory]
     , allLicenses           : Map[NodeId, NovaLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
@@ -482,7 +487,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
       (nodeIds.flatMap { nodeId:NodeId =>
         (for {
           nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-          inventory    <- Box(allInventories.get(nodeId)) ?~! s"Inventory for node with ID ${nodeId.value} was not found"
           policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
 
           nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allLicenses, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
@@ -490,7 +494,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
           (nodeId, InterpolationContext(
                         nodeInfo
                       , policyServer
-                      , inventory
                       , nodeContext
                       , parameters
                     )
@@ -891,17 +894,14 @@ trait PromiseGeneration_historization extends PromiseGenerationService {
       , directiveLib     : FullActiveTechniqueCategory
       , groupLib         : FullNodeGroupCategory
       , allNodeInfos     : Map[NodeId, NodeInfo]
-      , globalInterval   : Int
-      , globalSplaytime  : Int
-      , globalStartHour  : Int
-      , globalStartMinute: Int
+      , globalAgentRun   : AgentRunInterval
     ) : Box[Unit] = {
     for {
       _ <- historizationService.updateNodes(allNodeInfos.values.toSet)
       _ <- historizationService.updateGroups(groupLib)
       _ <- historizationService.updateDirectiveNames(directiveLib)
       _ <- historizationService.updatesRuleNames(rules)
-      _ <- historizationService.updateGlobalSchedule(globalInterval, globalSplaytime, globalStartHour, globalStartMinute)
+      _ <- historizationService.updateGlobalSchedule(globalAgentRun.interval, globalAgentRun.splaytime, globalAgentRun.startHour, globalAgentRun.startMinute)
     } yield {
       () // unit is expected
     }
