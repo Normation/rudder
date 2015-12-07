@@ -43,6 +43,10 @@ bundle agent http_request_content_headers(method, url, content, headers)
       "report"
         usebundle  => _logger("Performing a HTTP ${method} request on ${url} with specific content", "${class_prefix}");
 
+    !_stdlib_path_exists_curl::
+      "force_failure_class"       usebundle => _classes_failure("${class_prefix}");
+      "report"                    usebundle => _logger("Unable to perform a HTTP ${method} on ${url}: curl is not installed", "${class_prefix}");
+
   commands:
       "/bin/echo \"${content}\" | ${paths.path[curl]}"
         args => "${url} -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
