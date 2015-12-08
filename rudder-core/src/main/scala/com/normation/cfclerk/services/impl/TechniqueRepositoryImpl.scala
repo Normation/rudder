@@ -46,6 +46,7 @@ import scala.collection.mutable
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
+import com.normation.utils.Control
 
 class TechniqueRepositoryImpl(
     techniqueReader: TechniqueReader
@@ -110,18 +111,20 @@ class TechniqueRepositoryImpl(
         })
         techniqueInfosCache = techniqueReader.readTechniques
 
-        callbacks.foreach { callback =>
+        val res = Control.bestEffort(callbacks) { callback =>
           try {
             callback.updatedTechniques(modifiedPackages, modId, actor, reason)
           } catch {
-            case e: Exception => logger.error("Error when executing callback '%s' with updated technique: '%s'".format(callback.name, modifiedPackages.mkString(", ")), e)
+            case e: Exception =>
+              Failure(s"Error when executing callback '${callback.name}' for updated techniques: '${modifiedPackages.mkString(", ")}'", Full(e), Empty)
           }
         }
 
+        res.map { _ => modifiedPackages }
       } else {
         logger.debug("Not reloading technique library as nothing changed since last reload")
+        Full(modifiedPackages)
       }
-      Full(modifiedPackages)
     } catch {
       case e:Exception => Failure("Error when trying to read technique library", Full(e), Empty)
     }

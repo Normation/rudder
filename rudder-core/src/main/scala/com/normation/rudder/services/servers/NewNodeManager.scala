@@ -68,6 +68,7 @@ import java.net.InetAddress
 import org.apache.commons.net.util.SubnetUtils
 import com.normation.rudder.domain.eventlog._
 import com.normation.rudder.reports._
+import com.normation.rudder.repository.EventLogRepository
 
 /**
  * A trait to manage the acceptation of new node in Rudder
