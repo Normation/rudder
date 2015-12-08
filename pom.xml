@@ -285,7 +285,7 @@ limitations under the License.
     <commons-io-version>2.4</commons-io-version>
     <commons-codec-version>1.9</commons-codec-version>
     <commons-lang-version>2.6</commons-lang-version>
-    <specs2-version>2.3.12</specs2-version>
+    <specs2-version>3.6.6</specs2-version>
     <spring-version>3.2.9.RELEASE</spring-version>
     <spring-security-version>3.2.4.RELEASE</spring-security-version>
     <squeryl-version>0.9.5-7</squeryl-version>
@@ -354,15 +354,21 @@ limitations under the License.
 
     <dependency>
       <groupId>org.specs2</groupId>
-      <artifactId>specs2_${scala-binary-version}</artifactId>
+      <artifactId>specs2-core_${scala-binary-version}</artifactId>
       <version>${specs2-version}</version>
       <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.ow2.asm</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.specs2</groupId>
+      <artifactId>specs2-matcher-extra_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.specs2</groupId>
+      <artifactId>specs2-junit_${scala-binary-version}</artifactId>
+      <version>${specs2-version}</version>
+      <scope>test</scope>
     </dependency>
     
     <!-- 
