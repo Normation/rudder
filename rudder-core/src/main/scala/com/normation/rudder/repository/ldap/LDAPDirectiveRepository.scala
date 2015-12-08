@@ -67,6 +67,7 @@ import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.repository.EventLogRepository
 
 
 class RoLDAPDirectiveRepository(

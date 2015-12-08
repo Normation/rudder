@@ -58,6 +58,7 @@ import com.normation.rudder.domain.archives.RuleArchiveId
 import com.unboundid.ldif.LDIFChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.repository.EventLogRepository
 
 
 class RoLDAPRuleRepository(
