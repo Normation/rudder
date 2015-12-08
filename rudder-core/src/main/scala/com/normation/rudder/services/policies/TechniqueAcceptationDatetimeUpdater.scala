@@ -44,12 +44,12 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.utils.StringUuidGenerator
-
+import com.normation.utils.Control
 import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
-
 import org.joda.time.DateTime
+import net.liftweb.common.Box
 
 
 
@@ -76,84 +76,11 @@ class TechniqueAcceptationUpdater(
   , uuidGen               : StringUuidGenerator
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-    override def updatedTechniques(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Unit = {
-      val acceptationDatetime = DateTime.now()
-
-      for {
-        techLib <- roActiveTechniqueRepo.getFullDirectiveLibrary
-      } yield {
-
-        val activeTechniques = techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
-
-        techniqueMods.foreach { case (name, mod) =>
-          (mod, activeTechniques.get(name) ) match {
-
-            case (TechniqueDeleted(name, versions), None) =>
-              //nothing to do
-
-            case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
-              //if an active technique still exists for that technique, disable it
-              rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
-
-            case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
-              logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
-              val versionsMap = mods.keySet.map( v => (v, acceptationDatetime)).toMap
-              rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
-                case e: EmptyBox =>
-                  logger.error("Error when saving Active Technique " + activeTechnique.id, (e ?~! "Error was:"))
-                case _ => //ok
-              }
-
-            case (TechniqueUpdated(name, mods), None) =>
-
-              /*
-               * Here, we want to add an "auto-add active technique" feature.
-               * The addition is done as soon as something is added for the technique,
-               * meaning that:
-               * - we don't auto-add on only delete
-               * - we do auto-add on any version, even if some already exists, what could
-               *   mean that the user un-added the active technique a previous time. But
-               *   it also could mean that the auto-add feature was not here yet.
-               */
-              mods.find(x => x._2 == VersionAdded || x._2 == VersionUpdated ) match {
-                case None => //do nothing
-                case Some((version, _)) =>
-
-                  //get the category for the technique
-                  val techniquesInfo = techniqueRepo.getTechniquesInfo()
-
-                  techniquesInfo.techniques.get(name) match {
-                    case None =>
-                      //hum, something changed on the repos since the update. Strange.
-                      //ignore ? => do nothing
-                    case Some(t) =>
-                      val referenceId = t.head._2.id
-
-                      val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
-
-                      //now, for each category in reference library, look if it exists in target library, and recurse on children
-                      //tail of cats, because if root, we want an empty list to return immediatly in findCategory
-                      val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
-
-                      logger.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library")
-                      rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason) match {
-                        case eb: EmptyBox =>
-                          val e = eb ?~! s"Error when automatically activating technique '${name}'"
-                          logger.error(e.messageChain)
-                        case Full(_) => //ok, nothing to do
-                      }
-
-                  }
-
-              }
-          }
-        }
-      }
-
+  override def updatedTechniques(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[Unit] = {
 
     final case class CategoryInfo(name: String, description: String)
 
-    /**
+    /*
      * return the category id in which we want to create the technique
      */
     def findCategory(sourcesCatNames: List[CategoryInfo], existings: FullActiveTechniqueCategory): (ActiveTechniqueCategoryId, String) = {
@@ -168,11 +95,12 @@ class TechniqueAcceptationUpdater(
           case Some(cat) =>
             // continue !
             findCategory(sourcesCatNames.tail, cat)
+
         }
       }
     }
 
-    /**
+    /*
      * create a chain of categories/subcategories
      * That method never fails: even if we can't create categories,
      * we at least return an id of an existing one.
@@ -197,6 +125,81 @@ class TechniqueAcceptationUpdater(
           }
       }
     }
-  }
 
+    val acceptationDatetime = DateTime.now()
+
+      for {
+        techLib          <- roActiveTechniqueRepo.getFullDirectiveLibrary
+        activeTechniques =  techLib.allActiveTechniques.map { case (_, at) => (at.techniqueName, at) }
+        accepted         <- Control.bestEffort(techniqueMods.toSeq) { case (name, mod) =>
+                              (mod, activeTechniques.get(name) ) match {
+
+                                case (TechniqueDeleted(name, versions), None) =>
+                                  //nothing to do
+                                  Full({})
+
+                                case (TechniqueDeleted(name, versions), Some(activeTechnique)) =>
+                                  //if an active technique still exists for that technique, disable it
+                                  rwActiveTechniqueRepo.changeStatus(activeTechnique.id, false, modId, actor, reason)
+
+                                case (TechniqueUpdated(name, mods), Some(activeTechnique)) =>
+                                  logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
+                                  val versionsMap = mods.keySet.map( v => (v, acceptationDatetime)).toMap
+                                  rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
+                                    case e: EmptyBox =>
+                                      e ?~! s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"
+                                    case _ =>
+                                      Full({})
+                                  }
+
+                                case (TechniqueUpdated(name, mods), None) =>
+
+                                  /*
+                                   * Here, we want to add an "auto-add active technique" feature.
+                                   * The addition is done as soon as something is added for the technique,
+                                   * meaning that:
+                                   * - we don't auto-add on only delete
+                                   * - we do auto-add on any version, even if some already exists, what could
+                                   *   mean that the user un-added the active technique a previous time. But
+                                   *   it also could mean that the auto-add feature was not here yet.
+                                   */
+                                  mods.find(x => x._2 == VersionAdded || x._2 == VersionUpdated ) match {
+                                    case None => //do nothing
+                                      Full({})
+                                    case Some((version, _)) =>
+
+                                      //get the category for the technique
+                                      val techniquesInfo = techniqueRepo.getTechniquesInfo()
+
+                                      techniquesInfo.techniques.get(name) match {
+                                        case None =>
+                                          //hum, something changed on the repos since the update. Strange.
+                                          //ignore ? => do nothing
+                                          Full({})
+                                        case Some(t) =>
+                                          val referenceId = t.head._2.id
+
+                                          val referenceCats = techniquesInfo.techniquesCategory(referenceId).getIdPathFromRoot.map( techniquesInfo.allCategories(_) )
+
+                                          //now, for each category in reference library, look if it exists in target library, and recurse on children
+                                          //tail of cats, because if root, we want an empty list to return immediatly in findCategory
+                                          val parentCat = findCategory(referenceCats.tail.map(x => CategoryInfo(x.name, x.description)), techLib)
+
+                                          logger.info(s"Automatically adding technique '${name}' in category '${parentCat._2} (${parentCat._1.value})' of active techniques library")
+                                          rwActiveTechniqueRepo.addTechniqueInUserLibrary(parentCat._1, name, mods.keys.toSeq, modId, actor, reason) match {
+                                            case eb: EmptyBox =>
+                                              eb ?~! s"Error when automatically activating technique '${name}'"
+                                            case Full(_) => //ok, nothing to do
+                                              Full({})
+                                          }
+
+                                      }
+
+                                  }
+                              }
+                            }
+      } yield {
+        {}
+      }
+  }
 }
