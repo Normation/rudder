@@ -45,10 +45,8 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
-
-
-
 import net.liftweb.common._
+import com.normation.rudder.repository.EventLogRepository
 
 
 class WoLDAPNodeRepository(

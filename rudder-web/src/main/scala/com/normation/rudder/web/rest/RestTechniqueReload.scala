@@ -57,8 +57,11 @@ class RestTechniqueReload(
         case Full(x) => PlainTextResponse("OK")
         case eb:EmptyBox =>
           val e = eb ?~! "An error occured when updating the Technique library from file system"
-          logger.debug(e.messageChain, e)
-          PlainTextResponse("Error: " + e.messageChain.mkString("\n","\ncause:","\n"), 500)
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception cause was:", ex)
+          }
+          PlainTextResponse(s"Error: ${e.messageChain.split(" <- ").mkString("","\ncause:","\n")}", 500)
       }
   }
 
