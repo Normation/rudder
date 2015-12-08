@@ -222,7 +222,7 @@ class FusionReportUnmarshaller(
     processHostname(fullReport, doc)
   }
 
-  // Use RUDDER/HOSTNAME first and if missing OS/FQDN
+  // First use OS/FQDN and if missing or invalid use RUDDER/HOSTNAME
   def processHostname (report : InventoryReport, xml : NodeSeq) : Box[InventoryReport] = {
 
     def updateHostname(hostname : String ) = {
@@ -240,10 +240,10 @@ class FusionReportUnmarshaller(
     }
 
     (optText(xml \\ "RUDDER" \ "HOSTNAME"), optText(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {
-      // Rudder tag
-      case (Some(hostname),_) if validHostname(hostname) => Full(updateHostname(hostname))
       // OS tag
       case (_,Some(hostname)) if validHostname(hostname) => Full(updateHostname(hostname))
+      // Rudder tag
+      case (Some(hostname),_) if validHostname(hostname) => Full(updateHostname(hostname))
       case (None,None)        => Failure("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)")
     }
   }
