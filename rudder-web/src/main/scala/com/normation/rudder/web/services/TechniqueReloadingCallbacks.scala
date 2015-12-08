@@ -42,9 +42,11 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control._
-
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
+import net.liftweb.common.Full
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
 
 
 /**
@@ -63,10 +65,10 @@ class SaveDirectivesOnTechniqueCallback(
   , woDirectiveRepo       : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(techniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     val updatedTechniques = techniqueIds.map(x => (x.name, x.version)).toMap
 
-    (for {
+    for {
       techLib  <- roDirectiveRepo.getFullDirectiveLibrary()
       toUpdate = techLib.allDirectives.values.filter { case (activeTechnique, directive) => updatedTechniques.get(activeTechnique.techniqueName) == Some(directive.techniqueVersion) }
       updated  <- bestEffort(toUpdate.toSeq) { case(inActiveTechnique, directive) =>
@@ -80,11 +82,6 @@ class SaveDirectivesOnTechniqueCallback(
                   }
     } yield {
       ()
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to save directive based on updated Techniques"
-        logger.error(e.messageChain)
-      case _ => ()
     }
   }
 }

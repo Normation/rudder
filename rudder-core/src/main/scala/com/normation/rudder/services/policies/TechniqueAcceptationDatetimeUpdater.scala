@@ -43,37 +43,39 @@ import org.joda.time.DateTime
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.utils.Control
 
 class TechniqueAcceptationDatetimeUpdater(
     override val name:String
-  , roActiveTechniqueRepo : RoDirectiveRepository 
+  , roActiveTechniqueRepo : RoDirectiveRepository
   , rwActiveTechniqueRepo : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-    override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId: ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+    override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId: ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
       val byNames = TechniqueIds.groupBy( _.name ).map { case (name,ids) =>
                       (name, ids.map( _.version ))
-                    }.toMap
+                    }.toSeq
       val acceptationDatetime = DateTime.now()
 
-      byNames.foreach { case( name, versions ) =>
+      Control.bestEffort(byNames) { case( name, versions ) =>
         roActiveTechniqueRepo.getActiveTechnique(name) match {
           case e:EmptyBox =>
             //OK, that policy package is not in the Active Technique Library, do nothing
             //log in case it was a real problem
-            val error = e ?~! ("The Technique with name '%s' has been marked as updated in the Technique Library ".format(name) +
+            val error = e ?~! (s"The Technique with name '${name}' has been marked as updated in the Technique Library " +
                 "but was not found in the Active Technique Library - it's expected if the technique was not added (or was removed) from Active Technique Library")
             logger.debug(error.messageChain)
+            Full({})
           case Full(activeTechnique) =>
-            logger.debug("Update acceptation datetime for: " + activeTechnique.techniqueName)
+            logger.debug(s"Update acceptation datetime for technique '${activeTechnique.techniqueName}")
             val versionsMap = versions.map( v => (v,acceptationDatetime)).toMap
             rwActiveTechniqueRepo.setAcceptationDatetimes(activeTechnique.id, versionsMap, modId, actor, reason) match {
               case e:EmptyBox =>
-                logger.error("Error when saving Active Technique " + activeTechnique.id, (e ?~! "Error was:"))
-              case _ => //ok
+                e ?~! s"Error when saving Active Technique ${activeTechnique.id.value} for technque ${activeTechnique.techniqueName}"
+              case _ => Full({})
             }
         }
-      }
+      }.map( _ => {})
     }
 
 }
