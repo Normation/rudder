@@ -52,7 +52,6 @@ import com.normation.inventory.services.provisioning._
 import org.joda.time.format.DateTimeFormatter
 import com.normation.utils.Control.sequence
 
-
 class FusionReportUnmarshaller(
     uuidGen:StringUuidGenerator,
     rootParsingExtensions:List[FusionReportParsingExtension] = Nil,
@@ -223,17 +222,28 @@ class FusionReportUnmarshaller(
     processHostname(fullReport, doc)
   }
 
-
+  // Use RUDDER/HOSTNAME first and if missing OS/FQDN
   def processHostname (report : InventoryReport, xml : NodeSeq) : Box[InventoryReport] = {
 
     def updateHostname(hostname : String ) = {
       report.copy( node = report.node.copyWithMain(m => m.copy (hostname = hostname ) ))
     }
+
+    def validHostname( hostname : String ) : Boolean = {
+      val invalidList = "localhost" :: "127.0.0.1" :: "::1" :: Nil
+      /* Invalid cases are:
+       * * hostname is null
+       * * hostname is empty
+       * * hostname is one of the invalid list
+       */
+      ! ( hostname == null || hostname.isEmpty() || invalidList.contains(hostname))
+    }
+
     (optText(xml \\ "RUDDER" \ "HOSTNAME"), optText(xml \\ "OPERATINGSYSTEM" \ "FQDN")) match {
       // Rudder tag
-      case (Some(hostname),_) => Full(updateHostname(hostname))
+      case (Some(hostname),_) if validHostname(hostname) => Full(updateHostname(hostname))
       // OS tag
-      case (_,Some(hostname)) => Full(updateHostname(hostname))
+      case (_,Some(hostname)) if validHostname(hostname) => Full(updateHostname(hostname))
       case (None,None)        => Failure("Hostname could not be found in inventory (RUDDER/HOSTNAME and OPERATINGSYSTEM/FQDN are missing)")
     }
   }
@@ -283,7 +293,6 @@ class FusionReportUnmarshaller(
             case Full(x) => Full(x)
           }
         }).flatten
-
 
         ( for {
             agentOK  <- if(agents.size < 1) {
@@ -379,7 +388,6 @@ class FusionReportUnmarshaller(
     report.copy(node = report.node.copy(networks = nets))
   }
 
-
   // ******************************************** //
   // parsing implementation details for each tags //
   // ******************************************** //
@@ -454,7 +462,6 @@ class FusionReportUnmarshaller(
        * USERDOMAIN : This field is deprecated, you should use the USERS section instead.
        *
        */
-
 
     //update machine VM type
     val newMachine = optText(xml\\"VMSYSTEM") match {
@@ -1023,9 +1030,6 @@ class FusionReportUnmarshaller(
 	          ) )
 	  }
   }
-
-
-
 
   def processAccessLog (accessLog : NodeSeq) : Option[DateTime] = {
      val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
