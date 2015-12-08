@@ -50,10 +50,11 @@ class DeployOnTechniqueCallback(
   , asyncDeploymentAgent: AsyncDeploymentAgent
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     reason.foreach( msg => logger.info(msg) )
     logger.debug("Ask for a policy update since technique library was reloaded")
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+    Full({})
   }
 }
 
@@ -62,7 +63,7 @@ class LogEventOnTechniqueReloadCallback(
   , eventLogRepos    : EventLogRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(TechniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
         modificationId = None
       , principal   = actor
@@ -70,10 +71,8 @@ class LogEventOnTechniqueReloadCallback(
       , reason = reason
     ))) match {
       case eb:EmptyBox =>
-        val error = eb ?~! "Error when saving log related to technique reloading event"
-        logger.error(error)
-        logger.debug(error.exceptionChain)
-      case Full(x) => //OK
+        eb ?~! "Error when saving event log for techniques library reload"
+      case Full(x) => Full({})
     }
   }
 }
