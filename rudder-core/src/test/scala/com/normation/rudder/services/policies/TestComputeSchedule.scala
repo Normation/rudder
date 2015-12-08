@@ -34,15 +34,14 @@
 
 package com.normation.rudder.services.policies
 
-import org.junit.runner._
-import org.specs2.runner._
-import org.specs2.mutable._
-import net.liftweb.common._
-import org.specs2.specification.Example
-import org.specs2.execute.Pending
-import org.specs2.matcher.Matchers._
+import org.junit.runner.RunWith
+import net.liftweb.common.Full
+import org.specs2.mutable.Specification
+import net.liftweb.common.Failure
+import org.specs2.runner.JUnitRunner
+
 /**
- * Test Node scheudle computation
+ * Test Node schedule computation
  */
 
 
@@ -75,7 +74,7 @@ class TestComputeSchedule extends Specification {
         Failure("Agent execution interval can only be defined as minutes (less than 60) or complete hours, (1 hours 3 minutes is not supported)")
       )
     }
-    
+
     "be every hours if defined with an interval of 1 hour" in {
       ComputeSchedule.computeSchedule(0,0,60) must beEqualTo (
           Full(""""Hr00.Min00", "Hr01.Min00", "Hr02.Min00", "Hr03.Min00", "Hr04.Min00", "Hr05.Min00", "Hr06.Min00", "Hr07.Min00", "Hr08.Min00", "Hr09.Min00", "Hr10.Min00", "Hr11.Min00", "Hr12.Min00", "Hr13.Min00", "Hr14.Min00", "Hr15.Min00", "Hr16.Min00", "Hr17.Min00", "Hr18.Min00", "Hr19.Min00", "Hr20.Min00", "Hr21.Min00", "Hr22.Min00", "Hr23.Min00"""")

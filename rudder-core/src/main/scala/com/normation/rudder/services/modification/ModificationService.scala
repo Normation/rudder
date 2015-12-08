@@ -39,6 +39,7 @@ import com.normation.eventlog._
 import net.liftweb.common._
 import com.normation.utils.StringUuidGenerator
 import org.eclipse.jgit.lib.PersonIdent
+import com.normation.rudder.repository.EventLogRepository
 
 class ModificationService(
       eventLogRepository : EventLogRepository

@@ -34,19 +34,23 @@
 
 package com.normation.rudder.migration
 
-import java.sql._
+import java.sql.Connection
+import java.sql.ResultSet
+import java.sql.Timestamp
 import java.util.Properties
+
+import scala.io.Source
 import scala.xml.XML
-import org.specs2.mutable.Specification
-import org.specs2.mutable.Tags
-import org.specs2.specification.Fragments
-import org.specs2.specification.Step
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.RowMapper
+
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
 import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
+
+import org.specs2.mutable.Specification
+import org.specs2.specification.BeforeAfterAll
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
+
 import net.liftweb.common.Loggable
-import scala.io.Source
 
 
 
@@ -54,7 +58,7 @@ import scala.io.Source
  * Here we manage all the initialisation of services and database
  * state for the full example (after/before class).
  */
-trait DBCommon extends Specification with Loggable with Tags {
+trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
   logger.info("""Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test""")
 
@@ -94,9 +98,8 @@ trait DBCommon extends Specification with Loggable with Tags {
    */
   def sqlClean : String = ""
 
-  override def map(fs: =>Fragments) = (
-      Step(initDb) ^ fs ^ Step(cleanDb)
-  )
+  override def beforeAll(): Unit = initDb
+  override def afterAll(): Unit = cleanDb
 
   def initDb() = {
     if(sqlInit.trim.size > 0) jdbcTemplate.execute(sqlInit)

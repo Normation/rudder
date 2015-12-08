@@ -42,10 +42,10 @@ import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.eventlog.ReloadTechniqueLibrary
 import com.normation.eventlog.EventLogDetails
 import net.liftweb.common._
-import com.normation.rudder.repository.EventLogRepository
 import com.normation.eventlog.ModificationId
 import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.repository.EventLogRepository
 
 class DeployOnTechniqueCallback(
     override val name   : String
@@ -53,12 +53,13 @@ class DeployOnTechniqueCallback(
   , asyncDeploymentAgent: AsyncDeploymentAgent
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(techniqueIds:Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     reason.foreach( msg => logger.info(msg) )
     if(techniqueIds.nonEmpty) {
       logger.debug("Ask for a policy update since technique library was reloaded")
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
     }
+    Full({})
   }
 }
 
@@ -68,7 +69,7 @@ class LogEventOnTechniqueReloadCallback(
   , eventLogRepos     : EventLogRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(techniqueMods: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
     eventLogRepos.saveEventLog(modId, ReloadTechniqueLibrary(EventLogDetails(
         modificationId = None
       , principal      = actor
@@ -76,10 +77,8 @@ class LogEventOnTechniqueReloadCallback(
       , reason = reason
     ))) match {
       case eb:EmptyBox =>
-        val error = eb ?~! "Error when saving log related to technique reloading event"
-        logger.error(error)
-        logger.debug(error.exceptionChain)
-      case Full(x) => //OK
+        eb ?~! "Error when saving event log for techniques library reload"
+      case Full(x) => Full({})
     }
   }
 }
