@@ -34,23 +34,27 @@
 
 package com.normation.rudder.services.policies
 
-import org.joda.time.DateTime
-import org.junit.runner._
-import org.specs2.runner._
-import org.specs2.mutable._
-import org.specs2.specification._
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain._
+import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
-import net.liftweb.common._
-import com.normation.utils.Control.sequence
-import scala.collection.immutable.TreeMap
-import InterpolationContext._
-import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
+import com.normation.utils.Control._
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+
 
 
 
@@ -170,7 +174,7 @@ class TestNodeAndParameterLookup extends Specification {
   def lookup(
       variables: Seq[Variable]
     , context: InterpolationContext
-  )(test:Seq[Seq[String]] => Example) : Example  = {
+  )(test:Seq[Seq[String]] => org.specs2.execute.Result) : org.specs2.execute.Result  = {
     lookupService.lookupNodeParameterization(variables)(context) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error in test"
