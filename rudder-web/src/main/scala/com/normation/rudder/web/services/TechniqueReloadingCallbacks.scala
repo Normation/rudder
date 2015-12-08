@@ -35,7 +35,9 @@
 package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -44,9 +46,9 @@ import com.normation.rudder.web.services.DirectiveEditorService
 import com.normation.utils.Control._
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
-import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import net.liftweb.common.Full
-import com.normation.cfclerk.domain.TechniqueName
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
 
 
 /**
@@ -66,10 +68,9 @@ class SaveDirectivesOnTechniqueCallback(
   , woDirectiveRepo       : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Unit = {
+  override def updatedTechniques(techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
 
-
-    (for {
+    for {
       techLib  <- roDirectiveRepo.getFullDirectiveLibrary()
       updated  <- bestEffort(techLib.allDirectives.values.toSeq) { case(inActiveTechnique, directive) =>
                     techniqueIds.get(inActiveTechnique.techniqueName) match {
@@ -91,11 +92,6 @@ class SaveDirectivesOnTechniqueCallback(
                   }
     } yield {
       ()
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when trying to save directive based on updated Techniques"
-        logger.error(e.messageChain)
-      case _ => ()
     }
   }
 }
