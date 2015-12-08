@@ -34,21 +34,26 @@
 
 package com.normation.cfclerk.services
 
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner._
-import com.normation.cfclerk.domain._
 import java.io.File
-import org.apache.commons.io.IOUtils
-import net.liftweb.common._
+
+import com.normation.cfclerk.domain._
+import com.normation.cfclerk.services.impl.GitRepositoryProviderImpl
+import com.normation.cfclerk.services.impl.GitTechniqueReader
+import com.normation.cfclerk.services.impl.SimpleGitRevisionProvider
+import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
+import com.normation.cfclerk.xmlparsers.SectionSpecParser
+import com.normation.cfclerk.xmlparsers.TechniqueParser
+import com.normation.cfclerk.xmlparsers.VariableSpecParser
+
 import org.apache.commons.io.FileUtils
-import org.specs2.specification.AfterExample
-import org.specs2.specification.After
-import com.normation.cfclerk.xmlparsers._
-import com.normation.cfclerk.services.impl._
-import org.specs2.specification.Step
-import org.specs2.specification.Fragments
+import org.apache.commons.io.IOUtils
 import org.eclipse.jgit.api.Git
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+import org.specs2.specification.AfterAll
+
+import net.liftweb.common.Loggable
 
 /**
  * Details of tests executed in each instances of
@@ -56,7 +61,7 @@ import org.eclipse.jgit.api.Git
  * To see values for gitRoot, ptLib, etc, see at the end
  * of that file.
  */
-trait JGitPackageReaderSpec extends Specification with Loggable {
+trait JGitPackageReaderSpec extends Specification with Loggable with AfterAll {
 
   // Set sequential execution
   sequential
@@ -73,7 +78,7 @@ trait JGitPackageReaderSpec extends Specification with Loggable {
   //hook to allows to make some more initialisation
   def postInitHook() : Unit
 
-  override def map(fs: =>Fragments) = fs ^ Step(deleteDir)
+  override def afterAll(): Unit = deleteDir
 
   val variableSpecParser = new VariableSpecParser
   val policyParser: TechniqueParser = new TechniqueParser(

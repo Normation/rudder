@@ -34,35 +34,35 @@
 
 package com.normation.rudder.repository.xml
 
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.matcher._
-import org.specs2.runner.JUnitRunner
-import net.liftweb.common.Loggable
-import org.specs2.specification.Fragments
-import org.specs2.specification.Step
-import net.liftweb.common._
-import org.apache.commons.io.FileUtils
 import java.io.File
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+
+import org.apache.commons.io.FileUtils
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.internal.storage.file.FileRepository
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+import org.specs2.specification.AfterAll
+
+import net.liftweb.common.Loggable
 
 @RunWith(classOf[JUnitRunner])
-class TestGitFindUtils extends Specification with Loggable {
+class TestGitFindUtils extends Specification with Loggable with AfterAll {
 
   ////////// set up / clean-up and utilities //////////
 
   lazy val gitRoot = new File("/tmp/test-jgit/filters", System.currentTimeMillis.toString)
 
-  override def map(fs: => Fragments) = fs ^ Step(deleteDirectory)
+  override def afterAll(): Unit = deleteDirectory()
 
-  def deleteDirectory = {
+  def deleteDirectory() = {
     logger.debug("Deleting directory " + gitRoot.getAbsoluteFile)
     try {
       FileUtils.deleteDirectory(gitRoot)
     } catch {
-      case e:Exception => anError
+      case e:Exception =>
+        logger.error(s"Error when cleaning directory ${gitRoot.getAbsoluteFile}", e)
     }
   }
 
