@@ -116,10 +116,10 @@ The list of contributors is available in https://github.com/Normation/rudder/gra
 
 === License
 
-This project is licensed under AGPLv3 license, see the provided "LICENSE" file or 
-http://www.gnu.org/licenses/agpl-3.0.txt
+This project is licensed under GPLv3 license, see the provided "LICENSE" file or 
+http://www.gnu.org/licenses/gpl-3.0.txt
 
-We added an extension to the main AGPLv3 license to allows to build and use plugins
+We added an extension to the main GPLv3 license to allows to build and use plugins
 on top of Rudder with any license, open source or closed/proprietary, see:
 https://github.com/Normation/rudder/blob/master/LICENSE_EXCEPTION
 
