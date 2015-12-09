@@ -19,9 +19,9 @@ Normation http://normation.com
 
 === License
 
-This project is licensed under AGPLv3 license, 
+This project is licensed under GPLv3 license, 
 see the provided "LICENSE" file or 
-http://www.gnu.org/licenses/agpl-3.0.txt
+http://www.gnu.org/licenses/gpl-3.0.txt
 
 === Contributing
 
