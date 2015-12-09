@@ -1,0 +1,55 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Group present
+# @description Create a group
+# @agent_version >=3.6
+#
+# @parameter group Group name
+
+# @class_prefix group_present
+# @class_parameter login
+# This bundle will define a class group_present_${login}_{kept,repaired,not_ok,ok,reached}
+
+bundle agent group_present(group)
+{
+  vars:
+      "class_prefix"        string => canonify("group_present_${group}");
+
+  classes:
+      "group_present" expression => groupexists("${group}");
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    group_present.!pass2::
+      "success"     usebundle => _classes_success("${class_prefix}");
+
+    !group_present.!unix::
+      "unsupported" usebundle => _classes_failure("${class_prefix}");
+
+    pass2::
+      "report"
+        usebundle => _logger("User ${group} present", "${class_prefix}");
+
+  commands:
+    !group_present.unix.!aix::
+      "/usr/sbin/groupadd ${group}" classes => classes_generic("${class_prefix}");
+    !group_present.unix.aix::
+      "/usr/bin/mkgroup ${group}" classes => classes_generic("${class_prefix}");
+}
