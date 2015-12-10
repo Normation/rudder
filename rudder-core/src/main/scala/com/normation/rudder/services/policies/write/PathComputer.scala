@@ -70,15 +70,16 @@ trait PathComputer {
  *
  */
 class PathComputerImpl(
-  backupFolder: String // /var/rudder/backup/
+      baseFolder: String //  "/var/rudder"
+    , relativeShareFolder: String // "share"
+    , backupFolder: String // "/var/rudder/backup/"
+    , communityAgentRootPath: String // "/var/rudder/cfengine-community/inputs"
+    , enterpriseAgentRootPath: String // "/var/cfengine/inputs"
 ) extends PathComputer with Loggable {
 
 
   private[this] val promisesPrefix = "/rules"
   private[this] val newPostfix = ".new"
-
-  private[this] val baseFolder = Constants.NODE_PROMISES_PARENT_DIR_BASE
-  private[this] val relativeShareFolder = Constants.NODE_PROMISES_PARENT_DIR
 
   /**
    * Compute
@@ -112,8 +113,8 @@ class PathComputerImpl(
    */
   def getRootPath(agentType : AgentType) : String = {
     agentType match {
-        case NOVA_AGENT => Constants.CFENGINE_NOVA_PROMISES_PATH
-        case COMMUNITY_AGENT => Constants.CFENGINE_COMMUNITY_PROMISES_PATH
+        case NOVA_AGENT => enterpriseAgentRootPath
+        case COMMUNITY_AGENT => communityAgentRootPath
         case x => throw new BusinessException("Unrecognized agent type: %s".format(x))
     }
   }

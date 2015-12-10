@@ -62,9 +62,11 @@ import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.ComplianceModeService
 
 trait SystemVariableService {
-  def getGlobalSystemVariables():  Box[Map[String, Variable]]
+  def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
 
   def getSystemVariables(
       nodeInfo              : NodeInfo
@@ -72,8 +74,7 @@ trait SystemVariableService {
     , allLicences           : Map[NodeId, NovaLicense]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
-    , globalComplianceMode  : ComplianceMode
-  ) : Box[Map[String, Variable]]
+    , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
 }
 
 final case class RudderServerRole(
@@ -87,7 +88,7 @@ final case class ResolvedRudderServerRole(
 )
 
 class SystemVariableServiceImpl(
-    systemVariableSpecService: SystemVariableSpecService
+    systemVariableSpecService    : SystemVariableSpecService
   , policyServerManagementService: PolicyServerManagementService
   // Variables definitions
   , toolsFolder              : String
@@ -102,11 +103,6 @@ class SystemVariableServiceImpl(
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
   , getSkipIdentify : () => Box[Boolean]
-  // schedules are runtime dependencies also
-  , getAgentRunInterval   : () => Int
-  , getAgentRunSplaytime  : () => Box[Int]
-  , getAgentRunStartHour  : () => Box[Int]
-  , getAgentRunStartMinute: () => Box[Int]
   // TTLs are runtime properties too
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
@@ -138,7 +134,7 @@ class SystemVariableServiceImpl(
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
-  def getGlobalSystemVariables():  Box[Map[String, Variable]] = {
+  def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]] = {
     logger.trace("Preparing the global system variables")
     val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
     val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
@@ -152,20 +148,15 @@ class SystemVariableServiceImpl(
       "no"
     }
     val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq(sendMetricsValue))
-    val interval = getAgentRunInterval()
-    val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(interval.toString)
-
-    val varAgentRunSplayTime = getProp("AGENT_RUN_SPLAYTIME", getAgentRunSplaytime)
 
     val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
 
     for {
-      agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
-      agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
-      schedule <- ComputeSchedule.computeSchedule(agentRunStartHour, agentRunStartMinute, interval) ?~! "Could not compute the run schedule"
+      schedule       <- ComputeSchedule.computeSchedule(globalAgentRun.startHour, globalAgentRun.startMinute, globalAgentRun.interval) ?~! "Could not compute the run schedule"
     } yield {
-
-      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule)
+      val varAgentRunInterval  = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable(Seq(globalAgentRun.interval.toString))
+      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable(Seq(globalAgentRun.splaytime.toString))
+      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule))
       logger.trace("Global system variables done")
       val vars =
         varToolsFolder ::
@@ -210,9 +201,6 @@ class SystemVariableServiceImpl(
 
     // Set the roles of the nodes
     val nodeConfigurationRoles = collection.mutable.Set[ServerRole]() ++ nodeInfo.serverRoles
-
-    // global agent run interval is defined in globalSystemVariables, get it from here
-    val globalAgentRunInterval = globalSystemVariables.get("AGENT_RUN_INTERVAL").flatMap(_.values.headOption.map(_.toInt)).getOrElse(5)
 
     // Define the mapping of roles/hostnames, only if the node has a role
     val varRoleMappingValue = if (nodeConfigurationRoles.size > 0) {

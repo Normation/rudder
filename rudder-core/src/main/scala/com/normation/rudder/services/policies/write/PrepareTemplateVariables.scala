@@ -3,31 +3,34 @@
 * Copyright 2011 Normation SAS
 *************************************************************************************
 *
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as
-* published by the Free Software Foundation, either version 3 of the
-* License, or (at your option) any later version.
-*
+* This file is part of Rudder.
+* 
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
 * In accordance with the terms of section 7 (7. Additional Terms.) of
-* the GNU Affero GPL v3, the copyright holders add the following
-* Additional permissions:
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
 * Notwithstanding to the terms of section 5 (5. Conveying Modified Source
-* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU Affero GPL v3
-* licence, when you create a Related Module, this Related Module is
-* not considered as a part of the work and may be distributed under the
-* license agreement of your choice.
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
 * A "Related Module" means a set of sources files including their
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-*
-* This program is distributed in the hope that it will be useful,
+* 
+* Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program. If not, see <http://www.gnu.org/licenses/agpl.html>.
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
 *
 *************************************************************************************
 */
@@ -36,6 +39,7 @@ package com.normation.rudder.services.policies.write
 
 import scala.annotation.migration
 
+import com.normation.utils.Control.bestEffort
 import com.normation.cfclerk.domain.Bundle
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
@@ -59,9 +63,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 
 import org.joda.time.DateTime
 
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 
 trait PrepareTemplateVariables {
 
@@ -255,32 +257,37 @@ class PrepareTemplateVariablesImpl(
     val variablesValues = prepareAllCf3PolicyDraftVariables(container)
 
     // fill the variable
-    (for {
-      technique <- techniques
-    } yield {
-      val ptValues = variablesValues(technique.id)
+    (bestEffort(techniques) { technique =>
 
-      val variables:Seq[Variable] = (for {
-        variableSpec <- technique.getAllVariableSpecs
+      val techniqueValues = variablesValues(technique.id)
+      for {
+        variables <- bestEffort(technique.getAllVariableSpecs) { variableSpec =>
+                       variableSpec match {
+                         case x : TrackerVariableSpec =>
+                           techniqueValues.get(x.name) match {
+                             case None => Failure(s"[${nodeId.value}:${technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
+                             case Some(v) => Full(Some(x.toVariable(v.values)))
+                           }
+                         case x : SystemVariableSpec => systemVars.get(x.name) match {
+                             case None =>
+                               if(x.constraint.mayBeEmpty) { //ok, that's expected
+                                 logger.trace(s"[${nodeId.value}:${technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                                 Full(None)
+                               } else {
+                                 Failure(s"[${nodeId.value}:${technique.id}] Missing value for system variable: '${x.name}'")
+                               }
+                             case Some(sysvar) => Full(Some(x.toVariable(sysvar.values)))
+                         }
+                         case x : SectionVariableSpec =>
+                           techniqueValues.get(x.name) match {
+                             case None => Failure(s"[${nodeId.value}:${technique.id}] Misssing value for standard variable: '${x.name}'")
+                             case Some(v) => Full(Some(x.toVariable(v.values)))
+                           }
+                       }
+                     }
       } yield {
-        variableSpec match {
-          case x : TrackerVariableSpec => Some(x.toVariable(ptValues(x.name).values))
-          case x : SystemVariableSpec => systemVars.get(x.name) match {
-              case None =>
-                if(x.constraint.mayBeEmpty) { //ok, that's expected
-                  logger.trace(s"[${nodeId.value}] Variable system named '${x.name}' not found in the extended variables environnement")
-                } else {
-                  logger.warn(s"[${nodeId.value}] Mandatory variable system named '${x.name}' not found in the extended variables environnement ")
-                }
-                None
-              case Some(sysvar) => Some(x.toVariable(sysvar.values))
-          }
-          case x : SectionVariableSpec => Some(x.toVariable(ptValues(x.name).values))
-        }
-      }).flatten
-
       //return STVariable in place of Rudder variables
-      val stVariables = variables.map { v => STVariable(
+      val stVariables = variables.flatten.map { v => STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
         , values = v.getTypedValues match {
@@ -290,7 +297,19 @@ class PrepareTemplateVariablesImpl(
         , v.spec.isSystem
       ) }
       (technique.id,stVariables)
-    }).toMap
+    }
+    }) match {
+      case Full(seq) => seq.toMap
+      case eb: EmptyBox =>
+
+        val errors = (eb ?~! "").messageChain.split(" <- ").tail.distinct.sorted
+
+        errors.foreach { msg =>
+          logger.error(s"${msg}")
+        }
+
+        throw new VariableException( s"Error when trying to build variables for technique(s) in node ${nodeId.value}: ${errors.mkString("; ")}")
+      }
   }
 
   /**

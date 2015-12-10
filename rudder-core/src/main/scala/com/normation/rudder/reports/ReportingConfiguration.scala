@@ -58,14 +58,22 @@ import com.normation.rudder.domain.Constants
  * For the node "resolved reportingconfiguration", see:
  */
 final case class ReportingConfiguration(
-  agentRunInterval: Option[AgentRunInterval], heartbeatConfiguration: Option[HeartbeatConfiguration]) extends HashcodeCaching
+    agentRunInterval      : Option[AgentRunInterval]
+  , heartbeatConfiguration: Option[HeartbeatConfiguration]
+) extends HashcodeCaching
 
 final case class HeartbeatConfiguration(
-  overrides: Boolean, heartbeatPeriod: Int)
+    overrides      : Boolean
+  , heartbeatPeriod: Int
+)
 
 final case class AgentRunInterval(
-  overrides: Option[Boolean], interval: Int //in minute
-  , startMinute: Int, startHour: Int, splaytime: Int) extends HashcodeCaching {
+    overrides  : Option[Boolean]
+  , interval   : Int //in minute
+  , startMinute: Int
+  , startHour  : Int
+  , splaytime  : Int)
+extends HashcodeCaching {
 
   def json() = {
 
