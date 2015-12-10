@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -140,7 +140,7 @@ trait PromiseGenerationService extends Loggable {
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
 
       nodeContextsTime =  System.currentTimeMillis
-      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
+      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
       timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
       _                =  logger.debug(s"Node contexts built in ${timeNodeContexts}ms, start to build new node configurations.")
 
@@ -261,6 +261,7 @@ trait PromiseGenerationService extends Loggable {
   def getNodeContexts(
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allGroups             : FullNodeGroupCategory
     , allLicenses           : Map[NodeId, NovaLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
@@ -455,6 +456,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   override def getNodeContexts(
       nodeIds               : Set[NodeId]
     , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allGroups             : FullNodeGroupCategory
     , allLicenses           : Map[NodeId, NovaLicense]
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
@@ -492,7 +494,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
           nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
           policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
 
-          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allLicenses, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
+          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allGroups, allLicenses, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
         } yield {
           (nodeId, InterpolationContext(
                         nodeInfo
