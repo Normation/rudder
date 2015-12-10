@@ -1,0 +1,171 @@
+#####################################################################################
+# Copyright 2011 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+#######################################################
+#
+# Server specific configuration
+#
+#######################################################
+
+bundle server access_rules
+{
+  # Access rules are only defined on a policy server. Standard nodes should not share any files.
+  access:
+
+    policy_server|role_rudder_relay_promises_only::
+
+      "${def.dir_masterfiles}"
+        handle  => "grant_access_policy",
+        comment => "Grant access to the policy updates",
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+      "${g.rudder_tools}"
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+      "${g.rudder_ncf_origin_common}"
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+      "${g.rudder_ncf_origin_local}"
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+      # Deny access to 50_techniques folder
+      "${g.rudder_ncf_origin_local}/50_techniques"
+        deny    => {  ".*"  };
+
+      "/var/rudder/configuration-repository/shared-files"
+        comment => "Grant access to the share files",
+        maproot => {  @{def.acl}  },
+        admit   => {  @{def.acl}  };
+
+
+
+
+    any::
+          "/var/rudder/share/root/"
+            maproot => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  },
+            admit   => { host2ip("server.rudder.local"), string_downcase(escape("server.rudder.local"))  };
+
+         
+    policy_server_set::
+      # Allow server to remotely run the agent
+      "${sys.workdir}/bin/cf-agent"
+        admit   => { host2ip("${server_info.cfserved}"), string_downcase(escape("${server_info.cfserved}")) };
+
+
+
+  roles:
+      # Allow user root to set any class
+      ".*"  authorize => { "root" };
+}
+
+bundle common def
+{
+  vars:
+      "policy_server_file"
+        string  => translatepath("${sys.workdir}/policy_server.dat"),
+        comment => "Path to file containing address to policy server";
+
+   # Use localhost as default policy_server if no policy_server.dat exists
+    policy_server_set::
+      "policy_server"
+        string  => readfile("${policy_server_file}", 2048),
+        comment => "IP address or hostname to locate your policy host.";
+    !policy_server_set::
+      "policy_server"
+        string  => "rudder",
+        comment => "IP address by default without ${def.policy_server_file} file";
+
+    any::
+
+      "dir_masterfiles" string => translatepath("${sys.workdir}/masterfiles");
+
+   # List here the IP masks that we grant access to on the server
+
+    policy_server::
+      "acl" slist => {
+      "127.0.0.0/8" , "::1",
+      host2ip("${def.policy_server}"), # the policy server can connect to a relay
+      "192.168.49.0/24",
+    };    !policy_server.policy_server_set::
+      "acl" slist => {
+      "${def.policy_server}", host2ip("${def.policy_server}")
+    };
+
+  classes:
+      "policy_server_set" expression => fileexists("${def.policy_server_file}");
+}
+
+
+body server control
+{
+        trustkeysfrom     => {
+          @{def.acl} ,
+
+                    host2ip("server.rudder.local"), "server.rudder.local"
+        }; #trustkey allows the exchange of keys
+
+        allowconnects     => {
+          @{def.acl} ,
+
+                    host2ip("server.rudder.local"), "server.rudder.local"
+        };
+
+        allowallconnects  => {
+          @{def.acl} ,
+
+                    host2ip("server.rudder.local"), "server.rudder.local"
+        };        maxconnections    => "1000";
+        logallconnections => "true";
+
+        cfruncommand      => "${sys.workdir}/bin/cf-agent -f failsafe.cf && ${sys.workdir}/bin/cf-agent";
+        allowusers        => {
+          "root",
+          "root" 
+        };
+
+        denybadclocks => "true";
+
+    community_edition.!debug_port::
+        port => "5309";
+    community_edition.debug_port::
+        port => "5310";
+
+}
+
+#######################################################
+
+body runagent control
+{
+  # When using community, we must use the port 5309 to connect to nodes
+        hosts => {
+
+                    "server.rudder.local:5309",
+        };
+
+
+        max_children => "25";
+
+    community_edition.!debug_port::
+        port => "5309";
+    community_edition.debug_port::
+        port => "5310";
+}

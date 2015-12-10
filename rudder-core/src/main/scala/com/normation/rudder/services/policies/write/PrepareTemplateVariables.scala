@@ -36,6 +36,7 @@ package com.normation.rudder.services.policies.write
 
 import scala.annotation.migration
 
+import com.normation.utils.Control.bestEffort
 import com.normation.cfclerk.domain.Bundle
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
@@ -59,9 +60,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 
 import org.joda.time.DateTime
 
-import net.liftweb.common.EmptyBox
-import net.liftweb.common.Full
-import net.liftweb.common.Loggable
+import net.liftweb.common._
 
 trait PrepareTemplateVariables {
 
@@ -255,32 +254,37 @@ class PrepareTemplateVariablesImpl(
     val variablesValues = prepareAllCf3PolicyDraftVariables(container)
 
     // fill the variable
-    (for {
-      technique <- techniques
-    } yield {
-      val ptValues = variablesValues(technique.id)
+    (bestEffort(techniques) { technique =>
 
-      val variables:Seq[Variable] = (for {
-        variableSpec <- technique.getAllVariableSpecs
+      val techniqueValues = variablesValues(technique.id)
+      for {
+        variables <- bestEffort(technique.getAllVariableSpecs) { variableSpec =>
+                       variableSpec match {
+                         case x : TrackerVariableSpec =>
+                           techniqueValues.get(x.name) match {
+                             case None => Failure(s"[${nodeId.value}:${technique.id}] Misssing mandatory value for tracker variable: '${x.name}'")
+                             case Some(v) => Full(Some(x.toVariable(v.values)))
+                           }
+                         case x : SystemVariableSpec => systemVars.get(x.name) match {
+                             case None =>
+                               if(x.constraint.mayBeEmpty) { //ok, that's expected
+                                 logger.trace(s"[${nodeId.value}:${technique.id}] Variable system named '${x.name}' not found in the extended variables environnement")
+                                 Full(None)
+                               } else {
+                                 Failure(s"[${nodeId.value}:${technique.id}] Missing value for system variable: '${x.name}'")
+                               }
+                             case Some(sysvar) => Full(Some(x.toVariable(sysvar.values)))
+                         }
+                         case x : SectionVariableSpec =>
+                           techniqueValues.get(x.name) match {
+                             case None => Failure(s"[${nodeId.value}:${technique.id}] Misssing value for standard variable: '${x.name}'")
+                             case Some(v) => Full(Some(x.toVariable(v.values)))
+                           }
+                       }
+                     }
       } yield {
-        variableSpec match {
-          case x : TrackerVariableSpec => Some(x.toVariable(ptValues(x.name).values))
-          case x : SystemVariableSpec => systemVars.get(x.name) match {
-              case None =>
-                if(x.constraint.mayBeEmpty) { //ok, that's expected
-                  logger.trace(s"[${nodeId.value}] Variable system named '${x.name}' not found in the extended variables environnement")
-                } else {
-                  logger.warn(s"[${nodeId.value}] Mandatory variable system named '${x.name}' not found in the extended variables environnement ")
-                }
-                None
-              case Some(sysvar) => Some(x.toVariable(sysvar.values))
-          }
-          case x : SectionVariableSpec => Some(x.toVariable(ptValues(x.name).values))
-        }
-      }).flatten
-
       //return STVariable in place of Rudder variables
-      val stVariables = variables.map { v => STVariable(
+      val stVariables = variables.flatten.map { v => STVariable(
           name = v.spec.name
         , mayBeEmpty = v.spec.constraint.mayBeEmpty
         , values = v.getTypedValues match {
@@ -290,7 +294,19 @@ class PrepareTemplateVariablesImpl(
         , v.spec.isSystem
       ) }
       (technique.id,stVariables)
-    }).toMap
+    }
+    }) match {
+      case Full(seq) => seq.toMap
+      case eb: EmptyBox =>
+
+        val errors = (eb ?~! "").messageChain.split(" <- ").tail.distinct.sorted
+
+        errors.foreach { msg =>
+          logger.error(s"${msg}")
+        }
+
+        throw new VariableException( s"Error when trying to build variables for technique(s) in node ${nodeId.value}: ${errors.mkString("; ")}")
+      }
   }
 
   /**
