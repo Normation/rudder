@@ -902,7 +902,13 @@ object RudderConfig extends Loggable {
     , apiAccountSerialisation
     , propertySerialization
   )
-  private[this] lazy val pathComputer = new PathComputerImpl(RUDDER_DIR_BACKUP)
+  private[this] lazy val pathComputer = new PathComputerImpl(
+      Constants.NODE_PROMISES_PARENT_DIR_BASE
+    , Constants.NODE_PROMISES_PARENT_DIR
+    , RUDDER_DIR_BACKUP
+    , Constants.CFENGINE_COMMUNITY_PROMISES_PATH
+    , Constants.CFENGINE_NOVA_PROMISES_PATH
+  )
   private[this] lazy val baseUrlService: GetBaseUrlService = new DefaultBaseUrlService(BASE_URL)
 
   /*
@@ -1338,10 +1344,6 @@ object RudderConfig extends Loggable {
     , RUDDER_SERVER_ROLES
     , configService.cfengine_server_denybadclocks _
     , configService.cfengine_server_skipidentify _
-    , configService.agent_run_interval
-    , configService.agent_run_splaytime
-    , configService.agent_run_start_hour
-    , configService.agent_run_start_minute
     , configService.cfengine_modified_files_ttl _
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _

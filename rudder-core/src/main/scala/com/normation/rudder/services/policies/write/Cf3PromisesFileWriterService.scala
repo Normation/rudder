@@ -260,7 +260,7 @@ class Cf3PromisesFileWriterServiceImpl(
             case None =>
               Failure(s"Error when trying to open template '${templateId.toString}'. Check that the file exists with a ${TechniqueTemplate.templateExtension} extension and is correctly commited in Git, or that the metadata for the technique are corrects.")
             case Some(inputStream) =>
-              logger.trace(s"Loading template ${templateId} (from an input stream relative to ${techniqueRepository}")
+              logger.trace(s"Loading template: ${templateId}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
               val content = IOUtils.toString(inputStream, "UTF-8")
               Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
