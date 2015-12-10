@@ -1,0 +1,77 @@
+<!--
+Copyright 2014 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<TECHNIQUE name="Server roles">
+  <DESCRIPTION>Configure the server roles</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+
+  <TMLS>
+    <TML name="component-check"/>
+    <TML name="alive-check"/>
+    <TML name="service-check"/>
+    <TML name="integrity-check"/>
+    <TML name="network-check"/>
+    <TML name="password-check"/>
+    <TML name="postgres-check"/>
+    <TML name="logrotate-check"/>
+    <TML name="compress-webapp-log"/>
+    <TML name="rudder-logrotate">
+      <OUTPATH>server-roles/logrotate.conf/rudder</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="technique-reload"/>
+    <TML name="servers-by-role"/>
+    <TML name="rudder-server-roles">
+      <OUTPATH>rudder-server-roles.conf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="metrics-reporting"/>
+  </TMLS>
+
+  <BUNDLES>
+    <NAME>root_component_check</NAME>
+    <NAME>metrics_reporting</NAME>
+  </BUNDLES>
+
+  <SYSTEMVARS>
+    <NAME>RUDDER_SERVER_ROLES</NAME>
+    <NAME>SEND_METRICS</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+    <SECTION name="Check postgresql process" component="true"/>
+    <SECTION name="Check jetty process" component="true"/>
+    <SECTION name="Check slapd process" component="true"/>
+    <SECTION name="Check apache process" component="true"/>
+    <SECTION name="Check postgresql boot script" component="true"/>
+    <SECTION name="Check apache boot script" component="true"/>
+    <SECTION name="Check PostgreSQL configuration" component="true"/>
+    <SECTION name="Check logrotate configuration" component="true"/>
+    <SECTION name="Check configuration-repository folder" component="true"/>
+    <SECTION name="Check configuration-repository GIT lock" component="true"/>
+    <SECTION name="Check allowed networks configuration" component="true"/>
+    <SECTION name="Check rudder status" component="true"/>
+    <SECTION name="Check endpoint status" component="true"/>
+    <SECTION name="Check rudder-passwords.conf and pgpass files" component="true"/>
+    <SECTION name="Check LDAP credentials" component="true"/>
+    <SECTION name="Check LDAP in rudder-webapp.properties" component="true"/>
+    <SECTION name="Check SQL credentials" component="true"/>
+    <SECTION name="Check SQL in rudder-webapp.properties" component="true"/>
+    <SECTION name="Check WebDAV credentials" component="true"/>
+    <SECTION name="Send metrics to rudder-project" component="true"/>
+  </SECTIONS>
+
+</TECHNIQUE>
