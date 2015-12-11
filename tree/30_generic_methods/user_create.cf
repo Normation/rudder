@@ -1,0 +1,55 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name User create
+# @description Create a user
+# @agent_version >=3.6
+#
+# @parameter login       User login
+# @parameter description User description
+# @parameter home        User's home directory
+# @parameter group       User's primary group
+# @parameter shell       User's shell
+# @parameter locked      Is the user locked ? true or false
+# 
+# @class_prefix user_create
+# @class_parameter login
+# This method doesn't create the user's home directory. For a more comprehensive method,
+# see other user_* generic methods.
+# This bundle will define a class user_create_${login}_{kept,repaired,not_ok,ok,reached}
+
+bundle agent user_create(login, description, home, group, shell, locked)
+{
+  vars:
+      "class_prefix"        string => canonify("user_create_${login}");
+      "policy"              string => ifelse(strcmp("true", "${locked}"), "locked", "present");
+
+  users:
+      "${login}"  policy        => "${policy}",
+                  description   => "${description}",
+                  home_dir      => "${home}",
+                  group_primary => "${group}",
+                  shell         => "${shell}",
+                  classes       => classes_generic("${class_prefix}");
+
+  methods:
+      "report"
+        usebundle => _logger("User ${login} create", "${class_prefix}"),
+        ifvarclass => "${class_prefix}_reached";
+
+}
