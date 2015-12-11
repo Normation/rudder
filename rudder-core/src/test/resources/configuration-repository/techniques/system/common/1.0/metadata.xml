@@ -66,6 +66,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </TML>
     <TML name="environment-variables"/>
     <TML name="restart-services"/>
+    <TML name="rudder-groups"/>
   </TMLS>
 
   <SYSTEMVARS>
@@ -99,6 +100,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <NAME>RUDDER_HEARTBEAT_INTERVAL</NAME>
     <NAME>CONFIGURATION_REPOSITORY_FOLDER</NAME>
     <NAME>RUDDER_SYSLOG_PROTOCOL</NAME>
+    <NAME>RUDDER_NODE_GROUPS_VARS</NAME>
+    <NAME>RUDDER_NODE_GROUPS_CLASSES</NAME>
   </SYSTEMVARS>
 
   <SECTIONS>

@@ -213,6 +213,17 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
+      // we have 2 systems variables for groups:
+      // - one to define all the classes related to groups
+      // - one to define the variable holding all groups
+    , SystemVariableSpec("RUDDER_NODE_GROUPS_CLASSES" , "The classes definition for groups, both group_UUID and group_normalized(NAME), in a formatted string"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+      )
+    , SystemVariableSpec("RUDDER_NODE_GROUPS_VARS" , "The array of group_UUID => group_NAME for the node, in a formatted string"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+      )
   )
 
   private[this] val varSpecsMap = varSpecs.map(x => (x.name -> x)).toMap
