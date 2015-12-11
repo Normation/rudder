@@ -39,7 +39,6 @@ package com.normation.rudder.services.policies.write
 
 import java.io.File
 import java.io.IOException
-import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TechniqueFile
 import com.normation.cfclerk.domain.TechniqueId

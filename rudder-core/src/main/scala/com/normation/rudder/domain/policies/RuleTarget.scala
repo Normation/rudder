@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -385,6 +385,26 @@ object RuleTarget extends Loggable {
           }
         res
     }
+  }
+
+
+  /**
+   * Transform a rule target string "id" to
+   * a cfengine class compatible string,
+   * prefixed by "group_"
+   */
+  def toCFEngineClassName(target: String) = {
+    //normalisation process:
+    // 1) to asccii
+    // 2) cfengine normalisation, replacing all non [alphanum-]
+    ///   char by _
+
+    // from http://stackoverflow.com/a/2413228/436331 and the precision
+    // in http://stackoverflow.com/a/5697575/436331
+    def toAscii(s: String) = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("""[\p{Mn}\p{Me}]+""", "")
+
+    "group_" + toAscii(target).toLowerCase.replaceAll("""[^\p{Alnum}-]""", "_")
+
   }
 
 }
