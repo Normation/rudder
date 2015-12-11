@@ -40,7 +40,6 @@ package com.normation.rudder.web.rest.directive
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -49,6 +48,7 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
+import com.normation.rudder.web.rest.ApiVersion
 
 class DirectiveAPI2 (
     readDirective : RoDirectiveRepository
@@ -56,8 +56,7 @@ class DirectiveAPI2 (
   , apiV2          : DirectiveAPIService2
 ) extends DirectiveAPI with Loggable{
 
-
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => apiV2.listDirectives(req)
 

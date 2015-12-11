@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -39,18 +39,19 @@ package com.normation.rudder.web.rest.group
 
 import net.liftweb.common._
 import net.liftweb.http.Req
+import com.normation.rudder.web.rest.ApiVersion
 
 case class GroupApiService5 (
     apiService2            : GroupApiService2
   ) extends Loggable {
 
-  def createGroup(restGroup: Box[RestGroup], req:Req) = {
+  def createGroup(restGroup: Box[RestGroup], req:Req, apiVersion: ApiVersion) = {
   val restGroupChecked =
     restGroup match {
         case Full(RestGroup(_,_,None,_,_,_)) => Failure("Cannot create a group with an empty query")
         case a => a
     }
-  apiService2.createGroup(restGroupChecked,req)
+  apiService2.createGroup(restGroupChecked, req, apiVersion)
   }
 
 }

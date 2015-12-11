@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -49,6 +49,7 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.web.rest.ApiVersion
 
 class ChangeRequestAPI3 (
     restExtractor : RestExtractorService
@@ -56,19 +57,19 @@ class ChangeRequestAPI3 (
 ) extends ChangeRequestAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil | List(""),req) =>
       restExtractor.extractWorkflowStatus(req.params) match {
         case Full(status) =>
-          apiV3.listChangeRequests(req,status)
+          apiV3.listChangeRequests(req,status,apiVersion)
         case eb : EmptyBox =>
           toJsonError(None, JString("No parameter 'status' sent"))("listChangeRequests",restExtractor.extractPrettify(req.params))
       }
 
     case Get(List(id), req) =>
       try {
-        apiV3.changeRequestDetails(ChangeRequestId(id.toInt), req)
+        apiV3.changeRequestDetails(ChangeRequestId(id.toInt), req,apiVersion)
       } catch {
         case e : Exception =>
           toJsonError(None, JString(s"${id} is not a valid change request id (need to be an integer)"))("changeRequestDetails",restExtractor.extractPrettify(req.params))
@@ -77,7 +78,7 @@ class ChangeRequestAPI3 (
 
     case Delete(id :: Nil, req) =>
       try {
-        apiV3.declineChangeRequest(ChangeRequestId(id.toInt), req)
+        apiV3.declineChangeRequest(ChangeRequestId(id.toInt), req,apiVersion)
       } catch {
         case e : Exception =>
           toJsonError(None, JString(s"${id} is not a valid change request id (need to be an integer)"))("declineChangeRequest",restExtractor.extractPrettify(req.params))
@@ -88,7 +89,7 @@ class ChangeRequestAPI3 (
       restExtractor.extractWorkflowTargetStatus(req.params) match {
         case Full(target) =>
           try {
-            apiV3.acceptChangeRequest(ChangeRequestId(id.toInt), target, req)
+            apiV3.acceptChangeRequest(ChangeRequestId(id.toInt), target, req,apiVersion)
           } catch {
             case e : Exception =>
               toJsonError(None, JString(s"${id} is not a valid change request id (need to be an integer)"))("acceptChangeRequest",restExtractor.extractPrettify(req.params))
@@ -103,7 +104,7 @@ class ChangeRequestAPI3 (
     case Post(id :: Nil, req) => {
       restExtractor.extractChangeRequestInfo(req.params) match {
         case Full(info) =>
-          apiV3.updateChangeRequest(ChangeRequestId(id.toInt), info, req)
+          apiV3.updateChangeRequest(ChangeRequestId(id.toInt), info, req,apiVersion)
         case eb : EmptyBox =>
           val fail = eb ?~!(s"No parameters sent to update change request" )
           val message=  s"Could not update ChangeRequest ${id} details cause is: ${fail.messageChain}."

@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,7 +48,7 @@ import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
 import com.normation.inventory.domain._
-
+import com.normation.rudder.web.rest.ApiVersion
 
 case class NodeAPI6 (
     apiV5     : NodeAPI5
@@ -56,8 +56,7 @@ case class NodeAPI6 (
   , restExtractor : RestExtractorService
 ) extends NodeAPI with Loggable{
 
-
-  val v6Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  def v6Dispatch(version : ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) =>
       implicit val prettify = restExtractor.extractPrettify(req.params)
@@ -65,9 +64,9 @@ case class NodeAPI6 (
         case Full(level) =>
           restExtractor.extractQuery(req.params) match {
             case Full(None) =>
-              serviceV6.listNodes(AcceptedInventory, level, None)
+              serviceV6.listNodes(AcceptedInventory, level, None, version)
             case Full(Some(query)) =>
-              serviceV6.queryNodes(query,AcceptedInventory, level)
+              serviceV6.queryNodes(query,AcceptedInventory, level, version)
             case eb:EmptyBox =>
               val failMsg = eb ?~ "Node query not correctly sent"
               toJsonError(None, failMsg.msg)("listAcceptedNodes",prettify)
@@ -82,14 +81,15 @@ case class NodeAPI6 (
     case Get("pending" :: Nil, req) =>
       implicit val prettify = restExtractor.extractPrettify(req.params)
       restExtractor.extractNodeDetailLevel(req.params) match {
-        case Full(level) => serviceV6.listNodes(PendingInventory, level, None)
+        case Full(level) => serviceV6.listNodes(PendingInventory, level, None, version)
         case eb:EmptyBox =>
           val failMsg = eb ?~ "node detail level not correctly sent"
           toJsonError(None, failMsg.msg)("listAcceptedNodes",prettify)
       }
   }
 
-
   // Node API Version 6 fallback to Node API v5 if request is not handled in V6
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v6Dispatch orElse apiV5.requestDispatch
+  def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
+    v6Dispatch(apiVersion) orElse apiV5.requestDispatch(apiVersion)
+  }
 }

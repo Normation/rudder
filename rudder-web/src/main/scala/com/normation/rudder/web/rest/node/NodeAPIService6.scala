@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -49,8 +49,6 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.queries.Query
 
-
-
 case class NodeApiService6 (
     nodeInfoService   : NodeInfoService
   , inventoryRepository : LDAPFullInventoryRepository
@@ -59,9 +57,8 @@ case class NodeApiService6 (
   , acceptedNodeQueryProcessor: QueryProcessor
 ) extends Loggable {
 
-
   import restSerializer._
-  def listNodes ( state: InventoryStatus, detailLevel : NodeDetailLevel, nodeFilter : Option[Seq[NodeId]])( implicit prettify : Boolean) = {
+  def listNodes ( state: InventoryStatus, detailLevel : NodeDetailLevel, nodeFilter : Option[Seq[NodeId]], version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
         inventories <- inventoryRepository.getAllInventories(state)
@@ -76,7 +73,7 @@ case class NodeApiService6 (
           inventory <- inventories.get(nodeId)
           node <- nodes.get(nodeId)
         } yield {
-          serializeInventoryV5(node, inventory, detailLevel)
+          serializeInventory(node, inventory, detailLevel, version)
         }
 
       }
@@ -91,13 +88,12 @@ case class NodeApiService6 (
     }
   }
 
-
-  def queryNodes ( query: Query, state: InventoryStatus, detailLevel : NodeDetailLevel)( implicit prettify : Boolean) = {
+  def queryNodes ( query: Query, state: InventoryStatus, detailLevel : NodeDetailLevel, version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
     ( for {
         nodeIds <-  acceptedNodeQueryProcessor.process(query).map(_.map(_.id))
       } yield {
-        listNodes(state,detailLevel,Some(nodeIds))
+        listNodes(state,detailLevel,Some(nodeIds),version)
       }
     ) match {
       case Full(resp) => {
