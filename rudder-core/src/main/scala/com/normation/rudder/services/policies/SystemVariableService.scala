@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -64,6 +64,9 @@ import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.domain.licenses.NovaLicense
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.RuleTarget
 
 trait SystemVariableService {
   def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
@@ -71,6 +74,7 @@ trait SystemVariableService {
   def getSystemVariables(
       nodeInfo              : NodeInfo
     , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allGroups             : FullNodeGroupCategory
     , allLicences           : Map[NodeId, NovaLicense]
     , globalSystemVariables : Map[String, Variable]
     , globalAgentRun        : AgentRunInterval
@@ -191,6 +195,7 @@ class SystemVariableServiceImpl(
   def getSystemVariables(
         nodeInfo              : NodeInfo
       , allNodeInfos          : Map[NodeId, NodeInfo]
+      , allGroups             : FullNodeGroupCategory
       , allLicenses           : Map[NodeId, NovaLicense]
       , globalSystemVariables : Map[String, Variable]
       , globalAgentRun        : AgentRunInterval
@@ -356,12 +361,58 @@ class SystemVariableServiceImpl(
      * Cf3PromisesFileWriterServiceImpl#prepareRulesForAgents
      */
     val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
+
+
+    /*
+     * RUDDER_NODE_GROUPS_VAR is an array of group_uuid -> group_name for the node
+     * RUDDER_NODE_GROUPS_CLASSE are pairs of group_UUID, group_NORMALIZED_NAME,
+     * for ex if node belongs to group:
+     * (id: 64f85ba8-39c7-418a-a099-24c2c2909dfd ; name: "Serveurs pré-prod")
+     * we will have the following classes:
+     *   - group_64f85ba8_39c7_418a_a099_24c2c2909dfd
+     *   - group_serveurs_pre_prod
+     * and vars:
+     *   - by_uuid["64f85ba8-39c7-418a-a099-24c2c2909dfd"] string => "Serveurs pré-prod"
+     *     with a meta: { "inventory", "attribute_name=rudder_groups" }
+     */
+    //build the list of nodeId -> names, taking care of special nodeIds for special target
+    val nodeGroups = allGroups.getTarget(nodeInfo).map { case(target, info) =>
+      val id = info.target.target match {
+        case GroupTarget(id) => id.value
+        case t => t.target
+      }
+      (id, info.name)
+    }
+    val nodeMaxString = if(nodeGroups.isEmpty) 0 else nodeGroups.flatMap { case (a,b) => a.size :: b.size :: Nil }.max
+    val stringNodeGroupsVars = if(nodeGroups.isEmpty) {
+      ""
+    } else {
+      nodeGroups.map { case (id, name) =>
+        s"""by_uuid["${id}"] ${" "*(nodeMaxString-id.size)} string => "${name}",\n""" +
+        s"""            ${" "*(nodeMaxString)        }   meta => { "inventory", "attribute_name=rudder_groups" };"""
+      }.mkString("\n")
+    }
+    val stringNodeGroupsClasses = if(nodeGroups.isEmpty) {
+      ""
+    } else {
+      nodeGroups.flatMap { case (id, name) =>
+        (  s""""${RuleTarget.toCFEngineClassName(id  )}" ${" "*(nodeMaxString-  id.size)} expression => "any"; """
+        :: s""""${RuleTarget.toCFEngineClassName(name)}" ${" "*(nodeMaxString-name.size)} expression => "any"; """
+        :: Nil
+        )
+      }.mkString("\n")
+    }
+    val varNodeGroups = systemVariableSpecService.get("RUDDER_NODE_GROUPS_VARS").toVariable(Seq(stringNodeGroupsVars))
+    val varNodeGroupsClasses = systemVariableSpecService.get("RUDDER_NODE_GROUPS_CLASSES").toVariable(Seq(stringNodeGroupsClasses))
+
     val baseVariables = {
       Seq(
           varNodeRole
         , varAllowedNetworks
         , varRudderServerRole
         , varNodeConfigVersion
+        , varNodeGroups
+        , varNodeGroupsClasses
       ) map (x => (x.spec.name, x))
     }
 
