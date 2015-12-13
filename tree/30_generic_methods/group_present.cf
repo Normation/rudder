@@ -40,7 +40,7 @@ bundle agent group_present(group)
     group_present.!pass2::
       "success"     usebundle => _classes_success("${class_prefix}");
 
-    !group_present.!unix::
+    !group_present.windows::
       "unsupported" usebundle => _classes_failure("${class_prefix}");
 
     pass2::
@@ -48,8 +48,8 @@ bundle agent group_present(group)
         usebundle => _logger("User ${group} present", "${class_prefix}");
 
   commands:
-    !group_present.unix.!aix::
+    !group_present.!windows.!aix::
       "/usr/sbin/groupadd ${group}" classes => classes_generic("${class_prefix}");
-    !group_present.unix.aix::
+    !group_present.aix::
       "/usr/bin/mkgroup ${group}" classes => classes_generic("${class_prefix}");
 }
