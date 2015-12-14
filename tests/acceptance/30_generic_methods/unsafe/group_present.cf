@@ -61,12 +61,16 @@ bundle agent check
       "$(this.promise_filename) Pass";
     !ok::
       "$(this.promise_filename) FAIL";
-#    group1_ok::
-#      "group1_ok";
-#    group2_ok::
-#      "group2_ok";
-#    ph1_ok::
-#      "ph1_ok";
-#    ph2_ok::
-#      "ph2_ok";
+    group1_ok::
+      "group1_ok";
+    group2_ok::
+      "group2_ok";
+    ph1_ok::
+      "ph1_ok";
+    ph2_ok::
+      "ph2_ok";
+    cfengine::
+      "group_present_${init.group1}_kept" ifvarclass => "group_present_${init.group1}_kept";
+      "group_present_${init.group1}_repaired" ifvarclass => "group_present_${init.group1}_repaired";
+      "group_present_${init.group1}_error" ifvarclass => "group_present_${init.group1}_error";
 }

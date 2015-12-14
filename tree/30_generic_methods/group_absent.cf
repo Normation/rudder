@@ -23,8 +23,8 @@
 # @parameter group Group name
 
 # @class_prefix group_absent
-# @class_parameter login
-# This bundle will define a class group_absent_${login}_{kept,repaired,not_ok,ok,reached}
+# @class_parameter group
+# This bundle will define a class group_absent_${group}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent group_absent(group)
 {
@@ -40,17 +40,17 @@ bundle agent group_absent(group)
     !group_present::
       "success"     usebundle => _classes_success("${class_prefix}");
 
-    group_present.!unix::
+    group_present.windows::
       "unsupported" usebundle => _classes_failure("${class_prefix}");
 
     pass2::
       "report"
-        usebundle => _logger("User ${group} absent", "${class_prefix}"),
+        usebundle => _logger("Group ${group} absent", "${class_prefix}"),
         ifvarclass => "${class_prefix}_reached";
 
   commands:
-    group_present.unix.!aix::
+    group_present.!windows.!aix::
       "/usr/sbin/groupdel ${group}" classes => classes_generic("${class_prefix}");
-    group_present.unix.aix::
+    group_present.aix::
       "/usr/bin/rmgroup ${group}" classes => classes_generic("${class_prefix}");
 }
