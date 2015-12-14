@@ -18,7 +18,7 @@
        trace < debug < info < warn < error < off 
        "off" completely shut down logging for the given logger
   -->
-  <root level="trace">
+  <root level="warn"> 
     <appender-ref ref="STDOUT" />
   </root>
   
