@@ -106,7 +106,7 @@ import org.specs2.specification.AfterEach
  * of that file.
  */
 @RunWith(classOf[JUnitRunner])
-class WriteSystemTechniqueSpec extends Specification with Loggable with ContentMatchers with AfterAll with AfterEach {
+class WriteSystemTechniqueTest extends Specification with Loggable with ContentMatchers with AfterAll with AfterEach {
 
   //just a little sugar to stop hurting my eyes with new File(blablab, plop)
   implicit class PathString(root: String) {
