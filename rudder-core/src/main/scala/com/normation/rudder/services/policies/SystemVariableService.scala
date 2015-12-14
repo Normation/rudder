@@ -372,7 +372,7 @@ class SystemVariableServiceImpl(
      *   - group_64f85ba8_39c7_418a_a099_24c2c2909dfd
      *   - group_serveurs_pre_prod
      * and vars:
-     *   - by_uuid["64f85ba8-39c7-418a-a099-24c2c2909dfd"] string => "Serveurs pré-prod"
+     *   - "by_uuid[64f85ba8-39c7-418a-a099-24c2c2909dfd]" string => "Serveurs pré-prod"
      *     with a meta: { "inventory", "attribute_name=rudder_groups" }
      */
     //build the list of nodeId -> names, taking care of special nodeIds for special target
@@ -388,7 +388,7 @@ class SystemVariableServiceImpl(
       ""
     } else {
       nodeGroups.map { case (id, name) =>
-        s"""by_uuid["${id}"] ${" "*(nodeMaxString-id.size)} string => "${name}",\n""" +
+        s""""by_uuid[${id}]" ${" "*(nodeMaxString-id.size)} string => "${name}",\n""" +
         s"""            ${" "*(nodeMaxString)        }   meta => { "inventory", "attribute_name=rudder_groups" };"""
       }.mkString("\n")
     }
