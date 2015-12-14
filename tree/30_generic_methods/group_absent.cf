@@ -23,8 +23,8 @@
 # @parameter group Group name
 
 # @class_prefix group_absent
-# @class_parameter login
-# This bundle will define a class group_absent_${login}_{kept,repaired,not_ok,ok,reached}
+# @class_parameter group
+# This bundle will define a class group_absent_${group}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent group_absent(group)
 {
@@ -45,7 +45,7 @@ bundle agent group_absent(group)
 
     pass2::
       "report"
-        usebundle => _logger("User ${group} absent", "${class_prefix}"),
+        usebundle => _logger("Group ${group} absent", "${class_prefix}"),
         ifvarclass => "${class_prefix}_reached";
 
   commands:
