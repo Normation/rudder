@@ -40,7 +40,7 @@ bundle agent group_absent(group)
     !group_present::
       "success"     usebundle => _classes_success("${class_prefix}");
 
-    group_present.!unix::
+    group_present.windows::
       "unsupported" usebundle => _classes_failure("${class_prefix}");
 
     pass2::
@@ -49,8 +49,8 @@ bundle agent group_absent(group)
         ifvarclass => "${class_prefix}_reached";
 
   commands:
-    group_present.unix.!aix::
+    group_present.!windows.!aix::
       "/usr/sbin/groupdel ${group}" classes => classes_generic("${class_prefix}");
-    group_present.unix.aix::
+    group_present.aix::
       "/usr/bin/rmgroup ${group}" classes => classes_generic("${class_prefix}");
 }
