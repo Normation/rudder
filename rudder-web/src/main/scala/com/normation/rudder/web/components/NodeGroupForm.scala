@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -55,7 +55,6 @@ import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import com.normation.utils.HashcodeCaching
-
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
 import JsCmds._
@@ -65,8 +64,8 @@ import net.liftweb.http._
 import scala.xml._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.RuleTarget
 
 object NodeGroupForm {
   private[this] val templatePathList = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -183,6 +182,14 @@ class NodeGroupForm(
       "pendingchangerequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
       "name" -> groupName.toForm_!,
       "rudderid" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
+      "cfeclasses" -> <div>
+											  <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300); return false;"}>
+												<b class="threeCol">Display CFEngine classes</b>
+												</a>
+											  <span class="twoCol" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
+											    {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
+											    {RuleTarget.toCFEngineClassName(nodeGroup.name)}
+											  </span></div>,
       "description" -> groupDescription.toForm_!,
       "container" -> groupContainer.toForm_!,
       "static" -> groupStatic.toForm_!,
