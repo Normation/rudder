@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -61,7 +61,6 @@ import net.liftweb.http.js.JsCmds._
 import net.liftweb.util.Helpers.chooseTemplate
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 
-
 /**
  *
  * Snippet that handle the "searchNodes" page.
@@ -76,7 +75,6 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
  * immemorial times (see http://caniuse.com/hashchange for details)
  *
  */
-
 
 object SearchNodes {
   private val serverPortletPath = List("templates-hidden", "server", "server_details")
@@ -108,7 +106,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
-
   var srvList : Box[Seq[NodeInfo]] = Empty
 
   setNodeGroupCategoryForm(None)
@@ -123,7 +120,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
   }
 
   var activateSubmitButton = true
-
 
   def head(html:NodeSeq) : NodeSeq = {
     import net.liftweb.json._
@@ -163,7 +159,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   private[this] def setNodeGroupCategoryForm(query:Option[Query]) : SearchNodeComponent = {
     def showNodeDetails(nodeId:String) : JsCmd = {
       updateLocationHash(nodeId) &
-      JsRaw("""scrollToElement("serverDetails");""".format(nodeId))
+      JsRaw("""scrollToElement("serverDetails", ".rudder_col");""".format(nodeId))
     }
 
     val sc = new SearchNodeComponent(
@@ -221,7 +217,6 @@ class SearchNodes extends StatefulSnippet with Loggable {
     )""")
   }
 
-
   /**
    * Create the popup
    */
@@ -258,4 +253,3 @@ class SearchNodes extends StatefulSnippet with Loggable {
     SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
   }
 }
-
