@@ -638,7 +638,7 @@ bundle agent sendInventory
         comment      => "Sending the inventory to the server";
 
 &if(NOVA)&
-    # On windows, the this.promiser variable is not evaluated the same way. We are forced to duplicate this block
+    # On windows, the this.promiser variable is not evaluated the same way. We are forced to duplicate this block
     windows::
       "${g.rudder_inventories}"
         transformer => "${download_command_prefix} \"${this.promiser}\" ${download_command_suffix}",
