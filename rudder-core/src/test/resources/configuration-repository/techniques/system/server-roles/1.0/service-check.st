@@ -27,8 +27,8 @@ bundle agent generic_process_check_process(binary, initscript, name, force_resta
 
       "forced_trigger_${canoname}" expression => strcmp("${force_restart}", "true");
 
-      # Raise this class if we are handling a process that should be checked even on
-      # relay servers.
+      # Raise this class if we are handling a process that should be checked even on
+      # relay servers.
       "process_exception_on_relay" expression => strcmp("${check_on_relay_server}", "true");
 
     any::
