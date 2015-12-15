@@ -55,7 +55,7 @@ bundle agent root_component_check
 
       "index" slist => getindices("service");
 
-      # Reporting
+      # Reporting
       "root_integrity_check"                           slist => { "Check configuration-repository folder",  "Check configuration-repository GIT lock" };
       "root_password_check_ldap"                       slist => { "Check LDAP in rudder-webapp.properties", "Check LDAP credentials" };
       "root_password_check_psql"                       slist => { "Check SQL in rudder-webapp.properties",  "Check SQL credentials" };
@@ -67,7 +67,7 @@ bundle agent root_component_check
 
     # This is to be done only if the package rudder-server-root is present
     role_rudder_server_root::
-      # Password management is expected to be done manually in case of a splitted/relayed installation for now.
+      # Password management is expected to be done manually in case of a splitted/relayed installation for now.
       "any" usebundle => root_password_check_ldap;
       "any" usebundle => root_password_check_psql;
       "any" usebundle => root_password_check_file;
@@ -84,7 +84,7 @@ bundle agent root_component_check
           "Check rudder-passwords.conf and pgpass files", "None", "Checking the password files is unnecessary on this machine, skipping..."
         );
 
-    # Do this if this is the root_server or a relay server
+    # Do this if this is the root_server or a relay server
     root_server|(policy_server.!role_rudder_relay_promises_only)::
       "any" usebundle => root_networks_check;
       "any" usebundle => root_password_check_dav;

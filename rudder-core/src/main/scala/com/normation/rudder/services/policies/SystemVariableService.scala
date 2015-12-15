@@ -367,12 +367,12 @@ class SystemVariableServiceImpl(
      * RUDDER_NODE_GROUPS_VAR is an array of group_uuid -> group_name for the node
      * RUDDER_NODE_GROUPS_CLASSE are pairs of group_UUID, group_NORMALIZED_NAME,
      * for ex if node belongs to group:
-     * (id: 64f85ba8-39c7-418a-a099-24c2c2909dfd ; name: "Serveurs pré-prod")
+     * (id: 64f85ba8-39c7-418a-a099-24c2c2909dfd ; name: "Serveurs pre-prod")
      * we will have the following classes:
      *   - group_64f85ba8_39c7_418a_a099_24c2c2909dfd
      *   - group_serveurs_pre_prod
      * and vars:
-     *   - "by_uuid[64f85ba8-39c7-418a-a099-24c2c2909dfd]" string => "Serveurs pré-prod"
+     *   - "by_uuid[64f85ba8-39c7-418a-a099-24c2c2909dfd]" string => "Serveurs pre-prod"
      *     with a meta: { "inventory", "attribute_name=rudder_groups" }
      */
     //build the list of nodeId -> names, taking care of special nodeIds for special target

@@ -97,7 +97,7 @@ body copy_from scp(from, server,compare,trustkey,preserve,purge)
         portnumber => "&COMMUNITYPORT&";
 }
 
-# This is an evolved version of copy_from scp that uses local copies if we are
+# This is an evolved version of copy_from scp that uses local copies if we are
 # running on a policy server instead of copying from a localhost remote blindly.
 body copy_from rudder_copy_from(from, server,compare,trustkey,preserve,purge) {
 

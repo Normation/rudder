@@ -38,7 +38,7 @@ my $program_name    = "minicurl.pl";
 my $program_version = "1.0";
 my $program_description = "Perl HTTP, HTTP/S, FTP download and upload tool";
 
-## Argument handling (Getopt)
+## Argument handling (Getopt)
 my ($get, $put, $httpstatus, $help, $debug, $version, $no_verify);
 $get = $put = $httpstatus = $help = $debug = $version = $no_verify = 0;
 
@@ -79,7 +79,7 @@ if ($get == $put) {
   exit(1);
 }
 
-# Build the file basename
+# Build the file basename
 my $file_basename = basename($file);
 
 # Create a HTTP Basic authentication string if applicable
@@ -88,7 +88,7 @@ $authentication = encode_base64($authentication) if ($authentication ne "");
 # Make sure we use SSLv3 at least while connecting to HTTP/S
 $ENV{HTTPS_VERSION} = 3;
 
-# Create a new LWP object
+# Create a new LWP object
 my $ua = LWP::UserAgent->new;
 if($no_verify) {
 
@@ -99,9 +99,9 @@ if($no_verify) {
 }
 
 if ($put == 1) {
-  # PUT
+  # PUT
 
-  # Create a variable from the target file
+  # Create a variable from the target file
   my $message;
   open(my $fh, '<', $file) or die "ERROR: Unable to open file $file.\n";
   {
@@ -110,7 +110,7 @@ if ($put == 1) {
   }
   close($fh);
 
-  # Send the file using the PUT method
+  # Send the file using the PUT method
   if ($authentication eq "") {
     $response = $ua->request(PUT $url . $file_basename, Content => $message);
   } else {
@@ -119,9 +119,9 @@ if ($put == 1) {
 
 } else {
 
-  # GET
+  # GET
 
-  # Get the file using the GET method
+  # Get the file using the GET method
   if ($authentication eq "") {
     $response = $ua->request(GET $url);
   } else {
