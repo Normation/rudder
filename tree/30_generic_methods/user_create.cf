@@ -36,7 +36,11 @@
 bundle agent user_create(login, description, home, group, shell, locked)
 {
   vars:
-      "class_prefix"        string => canonify("user_create_${login}");
+      "old_class_prefix"  string => canonify("user_create_${login}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${login}", "${description}", "${home}", "${group}", "${shell}", "${locked}" };
+
       "policy"              string => ifelse(strcmp("true", "${locked}"), "locked", "present");
 
   users:
@@ -45,11 +49,11 @@ bundle agent user_create(login, description, home, group, shell, locked)
                   home_dir      => "${home}",
                   group_primary => "${group}",
                   shell         => "${shell}",
-                  classes       => classes_generic("${class_prefix}");
+                  classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
       "report"
-        usebundle => _logger("User ${login} create", "${class_prefix}"),
-        ifvarclass => "${class_prefix}_reached";
+        usebundle => _log("User ${login} create", "${old_class_prefix}", "${class_prefix}", @{args}),
+        ifvarclass => "(!has_promiser_stack.${old_class_prefix}_reached)|(has_promiser_stack.${class_prefix}_reached)";
 
 }
