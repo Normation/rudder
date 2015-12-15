@@ -619,7 +619,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         ("Uuid", {x:VirtualMachine => Text(x.uuid.value)}) ::
         ("Status", {x:VirtualMachine => ?(x.status)}) ::
         ("Owner", {x:VirtualMachine => ?(x.owner)}) ::
-        ("# Cpu", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
+        ("# Cpu", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
         ("Memory", { x:VirtualMachine => ?(x.memory) }) ::
         Nil
     }

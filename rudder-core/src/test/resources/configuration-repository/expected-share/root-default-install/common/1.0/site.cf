@@ -136,7 +136,7 @@ bundle common g
 
   classes:
 
-    # Utilities
+    # Utilities
     "gzip_installed"                 expression => isexecutable("${rudder_gzip}");
     "curl_installed"                 expression => isexecutable("${rudder_curl}");
 
