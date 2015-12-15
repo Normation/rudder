@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -38,7 +38,6 @@
 package com.normation.rudder.services.policies.write
 
 import scala.annotation.migration
-
 import com.normation.utils.Control.bestEffort
 import com.normation.cfclerk.domain.Bundle
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
@@ -60,10 +59,9 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-
 import org.joda.time.DateTime
-
 import net.liftweb.common._
+import scala.io.Codec
 
 trait PrepareTemplateVariables {
 
@@ -477,7 +475,7 @@ class PrepareTemplateVariablesImpl(
                     optInputStream match {
                       case None => throw new RuntimeException(s"Error when trying to open reports descriptor `expected_reports.csv` for technique ${technique}. Check that the report descriptor exist and is correctly commited in Git, or that the metadata for the technique are corrects.")
                       case Some(inputStream) =>
-                        scala.io.Source.fromInputStream(inputStream).getLines().map{ case line =>
+                        scala.io.Source.fromInputStream(inputStream)(Codec.UTF8).getLines().map{ case line =>
                           line.trim.startsWith("#") match {
                             case true => line
                             case false => line.replaceAll(rudderTag, rudderId)

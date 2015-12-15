@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -72,6 +72,7 @@ import org.joda.time.LocalTime
 import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.domain.licenses.NovaLicense
+import scala.io.Codec
 
 
 /**
@@ -264,7 +265,7 @@ class Cf3PromisesFileWriterServiceImpl(
             case Some(inputStream) =>
               logger.trace(s"Loading template: ${templateId}")
               //string template does not allows "." in path name, so we are force to use a templateGroup by polity template (versions have . in them)
-              val content = IOUtils.toString(inputStream, "UTF-8")
+              val content = IOUtils.toString(inputStream, Codec.UTF8.charSet)
               Full(TechniqueTemplateCopyInfo(templateId, templateOutPath, content))
           }
         }
@@ -280,7 +281,7 @@ class Cf3PromisesFileWriterServiceImpl(
   private[this] def writeExpectedReportsCsv(paths: NodePromisesPaths, csv: ExpectedReportsCsv, csvFilename: String): Box[String] = {
     val path = new File(paths.newFolder, csvFilename)
     for {
-        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n")) } ?~!
+        _ <- tryo { FileUtils.writeStringToFile(path, csv.lines.mkString("\n"), Codec.UTF8.charSet) } ?~!
                s"Can not write the expected reports CSV file at path '${path.getAbsolutePath}'"
     } yield {
       path.getAbsolutePath
@@ -553,7 +554,7 @@ class Cf3PromisesFileWriterServiceImpl(
       logger.trace("Create promises file %s %s".format(outPath, templateInfo.destination))
 
       for {
-        _ <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), template.toString) } ?~!
+        _ <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), template.toString, Codec.UTF8.charSet) } ?~!
                s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
       } yield {
         outPath
