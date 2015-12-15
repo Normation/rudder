@@ -336,8 +336,8 @@ bundle agent check_cf_processes
   vars:
 
       # process_term defines how many maximum instances of this
-      # binary should be running before attempting to SIGTERM them.
-      # process_kill is the same for SIGKILL.
+      # binary should be running before attempting to SIGTERM them.
+      # process_kill is the same for SIGKILL.
     !windows::
       # On windows, cf-execd is a service, and there can be only one instance of it running (by design)
       "process_term[execd]" string => "2";
@@ -359,7 +359,7 @@ bundle agent check_cf_processes
     pass3::
 
       "any" usebundle => rudder_common_report("Common", "result_success", "&TRACKINGKEY&", "Process checking", "None", "There is an acceptable number of CFEngine processes running on the machine"),
-      # Here, I can not use the binaries variable as CFEngine will iterate and output two reports, breaking the reporting.
+      # Here, I can not use the binaries variable as CFEngine will iterate and output two reports, breaking the reporting.
         ifvarclass => "!agent_has_gone_wild.!agent_has_gone_really_wild.!execd_has_gone_wild.!execd_has_gone_really_wild";
 
       "any" usebundle => rudder_common_report("Common", "result_repaired", "&TRACKINGKEY&", "Process checking", "None", "Warning, more than ${process_term[${binaries}]} cf-${binaries} processes were detected. They have been sent a graceful termination signal."),
