@@ -93,7 +93,6 @@ object NodeGroupForm {
   val htmlId_updateContainerForm = "updateContainerForm"
 }
 
-
 /**
  * The form that deals with updating the server group
  */
@@ -156,7 +155,6 @@ class NodeGroupForm(
     JsRaw("correctButtons();")
   }
 
-
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
       <div>
@@ -212,8 +210,6 @@ class NodeGroupForm(
     )
    }
 
-
-
   ///////////// fields for category settings ///////////////////
   private[this] val groupName = {
     new WBTextField("Group name", nodeGroup.name) {
@@ -266,7 +262,7 @@ class NodeGroupForm(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
-    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#groupDetails");""")
   }
 
   private[this] def onSubmit() : JsCmd = {
@@ -352,7 +348,6 @@ class NodeGroupForm(
         JsRaw("""createPopup("confirmUpdateActionDialog")""")
     }
   }
-
 
   def createPopup(name:String) :JsCmd = {
     JsRaw(s"""createPopup("${name}");""")
