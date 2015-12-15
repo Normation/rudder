@@ -487,8 +487,11 @@ function disableButton(buttonId) {
   $('#'+buttonId).button( "option", "disabled", true );
 }
 
-function scrollToElement(elementId) {
-	$('html, body').animate({ scrollTop: $("#"+ elementId).offset().top }, 500);
+function scrollToElement(elementId, containerSelector) {
+  var container = $(containerSelector);
+  // We need to remove the container offset from the elem offset so we scroll the correct amount in scroll function
+  var offset = $("#"+ elementId).offset().top - container.offset().top
+	container.animate({ scrollTop: offset }, 500);
 	
 }
 

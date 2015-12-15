@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -69,7 +69,6 @@ class NodeGroupCategoryForm(
   , onSuccessCallback : (String) => JsCmd = { (String) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
-
 
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
@@ -161,7 +160,6 @@ class NodeGroupCategoryForm(
     }
    }
 
-
   ///////////// delete management /////////////
 
   /**
@@ -222,7 +220,6 @@ class NodeGroupCategoryForm(
     }
   }
 
-
   ///////////// fields for category settings ///////////////////
   private[this] val name = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -259,7 +256,6 @@ class NodeGroupCategoryForm(
       }
   }
 
-
   private[this] val formTracker = new FormTracker(name, description, container)
 
   private[this] var notifications = List.empty[NodeSeq]
@@ -271,7 +267,6 @@ class NodeGroupCategoryForm(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def onSuccess : JsCmd = {
 
     notifications ::=  <span class="greenscala">Category was correctly updated</span>
@@ -280,7 +275,7 @@ class NodeGroupCategoryForm(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
-    updateFormClientSide & JsRaw("""scrollToElement("notifications");""")
+    updateFormClientSide & JsRaw("""scrollToElement("notifications","#groupDetails");""")
   }
 
   private[this] def onSubmit() : JsCmd = {
