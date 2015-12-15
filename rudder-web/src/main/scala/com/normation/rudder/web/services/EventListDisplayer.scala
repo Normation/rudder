@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -245,7 +245,6 @@ class EventListDisplayer(
       val name = (x.details \ "apiAccount" \ "name").text
       Text(s"API Account ${name} ${actionName}")
     }
-
 
     event match {
       case x:ActivateRedButton             => Text("Stop Rudder agents on all nodes")
@@ -562,7 +561,6 @@ class EventListDisplayer(
         }
         xml }
 
-
       case x:AddDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
@@ -577,7 +575,6 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml}
-
 
       case x:DeleteDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveDeleteDetails(x.details) match {
@@ -641,7 +638,6 @@ class EventListDisplayer(
         }
         xml }
 
-
       case x:AddNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
@@ -655,8 +651,6 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-
-
 
       case x:DeleteNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
@@ -1125,7 +1119,6 @@ class EventListDisplayer(
     })(event.details)++Script(JsRaw("correctButtons();"))
   }
 
-
   private[this] def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
     (
       "#override" #> ar.overrides.map(_.toString()).getOrElse("false")
@@ -1332,8 +1325,6 @@ class EventListDisplayer(
       "#isSystem" #> technique.isSystem
   )(xml)
 
-
-
   private[this] def globalParameterDetails(xml: NodeSeq, globalParameter: GlobalParameter) = (
       "#name" #> globalParameter.name.value &
       "#value" #> globalParameter.value &
@@ -1449,7 +1440,6 @@ class EventListDisplayer(
       </ul>
     </div>
 
-
    private[this] val globalParamDetailsXML =
     <div>
       <h4>Global Parameter overview:</h4>
@@ -1474,7 +1464,6 @@ class EventListDisplayer(
         <li><b>Token Generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
       </ul>
     </div>
-
 
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>
@@ -1572,7 +1561,7 @@ class EventListDisplayer(
                 SetHtml("currentId%s".format(id),Text(rollbackInfo.target.id.toString)) &
               JsRaw("""$('#%1$s').dataTable().fnFilter("%2$s|%3$s",0,true,false);
                 $("#cancel%3$s").show();
-                scrollToElement('%2$s');
+                scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
                 $('#%2$s').click();""".format(gridName,rollbackInfo.target.id,id))
               , Text(rollbackInfo.target.id.toString)
@@ -1602,7 +1591,7 @@ class EventListDisplayer(
                 SetHtml("currentId%s".format(id),Text(ev.id.toString)) &
                 JsRaw("""$('#%1$s').dataTable().fnFilter("%2$s|%3$s",0,true,false);
                 $("#cancel%3$s").show();
-                scrollToElement('%2$s');
+                scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
                 $('#%2$s').click();""".format(gridName,ev.id,id))
                   , Text(ev.id.toString)
