@@ -1130,6 +1130,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           lines.each( function () {
           var tableRow = $(this);
           var fnData = myTable.fnGetData( this );
+          tableRow.attr("id",fnData.id);
           if (fnData.hasDetails) {
             tableRow.addClass("curspoint")
             // Remove all previously added callbacks on row or you will get problems
