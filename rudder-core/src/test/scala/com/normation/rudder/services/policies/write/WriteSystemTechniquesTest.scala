@@ -95,7 +95,6 @@ import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.licenses.NovaLicense
 import org.specs2.specification.AfterEach
-import java.util.Locale
 
 
 
@@ -267,6 +266,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   // only root in our "all nodes"
   val allNodesInfo = Map(root.id -> root)
 
+
   //the group lib
   val emptyGroupLib = FullNodeGroupCategory(
       NodeGroupCategoryId("/")
@@ -283,7 +283,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
               FullGroupTarget(
                   GroupTarget(NodeGroupId("c8813416-316f-4307-9b6a-ca9c109a9fb0"))
                 , NodeGroup(NodeGroupId("c8813416-316f-4307-9b6a-ca9c109a9fb0")
-                    , "Serveurs"
+                    , "Serveurs [€ðŋ] cassés"
                     , "Liste de l'ensemble de serveurs cassés à réparer"
                     , None
                     , true
@@ -292,7 +292,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
                     , false
                   )
               )
-              , "Serveurs"
+              , "Serveurs [€ðŋ] cassés"
               , "Liste de l'ensemble de serveurs cassés à réparer"
               , true
               , false
