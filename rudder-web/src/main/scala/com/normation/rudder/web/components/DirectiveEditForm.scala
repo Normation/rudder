@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -269,7 +269,6 @@ class DirectiveEditForm(
           } );
           checkMigrationButton("${currentVersion}","${versionSelectId}");
 
-
           $$('#${versionSelect.uniqueFieldId.getOrElse("id_not_found")}').change(
             function () {
               checkMigrationButton("${currentVersion}","${versionSelectId}")
@@ -309,13 +308,12 @@ class DirectiveEditForm(
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
     //restore user to the update parameter tab
     JsRaw("""$("#editZone").tabs("option", "active", 1)""") &
-    JsRaw("""scrollToElement("notifications");""")
+    JsRaw("""scrollToElement("notifications", "#directiveDetails");""")
   }
 
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-
 
   private[this] def showIsSingle(): NodeSeq = {
     <span>
@@ -394,8 +392,6 @@ class DirectiveEditForm(
 
     }
 
-
-
   def showDeprecatedVersion (version : TechniqueVersion) = {
     val deprecationInfo = fullActiveTechnique.techniques(version).deprecrationInfo match {
       case Some(_) => "(deprecated)"
@@ -405,7 +401,6 @@ class DirectiveEditForm(
   }
 
   val versions = fullActiveTechnique.techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
-
 
   private[this] val directiveVersion =
     new WBSelectObjField(
@@ -623,4 +618,3 @@ class DirectiveEditForm(
     JsRaw(s""" $$("#successDialogContent").html('${message}') """)
   }
 }
-

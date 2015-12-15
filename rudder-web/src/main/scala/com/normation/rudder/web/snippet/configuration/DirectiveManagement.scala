@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -129,7 +129,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] val directiveId: Box[String] = S.param("directiveId")
 
-
   /**
    * Head information (JsTree dependencies,...)
    */
@@ -208,7 +207,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     ) ++ Script(OnLoad(buildJsTree()))
   }
 
-
   private[this] def buildJsTree() : JsCmd = {
 
     JsRaw(s"""
@@ -230,8 +228,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       Script(OnLoad(updateDirectiveForm(workflowEnabled)(Right(DirectiveId(id)),None)))
     case _ =>  <div id={ htmlId_policyConf }></div>
   }
-
-
 
   def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
     "#techniqueDetails *" #> ( currentTechnique match {
@@ -296,7 +292,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   None
               }
             }.toSeq.flatten.sortBy( _._1 )
-
 
             "#directiveIntro " #> {
               currentDirectiveSettingForm.is.map { piForm =>
@@ -406,7 +401,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
           SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-          JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
+          JsRaw(s"""createTooltip();""")
         }
     ).popupContent
   }
@@ -450,7 +445,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     , workflowEnabled     : Boolean
     , isADirectiveCreation: Boolean
   ) : Unit = {
-
 
     activeTechnique.techniques.get(directive.techniqueVersion) match {
       case Some(technique) =>
@@ -522,7 +516,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
 }
 
-
 object DirectiveManagement {
 
   /*
@@ -534,4 +527,3 @@ object DirectiveManagement {
   val html_addPiInActiveTechnique = "addNewDirective"
   val html_techniqueDetails = "techniqueDetails"
 }
-
