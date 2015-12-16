@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -71,7 +71,7 @@ case class GroupApiService2 (
   , restDataSerializer   : RestDataSerializer
   ) extends Loggable {
 
-  import restDataSerializer.{ serializeGroup => serialize }
+  import restDataSerializer._
 
   private[this] def createChangeRequestAndAnswer (
       id           : String
@@ -81,6 +81,7 @@ case class GroupApiService2 (
     , actor        : EventActor
     , req          : Req
     , act          : String
+    , apiVersion   : ApiVersion
   ) (implicit action : String, prettify : Boolean) = {
 
     ( for {
@@ -105,7 +106,7 @@ case class GroupApiService2 (
         workflowEnabled() match {
           case Full(enabled) =>
             val optCrId = if (enabled) Some(crId) else None
-            val jsonGroup = List(serialize(group,optCrId))
+            val jsonGroup = List(serializeGroup(group, optCrId, apiVersion))
             toJsonResponse(Some(id), ("groups" -> JArray(jsonGroup)))
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could not check workflow property" )
@@ -119,19 +120,19 @@ case class GroupApiService2 (
     }
   }
 
-  def listGroups(req : Req) = {
+  def listGroups(req : Req, apiVersion: ApiVersion) = {
     implicit val action = "listGroups"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     readGroup.getAll match {
       case Full(groups) =>
-        toJsonResponse(None, ( "groups" -> JArray(groups.map(g => serialize(g,None)).toList)))
+        toJsonResponse(None, ( "groups" -> JArray(groups.map(g => serializeGroup(g, None, apiVersion)).toList)))
       case eb: EmptyBox =>
         val message = (eb ?~ ("Could not fetch Groups")).msg
         toJsonError(None, message)
     }
   }
 
-  def createGroup(restGroup: Box[RestGroup], req:Req) = {
+  def createGroup(restGroup: Box[RestGroup], req:Req, apiVersion: ApiVersion) = {
     implicit val action = "createGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
@@ -151,7 +152,7 @@ case class GroupApiService2 (
             // Trigger a deployment only if it is needed
             asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
           }
-          val jsonGroup = List(serialize(newGroup,None))
+          val jsonGroup = List(serializeGroup(newGroup, None, apiVersion))
           toJsonResponse(Some(groupId.value), ("groups" -> JArray(jsonGroup)))
 
         case eb:EmptyBox =>
@@ -229,13 +230,13 @@ case class GroupApiService2 (
     }
   }
 
-  def groupDetails(id:String, req:Req) = {
+  def groupDetails(id:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "groupDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     readGroup.getNodeGroup(NodeGroupId(id)) match {
       case Full((group,_)) =>
-        val jsonGroup = List(serialize(group,None))
+        val jsonGroup = List(serializeGroup(group,None,apiVersion))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~!(s"Could not find Group ${id}" )
@@ -244,7 +245,7 @@ case class GroupApiService2 (
     }
   }
 
-    def reloadGroup(id:String, req:Req) = {
+  def reloadGroup(id:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "reloadGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
@@ -257,17 +258,17 @@ case class GroupApiService2 (
               val updatedGroup = group.copy(serverList = nodeList.map(_.id).toSet)
               val reloadGroupDiff = ModifyToNodeGroupDiff(updatedGroup)
               val message = s"Reload Group ${group.name} ${id} from API "
-              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, "Reload")
+              createChangeRequestAndAnswer(id, reloadGroupDiff, group, Some(group), actor, req, "Reload", apiVersion)
             case eb:EmptyBox =>
               val fail = eb ?~(s"Could not fetch Nodes" )
               val message=  s"Could not reload Group ${id} details cause is: ${fail.msg}."
               toJsonError(Some(id), message)
           }
           case None =>
-            val jsonGroup = List(serialize(group,None))
+            val jsonGroup = List(serializeGroup(group,None, apiVersion))
             toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
         }
-        val jsonGroup = List(serialize(group,None))
+        val jsonGroup = List(serializeGroup(group,None, apiVersion))
         toJsonResponse(Some(id),("groups" -> JArray(jsonGroup)))
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${id}" )
@@ -276,7 +277,7 @@ case class GroupApiService2 (
     }
   }
 
-  def deleteGroup(id:String, req:Req) = {
+  def deleteGroup(id:String, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "deleteGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = RestUtils.getActor(req)
@@ -286,7 +287,7 @@ case class GroupApiService2 (
       case Full((group,_)) =>
         val deleteGroupDiff = DeleteNodeGroupDiff(group)
         val message = s"Delete Group ${group.name} ${id} from API "
-        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, "Delete")
+        createChangeRequestAndAnswer(id, deleteGroupDiff, group, Some(group), actor, req, "Delete", apiVersion)
 
       case eb:EmptyBox =>
         val fail = eb ?~ (s"Could not find Group ${groupId.value}" )
@@ -295,7 +296,7 @@ case class GroupApiService2 (
     }
   }
 
-  def updateGroup(id: String, req: Req, restValues : Box[RestGroup]) = {
+  def updateGroup(id: String, req: Req, restValues : Box[RestGroup], apiVersion: ApiVersion) = {
     implicit val action = "updateGroup"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val actor = getActor(req)
@@ -308,7 +309,7 @@ case class GroupApiService2 (
             val updatedGroup = restGroup.updateGroup(group)
             val diff = ModifyToNodeGroupDiff(updatedGroup)
             val message = s"Modify Group ${group.name} ${id} from API "
-            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, "Update")
+            createChangeRequestAndAnswer(id, diff, updatedGroup, Some(group), actor, req, "Update", apiVersion)
 
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
