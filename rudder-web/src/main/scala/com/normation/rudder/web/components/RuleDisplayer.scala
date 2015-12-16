@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -70,12 +70,12 @@ class RuleDisplayer (
   , showRulePopup        : (Option[Rule]) => JsCmd
 ) extends DispatchSnippet with Loggable  {
 
-
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
   private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
   private[this] val woCategoryRepository = RudderConfig.woRuleCategoryRepository
   private[this] val ruleCategoryService  = RudderConfig.ruleCategoryService
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val configService        = RudderConfig.configService
 
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
@@ -95,7 +95,6 @@ class RuleDisplayer (
   def dispatch = {
     case "display" => { _ => NodeSeq.Empty }
   }
-
 
   // Update Rule displayer after a Rule has changed ( update / creation )
   def onRuleChange (selectedCategoryUpdate : RuleCategoryId)= {
@@ -126,7 +125,6 @@ class RuleDisplayer (
     ) )
   }
   def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
-
 
     val actionButton =
                  if (directive.isEmpty) {
@@ -160,8 +158,6 @@ class RuleDisplayer (
     }
   }
 
-
-
   def viewRules : NodeSeq = {
 
     val callbackLink = {
@@ -175,6 +171,7 @@ class RuleDisplayer (
       new RuleGrid(
           "rules_grid_zone"
         , callbackLink
+        , configService.display_changes_graph
         , directive.isDefined
         , directive
       )
@@ -188,8 +185,6 @@ class RuleDisplayer (
         , ("id","includeCheckbox")
       )
     }
-
-
 
     def actionButton = {
       if (directive.isDefined) {
@@ -205,7 +200,10 @@ class RuleDisplayer (
       </lift:authz>
       <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
       <hr class="spacer"/>
-      {ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true) ++ Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true).applied)) }
+      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true)  ++
+        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
+      }
+
     </div>
 
   }
@@ -245,7 +243,6 @@ class RuleDisplayer (
    }
   }
 
-
   def ruleCreationPopup (ruleToClone:Option[Rule]) = {
     ruleCategoryTree match {
       case Full(ruleCategoryTree) =>
@@ -265,7 +262,6 @@ class RuleDisplayer (
        </div>
     }
   }
-
 
   // Popup
 

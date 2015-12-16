@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -90,6 +90,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "loggingConfiguration" => loggingConfiguration
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "networkProtocolSection" => networkProtocolSection
+    case "displayGraphsConfiguration" => displayGraphsConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -735,5 +736,49 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           <div class="error">{fail.messageChain}</div>
         } )
     } ) apply (xml ++ Script(Run("correctButtons();")))
+  }
+
+  def displayGraphsConfiguration = { xml : NodeSeq =>
+
+    ( configService.display_changes_graph() match {
+      case Full(value) =>
+        var displayGraphs = value
+        def noModif() = displayGraphs == value
+        def check() = {
+          S.notice("displayGraphsMsg","")
+          Run(s"""$$("#displayGraphsSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_display_changes_graph(displayGraphs)
+          S.notice("displayGraphsMsg", save match {
+            case Full(_)  =>
+              "'display change graphs' property updated"
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'display change graphs' property"
+          } )
+        }
+
+        ( "#displayGraphsCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { displayGraphs = b; check}
+              , ("id","displayGraphsCheckbox")
+            )
+          } &
+          "#displayGraphsSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#displayGraphsSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+      case eb: EmptyBox =>
+        ( "#displayGraphs" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'display change graphs'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
   }
 }
