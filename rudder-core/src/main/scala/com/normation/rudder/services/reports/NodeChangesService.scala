@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -39,22 +39,16 @@ package com.normation.rudder.services.reports
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
-
-
-
 import org.joda.time.DateTime
 import org.joda.time.Interval
-
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.ResultRepairedReport
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.repository.ReportsRepository
-
 import net.liftweb.common._
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.js.JE._
-
 
 /**
  * This service is responsible to make available node changes for nodes.
@@ -74,7 +68,6 @@ trait NodeChangesService {
    *
    */
   def getChangesByInterval(since: Option[DateTime]) : Box[ChangesByRule]
-
 
   /**
    * For the given service, what are the intervals currently valid?
@@ -101,7 +94,6 @@ trait NodeChangesService {
       } ).toMap
     }
   }
-
 
   /**
    * Stable computation of intervals of 6h starting at 0,6,12 or 18
@@ -146,12 +138,10 @@ trait NodeChangesService {
   }
 }
 
-
 class NodeChangesServiceImpl(
     reportsRepository: ReportsRepository
   , changesMaxAge    : Int = 3 // in days
 ) extends NodeChangesService with Loggable {
-
 
   override def getCurrentValidIntervals(since: Option[DateTime]): Seq[Interval] = {
     // Limit of changes.
@@ -161,7 +151,6 @@ class NodeChangesServiceImpl(
     // compute intervals
     getInterval(limit, now)
   }
-
 
   /**
    * Get all changes until a date specified as parameter and regroup them by interval of hours.
@@ -178,7 +167,6 @@ class NodeChangesServiceImpl(
     }
   }
 }
-
 
 /**
  * A cached version of NodeChangeService that:
@@ -226,7 +214,6 @@ class CachedNodeChangesServiceImpl(
     }
   }
 
-
   /**
    * For intervals "on", merge change1 and change2 (respective to rules). Intervals not in "on"
    * are removed from the result.
@@ -247,8 +234,6 @@ class CachedNodeChangesServiceImpl(
       )
     }.toMap
   }
-
-
 
   /**
    * Update the cache with the list interval
@@ -297,7 +282,6 @@ class CachedNodeChangesServiceImpl(
     changeService.getCurrentValidIntervals(since)
   }
 
-
   override def getChangesByInterval(since: Option[DateTime]) = {
     for {
       changes <- initCache()
@@ -306,7 +290,6 @@ class CachedNodeChangesServiceImpl(
     }
   }
 }
-
 
 object NodeChanges {
 
@@ -325,7 +308,6 @@ object NodeChanges {
     interval.getStart().toString(format) + interval.getEnd().toString(endFormat)
   }
 
-
   def json (changes : Map[Interval,Seq[ResultRepairedReport]]) = {
 
   // Order changes by interval start, then modify interval so we can have interval from now a
@@ -342,8 +324,6 @@ object NodeChanges {
     d1 isBefore d2
   }
 
-
-
   val data = changesByPeriod(changes).map(a => (a._1,a._2.size))
     JsObj(
         ("x" -> JsArray(data.map(a => Str(a._1))))
@@ -351,4 +331,3 @@ object NodeChanges {
     )
   }
 }
-

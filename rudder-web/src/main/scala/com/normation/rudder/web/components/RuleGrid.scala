@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -82,8 +82,6 @@ import scala.concurrent._
 import ExecutionContext.Implicits.global
 import com.normation.rudder.rule.category.RuleCategory
 
-
-
 object RuleGrid {
   def staticInit =
     <head>
@@ -104,12 +102,12 @@ class RuleGrid(
     htmlId_rulesGridZone: String
    //JS callback to call when clicking on a line
   , detailsCallbackLink : Option[(Rule,String) => JsCmd]
+  , getDisplayChanges   : () => Box[Boolean]
   , showCheckboxColumn  :Boolean = true
   , directiveApplication: Option[DirectiveApplicationManagement] = None
 ) extends DispatchSnippet with Loggable {
 
   private[this] sealed trait Line { val rule:Rule }
-
 
   private[this] case class OKLine(
       rule             : Rule
@@ -130,18 +128,15 @@ class RuleGrid(
   private[this] val getAllNodeInfos      = RudderConfig.nodeInfoService.getAll _
   private[this] val getRootRuleCategory  = RudderConfig.roRuleCategoryRepository.getRootCategory _
 
-
   private[this] val recentChanges    = RudderConfig.recentChangesService
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
   private[this] val categoryService     = RudderConfig.ruleCategoryService
   private[this] val asyncComplianceService = RudderConfig.asyncComplianceService
 
-
   //used to error tempering
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
   private[this] val woRuleRepository    = RudderConfig.woRuleRepository
   private[this] val uuidGen             = RudderConfig.stringUuidGenerator
-
 
   /////  local variables /////
   private[this] val htmlId_rulesGridId = "grid_" + htmlId_rulesGridZone
@@ -149,7 +144,6 @@ class RuleGrid(
   private[this] val htmlId_modalReportsPopup = "modal_" + htmlId_rulesGridZone
   private[this] val htmlId_rulesGridWrapper = htmlId_rulesGridId + "_wrapper"
   private[this] val tableId_reportsPopup = "popupReportsGrid"
-
 
   def templatePath = List("templates-hidden", "reports_grid")
   def template() =  Templates(templatePath) match {
@@ -163,11 +157,10 @@ class RuleGrid(
     case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true, true)}
   }
 
-
   /**
    * Display all the rules. All data are charged asynchronously.
    */
-  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]], showComplianceColumns: Boolean) =  {
+  def asyncDisplayAllRules(onlyRules: Option[Set[RuleId]], showComplianceColumns: Boolean, showRecentChanges: Boolean) =  {
     AnonFunc(SHtml.ajaxCall(JsNull, (s) => {
 
       val start = System.currentTimeMillis
@@ -203,7 +196,6 @@ class RuleGrid(
           afterData       =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
 
-
           _ = TimingDebugLogger.debug(s"Rule grid: computing whole data for rule grid took ${afterData - start}ms" )
         } yield {
 
@@ -214,7 +206,7 @@ class RuleGrid(
               recentGraphs = {};
               refreshTable("${htmlId_rulesGridId}", ${newData.json.toJsCmd});
               ${futureCompliance.toJsCmd}
-              ${ajaxChanges(futureChanges).toJsCmd}
+              ${ajaxChanges(showRecentChanges,futureChanges).toJsCmd}
           """)
         }
       ) match {
@@ -255,10 +247,16 @@ class RuleGrid(
           <span class="error">{e.messageChain}</span>
         </div>
 
-
       case Full(tableData) =>
 
         val allcheckboxCallback = AnonFunc("checked",SHtml.ajaxCall(JsVar("checked"), (in : String) => selectAllVisibleRules(in.toBoolean)))
+        val (showRecentChanges, errorProperty) = getDisplayChanges() match {
+          case Full(display) => (display, None)
+          case eb: EmptyBox =>
+            val fail = eb ?~! "Error while fetching 'display graph' property, displaying them by default"
+            logger.warn(fail.messageChain)
+            (true, Some(fail.msg))
+        }
         val onLoad =
           s"""createRuleTable (
                  "${htmlId_rulesGridId}"
@@ -266,16 +264,17 @@ class RuleGrid(
                 , ${showCheckboxColumn}
                 , ${showActionsColumn}
                 , ${showComplianceColumns}
+                , ${showRecentChanges}
                 , ${allcheckboxCallback.toJsCmd}
                 , "${S.contextPath}"
-                , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet), showComplianceColumns).toJsCmd}
+                , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet), showComplianceColumns, showRecentChanges).toJsCmd}
               );
               createTooltip();
               createTooltiptr();
               $$('#${htmlId_rulesGridWrapper}').css("margin","10px 0px 0px 0px");
           """
         <div id={htmlId_rulesGridZone}>
-          <span class="error" id="ruleTableError"></span>
+          <span class="error" id="ruleTableError">{errorProperty.getOrElse("")}</span>
           <div id={htmlId_modalReportsPopup} class="nodisplay">
             <div id={htmlId_reportsPopup} ></div>
           </div>
@@ -287,7 +286,6 @@ class RuleGrid(
         Script(OnLoad(JsRaw(onLoad)))
     }
   }
-
 
   //////////////////////////////// utility methods ////////////////////////////////
 
@@ -340,10 +338,11 @@ class RuleGrid(
       if(rules.isEmpty) {
         Full(Map())
       } else {
+        val default = recentChanges.getCurrentValidIntervals(None).map((_,Seq())).toMap
         val start = System.currentTimeMillis
         for {
                 recentChanges <- recentChanges.getChangesByInterval(None)
-                nodeChanges = rules.map(rule => (rule.id, recentChanges.getOrElse(rule.id, Map())))
+                nodeChanges = rules.map(rule => (rule.id, recentChanges.getOrElse(rule.id, default)))
                 after = System.currentTimeMillis
                 _ = TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
 
@@ -355,7 +354,7 @@ class RuleGrid(
   }
 
   // Ajax call back to get recent changes
-  private[this] def ajaxChanges(future : Future[Box[Map[RuleId,Map[Interval,Seq[ResultRepairedReport]]]]]) : JsCmd = {
+  private[this] def ajaxChanges(displayGraph: Boolean, future : Future[Box[Map[RuleId,Map[Interval,Seq[ResultRepairedReport]]]]]) : JsCmd = {
     SHtml.ajaxInvoke( () => {
       // Is my future completed ?
       if( future.isCompleted ) {
@@ -367,7 +366,7 @@ class RuleGrid(
             } yield {
               val changeCount = change.values.map(_.size).sum
               val data = NodeChanges.json(change)
-              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount})"""
+              s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount}, ${displayGraph})"""
            }
 
           JsRaw(s"""
@@ -384,7 +383,7 @@ class RuleGrid(
             Alert(error.messageChain)
         }
       } else {
-        After(500,ajaxChanges(future))
+        After(500,ajaxChanges(displayGraph,future))
       }
     } )
 
@@ -429,7 +428,6 @@ class RuleGrid(
       TimingDebugLogger.trace(s"Rule grid: transforming into data: jstable: ${t3-t2}ms")
       res
   }
-
 
   /*
    * Convert Rules to Data used in Datatables Lines
@@ -524,7 +522,6 @@ class RuleGrid(
       }
     }
   }
-
 
   /*
    * Generates Data for a line of the table
@@ -701,7 +698,3 @@ case class RuleLine (
       base +* JsObj(optFields:_*)
     }
 }
-
-
-
-
