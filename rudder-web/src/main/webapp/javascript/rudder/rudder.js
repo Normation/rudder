@@ -84,6 +84,7 @@ function createTooltip() {
 		      collision: "flipfit" 
 		    }
   });
+  createTooltiptr();
 }
 
 function createTooltiptr() {

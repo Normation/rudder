@@ -48,7 +48,7 @@ var recentGraphs = {};
 function resortTable (tableId) {
   var table = $("#"+tableId).dataTable();
   var sortingColumns = table.dataTableSettings[0].aaSorting;
-  table.fnSort(sortingColumns)
+  table.fnSort(sortingColumns);
 }
 
 $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
@@ -86,44 +86,81 @@ $.fn.dataTableExt.afnSortData['changes'] = function ( oSettings, iColumn )
 
 
 
-function computeChangeGraph(changes, id, currentRowsIds, changeCount) {
+function computeChangeGraph(changes, id, currentRowsIds, changeCount, displayGraph) {
   recentChanges[id] = changes;
-  recentChangesCount[id] = changeCount
+  recentChangesCount[id] = changeCount;
   if (currentRowsIds.indexOf(id) != -1) {
-    generateRecentGraph(id)
+    generateRecentGraph(id, displayGraph);
   }
 }
 
-function generateRecentGraph(id) {
-  var changes = recentChanges[id]
+function generateRecentGraph(id, displayGraph) {
+  if (displayGraph) {
+    var graphId = "Changes-"+id;
+    var changes = recentChanges[id];
+    if (changes !== undefined) {
+      var data = changes.y;
+      data.splice(0,0,'Recent changes');
+      var x = changes.x;
+      x.splice(0,0,'x');
+      var chart = c3.generate({
+          size: { height: 30 , width: 168 }
+        , legend: { show: false }
+        , data: {
+              x: 'x'
+            , columns: [ x, data ]
+            , type: 'area-step'
+          }
+        , axis: {
+              x: {
+                  show : false
+                , type: 'categories'
+              }
+            , y: { show : false }
+          }
+      });
+      recentGraphs[id] = chart;
+
+      $("#"+graphId).html(chart.element);
+
+    }
+  } else {
+    recentChangesText(id);
+  }
+}
+
+
+function recentChangesText(id) {
+
+  // Datas
+  var graphId = "Changes-"+id;
+  var tooltipId = graphId+"-description";
+  var graphElem= $("#"+graphId);
+  var count = recentChangesCount[id];
+  var changes = recentChanges[id];
+  var lastChanges = 0;
   if (changes !== undefined) {
-    var graphId = "Changes-"+id
-    var data = changes.y
-    data.splice(0,0,'Recent changes')
-    var x = changes.x
-    x.splice(0,0,'x')
-    var chart = c3.generate({
-        size: { height: 30 , width: 168 }
-      , legend: { show: false }
-      , data: {
-            x: 'x'
-          , columns: [ x, data ]
-          , type: 'area-step'
-        }
-      , axis: {
-            x: {
-                show : false
-              , type: 'categories'
-            }
-          , y: { show : false }
-        }
-    });
-    recentGraphs[id] = chart
-
-    $("#"+graphId).html(chart.element);
+    lastChanges = changes.y[changes.y.length - 1];
   }
-}
 
+  // Prepare graph elem to have tooltip
+  graphElem.attr("tooltipid",tooltipId);
+  graphElem.attr("title","");
+  graphElem.addClass("tooltip tooltipable");
+
+  // Tooltip
+  var tooltip= $("<div></div>");
+  var toolTipContainer = $("<div><h3>Recent changes</h3></div>");
+  toolTipContainer.addClass("tooltipContent");
+  toolTipContainer.attr("id",tooltipId);
+  tooltip.html(count+" changes over the last 3 days <br/> "+ lastChanges+" changes over the last 6 hours ");
+  toolTipContainer.append(tooltip);
+
+  // Elem Content
+  graphElem.text(count).addClass("center")
+  graphElem.append(toolTipContainer);
+  createTooltip();
+}
 
 /*  
  * 
@@ -144,7 +181,7 @@ function generateRecentGraph(id) {
  *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
  *   }
  */
-function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, allCheckboxCallback, contextPath, refresh) {
+function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, addRecentChanges, allCheckboxCallback, contextPath, refresh) {
 
   //base element for the clickable cells
   function callbackElement(oData) {
@@ -155,7 +192,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     } else {
         elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
     }
-    return elem
+    return elem;
   }
   
   // Define which columns should be sorted by default
@@ -200,14 +237,14 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         elem.text(data.name);
 
         // Row parameters
-        var parent = $(nTd).parent()
+        var parent = $(nTd).parent();
         // Add Class on the row, and id
         parent.addClass(data.trClass);
-        parent.attr("id",data.jsid);
+        parent.attr("id",data.id);
 
         // Description tooltip over the row
         if ( data.description.length > 0) {
-          var tooltipId = data.jsid+"-description";
+          var tooltipId = data.id+"-description";
           parent.attr("tooltipid",tooltipId);
           parent.attr("title","");
           parent.addClass("tooltip tooltipabletr");
@@ -246,7 +283,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         elem.text(data.status);
         // If there a reasons field, add the tooltip
         if ("reasons" in data) {
-          var tooltipId = data.jsid+"-status";
+          var tooltipId = data.id+"-status";
           elem.attr("tooltipid",tooltipId);
           elem.attr("title","");
           elem.addClass("tooltip tooltipable");
@@ -279,7 +316,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
       }
   };
 
-  // Compliance, with link to the edit form
+  // recent changes as graph, with link to the edit form
   var recentChanges = {
       "mDataProp": "name"
     , "sWidth": "10%"
@@ -288,7 +325,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData);
         var id = "Changes-"+oData.id;
-        elem.append('<div id="'+id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>')
+        elem.append('<div id="'+id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>');
         $(nTd).empty();
         $(nTd).prepend(elem);
       }
@@ -345,17 +382,21 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "fnDrawCallback": function( oSettings ) {
       var rows = this._('tr', {"page":"current"});
        $.each(rows, function(index,row) {
-         var id = "Changes-"+row.id
+         var id = "Changes-"+row.id;
          // Display compliance progress bar if it has already been computed
          var compliance = ruleCompliances[row.id]
          if (compliance !== undefined) {
            $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
          }
-         var changes = recentGraphs[row.id]
-         if (changes !== undefined) {
-           $("#"+id).html(changes.element);
+         if (addRecentChanges) {
+           var changes = recentGraphs[row.id]
+           if (changes !== undefined) {
+             $("#"+id).html(changes.element);
+           } else {
+             generateRecentGraph(row.id,addRecentChanges);
+           }
          } else {
-           generateRecentGraph(row.id)
+             generateRecentGraph(row.id,addRecentChanges);
          }
        })
       }
@@ -417,10 +458,10 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
 
         if (! oData.isSystem) {
           var editLink = $("<a />");
-          editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}')
+          editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
           var editIcon = $("<img />");
           editIcon.attr("src",contextPath + "/images/icPen.png");
-          editLink.click(function(e) {e.stopPropagation();})
+          editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
 
@@ -511,10 +552,10 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
 
         if (! oData.isSystem) {
           var editLink = $("<a />");
-          editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}')
+          editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
           var editIcon = $("<img />");
           editIcon.attr("src",contextPath + "/images/icPen.png");
-          editLink.click(function(e) {e.stopPropagation();})
+          editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
 
@@ -526,7 +567,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "compliancePercent"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = buildComplianceBar(oData.compliance)
+        var elem = buildComplianceBar(oData.compliance);
         $(nTd).empty();
         $(nTd).append(elem);
       }
@@ -583,10 +624,10 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         $(nTd).addClass("listopen");
 
         var editLink = $("<a />");
-        editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+        editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
         var editIcon = $("<img />");
         editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
-        editLink.click(function(e) {e.stopPropagation();})
+        editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
 
@@ -662,7 +703,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "compliancePercent"
     , "sTitle": "Compliance"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = buildComplianceBar(oData.compliance)
+        var elem = buildComplianceBar(oData.compliance);
         $(nTd).empty();
         $(nTd).append(elem);
       }
@@ -815,7 +856,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
           editLink.click(function(e) { oData.callback(); e.stopPropagation();});
           editLink.attr("href","javascript://");
         } else {
-          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
         }
         var editIcon = $("<img />");
         editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
@@ -882,8 +923,8 @@ function createChangeRequestTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         $(nTd).empty();
         var editLink = $("<a />");
-        editLink.attr("href",contextPath +'/secure/utilities/changeRequest/'+sData)
-        editLink.text(sData)
+        editLink.attr("href",contextPath +'/secure/utilities/changeRequest/'+sData);
+        editLink.text(sData);
         $(nTd).append(editLink);
       }
   } , {
@@ -1090,7 +1131,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           var fnData = myTable.fnGetData( this );
           tableRow.attr("id",fnData.id);
           if (fnData.hasDetails) {
-            tableRow.addClass("curspoint")
+            tableRow.addClass("curspoint");
             // Remove all previously added callbacks on row or you will get problems
             tableRow.unbind();
             // Add callback to open the line
@@ -1105,7 +1146,7 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 var detailsId =  'details-'+fnData.id;
                 // First open the row an d set the id
                 var openedRow = $(myTable.fnOpen(this,'',detailsId));
-                var detailsTd = $("."+detailsId)
+                var detailsTd = $("."+detailsId);
                 detailsTd.attr("id",detailsId);
                 // Set data in the open row with the details function from data
                 fnData.details(detailsId);
@@ -1113,14 +1154,14 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
                 var color = 'color1';
                 if(tableRow.hasClass('color2'))
                   color = 'color2';
-                openedRow.addClass(color + ' eventLogDescription')
+                openedRow.addClass(color + ' eventLogDescription');
               }
               // toggle list open / close classes
               IdTd.toggleClass('listopen');
               IdTd.toggleClass('listclose');
             } );
           }
-        } )
+        } );
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -1141,14 +1182,14 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
  * 
  */
 function buildComplianceBar(compliance) {
-  var content = $('<div class="tw-bs progress"></div>')
+  var content = $('<div class="tw-bs progress"></div>');
 
   // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
   var sum = compliance.reduce(function(pv, cv) { return pv + cv; }, 0);
   
   if (sum > 100) {
     var max_of_array = Math.max.apply(Math, compliance);
-    var index = compliance.indexOf(max_of_array)
+    var index = compliance.indexOf(max_of_array);
     var toRemove = sum - 100
     compliance[index] = compliance[index] - toRemove
   }
@@ -1156,7 +1197,7 @@ function buildComplianceBar(compliance) {
   var notApplicable = compliance[0]
   if(notApplicable != 0) {
     var value = Number((notApplicable).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notApplicable+'%" title="Not applicable: '+notApplicable+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notApplicable+'%" title="Not applicable: '+notApplicable+'%">'+value+'%</div>');
   }
 
   var success = compliance[1]
@@ -1165,25 +1206,25 @@ function buildComplianceBar(compliance) {
   if(okStatus != 0) {
     var text = []
     if (success != 0) {
-      text.push("Success: "+success+"%")
+      text.push("Success: "+success+"%");
     }
     if (repaired != 0) {
-      text.push("Repaired: "+repaired+"%")
+      text.push("Repaired: "+repaired+"%");
     }
     var value = Number((okStatus).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-success" style="width:'+okStatus+'%" title="'+text.join("\n")+'">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-success" style="width:'+okStatus+'%" title="'+text.join("\n")+'">'+value+'%</div>');
   }
 
   var pending = compliance[4]
   if(pending != 0) {
     var value = Number((pending).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+pending+'%" title="Applying: '+pending+'%">'+value+'%</div>');
   }
 
   var noreport = compliance[5]
   if(noreport != 0) {
     var value = Number((noreport).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-no-report" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-no-report" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>');
   }
 
   var missing = compliance[6]
@@ -1192,19 +1233,19 @@ function buildComplianceBar(compliance) {
   if(unexpected != 0) {
     var text = []
     if (missing != 0) {
-      text.push("Missing reports: "+missing+"%")
+      text.push("Missing reports: "+missing+"%");
     }
     if (unknown != 0) {
-      text.push("Unknown reports: "+unknown+"%")
+      text.push("Unknown reports: "+unknown+"%");
     }
     var value = Number((unexpected).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unexpected+'%" title="'+text.join("\n")+'">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+unexpected+'%" title="'+text.join("\n")+'">'+value+'%</div>');
   }
 
   var error = compliance[3]
   if(error != 0) {
     var value = Number((error).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">'+value+'%</div>');
   }
 
   return content
@@ -1236,7 +1277,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
         if (kind !== undefined) {
           detailsId += "-"+kind
         }
-        detailsId += "-details"
+        detailsId += "-details";
         if ( i === -1 ) {
           $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
           var table = $("<table></table>");
@@ -1291,10 +1332,10 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
         }
     }
 
-    $.extend(defaultParams,storageParams)
+    $.extend(defaultParams,storageParams);
   }
 
-  var params = $.extend({},defaultParams,customParams)
+  var params = $.extend({},defaultParams,customParams);
   $('#'+gridId).dataTable( params );
   $('#'+gridId+' thead tr').addClass("head");
   if (!( typeof refresh === 'undefined')) {
