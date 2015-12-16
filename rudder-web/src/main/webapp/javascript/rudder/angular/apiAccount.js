@@ -84,7 +84,6 @@ if (account.enabled) {
 
 $scope.addAccount = function() {
   var newAccount = { id : "", name : "", token: "not yet obtained", enabled : true, description : ""}
-  console.log(newAccount);
   $scope.myNewAccount = newAccount;
 }
 

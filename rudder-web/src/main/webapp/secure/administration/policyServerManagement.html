@@ -296,7 +296,7 @@ These files are automatically removed to save on disk space. You can configure t
 
             <form class="lift:form.ajax">
               <div class="wbBaseField">
-                    <label class="threeCol textight" style="font-weight:bold;width: 40%;">
+                    <label class="threeCol textright" style="font-weight:bold;width: 40%;">
                       <span style="float:left">Log all reports received to /var/log/rudder/reports/all.log: </span>
                     </label>
                     <input id="storeAllLogsOnFile" type="text"/>
@@ -333,7 +333,7 @@ These files are automatically removed to save on disk space. You can configure t
             <form class="lift:form.ajax">
             
               <div class="wbBaseField"> 
-                <label class="threeCol textight" for="sendMetricsCheckbox" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetricsCheckbox" type="checkbox"/>
+                <label class="threeCol textright" for="sendMetricsCheckbox" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetricsCheckbox" type="checkbox"/>
               </div>
               <hr class="spacer"/>
               <input type="submit" value="Reload" id="sendMetricsSubmit"/>
@@ -342,7 +342,36 @@ These files are automatically removed to save on disk space. You can configure t
           </div>
         </div>
       </div>
+    </div>
+    <div class="inner-portlet">
+      <div class="page-title">Display changes graphs</div>
+      <div class="portlet-content">
+
+        <div class="lift:administration.PropertiesManagement.displayGraphsConfiguration" id="displayGraphs">
+          <div class="intro">
+            <div>
+              In Rules table, we display a graph for each Rule showing it's activity (number of repaired reports).<br/>
+              Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.<br/>
+              If you experience slow loading of Rules pages, you can disable this feature here.
+            </div>
+          </div>
+
+          <hr class="spacer" />
+          <div class="deca">
+            <form class="lift:form.ajax">
+            
+              <div class="wbBaseField"> 
+                <label class="threeCol textright" for="displayGraphsCheckbox" style="font-weight:bold;width: 20%;">Display changes graphs:</label><input id="displayGraphsCheckbox" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
+              <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>    
+    
     
 
     <div class="inner-portlet">
