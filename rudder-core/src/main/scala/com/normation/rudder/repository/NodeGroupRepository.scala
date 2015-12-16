@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -169,6 +169,29 @@ final case class FullNodeGroupCategory(
 
     RuleTarget.getNodeIds(targets, allNodes, groups)
   }
+
+  /**
+   * Given a nodeId, get all the groups where it belongs to.
+   */
+  def getTarget(node: NodeInfo): Map[RuleTarget, FullRuleTargetInfo] = {
+    allTargets.filter { case(t, info) => info.target match {
+      case FullGroupTarget(target, group) => group.serverList.contains(node.id)
+      case FullCompositeRuleTarget(t) =>
+        //here, on choice but to calculate the list of nodes and see if it is in the result
+        //here, we don't need all node info, just the current node
+        //It's because we only do set analysis on node info, not things like "find all
+        //the node with that policy server" in target.
+        getNodeIds(Set(t), Map(node.id -> node)).contains(node.id)
+      case FullOtherTarget(t) => t match {
+        case AllTarget => true
+        case AllTargetExceptPolicyServers => !node.isPolicyServer
+        case AllServersWithRole => node.serverRoles.nonEmpty
+        case AllNodesWithoutRole => node.serverRoles.isEmpty
+        case PolicyServerTarget(id) => id == node.id
+      }
+    } }
+  }
+
 }
 
 trait RoNodeGroupRepository {
