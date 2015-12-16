@@ -89,14 +89,7 @@ a:hover {
     cursor: pointer;
 }
 
-.editForm{
-    padding-right: 0;
-}
-
-.editForm .ncf_col {
-  border-right:5px #DDDDDD solid;
-  padding-left: 15px;
-  margin-bottom:70px;
+.editForm.ncf_col {
 }
 
 .editForm .fixed-footer {
@@ -245,11 +238,8 @@ textarea.form-control {
     position: fixed;
     bottom: 0px;
     padding-top: 10px;
-    border-left-width: 0px;
     margin-left: 0px;
     padding-bottom: 10px;
-    border-top:5px #DDDDDD solid;
-    border-right:5px #DDDDDD solid;
 }
 
 .right-margin {
