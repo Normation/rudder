@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -83,7 +83,6 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.utils.Control.boxSequence
 
-
 /**
  * Validation pop-up for modification on group and directive.
  *
@@ -115,7 +114,6 @@ object ModificationValidationPopup extends Loggable {
     }
   }
 
-
 sealed trait Action { def displayName: String }
 final case object Save extends Action { val displayName: String = "Save" }
 final case object Delete extends Action { val displayName: String = "Delete" }
@@ -127,7 +125,6 @@ final case object CreateSolo extends Action { val displayName: String = "Create"
 
 //create the directive and assign it to rules (creation of directive without wf, rules modification with wf)
 final case object CreateAndModRules extends Action { val displayName: String = "Create" }
-
 
   /* Text variation for
    * - Directive and groups,
@@ -202,9 +199,6 @@ final case object CreateAndModRules extends Action { val displayName: String = "
       </div>
   }
 }
-
-
-
 
 /*
  * Pop-up logic:
@@ -337,7 +331,6 @@ class ModificationValidationPopup(
       case (true, _) => ("Submit for Validation", "wideButton", workflowMessage(false))
     }
 
-
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(name, action) &
@@ -378,7 +371,7 @@ class ModificationValidationPopup(
       case CreateSolo => NodeSeq.Empty
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
-        val cmp = new RuleGrid("remove_popup_grid", None, false)
+        val cmp = new RuleGrid("remove_popup_grid", None, () => Full(false), false)
         cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, false)
     }
   }
@@ -440,7 +433,6 @@ class ModificationValidationPopup(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw("""$.modal.close();""")
   }
@@ -451,7 +443,6 @@ class ModificationValidationPopup(
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
-
 
   private[this] def onSubmitStartWorkflow() : JsCmd = {
     onSubmit()
@@ -488,7 +479,6 @@ class ModificationValidationPopup(
     }
   }
 
-
   private[this] def groupDiffFromAction(
       group        : NodeGroup
     , initialState : Option[NodeGroup]
@@ -510,7 +500,6 @@ class ModificationValidationPopup(
     }
   }
 
-
   private[this] def saveChangeRequest() : JsCmd = {
     // we only have quick change request now
     val cr = item match {
@@ -526,7 +515,6 @@ class ModificationValidationPopup(
               , updatedRules
            )
         }
-
 
         DirectiveDiffFromAction(techniqueName, directive, optOriginal).flatMap{
           case None => ruleCr()
@@ -550,7 +538,6 @@ class ModificationValidationPopup(
       case Right((nodeGroup, optParentCategory, optOriginal)) =>
         //if we have a optParentCategory, that means that we
         //have to start to move the group, and then create/save the cr.
-
 
         optParentCategory.foreach { parentCategoryId =>
           woNodeGroupRepository.move(
@@ -662,7 +649,6 @@ class ModificationValidationPopup(
     updateFormClientSide()
   }
 
-
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
@@ -673,5 +659,3 @@ class ModificationValidationPopup(
     }
   }
 }
-
-
