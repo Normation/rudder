@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -55,8 +55,6 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
 
-
-
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
  */
@@ -64,10 +62,10 @@ trait RestDataSerializer {
 
   def serializeDirective(technique:Technique, directive : Directive, crId: Option[ChangeRequestId]): JValue
 
-  def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean) : JValue
+  def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean, apiVersion: ApiVersion) : JValue
 
-  def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue
-  def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel): JValue
+  def serializeGroup(group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue
+  def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue
 
   def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue
 
@@ -80,8 +78,7 @@ trait RestDataSerializer {
 
   def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
 
-  def serializeInventoryV4(node: Node, inventory: FullInventory, detailLevel: NodeDetailLevel) : JValue
-  def serializeInventoryV5(node: Node, inventory: FullInventory, detailLevel: NodeDetailLevel) : JValue
+  def serializeInventory(node: Node, inventory: FullInventory, detailLevel: NodeDetailLevel, apiVersion: ApiVersion) : JValue
 }
 
 case class RestDataSerializerImpl (
@@ -103,14 +100,13 @@ case class RestDataSerializerImpl (
     )
   }
 
-  def serializeInventoryV4(node: Node, inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
-    val filteredFields = detailLevel.fields - "properties"
+  def serializeInventory(node: Node, inventory : FullInventory, detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
+    val filteredFields = if(apiVersion.value <= 4) {
+      detailLevel.fields - "properties"
+    } else {
+      detailLevel.fields
+    }
     val fields : Set[JField] = filteredFields.map(field => JField(field, NodeDetailLevel.allFields(field)(node, inventory)))
-    JObject(fields.toList)
-  }
-
-  def serializeInventoryV5(node: Node, inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
-    val fields : Set[JField] = detailLevel.fields.map(field => JField(field, NodeDetailLevel.allFields(field)(node, inventory)))
     JObject(fields.toList)
   }
 
@@ -141,7 +137,6 @@ case class RestDataSerializerImpl (
     )
 
   }
-
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue = {
 
@@ -187,25 +182,31 @@ case class RestDataSerializerImpl (
    )
   }
 
-  def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue = {
-  val query = group.query.map(query => query.toJSON)
-   (   ("changeRequestId" -> crId.map(_.value.toString))
-     ~ ("id"              -> group.id.value)
-     ~ ("displayName"     -> group.name)
-     ~ ("description"     -> group.description)
-     ~ ("query"           -> query)
-     ~ ("nodeIds"         -> group.serverList.map(_.value))
-     ~ ("isDynamic"       -> group.isDynamic)
-     ~ ("isEnabled"       -> group.isEnabled )
-   )
+  override def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue = {
+    val query = group.query.map(query => query.toJSON)
+    val withoutClasses = (
+        ("changeRequestId" -> crId.map(_.value.toString))
+      ~ ("id"              -> group.id.value)
+      ~ ("displayName"     -> group.name)
+      ~ ("description"     -> group.description)
+      ~ ("query"           -> query)
+      ~ ("nodeIds"         -> group.serverList.map(_.value))
+      ~ ("isDynamic"       -> group.isDynamic)
+      ~ ("isEnabled"       -> group.isEnabled )
+      ~ ("isEnabled"       -> group.isEnabled )
+    )
+   if (apiVersion.value < 7) {
+     withoutClasses
+   } else {
+     withoutClasses ~ ("groupClass" ->  List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
+   }
   }
 
-  def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel): JValue = {
-
+  override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
     val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
       case FullDetails =>
-        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None)).toSeq
-        , category.subCategories.map(serializeGroupCategory(_,category.id, detailLevel))
+        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None, apiVersion)).toSeq
+        , category.subCategories.map(serializeGroupCategory(_,category.id, detailLevel, apiVersion))
         )
       case MinimalDetails =>
         ( category.ownGroups.keys.map(id => JString(id.value) ).toSeq
@@ -326,7 +327,6 @@ case class RestDataSerializerImpl (
     }
   }
 
-
   def serializeGlobalParameterChange(change : GlobalParameterChange): Box[JValue] = {
 
     def serializeGlobalParameterDiff(diff:ModifyGlobalParameterDiff,initialState:GlobalParameter) : JValue= {
@@ -377,8 +377,7 @@ case class RestDataSerializerImpl (
     }
   }
 
-
-  def serializeGroupChange(change : NodeGroupChange): Box[JValue] = {
+  def serializeGroupChange(change : NodeGroupChange, apiVersion: ApiVersion): Box[JValue] = {
 
     def serializeNodeGroupDiff(diff:ModifyNodeGroupDiff,initialState:NodeGroup) : JValue= {
       implicit def convert[T] (value : T) : JValue = value
@@ -408,12 +407,12 @@ case class RestDataSerializerImpl (
     } yield {
       diff match {
         case AddNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None)
+          val change = serializeGroup(group,None, apiVersion)
           (   ("action" -> create)
             ~ ("change" -> change)
           )
         case DeleteNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None)
+          val change = serializeGroup(group,None, apiVersion)
           (   ("action" -> delete)
             ~ ("change" -> change)
           )
@@ -491,18 +490,16 @@ case class RestDataSerializerImpl (
             ~ ("change" -> result)
           )
 
-
       }
     }
   }
 
-
-  def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean) = {
+  override def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean, apiVersion: ApiVersion) = {
 
     val changes : JValue = changeRequest match {
       case cr : ConfigurationChangeRequest =>
       val directives = cr.directives.values.map(ch => serializeDirectiveChange(ch.changes).getOrElse(JString(s"Error while serializing directives from CR ${changeRequest.id}")))
-      val groups     = cr.nodeGroups.values.map(ch => serializeGroupChange(ch.changes).getOrElse(JString(s"Error while serializing groups from CR ${changeRequest.id}")))
+      val groups     = cr.nodeGroups.values.map(ch => serializeGroupChange(ch.changes, apiVersion).getOrElse(JString(s"Error while serializing groups from CR ${changeRequest.id}")))
       val parameters = cr.globalParams.values.map(ch => serializeGlobalParameterChange(ch.changes).getOrElse(JString(s"Error while serializing Parameters from CR ${changeRequest.id}")))
       val rules = cr.rules.values.map(ch => serializeRuleChange(ch.changes).getOrElse(JString(s"Error while serializing Rules from CR ${changeRequest.id}")))
       (   ("directives" -> directives)

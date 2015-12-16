@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -58,7 +58,7 @@ trait RestAPI  extends RestHelper{
 
   def kind : String
 
-  def requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
+  def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]]
 
 }
 
@@ -70,25 +70,26 @@ trait RestAPI  extends RestHelper{
  * Then define the header API from the map
  */
 case class APIDispatcher (
-    apisByVersion : Map[ApiVersion,List[RestAPI]]
+    apisByVersion : Map[ApiVersion, List[RestAPI]]
   , restExtractor : RestExtractorService
 ) extends RestHelper {
 
-  // For each api version
-  apisByVersion.foreach{
-      case (ApiVersion(version,_),apis) =>
+    // For each api version
+    apisByVersion.foreach{
+      case (v@ApiVersion(version,_),apis) =>
         // Dispatch all api
         apis.foreach{
           api =>
-            serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch)
+            serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch(v)  )
         }
     }
 
     // Get the max version ...
-    apisByVersion(apisByVersion.keySet.maxBy(_.value)).foreach{
+    val latest = apisByVersion.keySet.maxBy(_.value)
+    apisByVersion(latest).foreach{
       api =>
         // ... and Dispatch it
-        serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch)
+        serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch(latest))
     }
 
     // regroup api by kind, to be able to dispatch header api version
@@ -109,7 +110,7 @@ case class APIDispatcher (
                 // If the api exists
                 case Some(api) =>
                   // Use the api of that version
-                  api.requestDispatch(req)
+                  api.requestDispatch(apiVersion)(req)
                 case None =>
                   // Not a valid version
                   RestUtils.notValidVersionResponse(kind)
@@ -144,5 +145,6 @@ case class APIDispatcher (
 
 
         RestUtils.toJsonResponse(None, versions)
+
     }
 }

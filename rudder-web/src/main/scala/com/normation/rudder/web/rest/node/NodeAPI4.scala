@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -47,7 +47,7 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
-
+import com.normation.rudder.web.rest.ApiVersion
 
 class NodeAPI4 (
     apiV2         : NodeAPI2
@@ -55,13 +55,12 @@ class NodeAPI4 (
   , restExtractor : RestExtractorService
 ) extends RestHelper with NodeAPI with Loggable{
 
-
-  val v4Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  def v4Dispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
    case Get(id :: Nil, req) if id != "pending" => {
       restExtractor.extractNodeDetailLevel(req.params) match {
         case Full(level) =>
-          apiV4.nodeDetailsGeneric(NodeId(id), level, req)
+          apiV4.nodeDetailsGeneric(NodeId(id), level, apiVersion, req)
         case eb:EmptyBox =>
           val failMsg = eb ?~ "node detail level not correctly sent"
           toJsonError(None, failMsg.msg)("nodeDetail",restExtractor.extractPrettify(req.params))
@@ -69,6 +68,7 @@ class NodeAPI4 (
     }
   }
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v4Dispatch orElse apiV2.requestDispatch
-
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
+     v4Dispatch(apiVersion) orElse apiV2.requestDispatch(apiVersion)
+  }
 }
