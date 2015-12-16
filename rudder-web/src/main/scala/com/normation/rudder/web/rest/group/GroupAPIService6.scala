@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,41 +48,41 @@ import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.RudderDit
 
 case class GroupApiService6 (
-    readGroup     : RoNodeGroupRepository
-  , writeGroup    : WoNodeGroupRepository
-  , restDataSerializer   : RestDataSerializer
+    readGroup         : RoNodeGroupRepository
+  , writeGroup        : WoNodeGroupRepository
+  , restDataSerializer: RestDataSerializer
 ) extends Loggable {
 
-  def getCategoryTree = {
+  def getCategoryTree(apiVersion: ApiVersion) = {
     for {
         root <- readGroup.getFullGroupLibrary
     } yield {
-      restDataSerializer.serializeGroupCategory(root, root.id, FullDetails)
+      restDataSerializer.serializeGroupCategory(root, root.id, FullDetails, apiVersion)
     }
   }
 
-  def getCategoryDetails(id : NodeGroupCategoryId) = {
+  def getCategoryDetails(id : NodeGroupCategoryId, apiVersion: ApiVersion) = {
     for {
       root <- readGroup.getFullGroupLibrary
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
       parent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
     } yield {
-      restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails)
+      restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails, apiVersion)
     }
   }
 
-  def deleteCategory(id : NodeGroupCategoryId)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def deleteCategory(id : NodeGroupCategoryId, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
       root <- readGroup.getFullGroupLibrary
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
       parent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Groupl category '${id.value}' parent"
       _ <- writeGroup.delete(id, modId, actor, reason)
     } yield {
-      restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails)
+      restDataSerializer.serializeGroupCategory(category, parent.id, MinimalDetails, apiVersion)
     }
   }
 
-  def updateCategory(id : NodeGroupCategoryId, restData: Box[RestGroupCategory])(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def updateCategory(id : NodeGroupCategoryId, restData: Box[RestGroupCategory], apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
       data <- restData
       root <- readGroup.getFullGroupLibrary
@@ -92,11 +92,11 @@ case class GroupApiService6 (
       update = data.update(category)
       _ <-writeGroup.saveGroupCategory(update.toNodeGroupCategory,parent, modId, actor, reason)
     } yield {
-      restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails)
+      restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
   }
 
-  def createCategory(id : NodeGroupCategoryId, restData: Box[RestGroupCategory])(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def createCategory(id : NodeGroupCategoryId, restData: Box[RestGroupCategory], apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
       data <- restData
       update <- data.create(id)
@@ -104,7 +104,7 @@ case class GroupApiService6 (
       parent = data.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
       _ <-writeGroup.addGroupCategorytoCategory(category,parent, modId, actor, reason)
     } yield {
-      restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails)
+      restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
   }
 

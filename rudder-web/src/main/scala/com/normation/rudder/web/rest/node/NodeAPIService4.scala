@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 *
@@ -49,9 +49,7 @@ import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.services.nodes.NodeInfoService
-
-
-
+import com.normation.rudder.web.rest.ApiVersion
 
 class NodeApiService4 (
     inventoryRepository : LDAPFullInventoryRepository
@@ -59,12 +57,11 @@ class NodeApiService4 (
   , uuidGen             : StringUuidGenerator
   , restExtractor       : RestExtractorService
   , restSerializer      : RestDataSerializer
-  , versionCompatibility: Int
 ) extends Loggable {
 
   import restSerializer._
 
-  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus) = {
+  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion) = {
     for {
       inventory <- inventoryRepository.get(nodeId,state)
       node      <- state match {
@@ -73,18 +70,14 @@ class NodeApiService4 (
         case _ => Full(Node(inventory))
       }
     } yield {
-      if(versionCompatibility <= 4) { //v4
-        serializeInventoryV4(node, inventory, detailLevel)
-      } else {
-        serializeInventoryV5(node, inventory, detailLevel)
-      }
+      serializeInventory(node, inventory, detailLevel, version)
     }
   }
 
-  def nodeDetailsWithStatus(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, req: Req) = {
+  def nodeDetailsWithStatus(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = s"${state.name}NodeDetails"
-    getNodeDetails(nodeId, detailLevel, state) match {
+    getNodeDetails(nodeId, detailLevel, state, version) match {
         case Full(inventory) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
         case eb: EmptyBox =>
@@ -93,19 +86,18 @@ class NodeApiService4 (
       }
   }
 
-
-  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, req: Req) = {
+  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, version : ApiVersion, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "nodeDetails"
-    getNodeDetails(nodeId, detailLevel, AcceptedInventory) match {
+    getNodeDetails(nodeId, detailLevel, AcceptedInventory, version) match {
         case Full(inventory) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
         case eb: EmptyBox =>
-          getNodeDetails(nodeId, detailLevel, PendingInventory) match {
+          getNodeDetails(nodeId, detailLevel, PendingInventory, version) match {
             case Full(inventory) =>
               toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
             case eb: EmptyBox =>
-              getNodeDetails(nodeId, detailLevel, RemovedInventory) match {
+              getNodeDetails(nodeId, detailLevel, RemovedInventory, version) match {
                 case Full(inventory) =>
                   toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
                 case eb: EmptyBox =>
@@ -116,5 +108,3 @@ class NodeApiService4 (
     }
   }
 }
-
-

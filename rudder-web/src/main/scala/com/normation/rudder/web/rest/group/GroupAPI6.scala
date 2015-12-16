@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -55,6 +55,7 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.web.rest.ApiVersion
 
 class GroupAPI6(
     serviceV6 : GroupApiService6
@@ -73,11 +74,11 @@ class GroupAPI6(
     RestUtils.actionResponse(restExtractor, dataName, uuidGen)(function, req, errorMessage)
   }
 
-  val v6Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  def v6Dispatch(apiVersion: ApiVersion): PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get("tree" :: Nil, req) =>
       response(
-          serviceV6.getCategoryTree
+          serviceV6.getCategoryTree(apiVersion)
         , req
         , s"Could not fetch Group category tree"
       ) ("GetGroupTree")
@@ -85,7 +86,7 @@ class GroupAPI6(
 
     case Get("categories"  :: id :: Nil, req) => {
       response (
-          serviceV6.getCategoryDetails(NodeGroupCategoryId(id))
+          serviceV6.getCategoryDetails(NodeGroupCategoryId(id), apiVersion)
         , req
         , s"Could not fetch Group category '${id}' details"
      ) ("getGroupCategoryDetails")
@@ -93,7 +94,7 @@ class GroupAPI6(
 
     case Delete("categories"  :: id :: Nil, req) => {
       actionResponse(
-          serviceV6.deleteCategory(NodeGroupCategoryId(id))
+          serviceV6.deleteCategory(NodeGroupCategoryId(id), apiVersion)
         , req
         , s"Could not delete Group category '${id}'"
       ) ("deleteGroupCategory")
@@ -107,7 +108,7 @@ class GroupAPI6(
         cat
       }
       actionResponse(
-          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory)
+          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory, apiVersion)
         , req
         , s"Could not update Group category '${id}'"
       ) ("updateGroupCategory")
@@ -116,7 +117,7 @@ class GroupAPI6(
     case Post("categories" :: id :: Nil, req) => {
       val restCategory = restExtractor.extractGroupCategory(req.params)
       actionResponse(
-          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory)
+          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory, apiVersion)
         , req
         , s"Could not update Group category '${id}'"
       ) ("updateGroupCategory")
@@ -131,7 +132,7 @@ class GroupAPI6(
       }
       val id = NodeGroupCategoryId(uuidGen.newUuid)
       actionResponse(
-          serviceV6.createCategory(id, restCategory)
+          serviceV6.createCategory(id, restCategory,apiVersion)
         , req
         , s"Could not create Group category"
       ) ("createGroupCategory")
@@ -142,7 +143,7 @@ class GroupAPI6(
       val restCategory = restExtractor.extractGroupCategory(req.params)
       val id = NodeGroupCategoryId(uuidGen.newUuid)
       actionResponse(
-          serviceV6.createCategory(id, restCategory)
+          serviceV6.createCategory(id, restCategory, apiVersion)
         , req
         , s"Could not update Group category '${id}' details"
       ) ("createGroupCategory")
@@ -151,5 +152,7 @@ class GroupAPI6(
   }
 
   // Group API Version 6 fallback to Group API v5 if request is not handled in V6
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v6Dispatch orElse apiV5.requestDispatch
+  override def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]] = {
+    v6Dispatch(apiVersion) orElse apiV5.requestDispatch(apiVersion)
+  }
 }
