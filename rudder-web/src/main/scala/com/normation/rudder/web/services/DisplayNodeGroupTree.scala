@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -57,8 +57,7 @@ import com.normation.rudder.domain.policies.RuleTarget
 import net.liftweb.http.S
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
 import com.normation.rudder.domain.nodes.NodeGroupId
-
-
+import com.normation.rudder.domain.nodes.NodeInfo
 
 /**
  *
@@ -263,22 +262,21 @@ object DisplayNodeGroupTree extends Loggable {
   //build the tree category, filtering only category with groups
   def buildTreeKeepingGroupWithNode(
       groupLib       : FullNodeGroupCategory
-    , nodeId         : NodeId
+    , nodeInfo       : NodeInfo
     , onClickCategory: Option[FullNodeGroupCategory => JsCmd] = None
     , onClickTarget  : Option[(FullNodeGroupCategory, FullRuleTargetInfo) => JsCmd] = None
     , targetActions  : Map[String,(FullRuleTargetInfo) => JsCmd] = Map()
   ) : NodeSeq = {
+
+    val keepTarget = groupLib.getTarget(nodeInfo).keySet
 
     displayTree(
         groupLib
       , onClickCategory
       , onClickTarget
       , targetActions
-      , keepCategory   = (cat => cat.allGroups.values.exists( _.nodeGroup.serverList.contains(nodeId)))
-      , keepTargetInfo = (ti => ti match {
-          case FullRuleTargetInfo(FullGroupTarget(_, g), _, _, _, _) => g.serverList.contains(nodeId)
-          case _ => false
-        })
+      , keepCategory   = (cat => cat.allTargets.keySet.intersect(keepTarget).nonEmpty)
+      , keepTargetInfo = (ti => keepTarget.contains(ti.target.target))
     )
   }
 
