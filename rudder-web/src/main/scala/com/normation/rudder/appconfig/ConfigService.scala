@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -113,7 +113,6 @@ trait ReadConfigService {
    */
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
 
-
   /**
    * Compliance mode:
    * - "compliance": full compliance mode, where "success" execution reports are sent
@@ -133,7 +132,6 @@ trait ReadConfigService {
 
   def rudder_compliance_heartbeatPeriod(): Box[Int]
 
-
   /**
    * Send Metrics
    */
@@ -144,6 +142,10 @@ trait ReadConfigService {
    */
   def rudder_syslog_protocol(): Box[SyslogProtocol]
 
+  /**
+   * Should we display recent changes graphs  ?
+   */
+  def display_changes_graph(): Box[Boolean]
 }
 
 /**
@@ -217,6 +219,11 @@ trait UpdateConfigService {
    */
   def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit]
 
+  /**
+   * Should we display recent changes graphs  ?
+   */
+  def set_display_changes_graph(displayGraph : Boolean): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -246,6 +253,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.compliance.mode=${FullCompliance.name}
        rudder.compliance.heartbeatPeriod=1
        rudder.syslog.protocol=UDP
+       display.changes.graph=true
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -346,7 +354,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
         }
     }
 
-
   }
   def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
     cacheExecutionInterval = Some(value)
@@ -402,7 +409,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     save("rudder_compliance_heartbeatPeriod", value, Some(info))
   }
 
-
   /**
    * Send Metrics
    */
@@ -414,7 +420,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     save("send_server_metrics",newVal,Some(info))
   }
 
-
   /**
    * Report protocol
    */
@@ -424,4 +429,10 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     save("rudder_syslog_protocol", protocol.value, Some(info))
   }
 
+  /**
+   * Should we display recent changes graphs  ?
+   */
+  def display_changes_graph(): Box[Boolean] =  get("display_changes_graph")
+
+  def set_display_changes_graph(displayGraphs : Boolean): Box[Unit] = save("display_changes_graph", displayGraphs)
 }

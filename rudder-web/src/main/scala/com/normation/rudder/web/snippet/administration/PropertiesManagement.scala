@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -61,7 +61,6 @@ import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 
-
 /**
  * This class manage the displaying of user configured properties.
  *
@@ -90,11 +89,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "loggingConfiguration" => loggingConfiguration
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "networkProtocolSection" => networkProtocolSection
+    case "displayGraphsConfiguration" => displayGraphsConfiguration
   }
 
-
   def changeMessageConfiguration = { xml : NodeSeq =>
-
 
     // initial values
     var initEnabled = configService.rudder_ui_changeMessage_enabled
@@ -147,7 +145,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       )
     }
 
-
     // Rendering
     ( "#configurationRepoPath" #> RudderConfig.RUDDER_DIR_GITROOT &
       "#enabled" #> {
@@ -194,7 +191,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
         initExplanation match {
           case Full(value) =>
-
 
             SHtml.ajaxText(
                 value
@@ -260,7 +256,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var enabled = initEnabled.getOrElse(false)
     var selfVal = initSelfVal.getOrElse(false)
     var selfDep = initSelfDep.getOrElse(false)
-
 
     def submit = {
       configService.set_rudder_workflow_enabled(enabled).foreach(updateOk => initEnabled = Full(enabled))
@@ -377,11 +372,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     //convention: we negate on server i/o, not anywhere else
     var initNoSkipIdentify = configService.cfengine_server_skipidentify.map( !_ )
 
-
     // form values
     var denyBadClocks = initDenyBadClocks.getOrElse(false)
     var noSkipIdentify = initNoSkipIdentify.getOrElse(false)
-
 
     def submit = {
       configService.set_cfengine_server_denybadclocks(denyBadClocks).foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
@@ -430,7 +423,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                By default, copying configuration policy to nodes requires system clocks to be synchronized
                to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.
             </div>
-
 
           case _ => NodeSeq.Empty
         }
@@ -579,18 +571,15 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
   def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
-
   def cfengineGlobalProps = { xml : NodeSeq =>
 
     //  initial values, updated on successful submit
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
 
-
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
-
 
     def submit = {
       // first, check if the content are effectively Int
@@ -742,6 +731,48 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         } )
     } ) apply (xml ++ Script(Run("correctButtons();")))
   }
+
+  def displayGraphsConfiguration = { xml : NodeSeq =>
+
+    ( configService.display_changes_graph() match {
+      case Full(value) =>
+        var displayGraphs = value
+        def noModif() = displayGraphs == value
+        def check() = {
+          S.notice("displayGraphsMsg","")
+          Run(s"""$$("#displayGraphsSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_display_changes_graph(displayGraphs)
+          S.notice("displayGraphsMsg", save match {
+            case Full(_)  =>
+              "'display change graphs' property updated"
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'display change graphs' property"
+          } )
+        }
+
+        ( "#displayGraphsCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { displayGraphs = b; check}
+              , ("id","displayGraphsCheckbox")
+            )
+          } &
+          "#displayGraphsSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#displayGraphsSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+      case eb: EmptyBox =>
+        ( "#displayGraphs" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'display change graphs'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
 }
-
-

@@ -505,7 +505,7 @@ tr.color2 {
 }
 
 
-td.center {
+td.center, .center {
  text-align : center;
 }
 
