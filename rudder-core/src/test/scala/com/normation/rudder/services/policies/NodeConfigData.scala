@@ -53,7 +53,6 @@ import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.EnvironmentVariable
 import com.normation.inventory.domain.ServerRole
 
-
 /*
  * This file is a container for testing data that are a little boring to
  * define, like node info, node config, etc. so that their declaration
@@ -100,6 +99,7 @@ object NodeConfigData {
                         , "rudder-webapp"
                       ).map(ServerRole(_))
     , emptyNodeReportingConfiguration
+    , Seq()
   )
 
   val node1 = NodeInfo(
@@ -123,6 +123,7 @@ object NodeConfigData {
     , isPolicyServer= true
     , serverRoles   = Set()
     , emptyNodeReportingConfiguration
+    , Seq()
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(
@@ -162,7 +163,6 @@ object NodeConfigData {
   val node2 = node1.copy(id = NodeId("node2"), name = "node2", policyServerId = node1.id )
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
-
 
   val rootNodeConfig = NodeConfiguration(
     nodeInfo    = root

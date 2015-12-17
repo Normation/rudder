@@ -73,4 +73,5 @@ case class NodeInfo(
   //      on role everywhere.
   , serverRoles   : Set[ServerRole]
   , nodeReportingConfiguration: ReportingConfiguration
+  , properties : Seq[NodeProperty]
 ) extends HashcodeCaching
