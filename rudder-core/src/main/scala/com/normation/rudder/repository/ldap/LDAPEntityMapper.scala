@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -91,10 +91,7 @@ class LDAPEntityMapper(
   , cmdbQueryParser: CmdbQueryParser
 ) extends Loggable {
 
-
     //////////////////////////////    Node    //////////////////////////////
-
-
 
   def nodeToEntry(node:Node) : LDAPEntry = {
     val entry =
@@ -127,7 +124,6 @@ class LDAPEntityMapper(
     }
     entry
   }
-
 
   def serializeAgentRunInterval(agentInterval: AgentRunInterval) : JObject = {
     import net.liftweb.json.JsonDSL._
@@ -225,6 +221,7 @@ class LDAPEntityMapper(
       // get the ReportingConfiguration
       agentRunInterval = nodeEntry(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
       heartbeatConf = nodeEntry(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
+      properties = nodeEntry.valuesFor(A_NODE_PROPERTY).map(unserializeLdapNodeProperty(_)).toSeq
 
     } yield {
       // fetch the inventory datetime of the object
@@ -255,6 +252,7 @@ class LDAPEntityMapper(
               agentRunInterval
             , heartbeatConf
           )
+        , properties
       )
     }
   }
@@ -320,7 +318,6 @@ class LDAPEntityMapper(
     }
   }
 
-
   def nodeDn2OptNodeId(dn:DN) : Box[NodeId] = {
     val rdn = dn.getRDN
     if(!rdn.isMultiValued && rdn.hasAttribute(A_NODE_UUID)) {
@@ -329,7 +326,6 @@ class LDAPEntityMapper(
   }
 
   //////////////////////////////    ActiveTechniqueCategory    //////////////////////////////
-
 
   /**
    * children and items are left empty
@@ -382,7 +378,6 @@ class LDAPEntityMapper(
     }
   }
 
-
   /**
    * Build a ActiveTechnique from and LDAPEntry.
    * children directives are left empty
@@ -415,7 +410,6 @@ class LDAPEntityMapper(
   }
 
    //////////////////////////////    NodeGroupCategory    //////////////////////////////
-
 
   /**
    * children and items are left empty
@@ -480,7 +474,6 @@ class LDAPEntityMapper(
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e))
   }
 
-
   //////////////////////////////    Special Policy target info    //////////////////////////////
 
   def entry2RuleTargetInfo(e:LDAPEntry) : Box[RuleTargetInfo] = {
@@ -504,8 +497,6 @@ class LDAPEntityMapper(
       RuleTargetInfo(target, name , description , isEnabled , isSystem)
     }
   }
-
-
 
   //////////////////////////////    Directive    //////////////////////////////
 
@@ -552,7 +543,6 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Rule Category    //////////////////////////////
 
-
   /**
    * children and items are left empty
    */
@@ -576,7 +566,6 @@ class LDAPEntityMapper(
   def ruleCategory2ldap(category:RuleCategory, parentDN:DN) = {
     rudderDit.RULECATEGORY.ruleCategoryModel(category.id.value, parentDN, category.name,category.description,category.isSystem)
   }
-
 
   //////////////////////////////    Rule    //////////////////////////////
   def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
@@ -635,7 +624,6 @@ class LDAPEntityMapper(
     }
   }
 
-
   /**
    * Map a rule to an LDAP Entry.
    * WARN: serial is NEVER mapped.
@@ -655,8 +643,6 @@ class LDAPEntityMapper(
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry
   }
-
-
 
   //////////////////////////////    API Accounts    //////////////////////////////
 
@@ -742,6 +728,5 @@ class LDAPEntityMapper(
     entry +=! (A_DESCRIPTION, property.description)
     entry
   }
-
 
 }
