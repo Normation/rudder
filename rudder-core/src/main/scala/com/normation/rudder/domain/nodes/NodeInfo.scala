@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -48,9 +48,7 @@ import com.normation.inventory.domain.ServerRole
  * always useful about a node
  */
 case class NodeInfo(
-    id            : NodeId
-  , name          : String
-  , description   : String
+    node          : Node
   , hostname      : String
   , machineType   : String
   , osName        : String
@@ -63,12 +61,18 @@ case class NodeInfo(
   , policyServerId: NodeId
   , localAdministratorAccountName: String
   , creationDate  : DateTime
-  , isBroken      : Boolean
-  , isSystem      : Boolean
-  , isPolicyServer: Boolean
   //for now, isPolicyServer and server role ARE NOT
   //dependant. So EXPECTS inconsistencies.
   //TODO: remove isPolicyServer, and pattern match on
   //      on role everywhere.
   , serverRoles   : Set[ServerRole]
-) extends HashcodeCaching
+) extends HashcodeCaching {
+
+  val id                         = node.id
+  val name                       = node.name
+  val description                = node.description
+  val isBroken                   = node.isBroken
+  val isSystem                   = node.isSystem
+  val isPolicyServer             = node.isPolicyServer
+
+}

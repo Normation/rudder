@@ -12,10 +12,10 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.Node
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
-
 
   val nodeIds = (for {
     i <- 0 to 10
@@ -29,12 +29,12 @@ class RuleTargetTest extends Specification with Loggable {
       (
         id
       , NodeInfo (
-          id, s"Node-${id}"
-        , "" ,"" ,"" ,"" ,""
+          Node(id,"" ,"", false, false, false),  s"Node-${id}"
+        , "" ,"" ,""
         , None, Nil, DateTime.now
         , "", Seq(), NodeId("root")
-        , "", DateTime.now
-        , false, false, false, Set()
+        , "", DateTime.now,
+        Set()
       )
     )
   }.toMap
@@ -104,8 +104,6 @@ class RuleTargetTest extends Specification with Loggable {
 
   val allTargets : Set[RuleTarget] =  (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))
 
-
-
   " Nodes from Rule targets" should {
     "Be found correctly on simple rule targets" in {
       groupTargets.forall { case (gt,g) =>
@@ -153,6 +151,5 @@ class RuleTargetTest extends Specification with Loggable {
       } === true
     }
   }
-
 
 }
