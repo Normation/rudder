@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -57,55 +57,55 @@ import net.liftweb.common.Box
 import net.liftweb.common.Full
 import com.normation.rudder.reports.ReportingConfiguration
 
-
-
 @RunWith(classOf[JUnitRunner])
 class PathComputerTest extends Specification {
 
   private val root = NodeInfo(
-    id            = NodeId("root")
-  , name          = "root"
-  , description   = ""
-  , hostname      = "hostname"
-  , machineType   = "vm"
-  , osName        = "debian"
-  , osVersion     = "5.4"
-  , servicePack   = None
-  , ips           = List("127.0.0.1")
-  , inventoryDate = DateTime.now()
-  , publicKey     = ""
-  , agentsName    = Seq(COMMUNITY_AGENT)
-  , policyServerId= NodeId("root")
-  , localAdministratorAccountName= "root"
-  , creationDate  = DateTime.now()
-  , isBroken      = false
-  , isSystem      = false
-  , isPolicyServer= false
-  , serverRoles = Set()
-  , nodeReportingConfiguration = ReportingConfiguration(None,None)
+      id            = NodeId("root")
+    , name          = "root"
+    , description   = ""
+    , hostname      = "hostname"
+    , machineType   = "vm"
+    , osName        = "debian"
+    , osVersion     = "5.4"
+    , servicePack   = None
+    , ips           = List("127.0.0.1")
+    , inventoryDate = DateTime.now()
+    , publicKey     = ""
+    , agentsName    = Seq(COMMUNITY_AGENT)
+    , policyServerId= NodeId("root")
+    , localAdministratorAccountName= "root"
+    , creationDate  = DateTime.now()
+    , isBroken      = false
+    , isSystem      = false
+    , isPolicyServer= false
+    , serverRoles = Set()
+    , nodeReportingConfiguration = ReportingConfiguration(None,None)
+    , Seq()
   )
 
   private val nodeInfo = NodeInfo(
-    id            = NodeId("name")
-  , name          = "name"
-  , description   = ""
-  , hostname      = "hostname"
-  , machineType   = "vm"
-  , osName        = "debian"
-  , osVersion     = "5.4"
-  , servicePack   = None
-  , ips           = List("127.0.0.1")
-  , inventoryDate = DateTime.now()
-  , publicKey     = ""
-  , agentsName    = Seq(COMMUNITY_AGENT)
-  , policyServerId= root.id
-  , localAdministratorAccountName= "root"
-  , creationDate  = DateTime.now()
-  , isBroken      = false
-  , isSystem      = false
-  , isPolicyServer= false
-  , serverRoles = Set()
-  , nodeReportingConfiguration = ReportingConfiguration(None,None)
+      id            = NodeId("name")
+    , name          = "name"
+    , description   = ""
+    , hostname      = "hostname"
+    , machineType   = "vm"
+    , osName        = "debian"
+    , osVersion     = "5.4"
+    , servicePack   = None
+    , ips           = List("127.0.0.1")
+    , inventoryDate = DateTime.now()
+    , publicKey     = ""
+    , agentsName    = Seq(COMMUNITY_AGENT)
+    , policyServerId= root.id
+    , localAdministratorAccountName= "root"
+    , creationDate  = DateTime.now()
+    , isBroken      = false
+    , isSystem      = false
+    , isPolicyServer= false
+    , serverRoles = Set()
+    , nodeReportingConfiguration = ReportingConfiguration(None,None)
+    , Seq()
   )
 
   private val nodeInfo2 = nodeInfo.copy(id = NodeId("name2"), name = "name2", policyServerId = nodeInfo.id )
@@ -137,7 +137,6 @@ class PathComputerTest extends Specification {
   , isRootServer= false
   )
 
-
   val allNodeConfig = Map(root.id -> rootNodeConfig, nodeInfo.id -> nodeConfig, nodeInfo2.id -> nodeConfig2)
 
   val pathComputer = new PathComputerImpl("/var/rudder/backup/")
@@ -157,6 +156,5 @@ class PathComputerTest extends Specification {
     }
 
   }
-
 
 }
