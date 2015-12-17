@@ -119,7 +119,6 @@ class ShowNodeDetailsFromNode(
     }
   }
 
-
   def saveHeart(complianceMode : String, frequency: Int, overrides : Boolean) : Box[Unit] = {
     val heartbeatConfiguration = HeartbeatConfiguration(overrides, frequency)
     val modId = ModificationId(uuidGen.newUuid)
@@ -129,8 +128,6 @@ class ShowNodeDetailsFromNode(
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }
   }
-
-
 
    def agentScheduleEditForm = new AgentScheduleEditForm(
         () => getSchedule
@@ -186,7 +183,7 @@ class ShowNodeDetailsFromNode(
   }
 
   private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
-    nodeInfoService.getNode(nodeId) match {
+    nodeInfoService.getNodeInfo(nodeId) match {
       case Empty =>
         <div class="error">Node with id {nodeId.value} was not found</div>
       case f@Failure(_,_,_) =>
@@ -215,12 +212,12 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : Node, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
     val id = JsNodeId(node.id)
     ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
       "#groupTree *" #>
         <div id={htmlId_crTree}>
-          <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node.id)}</ul>
+          <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node)}</ul>
         </div> &
       "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
@@ -233,7 +230,6 @@ class ShowNodeDetailsFromNode(
       "#node_tabs [id]" #> s"details_${id}"
     ).apply(serverDetailsTemplate)
   }
-
 
   /**
    * Javascript to initialize a tree.
