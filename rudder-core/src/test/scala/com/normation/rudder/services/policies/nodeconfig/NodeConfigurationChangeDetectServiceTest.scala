@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -58,12 +58,8 @@ import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.services.policies.BundleOrder
 
-
-
 @RunWith(classOf[JUnitRunner])
 class NodeConfigurationChangeDetectServiceTest extends Specification {
-
-
 
   /* Test the change in node */
   def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
@@ -154,10 +150,10 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
   , isPolicyServer= false
   , serverRoles   = Set()
   , nodeReportingConfiguration = emptyNodeReportingConfiguration
+  , Seq()
   )
 
   private val nodeInfo2 = nodeInfo.copy(name = "name2")
-
 
   val emptyNodeConfig = NodeConfiguration(
     nodeInfo    = nodeInfo
@@ -193,7 +189,6 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
       ) must beTheSameAs(Set())
     }
   }
-
 
   "An node with one easy CR " should {
     "not have a change if everything is equal" in {
@@ -320,6 +315,5 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
       ) === Set(new RuleId("ruleId1"))
     }
   }
-
 
 }

@@ -18,7 +18,6 @@ import com.normation.rudder.reports.ReportingConfiguration
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
 
-
   val nodeIds = (for {
     i <- 0 to 10
   } yield {
@@ -38,6 +37,7 @@ class RuleTargetTest extends Specification with Loggable {
         , "", DateTime.now
         , false, false, false, Set()
         , ReportingConfiguration(None,None)
+        , Seq()
       )
     )
   }.toMap
@@ -107,8 +107,6 @@ class RuleTargetTest extends Specification with Loggable {
 
   val allTargets : Set[RuleTarget] =  (groupTargets.map(_._1) ++ (allComposite.map(_._1)) ++ allTargetExclusions.map(_._1))
 
-
-
   " Nodes from Rule targets" should {
     "Be found correctly on simple rule targets" in {
       groupTargets.forall { case (gt,g) =>
@@ -156,6 +154,5 @@ class RuleTargetTest extends Specification with Loggable {
       } === true
     }
   }
-
 
 }
