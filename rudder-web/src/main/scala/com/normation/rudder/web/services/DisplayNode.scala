@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -67,6 +67,7 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.{Node => RudderNode}
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
+import com.normation.rudder.domain.nodes.NodeInfo
 
 /**
  * A service used to display details about a server
@@ -298,7 +299,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   * show the extra part
   * If there is no node available (pending inventory), there is nothing to show
   */
-  def showExtraContent(node: Option[RudderNode], sm: FullInventory, salt:String = "") : NodeSeq = {
+  def showExtraContent(node: Option[NodeInfo], sm: FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     displayTabFilesystems(jsId, sm) ++
     displayTabNetworks(jsId, sm) ++
@@ -314,7 +315,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="")
    */
-  def showPannedContent(node: Option[RudderNode], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
+  def showPannedContent(node: Option[NodeInfo], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val detailsId = htmlId(jsId,"details_")
     <div id={detailsId} class="tabs">
@@ -586,7 +587,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     }
     }
 
-    private def displayTabProperties(jsId:JsNodeId, node: RudderNode) : NodeSeq = {
+    private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
     displayTabGrid(jsId)("props", Full(node.properties)){
         ("Name", {x:NodeProperty => Text(x.name)}) ::
         ("Value", {x:NodeProperty => Text(x.value)}) ::
