@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -124,7 +124,6 @@ class EventListDisplayer(
       })
      ).apply(dataTableXml(gridName))
   }
-
 
   def initJs(gridName : String) : JsCmd = {
     val jsGridName = "oTable" + gridName
@@ -230,7 +229,6 @@ class EventListDisplayer(
     }
   }
 
-
   private[this] def dataTableXml(gridName:String) = {
     <div>
       <table id={gridName} class="display" cellspacing="0">
@@ -260,7 +258,6 @@ class EventListDisplayer(
     </div>
 
   }
-
 
     //////////////////// Display description/details of ////////////////////
 
@@ -347,7 +344,6 @@ class EventListDisplayer(
       val name = (x.details \ "apiAccount" \ "name").text
       Text(s"API Account ${name} ${actionName}")
     }
-
 
     event match {
       case x:ActivateRedButton             => Text("Stop Rudder agents on all nodes")
@@ -660,7 +656,6 @@ class EventListDisplayer(
         }
         xml }
 
-
       case x:AddDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveAddDetails(x.details) match {
           case Full((diff,sectionVal)) =>
@@ -675,7 +670,6 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml}
-
 
       case x:DeleteDirective =>
         "*" #> { val xml : NodeSeq = logDetailsService.getDirectiveDeleteDetails(x.details) match {
@@ -739,7 +733,6 @@ class EventListDisplayer(
         }
         xml }
 
-
       case x:AddNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupAddDetails(x.details) match {
           case Full(diff) =>
@@ -753,8 +746,6 @@ class EventListDisplayer(
           case e:EmptyBox => errorMessage(e)
         }
         xml }
-
-
 
       case x:DeleteNodeGroup =>
         "*" #> { val xml : NodeSeq = logDetailsService.getNodeGroupDeleteDetails(x.details) match {
@@ -1197,7 +1188,6 @@ class EventListDisplayer(
         , ("to ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
       )
 
-
   private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
     nodeInfoService.getNodeInfo(id) match {
       case t: EmptyBox =>
@@ -1447,7 +1437,6 @@ class EventListDisplayer(
       </ul>
     </div>
 
-
    private[this] val globalParamDetailsXML =
     <div>
       <h4>Global Parameter overview:</h4>
@@ -1472,7 +1461,6 @@ class EventListDisplayer(
         <li><b>Token Generation date:&nbsp;</b><value id="tokenGenerationDate"/></li>
       </ul>
     </div>
-
 
   private[this] def liModDetailsXML(id:String, name:String) = (
       <div id={id}>

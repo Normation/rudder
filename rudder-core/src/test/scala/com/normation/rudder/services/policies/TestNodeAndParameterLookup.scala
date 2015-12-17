@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -59,72 +59,19 @@ import scala.collection.immutable.TreeMap
 //for treemap ordering
 import InterpolationContext._
 
-
-
 /**
  * Test how parametrized variables are replaced for
  * parametrization with ${rudder.param.XXX} and
  * ${rudder.node.YYYY}
  */
 
-
 @RunWith(classOf[JUnitRunner])
 class TestNodeAndParameterLookup extends Specification {
-
+  import NodeConfigData._
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
   val compiler = new InterpolatedValueCompilerImpl()
   val lookupService = new RuleValServiceImpl(compiler)
-
-  val id1 = NodeId("node1")
-  val hostname1 = "node1.localhost"
-  val admin1 = "root"
-  val rootId = NodeId("root")
-  val rootHostname = "root.localhost"
-  val rootAdmin = "root"
-
-  val node1 = NodeInfo(
-      id            = id1
-    , name          = "node1"
-    , description   = ""
-    , hostname      = hostname1
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("192.168.0.10")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= admin1
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set()
-  )
-  val root = NodeInfo(
-      id            = rootId
-    , name          = "root"
-    , description   = ""
-    , hostname      = rootHostname
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("192.168.0.100")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= rootAdmin
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set()
-  )
 
   val context = InterpolationContext(
         parameters      = Map()
@@ -133,7 +80,6 @@ class TestNodeAndParameterLookup extends Specification {
         //environment variable for that server
       , nodeContext     = Map()
   )
-
 
   def lookup(
       variables: Seq[Variable]
@@ -147,8 +93,6 @@ class TestNodeAndParameterLookup extends Specification {
       case Full(res) => test(res.values.map( _.values ).toSeq)
     }
   }
-
-
 
   //two variables
   val var1 = InputVariableSpec("var1", "").toVariable(Seq("== ${rudder.param.foo} =="))
@@ -174,7 +118,6 @@ class TestNodeAndParameterLookup extends Specification {
     , "{${rudder.node.policyserver.hostname}&"
     , "!${rudder.node.policyserver.admin}^"
   ))
-
 
   val badEmptyRudder = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.} =="))
   val badUnclosed = InputVariableSpec("empty", "").toVariable(Seq("== ${rudder.param.foo =="))
@@ -256,7 +199,6 @@ class TestNodeAndParameterLookup extends Specification {
     }
   }
 
-
   /**
    * Test that the interpretation of an AST is
    * correctly done (with forged interpretation contexts)
@@ -277,7 +219,6 @@ class TestNodeAndParameterLookup extends Specification {
         , compileAndGet(s"$${rudder.node.${accessor}}")
         , expected
       )
-
 
       //map of server.param -> AST
       val accessors = List(
@@ -306,7 +247,6 @@ class TestNodeAndParameterLookup extends Specification {
         }
       }
     }
-
 
     "correctly interpret simple param" in {
       val res = "p1 replaced"
@@ -413,7 +353,6 @@ class TestNodeAndParameterLookup extends Specification {
 
   }
 
-
   "A single parameter" should {
     "be replaced by its value" in {
       lookup(Seq(var1), context.copy(parameters =  p(fooParam)))( values =>
@@ -465,7 +404,6 @@ class TestNodeAndParameterLookup extends Specification {
 
   }
 
-
   "A double parameter" should {
     "be replaced by its value" in {
       lookup(Seq(var1_double), context.copy(parameters = p(fooParam, barParam)))( values =>
@@ -496,7 +434,6 @@ class TestNodeAndParameterLookup extends Specification {
       )
     }
   }
-
 
   "Case" should {
     "not matter in the path" in {

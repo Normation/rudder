@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -56,86 +56,11 @@ import com.normation.rudder.domain.policies.DirectiveId
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 
-
-
 @RunWith(classOf[JUnitRunner])
 class PathComputerTest extends Specification {
+  import com.normation.rudder.services.policies.NodeConfigData._
 
-  private val root = NodeInfo(
-    id            = NodeId("root")
-  , name          = "root"
-  , description   = ""
-  , hostname      = "hostname"
-  , machineType   = "vm"
-  , osName        = "debian"
-  , osVersion     = "5.4"
-  , servicePack   = None
-  , ips           = List("127.0.0.1")
-  , inventoryDate = DateTime.now()
-  , publicKey     = ""
-  , agentsName    = Seq(COMMUNITY_AGENT)
-  , policyServerId= NodeId("root")
-  , localAdministratorAccountName= "root"
-  , creationDate  = DateTime.now()
-  , isBroken      = false
-  , isSystem      = false
-  , isPolicyServer= false
-  , serverRoles   = Set()
-  )
-
-  private val nodeInfo = NodeInfo(
-    id            = NodeId("name")
-  , name          = "name"
-  , description   = ""
-  , hostname      = "hostname"
-  , machineType   = "vm"
-  , osName        = "debian"
-  , osVersion     = "5.4"
-  , servicePack   = None
-  , ips           = List("127.0.0.1")
-  , inventoryDate = DateTime.now()
-  , publicKey     = ""
-  , agentsName    = Seq(COMMUNITY_AGENT)
-  , policyServerId= root.id
-  , localAdministratorAccountName= "root"
-  , creationDate  = DateTime.now()
-  , isBroken      = false
-  , isSystem      = false
-  , isPolicyServer= false
-  , serverRoles   = Set()
-  )
-
-  private val nodeInfo2 = nodeInfo.copy(id = NodeId("name2"), name = "name2", policyServerId = nodeInfo.id )
-
-  val rootNodeConfig = NodeConfiguration(
-    nodeInfo    = root
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
-  , nodeContext = Map[String, Variable]()
-  , parameters  = Set[ParameterForConfiguration]()
-  , writtenDate = None
-  , isRootServer= false
-  )
-
-  val nodeConfig = NodeConfiguration(
-    nodeInfo    = nodeInfo
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
-  , nodeContext = Map[String, Variable]()
-  , parameters  = Set[ParameterForConfiguration]()
-  , writtenDate = None
-  , isRootServer= false
-  )
-
-  val nodeConfig2 = NodeConfiguration(
-    nodeInfo    = nodeInfo2
-  , policyDrafts= Set[RuleWithCf3PolicyDraft]()
-  , nodeContext = Map[String, Variable]()
-  , parameters  = Set[ParameterForConfiguration]()
-  , writtenDate = None
-  , isRootServer= false
-  )
-
-
-  val allNodeConfig = Map(root.id -> rootNodeConfig, nodeInfo.id -> nodeConfig, nodeInfo2.id -> nodeConfig2)
+  val allNodeConfig = Map(root.id -> rootNodeConfig, node1.id -> node1NodeConfig, node2.id -> node2NodeConfig)
 
   val pathComputer = new PathComputerImpl("/var/rudder/backup/")
   ////////////////////////// test //////////////////////////
@@ -143,17 +68,16 @@ class PathComputerTest extends Specification {
   "The paths for " should {
     "the nodeConfig should be " in {
 
-      pathComputer.computeBaseNodePath(nodeInfo.id, root.id, allNodeConfig) must
-      beEqualTo(Full(("/var/rudder/share/name/rules", "/var/rudder/share/name/rules.new", "/var/rudder/backup/name/rules")))
+      pathComputer.computeBaseNodePath(node1.id, root.id, allNodeConfig) must
+      beEqualTo(Full((s"/var/rudder/share/${id1.value}/rules", s"/var/rudder/share/${id1.value}/rules.new", s"/var/rudder/backup/${id1.value}/rules")))
     }
 
     "the nodeConfig2, behind a relay should be " in {
 
-      pathComputer.computeBaseNodePath(nodeInfo2.id, root.id, allNodeConfig) must
-      beEqualTo(Full(("/var/rudder/share/name/share/name2/rules", "/var/rudder/share/name/share/name2/rules.new", "/var/rudder/backup/name/share/name2/rules")))
+      pathComputer.computeBaseNodePath(node2.id, root.id, allNodeConfig) must
+      beEqualTo(Full((s"/var/rudder/share/${id1.value}/share/${id2.value}/rules", s"/var/rudder/share/${id1.value}/share/${id2.value}/rules.new", s"/var/rudder/backup/${id1.value}/share/${id2.value}/rules")))
     }
 
   }
-
 
 }
