@@ -129,34 +129,9 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
 
   private val emptyNodeReportingConfiguration = ReportingConfiguration(None,None)
 
-  private val nodeInfo = NodeInfo(
-    id            = NodeId("name")
-  , name          = "name"
-  , description   = ""
-  , hostname      = "hostname"
-  , machineType   = "vm"
-  , osName        = "debian"
-  , osVersion     = "5.4"
-  , servicePack   = None
-  , ips           = List("127.0.0.1")
-  , inventoryDate = DateTime.now()
-  , publicKey     = ""
-  , agentsName    = Seq(COMMUNITY_AGENT)
-  , policyServerId= NodeId("root")
-  , localAdministratorAccountName= "root"
-  , creationDate  = DateTime.now()
-  , isBroken      = false
-  , isSystem      = false
-  , isPolicyServer= false
-  , serverRoles   = Set()
-  , nodeReportingConfiguration = emptyNodeReportingConfiguration
-  , Seq()
-  )
-
-  private val nodeInfo2 = nodeInfo.copy(name = "name2")
-
+  import  com.normation.rudder.services.policies.NodeConfigData._
   val emptyNodeConfig = NodeConfiguration(
-    nodeInfo    = nodeInfo
+    nodeInfo    = node1
   , policyDrafts= Set[Cf3PolicyDraft]()
   , nodeContext = Map[String, Variable]()
   , parameters  = Set[ParameterForConfiguration]()
@@ -183,7 +158,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     "not have a change if the minimal are different, but there is no CR" in {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(emptyNodeConfig))
-        , emptyNodeConfig.copy(nodeInfo = nodeInfo2)
+        , emptyNodeConfig.copy(nodeInfo = node2)
         , directiveLib
         , true
       ) must beTheSameAs(Set())
@@ -213,7 +188,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     "have its CR that changed if the minimal are different" in {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(simpleNodeConfig))
-        , simpleNodeConfig.copy(nodeInfo = nodeInfo2)
+        , simpleNodeConfig.copy(nodeInfo = node2)
         , directiveLib
         , true
       ) === Set(new RuleId("ruleId"))
@@ -261,7 +236,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     "have a change if minimal is not equals" in {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(complexeNodeConfig))
-        , complexeNodeConfig.copy(nodeInfo = nodeInfo2)
+        , complexeNodeConfig.copy(nodeInfo = node2)
         , directiveLib
         , true
       ) === Set(new RuleId("ruleId1"))
@@ -271,7 +246,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(complexeNodeConfig))
         , complexeNodeConfig.copy(
-              nodeInfo = nodeInfo2
+              nodeInfo = node2
             , policyDrafts = Set(nextPolicyVaredOne)
           )
         , directiveLib
@@ -300,7 +275,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     "have a change if min is different, previous CR is existant and current is non existant" in {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(complexeNodeConfig))
-        , emptyNodeConfig.copy( nodeInfo = nodeInfo2 )
+        , emptyNodeConfig.copy( nodeInfo = node2 )
         , directiveLib
         , true
       ) === Set(new RuleId("ruleId1"))
@@ -309,7 +284,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     "have a change if min is different, previous CR is non existant and current is existant" in {
       service.detectChangeInNode(
           Some(NodeConfigurationCache(emptyNodeConfig))
-        , complexeNodeConfig.copy( nodeInfo = nodeInfo2 )
+        , complexeNodeConfig.copy( nodeInfo = node2 )
         , directiveLib
         , true
       ) === Set(new RuleId("ruleId1"))
