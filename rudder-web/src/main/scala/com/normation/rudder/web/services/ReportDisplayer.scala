@@ -134,21 +134,10 @@ class ReportDisplayer(
         directiveLib <- directiveRepository.getFullDirectiveLibrary
       } yield {
 
-        //what we print before all the tables
-        val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.repaired
-        val intro = if(nbAttention > 0) {
-          <div>There are {nbAttention} out of {report.compliance.total} reports that require our attention</div>
-        } else if(report.compliance.pc_pending > 0) {
-          <div>Policy update in progress</div>
-        } else {
-          <div>All the last execution reports for this server are ok</div>
-        }
-
         val missing = getComponents(MissingReportType, report, directiveLib).toSet
         val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
 
         bind("lastreportgrid",reportByNodeTemplate
-          , "intro"      ->  intro
           , "grid"       -> showReportDetail(report, node)
           , "missing"    -> showMissingReports(missing)
           , "unexpected" -> showUnexpectedReports(unexpected)
