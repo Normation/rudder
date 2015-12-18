@@ -491,7 +491,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
   } , {
     "sWidth": "25%"
       , "mDataProp": "compliancePercent"
-      , "sTitle": "Compliance"
+      , "sTitle": "Status"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var elem = $("<a></a>");
           elem.addClass("noExpand");
@@ -585,7 +585,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
   } , {
       "sWidth": complianceWidth
     , "mDataProp": "compliancePercent"
-    , "sTitle": "Compliance"
+    , "sTitle": "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = buildComplianceBar(oData.compliance);
         $(nTd).empty();
@@ -656,7 +656,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
   } , {
       "sWidth": "25%"
     , "mDataProp": "compliancePercent"
-    , "sTitle": "Compliance"
+    , "sTitle": "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = $("<a></a>");
         elem.addClass("noExpand");
@@ -721,7 +721,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
   } , {
       "sWidth": complianceWidth
     , "mDataProp": "compliancePercent"
-    , "sTitle": "Compliance"
+    , "sTitle": "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = buildComplianceBar(oData.compliance);
         $(nTd).empty();
@@ -824,7 +824,7 @@ function createRuleComponentValueTable (contextPath) {
   } , {
         "sWidth": complianceWidth
       , "mDataProp": "compliancePercent"
-      , "sTitle": "Compliance"
+      , "sTitle": "Status"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var elem = buildComplianceBar(oData.compliance);
           $(nTd).empty();
@@ -1236,27 +1236,17 @@ function buildComplianceBar(compliance) {
     compliance[index] = compliance[index] - toRemove
   }
 
-  var reportsDisabled = compliance[0]
-  var notApplicable = compliance[1]
-  var success = compliance[2]
-  var repaired = compliance[3]
-  var error = compliance[4]
-  var pending = compliance[5]
-  var noreport = compliance[6]
-  var missing = compliance[7]
-  var unknown = compliance[8]
+  var reportsDisabled = compliance[0]; 
+  var notApplicable   = compliance[1]; 
+  var success         = compliance[2];
+  var repaired        = compliance[3];
+  var error           = compliance[4];
+  var pending         = compliance[5];
+  var noreport        = compliance[6];
+  var missing         = compliance[7];
+  var unknown         = compliance[8];
   
-  if(reportsDisabled != 0) {
-    var value = Number((reportsDisabled).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+reportsDisabled+'%" title="Reports Disabled: '+reportsDisabled+'%">'+value+'%</div>')
-  }
-  
-  if(notApplicable != 0) {
-    var value = Number((notApplicable).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-notapplicable" style="width:'+notApplicable+'%" title="Not applicable: '+notApplicable+'%">'+value+'%</div>');
-  }
-
-  var okStatus = success + repaired
+  var okStatus = success + repaired + notApplicable;
   if(okStatus != 0) {
     var text = []
     if (success != 0) {
@@ -1264,6 +1254,9 @@ function buildComplianceBar(compliance) {
     }
     if (repaired != 0) {
       text.push("Repaired: "+repaired+"%");
+    }
+    if (notApplicable != 0) {
+      text.push("Not applicable: "+notApplicable+"%");
     }
     var value = Number((okStatus).toFixed(0));
     content.append('<div class="progress-bar progress-bar-success" style="width:'+okStatus+'%" title="'+text.join("\n")+'">'+value+'%</div>');
@@ -1276,10 +1269,10 @@ function buildComplianceBar(compliance) {
 
   if(noreport != 0) {
     var value = Number((noreport).toFixed(0));
-    content.append('<div class="progress-bar progress-bar-no-report" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-no-report active progress-bar-striped" style="width:'+noreport+'%" title="No report: '+noreport+'%">'+value+'%</div>');
   }
 
-  var unexpected = missing + unknown
+  var unexpected = missing + unknown;
   if(unexpected != 0) {
     var text = []
     if (missing != 0) {
@@ -1295,6 +1288,11 @@ function buildComplianceBar(compliance) {
   if(error != 0) {
     var value = Number((error).toFixed(0));
     content.append('<div class="progress-bar progress-bar-error" style="width:'+error+'%" title="Error: '+error+'%">'+value+'%</div>');
+  }
+
+  if(reportsDisabled != 0) {
+    var value = Number((reportsDisabled).toFixed(0));
+    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+reportsDisabled+'%" title="Reports Disabled: '+reportsDisabled+'%">'+value+'%</div>')
   }
 
   return content
