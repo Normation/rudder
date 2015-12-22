@@ -20,13 +20,13 @@
 # @description Ensure that the file contains all pairs of "key separator value", with arbitrary separator between each key and its value
 #
 # @parameter file File name to edit
-# @parameter keys Array containing the keys (keys of the array), and values to define (values of the array)
-# @parameter separator Separator between key and value (for example "=" or " ")
+# @parameter keys Array containing the keys (keys of the array), and values to define (values of the array)
+# @parameter separator Separator between key and value (for example "=" or " ")
 #
 # @class_prefix file_ensure_keys_values
 # @class_parameter file
 #
-# This bundle will define a class file_ensure_keys_ivalues_${file}_{kept,repaired,not_ok,ok,reached}
+# This bundle will define a class file_ensure_keys_values_${file}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_ensure_keys_values(file, keys, separator)
 {

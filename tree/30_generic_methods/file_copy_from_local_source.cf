@@ -20,11 +20,11 @@
 # @description This is a bundle to ensure that a file or directory is copied from a local source
 #
 # @parameter source      Source file 
-# @parameter destination Destination file
+# @parameter destination Destination file
 # 
 # @class_prefix file_copy_from_local_source
 # @class_parameter destination
-# This bundle will define a class file_copy_${destination}_{kept,repaired,not_ok,ok,reached}
+# This bundle will define a class file_copy_from_local_source_${destination}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_copy_from_local_source(source, destination)
 {
