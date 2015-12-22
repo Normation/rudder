@@ -10,7 +10,7 @@ ALL_SHELL_TESTS=`find "${NCF_TREE}/../tests/style/" -name "*.sh"`
 ERRORS=0
 for file in ${ALL_SHELL_TESTS}
 do
-  if ! egrep "^\s*set\s+-e[\s#]*$" ${file} > /dev/null; then
+  if ! egrep "^[ 	]*set[ 	]+-e" ${file} > /dev/null; then
     ERRORS=`expr ${ERRORS} + 1`
     echo "Test ${file} is missing the \"set -e\" declaration"
   fi

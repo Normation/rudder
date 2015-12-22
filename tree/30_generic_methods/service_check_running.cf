@@ -38,7 +38,10 @@ bundle agent service_check_running(service_name)
     lssrc_utility_present::
       "check running"         usebundle => _service_check_running_src("${service_name}");
 
-    !lssrc_utility_present::
+    svcs_utility_present::
+      "check running"         usebundle => _service_check_running_smf("${service_name}");
+
+    !lssrc_utility_present.!svcs_utility_present::
       # Will be replaced later with less naive conditions (using either service, upstart, ...
       "check running"         usebundle => service_check_running_ps("${service_name}");
 

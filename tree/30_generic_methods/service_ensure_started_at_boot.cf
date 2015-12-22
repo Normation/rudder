@@ -19,7 +19,7 @@
 # @name Service ensure at boot
 # @description Force a service to be started at boot
 #
-# @parameter service_name Service name (as recognized by systemd, init.d, Windows, etc...)
+# @parameter service_name Service name (as recognized by systemd, init.d, Windows, SRC, SMF, etc...)
 #
 # @class_prefix service_ensure_started_at_boot
 # @class_parameter service_name
@@ -40,6 +40,8 @@ bundle agent service_ensure_started_at_boot(service_name)
     !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.chitab_utility_present::
       "command_to_register" string => "/usr/sbin/chitab \"`lsitab -a | grep '^${service_name}:' | sed 's/\([^:]*\):\([^:]*\):[^:]*:\(.*\)/\1:\2:respawn:\3/'`\"";
 
+    !systemctl_utility_present.!chkconfig_utility_present.!update_rcd_utility_present.!chitab_utility_present.svcadm_utility_present::
+      "command_to_register" string => "${paths.path[svcadm]} enable ${service_name}";
     any::
 
       "canonified_service_name" string => canonify("${service_name}");
