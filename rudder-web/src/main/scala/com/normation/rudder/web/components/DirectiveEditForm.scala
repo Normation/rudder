@@ -59,8 +59,6 @@ import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
-import com.normation.rudder.web.components.popup.CreateDirectivePopup
-import com.normation.rudder.web.snippet.configuration.DirectiveManagement
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig

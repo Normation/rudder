@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.snippet.configuration
 
-import com.normation.rudder.web.components.popup.CreateDirectivePopup
 import com.normation.rudder.web.model.JsTreeNode
 import com.normation.rudder.domain.policies.{DirectiveId, Directive}
 import com.normation.cfclerk.domain.{Technique,TechniqueId}
@@ -340,9 +339,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       val deprecationMessage = t.deprecrationInfo.map(_.message).getOrElse("")
       val acceptationDate = DateFormaterService.getFormatedDate(timeStamp)
       val action = {
-        val callback = SetHtml(CreateDirectivePopup.htmlId_popup, newCreationPopup(t, activeTechnique, workflowEnabled) ) &
-                       JsRaw( s""" createPopup("${CreateDirectivePopup.htmlId_popup}") """)
-        val ajax = SHtml.ajaxCall(JsNull, (s) => callback)
+        val ajax = SHtml.ajaxCall(JsNull, (_) => newDirective(t, activeTechnique, workflowEnabled))
         AnonFunc("",ajax)
       }
       JsObj(
@@ -393,19 +390,25 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     }
   }
 
-  private[this] def newCreationPopup(technique: Technique, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean) : NodeSeq = {
+  private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean)  = {
     val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
     val directiveDefaultName = allDefaults.get(technique.id.toString).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
-    new CreateDirectivePopup(
-        technique.name, technique.description, technique.id.version, directiveDefaultName,
-        onSuccessCallback = { (directive : Directive) =>
-          updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true)
-          //Update UI
-          Replace(htmlId_policyConf, showDirectiveDetails) &
-          SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-          JsRaw(s"""createTooltip();""")
-        }
-    ).popupContent
+    val directive =
+      Directive(
+          DirectiveId(uuidGen.newUuid)
+        , technique.id.version
+        , Map()
+        , directiveDefaultName
+        , ""
+        , ""
+        , 5
+        , true
+      )
+    updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true)
+    //Update UI
+    Replace(htmlId_policyConf, showDirectiveDetails) &
+    SetHtml(html_techniqueDetails, NodeSeq.Empty) &
+    JsRaw("""createTooltip();""")
   }
 
   /* Update Directive form,
