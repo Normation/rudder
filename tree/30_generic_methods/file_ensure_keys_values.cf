@@ -26,7 +26,7 @@
 # @class_prefix file_ensure_keys_values
 # @class_parameter file
 #
-# This bundle will define a class file_ensure_keys_ivalues_${file}_{kept,repaired,not_ok,ok,reached}
+# This bundle will define a class file_ensure_keys_values_${file}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent file_ensure_keys_values(file, keys, separator)
 {
