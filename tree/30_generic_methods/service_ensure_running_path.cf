@@ -74,7 +74,7 @@ bundle agent service_ensure_running_path(service_name, service_path)
         ifvarclass => "(real_path.!service_check_running_${canonified_service_path}_kept)|(!real_path.!service_check_running_${canonified_service_name}_kept)";
 
       "class if running"
-        usebundle  => _classes_success("${class_prefix}"),
+        usebundle  => _classes_success("${old_class_prefix}"),
         ifvarclass => "(real_path.service_check_running_${canonified_service_path}_kept)|(!real_path.service_check_running_${canonified_service_name}_kept)";
  
     any::
