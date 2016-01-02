@@ -274,7 +274,7 @@ class Cf3PromisesFileWriterServiceImpl(
       }
     }).map( _.toMap)
 
-    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now}ms")
+    logger.debug(s"${templatesToRead.size} promises templates read in ${System.currentTimeMillis-now} ms")
     res
   }
 
@@ -364,7 +364,7 @@ class Cf3PromisesFileWriterServiceImpl(
           val now = System.currentTimeMillis
           val res = executeCfPromise(agentType, paths.newFolder)
           val spent = System.currentTimeMillis - now
-          logger.debug(s"` Execute cf-promises for '${paths.newFolder}': ${spent}ms (${spent/1000}s)")
+          logger.debug(s"` Execute cf-promises for '${paths.newFolder}': ${spent} ms (${spent/1000} s)")
           res
         } else {
           executeCfPromise(agentType, paths.newFolder)
