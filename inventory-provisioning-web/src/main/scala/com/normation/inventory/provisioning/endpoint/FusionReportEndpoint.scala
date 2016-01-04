@@ -127,7 +127,7 @@ class FusionReportEndpoint(
         (unmarshaller.fromXml(inventoryFile.getName,in) ?~! "Can't parse the input inventory, aborting") match {
           case Full(report) =>
             val afterParsing = System.currentTimeMillis
-            logger.info(s"Inventory '${inventory}' parsed in ${printer.print(new Duration(start, afterParsing).toPeriod)}, now checking signature")
+            logger.info(s"Inventory '${inventory}' parsed in ${printer.print(new Duration(start, afterParsing).toPeriod)} ms, now checking signature")
             // Do we have a signature ?
             signatureFile match {
               // Signature here, check it
@@ -141,7 +141,7 @@ class FusionReportEndpoint(
                   } yield {
                     if (checked) {
                       // Signature is valid, send it to save engine
-                      logger.info(s"Inventory '${inventory}' signature checked in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)}, now saving")
+                      logger.info(s"Inventory '${inventory}' signature checked in ${printer.print(new Duration(afterParsing, System.currentTimeMillis).toPeriod)} ms, now saving")
                       // Set the keyStatus to Certified
                       // For now we set the status to certified since we want pending inventories to have their inventory signed
                       // When we will have a 'pending' status for keys we should set that value instead of certified
@@ -165,7 +165,7 @@ class FusionReportEndpoint(
                     logger.error(eb)
                     val fail = eb ?~! "Error when trying to check inventory signature"
                     logger.error(fail.messageChain)
-                    logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+                    logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
                     new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
                 }
               }
@@ -180,7 +180,7 @@ class FusionReportEndpoint(
                   }
                   // We are in certified state, refuse inventory with no signature
                   case Full((_,CertifiedKey))  =>
-                    val msg = s"Reject inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is missing,  you can go back to unsigned state by running the following command '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
+                    val msg = s"Reject inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is missing, you can go back to unsigned state by running the following command '/opt/rudder/bin/rudder-keys reset-status ${report.node.main.id.value}'"
                     logger.error(msg)
                     new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
                   // An error occurred while checking inventory key status
@@ -188,7 +188,7 @@ class FusionReportEndpoint(
                     logger.error(eb)
                     val fail = eb ?~! "Error when trying to check inventory key status"
                     logger.error(fail.messageChain)
-                    logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+                    logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
                     new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
                 }
             }
@@ -198,7 +198,7 @@ class FusionReportEndpoint(
             val fail = eb ?~! "Error when trying to parse inventory"
             logger.error(fail.messageChain)
             fail.rootExceptionCause.foreach { exp => logger.error(s"Exception was: ${exp}") }
-            logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)}")
+            logger.debug(s"Time to error: ${printer.print(new Duration(start, System.currentTimeMillis).toPeriod)} ms")
             new ResponseEntity(fail.messageChain, HttpStatus.PRECONDITION_FAILED)
         }
       }
@@ -304,7 +304,7 @@ class FusionReportEndpoint(
         case Full(report) =>
           logger.debug("Report saved.")
       }
-      logger.info("Report %s processed in %s".format(report.name, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
+      logger.info("Report %s processed in %s ms".format(report.name, printer.print(new Duration(start, System.currentTimeMillis).toPeriod)))
     } catch {
       case e:Exception =>
         logger.error("Exception when processing report %s".format(report.name))

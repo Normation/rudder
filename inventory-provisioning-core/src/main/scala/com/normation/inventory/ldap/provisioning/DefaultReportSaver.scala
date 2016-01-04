@@ -89,7 +89,7 @@ class DefaultReportSaver(
     }
 
     val t1 = System.currentTimeMillis
-    logger.trace(s"Saving software: ${t1-t0}ms")
+    logger.trace(s"Saving software: ${t1-t0} ms")
 
     results = {
       for {
@@ -99,7 +99,7 @@ class DefaultReportSaver(
     } :: results
 
     val t2 = System.currentTimeMillis
-    logger.trace(s"Saving machine: ${t2-t1}ms")
+    logger.trace(s"Saving machine: ${t2-t1} ms")
 
     results = {
       for {
@@ -110,7 +110,7 @@ class DefaultReportSaver(
     } :: results
 
     val t3 = System.currentTimeMillis
-    logger.trace(s"Saving node: ${t3-t2}ms")
+    logger.trace(s"Saving node: ${t3-t2} ms")
 
     //finally, vms
     report.vms foreach { x =>
@@ -122,7 +122,7 @@ class DefaultReportSaver(
     }
 
     val t4 = System.currentTimeMillis
-    logger.trace(s"Saving vms: ${t4-t3}ms")
+    logger.trace(s"Saving vms: ${t4-t3} ms")
 
     /*
      * TODO : what to do when there is a mix a failure/success ?
