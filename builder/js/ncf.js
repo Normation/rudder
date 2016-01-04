@@ -23,7 +23,7 @@ function findIndex(array, elem) {
 };
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists'])
 
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
@@ -87,8 +87,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.originalTechnique;
   // Information about the selected method in a technique
   $scope.selectedMethod;
-  // Are we adding new methods to a technique, false hides that panel
-  $scope.addNew=false;
   // Are we authenticated on the interface
   $scope.authenticated = false;
 
@@ -103,7 +101,23 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
+  // Callback when an element is dropped on the list of method calls
+  // return the element that will be added, if false do not add anything
+  $scope.dropCallback = function(elem, nextIndex, type){
 
+    // Add element
+    // if type is a bundle, then transform it to a method call and add it
+    if (type === "bundle") {
+      return $scope.toMethodCall(elem);
+    }
+
+    // If selected method is the same than the one moving, we need to update selectedMethod
+    if (angular.equals($scope.selectedMethod, elem)) {
+      $scope.selectedMethod = elem;
+    }
+
+   return elem
+  }
   // Define path by getting url params now
   $scope.setPath();
 
@@ -279,7 +293,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
     // Always clean Selected methods and add method
-    $scope.addNew=false;
     $scope.selectedMethod = undefined;
     // Check if that technique is the same as the original selected one
     if(angular.equals($scope.originalTechnique,technique) ) {
@@ -383,7 +396,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     if(angular.equals($scope.selectedMethod,method_call) ) {
       $scope.selectedMethod = undefined;
     } else {
-      $scope.addNew=false;
       $scope.selectedMethod=method_call;
       $scope.updateClassContext();
     }
@@ -391,12 +403,10 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
   // Open generic methods menu to add them to the technique
   $scope.openMethods = function() {
-    $scope.addNew=true;
     $scope.selectedMethod = undefined;
   };
 
-  // Add a method to the technique
-  $scope.addMethod = function(bundle) {
+  $scope.toMethodCall = function(bundle) {
     var original_index = $scope.selectedTechnique.method_calls.length;
     var call = {
         "method_name" : bundle.bundle_name
@@ -406,7 +416,12 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         return  "";
       })
     }
+    return call
+  }
 
+  // Add a method to the technique
+  $scope.addMethod = function(bundle) {
+    var call = $scope.toMethodCall(bundle);
     $scope.selectedTechnique.method_calls.push(call);
   };
 
@@ -568,7 +583,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
         var index = findIndex($scope.techniques,$scope.originalTechnique);
         $scope.techniques.splice(index,1);
-        $scope.addNew=false;
         $scope.selectedMethod = undefined;
         $scope.selectedTechnique = undefined;
         $scope.originalTechnique = undefined;
