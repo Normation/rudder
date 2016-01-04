@@ -93,7 +93,7 @@ class SequentialImmediateBootStrapChecks(checkActions:BootstrapChecks*) extends 
     }
     logger.info(msg)
     check.checks
-    logger.debug(msg + s": OK in [${formater.print(new Duration(System.currentTimeMillis - start).toPeriod)}]")
+    logger.debug(msg + s": OK in [${formater.print(new Duration(System.currentTimeMillis - start).toPeriod)}] ms")
   }
 
 }
