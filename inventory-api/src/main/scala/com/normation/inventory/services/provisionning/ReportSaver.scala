@@ -106,7 +106,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
           val t0 = System.currentTimeMillis
           val res = preCommit(currentReport) ?~! "Error in preCommit pipeline with processor '%s', abort".format(preCommit.name)
           val t1 = System.currentTimeMillis
-          logger.trace(s"Precommit '${preCommit.name}': ${t1-t0}ms")
+          logger.trace(s"Precommit '${preCommit.name}': ${t1-t0} ms")
           res
         } catch {
           case ex:Exception => Failure("Exception in preCommit pipeline with processor '%s', abort".format(preCommit.name), Full(ex), Empty)
@@ -117,7 +117,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
        */
 
       t1 = System.currentTimeMillis
-      _  = logger.trace(s"Pre commit report: ${t1-t0}ms")
+      _  = logger.trace(s"Pre commit report: ${t1-t0} ms")
 
       commitedChange <- try {
           commitChange(postPreCommitReport)
@@ -126,7 +126,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
         }
 
       t2 = System.currentTimeMillis
-      _  = logger.trace(s"Commit report: ${t2-t1}ms")
+      _  = logger.trace(s"Commit report: ${t2-t1} ms")
 
 
       /*
@@ -141,7 +141,7 @@ trait PipelinedReportSaver[R] extends ReportSaver[R] with Loggable {
       }
 
       t3 = System.currentTimeMillis
-      _  = logger.trace(s"Post commit report: ${t3-t2}ms")
+      _  = logger.trace(s"Post commit report: ${t3-t2} ms")
     } yield {
       postPostCommitReport
     }
