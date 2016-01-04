@@ -111,22 +111,22 @@ trait PromiseGenerationService extends Loggable {
 
       allRules            <- findDependantRules() ?~! "Could not find dependant rules"
       fetch1Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime}ms")
+      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime} ms")
       allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
       fetch2Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time}ms")
+      _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
       directiveLib        <- getDirectiveLibrary() ?~! "Could not get the directive library"
       fetch3Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time}ms")
+      _                   =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
       groupLib            <- getGroupLibrary() ?~! "Could not get the group library"
       fetch4Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time}ms")
+      _                   =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
       allParameters       <- getAllGlobalParameters ?~! "Could not get global parameters"
       fetch5Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time}ms")
+      _                   =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
       globalAgentRun       <- getGlobalAgentRun
       fetch6Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time}ms")
+      _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
       globalComplianceMode <- getGlobalComplianceMode
       nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
@@ -137,12 +137,12 @@ trait PromiseGenerationService extends Loggable {
       activeRuleIds = getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
       activeNodeIds = groupLib.getNodeIds(allRules.flatMap(_.targets).toSet, allNodeInfos)
       timeFetchAll    =  (System.currentTimeMillis - initialTime)
-      _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
+      _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
       nodeContextsTime =  System.currentTimeMillis
       nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
       timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
-      _                =  logger.debug(s"Node contexts built in ${timeNodeContexts}ms, start to build new node configurations.")
+      _                =  logger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
       /// end of inputs, all information gathered for promise generation.
 
@@ -151,25 +151,25 @@ trait PromiseGenerationService extends Loggable {
       historizeTime =  System.currentTimeMillis
       historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
       timeHistorize =  (System.currentTimeMillis - historizeTime)
-      _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
+      _             =  logger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
       ///// end ignoring
 
       ruleValTime   =  System.currentTimeMillis
                        //only keep actually applied rules in a format where parameter analysis on directive is done.
       ruleVals      <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
       timeRuleVal   =  (System.currentTimeMillis - ruleValTime)
-      _             =  logger.debug(s"RuleVals built in ${timeRuleVal}ms, start to expand their values.")
+      _             =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       buildConfigTime =  System.currentTimeMillis
       config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
-      _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
+      _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
       sanitizeTime        =  System.currentTimeMillis
       _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
       sanitizedNodeConfig <- sanitize(config) ?~! "Cannot set target configuration node"
       timeSanitize        =  (System.currentTimeMillis - sanitizeTime)
-      _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} millisec, start to detect changes in node configuration.")
+      _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} ms, start to detect changes in node configuration.")
 
       beginTime                =  System.currentTimeMillis
       //that's the first time we actually output something : new serial for updated rules
@@ -178,14 +178,14 @@ trait PromiseGenerationService extends Loggable {
       // Update the serial of ruleVals when there were modifications on Rules values
       // replace variables with what is really applied
       timeIncrementRuleSerial  =  (System.currentTimeMillis - beginTime)
-      _                        =  logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial}ms")
+      _                        =  logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial} ms")
 
       writeTime           =  System.currentTimeMillis
       nodeConfigVersions  =  calculateNodeConfigVersions(uptodateSerialNodeconfig.values.toSeq)
       //second time we write something in repos: updated node configuration
       writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, uptodateSerialNodeconfig, nodeConfigVersions, nodeConfigCaches, allLicenses) ?~! "Cannot write configuration node"
       timeWriteNodeConfig =  (System.currentTimeMillis - writeTime)
-      _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig}ms, start to update expected reports.")
+      _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
@@ -194,7 +194,7 @@ trait PromiseGenerationService extends Loggable {
       // now, invalidate cache
       _                     =  invalidateComplianceCache(updatedNodeConfig)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
-      _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport}ms")
+      _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
 
     } yield {
       logger.debug("Timing summary:")
@@ -210,7 +210,7 @@ trait PromiseGenerationService extends Loggable {
       writtenNodeConfigs.map( _.nodeInfo.id )
     }
 
-    logger.debug("Policy generation completed in %d millisec".format((System.currentTimeMillis - initialTime)))
+    logger.debug("Policy generation completed in %d ms".format((System.currentTimeMillis - initialTime)))
     result
   }
 
@@ -782,12 +782,12 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated, allNodeConfigs, versions, allLicenses)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
-      _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} millisec.")
+      _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
       //before caching, update the timestamp for last written time
       toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet.map( (x:NodeConfiguration) => x.copy(writtenDate = writtingTime))
       cached     <- nodeConfigurationService.cacheNodeConfiguration(toCache)
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
-      _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} millisec.")
+      _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
     } yield {
       written.toSet
     }
