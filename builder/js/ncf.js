@@ -83,6 +83,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.techniques;
 
   // Selected technique, undefined when there is no selected technique
+  $scope.parameters;
   $scope.selectedTechnique;
   $scope.originalTechnique;
   // Information about the selected method in a technique
@@ -190,6 +191,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
             method_call.advanced_class = myclasses.join(".");
           }
         }
+
+        method_call.parameters=$scope.getMethodParameters(method_call)
         return method_call;
       } );
       technique.method_calls = calls;
@@ -202,6 +205,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var technique = angular.copy(baseTechnique);
     var calls = technique.method_calls.map( function (method_call, method_index) {
       delete method_call.original_index;
+      method_call.args = method_call.parameters.map ( function ( param, param_index) {
+        return param.value;
+      });
       return method_call;
     });
     technique.method_calls = calls;
@@ -412,8 +418,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         "method_name" : bundle.bundle_name
       , "original_index" : original_index
       , "class_context" : "any"
-      , "args": bundle.bundle_args.map(function(v,i) {
-        return  "";
+      , "parameters": bundle.bundle_args.map(function(v,i) {
+        return  { "name" : v, "value" : ""};
       })
     }
     return call
@@ -488,13 +494,31 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     }
   };
 
-  // Get the argument name of a method call in definition of the generic method
-  $scope.getArgName = function(index,method_call) {
-    if (method_call.method_name in $scope.generic_methods ) {
-      return $scope.generic_methods[method_call.method_name].parameter[index].description;
-    } else {
-      return "arg";
+  // Get parameters information relative to a method_call
+  $scope.getMethodParameters = function(method_call) {
+    function createParameter (name, value) {
+      return {
+          "name" : name
+        , "value" : value
+      };
     }
+    var params = [];
+    // parameter information are stored into generic methods (maybe a better solution would be to merge data when we fetch them ...)
+    if (method_call.method_name in $scope.generic_methods ) {
+      var method = $scope.generic_methods[method_call.method_name];
+      for (var i = 0; i < method.parameter.length; i++) {
+         var param_name = method.parameter[i].name;
+         var param_value = method_call.args[i];
+         // Maybe parameter does not exists in current method_call, replace with empty value
+         param_value = param_value !== undefined ? param_value : '';
+         var parameter = createParameter(param_name,param_value);
+         params.push(parameter);
+      }
+    } else {
+      // We have no informations about this generic method, just call it 'parameter'
+      params = method_call.args.map( function(arg) { return createParameter ('parameter', arg);});
+    }
+    return params;
   };
 
   // Get the value of the parameter used in generated class
@@ -503,9 +527,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       var method = $scope.generic_methods[method_call.method_name];
       var class_parameter = method.class_parameter;
       var param_index = method.bundle_args.indexOf(class_parameter);
-      return method_call.args[param_index];
+      return method_call.parameters[param_index].value;
     } else {
-      return method_call.args[0];
+      return method_call.parameters[0].value;
     }
   }
 
