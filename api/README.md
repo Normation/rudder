@@ -45,6 +45,7 @@ You will also need a wsgi file to deploy your application. You can start from nc
 
 ## Development
 
+### ncf API
 To run ncf api in a development environment, run the following commands:
 
 ```shell
@@ -56,3 +57,26 @@ export PYTHONPATH=/path/to/ncf/tools:$PYTHONPATH
 ```
 
 ncf API is now available on http://localhost:5000 
+
+### ncf technique editor
+
+You will need apache to be installed (apache2/httpd)
+
+```shell
+cp  /path/to/ncf/api/dev-env/ncf-builder.conf /etc/(apache2|httpd)/conf.d/
+chmod 755 /path/to/ncf/builder -R
+service (apache2|httpd) restart
+```
+
+ncf API is now available on http://localhost/ncf
+ncf technique editor is now available on http://localhost/ncf-builder
+
+### Disable Rudder authentication
+
+At this point you need a running rudder (dev or not) on localhost to access ncf api
+
+to remove this need:
+
+* edit /path/to/ncf/api/ncf_flask_app/views.py
+* Replace line ' available_modules_name = ["Rudder"]' by  available_modules_name = ["None"]
+
