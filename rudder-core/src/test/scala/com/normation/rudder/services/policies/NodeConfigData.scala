@@ -52,6 +52,7 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.EnvironmentVariable
 import com.normation.inventory.domain.ServerRole
+import com.normation.rudder.domain.nodes.Node
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -69,61 +70,67 @@ object NodeConfigData {
   val rootHostname = "server.rudder.local"
   val rootAdmin = "root"
 
-  val root = NodeInfo(
-      id            = rootId
-    , name          = "root"
-    , description   = ""
-    , hostname      = rootHostname
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("127.0.0.1", "192.168.0.100")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= rootAdmin
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set( //by default server roles for root
-                          "rudder-db"
-                        , "rudder-inventory-endpoint"
-                        , "rudder-inventory-ldap"
-                        , "rudder-jetty"
-                        , "rudder-ldap"
-                        , "rudder-reports"
-                        , "rudder-server-root"
-                        , "rudder-webapp"
-                      ).map(ServerRole(_))
+  val rootNode = Node (
+      rootId
+    , "root"
+    , ""
+    , false
+    , false
+    , true
+    , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
   )
+  val root = NodeInfo (
+      rootNode
+    , rootHostname
+    , "vm"
+    , "Debian"
+    , "7.0"
+    , None
+    , List("127.0.0.1", "192.168.0.100")
+    , DateTime.now
+    , ""
+    , Seq(COMMUNITY_AGENT)
+    , rootId
+    , rootAdmin
+    , Set( //by default server roles for root
+          "rudder-db"
+        , "rudder-inventory-endpoint"
+        , "rudder-inventory-ldap"
+        , "rudder-jetty"
+        , "rudder-ldap"
+        , "rudder-reports"
+        , "rudder-server-root"
+        , "rudder-webapp"
+      ).map(ServerRole(_))
+  )
 
-  val node1 = NodeInfo(
-      id            = id1
-    , name          = "node1"
-    , description   = ""
-    , hostname      = hostname1
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("192.168.0.10")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= admin1
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set()
+  val node1Node = Node (
+      id1
+    , "node1"
+    , ""
+    , false
+    , false
+    , true
+    , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
+  )
+  val node1 = NodeInfo (
+      node1Node
+    , hostname1
+    , "vm"
+    , "Debian"
+    , "7.0"
+    , None
+    , List("192.168.0.10")
+    , DateTime.now
+    , ""
+    , Seq(COMMUNITY_AGENT)
+    , rootId
+    , admin1
+    , Set()
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(
@@ -160,7 +167,8 @@ object NodeConfigData {
   )
 
   //node1 us a relay
-  val node2 = node1.copy(id = NodeId("node2"), name = "node2", policyServerId = node1.id )
+  val node2Node = node1Node.copy(id = NodeId("node2"), name = "node2")
+  val node2 = node1.copy(node = node2Node, policyServerId = node1.id )
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
 

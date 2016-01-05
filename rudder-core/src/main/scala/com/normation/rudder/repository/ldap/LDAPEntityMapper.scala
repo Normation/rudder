@@ -190,17 +190,12 @@ class LDAPEntityMapper(
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
     for {
-      checkIsANode <- if(nodeEntry.isA(OC_RUDDER_NODE)) Full("ok")
-                      else Failure("Bad object class, need %s and found %s".format(OC_RUDDER_NODE,nodeEntry.valuesFor(A_OC)))
-
-      checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok")
-                      else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
+      node <- entryToNode(nodeEntry)
 
       machineType  =  machineEntryObjectClass.map(machine => if (machine.exists( _ == OC_PM)) "Physical" else "Virtual").getOrElse("No Machine Inventory")
       checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
                       else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
 
-      id           <- nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(nodeEntry.dn)
       // Compute the parent policy Id
       policyServerId <- inventoryEntry.valuesFor(A_POLICY_SERVER_UUID).toList match {
                           case Nil => Failure("No policy servers for a Node: %s".format(nodeEntry.dn))
@@ -212,24 +207,17 @@ class LDAPEntityMapper(
                        AgentType.fromValue(x) ?~!
                          "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
                      }
-      date        <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~!
-                      "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
       osVersion   = inventoryEntry(A_OS_VERSION).getOrElse("N/A")
       osName      = inventoryEntry(A_OS_NAME).getOrElse("N/A")
       servicePack = inventoryEntry(A_OS_SERVICE_PACK)
       serverRoles = inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
       // get the ReportingConfiguration
-      agentRunInterval = nodeEntry(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
-      heartbeatConf = nodeEntry(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
-      properties = nodeEntry.valuesFor(A_NODE_PROPERTY).map(unserializeLdapNodeProperty(_)).toSeq
 
     } yield {
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
       NodeInfo(
-          id
-        , nodeEntry(A_NAME).getOrElse("")
-        , nodeEntry(A_DESCRIPTION).getOrElse("")
+          node
         , inventoryEntry(A_HOSTNAME).getOrElse("")
         //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
         , machineType
@@ -243,16 +231,7 @@ class LDAPEntityMapper(
         , NodeId(policyServerId)
         //nodeDit.NODES.NODE.idFromDn(policyServerDN).getOrElse(error("Bad DN found for the policy server of Node: %s".format(nodeEntry.dn))),
         , inventoryEntry(A_ROOT_USER).getOrElse("")
-        , date.dateTime
-        , nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false)
-        , nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        , nodeEntry.isA(OC_POLICY_SERVER_NODE)
         , serverRoles
-        , ReportingConfiguration(
-              agentRunInterval
-            , heartbeatConf
-          )
-        , properties
       )
     }
   }
