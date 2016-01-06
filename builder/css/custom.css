@@ -272,6 +272,9 @@ textarea.form-control {
     margin: 5px 10px;
 }
 
+#editform-container {
+  margin-bottom: 58px;
+}
 .condition-form {
     margin: 15px 10px;
 }
