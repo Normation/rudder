@@ -5,6 +5,7 @@
         <script src="js/angular-animate.min.js"></script>
         <script src="js/angular-sanitize.min.js"></script>
         <script src="js/ngToast.min.js"></script>
+        <script src="js/angular-drag-and-drop-lists.min.js"></script>
 
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/ngToast.min.css" rel="stylesheet">
@@ -141,6 +142,16 @@
             </div>
 
             <form class="form-horizontal editForm col-md-5 ncf_col" name="editForm" novalidate >
+            <div class="jumbotron" ng-if="selectedTechnique === undefined" >
+                <h1>Technique editor</h1>
+                <p>Create a new technique or edit one  from the list on the left.</p>
+                <p>Define target configuration using the generic methods from the list on the right as building blocks.</p>
+                <p>
+                  <a class="btn btn-default btn-lg" ng-click="newTechnique()" role="button">
+                    <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px; top: 3px"></span>New technique
+                  </a>
+               </p>
+             </div>
             <div ng-if="selectedTechnique" > 
               <div >
                     <div class="title">Technique</div>
@@ -173,17 +184,26 @@
                             </div>
                         </accordion-group>
                     </accordion>
-                    <ul class="list-unstyled" >
-                        <li ng-click="selectMethod(method_call,$index)" ng-repeat="method_call in selectedTechnique.method_calls track by $index" class="panel-margin-top btn btn-block btn-default" ng-class="{'active': isSelectedMethod(method_call)}">
+                    <div style="position: relative"><div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
+                      <div class="panel-heading" style="overflow:hidden">  
+                        Drag and drop generic methods here from the list on the right to build target configuration for this technique. </div>
+                      </div>
+                    </div>
+                   
+                    <ul id="methods" class="list-unstyled" dnd-list="selectedTechnique.method_calls" dnd-drop="dropCallback(item, index, type);" >
+                        <li ng-click="selectMethod(method_call)" ng-repeat="method_call in selectedTechnique.method_calls" class="panel-margin-top btn btn-block btn-default btn-method" ng-class="{'active': isSelectedMethod(method_call)}" dnd-draggable="method_call" dnd-effect-allowed="ove" dnd-moved="selectedTechnique.method_calls.splice($index,1)">
+                          <div class="input-group">
+                            <span class="input-group-addon cursorMove"><b>:::</b></span>
                             <div class="panel-heading" style="overflow:hidden">
                                 <h4 class="panel-title">
-                                    <span class="pull-left"> {{getMethodName(method_call)}}
-                                        <a target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
-                                            <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
-                                        </a>
+                                  <span class="pull-left">
+                                    {{getMethodName(method_call)}}
+                                    <a target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
+                                      <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
+                                    </a>
                                   </span>
                                   <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
-                                  <i aria-hidden="true" class="glyphicon glyphicon-trash pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
+                                  <i aria-hidden="true" class="glyphicon glyphicon-remove-sign pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
                                   <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
                                   <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
                               </h4>
@@ -205,12 +225,13 @@
                                   </small>
                               </h4>
                           </div>
+                        </div>
                       </li>
                   </ul>
             </div>
 
                 <div class="col-md-5 col-md-offset-2 fixed-footer">
-                    <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': addNew}">
+                    <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': selectedMethod === undefined }">
                         <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                         Add methods
                     </div>
@@ -308,14 +329,16 @@
                 </div>
             </div>
 
-            <div class="col-md-5 ncf_col" ng-if="addNew" >
+            <div class="col-md-5 ncf_col" ng-if="selectedMethod === undefined" >
                 <div class="row">
                     <div class="col-md-9">
                         <div class="title">Library</div>
                         <h3 >Generic methods</h3>
                         <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
                             <h4 id={{kind}}>{{capitaliseFirstLetter(kind)}} </h4>
-                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default">
+                            <li ng-click="addMethod(method)" ng-repeat="method in methods" class="panel-margin-top btn btn-block btn-default btn-method" dnd-draggable="method" dnd-effect-allowed="move" dnd-type="'bundle'" >
+                              <div class="input-group">
+                                <span class="input-group-addon cursorMove"><b>:::</b></span>
                                 <div class="panel-heading" style="overflow:hidden">
                                     <h4 class="panel-title">
                                         <span class="pull-left"> {{method.name}}
@@ -329,6 +352,7 @@
                                         </small>
                                     </h4>
                                 </div>
+                              </div>
                             </li>
                         </ul>
                     </div>
