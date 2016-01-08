@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -37,22 +37,17 @@
 
 package com.normation.rudder.domain.reports
 
-
-import org.junit.runner._
-import org.specs2.mutable._
-import org.specs2.runner._
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.DirectiveId
-import org.joda.time.DateTime
-import com.normation.rudder.domain.reports._
-import com.normation.rudder.reports.ComplianceMode
-import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.services.reports.ExecutionBatch
-import com.normation.rudder.domain.policies.DirectiveId
+import scala.collection.TraversableOnce.flattenTraversableOnce
 import scala.io.Source
+
+import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.RuleId
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 
 /**
  * Test properties about status reports,
