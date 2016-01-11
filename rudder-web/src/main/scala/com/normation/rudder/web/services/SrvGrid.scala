@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -110,7 +110,7 @@ class SrvGrid(
   def displayAndInit(
       nodes    : Seq[NodeInfo]
     , tableId  : String
-    , callback : Option[String => JsCmd] = None
+    , callback : Option[(String, Boolean) => JsCmd] = None
     , refreshNodes : Option[ () => Seq[NodeInfo]] = None
    ) : NodeSeq = {
     tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback,refreshNodes)))
@@ -125,7 +125,7 @@ class SrvGrid(
   def initJs(
       tableId  : String
     , nodes    : Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String, Boolean) => JsCmd]
     , refreshNodes : Option[ () => Seq[NodeInfo]]
   ) : JsCmd = {
 
@@ -137,10 +137,9 @@ class SrvGrid(
 
   }
 
-
   def getTableData (
       nodes    : Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String,Boolean) => JsCmd]
   ) = {
 
     val now = System.currentTimeMillis
@@ -169,7 +168,7 @@ class SrvGrid(
 
   def refreshData (
       refreshNodes : () => Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String, Boolean) => JsCmd]
     , tableId: String
   ) = {
     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
@@ -211,12 +210,14 @@ class SrvGrid(
 case class NodeLine (
     node       : NodeInfo
   , lastReport : Box[Option[AgentRun]]
-  , callback   : Option[String => JsCmd]
+  , callback   : Option[(String, Boolean) => JsCmd]
 ) extends JsTableLine {
 
-
   val optCallback = {
-    callback.map(cb => ("callback", AnonFunc(ajaxCall(JsNull, s => cb(node.id.value)))))
+    callback.map(cb => ("callback", AnonFunc("displayCompliance", ajaxCall(JsVar("displayCompliance"), s =>
+      {
+       val displayCompliance = s.toBoolean
+      cb(node.id.value,displayCompliance)}))))
   }
   val hostname = {
     if (isEmpty(node.hostname)) {

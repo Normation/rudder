@@ -68,7 +68,7 @@ import com.normation.rudder.web.model.JsNodeId
 
 object ShowNodeDetailsFromNode {
 
-  private val htmlId_crTree = "crTree"
+  private val groupTreeId = "node_groupTree"
 
   private def serverPortletPath = List("templates-hidden", "server", "server_details")
   private def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
@@ -173,16 +173,23 @@ class ShowNodeDetailsFromNode(
   }
 
   def mainDispatch = Map(
-    "displayInPopup"    -> { _:NodeSeq => privateDisplay(true)  }
-  , "displayMainWindow" -> { _:NodeSeq => privateDisplay(false) }
+    "popupDetails"    -> { _:NodeSeq => privateDisplay(true, false)  }
+  , "popupCompliance" -> { _:NodeSeq => privateDisplay(true, true)   }
+  , "mainDetails"     -> { _:NodeSeq => privateDisplay(false, false) }
+  , "mainCompliance"  -> { _:NodeSeq => privateDisplay(false, true)  }
   )
 
-  def display(withinPopup : Boolean = false) : NodeSeq = {
-    if(withinPopup) dispatch("displayInPopup")(NodeSeq.Empty)
-    else dispatch("displayMainWindow")(NodeSeq.Empty)
+  def display(popupDisplay : Boolean, complianceDisplay : Boolean) : NodeSeq = {
+    val dispatchName = (popupDisplay, complianceDisplay) match {
+      case (true, true)  => "popupCompliance"
+      case (true, _)     => "popupDetails"
+      case (false, true) => "mainCompliance"
+      case (false, _)    => "mainDetails"
+    }
+    dispatch (dispatchName) (NodeSeq.Empty)
   }
 
-  private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
+  private[this] def privateDisplay(withinPopup : Boolean = false, displayCompliance : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
       case Empty =>
         <div class="error">Node with id {nodeId.value} was not found</div>
@@ -195,9 +202,14 @@ class ShowNodeDetailsFromNode(
       case Full(node) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(node.id, AcceptedInventory) match {
           case Full(sm) =>
-            bindNode(node, sm, withinPopup) ++ Script(OnLoad(
+            val tab = if (displayCompliance) 9 else 0
+            val jsId = JsNodeId(nodeId,"")
+            def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
+            val detailsId = htmlId(jsId,"details_")
+            bindNode(node, sm, withinPopup,displayCompliance) ++ Script(OnLoad(
               DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
-              OnLoad(buildJsTree(htmlId_crTree))
+              OnLoad(buildJsTree(groupTreeId) &
+              JsRaw(s"""$$( "#${detailsId}" ).tabs('select', ${tab})"""))
             ))
           case e:EmptyBox =>
             val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
@@ -212,11 +224,11 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean) : NodeSeq = {
     val id = JsNodeId(node.id)
     ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
-      "#groupTree *" #>
-        <div id={htmlId_crTree}>
+      "#node_groupTree" #>
+        <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node)}</ul>
         </div> &
       "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
