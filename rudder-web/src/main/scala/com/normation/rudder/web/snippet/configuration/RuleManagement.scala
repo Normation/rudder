@@ -157,7 +157,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
         None
       , "rules_grid_zone"
       , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
-      , onCreateRule(workflowEnabled, changeMsgEnabled)
+      , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"ShowEditForm")
       , showPopup
     )))
 
@@ -184,20 +184,16 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     currentRuleForm.is match {
       case f:Failure => errorDiv(f)
       case Empty => <div id={htmlId_editRuleDiv}/>
-      case Full(form) =>
-        form.dispatch(dispatch)(NodeSeq.Empty) ++
-        Script(JsRaw("""$("#editRuleZonePortlet").removeClass("nodisplay");
-                           scrollToElement("editRuleZonePortlet", ".rudder_col");"""
-        ) )
+      case Full(form) => form.dispatch(dispatch)(NodeSeq.Empty)
     }
   }
 
-  def onCreateRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule : Rule) : JsCmd = {
+  def onCreateRule(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule : Rule, action : String) : JsCmd = {
     updateEditComponent(rule, workflowEnabled, changeMsgEnabled)
 
     //update UI
     onRuleChange(workflowEnabled, changeMsgEnabled)(rule) &
-    Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, "showEditForm"))
+    Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, action))
   }
 
   /**
@@ -207,25 +203,37 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
    * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
    */
   private[this] def parseJsArg(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(): JsCmd = {
-    def displayDetails(ruleId:String) = {
-      ruleRepository.get(RuleId(ruleId)) match {
-        case Full(rule) =>
-          onCreateRule(workflowEnabled, changeMsgEnabled)(rule)
+    def displayDetails(ruleData:String) = {
+      import net.liftweb.json._
+      val json = parse(ruleData)
+      json \ "ruleId" match {
+        case JString(ruleId) =>
+          ruleRepository.get(RuleId(ruleId)) match {
+            case Full(rule) =>
+              json \ "action" match {
+                case JString(action) =>
+                  onCreateRule(workflowEnabled, changeMsgEnabled)(rule,action)
+                case _ =>
+                  onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
+              }
+
+            case _ => Noop
+          }
         case _ => Noop
       }
     }
 
-    JsRaw("""
-        var ruleId = null;
+    JsRaw(s"""
+        var ruleData = null;
         try {
-          ruleId = JSON.parse(decodeURI(window.location.hash.substring(1))).ruleId ;
+          ruleData = decodeURI(window.location.hash.substring(1)) ;
         } catch(e) {
-          ruleId = null
+          ruleData = null
         }
-        if( ruleId != null && ruleId.length > 0) {
-          %s;
+        if( ruleData != null && ruleData.length > 0) {
+          ${SHtml.ajaxCall(JsVar("ruleData"), displayDetails _ )._2.toJsCmd}
         }
-    """.format(SHtml.ajaxCall(JsVar("ruleId"), displayDetails _ )._2.toJsCmd)
+    """
     )
   }
 
@@ -261,10 +269,10 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
     currentRuleForm.set(Full(form))
   }
 
-  private[this] def detailsCallbackLink(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule, id:String="showForm") : JsCmd = {
+  private[this] def detailsCallbackLink(workflowEnabled: Boolean, changeMsgEnabled : Boolean)(rule:Rule, action:String="showForm") : JsCmd = {
     updateEditComponent(rule, workflowEnabled, changeMsgEnabled)
     //update UI
-    Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, id)) &
+    Replace(htmlId_editRuleDiv, editRule(workflowEnabled, changeMsgEnabled, action )) &
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'ruleId':'%s'})""".format(rule.id.value))
   }
 
