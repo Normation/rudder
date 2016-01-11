@@ -861,34 +861,39 @@ function createRuleComponentValueTable (contextPath) {
  *   , "osVersion" : Node OS version [ String ]
  *   , "servicePack" : Node OS service pack [ String ]
  *   , "lastReport" : Last report received about that node [ String ]
- *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
+ *   , "callBack" : Callback on Node, if missing, replaced by a link to nodeId [ Function ]
  *   }
  */
 function createNodeTable(gridId, data, contextPath, refresh) {
 
+  //base element for the clickable cells
+  function callbackElement(oData, displayCompliance) {
+    var elem = $("<a></a>");
+    if("callback" in oData) {
+        elem.click(function(e) { oData.callback(displayCompliance); e.stopPropagation();});
+        elem.attr("href","javascript://");
+    } else {
+        elem.attr("href",contextPath+'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'","displayCompliance":'+displayCompliance+'}');
+    }
+    return elem;
+  }
   var columns = [ {
       "sWidth": "25%"
     , "mDataProp": "name"
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var editLink = $("<a />");
-        if ("callback" in oData) {
-          editLink.click(function(e) { oData.callback(); e.stopPropagation();});
-          editLink.attr("href","javascript://");
-        } else {
-          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
-        }
-        var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
-        editLink.append(editIcon);
-        editLink.addClass("reportIcon");
+        var link = callbackElement(oData, false)
+        var icon = $("<img />");
+        icon.attr("src",contextPath + "/images/icMagnify-right.png");
+        link.append(icon);
+        link.addClass("reportIcon");
 
-        $(nTd).append(editLink);
+        $(nTd).append(link);
       }
   } , {
       "sWidth": "10%"
     , "mDataProp": "machineType"
-     , "sTitle": "Machine type"
+    , "sTitle": "Machine type"
   } , {
       "sWidth": "10%"
     , "mDataProp": "osName"
@@ -908,10 +913,11 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "sSortDataType": "node-compliance"
     , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem; //callbackElement(oData);
-        elem = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>';
+        var link = callbackElement(oData, true)
+        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>';
+        link.append(complianceBar)
         $(nTd).empty();
-        $(nTd).prepend(elem);
+        $(nTd).prepend(link);
       }
   } , {
       "sWidth": "20%"
