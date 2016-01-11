@@ -184,13 +184,13 @@ function recentChangesText(id) {
 function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, addRecentChanges, allCheckboxCallback, contextPath, refresh) {
 
   //base element for the clickable cells
-  function callbackElement(oData) {
+  function callbackElement(oData, action) {
     var elem = $("<a></a>");
     if("callback" in oData) {
-        elem.click(function() {oData.callback("showForm");});
+        elem.click(function() {oData.callback(action);});
         elem.attr("href","javascript://");
     } else {
-        elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        elem.attr("href",contextPath+'/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'","action":"'+action+'"}');
     }
     return elem;
   }
@@ -232,8 +232,13 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sTitle": "Name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
+
+        var action = "showForm"
+        if (! needActions) {
+          action = "showEditForm"
+        }
         // Define the elem and its callback
-        var elem = callbackElement(oData);
+        var elem = callbackElement(oData, action);
         elem.text(data.name);
 
         // Row parameters
@@ -307,7 +312,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sSortDataType": "compliance"
     , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = callbackElement(oData);
+        var elem = callbackElement(oData, "showForm");
         if (oData.status === "In application" || oData.status === "Partially applied" ) {
           elem.append('<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>');
         }
@@ -323,7 +328,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sTitle": "Recent changes"
     , "sSortDataType": "changes"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var elem = callbackElement(oData);
+        var elem = callbackElement(oData, "showRecentChanges");
         var id = "Changes-"+oData.id;
         elem.append('<div id="'+id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>');
         $(nTd).empty();

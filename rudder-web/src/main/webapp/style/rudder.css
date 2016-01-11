@@ -2874,3 +2874,11 @@ input[type="number"] {
 #createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
 	width : 500px;
 }
+
+#recentChanges {
+	/** If we want to scroll correctly to recent changes we need to set a minimum height,
+	    or else when the graph appear (just after the scroll) we will only the the recent change section title
+	*/
+	min-height: 520px;
+}
+

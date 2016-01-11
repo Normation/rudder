@@ -176,15 +176,14 @@ class RuleEditForm(
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
 
   def mainDispatch = Map(
-    "showForm" -> { _:NodeSeq =>
-      showForm() },
-    "showEditForm" -> { _:NodeSeq =>
-      showForm(1)}
+      "showForm"          -> { _:NodeSeq => showForm() }
+    , "showEditForm"      -> { _:NodeSeq => showForm(1) }
+    , "showRecentChanges" -> { _:NodeSeq => showForm(0,"changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
-  private[this] def showForm(tab :Int = 0) : NodeSeq = {
+  private[this] def showForm(tab :Int = 0, idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
     (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory)) =>
 
@@ -223,13 +222,18 @@ class RuleEditForm(
         form ++
         Script(
           OnLoad(JsRaw(
-            s"""$$( "#editRuleZone" ).tabs(); $$( "#editRuleZone" ).tabs('select', ${tab});"""
+           s"""
+            $$( "#editRuleZone" ).tabs();
+            $$( "#editRuleZone" ).tabs('select', ${tab});"""
           )) &
           JsRaw(s"""
+
+            $$("#editRuleZonePortlet").removeClass("nodisplay");
             $$("#editRuleZone").bind( "show", function(event, ui) {
               if(ui.panel.id== 'ruleComplianceTab') { ${ruleComplianceTabAjax}; }
             });
             ${Replace("details", new RuleCompliance(rule,directiveLib, nodeInfos, rootRuleCategory).display).toJsCmd};
+            scrollToElement("${idToScroll}", ".rudder_col");
             """
           )
         )
@@ -551,7 +555,7 @@ class RuleEditForm(
   private[this] def workflowCallBack(action:String)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
       JsRaw("$.modal.close();") & onSuccessCallback(rule) & SetHtml("editRuleZone",
-          <div id={htmlId_rule}>Rule '{rule.name}' successfully deleted</div>
+          <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
       )
     } else {
       returns match {
