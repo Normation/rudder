@@ -622,7 +622,7 @@ class RuleGrid(
     // Callback to use on links, parameter define the tab to open "showForm" for compliance, "showEditForm" to edit form
     val callback = for {
       callback <- detailsCallbackLink
-      ajax = SHtml.ajaxCall(JsVar("action"), (s: String) => callback(line.rule,s))
+      ajax = SHtml.ajaxCall(JsVar("action"), (tab: String) => callback(line.rule,tab))
     } yield {
       AnonFunc("action",ajax)
     }
