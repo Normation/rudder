@@ -118,13 +118,13 @@ class NodeGroupForm(
   private[this] var query : Option[Query] = nodeGroup.query
   private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.getAll.map( _.values.filter( (x:NodeInfo) => nodeGroup.serverList.contains( x.id ) ).toSeq )
 
-  private def setNodeGroupCategoryForm : Unit = {
+  private def setSearchNodeComponent : Unit = {
     searchNodeComponent.set(Full(new SearchNodeComponent(
         htmlIdCategory
       , query
       , srvList
       , onSearchCallback = saveButtonCallBack
-      , onClickCallback  = Some({ id => onClickCallBack(id) })
+      , onClickCallback  = None
       , saveButtonId     = saveButtonId
       , groupPage        = false
     )))
@@ -135,12 +135,7 @@ class NodeGroupForm(
         $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
   }
 
-  private[this] def onClickCallBack(nodeId:String) : JsCmd = {
-    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), rootCategory)).display(true)) &
-    createPopup("nodeDetailsPopup")
-  }
-
-  setNodeGroupCategoryForm
+  setSearchNodeComponent
 
   def extendsAt = SnippetExtensionKey(classOf[NodeGroupForm].getSimpleName)
 
