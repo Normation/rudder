@@ -49,9 +49,7 @@ import com.normation.rudder.reports.ReportingConfiguration
  * always useful about a node
  */
 case class NodeInfo(
-    id            : NodeId
-  , name          : String
-  , description   : String
+    node          : Node
   , hostname      : String
   , machineType   : String
   , osName        : String
@@ -63,15 +61,21 @@ case class NodeInfo(
   , agentsName    : Seq[AgentType]
   , policyServerId: NodeId
   , localAdministratorAccountName: String
-  , creationDate  : DateTime
-  , isBroken      : Boolean
-  , isSystem      : Boolean
-  , isPolicyServer: Boolean
   //for now, isPolicyServer and server role ARE NOT
   //dependant. So EXPECTS inconsistencies.
   //TODO: remove isPolicyServer, and pattern match on
   //      on role everywhere.
   , serverRoles   : Set[ServerRole]
-  , nodeReportingConfiguration: ReportingConfiguration
-  , properties : Seq[NodeProperty]
-) extends HashcodeCaching
+) extends HashcodeCaching {
+
+  val id                         = node.id
+  val name                       = node.name
+  val description                = node.description
+  val isBroken                   = node.isBroken
+  val isSystem                   = node.isSystem
+  val isPolicyServer             = node.isPolicyServer
+  val creationDate               = node.creationDate
+  val nodeReportingConfiguration = node.nodeReportingConfiguration
+  val properties                 = node.properties
+
+}
