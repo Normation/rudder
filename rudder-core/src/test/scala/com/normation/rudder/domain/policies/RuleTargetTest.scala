@@ -14,6 +14,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.domain.nodes.Node
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
@@ -24,20 +25,20 @@ class RuleTargetTest extends Specification with Loggable {
     NodeId(s"${i}")
   }).toSet
 
+  def newNode(id : NodeId) = Node(id,"" ,"", false, false, false, DateTime.now, ReportingConfiguration(None,None), Seq())
+
   val allNodeIds = nodeIds + NodeId("root")
   val nodes = allNodeIds.map {
     id =>
       (
         id
       , NodeInfo (
-          id, s"Node-${id}"
-        , "" ,"" ,"" ,"" ,""
-        , None, Nil, DateTime.now
-        , "", Seq(), NodeId("root")
-        , "", DateTime.now
-        , false, false, false, Set()
-        , ReportingConfiguration(None,None)
-        , Seq()
+            newNode(id)
+          , s"Node-${id}"
+          , "" ,"" ,""
+          , None, Nil, DateTime.now
+          , "", Seq(), NodeId("root")
+          , "" , Set()
       )
     )
   }.toMap
