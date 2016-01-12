@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -76,7 +76,6 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 
-
 /**
  * Map objects from/to LDAPEntries
  *
@@ -88,10 +87,7 @@ class LDAPEntityMapper(
   , cmdbQueryParser: CmdbQueryParser
 ) extends Loggable {
 
-
     //////////////////////////////    Node    //////////////////////////////
-
-
 
   def nodeToEntry(node:Node) : LDAPEntry = {
     val entry =
@@ -107,6 +103,25 @@ class LDAPEntityMapper(
     entry
   }
 
+  def entryToNode(e:LDAPEntry) : Box[Node] = {
+    if(e.isA(OC_RUDDER_NODE)||e.isA(OC_POLICY_SERVER_NODE)) {
+      //OK, translate
+      for {
+        id   <- nodeDit.NODES.NODE.idFromDn(e.dn) ?~! s"Bad DN found for a Node: ${e.dn}"
+      } yield {
+        Node(
+            id
+          , e(A_NAME).getOrElse("")
+          , e(A_DESCRIPTION).getOrElse("")
+          , e.getAsBoolean(A_IS_BROKEN).getOrElse(false)
+          , e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+          , e.isA(OC_POLICY_SERVER_NODE)
+        )
+      }
+    } else {
+      Failure(s"The given entry is not of the expected ObjectClass ${OC_RUDDER_NODE} or ${OC_POLICY_SERVER_NODE}. Entry details: ${e}")
+    }
+  }
 
     //////////////////////////////    NodeInfo    //////////////////////////////
 
@@ -122,30 +137,24 @@ class LDAPEntityMapper(
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
     for {
-      checkIsANode <- if(nodeEntry.isA(OC_RUDDER_NODE)) Full("ok")
-                      else Failure("Bad object class, need %s and found %s".format(OC_RUDDER_NODE,nodeEntry.valuesFor(A_OC)))
-
-      checkIsANode <- if(inventoryEntry.isA(OC_NODE)) Full("Ok")
-                      else Failure("Bad object class, need %s and found %s".format(OC_NODE,inventoryEntry.valuesFor(A_OC)))
+      node <- entryToNode(nodeEntry)
 
       machineType  =  machineEntryObjectClass.map(machine => if (machine.exists( _ == OC_PM)) "Physical" else "Virtual").getOrElse("No Machine Inventory")
       checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
                       else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
 
-      id           <- nodeDit.NODES.NODE.idFromDn(nodeEntry.dn) ?~! "Bad DN found for a Node: %s".format(nodeEntry.dn)
       // Compute the parent policy Id
       policyServerId <- inventoryEntry.valuesFor(A_POLICY_SERVER_UUID).toList match {
                           case Nil => Failure("No policy servers for a Node: %s".format(nodeEntry.dn))
                           case x :: Nil => Full(x)
                           case _ => Failure("Too many policy servers for a Node: %s".format(nodeEntry.dn))
                         }
-
+      date        <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~!
+                      "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
       agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
                        AgentType.fromValue(x) ?~!
                          "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
                      }
-      date        <- nodeEntry.getAsGTime(A_OBJECT_CREATION_DATE) ?~!
-                      "Can not find mandatory attribute '%s' in entry".format(A_OBJECT_CREATION_DATE)
       osVersion   = inventoryEntry(A_OS_VERSION).getOrElse("N/A")
       osName      = inventoryEntry(A_OS_NAME).getOrElse("N/A")
       servicePack = inventoryEntry(A_OS_SERVICE_PACK)
@@ -154,9 +163,7 @@ class LDAPEntityMapper(
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
       NodeInfo(
-          id
-        , nodeEntry(A_NAME).getOrElse("")
-        , nodeEntry(A_DESCRIPTION).getOrElse("")
+          node
         , inventoryEntry(A_HOSTNAME).getOrElse("")
         //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
         , machineType
@@ -171,14 +178,10 @@ class LDAPEntityMapper(
         //nodeDit.NODES.NODE.idFromDn(policyServerDN).getOrElse(error("Bad DN found for the policy server of Node: %s".format(nodeEntry.dn))),
         , inventoryEntry(A_ROOT_USER).getOrElse("")
         , date.dateTime
-        , nodeEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false)
-        , nodeEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
-        , nodeEntry.isA(OC_POLICY_SERVER_NODE)
         , serverRoles
       )
     }
   }
-
 
   /**
    * Build the ActiveTechniqueCategoryId from the given DN
@@ -241,7 +244,6 @@ class LDAPEntityMapper(
     }
   }
 
-
   def nodeDn2OptNodeId(dn:DN) : Box[NodeId] = {
     val rdn = dn.getRDN
     if(!rdn.isMultiValued && rdn.hasAttribute(A_NODE_UUID)) {
@@ -250,7 +252,6 @@ class LDAPEntityMapper(
   }
 
   //////////////////////////////    ActiveTechniqueCategory    //////////////////////////////
-
 
   /**
    * children and items are left empty
@@ -303,7 +304,6 @@ class LDAPEntityMapper(
     }
   }
 
-
   /**
    * Build a ActiveTechnique from and LDAPEntry.
    * children directives are left empty
@@ -336,7 +336,6 @@ class LDAPEntityMapper(
   }
 
    //////////////////////////////    NodeGroupCategory    //////////////////////////////
-
 
   /**
    * children and items are left empty
@@ -401,7 +400,6 @@ class LDAPEntityMapper(
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_RUDDER_NODE_GROUP, e))
   }
 
-
   //////////////////////////////    Special Policy target info    //////////////////////////////
 
   def entry2RuleTargetInfo(e:LDAPEntry) : Box[RuleTargetInfo] = {
@@ -425,8 +423,6 @@ class LDAPEntityMapper(
       RuleTargetInfo(target, name , description , isEnabled , isSystem)
     }
   }
-
-
 
   //////////////////////////////    Directive    //////////////////////////////
 
@@ -473,7 +469,6 @@ class LDAPEntityMapper(
 
   //////////////////////////////    Rule Category    //////////////////////////////
 
-
   /**
    * children and items are left empty
    */
@@ -497,7 +492,6 @@ class LDAPEntityMapper(
   def ruleCategory2ldap(category:RuleCategory, parentDN:DN) = {
     rudderDit.RULECATEGORY.ruleCategoryModel(category.id.value, parentDN, category.name,category.description,category.isSystem)
   }
-
 
   //////////////////////////////    Rule    //////////////////////////////
   def entry2OptTarget(optValue:Option[String]) : Box[Option[RuleTarget]] = {
@@ -556,7 +550,6 @@ class LDAPEntityMapper(
     }
   }
 
-
   /**
    * Map a rule to an LDAP Entry.
    * WARN: serial is NEVER mapped.
@@ -576,8 +569,6 @@ class LDAPEntityMapper(
     entry +=! (A_LONG_DESCRIPTION, rule.longDescription.toString)
     entry
   }
-
-
 
   //////////////////////////////    API Accounts    //////////////////////////////
 
@@ -663,6 +654,5 @@ class LDAPEntityMapper(
     entry +=! (A_DESCRIPTION, property.description)
     entry
   }
-
 
 }
