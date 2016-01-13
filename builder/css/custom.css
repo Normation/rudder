@@ -117,7 +117,7 @@ a:hover {
 }
 
 .panel-heading{
-    padding: 5px 10px;
+    padding: 8px 10px;
 }
 
 .icon-margin {
@@ -125,7 +125,7 @@ a:hover {
 }
 
 .method-actions {
-    opacity: 0.4 ;
+    opacity: 0.3 ;
 }
 
 .method-actions:hover {
@@ -251,16 +251,22 @@ textarea.form-control {
 }
 
 .icon-delete {
-    color : #990000
+    color : #b33630;
+    opacity : 0.6;
+}
+
+.icon-delete:hover {
+    opacity : 0.9;
 }
 
 .btn-delete:hover, .btn-delete:active, .btn-delete:focus{
     color: #fff;
-    background-color: #990000;
+    background-color: #b33630;
+    background-image: linear-gradient(#dc5f59, #b33630)
 }
 
 .ng-invalid {
-    border-color: #990000;
+    border-color: #b33630;
     box-shadow: 0 1px 1px rgba(0, 0, 0, 0.075) inset;
 }
 
@@ -274,4 +280,57 @@ textarea.form-control {
 
 .condition-form {
     margin: 15px 10px;
+}
+
+ul[dnd-list], ul[dnd-list] > li {
+    position: relative;
+}
+
+ul[dnd-list] .dndPlaceholder {
+    display: block;
+    background-color: #ddd;
+    min-height: 68px;
+    margin-top:5px;
+}
+
+#methods .dndDraggingSource {
+      display: none;
+}
+
+.btn.btn-method {
+  padding: 0;
+  overflow:hidden;
+}
+
+ul[dnd-list] {
+  min-height: 70px;
+  padding-left: 0px;
+}
+
+.cursorMove {
+  cursor:move
+}
+
+#no-methods {
+  z-index= -1;
+  position:absolute;
+  border-style : dashed;
+  white-space: normal;
+}
+
+.jumbotron {
+  background-color : #fff
+}
+
+.panel-heading .ng-invalid {
+  box-shadow:none;
+}
+
+.btn-method .input-group-addon {
+  padding: 6px 8px;
+}
+
+.btn-method .input-group-addon:first-child {
+  border:0;
+  color: #888;
 }
