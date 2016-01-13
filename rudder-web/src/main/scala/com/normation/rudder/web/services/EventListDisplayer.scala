@@ -100,6 +100,7 @@ class EventListDisplayer(
 ) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
+
   private[this] val gridName = "eventLogsGrid"
 
   def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {

@@ -439,7 +439,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     SetHtml(html_techniqueDetails, NodeSeq.Empty) &
     Replace(htmlId_policyConf, showDirectiveDetails) &
     JsRaw(s"""this.window.location.hash = "#" + JSON.stringify({'directiveId':'${directiveId.value}'})""") &
-    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled)) &
     After(0,JsRaw("""correctButtons(); createTooltip();""")) // OnLoad or JsRaw createTooltip does not work ...
   }
 
@@ -480,12 +479,14 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    * been done
    * If it is given a directive, it updated the form, else goes to the changerequest page
    */
+
   private[this] def directiveEditFormSuccessCallBack(workflowEnabled: Boolean)(returns: Either[Directive,ChangeRequestId]): JsCmd = {
 
     returns match {
       case Left(dir) => // ok, we've received a directive, show it
-        updateDirectiveLibrary()
-        updateDirectiveForm(workflowEnabled)(Left(dir),None)
+        updateDirectiveLibrary(workflowEnabled) &
+        updateDirectiveForm(workflowEnabled)(Left(dir),None) &
+        After(0,JsRaw("""searchTree('#treeSearch', '#activeTechniquesTree');"""))
 
       case Right(changeRequestId) => // oh, we have a change request, go to it
         JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
@@ -493,13 +494,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def onRemoveSuccessCallBack(workflowEnabled: Boolean): JsCmd = {
-    updateDirectiveLibrary
-    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
+    updateDirectiveLibrary(workflowEnabled)
   }
 
-  private[this] def updateDirectiveLibrary() : Unit = {
+  private[this] def updateDirectiveLibrary(workflowEnabled : Boolean) : JsCmd = {
     directiveLibrary = getDirectiveLib()
     rules = getRules()
+    Replace(htmlId_activeTechniquesTree, displayDirectiveLibrary(workflowEnabled))
   }
 
   //////////////// display trees ////////////////////////
