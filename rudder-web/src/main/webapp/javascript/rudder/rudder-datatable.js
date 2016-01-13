@@ -232,7 +232,9 @@ function createRuleTable (gridId, data, needCheckbox, isPopup, allCheckboxCallba
         , "sSearch": ""
       }
     , "fnStateLoadParams": function (oSettings, oData) {
+        // Do not keep any filter
         oData.aoSearchCols = [];
+        oData.oSearch.sSearch = "";
       }
     , "aaSorting": [[ sortingDefault, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
