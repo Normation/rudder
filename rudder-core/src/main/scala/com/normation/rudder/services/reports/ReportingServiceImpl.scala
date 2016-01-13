@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -167,29 +167,32 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * - initialized, else go find missing rule node status reports (one time for all)
    * - none reports is expired, else switch its status to "missing" for all components
    */
-  private[this] def checkAndUpdateCache(nodeIds: Set[NodeId]) : Box[Map[NodeId, Set[RuleNodeStatusReport]]] = this.synchronized {
-    if(nodeIds.isEmpty) {
+  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, Set[RuleNodeStatusReport]]] = this.synchronized {
+    if(nodeIdsToCheck.isEmpty) {
       Full(Map())
     } else {
       val now = DateTime.now
 
-      /*
-       * Three cases: 1/ cache does not exist, 2/ cache exists but expiration date expired, 3/ cache does note exists
-       * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
-       * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
-       * expired could be computed without any more logic than "every thing is missing".
-       *
-       */
-
-      val (expired, upToDate) = nodeIds.partition { id =>  //two group: expired id, and up to date info
-        cache.get(id) match {
-          case None      => true
-          case Some(set) => set.exists { _.expirationDate.isBefore(now) }
-        }
-      }
-
       for {
-        newStatus <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
+        allNodeIds        <- nodeInfoService.getAll.map( _.keySet)
+        //only try to update nodes that are accepted in Rudder
+        nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
+        /*
+         * Three cases: 1/ cache does exist and up to date, 2/ cache exists but expiration date expired,
+         * 3/ cache does note exists.
+         * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
+         * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
+         * expired could be computed without any more logic than "every thing is missing".
+         *
+         */
+        (expired, upToDate) =  nodeIds.partition { id =>  //two group: expired id, and up to date info
+                                 cache.get(id) match {
+                                   case None      => true
+                                   case Some(set) => set.exists { _.expirationDate.isBefore(now) }
+                                 }
+                               }
+
+        newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
       } yield {
         /*
          * Here, it's missing all the UnexpectedVersion/NoInitNoVersion results, because, well, they
