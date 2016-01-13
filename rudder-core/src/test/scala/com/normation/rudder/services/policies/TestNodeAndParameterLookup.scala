@@ -58,7 +58,6 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
 
-
 /**
  * Test how parametrized variables are replaced for
  * parametrization with ${rudder.param.XXX} and
@@ -67,7 +66,6 @@ import net.liftweb.common.Full
 
 @RunWith(classOf[JUnitRunner])
 class TestNodeAndParameterLookup extends Specification {
-
   import NodeConfigData._
 
   //null is for RuleValService, only used in
