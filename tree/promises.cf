@@ -86,6 +86,16 @@ bundle agent end
 
 
 ##############################################################################
+# Body agent control
+# Configure specific parameters for the agent
+##############################################################################
+body agent control {
+    # Repository where to put the copy of modified files
+    default_repository => "${sys.workdir}/modified-files";
+
+}
+
+##############################################################################
 # Body common control
 # This is the entry point for CFEngine
 ##############################################################################
