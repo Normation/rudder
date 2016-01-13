@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -65,27 +65,10 @@ import bootstrap.liftweb.RudderConfig
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
-  private[this] val periodFormatter = new PeriodFormatterBuilder().
-    appendDays().
-    appendSuffix(" day ", " days ").
-    appendSeparator(", ").
-    appendMinutes().
-    appendSuffix(" min ", " min ").
-    appendSeparator(" ").
-    appendSeconds().
-    appendSuffix("s", "s")
-    .toFormatter()
-
-  private[this] def formatPeriod(duration:Duration) : String = {
-    if(duration.getMillis < 1000) "less than 1s"
-    else periodFormatter.print(duration.toPeriod)
-  }
-
   private[this] val asyncDeploymentAgent      = RudderConfig.asyncDeploymentAgent
   private[this] val eventLogDeploymentService = RudderConfig.eventLogDeploymentService
   private[this] val eventList                 = RudderConfig.eventListDisplayer
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
-
 
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
@@ -103,7 +86,6 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   override def render = {
     new RenderOut(layout)
   }
-
 
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
 
@@ -125,17 +107,19 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
 
   }
 
-
   private[this] def lastStatus  = {
-
+    def commonStatement(start : DateTime, end : DateTime, durationText : String, headText : String) = {
+      <li class="dropdown-header">{headText}</li>
+      <li class="dropdown-header">Started at {DateFormaterService.getFormatedDate(start)}</li>
+      <li class="dropdown-header">Finished {DateFormaterService.getFormatedPeriod(end, DateTime.now)} ago</li>
+      <li class="dropdown-header">{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</li>
+    }
     deploymentStatus.current match {
       case NoStatus => <li class="dropdown-header">Policy update status unavailable</li>
       case SuccessStatus(id,start,end,configurationNodes) =>
-        <li class="dropdown-header">Policies updated</li>
-        <li class="dropdown-header">Update took {formatPeriod(new Duration(start,end))}</li>
+        commonStatement(start, end, "Update took", "Policies updated")
       case ErrorStatus(id,start,end,failure) =>
-        <li class="dropdown-header">Error during policy update</li>
-        <li class="dropdown-header">Error occured in {formatPeriod(new Duration(start,end))}</li>
+        commonStatement(start, end, "Error occured in", "Error during policy update") ++
         <li><a href="#" onClick={
             """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 });
                $('#simplemodal-container').css('height', 'auto');
