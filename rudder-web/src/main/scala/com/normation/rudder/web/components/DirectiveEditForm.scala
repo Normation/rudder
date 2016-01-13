@@ -188,9 +188,9 @@ class DirectiveEditForm(
       new RuleDisplayer(
           Some(directiveApp)
         , "view"
-        , (r:Rule,s:String)  => Noop
-        , (r : Rule)         => Noop
-        , (r : Option[Rule]) => Noop
+        , (_ :Rule,_ : String)  => Noop
+        , (_ : Rule)         => Noop
+        , (_ : Option[Rule]) => Noop
         ).display
     }
 

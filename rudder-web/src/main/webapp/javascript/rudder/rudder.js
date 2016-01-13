@@ -734,7 +734,7 @@ function parseURLHash() {
 function parseSearchHash(nodeIdCallback, queryCallback) {
   var hash = parseURLHash();
   if( hash.nodeId != null && hash.nodeId.length > 0) {
-    nodeIdCallback(hash.nodeId);
+    nodeIdCallback(JSON.stringify(hash));
   }
   if( hash.query != null && JSON.stringify(hash.query).length > 0) {
     queryCallback(JSON.stringify(hash.query));

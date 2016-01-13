@@ -108,7 +108,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   var srvList : Box[Seq[NodeInfo]] = Empty
 
-  setNodeGroupCategoryForm(None)
+  setSearchComponent(None)
 
   var dispatch : DispatchIt = {
     case "showQuery" => searchNodeComponent.is match {
@@ -156,9 +156,9 @@ class SearchNodes extends StatefulSnippet with Loggable {
       )))
   }
 
-  private[this] def setNodeGroupCategoryForm(query:Option[Query]) : SearchNodeComponent = {
-    def showNodeDetails(nodeId:String) : JsCmd = {
-      updateLocationHash(nodeId) &
+  private[this] def setSearchComponent(query:Option[Query]) : SearchNodeComponent = {
+    def showNodeDetails(nodeId:String, displayCompliance : Boolean) : JsCmd = {
+      updateLocationHash(nodeId, displayCompliance) &
       JsRaw("""scrollToElement("serverDetails", ".rudder_col");""".format(nodeId))
     }
 
@@ -192,13 +192,24 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
    */
   private[this] def parseHashtag(): JsCmd = {
-    def displayDetails(nodeId:String) = {
-      SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
+    def displayDetails(jsonData: String) = {
+      import net.liftweb.json._
+      val json = parse(jsonData)
+      json \ "nodeId" match {
+        case JString(nodeId) =>
+          val displayCompliance = json \ "displayCompliance" match {
+            case JBool(displayCompliance) => displayCompliance
+            case _ => false
+          }
+          val nodeDetails = new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayCompliance)
+          SetHtml("serverDetails", nodeDetails)
+        case _ => Noop
+      }
     }
 
     def executeQuery(query:String) : JsCmd = {
       val q = queryParser(query)
-      val sc = setNodeGroupCategoryForm(q)
+      val sc = setSearchComponent(q)
 
       q match {
         case e:EmptyBox =>
@@ -247,9 +258,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   }
 
-  private def updateLocationHash(nodeId:String) = {
+  private def updateLocationHash(nodeId:String, displayCompliance : Boolean) = {
     //JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
     JsRaw(s"updateHashString('nodeId', '${nodeId}')") &
-    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
+    JsRaw(s"updateHashString('displayCompliance', ${displayCompliance})") &
+    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display(false,displayCompliance))
   }
 }
