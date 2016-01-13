@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -81,7 +81,7 @@ class SearchNodeComponent(
   , _query           : Option[Query]
   , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
-  , onClickCallback  : Option[(String) => JsCmd] = None // this callback is used when we click on an element in the grid
+  , onClickCallback  : Option[(String, Boolean) => JsCmd] = None // this callback is used when we click on an element in the grid
   , onSearchCallback : (Boolean, Option[Query]) => JsCmd = {(_, _) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
@@ -92,10 +92,8 @@ class SearchNodeComponent(
   private[this] var query = _query.map(x => x.copy())
   private[this] var srvList = _srvList.map(x => Seq() ++ x)
 
-
   private[this] val nodeInfoService = RudderConfig.nodeInfoService
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
-
 
   // The portlet for the server detail
   private[this] def serverPortletPath = List("templates-hidden", "server", "server_details")
@@ -119,15 +117,12 @@ class SearchNodeComponent(
   }
   private[this] def content = chooseTemplate("content","query",searchNodes)
 
-
-
   /**
    * External exposition of the current state of server list.
    * Page/component which includes SearchNodeComponent can use it.
    * @return
    */
   def getSrvList() : Box[Seq[NodeInfo]] = srvList
-
 
   /**
    * External exposition of the current state of query.
@@ -155,7 +150,6 @@ class SearchNodeComponent(
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
 
-
     def addLine(i:Int) : JsCmd = {
       if(i >= 0) {
         //used same info than previous line
@@ -171,15 +165,15 @@ class SearchNodeComponent(
 
     def removeLine(i:Int) : JsCmd ={
       if(lines.size > i) {
-        
+
         val line = lines(i)
         lines.remove(i)
         // Remove error notifications if there is no more occurrences of the line
         // Or new lines with that will always have th error message (ie An empty hostname)
         if ( ! lines.contains(line)) {
           errors remove line
-        }  
-        
+        }
+
         query = Some(Query(rType, composition, lines.to[Seq]))
       }
       initUpdate = false
@@ -192,7 +186,7 @@ class SearchNodeComponent(
       lines.zipWithIndex.foreach { case (cl@CriterionLine(_,a,c,v),i) =>
         a.cType.validate(v,c.id) match {
           case Failure(m,_,_) => errors put (cl,m)
-          case _ => 
+          case _ =>
         }
       }
       val newQuery = Query(rType, composition, lines.to[Seq])
@@ -218,11 +212,10 @@ class SearchNodeComponent(
       SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
     }
 
-
     def displayQueryLine(cl : CriterionLine, index:Int, addRemove:Boolean) : NodeSeq = {
-      
+
      lines.append(cl)
-     
+
      val initJs = cl.attribute.cType.initForm("v_"+index)
      val inputAttributes = ("id","v_"+index) :: ("class", "queryInputValue") :: {if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil }
      val input = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value=x)), inputAttributes:_*)
@@ -234,18 +227,18 @@ class SearchNodeComponent(
         } &
        ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton")) &
        ".objectType *" #> objectTypeSelect(cl.objectType,lines,index) &
-       ".attributeName *" #> attributeNameSelect(cl.objectType,cl.attribute,lines,index) & 
+       ".attributeName *" #> attributeNameSelect(cl.objectType,cl.attribute,lines,index) &
        ".comparator *" #> comparatorSelect(cl.objectType,cl.attribute,cl.comparator,lines,index) &
        ".inputValue *" #> input &
        ".error" #> { errors.get(cl) match {
               case Some(m) => <tr><td class="error" colspan="6">{m}</td></tr>
               case _ => NodeSeq.Empty
             }}
-       
+
      ).apply { queryline } ++  Script(OnLoad(initJs))
-      
+
     }
-    
+
     /**
      * Display the query part
      * Caution, we pass an html different at the init part (whole content:query) or at update (update:query)
@@ -266,21 +259,21 @@ class SearchNodeComponent(
           , ( "class", "compositionCheckbox")
         )
       }
-      
+
       val radio = {
         SHtml.radio(
             Seq("AND", "OR")
           , Full(if(comp == Or) "OR" else "AND")
           , {value:String => composition = CriterionComposition.parse(value).getOrElse(And)} //default to AND on unknown composition string
           , ("class", "radio")
-        ).flatMap(radio => 
+        ).flatMap(radio =>
           <label>
             {radio.xhtml}
             <span class="radioTextLabel">{radio.key.toString}</span>
           </label>
         )
       }
-      
+
       ( "#typeQuery"   #> checkBox &
         "#composition" #> radio    &
         "#submitSearch * " #> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))    &
@@ -324,8 +317,6 @@ class SearchNodeComponent(
     gridResult
   }
 
-
-
   /**
    * When we change the form, we can update the query
    * @return
@@ -355,7 +346,6 @@ class SearchNodeComponent(
   }
 
 }
-
 
 /*
  * Structure of the Query:
@@ -481,7 +471,6 @@ object SearchNodeComponent {
       case Some((c_val,v_eltid)) => setIsEnableFor(c_val,v_eltid)
     }
   }
-
 
   //expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
   def ajaxAttr(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199

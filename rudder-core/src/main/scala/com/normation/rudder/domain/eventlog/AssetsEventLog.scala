@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -47,11 +47,9 @@ import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.Constants
 
-
 /**
  * Accept/refuse new server
  */
-
 
 final case class InventoryLogDetails(
     nodeId : NodeId
@@ -87,7 +85,6 @@ object InventoryEventLog {
   }
 }
 
-
 final case class AcceptNodeEventLog (
     override val eventDetails : EventLogDetails
 ) extends InventoryEventLog with HashcodeCaching {
@@ -99,7 +96,6 @@ object AcceptNodeEventLog extends EventLogFilter {
   override val eventType = AcceptNodeEventType
 
   override def apply(x : (EventLogType, EventLogDetails)) : AcceptNodeEventLog = AcceptNodeEventLog(x._2)
-
 
   def fromInventoryLogDetails(
       id               : Option[Int] = None
@@ -129,7 +125,6 @@ object RefuseNodeEventLog extends EventLogFilter {
 
   override def apply(x : (EventLogType, EventLogDetails)) : RefuseNodeEventLog = RefuseNodeEventLog(x._2)
 
-
   def fromInventoryLogDetails(
       id               : Option[Int] = None
     , principal        : EventActor
@@ -146,9 +141,11 @@ object RefuseNodeEventLog extends EventLogFilter {
   }
 }
 
-
-
 // Accepted node part
+
+final case class NodeLogDetails(
+    node: NodeInfo
+) extends HashcodeCaching
 
 final case class DeleteNodeEventLog (
     override val eventDetails : EventLogDetails
@@ -161,8 +158,6 @@ object DeleteNodeEventLog extends EventLogFilter {
   override val eventType = DeleteNodeEventType
 
   override def apply(x : (EventLogType, EventLogDetails)) : DeleteNodeEventLog = DeleteNodeEventLog(x._2)
-
-
 
   def fromInventoryLogDetails(
       id               : Option[Int] = None

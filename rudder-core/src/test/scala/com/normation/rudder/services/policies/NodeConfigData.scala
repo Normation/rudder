@@ -52,6 +52,7 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.inventory.domain.Version
 import com.normation.inventory.domain.EnvironmentVariable
 import com.normation.inventory.domain.ServerRole
+import com.normation.rudder.domain.nodes.Node
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -65,65 +66,73 @@ object NodeConfigData {
   val id1 = NodeId("node1")
   val hostname1 = "node1.localhost"
   val admin1 = "root"
+  val id2 = NodeId("node2")
   val rootId = NodeId("root")
   val rootHostname = "server.rudder.local"
   val rootAdmin = "root"
 
-  val root = NodeInfo(
-      id            = rootId
-    , name          = "root"
-    , description   = ""
-    , hostname      = rootHostname
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("127.0.0.1", "192.168.0.100")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= rootAdmin
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set( //by default server roles for root
-                          "rudder-db"
-                        , "rudder-inventory-endpoint"
-                        , "rudder-inventory-ldap"
-                        , "rudder-jetty"
-                        , "rudder-ldap"
-                        , "rudder-reports"
-                        , "rudder-server-root"
-                        , "rudder-webapp"
-                      ).map(ServerRole(_))
+  val rootNode = Node (
+      rootId
+    , "root"
+    , ""
+    , false
+    , false
+    , true
+    , DateTime.now
+    , emptyNodeReportingConfiguration
+    , Seq()
+  )
+  val root = NodeInfo (
+      rootNode
+    , rootHostname
+    , "vm"
+    , "Debian"
+    , "7.0"
+    , None
+    , List("127.0.0.1", "192.168.0.100")
+    , DateTime.now
+    , ""
+    , Seq(COMMUNITY_AGENT)
+    , rootId
+    , rootAdmin
+    , Set( //by default server roles for root
+          "rudder-db"
+        , "rudder-inventory-endpoint"
+        , "rudder-inventory-ldap"
+        , "rudder-jetty"
+        , "rudder-ldap"
+        , "rudder-reports"
+        , "rudder-server-root"
+        , "rudder-webapp"
+      ).map(ServerRole(_))
+  )
+
+  val node1Node = Node (
+      id1
+    , "node1"
+    , ""
+    , false
+    , false
+    , true
+    , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
   )
 
-  val node1 = NodeInfo(
-      id            = id1
-    , name          = "node1"
-    , description   = ""
-    , hostname      = hostname1
-    , machineType   = "vm"
-    , osName        = "Debian"
-    , osVersion     = "7.0"
-    , servicePack   = None
-    , ips           = List("192.168.0.10")
-    , inventoryDate = DateTime.now
-    , publicKey     = ""
-    , agentsName    = Seq(COMMUNITY_AGENT)
-    , policyServerId= rootId
-    , localAdministratorAccountName= admin1
-    , creationDate  = DateTime.now
-    , isBroken      = false
-    , isSystem      = false
-    , isPolicyServer= true
-    , serverRoles   = Set()
-    , emptyNodeReportingConfiguration
-    , Seq()
+  val node1 = NodeInfo (
+      node1Node
+    , hostname1
+    , "vm"
+    , "Debian"
+    , "7.0"
+    , None
+    , List("192.168.0.10")
+    , DateTime.now
+    , ""
+    , Seq(COMMUNITY_AGENT)
+    , rootId
+    , admin1
+    , Set()
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(
@@ -136,41 +145,42 @@ object NodeConfigData {
         , root.id
         , UndefinedKey
       )
-      , name                 = None
-      , description          = None
-      , ram                  = None
-      , swap                 = None
-      , inventoryDate        = None
-      , receiveDate          = None
-      , archDescription      = None
-      , lastLoggedUser       = None
-      , lastLoggedUserTime   = None
-      , agentNames           = Seq()
-      , publicKeys           = Seq()
-      , serverIps            = Seq()
-      , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
-      , softwareIds          = Seq()
-      , accounts             = Seq()
-      , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
-      , processes            = Seq()
-      , vms                  = Seq()
-      , networks             = Seq()
-      , fileSystems          = Seq()
-      , serverRoles          = Set()
+    , name                 = None
+    , description          = None
+    , ram                  = None
+    , swap                 = None
+    , inventoryDate        = None
+    , receiveDate          = None
+    , archDescription      = None
+    , lastLoggedUser       = None
+    , lastLoggedUserTime   = None
+    , agentNames           = Seq()
+    , publicKeys           = Seq()
+    , serverIps            = Seq()
+    , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
+    , softwareIds          = Seq()
+    , accounts             = Seq()
+    , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
+    , processes            = Seq()
+    , vms                  = Seq()
+    , networks             = Seq()
+    , fileSystems          = Seq()
+    , serverRoles          = Set()
   )
 
   //node1 us a relay
-  val node2 = node1.copy(id = NodeId("node2"), name = "node2", policyServerId = node1.id )
+  val node2Node = node1Node.copy(id = id2, name = id2.value)
+  val node2 = node1.copy(node = node2Node, policyServerId = node1.id )
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
 
   val rootNodeConfig = NodeConfiguration(
-    nodeInfo    = root
-  , policyDrafts= Set[Cf3PolicyDraft]()
-  , nodeContext = Map[String, Variable]()
-  , parameters  = Set[ParameterForConfiguration]()
-  , writtenDate = None
-  , isRootServer= true
+      nodeInfo    = root
+    , policyDrafts= Set[Cf3PolicyDraft]()
+    , nodeContext = Map[String, Variable]()
+    , parameters  = Set[ParameterForConfiguration]()
+    , writtenDate = None
+    , isRootServer= true
   )
 
   val node1NodeConfig = NodeConfiguration(
