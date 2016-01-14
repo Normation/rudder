@@ -157,7 +157,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
         None
       , "rules_grid_zone"
       , detailsCallbackLink(workflowEnabled, changeMsgEnabled)
-      , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"ShowEditForm")
+      , (rule : Rule ) => onCreateRule(workflowEnabled, changeMsgEnabled)(rule,"showEditForm")
       , showPopup
     )))
 
