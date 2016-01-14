@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -103,7 +103,6 @@ case class XmlUnserializerImpl (
   , ruleCat     : RuleCategoryUnserialisation
 ) extends XmlUnserializer
 
-
 class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
 
   override def parseSectionVal(xml:NodeSeq) : Box[SectionVal] = {
@@ -152,7 +151,7 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       fileFormatOk          <- TestFileFormat(directive)
       id                    <- (directive \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type directive : " + xml)
       ptName                <- (directive \ "techniqueName").headOption.map( _.text ) ?~! ("Missing attribute 'techniqueName' in entry type directive : " + xml)
-      name                  <- (directive \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
+      name                  <- (directive \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type directive : " + xml)
       techniqueVersion      <- (directive \ "techniqueVersion").headOption.map( x => TechniqueVersion(x.text) ) ?~! ("Missing attribute 'techniqueVersion' in entry type directive : " + xml)
       sectionVal            <- parseSectionVal(directive)
       shortDescription      <- (directive \ "shortDescription").headOption.map( _.text ) ?~! ("Missing attribute 'shortDescription' in entry type directive : " + xml)
@@ -181,7 +180,6 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
   }
 }
 
-
 class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisation {
 
   def unserialise(entry:XNode): Box[NodeGroupCategory] = {
@@ -192,7 +190,7 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
                           }
       fileFormatOk     <- TestFileFormat(category)
       id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
-      name             <- (category \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
+      name             <- (category \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
       description      <- (category \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
       isSystem         <- (category \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
     } yield {
@@ -208,7 +206,6 @@ class NodeGroupCategoryUnserialisationImpl extends NodeGroupCategoryUnserialisat
   }
 }
 
-
 class NodeGroupUnserialisationImpl(
     cmdbQueryParser: CmdbQueryParser
 ) extends NodeGroupUnserialisation {
@@ -220,7 +217,7 @@ class NodeGroupUnserialisationImpl(
                          }
       fileFormatOk    <- TestFileFormat(group)
       id              <- (group \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type nodeGroup : " + entry)
-      name            <- (group \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
+      name            <- (group \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type nodeGroup : " + entry)
       description     <- (group \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type nodeGroup : " + entry)
       query           <- (group \ "query").headOption match {
                             case None => Full(None)
@@ -251,7 +248,6 @@ class NodeGroupUnserialisationImpl(
   }
 }
 
-
 class RuleUnserialisationImpl extends RuleUnserialisation {
   def unserialise(entry:XNode) : Box[Rule] = {
     for {
@@ -264,7 +260,7 @@ class RuleUnserialisationImpl extends RuleUnserialisation {
                           ("Missing attribute 'id' in entry type rule: " + entry)
       category         <- (rule \ "category").headOption.map( n => RuleCategoryId(n.text) ) ?~!
                           ("Missing attribute 'category' in entry type rule: " + entry)
-      name             <- (rule \ "displayName").headOption.map( _.text ) ?~!
+      name             <- (rule \ "displayName").headOption.map( _.text.trim ) ?~!
                           ("Missing attribute 'displayName' in entry type rule: " + entry)
       shortDescription <- (rule \ "shortDescription").headOption.map( _.text ) ?~!
                           ("Missing attribute 'shortDescription' in entry type rule: " + entry)
@@ -306,7 +302,7 @@ class RuleCategoryUnserialisationImpl extends RuleCategoryUnserialisation {
                           }
       fileFormatOk     <- TestFileFormat(category)
       id               <- (category \ "id").headOption.map( _.text ) ?~! ("Missing attribute 'id' in entry type groupLibraryCategory : " + entry)
-      name             <- (category \ "displayName").headOption.map( _.text ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
+      name             <- (category \ "displayName").headOption.map( _.text.trim ) ?~! ("Missing attribute 'displayName' in entry type groupLibraryCategory : " + entry)
       description      <- (category \ "description").headOption.map( _.text ) ?~! ("Missing attribute 'description' in entry type groupLibraryCategory : " + entry)
       isSystem         <- (category \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type groupLibraryCategory : " + entry)
     } yield {
@@ -510,7 +506,6 @@ class ChangeRequestChangesUnserialisationImpl (
               case  _ => Failure("should not happen")
             }
 
-
             }
         } yield {
 
@@ -623,7 +618,6 @@ class ChangeRequestChangesUnserialisationImpl (
   }
 
 }
-
 
 class GlobalParameterUnserialisationImpl extends GlobalParameterUnserialisation {
   def unserialise(entry:XNode) : Box[GlobalParameter] = {
