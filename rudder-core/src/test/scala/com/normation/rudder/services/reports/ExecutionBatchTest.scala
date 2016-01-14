@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -54,6 +54,7 @@ import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.domain.policies.SerialedRuleId
+import org.specs2.specification.Fragments
 
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
@@ -143,8 +144,8 @@ class ExecutionBatchTest extends Specification {
       withGood.componentValues("bar").messages.head.reportType ===  SuccessReportType
     }
 
-    "only some missing reports mark them as missing, not unexpected" in {
-      withBad.compliance === ComplianceLevel(success = 1, unexpected = 2)
+    "only one reports in plus, mark the whole key unexpected" in {
+      withBad.compliance === ComplianceLevel(success = 1,  unexpected = 2)
     }
     "with bad reports return a component with two key values " in {
       withBad.componentValues.size === 2
@@ -183,14 +184,14 @@ class ExecutionBatchTest extends Specification {
     val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
 
     "return a component globally repaired " in {
-      withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
+      withGood.compliance === ComplianceLevel(repaired = 2)
     }
     "return a component with one key value " in {
       withGood.componentValues.size === 1
     }
     "return a component with both None key repaired " in {
       withGood.componentValues("None").messages.size === 2 and
-      withGood.componentValues("None").compliance === ComplianceLevel(success = 1, repaired = 1)
+      withGood.componentValues("None").compliance === ComplianceLevel(repaired = 2)
     }
 
     "with bad reports return a component globally unexpected " in {
@@ -202,39 +203,6 @@ class ExecutionBatchTest extends Specification {
     "with bad reports return a component with None key unexpected " in {
       withBad.componentValues("None").messages.size === 3 and
       withBad.componentValues("None").messages.forall(x => x.reportType === UnexpectedReportType)
-    }
-  }
-
-  // Test the component part
-  "A component, with a cfengine keys" should {
-    val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
-    )
-
-    val badReports = Seq[Reports](
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message")
-    )
-
-    val expectedComponent = new ComponentExpectedReport("component", 2
-      , Seq("${sys.bla}", "${sys.foo}")
-      , Seq("${sys.bla}", "${sys.foo}")
-    )
-
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
-    val withBad   = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
-
-    "return a component globally repaired " in {
-      withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
-    }
-    "return a component with two key values " in {
-      withGood.componentValues.size === 2
-    }
-    "return a component with both cfengine keys repaired " in {
-      withGood.componentValues("${sys.bla}").messages.size === 1
     }
   }
 
@@ -268,18 +236,19 @@ class ExecutionBatchTest extends Specification {
     val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
 
     "return a component with the correct number of success and repaired" in {
-      withGood.compliance === ComplianceLevel(success = 2, repaired = 1)
+      //be carefull, here the second success is for the same unexpanded as the repaire,
+      //so we actually have 1 success (bar) and 2 repaired (${rudder.node.hostname})
+      withGood.compliance === ComplianceLevel(success = 1, repaired = 2)
     }
 
     "return a component with two key values " in {
       withGood.componentValues.size === 2
     }
 
-    "return an unexpanded component key with both a success and a repaired" in {
-      val messages = withGood.componentValues("${rudder.node.hostname}").messages.map(_.reportType)
-      messages.size === 2 and
-      (messages must contain(RepairedReportType)) and
-      (messages must contain(SuccessReportType))
+    "return an unexpanded component key with both key repaired" in {
+      val reportType = withGood.componentValues("${rudder.node.hostname}").messages.map(_.reportType)
+      reportType.size === 2 and
+      (reportType.forall( _ === RepairedReportType))
     }
 
     "return a component with the bar key success " in {
@@ -303,50 +272,90 @@ class ExecutionBatchTest extends Specification {
     }
   }
 
-  // Test the component part
-  "A component, with distinguishable keys" should {
-    val executionTimestamp = new DateTime()
-    val reports = Seq[Reports](
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+
+  "Compliance for cfengine vars and reports" should {
+
+    sealed trait Kind { def value: String ; def tpe: ReportType }
+    final case class Success(value: String) extends Kind { val tpe = SuccessReportType }
+    final case class Repaired(value: String) extends Kind { val tpe = RepairedReportType }
+    final case class Error(value: String) extends Kind { val tpe = ErrorReportType }
+    final case class Missing(value: String) extends Kind { val tpe = MissingReportType }
+    final case class Unexpected(value: String) extends Kind { val tpe = UnexpectedReportType }
+
+    def test(id: String, patterns: Seq[Kind], reports: Seq[Kind]) = {
+      val executionTimestamp = new DateTime()
+
+      val expectedComponent = {
+        val expectOnlySuccess = patterns.collect {
+          case Success(x) => x
+          case Repaired(x) => x
+        }
+        new ComponentExpectedReport("component", 2, expectOnlySuccess, expectOnlySuccess)
+      }
+
+      val resultReports : Seq[Reports] = reports.map( x => x match {
+        case Success(v) => new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
+        case Repaired(v) => new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", v, executionTimestamp, "message")
+        case x => new ResultErrorReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", x.value, executionTimestamp, "message")
+      })
+
+      val t1 = System.currentTimeMillis
+      val result = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, resultReports, NoAnswerReportType)
+      val t2 = System.currentTimeMillis - t1
+
+      val compliance = ComplianceLevel(
+          success = patterns.collect { case x:Success => x }.size
+        , repaired = patterns.collect { case x:Repaired => x }.size
+        , error = patterns.collect { case x:Error => x }.size
+        , missing = patterns.collect { case x:Missing => x }.size
+        , unexpected = patterns.collect { case x:Unexpected => x }.size
+      )
+
+      s"[${id}] be OK with patterns ${patterns}" in {
+        ( (compliance === result.compliance) /: patterns) { case( example, nextPattern) =>
+          (example /: result.componentValues(nextPattern.value).messages) { case (newExample, nextMessage) =>
+            newExample and nextMessage.reportType === nextPattern.tpe
+          }
+        } and (t2 must be_<(200L)) //take less than these number of ms
+      }
+    }
+
+
+    /*
+     * Test the hard case where we have two components that may return undistinguishable reports, like:
+     * "edit file with names: 1. /etc/foo.${xxx} 2. /etc/foo.old.${yyy}"
+     * And you get [/etc/foo.old.txt, /etc/foo.txt] <- if matched on that order, the first is OK but not the
+     * second.
+     *
+     * Here, the order should not matter because given the pattern, we are able to exactly
+     * find one message for it.
+     */
+
+    test("order1"
+      , patterns = Success("/etc/foo.old.${sys.bla}") :: Repaired("/etc/foo.${sys.bla}") :: Nil
+      , reports  = Success("/etc/foo.old.txt") :: Repaired("/etc/foo.txt") :: Nil
     )
 
-    val badReports = Seq[Reports](
-        new ResultRepairedReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "/var/cfengine", executionTimestamp, "message"),
-        new ResultSuccessReport(executionTimestamp, "cr", "policy", "nodeId", 12, "component", "bar", executionTimestamp, "message")
+    test("order2"
+      , patterns = Success("/etc/foo.old.${sys.bla}") :: Repaired("/etc/foo.${sys.bla}") :: Nil
+      , reports  = Repaired("/etc/foo.txt") :: Success("/etc/foo.old.txt") :: Nil
     )
 
-    val expectedComponent = new ComponentExpectedReport("component", 2
-      , Seq("${sys.bla}", "bar")
-      , Seq("${sys.bla}", "bar")
+    test("order3"
+      , patterns = Repaired("/etc/foo.${sys.bla}") :: Success("/etc/foo.old.${sys.bla}") :: Nil
+      , reports  = Success("/etc/foo.old.txt") :: Repaired("/etc/foo.txt") :: Nil
+    )
+    test("order4"
+      , patterns = Repaired("/etc/foo.${sys.bla}") :: Success("/etc/foo.old.${sys.bla}") :: Nil
+      , reports  = Repaired("/etc/foo.txt") :: Success("/etc/foo.old.txt") :: Nil
     )
 
-    val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
-    val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
 
-    "return a component globally repaired " in {
-      withGood.compliance === ComplianceLevel(success = 1, repaired = 1)
-    }
-    "return a component with two key values " in {
-      withGood.componentValues.size === 2
-    }
-    "return a component with the cfengine keys repaired " in {
-      withGood.componentValues("${sys.bla}").messages.size === 1 and
-      withGood.componentValues("${sys.bla}").messages.forall(x => x.reportType === RepairedReportType)
-    }
-    "return a component with the bar key success " in {
-      withGood.componentValues("bar").messages.size === 1 and
-      withGood.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
-    }
-    "with some bad reports mark only one as unexpected (because the check is not done in checkExpectedComponentWithReports" in {
-      //that's because we are filtering out cfengine values step by step and we don't have any mean, for now,
-      //to know what other values should be marked as unexpected to.
-      withBad.compliance ===  ComplianceLevel(success = 1, repaired = 1, unexpected = 1)
-    }
-    "with bad reports return a component with three key values (one unexpected)" in {
-      withBad.componentValues.size === 3
-    }
+    //
+    test("one var"
+      , patterns = Repaired("${sys.bla}") :: Success("bar") :: Nil
+      , reports  = Repaired("/var/cfengine") :: Success("bar") :: Nil
+    )
 
     /*
      * For the next three, the logic is that:
@@ -357,19 +366,68 @@ class ExecutionBatchTest extends Specification {
      * - have one unexpected, for the last message - and we don't have any way to decide if it
      *   comes from a cfengine var or not !
      */
-    "with bad reports return a component with bar as a success " in {
-      withBad.componentValues("bar").messages.size === 1 and
-      withBad.componentValues("bar").messages.forall(x => x.reportType === SuccessReportType)
-    }
-    "with bad reports return a component with the cfengine key as reparaired" in {
-      withBad.componentValues("${sys.bla}").messages.size === 1 and
-      withBad.componentValues("${sys.bla}").messages.forall(x => x.reportType === RepairedReportType)
-    }
-    "with bad reports return a component with an unknow key as unknown " in {
-      withBad.componentValues("/var/cfengine").messages.size === 1 and
-      withBad.componentValues("/var/cfengine").messages.forall(x => x.reportType === UnexpectedReportType)
-    }
+    // here, we have one unexpected report. We can't know if it is the success or the repaired, so
+    // by implementation, the last is taken as unexpected.
+    // So, if you swap the order of the two "/var/cfengine" reports, the test will fail
+    test("one var and simple reports"
+      , patterns = Repaired("${sys.bla}") :: Success("bar") :: Unexpected("/var/cfengine") :: Nil
+      , reports  = Repaired("/var/cfengine") :: Success("/var/cfengine") :: Success("bar") :: Nil
+    )
+
+    /*
+     * Testing cfengine variables which give the same patterns
+     *
+     * Again, if you switch the order of reports, tests will fail because
+     * we don't have any mean to assign a given report to a given patterns in
+     * that case - the only way to correct that is to be able to have unique identification
+     * of reports by expected component.
+     */
+    test("same patterns"
+      , patterns = Repaired("${sys.bla}") :: Success("${sys.foo}") :: Nil
+      , reports  = Repaired("/var/cfengine") :: Success("/var/cfengine") :: Nil
+    )
+
+    test("same patterns with unexpected"
+      , patterns = Repaired("${sys.bla}") :: Success("${sys.foo}") :: Unexpected("/var/cfengine") :: Nil
+      , reports  = Repaired("/var/cfengine") :: Success("/var/cfengine") :: Success("/var/cfengine") :: Nil
+    )
+
+    /*
+     * A test with a lots of variables and reports, to see if the execution time remains OK
+     */
+    test("lots of reports"
+      , patterns =
+             Success("/var/cfengine")
+          :: Repaired("${sys.bla}")
+          :: Success("${sys.foo}")
+          :: Success("/etc/foo.old.${sys.bla}")
+          :: Repaired("/etc/foo.${sys.bla}")
+          :: Success("a${foo}b${bar}")
+          :: Success("a${foo}b")
+          :: Success("b${foo}b")
+          :: Success("b${foo}c")
+          :: Success("b${foo}d")
+          :: Nil
+      , reports  =
+             Success("/var/cfengine")
+          :: Repaired("/var/cfengine")
+          :: Repaired("/etc/foo.txt")
+          :: Success("/etc/foo.old.txt")
+          :: Success("/var/cfengine")
+          :: Success("aXbX")
+          :: Success("aYb")
+          :: Success("bXb")
+          :: Success("bc")
+          :: Success("bZd")
+          :: Nil
+    )
+
+    test("same report for simple and pattern"
+      , patterns = Success("/var/${sys.bla}") :: Success("/var/cfengine") :: Nil
+      , reports  = Success("/var/cfengine") :: Success("/var/cfengine") :: Nil
+    )
   }
+
 
   "A detailed execution Batch, with one component, cardinality one, one node" should {
 
