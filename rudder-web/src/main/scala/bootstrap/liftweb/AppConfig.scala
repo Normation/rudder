@@ -320,7 +320,7 @@ object RudderConfig extends Loggable {
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
-  val prettyPrinter = new RudderPrettyPrinter(120, 2)
+  val prettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)
   val userLibraryDirectoryName = "directives"
   val groupLibraryDirectoryName = "groups"
   val rulesDirectoryName = "rules"
@@ -1689,6 +1689,7 @@ object RudderConfig extends Loggable {
                                     )
     , previousMigrationController = Some(controlXmlFileFormatMigration_4_5)
   )
+
   /**
    * *************************************************
    * Bootstrap check actions

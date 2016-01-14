@@ -63,6 +63,7 @@ import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
+import java.util.regex.Pattern
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -884,16 +885,18 @@ object ExecutionBatch extends Loggable {
     case class ValueKind(
         none  : Seq[String] = Seq()
       , simple: Map[String, Seq[String]] = Map()
-      , cfeVar: Map[String, Seq[String]] = Map()
+      , cfeVar: List[(String, Pattern)] = List()
     )
 
     val componentMap = expectedComponent.groupedComponentValues
     val valueKind = (ValueKind() /:componentMap) {
       case (kind,  (v, DEFAULT_COMPONENT_KEY)) => kind.copy(none = v +: kind.none )
-      case (kind,  (v, u)) =>
-        v match {
-          case matchCFEngineVars(_) => kind.copy(cfeVar = kind.cfeVar + ((u, v +: kind.cfeVar.getOrElse(u, Seq()))))
-          case _ => kind.copy(simple = kind.simple + ((u, v +: kind.simple.getOrElse(u, Seq()))))
+      case (kind,  (value, unexpandedValue)) =>
+        value match {
+          case matchCFEngineVars(_) =>
+            val pattern = Pattern.compile(replaceCFEngineVars(value))
+            kind.copy(cfeVar = (unexpandedValue, pattern) :: kind.cfeVar)
+          case _ => kind.copy(simple = kind.simple + ((unexpandedValue, value +: kind.simple.getOrElse(unexpandedValue, Seq()))))
         }
     }
 
@@ -921,8 +924,17 @@ object ExecutionBatch extends Loggable {
       val result = for {
         (unexpandedValue, values) <- valueKind.simple
       } yield {
-        //Here, we DO use expanded values to do the match.
-        val reports = purgedReports.filter(r => values.contains(r.keyValue))
+        // we find the reports matching these values, but take
+        // at most the number of values if there is also cfevars
+        // because the remaining values may be for cfengine vars
+        val reports = {
+          val possible = purgedReports.filter(r => values.contains(r.keyValue))
+          if(valueKind.cfeVar.size > 0) {
+            possible.take(values.size)
+          } else {
+            possible
+          }
+        }
         val status = buildComponentValueStatus(
             unexpandedValue
           , reports
@@ -937,57 +949,11 @@ object ExecutionBatch extends Loggable {
 
     // Remove all already parsed reports so we only look in remaining reports for Cfengine variables
     val usedReports = noneReports ++ simpleReports
-    val remainingReports = purgedReports.filterNot(x => usedReports.exists(y => x == y))
+    val remainingReports = purgedReports.diff(usedReports)
 
-    /*
-     * Look into remaining reports for CFEngine variables, values are accumulated and we remove reports while we use them.
-     *
-     * We must sort patterns
-     */
-    def extractCFVarsFromReports (
-        cfVars :List[(String, Seq[String])]
-      , values: Seq[ComponentValueStatusReport]
-      , remainingReports : Seq[Reports]
-    ) : (Seq[ComponentValueStatusReport], Seq[Reports]) = {
-      cfVars match {
-        case Nil =>
-          // Nothing to return results
-          (values, remainingReports)
-        case (unexpanded, patterns) :: rest =>
-          var remains = remainingReports
-          // Match our reports with our pattern, If we do not find a report, we will generate a NoAnswer MessageReport
-          val matchingReports : Seq[(Option[Reports],MessageStatusReport)]= {
-            // Accumulate result for each pattern
-            // we can have several reports matching a pattern, but we take only the first one so that we limit (kind of)
-            // the unexpected resulting from several reports being able to match several pattern.
-            // Real unexpected will be processed at the end.
-            (Seq[(Option[Reports],MessageStatusReport)]() /: patterns) {
-              case (matching, pattern) =>
-                matching :+ (remains.find( _.keyValue.matches(pattern)) match {
-                  // The pattern is not found in the reports, Create a NoAnswer
-                  case None =>
-                    (None, MessageStatusReport(noAnswerType, None))
-                  // We match a report, treat it
-                  case Some(report) =>
-                    remains = remains.diff(Seq(report))
-                    val messageReport = MessageStatusReport(ReportType(report), report.message)
-                    (Some(report),messageReport)
-                })
-            }
-          }
+    // Find what reports matche what cfengine variables
 
-          // Generate our Value for our unexpanded value
-          val messageReports = matchingReports.map(_._2).toList
-          val value = ComponentValueStatusReport(unexpanded, unexpanded, messageReports)
-          // Remove our used reports
-          val usedReports = matchingReports.flatMap(_._1)
-          // Process next step
-          extractCFVarsFromReports(rest, value +: values, remains)
-      }
-    }
-
-    // Generate our value for cfengine variables
-    val (cfeVarValues, lastReports) = extractCFVarsFromReports (valueKind.cfeVar.mapValues(_.map(replaceCFEngineVars(_))).toList, Seq(), remainingReports)
+    val (cfeVarValues, lastReports) = extractCFVarsFromReports(valueKind.cfeVar, remainingReports.toList, noAnswerType)
 
     // Finally, if we still got some reports, generate an unexpected report.
     /*
@@ -1001,10 +967,212 @@ object ExecutionBatch extends Loggable {
         ComponentValueStatusReport(value, value, messageReports)
     }
 
+    /*
+     * Here, we want to merge values BUT also to ballon to report type to the worst in
+     * a list of messages, so that a component value partially in repaired and success
+     * is view in repaired.
+     * This is ok to do so here, because we are looking for the messages of a
+     * same component value (for a node, for a rule, for a directive), so only
+     * for component value with a cardinality > 1, which quite rare.
+     */
+    val componentValues = {
+      val cv = ComponentValueStatusReport.merge(unexpectedStatusReports ++ noneValue ++ simpleValues ++ cfeVarValues ++ lastUnexpected)
+      cv.mapValues { x =>
+        val worst = ReportType.getWorseType(x.messages.map(_.reportType))
+        val messages = x.messages.map(m => m.copy(reportType = worst))
+        x.copy(messages = messages)
+      }
+    }
+
     ComponentStatusReport(
         expectedComponent.componentName
-      , ComponentValueStatusReport.merge(unexpectedStatusReports ++ noneValue ++ simpleValues ++ cfeVarValues ++ lastUnexpected)
+      , componentValues
     )
+  }
+
+
+  /*
+   * Recursively look into remaining reports for CFEngine variables,
+   * values are accumulated and we remove reports while we use them.
+   *
+   * The first matching pattern is used as the correct one, so
+   * they must be sorted from the most specific to the less one
+   * if you don't want to see things like in #7758 happen
+   *
+   * The returned reports are the one that are not matches by
+   * any cfengine variable value
+   *
+   * Visibility is for test
+   *
+   */
+  private[reports] def extractCFVarsFromReports (
+      cfengineVars: List[(String, Pattern)]
+    , allReports  : List[Reports]
+    , noAnswerType: ReportType
+  ) : (Seq[ComponentValueStatusReport], Seq[Reports]) = {
+
+    /*
+     * So, we don't have any simple, robust way to sort
+     * reports or patterns to be sure that we are not
+     * introducing loads of error case.
+     *
+     * So, we are going to test all patterns on all regex,
+     * and find the combination with the most report used.
+     *
+     * One optimisation thought: when a pattern match exactly
+     * one report, we can prune that couple for remaining
+     * pattern tests.
+     *
+     * It is known that that way of testing is quadratic and
+     * will takes A LOT OF TIME for big input.
+     * The rationnal to do it none the less is:
+     * - the quadratic nature is only value with CFEngine params,
+     * - the time remains ok below 20 or so entries,
+     * - the pruning helps
+     * - there is a long terme solution with the unique
+     *   identification of a report for a component (and so no more
+     *   guessing)
+     *
+     * Given all that, if an user fall in the quadratic nature, we
+     * can workaround the problem by splitting his long list of
+     * problematic patterns into two directives, with a little
+     * warn log message.
+     */
+
+
+    /*
+     * From a list of pattern to match, find:
+     * - the pattern with exactly 0 or 1 matching reports and transform
+     *   them into ComponentValueStatusReport,
+     * - the list of possible reports for patterns matching several reports
+     *   when they are tested (but as pruning go, at the end they can have
+     *   far less choice)
+     * - the list of reports not matched by exactly 1 patterns (i.e 0 or more than 2)
+     */
+    def recExtract(
+        cfVars      : List[(String, Pattern)]
+      , values      : List[ComponentValueStatusReport]
+      , multiMatches: List[((String, Pattern), Seq[Reports])]
+      , reports     : List[Reports]
+    ): (List[ComponentValueStatusReport], List[((String, Pattern), Seq[Reports])], List[Reports]) = {
+      //utility: given a list of (pattern, option[report]), recursively construct the list of component value by
+      //looking for used reports: if the option(report) exists and is not used, we have a value, else a missing
+      def recPruneSimple(
+          choices: List[((String, Pattern), Option[Reports])]
+        , usedReports: Set[Reports]
+        , builtValues: List[ComponentValueStatusReport]
+      ): (Set[Reports], List[ComponentValueStatusReport]) = {
+         choices match {
+           case Nil => (usedReports, builtValues)
+           case ((unexpanded, _), optReport) :: tail =>
+             optReport match {
+               case Some(report) if(!usedReports.contains(report)) => //youhou, a new value
+                 val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(ReportType(report), report.message)))
+                 recPruneSimple(tail, usedReports + report, v :: builtValues)
+               case _ =>
+                 //here, either we don't have any reports matching the pattern, or the only possible reports was previously used => missing value for pattern
+                 val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(noAnswerType, None)))
+                 recPruneSimple(tail, usedReports, v :: builtValues)
+             }
+         }
+      }
+
+
+      //prune the multiMatches with one reports, getting a new multi, a new list of matched reports, a new list of final values
+      def recPruneMulti(
+          pruneReports: List[Reports]
+        , multi: List[((String, Pattern), Seq[Reports])]
+        , values: List[ComponentValueStatusReport]
+        , used: List[Reports]
+      ): (List[Reports], List[((String, Pattern), Seq[Reports])], List[ComponentValueStatusReport]) = {
+
+        pruneReports match {
+          case Nil => (used, multi, values)
+          case seq =>
+            val m = multi.map { case (x, r) => (x, r.diff(seq)) }
+            val newBuildableValues = m.collect { case (x, r) if(r.size <= 1) => (x, r.headOption) }
+            val (newUsedReports, newValues) = recPruneSimple(newBuildableValues, Set(), List())
+
+            val newMulti = m.collect { case (x, r) if(r.size > 1) => (x, r) }
+
+            recPruneMulti(newUsedReports.toList, newMulti, values ++ newValues, used ++ newUsedReports)
+        }
+      }
+
+      /*
+       * ********* actually call the logic *********
+       */
+
+      cfVars match {
+        case Nil =>
+          // Nothing to do, time to return results
+          (values, multiMatches, reports)
+        case (unexpanded, pattern) :: remainingPatterns =>
+          //collect all the reports being matched by that pattern
+          val matchingReports = reports.collect { case(r) if(pattern.matcher(r.keyValue).matches) => r }
+
+          matchingReports match {
+            case Nil =>
+              // The pattern is not found in the reports, Create a NoAnswer
+              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(noAnswerType, None)))
+              recExtract(remainingPatterns, v :: values, multiMatches, reports)
+            case report :: Nil =>
+              // we have exactly one report for the pattern, best matches possible => we are sure to take that one,
+              // so remove report from both available reports and multiMatches possible case
+              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(ReportType(report), report.message)))
+              val (newUsedReports, newMulti, newValues) = if(multiMatches.size > 0) {
+                recPruneMulti(List(report), multiMatches, List(), List())
+              } else {
+                (Nil, Nil, Nil)
+              }
+              recExtract(remainingPatterns, v :: newValues ::: values, newMulti, reports.diff( report :: newUsedReports))
+
+            case multi => // the pattern matches several reports, keep them for latter processing
+              recExtract(remainingPatterns, values, ((unexpanded, pattern), multi) :: multiMatches, reports)
+          }
+      }
+    }
+
+    /*
+     * Now, we can still have some choices where several patterns matches the same sets of reports, typically:
+     * P1 => A, B
+     * P2 => B, C
+     * P3 => A, C
+     * We would need to find P1 => A, P2 => B, P3 => C (and not: P1 => A, P2 => C, P3 => ???)
+     * But the case is suffiently rare to ignore it, and just take one report at random for each
+     *
+     * Return the list of chosen values with the matching used reports.
+     */
+    def recProcessMulti(
+        choices: List[((String, Pattern), Seq[Reports])]
+      , usedReports: List[Reports]
+      , values: List[ComponentValueStatusReport]
+    ): (List[ComponentValueStatusReport], List[Reports]) = {
+      choices match {
+        case Nil => (values, usedReports)
+        case ((unexpanded, _), allReports) :: tail =>
+          (allReports.diff(usedReports)) match {
+            case Nil => //too bad, perhaps we could have chosen better
+              val v =  ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(noAnswerType, None)))
+              recProcessMulti(tail, usedReports, v :: values)
+            case report :: _ =>
+              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(ReportType(report), report.message)))
+              recProcessMulti(tail, report :: usedReports, v :: values)
+          }
+      }
+    }
+
+    if(cfengineVars.size > 0) {
+      //actually do the process
+      val (values, multiChoice, remainingReports) = recExtract(cfengineVars, List(), List(), allReports)
+      //chose for multi
+      val (newValues, newUsedReports) = recProcessMulti(multiChoice, Nil, Nil)
+
+      //return the final list of build values and remaining reports
+      (values ::: newValues, remainingReports.diff(newUsedReports))
+    } else {
+      (List(), allReports)
+    }
   }
 
   /*
@@ -1030,16 +1198,16 @@ object ExecutionBatch extends Loggable {
           case _ => {
             filteredReports.size match {
               /* Nothing was received at all for that component so : No Answer or Pending */
-              case 0 if noUnexpectedReports =>  MessageStatusReport(noAnswerType, None) :: Nil
+              case 0 if noUnexpectedReports =>
+                MessageStatusReport(noAnswerType, None) :: Nil
               /* Reports were received for that component, but not for that key, that's a missing report */
-              case 0 =>  MessageStatusReport(UnexpectedReportType, None) :: Nil
+              case x if(x < cardinality) =>
+                (0 until cardinality).map( _ => MessageStatusReport(MissingReportType, None)).toList
               //check if cardinality is ok
-              case x if x == cardinality =>
-                filteredReports.map { r =>
-                  MessageStatusReport(ReportType(r), r.message)
-                }.toList
-              case _ =>
-                filteredReports.map(r => MessageStatusReport(UnexpectedReportType, r.message)).toList
+              case x if(x > cardinality) =>
+                filteredReports.map { r => MessageStatusReport(UnexpectedReportType, r.message) }.toList
+              case x => //correct cardinality
+                filteredReports.map { r => MessageStatusReport(ReportType(r), r.message) }.toList
             }
           }
         }

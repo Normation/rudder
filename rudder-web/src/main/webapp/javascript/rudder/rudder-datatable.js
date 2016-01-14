@@ -402,7 +402,9 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         , "sSearch": ""
       }
     , "fnStateLoadParams": function (oSettings, oData) {
+        // Do not keep any filter
         oData.aoSearchCols = [];
+        oData.oSearch.sSearch = "";
       }
     , "fnDrawCallback": function( oSettings ) {
       var rows = this._('tr', {"page":"current"});
