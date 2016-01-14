@@ -95,7 +95,7 @@ case class GreenChart (value : Int) extends ComplianceLevelPieChart{
 
 case class BlueChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Good (> 75%)"
-  val color = "#5bc0de"
+  val color = "#B2DE5B"
 }
 
 case class OrangeChart (value : Int) extends ComplianceLevelPieChart{
