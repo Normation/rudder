@@ -210,7 +210,7 @@ class ShowNodeDetailsFromNode(
       case Full(node) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(node.id, AcceptedInventory) match {
           case Full(sm) =>
-            val tab = if (displayCompliance) 9 else 0
+            val tab = if (displayCompliance) 1 else 0
             val jsId = JsNodeId(nodeId,"")
             def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
             val detailsId = htmlId(jsId,"details_")
