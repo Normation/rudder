@@ -83,7 +83,20 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     case d:DeploymentStatus => deploymentStatus = d ; reRender()
   }
 
+  private[this] def updateDuration = {
+    val content =
+      deploymentStatus.current match {
+        case SuccessStatus(_,_,end,_) =>Text(DateFormaterService.getFormatedPeriod(end, DateTime.now))
+        case ErrorStatus(_,_,end,_) =>Text(DateFormaterService.getFormatedPeriod(end, DateTime.now))
+        case _ =>
+          NodeSeq.Empty
+    }
+    SetHtml("deployment-end",content)
+
+  }
+
   override def render = {
+    partialUpdate(updateDuration)
     new RenderOut(layout)
   }
 
@@ -111,7 +124,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     def commonStatement(start : DateTime, end : DateTime, durationText : String, headText : String) = {
       <li class="dropdown-header">{headText}</li>
       <li class="dropdown-header">Started at {DateFormaterService.getFormatedDate(start)}</li>
-      <li class="dropdown-header">Finished {DateFormaterService.getFormatedPeriod(end, DateTime.now)} ago</li>
+      <li class="dropdown-header" >Finished <span id="deployment-end">{DateFormaterService.getFormatedPeriod(end, DateTime.now)}</span> ago</li>
       <li class="dropdown-header">{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</li>
     }
     deploymentStatus.current match {
