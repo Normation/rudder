@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -36,7 +36,6 @@
 */
 
 package com.normation.rudder.batch
-
 
 import net.liftweb.common._
 import net.liftweb.actor._
@@ -57,6 +56,7 @@ import com.normation.eventlog.ModificationId
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.ModificationId
 import com.normation.eventlog.ModificationId
+import java.io.File
 
 //ask for a new deployment - automatic deployment !
 //actor: the actor who asked for the deployment
@@ -88,7 +88,6 @@ final case object NoStatus extends CurrentDeploymentStatus with HashcodeCaching
 //last status - success or error
 final case class SuccessStatus(id:Long, started: DateTime, ended:DateTime, configuration: Set[NodeId]) extends CurrentDeploymentStatus with HashcodeCaching
 final case class ErrorStatus(id:Long, started: DateTime, ended:DateTime, failure:Failure) extends CurrentDeploymentStatus with HashcodeCaching
-
 
 final case class DeploymentStatus(
   current: CurrentDeploymentStatus,
@@ -129,13 +128,9 @@ final class AsyncDeploymentAgent(
     case _ => 0L
   }
 
-
   def getStatus : CurrentDeploymentStatus = lastFinishedDeployement
   def getCurrentState : DeployerState = currentDeployerState
 
-  /**
-   *
-   */
   private[this] def getLastFinishedDeployment: CurrentDeploymentStatus = {
     eventLogger.getLastDeployement() match {
       case Empty =>
@@ -162,14 +157,50 @@ final class AsyncDeploymentAgent(
     )
   }
 
-  override protected def lowPriority = {
+  // That flag file is used to determine if a policy update was running when the webapp stopped so we can launch a new one when starting
+  val policyUpdateRunningFlagPath = "/opt/rudder/etc/policy-update-running"
 
+  private[this] def createFlagFile = {
+    val file =  new File(policyUpdateRunningFlagPath)
+    try {
+        file.createNewFile()
+        logger.debug(s"Flag file '${policyUpdateRunningFlagPath}' created")
+    } catch {
+      // Exception while checking the file existence
+      case e : Exception =>
+        logger.error(s"An error occurred while creating flag file '${policyUpdateRunningFlagPath}', cause is: ${e.getMessage}")
+    }
+  }
+
+  private[this] def deleteFlagFile = {
+    val file =  new File(policyUpdateRunningFlagPath)
+    try {
+      if (file.delete) {
+        // Deleted, come back to normal
+        logger.debug(s"Flag file '${policyUpdateRunningFlagPath}' successfully removed")
+      } else {
+        // File could not be deleted, seek for reason
+        if(!file.exists()) {
+          logger.warn(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed as it does not exists anymore")
+        } else {
+          logger.error(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
+         }
+      }
+    } catch {
+      // Exception while checking the file existence
+      case e : Exception =>
+        logger.error(s"An error occurred while deleting flag file '${policyUpdateRunningFlagPath}', cause is: ${e.getMessage}")
+    }
+  }
+  override protected def lowPriority = {
 
     //
     // Start a new deployment
     //
     case AutomaticStartDeployment(modId, actor) => {
       implicit val a = actor
+      createFlagFile
+
       logger.trace("Policy updater: receive new automatic policy update request message")
 
       currentDeployerState match {
@@ -206,6 +237,7 @@ final class AsyncDeploymentAgent(
     case ManualStartDeployment(modId, actor, reason) => {
       implicit val a = actor
       implicit val r = Some(reason)
+      createFlagFile
 
       logger.trace("Policy updater: receive new manual policy update request message")
       currentDeployerState match {
@@ -247,7 +279,7 @@ final class AsyncDeploymentAgent(
     // response from the deployer
     //
     case DeploymentResult(id, modId, startTime, endTime, result, actor, deploymentEventId) => {
-
+      deleteFlagFile
       //process the result
       result match {
         case e:EmptyBox =>
@@ -302,8 +334,6 @@ final class AsyncDeploymentAgent(
     //
     case x => logger.debug("Policy updater does not know how to process message: '%s'".format(x))
   }
-
-
 
   /**
    * The internal agent that will actually do the deployment
