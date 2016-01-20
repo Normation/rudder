@@ -1646,6 +1646,10 @@ object RudderConfig extends Loggable {
         , woNodeGroupRepository
         , uuidGen
       )
+    , new ResumePolicyUpdateRunning(
+          asyncDeploymentAgent
+        , uuidGen
+      )
   )
 
   //////////////////////////////////////////////////////////////////////////////////////////
