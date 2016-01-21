@@ -66,11 +66,12 @@ bundle agent service_action(service_name, action)
       "canonified_action_command" string => canonify("${action_command}");
 
       "old_class_prefix"          string => "service_action_${canonified_service_name}";
-      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
-      "class_prefix"      string => canonify(join("_", "promisers"));
-      "args"                       slist => { "${service_name}", "${action}" };
+      "promisers"                 slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"              string => canonify(join("_", "promisers"));
+      "args"                      slist  => { "${service_name}", "${action}" };
 
   classes:
+
     windows::
       "is_valid_action"               or => {
                                               strcmp("start", "${action}"),
@@ -81,7 +82,7 @@ bundle agent service_action(service_name, action)
 
   methods:
 
-    systemctl_utility_present|service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present::
+    service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present::
 
       "action using command"      usebundle => command_execution("${action_command}");
 
@@ -100,6 +101,7 @@ bundle agent service_action(service_name, action)
       "report"                    usebundle => _log("Running ${action} on service ${service_name} is not possible yet on this system", "${old_class_prefix}", "${class_prefix}", @{args});
 
   services:
+
     # Restart causes the agent to fail, so we must replace it by stop and start
     windows.is_valid_action.!is_restart_action::
       "${service_name}"
@@ -115,5 +117,15 @@ bundle agent service_action(service_name, action)
         service_policy => "start",
         classes        => classes_generic_two("${old_class_prefix}", "${class_prefix}"),
         ifvarclass     => "(!has_promiser_stack.${old_class_prefix}_stop_service_ok)|(has_promiser_stack.${class_prefix}_stop_service_ok)";
+
+  commands:
+
+    # We need to use our own commands: implementation here rather than calling command_execution
+    # because of a CFEngine bug (https://dev.cfengine.com/issues/5840) that causes systemctl
+    # to fail if it can't find /dev/tty, which is the case unless using no_output => true
+    systemctl_utility_present::
+      "${action_command}"
+        contain => in_shell_and_silent,
+        classes => classes_generic("${class_prefix}");
 
 }
