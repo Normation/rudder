@@ -54,7 +54,9 @@ import com.normation.rudder.batch.AutomaticStartDeployment
 class ResumePolicyUpdateRunning(
     asyncGeneration : AsyncDeploymentAgent
   , uuidGen         : StringUuidGenerator
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
+
+  override val description = "Resume policy update if it was running before shutdown"
 
   override def checks() : Unit = {
 
