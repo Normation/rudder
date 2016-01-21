@@ -69,6 +69,7 @@ bundle agent service_action(service_name, action)
       "class_prefix"              string => "service_action_${canonified_service_name}";
 
   classes:
+
     windows::
       "is_valid_action"               or => {
                                               strcmp("start", "${action}"),
@@ -79,10 +80,9 @@ bundle agent service_action(service_name, action)
 
   methods:
 
-    systemctl_utility_present|service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present::
+    service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present::
 
       "action"                    usebundle => command_execution("${action_command}");
-
       "class copy"                usebundle => _classes_copy("command_execution_${canonified_action_command}", "${class_prefix}");
 
     systemctl_utility_present|service_utility_present|init_d_directory_present|startsrc_utility_present|svcadm_utility_present|(windows.is_valid_action)::
@@ -96,6 +96,7 @@ bundle agent service_action(service_name, action)
       "report"                    usebundle => _logger("Running ${action} on service ${service_name} is not possible yet on this system", "${class_prefix}");
 
   services:
+
     # Restart causes the agent to fail, so we must replace it by stop and start
     windows.is_valid_action.!is_restart_action::
       "${service_name}"
@@ -111,5 +112,15 @@ bundle agent service_action(service_name, action)
         service_policy => "start",
         classes        => classes_generic("${class_prefix}"),
         ifvarclass     => "${class_prefix}_stop_service_ok";
+
+  commands:
+
+    # We need to use our own commands: implementation here rather than calling command_execution
+    # because of a CFEngine bug (https://dev.cfengine.com/issues/5840) that causes systemctl
+    # to fail if it can't find /dev/tty, which is the case unless using no_output => true
+    systemctl_utility_present::
+      "${action_command}"
+        contain => in_shell_and_silent,
+        classes => classes_generic("${class_prefix}");
 
 }
