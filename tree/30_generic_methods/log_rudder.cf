@@ -141,9 +141,10 @@ bundle agent _log_rudder_v2(expected_reports_source, message, class_prefix, args
 
       # 2/ We remove the last promiser, which is the original call to any of the above logger methods
       "promiser_count"   int => length("promiser_list_nologgerint");
-      "nologger_len"  string => eval("${promiser_count}-1", "math", "infix");
-      "nologger_len_int" int => "${nologger_len}";
-      "promiser_list_nologger" slist => sublist("promiser_list_nologgerint", "head", "${nologger_len_int}");
+      "nologger_len_real"  string => eval("${promiser_count}-1", "math", "infix");
+      # Avoid error when casting to int (#7762)
+      "nologger_len" string => format("%d", "${nologger_len_real}");
+      "promiser_list_nologger" slist => sublist("promiser_list_nologgerint", "head", "${nologger_len}");
 
       "promisers"     string => join(" / ", "promiser_list_nologger");
 
