@@ -146,6 +146,7 @@ import com.normation.rudder.services.policies.write.PathComputerImpl
 import com.normation.rudder.services.policies.write.PrepareTemplateVariablesImpl
 import com.typesafe.config.ConfigException
 import org.apache.commons.io.FileUtils
+import com.normation.templates.FillTemplatesService
 
 /**
  * Define a resource for configuration.
@@ -1352,6 +1353,7 @@ object RudderConfig extends Loggable {
     , pathComputer
     , new NodeConfigurationLoggerImpl(RUDDER_DEBUG_NODE_CONFIGURATION_PATH)
     , new PrepareTemplateVariablesImpl(techniqueRepositoryImpl, systemVariableSpecService)
+    , new FillTemplatesService()
     , RUDDER_COMMUNITY_CHECKPROMISES_COMMAND
     , RUDDER_NOVA_CHECKPROMISES_COMMAND
     , RUDDER_CFENGINE_RELOAD_SERVER_COMMAND
