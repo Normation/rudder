@@ -57,10 +57,6 @@ import com.normation.rudder.repository.LicenseRepository
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationLogger
-import com.normation.stringtemplate.language.NormationAmpersandTemplateLexer
-import com.normation.stringtemplate.language.formatter.DateRenderer
-import com.normation.stringtemplate.language.formatter.LocalDateRenderer
-import com.normation.stringtemplate.language.formatter.LocalTimeRenderer
 import com.normation.utils.Control._
 import org.antlr.stringtemplate.StringTemplate
 import org.apache.commons.io.FileUtils
@@ -73,7 +69,8 @@ import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.domain.licenses.NovaLicense
 import scala.io.Codec
-
+import com.normation.templates.FillTemplatesService
+import com.normation.templates.STVariable
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -101,6 +98,7 @@ class Cf3PromisesFileWriterServiceImpl(
   , pathComputer             : PathComputer
   , logNodeConfig            : NodeConfigurationLogger
   , prepareTemplate          : PrepareTemplateVariables
+  , fillTemplates            : FillTemplatesService
   , communityCheckPromises   : String
   , novaCheckPromises        : String
   , cfengineReloadPromises   : String
@@ -153,7 +151,7 @@ class Cf3PromisesFileWriterServiceImpl(
      * - then, for each node/agent, prepare for each techniques the context variable to use, and the expected reports file to construct
      * - then, actually write things. For a node/agent, write into the ".new" directory:
      *   - for each technique:
-     *   	   - the corresponding promises with templates filled
+     *        - the corresponding promises with templates filled
      *       - other resources files
      *   - the expected reports file
      *   - the bundle file
@@ -527,46 +525,16 @@ class Cf3PromisesFileWriterServiceImpl(
 
     //here, we need a big try/catch, because almost anything in string template can
     //throw errors
+    // write the files to the new promise folder
+    logger.trace("Create promises file %s %s".format(outPath, templateInfo.destination))
 
-    try {
-
-      //string template does not allows "." in path name, so we are force to use a templateGroup by policy template (versions have . in them)
-      val template = new StringTemplate(templateInfo.content, classOf[NormationAmpersandTemplateLexer])
-      template.registerRenderer(classOf[DateTime], new DateRenderer())
-      template.registerRenderer(classOf[LocalDate], new LocalDateRenderer())
-      template.registerRenderer(classOf[LocalTime], new LocalTimeRenderer())
-
-      for (variable <- variableSet) {
-        // Only System Variables have nullable entries
-        if ( variable.isSystem && variable.mayBeEmpty &&
-            ( (variable.values.size == 0) || (variable.values.size ==1 && variable.values.head == "") ) ) {
-          template.setAttribute(variable.name, null)
-        } else if (!variable.mayBeEmpty && variable.values.size == 0) {
-          throw new VariableException(s"Mandatory variable ${variable.name} is empty, can not write ${templateInfo.destination}")
-        } else {
-          logger.trace(s"Adding variable ${outPath + "/" + templateInfo.destination} : ${variable.name} values ${variable.values.mkString("[",",","]")}")
-          variable.values.foreach { value => template.setAttribute(variable.name, value)
-          }
-        }
-      }
-
-      // write the files to the new promise folder
-      logger.trace("Create promises file %s %s".format(outPath, templateInfo.destination))
-
-      for {
-        _ <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), template.toString, Codec.UTF8.charSet) } ?~!
-               s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
-      } yield {
-        outPath
-      }
-
-    } catch {
-      case ex: Exception =>
-        val m = "Writing promises error in file template " + templateInfo
-        logger.error(m, ex)
-        Failure(m)
+    for {
+      replaced <- fillTemplates.fill(templateInfo.destination, templateInfo.content, variableSet)
+      _        <- tryo { FileUtils.writeStringToFile(new File(outPath, templateInfo.destination), replaced, Codec.UTF8.charSet) } ?~!
+                    s"Bad format in Technique ${templateInfo.id.toString} (file: ${templateInfo.destination})"
+    } yield {
+      outPath
     }
-
   }
 
   private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String], String) = {

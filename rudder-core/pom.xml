@@ -67,9 +67,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
-      <groupId>org.antlr</groupId>
-      <artifactId>stringtemplate</artifactId>
-      <version>3.2.1</version>
+      <groupId>com.normation.rudder</groupId>
+      <artifactId>rudder-templates</artifactId>
+      <version>${rudder-version}</version>
     </dependency>
 
     <dependency>
@@ -155,6 +155,35 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.normation</groupId>
+      <artifactId>spring-run-dependencies</artifactId>
+      <version>${spring-run-dep-version}</version>
+      <type>pom</type>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <version>${spring-version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jdbc</artifactId>
+      <version>${spring-version}</version>
+      <exclusions>
+        <!-- they come from elsewhere, with the good dependencies -->
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.springframework</groupId>
+          <artifactId>spring-beans</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
   </dependencies>
 </project>
