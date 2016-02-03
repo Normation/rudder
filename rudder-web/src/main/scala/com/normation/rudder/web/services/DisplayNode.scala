@@ -369,6 +369,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           <b>Manufacturer:</b> {sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}<br/>
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
+          <b>Motherboard UUID:</b> {sm.machine.map(_.id.value).getOrElse("-")}<br/>
           <b>System Serial Number:</b> {sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}<br/>
         </div>
 
