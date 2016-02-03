@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -92,11 +92,9 @@ object DisplayNode extends Loggable {
     case Full(n) => n
   }
 
-
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
-
 
   private[this] def content() = chooseTemplate("serverdetails","content",template)
 
@@ -364,6 +362,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           <b>Manufacturer:</b> {sm.machine.flatMap(x => x.manufacturer).map(x => x.name).getOrElse("-")}<br/>
           <b>Total physical memory (RAM):</b> {sm.node.ram.map( _.toStringMo).getOrElse("-")}<br/>
           <b>Total swap space:</b> {sm.node.swap.map( _.toStringMo).getOrElse("-")}<br/>
+          <b>Motherboard UUID:</b> {sm.machine.map(_.id.value).getOrElse("-")}<br/>
           <b>System Serial Number:</b> {sm.machine.flatMap(x => x.systemSerialNumber).getOrElse("-")}<br/>
         </div>
 
@@ -395,7 +394,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
         </div>
     </fieldset>
-
 
   }
 
@@ -535,7 +533,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     }<div id={htmlId(jsId,eltName + "_grid_") + "_paginate_area"} class="paginate"/>
     </div>
   }
-
 
   private def displayTabSoftware(jsId:JsNodeId) : NodeSeq =
     displayTabGrid(jsId)("soft",
@@ -735,8 +732,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         </span>
       </div>
     </div> ;
-
-
 
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw(s""" createPopup("${deleteNodePopupHtmlId}") """)
