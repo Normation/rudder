@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -37,13 +37,13 @@
 
 package com.normation.rudder.repository.jdbc
 
+import java.io.Closeable
+
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 
 import javax.sql.DataSource
 import net.liftweb.common.Loggable
-import java.io.Closeable
-import com.jolbox.bonecp.BoneCPConfig
-import com.jolbox.bonecp.BoneCP
-import com.jolbox.bonecp.BoneCPDataSource
 
 /**
  * A wrapper around defaut data source provider to allow for several
@@ -61,26 +61,23 @@ class RudderDatasourceProvider(
 ) extends Loggable {
   Class.forName(driver)
 
-  val minPoolSize = 1
-  val config = new BoneCPConfig()
+  val config = new HikariConfig()
   config.setJdbcUrl(url)
 
   config.setUsername(username)
   config.setPassword(password)
-  config.setMinConnectionsPerPartition(minPoolSize)
-  config.setMaxConnectionsPerPartition(if(maxPoolSize < minPoolSize) minPoolSize else maxPoolSize)
-  config.setPartitionCount(1)
+  config.setMaximumPoolSize(if(maxPoolSize < 2) 2 else maxPoolSize)
 
 
   //set parameters to test for dead connection
   //not sure we need that, since we use JDBC4 driver, see:
   //https://github.com/brettwooldridge/HikariCP => in page, text "connectionTestQuery"
-  config.setConnectionTestStatement("SELECT 1")
+  config.setConnectionTestQuery("SELECT 1")
 
 
   lazy val datasource: DataSource with Closeable = try {
 
-    val pool = new BoneCPDataSource(config)
+    val pool = new HikariDataSource(config)
 
     /* try to get the connection */
     val connection = pool.getConnection()
