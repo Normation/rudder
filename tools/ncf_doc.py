@@ -60,6 +60,10 @@ if __name__ == '__main__':
       content.append('<a class="anchor" name="'+generic_method["bundle_name"]+'"></a>')
       content.append('\n### '+ bundle_name)
       content.append(generic_method["description"])
+      content.append('\nCompatible with CFEngine '+generic_method["agent_version"])
+      if generic_method["documentation"] != "":
+        content.append('\n#### Usage')
+        content.append(generic_method["documentation"])
       content.append('\n#### Signature')
       content.append('    :::cfengine3')
       content.append('    bundle agent ' + bundle_name + "(" + ", ".join(generic_method["bundle_args"]) + ")")
