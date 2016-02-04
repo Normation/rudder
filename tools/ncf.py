@@ -27,12 +27,10 @@ dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_k
 
 tags = {}
 tags["common"] = ["bundle_name", "bundle_args"]
-tags["generic_method"] = ["name", "description", "parameter", "class_prefix", "class_parameter", "class_parameter_id", "deprecated"]
+tags["generic_method"] = ["name", "description", "documentation", "parameter", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version"]
 tags["technique"] = ["name", "description", "version"]
-optionnal_tags = [ "deprecated" ]
-
-
-multiline_tags = [ "description" ]
+optionnal_tags = [ "deprecated", "documentation" ]
+multiline_tags = [ "description", "documentation" ]
 
 class NcfError(Exception):
   def __init__(self, message, details="", cause=None):
@@ -203,6 +201,9 @@ def parse_bundlefile_metadata(content, bundle_type):
   # If we found any parameters, store them in the res object
   if len(parameters) > 0:
     res['parameter'] = parameters
+
+  if not "agent_version" in res:
+    res["agent_version"] = ">= 3.5"
 
   all_tags = tags[bundle_type] + tags["common"]
   expected_tags = [ tag for tag in all_tags if not tag in optionnal_tags]
