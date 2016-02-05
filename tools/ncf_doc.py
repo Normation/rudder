@@ -61,7 +61,7 @@ if __name__ == '__main__':
       content.append('\n### '+ bundle_name)
       content.append(generic_method["description"])
       content.append('\nCompatible with CFEngine '+generic_method["agent_version"])
-      if generic_method["documentation"] != "":
+      if "documentation" in generic_method:
         content.append('\n#### Usage')
         content.append(generic_method["documentation"])
       content.append('\n#### Signature')

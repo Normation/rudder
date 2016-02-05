@@ -28,6 +28,9 @@ class TestNcf(unittest.TestCase):
           ]
         }
     self.technique_metadata_test_content = os.path.realpath('technique_metadata_test_content.cf')
+    all_tags = ncf.tags["generic_method"]+ncf.tags["common"]
+    self.methods_expected_tags = [ tag for tag in all_tags if not tag in ncf.optionnal_tags ]
+    
     with open(self.technique_metadata_test_content) as fd:
       self.technique_test_expected_content = fd.read()
 
@@ -76,7 +79,7 @@ class TestNcf(unittest.TestCase):
   def test_parse_generic_method(self):
     """Parsing a generic method should return a dict with all defined generic_method tags"""
     metadata = ncf.parse_generic_method_metadata(self.generic_method_content)
-    self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["generic_method"]+ncf.tags["common"]))
+    self.assertTrue(set(metadata.keys()).issuperset(set(self.methods_expected_tags)))
 
   def test_parse_generic_method_data(self):
     """Parsing should return a dict with the data from the test generic_method"""
@@ -89,7 +92,7 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)
-    self.assertEqual(len(metadata), len(ncf.tags["generic_method"]+ncf.tags["common"]))
+    self.assertEqual(metadata['agent_version'], ">= 3.5")
 
   ###########################################################
   # Tests to obtain the generic methods that a Technique uses
