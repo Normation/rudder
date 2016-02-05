@@ -202,7 +202,7 @@ def parse_bundlefile_metadata(content, bundle_type):
   if len(parameters) > 0:
     res['parameter'] = parameters
 
-  if not "agent_version" in res:
+  if bundle_type == "generic_method" and not "agent_version" in res:
     res["agent_version"] = ">= 3.5"
 
   all_tags = tags[bundle_type] + tags["common"]

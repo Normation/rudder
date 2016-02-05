@@ -92,7 +92,9 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)
+    self.assertEqual(metadata['agent_version'], ">= 3.5")
     self.assertEqual(len(metadata), len(self.methods_expected_tags))
+    self.assertEqual(metadata['agent_version'], ">= 3.5")
 
   ###########################################################
   # Tests to obtain the generic methods that a Technique uses
