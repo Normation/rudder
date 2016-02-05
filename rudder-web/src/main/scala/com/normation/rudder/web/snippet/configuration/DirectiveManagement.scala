@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -127,7 +127,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
   private[this] val directiveId: Box[String] = S.param("directiveId")
 
-
   /**
    * Head information (JsTree dependencies,...)
    */
@@ -206,7 +205,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     ) ++ Script(OnLoad(buildJsTree()))
   }
 
-
   private[this] def buildJsTree() : JsCmd = {
 
     def isDirectiveIdValid(directiveId: String): JsCmd = {
@@ -238,8 +236,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       Script(OnLoad(displayDirectiveDetails(DirectiveId(id), workflowEnabled) & Noop))
     case _ =>  <div id={ htmlId_policyConf }></div>
   }
-
-
 
   def initTechniqueDetails(workflowEnabled: Boolean) : MemoizeTransform = SHtml.memoize {
 
@@ -405,7 +401,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
     def onSubmitMigration(v:TechniqueVersion, directive:Directive, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean) = {
       currentTechnique = Some((activeTechnique,v))
-      updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, directive.copy(techniqueVersion = v), Some(directive), workflowEnabled, false)
+      updateDirectiveFormComponent(activeTechnique, directive.copy(techniqueVersion = v), Some(directive), workflowEnabled, false)
     }
 
     "*" #> currentDirectiveSettingForm.is
@@ -473,7 +469,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     new CreateDirectivePopup(
         technique.name, technique.description, technique.id.version,
         onSuccessCallback = { (directive : Directive) =>
-          updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, directive,None, workflowEnabled, true)
+          updateDirectiveFormComponent(activeTechnique, directive,None, workflowEnabled, true)
           //Update UI
           Replace(htmlId_policyConf, showDirectiveDetails) &
           JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
@@ -488,7 +484,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Full((fullActiveTechnique, directive)) =>
         Replace(htmlId_activeTechniquesTree, userLibrary(workflowEnabled))
         currentTechnique = Some((fullActiveTechnique, directive.techniqueVersion))
-        updateCf3PolicyDraftInstanceSettingFormComponent(fullActiveTechnique, directive, None, workflowEnabled, false)
+        updateDirectiveFormComponent(fullActiveTechnique, directive, None, workflowEnabled, false)
       case eb: EmptyBox => currentDirectiveSettingForm.set(eb)
     }
 
@@ -501,14 +497,13 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     JsRaw("""createTooltip(); scrollToElement('%s')""".format(htmlId_policyConf))
   }
 
-  private[this] def updateCf3PolicyDraftInstanceSettingFormComponent(
+  private[this] def updateDirectiveFormComponent(
       activeTechnique     : FullActiveTechnique
     , directive           : Directive
     , oldDirective        : Option[Directive]
     , workflowEnabled     : Boolean
     , isADirectiveCreation: Boolean
   ) : Unit = {
-
 
     activeTechnique.techniques.get(directive.techniqueVersion) match {
       case Some(technique) =>
@@ -545,7 +540,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
         directiveLibrary.flatMap( _.allDirectives.get(dir.id)) match {
           case Full((activeTechnique, directive)) => {
-            updateCf3PolicyDraftInstanceSettingFormComponent(activeTechnique, dir, None, workflowEnabled, false)
+            updateDirectiveFormComponent(activeTechnique, dir, None, workflowEnabled, false)
             Replace(htmlId_policyConf, showDirectiveDetails) &
             JsRaw("""this.window.location.hash = "#" + JSON.stringify({'directiveId':'%s'})"""
               .format(dir.id.value)) &
@@ -598,7 +593,6 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
 
 }
 
-
 object DirectiveManagement {
 
   /*
@@ -610,4 +604,3 @@ object DirectiveManagement {
   val html_addPiInActiveTechnique = "addNewDirective"
   val html_techniqueDetails = "techniqueDetails"
 }
-
