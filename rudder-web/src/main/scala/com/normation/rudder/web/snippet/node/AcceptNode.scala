@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -114,7 +114,6 @@ class AcceptNode {
 
   def acceptTemplate = chooseTemplate("accept_new_server","template",template)
 
-
   def refuseTemplatePath = List("templates-hidden", "Popup", "refuse_new_server")
   def templateRefuse() =  Templates(refuseTemplatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -124,12 +123,9 @@ class AcceptNode {
 
   def refuseTemplate = chooseTemplate("refuse_new_server","template",templateRefuse)
 
-
   def head() : NodeSeq =
     <head>{
-      serverGrid.head ++ Script(OnLoad(JsRaw("""
-          $("button", ".bottomButton").button();
-      """) ) )
+      serverGrid.head ++ Script(OnLoad(JsRaw("""correctButtons() """) ) )
     }</head>
 
   /*
@@ -356,20 +352,23 @@ class AcceptNode {
         ),
         """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
         ,true
-      ),
-      "accept" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
-        () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
-      }) % ("style", "width:170px")} else NodeSeq.Empty},
-      "refuse" -> {if (seq.size > 0 ) { SHtml.ajaxButton("Refuse", {
-        () => showConfirmPopup(refuseTemplate, "refusePopup")
-      }) } else NodeSeq.Empty},
-      "errors" -> (errors match {
+      )
+    , "accept" ->
+          SHtml.ajaxButton(
+              "Accept"
+            , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
+          ) % ("class", "pull-right buttonMargin")
+    , "refuse" ->
+          SHtml.ajaxButton(
+              "Refuse"
+            , { () => showConfirmPopup(refuseTemplate, "refusePopup" ) }
+          ) % ("class", "pull-right dangerButton buttonMargin")
+    , "errors" -> (errors match {
         case None => NodeSeq.Empty
         case Some(x) => <div>x</div>
-      }),
-      "selectall" -> {if (seq.size > 0 ) {selectAll} else NodeSeq.Empty}
-      )
-    }
+      })
+    , "selectall" -> selectAll
+    )}
   }
 
   /**
@@ -383,5 +382,3 @@ class AcceptNode {
       </p>
       </div>
 }
-
-
