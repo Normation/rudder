@@ -59,7 +59,8 @@ trait DirectiveEditorService {
     techniqueId: TechniqueId,
     directiveId: DirectiveId,
     //withExecutionPlanning:Option[TemporalVariableVal] = None,
-    withVars: Map[String, Seq[String]] = Map()): Box[DirectiveEditor]
+    withVars: Map[String, Seq[String]] = Map()
+  ) : Box[DirectiveEditor]
 
 }
 
