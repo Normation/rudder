@@ -286,13 +286,6 @@ button.largeButton {
    border: 1px solid #b4b3a8;
 }
 
-.bottomButton span button {
-   padding: 0.2em;
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
-}
-
-
 form .center input {
    color: #000;
    background-color: #fba511;
@@ -1029,13 +1022,15 @@ padding:0 20px;
 .notify{
   text-align:center;
 }
-.nserverrmargin{
-  margin-right:5px;
+
+.pull-left {
+  float:left
 }
-.rmargin{
-  float:right; 
-  margin:10px;
+
+.pull-right {
+  float:right
 }
+
 table.searchNodes {
   width: 750px;
   margin: 0;
@@ -2748,9 +2743,8 @@ table thead th {
   border-top-left-radius: 0px !important;
   border-top-right-radius: 0px !important;
 }
-.bottomButton {
-  margin-left:10px;
-}
+
+
 #SearchNodes {
   margin: 0px 0px 0px 0px;
 }
@@ -2916,4 +2910,8 @@ form .tw-bs input {
 
 #createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
 	width : 500px;
+}
+
+button.buttonMargin {
+ margin: 0 10px;
 }
