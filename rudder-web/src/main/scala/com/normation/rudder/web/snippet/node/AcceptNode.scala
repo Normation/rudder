@@ -371,22 +371,6 @@ class AcceptNode {
         ),
         """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
         ,true
-/*<<<<<<< HEAD
-      ),
-      "accept" -> {if (nodes.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
-        () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
-      }) % ("style", "width:170px")} else NodeSeq.Empty},
-      "refuse" -> {if (nodes.size > 0 ) { SHtml.ajaxButton("Refuse", {
-        () => showConfirmPopup(refuseTemplate, "refusePopup")
-      }) } else NodeSeq.Empty},
-      "errors" -> (errors match {
-        case None => NodeSeq.Empty
-        case Some(x) => <div>x</div>
-      }),
-      "selectall" -> {if (nodes.size > 0 ) {selectAll} else NodeSeq.Empty}
-      )
-
-=======*/
       )
     , "accept" ->
           SHtml.ajaxButton(
@@ -403,8 +387,7 @@ class AcceptNode {
         case Some(x) => <div>x</div>
       })
     , "selectall" -> selectAll
-    )//}
-//>>>>>>> branches/rudder/2.11
+    )
   }
 
   /**
