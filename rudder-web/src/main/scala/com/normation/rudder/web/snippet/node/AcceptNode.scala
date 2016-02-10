@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -141,7 +141,7 @@ class AcceptNode extends Loggable {
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
       case f@Failure(_,_,_) => <div>Error while retriving server to confirm</div>
-      case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""$("button", ".bottomButton").button();""") ) )
+      case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""correctButtons();""") ) )
     }
   }
 
@@ -371,20 +371,23 @@ class AcceptNode extends Loggable {
     }
 
     bind("pending",html,
-      "servers" -> servers,
-      "accept" -> {if (nodes.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
-        () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
-      }) % ("style", "width:170px")} else NodeSeq.Empty},
-      "refuse" -> {if (nodes.size > 0 ) { SHtml.ajaxButton("Refuse", {
-        () => showConfirmPopup(refuseTemplate, "refusePopup")
-      }) } else NodeSeq.Empty},
-      "errors" -> (errors match {
+        "servers" -> servers
+      , "accept" ->
+          SHtml.ajaxButton(
+              "Accept"
+            , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
+          ) % ("class", "pull-right buttonMargin")
+      , "refuse" ->
+          SHtml.ajaxButton(
+              "Refuse"
+            , { () => showConfirmPopup(refuseTemplate, "refusePopup" ) }
+          ) % ("class", "pull-right dangerButton buttonMargin")
+      , "errors" -> (errors match {
         case None => NodeSeq.Empty
         case Some(x) => <div>x</div>
-      }),
-      "selectall" -> {if (nodes.size > 0 ) {selectAll} else NodeSeq.Empty}
-      )
-
+      })
+    , "selectall" -> selectAll
+    )
   }
 
   /**
@@ -397,5 +400,4 @@ class AcceptNode extends Loggable {
       Select/deselect all <input type="checkbox" id="selectAll" onClick="jqCheckAll('selectAll', 'serverids')"/>
       </p>
       </div>
-
 }
