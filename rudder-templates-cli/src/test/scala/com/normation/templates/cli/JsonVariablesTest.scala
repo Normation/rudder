@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2011 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,59 +35,45 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository.jdbc
+package com.normation.templates.cli
 
-import java.io.Closeable
+import com.normation.templates.STVariable
 
-import com.zaxxer.hikari.HikariConfig
-import com.zaxxer.hikari.HikariDataSource
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
 
-import javax.sql.DataSource
-import net.liftweb.common.Loggable
-
-/**
- * A wrapper around defaut data source provider to allow for several
- * databases connections, and still offer the multi-threading capabilities
- *
- * Switch to HikaryCP seems it seems to be the new kid in the bloc
- * http://blog.trustiv.co.uk/2014/06/battle-connection-pools
- */
-class RudderDatasourceProvider(
-    driver     : String
-  , url        : String
-  , username   : String
-  , password   : String
-  , maxPoolSize: Int
-) extends Loggable {
-  Class.forName(driver)
-
-  val config = new HikariConfig()
-  config.setJdbcUrl(url)
-
-  config.setUsername(username)
-  config.setPassword(password)
-  config.setMaximumPoolSize(if(maxPoolSize < 1) 1 else maxPoolSize)
+@RunWith(classOf[JUnitRunner])
+class JsonVariablesTest extends Specification {
 
 
-  //set parameters to test for dead connection
-  //not sure we need that, since we use JDBC4 driver, see:
-  //https://github.com/brettwooldridge/HikariCP => in page, text "connectionTestQuery"
-  config.setConnectionTestQuery("SELECT 1")
 
+  "A json file for variable" should {
+    "correctly be parsed with different case of values" in {
+      val json = """
+         {
+             "key1": true
+           , "key2": "some value"
+           , "key3": "42"
+           , "key4": [ "some", "more", "values", true, false ]
+           , "key5": { "value": "k5", "system": true, "optional": false }
+           , "key6": { "value": [ "a1", "a2", "a3" ], "system": false, "optional": true }
+           , "key7": ""
+           , "key8": { "value": [] }
+         }
+        """
+      val variables = Seq(
+          STVariable("key1", true,  Seq(true), false)
+        , STVariable("key2", true,  Seq("some value"), false)
+        , STVariable("key3", true,  Seq("42"), false)
+        , STVariable("key4", true,  Seq("some", "more", "values", true, false), false)
+        , STVariable("key5", false, Seq("k5"), true)
+        , STVariable("key6", true,  Seq("a1", "a2", "a3"), false)
+        , STVariable("key7", true,  Seq(""), false)
+        , STVariable("key8", true,  Seq(), false)
+      )
 
-  lazy val datasource: DataSource with Closeable = try {
-
-    val pool = new HikariDataSource(config)
-
-    /* try to get the connection */
-    val connection = pool.getConnection()
-    connection.close()
-
-    pool
-  } catch {
-    case e: Exception =>
-      logger.error("Could not initialise the access to the database")
-      throw e
+      ParseVariables.fromString(json).openOrThrowException("Failed test!") must containTheSameElementsAs(variables)
+    }
   }
-
 }

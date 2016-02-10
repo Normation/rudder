@@ -62,6 +62,7 @@ import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import org.joda.time.DateTime
 import net.liftweb.common._
 import scala.io.Codec
+import com.normation.templates.STVariable
 
 trait PrepareTemplateVariables {
 
