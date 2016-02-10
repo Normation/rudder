@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -43,6 +43,7 @@ import com.normation.inventory.domain.AgentType
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.utils.HashcodeCaching
+import com.normation.templates.STVariable
 
 /**
  * That file store utility case classes about information used to
@@ -109,26 +110,7 @@ case class PreparedTechnique(
   , filesToCopy         : Set[TechniqueFile]
 ) extends HashcodeCaching
 
-/**
- * A "string template variable" is a variable destinated to be
- * used by String Template so that it can be replaced correctly
- * in templates.
- *
- * A STVariable is composed of:
- * - a name : the tag in the template that string template
- *   will look for and replace)
- * - a list of values of type Any which string template will handle
- *   accordingly to its formatters
- * - a "mayBeEmpty" flag that allows string template to know how to
- *   handle empty list of values
- * - a "isSystem" flag that describe if the variable is system or not
- */
-case class STVariable(
-    name      :String
-  , mayBeEmpty:Boolean
-  , values    :Seq[Any]
-  , isSystem  :Boolean
-) extends HashcodeCaching
+
 
 /**
  * A class that store information about a template to copy somewhere.

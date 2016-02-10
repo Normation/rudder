@@ -95,6 +95,7 @@ import com.normation.rudder.domain.policies.AllTarget
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.licenses.NovaLicense
 import org.specs2.specification.AfterEach
+import com.normation.templates.FillTemplatesService
 
 
 
@@ -208,6 +209,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , pathComputer
     , logNodeConfig
     , prepareTemplateVariable
+    , new FillTemplatesService()
     , "/bin/true", "/bin/true", "/bin/true"
   )
 
