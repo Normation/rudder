@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -115,7 +115,6 @@ class AcceptNode {
 
   def acceptTemplate = chooseTemplate("accept_new_server","template",template)
 
-
   def refuseTemplatePath = List("templates-hidden", "Popup", "refuse_new_server")
   def templateRefuse() =  Templates(refuseTemplatePath) match {
     case Empty | Failure(_,_,_) =>
@@ -124,7 +123,6 @@ class AcceptNode {
   }
 
   def refuseTemplate = chooseTemplate("refuse_new_server","template",templateRefuse)
-
 
   def head() : NodeSeq =
     <head>{
@@ -140,16 +138,14 @@ class AcceptNode {
    * On accept, isAccepted = accepted
    */
 
-
   var errors : Option[String] = None
 
   def list(html:NodeSeq) :  NodeSeq =  {
 
-
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
       case f@Failure(_,_,_) => <div>Error while retriving server to confirm</div>
-      case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""$("button", ".bottomButton").button();""") ) )
+      case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""correctButtons();""") ) )
     }
   }
 
@@ -355,7 +351,6 @@ class AcceptNode {
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
 
-
   def display(html:NodeSeq, nodes: Seq[Srv]) = {
     bind("pending",html,
       "servers" -> serverGrid.displayAndInit(nodes,"acceptNodeGrid",
@@ -363,7 +358,7 @@ class AcceptNode {
             (Text("Since"),
                    {e => Text(DateFormaterService.getFormatedDate(e.creationDate))}),
             (Text("Directive"),
-                  { e => SHtml.ajaxButton(<img src="/images/icPolicies.jpg"/>, {
+                  { e => SHtml.ajaxButton(<img src="/images/icMagnify-right.png"/>, {
                       () =>  showExpectedPolicyPopup(e)
                     }, ("class", "smallButton")
                    )
@@ -376,6 +371,7 @@ class AcceptNode {
         ),
         """,{ "sWidth": "60px" },{ "sWidth": "70px", "bSortable":false },{ "sWidth": "15px", "bSortable":false }"""
         ,true
+/*<<<<<<< HEAD
       ),
       "accept" -> {if (nodes.size > 0 ) { SHtml.ajaxButton("Accept into Rudder", {
         () =>  showConfirmPopup(acceptTemplate, "confirmPopup")
@@ -390,6 +386,25 @@ class AcceptNode {
       "selectall" -> {if (nodes.size > 0 ) {selectAll} else NodeSeq.Empty}
       )
 
+=======*/
+      )
+    , "accept" ->
+          SHtml.ajaxButton(
+              "Accept"
+            , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
+          ) % ("class", "pull-right buttonMargin")
+    , "refuse" ->
+          SHtml.ajaxButton(
+              "Refuse"
+            , { () => showConfirmPopup(refuseTemplate, "refusePopup" ) }
+          ) % ("class", "pull-right dangerButton buttonMargin")
+    , "errors" -> (errors match {
+        case None => NodeSeq.Empty
+        case Some(x) => <div>x</div>
+      })
+    , "selectall" -> selectAll
+    )//}
+//>>>>>>> branches/rudder/2.11
   }
 
   /**
@@ -403,5 +418,3 @@ class AcceptNode {
       </p>
       </div>
 }
-
-

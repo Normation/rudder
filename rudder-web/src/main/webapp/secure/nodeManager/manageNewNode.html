@@ -24,7 +24,7 @@
       <div id="review_new_server">
         <div class="tabInform">
           <p>Click on a node name to view detailed inventory information.</p>
-          <p>Click on <img src="/images/icPolicies.jpg"/> to list Rules that would be applied to this node if you accept it.</p>
+          <p>Click on <img src="/images/icMagnify-right.png"/> to list Rules that would be applied to this node if you accept it.</p>
         </div>
         <div class="err"><lift:Msgs>[error]</lift:Msgs></div>
         <div  data-lift="lazy-load">
@@ -34,10 +34,11 @@
             <pending:servers/>
             <div id="acceptNodeGrid_paginate_area" class="nodisplay"/>
             <lift:authz role="node_write">
-            <p class="bottomButton rmargin">
-              <span><pending:accept/></span>
-              <span class="nserverrmargin"><pending:refuse/></span>
-            </p>
+              <p>
+                <pending:accept/>
+                <pending:refuse/>
+                <hr class="spacer"/>
+              </p>
             </lift:authz>
             <pending:errors/>
           </lift:node.AcceptNode.list>
