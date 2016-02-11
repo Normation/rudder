@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -59,8 +59,6 @@ import com.normation.utils.HashcodeCaching
  *
  */
 class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translators: Translators) extends Loggable {
-
-
 
   /**
    * Fully initialize a DirectiveEditor from a list of variables
@@ -111,7 +109,6 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   // machine for real, not with a copy&paste for
   // createSingleSectionFieldForMultisec
   // --------------------------------------------
-
 
   def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean): SectionField = {
     val seqOfSectionMap = {
@@ -223,41 +220,40 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     SectionFieldImp(sectionSpec.name, children, priorityToVisibility(sectionSpec.displayPriority), varMappings)
   }
 
-
-  // transforms
-  // Map(A -> Seq("A1", "A2"), B -> Seq("B1", "b2"))
-  // to
-  // Seq( Map((A -> "A1"), (B -> "B1")),
-  //      Map((A -> "A2"), (B -> "B2")) )
-  //If there is no value, a None is returned
+  // Transforms map of all values by Variable Name
+  // Into the Sequence of all values by section
+  // A section will be defined as a Map of value by variable name
+  //   * ie: Map(A -> Seq("A1", "A2"), B -> Seq("B1", "B2"))  => Seq( Map((A -> "A1"), (B -> "B1"))
+  //                                                                , Map((A -> "A2"), (B -> "B2")) )
+  // If there is no value, a Section with default value is returned is returned
   private def createMapForEachSubSection(section: SectionSpec, valuesByName:Map[String,Seq[String]]): Seq[Map[String, Option[String]]] = {
-    // values represent all the values we have for the same name of variable
-    case class NameValuesVar(name: String, values: Seq[String]) extends HashcodeCaching
 
-    // seq of variable values with same name correctly ordered
-    val seqOfNameValues : Seq[NameValuesVar] = {
-      for {
+    // Variable with max value determine the actual number of section
+    // If a varaible has 6 values, We need to have 6 sections at the end
+    val numberMaxofSections = valuesByName.map(_._2.size).max
+
+    for {
+      // For each section
+      sectionIndex <- 0 until numberMaxofSections
+
+    } yield {
+      ( for {
         varSpec <- section.getAllVariables
-      } yield {
-        NameValuesVar(varSpec.name, valuesByName.getOrElse(varSpec.name, Seq[String]()))
-      }
-    }
-
-    if (seqOfNameValues.isEmpty) {
-      Seq(Map[String, Option[String]]())
-    } else {
-      for {
-        // If head has an empty sequence as value, it does not iterate for other variables
-        // To fix, we use the max size of of all variables (so those value can be used, missing will be set to None.
-        i <- 0 until seqOfNameValues.map(_.values.size).max
-      } yield {
-        for {
-          nameValues <- seqOfNameValues
         } yield {
-          val valueOpt = try Some(nameValues.values(i)) catch { case e: Exception => None }
-          (nameValues.name, valueOpt)
+          val value = valuesByName.get(varSpec.name) match {
+            // No value defined for the variable, get default value
+            case None => varSpec.constraint.default
+            // Some value for this variable, look if defined for this section
+            case Some(values) => values.lift(sectionIndex) match {
+              // No value defined, get default value
+              case None => varSpec.constraint.default
+              // Get value
+              case value => value
+            }
+          }
+          (varSpec.name,value)
         }
-      }.toMap
+      ).toMap
     }
   }
 
