@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -54,7 +54,6 @@ import com.normation.inventory.domain.InventoryConstants._
 import com.normation.inventory.services.provisioning._
 import org.joda.time.format.DateTimeFormatter
 import com.normation.utils.Control.sequence
-
 
 class FusionReportUnmarshaller(
     uuidGen:StringUuidGenerator,
@@ -165,7 +164,7 @@ class FusionReportUnmarshaller(
               logger.warn(s"Duplicate System Serial Number definition in the inventory: s{existingSystemSerialNumber} is the current value, skipping the other value ${x}")
           }
         }
-      } 
+      }
 
     /*
      * and now, actually parse !
@@ -221,8 +220,6 @@ class FusionReportUnmarshaller(
 
     Full(fullReport)
   }
-
-
 
   /**
    * Since there is a specific rudder Tag in fusion inventory we need to process it
@@ -340,7 +337,7 @@ class FusionReportUnmarshaller(
   private[this] def demuxSameInterfaceDifferentIp(report: InventoryReport) : InventoryReport = {
     val nets = report.node.networks.groupBy( _.name ).map { case (interface, networks) =>
       val referenceInterface = networks.head //we have at least one due to the groupBy
-      val ips = networks.flatMap( _.ifAddress )
+      val ips = networks.flatMap( _.ifAddresses )
       val uniqIps = ips.distinct
       if(uniqIps.size < ips.size) {
         logger.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
@@ -350,7 +347,6 @@ class FusionReportUnmarshaller(
 
     report.copy(node = report.node.copy(networks = nets))
   }
-
 
   // ******************************************** //
   // parsing implementation details for each tags //
@@ -426,7 +422,6 @@ class FusionReportUnmarshaller(
        * USERDOMAIN : This field is deprecated, you should use the USERS section instead.
        *
        */
-
 
     //update machine VM type
     val newMachine = optText(xml\\"VMSYSTEM") match {
@@ -647,12 +642,21 @@ class FusionReportUnmarshaller(
         logger.debug(n)
         None
       case Some(desc) =>
-        Some( Network(
-            name = desc
-          , ifAddresses = optText(n\"IPADDRESS") match {
+        val ipv4 =  optText(n\"IPADDRESS") match {
               case None => Seq()
               case Some(a) => getAddresses(a)
             }
+        val ipv6 = optText(n\"IPADDRESS6") match {
+              case None => Seq()
+              case Some(a) =>
+                // Ipv6 addresses from fusion inventory may have a / part we need to remove it to get valid ipv6 address
+                val ip = a takeWhile { _ != '/' }
+                getAddresses(ip)
+            }
+
+        Some( Network(
+            name = desc
+          , ifAddresses = ipv4 ++ ipv6
           , ifDhcp = optText(n\"IPDHCP").flatMap(getAddressByName( _ ))
           , ifGateway = optText(n\"IPGATEWAY").flatMap(getAddressByName( _ ))
           , ifMask = optText(n\"IPMASK").flatMap(getAddressByName( _ ))
@@ -982,9 +986,6 @@ class FusionReportUnmarshaller(
 	          ) )
 	  }
   }
-
-
-
 
   def processAccessLog (accessLog : NodeSeq) : Option[DateTime] = {
      val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
