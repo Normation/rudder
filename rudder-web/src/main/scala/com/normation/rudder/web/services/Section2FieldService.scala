@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -59,8 +59,6 @@ import com.normation.utils.HashcodeCaching
  *
  */
 class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translators: Translators) extends Loggable {
-
-
 
   /**
    * Fully initialize a DirectiveEditor from a list of variables
@@ -112,7 +110,6 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   // createSingleSectionFieldForMultisec
   // --------------------------------------------
 
-
   def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean): SectionField = {
     val seqOfSectionMap = {
       if (isNewPolicy) Seq(createDefaultMap(section))
@@ -156,6 +153,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
 
               valueOpt match {
                 case None =>
+                  varSpec.constraint.default foreach (  setValueForField(_, field, t.from) )
                 case Some(value) =>
                   setValueForField(value, field, t.from)
               }
@@ -198,6 +196,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
 
               valueOpt match {
                 case None =>
+                  varSpec.constraint.default foreach (  setValueForField(_, field, t.from) )
                 case Some(value) =>
                   setValueForField(value, field, t.from)
               }
@@ -222,7 +221,6 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     //actually create the SectionField for createSingleSectionField
     SectionFieldImp(sectionSpec.name, children, priorityToVisibility(sectionSpec.displayPriority), varMappings)
   }
-
 
   // transforms
   // Map(A -> Seq("A1", "A2"), B -> Seq("B1", "b2"))
