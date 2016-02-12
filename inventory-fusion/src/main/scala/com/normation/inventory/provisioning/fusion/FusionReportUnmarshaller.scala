@@ -417,7 +417,7 @@ class FusionReportUnmarshaller(
   private[this] def demuxSameInterfaceDifferentIp(report: InventoryReport) : InventoryReport = {
     val nets = report.node.networks.groupBy( _.name ).map { case (interface, networks) =>
       val referenceInterface = networks.head //we have at least one due to the groupBy
-      val ips = networks.flatMap( _.ifAddress )
+      val ips = networks.flatMap( _.ifAddresses )
       val uniqIps = ips.distinct
       if(uniqIps.size < ips.size) {
         logger.error(s"Network interface '${interface}' appears several time with same IPs. Taking only the first one, it is likelly a bug in fusion inventory.")
@@ -741,12 +741,21 @@ class FusionReportUnmarshaller(
         logger.debug(n)
         None
       case Some(desc) =>
-        Some( Network(
-            name = desc
-          , ifAddresses = optText(n\"IPADDRESS") match {
+        val ipv4 =  optText(n\"IPADDRESS") match {
               case None => Seq()
               case Some(a) => getAddresses(a)
             }
+        val ipv6 = optText(n\"IPADDRESS6") match {
+              case None => Seq()
+              case Some(a) =>
+                // Ipv6 addresses from fusion inventory may have a / part we need to remove it to get valid ipv6 address
+                val ip = a takeWhile { _ != '/' }
+                getAddresses(ip)
+            }
+
+        Some( Network(
+            name = desc
+          , ifAddresses = ipv4 ++ ipv6
           , ifDhcp = optText(n\"IPDHCP").flatMap(getAddressByName( _ ))
           , ifGateway = optText(n\"IPGATEWAY").flatMap(getAddressByName( _ ))
           , ifMask = optText(n\"IPMASK").flatMap(getAddressByName( _ ))
