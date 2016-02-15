@@ -58,18 +58,31 @@ do
     excludes=`cat "${exclude_file}"`
   else
     # sed -ne '/regex/F' prints file name when regex matches
-    tag_regex='^#[ \t]*@agent_version[ \t]*>='
+    tag_regex='^#[ \t]*@agent_version[ \t]*'
     for file in `find "${framework_path}/${directory}" -name '*.cf' -exec grep -l "${tag_regex}" '{}' \;`
     do
-      major=`sed -ne "s/${tag_regex}${version_regex}/\\1/p" "${file}"`
-      minor=`sed -ne "s/${tag_regex}${version_regex}/\\2/p" "${file}"`
+      if grep -q "${tag_regex}>=" "${file}"; then operator=">="; fi
+      if grep -q "${tag_regex}<" "${file}"; then operator="<"; fi
+      major=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\1/p" "${file}"`
+      minor=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\2/p" "${file}"`
       file_name=`basename ${file}`
-      if [ "${major}" -gt "${cfengine_major}" ] || [ "${major}" -eq "${cfengine_major}" -a "${minor}" -gt "${cfengine_minor}" ]
+      if [ "${operator}" = ">=" ]
       then
-        # posix compliant syntax to exclude a file
-        excludes="${excludes} -name ${file_name} -prune -o"
+        # keep if cfengine_version >= required_version
+        # exclude if cfengine_version < required_version
+        if [ "${cfengine_major}" -lt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -a "${cfengine_minor}" -lt "${minor}" ]
+        then
+          # posix compliant syntax to exclude a file
+          excludes="${excludes} -name ${file_name} -prune -o"
+        fi
+      elif [ "${operator}" = "<" ]
+        # keep if cfengine_version < required_version
+        # exclude if cfengine_version >= required_version
+        if [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -eq -a "${cfengine_minor}" -ge "${minor}" ]
+          # posix compliant syntax to exclude a file
+          excludes="${excludes} -name ${file_name} -prune -o"
+        fi
       fi
-
     done  
     printf "${excludes}" > "${exclude_file}"
   fi
