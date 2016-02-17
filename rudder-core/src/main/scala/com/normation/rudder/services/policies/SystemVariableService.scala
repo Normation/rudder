@@ -396,8 +396,10 @@ class SystemVariableServiceImpl(
       ""
     } else {
       nodeGroups.flatMap { case (id, name) =>
-        (  s""""${RuleTarget.toCFEngineClassName(id  )}" ${" "*(nodeMaxString-  id.size)} expression => "any"; """
-        :: s""""${RuleTarget.toCFEngineClassName(name)}" ${" "*(nodeMaxString-name.size)} expression => "any"; """
+        (  s""""${RuleTarget.toCFEngineClassName(id  )}" ${" "*(nodeMaxString-  id.size)} expression => "any",\n""" +
+           s"""             ${" "*(nodeMaxString)}   meta => { "inventory", "attribute_name=rudder_groups" };"""
+        :: s""""${RuleTarget.toCFEngineClassName(name)}" ${" "*(nodeMaxString-name.size)} expression => "any",\n""" +
+           s"""             ${" "*(nodeMaxString)}   meta => { "inventory", "attribute_name=rudder_groups" };"""
         :: Nil
         )
       }.mkString("\n")
