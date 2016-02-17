@@ -41,9 +41,13 @@ bundle common rudder_groups {
                                                          meta => { "inventory", "attribute_name=rudder_groups" };
 
   classes:
-      "group_c8813416_316f_4307_9b6a_ca9c109a9fb0"  expression => "any"; 
-      "group_serveurs_______casses"                 expression => "any"; 
-      "group_policyserver_root"                     expression => "any"; 
-      "group_special_policyserver_root"             expression => "any"; 
+      "group_c8813416_316f_4307_9b6a_ca9c109a9fb0"  expression => "any",
+                                                          meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_serveurs_______casses"                 expression => "any",
+                                                          meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_policyserver_root"                     expression => "any",
+                                                          meta => { "inventory", "attribute_name=rudder_groups" };
+      "group_special_policyserver_root"             expression => "any",
+                                                          meta => { "inventory", "attribute_name=rudder_groups" };
 
 }
