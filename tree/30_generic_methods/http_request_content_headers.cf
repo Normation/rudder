@@ -49,7 +49,7 @@ bundle agent http_request_content_headers(method, url, content, headers)
 
   commands:
       "/bin/echo \"${content}\" | ${paths.path[curl]}"
-        args => "${url} -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
+        args => "${url} -L -X ${method} -H '${headers}' -o /dev/null -s -f -d @-",
         contain => in_shell,
         classes => classes_generic("${class_prefix}");
 
