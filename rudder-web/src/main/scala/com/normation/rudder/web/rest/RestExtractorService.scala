@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -88,10 +88,10 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]],key : String)( convertTo : (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(convertTo: (String) => Box[T] = ( (values:String) => Full(values))) : Box[Option[List[T]]] = {
     params.get(key) match {
       case None       => Full(None)
-      case Some(list) => convertTo(list).map(Some(_))
+      case Some(list) => sequence(list)(convertTo).map(seq => Some(seq.toList))
     }
   }
 
@@ -453,7 +453,7 @@ case class RestExtractorService (
   }
 
   def extractNodeIds (params : Map[String,List[String]]) : Box[Option[List[NodeId]]] = {
-    extractList(params, "nodeId")(convertListToNodeId)
+    extractList(params, "nodeId")(x => Full(NodeId(x)))
   }
 
   def extractTechnique(optTechniqueName: Option[TechniqueName], opTechniqueVersion: Option[TechniqueVersion]) :  Box[Technique] = {
@@ -503,10 +503,10 @@ case class RestExtractorService (
       shortDescription <- extractOneValue(params,"shortDescription")()
       longDescription  <- extractOneValue(params,"longDescription")()
       enabled          <- extractOneValue(params,"enabled")( convertToBoolean)
-      directives       <- extractList(params,"directives")( convertListToDirectiveId)
+      directives       <- extractList(params,"directives")( convertToDirectiveId)
       target           <- convertToRuleTarget(params,"targets")
     } yield {
-      RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
+      RestRule(name, category, shortDescription, longDescription, directives.map(_.toSet), target.map(Set(_)), enabled)
     }
   }
 
@@ -638,6 +638,14 @@ case class RestExtractorService (
       case Full(Some(level)) => Full(level)
       case Full(None) => Full(DefaultDetailLevel)
       case eb:EmptyBox => eb ?~ "error with node level detail"
+    }
+  }
+
+  def extractTechniqueNames (params : Map[String,List[String]]) : Box[List[TechniqueName]] = {
+    extractList(params,"technique")((x => Full(TechniqueName(x)))) match {
+      case Full(Some(level)) => Full(level)
+      case Full(None) => Full(Nil)
+      case eb:EmptyBox => eb ?~ "error when extracting technique names"
     }
   }
 

@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -43,16 +43,9 @@ import com.normation.eventlog.ModificationId
 import com.normation.rudder.batch.AsyncDeploymentAgent
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.domain.RudderLDAPConstants
-import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.rudder.domain.policies.ChangeRequestDirectiveDiff
-import com.normation.rudder.domain.policies.DeleteDirectiveDiff
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.ModifyToDirectiveDiff
-import com.normation.rudder.domain.policies.SectionVal
+import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.rudder.repository.RoDirectiveRepository
-import com.normation.rudder.repository.WoDirectiveRepository
+import com.normation.rudder.repository._
 import com.normation.rudder.services.workflows.ChangeRequestService
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.web.model.DirectiveEditor
@@ -71,7 +64,7 @@ import net.liftweb.json.JValue
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.rudder.domain.workflows.ChangeRequestId
-import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.TechniqueRepository
 
 case class DirectiveAPIService2 (
@@ -140,23 +133,23 @@ case class DirectiveAPIService2 (
     }
   }
 
-  def listDirectives(req : Req) = {
-    implicit val action = "listDirectives"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    readDirective.getFullDirectiveLibrary match {
-      case Full(fullLibrary) =>
-        val atDirectives = fullLibrary.allDirectives.values.filter(!_._2.isSystem)
-        val res = ( for {
-          (activeTechnique, directive) <- atDirectives
-          activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
-          technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
-        } yield {
-          serialize(technique,directive)
-        } )
-        toJsonResponse(None, ( "directives" -> JArray(res.toList)))
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Could not fetch Directives")).msg
-        toJsonError(None, message)
+  def listDirectives(req : Req, boxTechniques : Box[List[TechniqueName]]) = {
+    for {
+      techniques <- boxTechniques
+      fullLibrary <- readDirective.getFullDirectiveLibrary
+    } yield {
+      def filterDirective(directiveWithTechnique : (FullActiveTechnique, Directive)) = {
+        !directiveWithTechnique._2.isSystem && (if (techniques.isEmpty) true else techniques.contains(directiveWithTechnique._1.techniqueName))
+      }
+      val atDirectives = fullLibrary.allDirectives.values.filter(filterDirective )
+      val res = ( for {
+        (activeTechnique, directive) <- atDirectives
+        activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
+        technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
+      } yield {
+        serialize(technique,directive)
+      } )
+      JArray(res.toList)
     }
   }
 
@@ -234,7 +227,6 @@ case class DirectiveAPIService2 (
                     toJsonError(Some(directiveId.value), message)
                 }
 
-
               // More than one source, make an error
               case _ =>
                 val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on an already existing Directive, cause is : too many values for source parameter."
@@ -297,8 +289,6 @@ case class DirectiveAPIService2 (
     }
   }
 
-
-
   def updateDirective(id: String, req: Req, restValues : Box[RestDirective]) = {
 
     // A function to check if Variables passed as parameter are correct
@@ -355,7 +345,6 @@ case class DirectiveAPIService2 (
                 toJsonError(Some(directiveId.value), message)
             }
 
-
           case eb : EmptyBox =>
             val fail = eb ?~ (s"Could extract values from request" )
             val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
@@ -369,6 +358,5 @@ case class DirectiveAPIService2 (
     }
 
   }
-
 
 }

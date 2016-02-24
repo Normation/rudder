@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -40,7 +40,6 @@ package com.normation.rudder.web.rest.directive
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -49,17 +48,38 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
+import net.liftweb.json.JsonAST.JValue
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.rest.RestUtils
+import com.normation.utils.StringUuidGenerator
 
 class DirectiveAPI2 (
     readDirective : RoDirectiveRepository
   , restExtractor : RestExtractorService
-  , apiV2          : DirectiveAPIService2
+  , apiV2         : DirectiveAPIService2
+  , uuidGen       : StringUuidGenerator
 ) extends DirectiveAPI with Loggable{
 
+  val dataName = "directives"
+
+  def response ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+    RestUtils.response(restExtractor, dataName)(function, req, errorMessage)
+  }
+
+  def actionResponse ( function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+    RestUtils.actionResponse(restExtractor, dataName, uuidGen)(function, req, errorMessage)
+  }
 
   val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
-    case Get(Nil, req) => apiV2.listDirectives(req)
+    case Get(Nil, req) => {
+
+      implicit val action = "listDirectives"
+      implicit val prettify = restExtractor.extractPrettify(req.params)
+      val techniques = restExtractor.extractTechniqueNames(req.params)
+      response( apiV2.listDirectives(req, techniques), req, "Could not fetch Directives")
+    }
 
     case Nil JsonPut body -> req => {
       req.json match {

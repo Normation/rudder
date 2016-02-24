@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -52,7 +52,8 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
-
+import com.normation.utils.StringUuidGenerator
+import com.normation.eventlog.ModificationId
 
 /**
  */
@@ -84,7 +85,6 @@ object RestUtils extends Loggable {
     case _ => Failure("Prettify should only have one value, and should be set to true or false")
   }
 
-
   /**
    * Our own JSON render function to extends net.liftweb.json.JsonAst.render function
    * All code is taken from JsonAst object from lift-json_2.10-2.5.1.jar (dépendency used in rudder 2.10 at least)
@@ -98,9 +98,6 @@ object RestUtils extends Loggable {
 
     import scala.text.{Document, DocText}
     import scala.text.Document._
-
-
-
 
     // Helper functions, needed but private in JSONAst,
     // That one modified, add a bref after the punctuate
@@ -178,7 +175,6 @@ object RestUtils extends Loggable {
 
   }
 
-
   def toJsonResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) : LiftResponse = {
     effectiveResponse (id, message, RestOk, action, prettify)
   }
@@ -195,6 +191,36 @@ object RestUtils extends Loggable {
   def missingResponse(version:Int,action:String) = {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(action,false)
    }
+
+  def response (restExtractor : RestExtractorService, dataName: String) (function : Box[JValue], req : Req, errorMessage : String) (implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+    function match {
+      case Full(category : JValue) =>
+        toJsonResponse(None, ( dataName -> category))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(None, message)
+    }
+  }
+
+  def actionResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator) (function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+
+    ( for {
+      reason <- restExtractor.extractReason(req.params)
+      modId = ModificationId(uuidGen.newUuid)
+      actor = RestUtils.getActor(req)
+      categories <- function(actor,modId,reason)
+    } yield {
+      categories
+    } ) match {
+      case Full(categories : JValue) =>
+        toJsonResponse(None, ( "groupCategories" -> categories))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(None, message)
+    }
+  }
 
 }
 
@@ -229,7 +255,6 @@ object ApiVersion {
       case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
     }
   }
-
 
 }
 
