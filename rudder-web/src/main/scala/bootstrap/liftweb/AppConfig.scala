@@ -516,6 +516,7 @@ object RudderConfig extends Loggable {
         roDirectiveRepository
       , restExtractorService
       , directiveApiService2
+      , uuidGen
     )
 
   val groupApiService2 =
