@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -96,7 +96,7 @@ case class DirectiveAPIService2 (
     , technique       : Technique
     , activeTechnique : ActiveTechnique
     , directive       : Directive
-    , initialtState   : Option[Directive]
+    , initialState    : Option[Directive]
     , actor           : EventActor
     , req             : Req
     , act             : String
@@ -112,7 +112,7 @@ case class DirectiveAPIService2 (
                 , technique.id.name
                 , technique.rootSection
                 , directive.id
-                , initialtState
+                , initialState
                 , diff
                 , actor
                 , reason
@@ -240,7 +240,6 @@ case class DirectiveAPIService2 (
                     toJsonError(Some(directiveId.value), message)
                 }
 
-
               // More than one source, make an error
               case _ =>
                 val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on an already existing Directive, cause is : too many values for source parameter."
@@ -303,19 +302,17 @@ case class DirectiveAPIService2 (
     }
   }
 
-
-
   def updateDirective(id: String, req: Req, restValues : Box[RestDirective]) = {
 
     // A function to check if Variables passed as parameter are correct
-    def checkParameters (paramEditor : DirectiveEditor) (vars : (String,Seq[String])) = {
+    def checkParameters (paramEditor : DirectiveEditor) (parameterValues : (String,Seq[String])) = {
       try {
-        val s = Seq((paramEditor.variableSpecs(vars._1).toVariable(vars._2)))
+        val s = Seq((paramEditor.variableSpecs(parameterValues._1).toVariable(parameterValues._2)))
             RudderLDAPConstants.variableToSeq(s)
-            Full("OK")
+            Full(parameterValues)
       }
       catch {
-      case e: Exception => Failure(s"Error with one directive parameter : ${e.getMessage()}")
+      case e: Exception => Failure(s"Parameter '${parameterValues._1}' value is not valid, values are: ${parameterValues._2.mkString("[ ", ", ", " ]")} : ${e.getMessage()}")
       }
     }
 
@@ -325,56 +322,52 @@ case class DirectiveAPIService2 (
     val actor = getActor(req)
     val directiveId = DirectiveId(id)
 
-    //Find existing directive
-    readDirective.getDirectiveWithContext(directiveId) match {
-      case Full((technique, activeTechnique, directive)) =>
-        restValues match {
-          case Full(restDirective) =>
-            // Update Technique
-            val updatedDirective = restDirective.updateDirective(directive)
-            // check Parameters value and version
-            val techniqueId = TechniqueId(technique.id.name, restDirective.techniqueVersion.getOrElse(technique.id.version))
-            val paramCheck = for {
-              paramEditor <- editorService.get(techniqueId, directiveId, updatedDirective.parameters)
-              check <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
-            } yield {
-              check
-            }
-            paramCheck match {
-              case Full(_) =>
-                val diff = ModifyToDirectiveDiff(technique.id.name,updatedDirective,technique.rootSection)
-                createChangeRequestAndAnswer(
-                    id
-                  , diff
-                  , technique
-                  , activeTechnique
-                  , updatedDirective
-                  , Some(directive)
-                  , actor
-                  , req
-                  , "Update"
-                )
+    ( for {
+      restDirective <- restValues ?~ (s"Could not extract values from request" )
+      // Find existing directive
+      (oldTechnique, activeTechnique, oldDirective) <- readDirective.getDirectiveWithContext(directiveId) ?~ (s"Could not find Directive ${directiveId.value}" )
 
-              case eb:EmptyBox =>
-                val fail = eb ?~ (s"Error with directive Parameters" )
-                val message = s"Could not update Directive ${directive.name} (id:${directiveId.value}): cause is: ${fail.msg}."
-                toJsonError(Some(directiveId.value), message)
-            }
+      // Check if Technique version is changed (migration)
+      updatedTechniqueId = TechniqueId(oldTechnique.id.name, restDirective.techniqueVersion.getOrElse(oldTechnique.id.version))
+      updatedTechnique <- (
+                            if (updatedTechniqueId.version == oldTechnique.id.version) {
+                              Full(oldTechnique)
+                            } else {
+                              Box(techniqueRepository.get(updatedTechniqueId))
+                            }
+                          ) ?~ s"Could not find technique ${updatedTechniqueId.name} with version ${updatedTechniqueId.version.toString}."
 
+       updatedDirective = restDirective.updateDirective(oldDirective)
+       // Check parameters of the new Directive with the current technique version, It will check that parameters are ok with the new technique
+       newParameters   <- ( for {
+                              // Two step process, could be simplified
+                              paramEditor <- editorService.get(updatedTechniqueId, directiveId, updatedDirective.parameters)
+                              checkedParameters <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
+                            } yield { checkedParameters.toMap }
+                          ) ?~ (s"Error with directive Parameters" )
+       // Parameters are OK, update them we have our final directive
+       directiveWithNewParameters = updatedDirective.copy(parameters = newParameters)
+       diff = ModifyToDirectiveDiff(updatedTechniqueId.name,directiveWithNewParameters,oldTechnique.rootSection)
 
-          case eb : EmptyBox =>
-            val fail = eb ?~ (s"Could extract values from request" )
-            val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
-            toJsonError(Some(directiveId.value), message)
-        }
-
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Directive ${directiveId.value}" )
+    } yield {
+      createChangeRequestAndAnswer(
+          id
+        , diff
+        , updatedTechnique
+        , activeTechnique
+        , directiveWithNewParameters
+        , Some(oldDirective)
+        , actor
+        , req
+        , "Update"
+      )
+    } ) match {
+      case Full(response) => response
+      case eb: EmptyBox =>
+        val fail = eb ?~  s" An error occured during request "
         val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
         toJsonError(Some(directiveId.value), message)
     }
-
   }
-
 
 }

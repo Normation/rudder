@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -44,7 +44,6 @@ import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.Technique
-
 
 case class DirectiveId(value:String) extends HashcodeCaching
 
@@ -125,7 +124,6 @@ case class Directive(
   def isEnabled = _isEnabled || isSystem
 }
 
-
 final case class SectionVal(
     sections  : Map[String, Seq[SectionVal]] = Map() //name -> values
   , variables : Map[String, String]          = Map() //name -> values
@@ -133,7 +131,6 @@ final case class SectionVal(
 
 object SectionVal {
   val ROOT_SECTION_NAME = "sections"
-
 
   def toXml(sv:SectionVal, sectionName:String = ROOT_SECTION_NAME): Node = {
     <section name={sectionName}>
@@ -196,7 +193,14 @@ object SectionVal {
         for {
           i <- 0 until cardinal
         } yield {
-          spec.getDirectVariables.map { vspec => (vspec.name, allValues(vspec.name)(i)) }.toMap
+
+          spec.getDirectVariables.map { vspec =>
+            // Default value for our variable, will be use is there is no value for this variable, empty string if no default value
+            val defaultValue = vspec.constraint.default.getOrElse("")
+            // get Value for our variable in our for the current section (i), use default value if missing
+            val value = allValues.get(vspec.name).map(_(i)).getOrElse(defaultValue)
+            (vspec.name, value)
+          }.toMap
         }
       }
 
