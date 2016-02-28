@@ -377,7 +377,8 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           <b>Operating System Type:</b> {sm.node.main.osDetails.os.kernelName}<br/>
           <b>Operating System Name:</b> {S.?("os.name."+sm.node.main.osDetails.os.name)}<br/>
           <b>Operating System Version:</b> {sm.node.main.osDetails.version.value}<br/>
-          <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse(DEFAULT_COMPONENT_KEY)}<br/>
+          <b>Operating System Service Pack:</b> {sm.node.main.osDetails.servicePack.getOrElse("None")}<br/>
+          <b>Operating System Architecture Description:</b> {sm.node.archDescription.getOrElse("None")}<br/>
         </div>
 
       <h4 class="tablemargin">Rudder information</h4>
