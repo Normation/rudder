@@ -222,6 +222,8 @@ CREATE TABLE EventLog (
 
 CREATE INDEX eventType_idx ON EventLog (eventType);
 CREATE INDEX creationDate_idx ON EventLog (creationDate);
+CREATE INDEX eventlog_fileFormat_idx ON eventlog (((((xpath('/entry//@fileFormat',data))[1])::text)));
+
 
 /*
  * That table is used when a migration between 
