@@ -2878,3 +2878,7 @@ input[type="number"] {
 button.buttonMargin {
  margin: 0 10px;
 }
+
+.c3-legend-item-hidden {
+	opacity : 1;
+}
