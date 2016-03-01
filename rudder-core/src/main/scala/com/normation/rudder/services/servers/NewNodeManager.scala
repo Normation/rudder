@@ -828,7 +828,7 @@ class AcceptHostnameAndIp(
     val hostnames = sms.map( _.node.main.hostname)
 
     for {
-      authorizedNetworks   <- policyServerNet.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID)
+      authorizedNetworks   <- policyServerNet.getAuthorizedNetworks(Constants.ROOT_POLICY_SERVER_ID) ?~! "Can not get authorized networks: check their configuration, and that rudder-init was done"
       noDuplicateHostnames <- checkDuplicateString(hostnames, "hostname")
       noDuplicateInDB      <- queryForDuplicateHostname(hostnames)
     } yield {
