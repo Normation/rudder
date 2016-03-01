@@ -302,30 +302,20 @@ case class DirectiveAPIService2 (
     }
   }
 
-  def updateDirective(id: String, req: Req, restValues : Box[RestDirective]) = {
-
     // A function to check if Variables passed as parameter are correct
-    def checkParameters (paramEditor : DirectiveEditor) (parameterValues : (String,Seq[String])) = {
-      try {
-        val s = Seq((paramEditor.variableSpecs(parameterValues._1).toVariable(parameterValues._2)))
-            RudderLDAPConstants.variableToSeq(s)
-            Full(parameterValues)
-      }
-      catch {
+  private[this] def checkParameters (paramEditor : DirectiveEditor) (parameterValues : (String,Seq[String])) = {
+    try {
+      val s = Seq((paramEditor.variableSpecs(parameterValues._1).toVariable(parameterValues._2)))
+          RudderLDAPConstants.variableToSeq(s)
+          Full(parameterValues)
+    } catch {
       case e: Exception => Failure(s"Parameter '${parameterValues._1}' value is not valid, values are: ${parameterValues._2.mkString("[ ", ", ", " ]")} : ${e.getMessage()}")
-      }
     }
+  }
 
-    implicit val action = "updateDirective"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = getActor(req)
-    val directiveId = DirectiveId(id)
-
-    ( for {
-      restDirective <- restValues ?~ (s"Could not extract values from request" )
-      // Find existing directive
-      (oldTechnique, activeTechnique, oldDirective) <- readDirective.getDirectiveWithContext(directiveId) ?~ (s"Could not find Directive ${directiveId.value}" )
+  private[this] def updateDirectiveModel(directiveId: DirectiveId, restDirective : RestDirective) = {
+    for {
+     (oldTechnique, activeTechnique, oldDirective) <- readDirective.getDirectiveWithContext(directiveId) ?~ (s"Could not find Directive ${directiveId.value}" )
 
       // Check if Technique version is changed (migration)
       updatedTechniqueId = TechniqueId(oldTechnique.id.name, restDirective.techniqueVersion.getOrElse(oldTechnique.id.version))
@@ -345,22 +335,66 @@ case class DirectiveAPIService2 (
                               checkedParameters <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
                             } yield { checkedParameters.toMap }
                           ) ?~ (s"Error with directive Parameters" )
-       // Parameters are OK, update them we have our final directive
-       directiveWithNewParameters = updatedDirective.copy(parameters = newParameters)
-       diff = ModifyToDirectiveDiff(updatedTechniqueId.name,directiveWithNewParameters,oldTechnique.rootSection)
-
     } yield {
-      createChangeRequestAndAnswer(
-          id
-        , diff
-        , updatedTechnique
-        , activeTechnique
-        , directiveWithNewParameters
-        , Some(oldDirective)
-        , actor
-        , req
-        , "Update"
+      DirectiveUpdate(   activeTechnique
+        , DirectiveState(updatedTechnique,updatedDirective.copy(parameters = newParameters))
+        , DirectiveState(oldTechnique,oldDirective)
       )
+    }
+  }
+
+  def checkDirective(directiveId: DirectiveId, req: Req, restValues : Box[RestDirective]) = {
+
+    implicit val action = "updateDirective"
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+    val modId = ModificationId(uuidGen.newUuid)
+    val actor = getActor(req)
+
+    ( for {
+      restDirective   <- restValues ?~ (s"Could not extract values from request" )
+      directiveUpdate <- updateDirectiveModel(directiveId, restDirective)
+    } yield {
+      val updatedTechnique = directiveUpdate.after.technique
+      val updatedDirective = directiveUpdate.after.directive
+      val jsonDirective = List(serialize(updatedTechnique,updatedDirective))
+      toJsonResponse(Some(directiveId.value),("directives" -> JArray(jsonDirective)))
+    } ) match {
+      case Full(response) => response
+      case eb: EmptyBox =>
+        val fail = eb ?~  s" An error occured during request "
+        val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
+        toJsonError(Some(directiveId.value), message)
+    }
+  }
+
+  def updateDirective(directiveId: DirectiveId, req: Req, restValues : Box[RestDirective]) = {
+
+    implicit val action = "updateDirective"
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+    val modId = ModificationId(uuidGen.newUuid)
+    val actor = getActor(req)
+
+    ( for {
+      restDirective <- restValues ?~ (s"Could not extract values from request" )
+      directiveUpdate <- updateDirectiveModel(directiveId, restDirective)
+
+      updatedTechnique = directiveUpdate.after.technique
+      updatedDirective = directiveUpdate.after.directive
+      oldTechnique     = directiveUpdate.before.technique
+      oldDirective     = directiveUpdate.before.directive
+      diff = ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective,oldTechnique.rootSection)
+    } yield {
+        createChangeRequestAndAnswer(
+            directiveId.value
+          , diff
+          , updatedTechnique
+          , directiveUpdate.activeTechnique
+          , updatedDirective
+          , Some(oldDirective)
+          , actor
+          , req
+          , "Update"
+        )
     } ) match {
       case Full(response) => response
       case eb: EmptyBox =>
