@@ -139,7 +139,7 @@ CREATE TABLE EventLog (
 
 create index eventType_idx on EventLog (eventType);
 create index creationDate_idx on EventLog (creationDate);
-
+CREATE INDEX eventlog_fileFormat_idx ON eventlog (((((xpath('/entry//@fileFormat',data))[1])::text)));
 
 
 create sequence GroupsId START 101;
