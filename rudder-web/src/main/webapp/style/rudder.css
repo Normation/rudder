@@ -156,7 +156,7 @@ div.intro div ul {
 }
 
 form a {
-   color: #f79d10;
+   color: #333333;
 }
 
 form table a {
@@ -1543,13 +1543,7 @@ Home portlet
    float: left;
 }
 
-.portlet a {
-   color: #f79d10;
-}
-.portlet a:hover {
-   color: #000;
-   text-decoration: none;
-}
+
 .portlet img {
    float: left;
    margin: 0px 20px 20px 10px;
@@ -2880,4 +2874,9 @@ button.buttonMargin {
 
 .c3-legend-item-hidden {
 	opacity : 1;
+}
+
+#generation-status .glyphicon {
+	top 0;
+	font-size : 11px;
 }
