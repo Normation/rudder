@@ -49,16 +49,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     Full information about the file format is available on the project
     web site: http://logback.qos.ch/manual/configuration.html#syntax
    -->
-   
-   
-   <!-- 
-    NOTE FOR USER: most of the interesting information are at the 
-    bottom of the file, but that crappy xml file does not allow to
-    make important information first :(
-   -->
-   
-   
-
 
    <!--
     NOTE FOR USER: most of the interesting information are at the
@@ -409,96 +399,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   
   <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
 <!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
- 
 
-  <!-- 
-    Log information about migration processus, for example in case of internal data format updates
-  -->
-  <logger name="migration" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-
-  <!-- 
-    Log historization activity (name historization for configuration elements). 
-  -->
-  <logger name="historization" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-
-  <!-- 
-      This logger allows to log information about reports, especially DB cleaning operation
-  -->
-  <logger name="report" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-
-
-  <!-- 
-    Logs about change requests and validation workflows
-  -->
-  <logger name="changeRequest" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-   
-  <!-- 
-    Startup information, like timing each operation of the boot to understand 
-    what is sooooo long - and should not. 
-  -->
-  <logger name="bootstrap" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-   
-  <!-- 
-    Debugging information about time spent on various operation known to be long. 
-    This logs can be chatty and can be hard to understand without knowledge 
-    of Rudder internals. 
-  -->
-  <logger name="debug_timing" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger>
-  
-  <!-- 
-    Information (mostly debugging) about compliance. 
-    Log level "debug" and "trace" are used and allow to trace how
-    compliance computation are done (typically, for a node, what is the
-    expected configuration id, what is the last reports received, is the
-    date/time ok regarding run interval and compliance mode, etc.)
-    Trace level is quite verbose. 
-  -->
-  <logger name="explain_compliance" level="info" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger> 
-
-  <!-- 
-    You can debug specific node compliance with the node id.
-    The interesting level in that case is "trace". 
-    For example, for root node, whose ID is "root", use: 
-  -->
-  <!-- 
-  <logger name="explain_compliance.root" level="trace" additivity="false">
-    <appender-ref ref="OPSLOG" />
-    <appender-ref ref="STDOUT" />
-  </logger> 
-  -->
-   
-   
-   
-  <!-- 
-   Non compliant report logs
-   ==========================
-   
-    Log all non compliant reports in the REPORTLOG defined above
-    (by default, /var/log/rudder/compliance/non-compliant-reports.log
-  -->
-  <logger name="non-compliant-reports" level="info" additivity="false">
-    <appender-ref ref="REPORTLOG" />
-  </logger>
    
 </configuration>
