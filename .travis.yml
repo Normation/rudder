@@ -1,12 +1,9 @@
 env:
-        - CF_VERSION=3.8.0
         - CF_VERSION=3.7.2
-        - CF_VERSION=3.6.6
 
 install:
         - wget https://cfengine-package-repos.s3.amazonaws.com/community_binaries/cfengine-community_$CF_VERSION-1_amd64.deb
         - sudo dpkg -i cfengine-community_$CF_VERSION-1_amd64.deb
-        - ls
 
 script:
-        - make check
+        - cd $TRAVIS_BUILD_DIR && make check
