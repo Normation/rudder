@@ -149,7 +149,7 @@ class FusionReportEndpoint(
                       save(certifiedReport)
                     } else {
                       // Signature is not valid, reject inventory
-                      val msg = s"RejectiInventory '${inventory}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
+                      val msg = s"Rejecting Inventory '${inventory}' for Node '${report.node.main.id.value}' because signature is not valid, you can update the inventory key by running the following command '/opt/rudder/bin/rudder-keys change-key ${report.node.main.id.value} <your new public key>'"
                       logger.error(msg)
                       new ResponseEntity(msg, HttpStatus.UNAUTHORIZED)
                     }
