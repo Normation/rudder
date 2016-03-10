@@ -183,6 +183,7 @@ CREATE TABLE expectedReportsNodes (
 , PRIMARY KEY (nodeJoinKey, nodeId)
 );
 CREATE INDEX expectedReportsNodes_versionId ON expectedReportsNodes (nodeJoinKey);
+CREATE INDEX nodeconfigids_idx on expectedreportsnodes USING GIN (nodeconfigids);
 
 
 /*
