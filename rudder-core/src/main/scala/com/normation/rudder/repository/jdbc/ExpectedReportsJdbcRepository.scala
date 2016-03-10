@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -84,6 +84,10 @@ class PostgresqlInClause(
    * http://postgres.cz/wiki/PostgreSQL_SQL_Tricks_I#Predicate_IN_optimalization
    *
    * Does not build anything is the list of values is empty
+   *
+   *
+   * NOTE: do not use that on arrays with "generate_subscripts", this is highly inefficient.
+   * See http://www.rudder-project.org/redmine/issues/8057 for details.
    *
    */
   def in(attribute: String, values: Iterable[String]): String = {
@@ -159,12 +163,9 @@ class FindExpectedReportsJdbcRepository(
             E.pkid, NNN.nodeid, NNN.nodeconfigids
         from expectedreports E
         inner join (
-          select NN.nodejoinkey, NN.nodeid, NN.nodeconfigids
-          from (
-            select N.nodejoinkey, N.nodeid, N.nodeconfigids, generate_subscripts(N.nodeconfigids,1) as v
+            select N.nodejoinkey, N.nodeid, N.nodeconfigids
             from expectedreportsnodes N
-          ) as NN
-          where ${in("NN.nodeconfigids[v]", nodeConfigIds.map(_.version.value))}
+            where (N.nodeconfigids && '{ ${nodeConfigIds.map("\""+ _.version.value + "\"").mkString(", ") } }')
         ) as NNN
         on E.nodejoinkey = NNN.nodejoinkey
       """ + rulePredicate
