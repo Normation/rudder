@@ -381,11 +381,6 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
           "sZeroRecords": "No matching rules!"
         , "sSearch": ""
       }
-    , "fnStateLoadParams": function (oSettings, oData) {
-        // Do not keep any filter
-        oData.aoSearchCols = [];
-        oData.oSearch.sSearch = "";
-      }
     , "fnDrawCallback": function( oSettings ) {
       var rows = this._('tr', {"page":"current"});
        $.each(rows, function(index,row) {
@@ -411,8 +406,8 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
 
-  createTable(gridId,data,columns, params, contextPath, refresh, "rules");
-
+  var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules");
+  table.search("").columns().search("")
   createTooltip();
 
   // Add callback to checkbox column
@@ -1261,10 +1256,10 @@ function buildComplianceBar(compliance) {
 
 
 function refreshTable (gridId, data) {
-  var table = $('#'+gridId).dataTable();
-  table.fnClearTable();
-  table.fnAddData(data, false);
-  table.fnDraw();
+  var table = $('#'+gridId).DataTable();
+  table.clear();
+  table.rows.add(data);
+  table.draw();
 }
 
 /*
@@ -1362,6 +1357,8 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
   $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
+  
+  return $('#'+gridId).DataTable();
 }
 
 
