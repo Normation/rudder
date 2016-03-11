@@ -584,7 +584,7 @@ object ExecutionBatch extends Loggable {
       case UnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration) =>
         //mark all report of run unexpected,
         //all expected missing
-        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runVersion.configId.value}' but that node should be sendind reports for configId ${expectedVersion.configId.value}")
+        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runVersion.configId.value}' but that node should be sending reports for configId ${expectedVersion.configId.value}")
 
         buildRuleNodeStatusReport(
             MergeInfo(nodeId, Some(runTime), Some(expectedVersion.configId), expectedExpiration)
