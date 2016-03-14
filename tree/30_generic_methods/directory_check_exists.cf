@@ -18,14 +18,14 @@
 
 # @name Directory check exists
 # @description Checks if a directory exists
+# @documentation This bundle will define a class directory_check_exists_${directory_name}_{ok, reached, kept} if the
+# directory exists, or directory_check_exists_${directory_name}_{not_ok, reached, not_kept, failed} if
+# the directory doesn't exists
 #
 # @parameter directory_name Full path of the directory to check
 # 
 # @class_prefix directory_check_exists
 # @class_parameter directory_name
-# This bundle will define a class directory_check_exists_${directory_name}_{ok, reached, kept} if the
-# directory exists, or directory_check_exists_${directory_name}_{not_ok, reached, not_kept, failed} if
-# the directory doesn't exists
 
 bundle agent directory_check_exists(directory_name)
 {

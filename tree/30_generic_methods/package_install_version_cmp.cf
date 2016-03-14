@@ -18,6 +18,11 @@
 
 # @name Package install version compare
 # @description Install a package or verify if it is installed in a specific version, or higher or lower version than a version specified
+# @documentation *Example*:
+# ```
+# methods:
+#     "any" usebundle => package_install_version_cmp("postgresql", ">=", "9.1", "verify");
+# ```
 #
 # @parameter package_name        Name of the package to install or verify
 # @parameter version_comparator  Comparator between installed version and defined version, can be ==,<=,>=,<,>,!=
@@ -26,11 +31,6 @@
 # 
 # @class_prefix package_install
 # @class_parameter package_name
-# This bundle will define a class package_install_${package_name}_{kept,repaired,not_ok,ok,reached}
-# 
-# Usage example:
-# methods:
-#     "any" usebundle => package_install_version_cmp("postgresql", ">=", "9.1", "verify");
 
 bundle agent package_install_version_cmp(package_name, version_comparator, package_version, action)
 {

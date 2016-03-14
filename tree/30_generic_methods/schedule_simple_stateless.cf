@@ -18,6 +18,10 @@
 
 # @name Schedule Simple Stateless
 # @description Trigger a repaired outcome when a job should be run
+# @documentation This bundle will define a class schedule_simple_${job_id}_{kept,repaired,not_ok,ok,reached}
+#  * _ok or _kept for when there is nothing to do
+#  * _repaired if the job should run
+#  * _not_ok and _reached have their usual meaning
 # @agent_version >=3.6
 #
 # @parameter job_id                A string to identify this job
@@ -34,10 +38,7 @@
 # 
 # @class_prefix schedule_simple
 # @class_parameter job_id
-# This bundle will define a class schedule_simple_${job_id}_{kept,repaired,not_ok,ok,reached}
-#  _ok or _kept for when there is nothing to do
-#  _repaired if the job should run
-#  _not_ok and _reached have their usual meaning
+
 bundle agent schedule_simple_stateless(job_id, agent_periodicity,
                                        max_execution_delay_minutes, max_execution_delay_hours,
                                        start_on_minutes, start_on_hours, start_on_day_of_week,

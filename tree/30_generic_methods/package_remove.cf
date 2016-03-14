@@ -18,16 +18,16 @@
 
 # @name Package remove
 # @description Remove a package
+# @documentation *Example*:
+# ```
+# methods:
+#     "any" usebundle => package_remove("htop");
+# ```
 #
 # @parameter package_name        Name of the package to remove
 #
 # @class_prefix package_remove
 # @class_parameter package_name
-# This bundle will define a class package_remove_${package_name}_{kept,repaired,not_ok,ok,reached}
-#
-# Usage example:
-# methods:
-#     "any" usebundle => package_remove("htop");
 
 bundle agent package_remove(package_name)
 {

@@ -17,7 +17,8 @@
 #####################################################################################
 
 # @name HTTP request check status with headers
-# @description Perform a HTTP request on the URL, method and headers provided and check that the response has the expected status code (ie 200, 404, 503, etc)
+# @description Checks status of an HTTP URL
+# @documentation Perform a HTTP request on the URL, method and headers provided and check that the response has the expected status code (ie 200, 404, 503, etc)
 #
 # @parameter method Method to call the URL (GET, POST, PUT, DELETE)
 # @parameter url URL to query
@@ -26,7 +27,6 @@
 
 # @class_prefix http_request_check_status_headers
 # @class_parameter url
-# This bundle will define a class http_request_check_status_headers_${url}_{kept,not_ok,ok,reached}
 
 bundle agent http_request_check_status_headers(method, url, expected_status, headers)
 {

@@ -18,6 +18,7 @@
 
 # @name User create
 # @description Create a user
+# @documentation This method does not create the user's home directory.
 # @agent_version >=3.6
 #
 # @parameter login       User login
@@ -29,9 +30,6 @@
 # 
 # @class_prefix user_create
 # @class_parameter login
-# This method doesn't create the user's home directory. For a more comprehensive method,
-# see other user_* generic methods.
-# This bundle will define a class user_create_${login}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent user_create(login, description, home, group, shell, locked)
 {
