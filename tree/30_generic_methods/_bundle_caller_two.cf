@@ -22,7 +22,6 @@
 # @parameter method            The bundle to call
 # @parameter first_argument    The first argument to give
 # @parameter second_argument   The second argument to give
-#
 
 bundle agent _bundle_caller_two(method, first_argument, second_argument)
 {

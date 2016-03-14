@@ -23,7 +23,6 @@
 # @parameter first_argument    The first argument to give
 # @parameter second_argument   The second argument to give
 # @parameter third_argument    The third argument to give
-#
 
 bundle agent _bundle_caller_three(method, first_argument, second_argument, third_argument)
 {

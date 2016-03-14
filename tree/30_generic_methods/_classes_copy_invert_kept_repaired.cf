@@ -18,13 +18,7 @@
 
 # @name Class copy and invert kept and repaired
 # @description Copy class prefix to another one and invert kept and repaired, to switch the context from a bundle to another
-#
-# @parameter source_prefix      The prefix of the source class to copy
-# @parameter destination_prefix The prefix of the destination class to copy
-#
-# @class_prefix
-# @class_parameter
-# This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# @documentation This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
 # based on an inverted ${source_prefix}_{kept,repaired,not_ok,ok,reached}
 #
 # Conversion tables are:
@@ -52,6 +46,12 @@
 # class_timeout        <==> class_timeout
 # class_reached        <==> class_reached
 #--------------------------------------------------
+#
+# @parameter source_prefix      The prefix of the source class to copy
+# @parameter destination_prefix The prefix of the destination class to copy
+#
+# @class_prefix
+# @class_parameter
 
 bundle agent _classes_copy_invert_kept_repaired(source_prefix, destination_prefix)
 {

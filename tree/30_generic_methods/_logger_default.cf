@@ -24,8 +24,6 @@
 #
 # @class_prefix
 # @class_parameter
-# The three states are kept, repaired and not_ok
-# (as defined in the classes_generic of the cfengine_stdlib)
 
 bundle agent _logger_default(message, class_prefix)
 {
