@@ -20,7 +20,6 @@
 # @description Call a bundle
 #
 # @parameter method      The bundle to call
-#
 
 bundle agent _bundle_caller(method)
 {

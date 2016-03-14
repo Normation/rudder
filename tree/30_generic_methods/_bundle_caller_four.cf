@@ -24,7 +24,6 @@
 # @parameter second_argument   The second argument to give
 # @parameter third_argument    The third argument to give
 # @parameter fourth_argument   The fourth argument to give
-#
 
 bundle agent _bundle_caller_four(method, first_argument, second_argument, third_argument, fourth_argument)
 {

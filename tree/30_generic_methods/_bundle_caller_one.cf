@@ -21,7 +21,6 @@
 #
 # @parameter method            The bundle to call
 # @parameter first_argument    The first argument to give
-#
 
 bundle agent _bundle_caller_one(method, first_argument)
 {
