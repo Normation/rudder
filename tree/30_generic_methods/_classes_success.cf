@@ -23,7 +23,6 @@
 #
 # @class_prefix 
 # @class_parameter 
-# This bundle will define a class ${destination_prefix}_{kept,ok,reached}
 
 bundle agent _classes_success(destination_prefix)
 {

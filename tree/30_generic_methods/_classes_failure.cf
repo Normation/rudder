@@ -23,7 +23,6 @@
 #
 # @class_prefix 
 # @class_parameter 
-# This bundle will define a class ${destination_prefix}_{not_kept,not_ok, not_repaired, failed, reached}
 
 bundle agent _classes_failure(destination_prefix)
 {

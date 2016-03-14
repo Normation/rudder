@@ -23,7 +23,6 @@
 #
 # @class_prefix 
 # @class_parameter 
-# This bundle will define a class ${destination_prefix}_{repaired,reached}
 
 bundle agent _classes_repaired(destination_prefix)
 {

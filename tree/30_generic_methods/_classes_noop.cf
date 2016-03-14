@@ -23,7 +23,6 @@
 #
 # @class_prefix
 # @class_parameter
-# This bundle will define a class ${destination_prefix}_noop
 
 bundle agent _classes_noop(destination_prefix)
 {

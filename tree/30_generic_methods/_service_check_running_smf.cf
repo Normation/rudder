@@ -23,7 +23,6 @@
 #
 # @class_prefix service_check_running
 # @class_parameter service_name
-# This bundle will define a class service_check_running_${service_name}_{kept,not_ok}
 
 bundle agent _service_check_running_smf(service_name)
 {

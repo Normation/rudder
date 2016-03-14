@@ -24,8 +24,6 @@
 #
 # @class_prefix    logger_rudder
 # @class_parameter old_class_prefix
-# The three states are kept, repaired and not_ok
-# (as defined in the classes_generic of the cfengine_stdlib)
 
 bundle agent logger_rudder(message, old_class_prefix)
 {
