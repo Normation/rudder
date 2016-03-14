@@ -24,7 +24,6 @@
 
 # @class_prefix group_present
 # @class_parameter group
-# This bundle will define a class group_present_${group}_{kept,repaired,not_ok,ok,reached}
 
 bundle agent group_present(group)
 {
