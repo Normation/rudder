@@ -38,7 +38,7 @@ bundle agent file_ensure_block_in_section(file, section_start, section_end, bloc
   files:
       "${file}"
         create        => "true",
-        edit_line     => ncf_ensure_section_content("${section_start}", "${section_end}", "${block}"),
+        edit_line     => ncf_ensure_section_content_type("${section_start}", "${section_end}", "${block}", "preserve_block"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
