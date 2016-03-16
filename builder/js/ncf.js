@@ -418,8 +418,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         "method_name" : bundle.bundle_name
       , "original_index" : original_index
       , "class_context" : "any"
-      , "parameters": bundle.bundle_args.map(function(v,i) {
-        return  { "name" : v, "value" : ""};
+      , "parameters": bundle.parameter.map(function(v,i) {
+        v["value"] = ""
+        return  v;
       })
     }
     return call
@@ -496,10 +497,11 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
   // Get parameters information relative to a method_call
   $scope.getMethodParameters = function(method_call) {
-    function createParameter (name, value) {
+    function createParameter (name, value, description) {
       return {
           "name" : name
         , "value" : value
+        , "description" : description
       };
     }
     var params = [];
@@ -507,17 +509,18 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     if (method_call.method_name in $scope.generic_methods ) {
       var method = $scope.generic_methods[method_call.method_name];
       for (var i = 0; i < method.parameter.length; i++) {
-         var param_name = method.parameter[i].name;
+         var parameter = method.parameter[i];
          var param_value = method_call.args[i];
          // Maybe parameter does not exists in current method_call, replace with empty value
          param_value = param_value !== undefined ? param_value : '';
-         var parameter = createParameter(param_name,param_value);
+         parameter["value"] = param_value;
          params.push(parameter);
       }
     } else {
       // We have no informations about this generic method, just call it 'parameter'
       params = method_call.args.map( function(arg) { return createParameter ('parameter', arg);});
     }
+    console.log(params)
     return params;
   };
 

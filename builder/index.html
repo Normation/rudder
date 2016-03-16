@@ -206,6 +206,10 @@
                                   <i aria-hidden="true" class="glyphicon glyphicon-remove-sign pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
                                   <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
                                   <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
+                                <br style="clear:both"/>
+                                <small class="pull-left method-margin" >
+                                    {{getMethodDescription(method_call)}}
+                                </small>
                               </h4>
                               <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
                                 <input ng-hide="true" type="text" ng-model="parameter.value" required ></input>
@@ -215,15 +219,9 @@
                                 </h5>    
                               </div>
                               <br style="clear:both" ng-if="getClassParameter(method_call) !== undefined"/>
-                              <h5 class="pull-left method-margin" >
+                              <h5 class="pull-left method-param" >
                                   {{getClassParameter(method_call)}}
                               </h5>
-                              <br style="clear:both"/>
-                              <h4 class="pull-left method-margin">
-                                  <small class="pull-left" >
-                                      {{getMethodDescription(method_call)}}
-                                  </small>
-                              </h4>
                           </div>
                         </div>
                       </li>
@@ -294,8 +292,13 @@
                             </accordion-heading>
                               <form class="" role="form">
                             <div class="form-group method-parameter" show-errors ng-form="subForm" style="margin: 15px 10px" ng-repeat="parameter in selectedMethod.parameters track by $index">
-                                <label class="control-label" for="param-{{$index}}">{{parameter.name}}:</label>
-                                <textarea msd-elastic name="param" class="form-control" rows="1" ng-required="true" id="param-{{$index}}" ng-model="parameter.value" placeholder=""></textarea>
+                              <label for="param-{{$index}}"><h5 class="control-label method-param" >{{parameter.name}}:
+                              <br style="clear:both"/>
+                              <small class="pull-left method-margin" >
+                                {{parameter.description}}
+                          </small></h5></label>
+                              <br style="clear:both"/>
+                              <textarea msd-elastic name="param" class="form-control" rows="1" ng-required="true" id="param-{{$index}}" ng-model="parameter.value" placeholder=""></textarea>
                             </div>
                           </form>
                         </accordion-group>
