@@ -337,3 +337,8 @@ ul[dnd-list] {
   border:0;
   color: #888;
 }
+
+.method-param {
+  font-size: 16px;
+  margin: 0;
+}
