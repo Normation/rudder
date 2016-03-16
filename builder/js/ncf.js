@@ -520,7 +520,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       // We have no informations about this generic method, just call it 'parameter'
       params = method_call.args.map( function(arg) { return createParameter ('parameter', arg);});
     }
-    console.log(params)
     return params;
   };
 
