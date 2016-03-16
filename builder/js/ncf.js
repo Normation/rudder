@@ -245,14 +245,16 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       error($scope.handle_error(" while fetching techniques"));
   };
 
-  // Call ncf api to get genereric methods
-  $scope.getMethods = function () {
+  // Call ncf api to get genereric methods and then after that get Techniques
+  $scope.getMethodsAndTechniques = function () {
     var data = {params: {path: $scope.path}}
     $http.get('/ncf/api/generic_methods', data).
       success(function(data, status, headers, config) {
         $scope.generic_methods = data.data;
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
+        // Once we have our methods we can fetch our techniques which depends on them
+        $scope.getTechniques();
 
         // Display single errors
         $.each( data.errors, function(index, error) {
@@ -520,7 +522,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       // We have no informations about this generic method, just call it 'parameter'
       params = method_call.args.map( function(arg) { return createParameter ('parameter', arg);});
     }
-    console.log(params)
     return params;
   };
 
@@ -731,8 +732,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   $scope.reloadData = function() {
-    $scope.getMethods();
-    $scope.getTechniques();
+    $scope.getMethodsAndTechniques();
   }
 
   $scope.reloadPage = function() {

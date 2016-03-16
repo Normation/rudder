@@ -198,7 +198,7 @@
                                 <h4 class="panel-title">
                                   <span class="pull-left">
                                     {{getMethodName(method_call)}}
-                                    <a target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
+                                    <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
                                       <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
                                     </a>
                                   </span>
@@ -345,7 +345,7 @@
                                 <div class="panel-heading" style="overflow:hidden">
                                     <h4 class="panel-title">
                                         <span class="pull-left"> {{method.name}}
-                                            <a target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{method.bundle_name}}">
+                                            <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{method.bundle_name}}">
                                                 <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
                                             </a>
                                         </span>
