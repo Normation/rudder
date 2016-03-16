@@ -442,7 +442,7 @@ class EventListDisplayer(
         </div>
       </xml:group>
     }
-
+    <td colspan="5"> {
     (event match {
     /*
      * bug in scalac : https://issues.scala-lang.org/browse/SI-6897
@@ -1117,7 +1117,7 @@ class EventListDisplayer(
       // other case: do not display details at all
       case _ => "*" #> ""
 
-    })(event.details)++Script(JsRaw("correctButtons();"))
+    })(event.details)++Script(JsRaw("correctButtons();"))} </td>
   }
 
   private[this] def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
@@ -1235,6 +1235,7 @@ class EventListDisplayer(
     (
       ".groupSeparator" #> ", "
     ).apply(res)
+
   }
 
   private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
