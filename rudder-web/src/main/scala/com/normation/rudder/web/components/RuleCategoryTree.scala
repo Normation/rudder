@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -117,7 +117,6 @@ class RuleCategoryTree(
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
 
-
   // Update selected category and select it in the tree (trigger its function)
   def updateSelectedCategory(newSelection : RuleCategoryId) = {
     selectedCategoryId = newSelection
@@ -187,7 +186,6 @@ class RuleCategoryTree(
     }
   }
 
-
   def tree() : NodeSeq = {
 
     val treeFun = if (isDirectiveApplication) "buildRuleCategoryTreeNoDnD" else "buildRuleCategoryTree"
@@ -218,16 +216,13 @@ class RuleCategoryTree(
     ) ) )
   }
 
-
-
   private[this] def categoryNode(category : RuleCategory) : JsTreeNode = new JsTreeNode {
     val tooltipId = Helpers.nextFuncName
 
-    override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: ("tooltipid",tooltipId) :: ("title", "") :: Nil
+    override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: Nil
 
     override def body = {
       def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="14" width="14" class="iconscala" style=" margin: 0 10px 0 0;float:none;" />
-
 
       // To handle correctly overflow with floating hidden elements, we need to compute the size of the container first
       val manageWidth ={
@@ -257,7 +252,6 @@ class RuleCategoryTree(
            $$('#${category.id.value} a:first').addClass("treeOver jstree-hovered");
          });
 
-
            $$('#${category.id.value}').hover( function(e) {
            $$('.categoryAction').hide();
            $$("#treeParent").focus();
@@ -276,7 +270,6 @@ class RuleCategoryTree(
              e.stopPropagation();
            });
            """
-
 
          ))
 
@@ -332,7 +325,7 @@ class RuleCategoryTree(
         }
       }
       val xml = {
-        <span id={category.id.value+"Name"} class="treeRuleCategoryName tooltipable" style="float:left">
+        <span id={category.id.value+"Name"} tooltipid={tooltipId} title="" class="treeRuleCategoryName tooltipable" style="float:left">
           {applyCheckBox}{category.name}
         </span> ++
         {actionButtons} ++
