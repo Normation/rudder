@@ -357,7 +357,7 @@ final class AsyncDeploymentAgent(
 
           deploymentManager ! DeploymentResult(id, modId, startTime,DateTime.now, result, actor, eventId)
         } catch {
-          case e:Exception => deploymentManager ! DeploymentResult(id, modId, startTime, DateTime.now, Failure(s"Exception caught during polcy update process: ${e.getMessage}",Full(e), Empty), actor, eventId)
+          case e:Exception => deploymentManager ! DeploymentResult(id, modId, startTime, DateTime.now, Failure(s"Exception caught during policy update process: ${e.getMessage}",Full(e), Empty), actor, eventId)
         }
 
       //
