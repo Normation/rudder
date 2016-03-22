@@ -18,16 +18,7 @@
 
 # @name Condition from command 
 # @description Execute a command and create outcome classes depending on its exit code
-#
-# @parameter condition_prefix   The condition name, use ${class_prefix} to create a local condition
-# @parameter command            The command to run
-# @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
-# @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
-# 
-# @class_prefix condition_from_command
-# @class_parameter condition_prefix
-#
-# This bundle will define a class condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}
+# @documentation This bundle will define a class condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}
 # depending on the exit codes given in parameters.
 #
 # If the exit code is in the list, this will always produce a kept outcome class.
@@ -36,7 +27,15 @@
 #
 # The created condition (class in cfengine speaking) is global to the agent.
 # To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
-# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or cfengine >= 3.8
+# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or CFEngine >= 3.8
+#
+# @parameter condition_prefix   The condition name, use ${class_prefix} to create a local condition
+# @parameter command            The command to run
+# @parameter true_codes         List of codes that produce a true status separated with commas (ex: 1,2,5)
+# @parameter false_codes        List of codes that produce a false status separated with commas (ex: 3,4,6)
+# 
+# @class_prefix condition_from_command
+# @class_parameter condition_prefix
 
 bundle agent condition_from_command(condition_prefix, command, true_codes, false_codes)
 {

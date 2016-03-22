@@ -18,6 +18,9 @@
 
 # @name Class combine two
 # @description Aggregate 2 class prefix into a new one
+# @documentation This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# based on ${first_prefix}_{kept,repaired,not_ok,ok,reached} and ${second_prefix}_{kept,repaired,not_ok,ok,reached}
+# keeping the worst outcome
 #
 # @parameter first_prefix       The first prefix of the source class to combine
 # @parameter second_prefix      The second prefix of the source class to combine
@@ -25,9 +28,6 @@
 #
 # @class_prefix 
 # @class_parameter destination_prefix
-# This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
-# based on ${first_prefix}_{kept,repaired,not_ok,ok,reached} and ${second_prefix}_{kept,repaired,not_ok,ok,reached}
-# keeping the worst outcome
 
 bundle agent _classes_combine_two(first_prefix, second_prefix, destination_prefix)
 {
