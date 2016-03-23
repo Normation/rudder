@@ -69,7 +69,7 @@ app.directive('showErrors', function() {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast) {
+app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast, $timeout) {
 
   // Variable we use in the whole application
 
@@ -125,6 +125,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Define hash location url, this will make the page scroll to the good element since we use $anchorScroll
   $scope.scroll = function(id) {
     $location.hash(id);
+    $anchorScroll();
   };
 
   // Capitalize first letter of a string
@@ -403,6 +404,9 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.selectMethod = function(method_call) {
     if(angular.equals($scope.selectedMethod,method_call) ) {
       $scope.selectedMethod = undefined;
+      // Scroll to the previously selected method category
+      // We need a timeout so model change can be taken into account and element to scroll is displayed
+      $timeout( function() {$anchorScroll();}, 0 , false)
     } else {
       $scope.selectedMethod=method_call;
       $scope.updateClassContext();
