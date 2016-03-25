@@ -18,6 +18,14 @@
 
 # @name Class combine ifthenelse
 # @description Aggregate class outcomes within an if then else structure
+# @documentation This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
+# based on  the test result and the method called afterwards.
+#
+# If the 'test' call has a '_true' outcome then the 'then' result is copied to destination
+# If the 'test' call has a '_false' outcome then the 'else' result is copied to destination
+# 
+# 'then_outcome' and 'else_outcome' can be replaced by the litteral string "success" or "failure"
+# In such case, the outcome is respectively replaced by a call to _classes_success or _classes_failure
 #
 # @parameter test_prefix        The prefix of classes comming from the test method
 # @parameter then_outcome       The prefix of classes comming from the method called in the 'then' case (or the litteral 'success' or 'failure')
@@ -26,14 +34,6 @@
 #
 # @class_prefix 
 # @class_parameter destination_prefix
-# This bundle will define a class ${destination_prefix}_{kept,repaired,not_ok,ok,reached}
-# based on  the test result and the method called afterwards.
-#
-# If the 'test' call has a '_true' outcome then the 'then' result is copied to destination
-# If the 'test' call has a '_false' outcome then the 'else' result is copied to destination
-# 
-# 'then_outcome' and 'else_outcome' can be replaced by the litteral string "success" or "failure"
-# In such case, the outcome is respectively replaced by a call to _classes_success or _classes_failure
 
 bundle agent _classes_combine_ifthenelse(test_prefix, then_outcome, else_outcome, destination_prefix)
 {
