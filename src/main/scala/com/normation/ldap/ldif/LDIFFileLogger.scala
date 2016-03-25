@@ -25,6 +25,7 @@ import com.unboundid.ldap.sdk.{DN,Entry}
 import com.normation.ldap.sdk.LDAPTree
 import org.slf4j.{Logger, LoggerFactory}
 import java.io.File
+import java.util.regex.Pattern
 
 /**
  * A service that allows to log LDAP objects into
@@ -111,7 +112,7 @@ trait Slf4jLDIFLogger extends LDIFFileLogger {
   }
 
   protected def traceFileName(dn:DN, opType:String) : String = {
-    val fileName = dn.getRDNStrings().map( _.replaceAll(File.separator, "|")).reverse.mkString("/")
+    val fileName = dn.getRDNStrings().map( _.replaceAll(Pattern.quote(File.separator), "|")).reverse.mkString("/")
     fileName + "-" + System.currentTimeMillis.toString + "-" + opType + ".ldif"
   }
 
