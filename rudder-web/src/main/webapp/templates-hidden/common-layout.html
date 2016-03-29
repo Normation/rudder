@@ -1,25 +1,25 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> 
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:lift="http://liftweb.net/">
   <head>
     <meta name="description" content="" />
     <meta name="keywords" content="" />
-    
+
 
     <lift:baseUrl.display />
-    
+
     <link type="image/x-icon" rel="icon" href="/images/rudder-favicon.ico" />
-    
+
     <link type="text/css" rel="stylesheet" href="/style/rudder.css" media="screen" />
     <link type="text/css" rel="stylesheet" href="/images/themes/ui-lightness/jquery.ui.tooltip.css" />
     <link type="text/css" rel="stylesheet" href="/images/themes/ui-lightness/jquery.ui.all.css" />
     <link type="text/css" rel="stylesheet" href="/style/jquery-rudder-bridge.css" />
-    
+
     <script type="text/javascript" src="/javascript/jquery/jquery-1.8.3.min.js"></script>
     <script type="text/javascript" src="/javascript/jquery/jquery.bgiframe-2.1.1.js"></script>
     <script type="text/javascript" src="/javascript/jquery/jquery.corner.js"></script>
     <script type="text/javascript" src="/javascript/jquery/jquery.simplemodal-1.4.1-nrm.js" id="simplemodal"></script>
     <script type="text/javascript" src="/javascript/jstree/jquery.jstree.min.js" id="jstree"></script>
-    <!-- using minified version of that one leads to errors "DataTables warning (table id ...: 
+    <!-- using minified version of that one leads to errors "DataTables warning (table id ...:
          Added data (size undefined) does not match known number of columns" errors -->
     <script type="text/javascript" src="/javascript/datatables/js/jquery.dataTables.js"></script>
 
@@ -29,11 +29,11 @@
 
     <script type="text/javascript" src="/javascript/diff.js"></script>
     <script type="text/javascript" src="/javascript/json2.js" id="json2"></script>
-    
+
     <script type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <script type="text/javascript" src="/javascript/rudder/rudder-datatable.js"></script>
     <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
-    
+
     <script type="text/javascript">
       // <![CDATA[
       $(document).ready(function() {
@@ -48,11 +48,11 @@
       $(document).ready(function() {roundTabs();});
       // ]]>
     </script>
-    
+
     <script type="text/javascript" src="/javascript/angular/angular.min.js" />
     <script type="text/javascript" src="/javascript/angular/angular-datatables.js" />
     <script type="text/javascript" src="/javascript/rudder/angular/groupManagement.js" id="angular-groupManagement"></script>
-    
+
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->
@@ -98,26 +98,26 @@
       </div>
     </div>
     <!--Fin popin Login-->
-  <!--Fin infos utilisateurs-->  
-  
-  
+  <!--Fin infos utilisateurs-->
+
+
   <!-- documentation link -->
   <div id="documentation">
     <a href="/rudder-doc">User manual</a>
   </div>
-  
+
   <!-- top right quick search -->
   <lift:QuickSearchNode.render />
-  
+
   </div>
-  
+
   <!--Début Logo-->
-  <div id="logo"> 
+  <div id="logo">
     <lift:authz role="deployment_read">
     <lift:comet type="AsyncDeployment" name="deploymentStatus" />
     </lift:authz>
       <lift:comet type="WorkflowInformation" name="workflowInfo" />
-    
+
     <h1><a href="/secure/"><img src="/images/logoRudder.jpg" alt="Rudder" /></a></h1>
   </div>
   <!--Fin Logo-->
@@ -129,14 +129,23 @@
   </security:authorize>
   <!--Fin Menu principal-->
 
-<img alt="" 
-  id="ajax-loader" 
+<img alt=""
+  id="ajax-loader"
   width="31px"
   height="31px"
-  class="ajaxloader"     
+  class="ajaxloader"
   src="/images/ajax-loader.gif"/>
-  
-  <lift:bind name="content" />
+
+  <lift:Authz.whenhasrights>
+    <lift:bind name="content" />
+  </lift:Authz.whenhasrights>
+
+  <lift:Authz.whennorights>
+    <div class="portlet"><div class="portlet-content"><div class="intro" style="padding: 30px; text-align:center">
+         You don't have sufficient authorization rights to access this content. Please contant your administrator to have more informations.
+    </div></div></div>
+  </lift:Authz.whennorights>
+
 
   <!--Fin contenu + nav-->
   <hr class="spacer" />
@@ -154,7 +163,7 @@
       <div>
         <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
         <h2>Your changes have been saved</h2>
-        
+
         <div id="successDialogContent" />
       </div>
       <hr class="spacer" />
@@ -173,5 +182,5 @@
 </div>
 </body>
 </html>
-  
-  
+
+
