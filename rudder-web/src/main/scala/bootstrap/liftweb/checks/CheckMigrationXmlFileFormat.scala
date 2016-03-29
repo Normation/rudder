@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -38,28 +38,50 @@
 package bootstrap.liftweb
 package checks
 
-import net.liftweb.common._
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import com.normation.rudder.domain.logger.MigrationLogger
 import com.normation.rudder.migration._
-import com.normation.rudder.domain.logger.MigrationLogger
-import com.normation.rudder.domain.logger.MigrationLogger
-
+import net.liftweb.common._
 
 trait CheckMigrationXmlFileFormat extends BootstrapChecks {
 
   def controler: ControlXmlFileFormatMigration
 
   override def checks() : Unit = {
-    controler.migrate() match {
+
+    MigrationLogger(controler.toVersion).error("Start migration")
+
+    Thread.sleep(2000)
+
+    MigrationLogger(controler.toVersion).error("continue migration")
+
+    val async = Future {
+      controler.migrate()
+    }
+
+    async.onSuccess {
       case Full(_) => //ok, and logging should already be done
       case eb:EmptyBox =>
-        val e = eb ?~! s"Error when migrating XML FileFormat' datas from format ${controler.fromVersion} to ${controler.toVersion} in database"
-        MigrationLogger(controler.toVersion).error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          MigrationLogger(controler.toVersion).error("Exception was:", ex)
-        }
+        handleFailure(Left(eb))
+    }
+
+    async.onFailure { case ex =>
+      handleFailure(Right(ex))
     }
   }
 
+  private[this] def handleFailure(error: Either[EmptyBox, Throwable]): Unit = {
+    val msg = s"Error when migrating XML FileFormat' datas from format ${controler.fromVersion} to ${controler.toVersion} in database"
+    val e = error match {
+      case Left(eb) => eb ?~! msg
+      case Right(ex) => Failure(msg, Full(ex), Empty)
+    }
+    MigrationLogger(controler.toVersion).error(e)
+    e.rootExceptionCause.foreach { ex =>
+      MigrationLogger(controler.toVersion).error("Exception was:", ex)
+    }
+  }
 }
 
 /**
