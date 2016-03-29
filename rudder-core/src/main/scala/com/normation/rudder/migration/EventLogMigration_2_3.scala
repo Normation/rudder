@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -102,38 +102,7 @@ class EventLogsMigration_2_3(
     override val jdbcTemplate       : JdbcTemplate
   , override val individualMigration: EventLogMigration_2_3
   , override val batchSize          : Int = 1000
-) extends BatchElementMigration[MigrationEventLog] with Migration_2_3_Definition {
-
-
-  override val elementName = "EventLog"
-  override val rowMapper = MigrationEventLogMapper
-  override val selectAllSqlRequest = "SELECT id, eventType, data FROM eventlog"
-
-  override protected def save(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
-    val UPDATE_SQL = "UPDATE EventLog set eventType = ?, data = ? where id = ?"
-
-    val ilogs = logs match {
-      case x:IndexedSeq[_] => logs
-      case seq => seq.toIndexedSeq
-    }
-
-    tryo { jdbcTemplate.batchUpdate(
-               UPDATE_SQL
-             , new BatchPreparedStatementSetter() {
-                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
-                   ps.setString(1, ilogs(i).eventType )
-                   val sqlXml = ps.getConnection.createSQLXML()
-                   sqlXml.setString(ilogs(i).data.toString)
-                   ps.setSQLXML(2, sqlXml)
-                   ps.setLong(3, ilogs(i).id )
-                 }
-
-                 override def getBatchSize() = ilogs.size
-               }
-    ) }.map( _ => ilogs )
-  }
-
-}
+) extends EventLogsMigration with Migration_2_3_Definition
 
 
 /**
