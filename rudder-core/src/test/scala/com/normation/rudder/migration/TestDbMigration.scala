@@ -125,9 +125,9 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findAll.openOrThrowException("For tests")
+      val logs = migration.findBatch.openOrThrowException("For tests")
 
-      logs.size must beEqualTo(logs2WithId.size) and
+      logs.size must beEqualTo(migration.batchSize) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) =>
           val l = logs2WithId.values.find(x => x.id.get == id).get
@@ -139,7 +139,7 @@ CREATE TEMP TABLE EventLog (
 
     "be correctly migrated" in {
 
-      migration.process
+      val MigrationProcessResult(migrated, nbBataches) = migration.process.openOrThrowException("Bad migration in test")
 
       val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
                    //only actually migrated file format
@@ -150,7 +150,9 @@ CREATE TEMP TABLE EventLog (
                    }
                  )
 
-      logs.size must beEqualTo(logs3WithId.size) and
+      (logs.size must beEqualTo(logs3WithId.size)) and
+      (logs.size must beEqualTo(migrated)) and
+      (nbBataches must beEqualTo(logs.size/migration.batchSize)) and
       forallWhen(logs) {
         case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) =>
           val l = logs3WithId.find(x => x.id.get == id).get
