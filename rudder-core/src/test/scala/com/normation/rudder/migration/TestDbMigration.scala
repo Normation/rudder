@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -141,9 +141,9 @@ CREATE TEMP TABLE EventLog (
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findAll.openOrThrowException("For tests")
+      val logs = migration.findBatch.openOrThrowException("For tests")
 
-      logs.size must beEqualTo(logs2WithId.size) and
+      logs.size must beEqualTo(migration.batchSize) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) =>
           val l = logs2WithId.values.find(x => x.id.get == id).get
@@ -155,7 +155,7 @@ CREATE TEMP TABLE EventLog (
 
     "be correctly migrated" in {
 
-      migration.process
+      val MigrationProcessResult(migrated, nbBataches) = migration.process.openOrThrowException("Bad migration in test")
 
       val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
                    //only actually migrated file format
@@ -166,7 +166,9 @@ CREATE TEMP TABLE EventLog (
                    }
                  )
 
-      logs.size must beEqualTo(logs3WithId.size) and
+      (logs.size must beEqualTo(logs3WithId.size)) and
+      (logs.size must beEqualTo(migrated)) and
+      (nbBataches must beEqualTo(logs.size/migration.batchSize)) and
       forallWhen(logs) {
         case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) =>
           val l = logs3WithId.find(x => x.id.get == id).get
