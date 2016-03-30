@@ -14,6 +14,8 @@ import java.sql.Timestamp
 import java.util.Calendar
 import com.normation.utils.XmlUtils
 import scala.xml.Node
+import java.sql.PreparedStatement
+import com.normation.rudder.domain.logger.MigrationLogger
 
 /**
  * specify from/to version
@@ -164,7 +166,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           logger.info(s"Start migration of ${migrator.elementName} from format '${fromVersion}' to '${toVersion}'")
 
           migrator.process() match {
-            case Full(i) =>
+            case Full(MigrationProcessResult(i, nbBatches)) =>
               logger.info(s"Migration of ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}' done, ${i} EventLogs migrated")
               Full(MigrationSuccess(i))
 
@@ -214,8 +216,8 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
         previousMigrationController match {
           case None =>
             logger.info(s"The detected format ${detectedFileFormat} is no more supported, you will have to " +
-            		"use an installation of Rudder that understand it to do the migration. For information, " +
-            		"Rudder 2.6.x is the last major version which is able to import file format 1.0")
+                "use an installation of Rudder that understand it to do the migration. For information, " +
+                "Rudder 2.6.x is the last major version which is able to import file format 1.0")
             Full(MigrationVersionNotSupported)
 
           case Some(migrator) => migrator.migrate() match{
@@ -265,6 +267,11 @@ trait IndividualElementMigration[T <: MigrableEntity] {
   def migrate(element:T) : Box[T]
 }
 
+final case class MigrationProcessResult(
+    totalMigrated: Int
+  , nbBatches    : Int
+)
+
 /**
  * A trait that explain how to migrate one type of data in data base
  * (it delelegates the actual XML migration to someone else)
@@ -275,19 +282,16 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
   def individualMigration: IndividualElementMigration[T]
   def rowMapper: RowMapper[T]
 
-  def selectAllSqlRequest: String
+  def selectAllSqlRequest(batchSize: Int): String
   def batchSize : Int
 
   //human readable name of elements to migrate, for logs
   def elementName: String
 
   /**
-   * retrieve all change request to migrate.
-   * By default, we get ALL event log and look
-   * if one (at least) has a file format version
-   * less that the toVersion.
+   * Retrieve eventlog for the migration, limited to max batchSize
    */
-  def findAll : Box[Seq[T]] = {
+  def findBatch: Box[Seq[T]] = {
 
     //check if the event must be migrated
     def needMigration(xml:NodeSeq) : Boolean = (
@@ -299,7 +303,7 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
     )
 
     tryo(
-        jdbcTemplate.query(selectAllSqlRequest, rowMapper).asScala
+        jdbcTemplate.query(selectAllSqlRequest(batchSize), rowMapper).asScala
        .filter(log => needMigration(log.data))
     )
   }
@@ -312,20 +316,36 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
   /**
    * General algorithm: get all change request to migrate,
    * then process and save them.
-   * Return the number of change request migrated
+   * Return the number of change request migrated.
+   * The get/save is done in batch of batchSize elements
    */
-  def process() : Box[Int] = {
-    for {
-      elts     <- findAll
-      migrated <- saveResults(
-                      migrate(elts, errorLogger)
-                    , save = save
-                    , successLogger = successLogger
-                    , batchSize = batchSize
-                  )
-    } yield {
-      migrated
+  def process() : Box[MigrationProcessResult] = {
+    def recProcessOneBatch(mig: MigrationProcessResult): Box[MigrationProcessResult] = {
+      val res = for {
+        elts     <- findBatch
+        migrated <- saveResults(
+                        migrate(elts, errorLogger)
+                      , save = save
+                      , successLogger = successLogger
+                    )
+      } yield {
+        migrated
+      }
+
+      res match {
+        case Full(k) if(k < 1) =>
+          logger.debug(s"Migration from file format ${fromVersion} to ${toVersion} ended after ${mig.nbBatches} batches")
+          Full(mig)
+        case Full(k) =>
+          logger.debug(s"Migration from file format ${fromVersion} to ${toVersion}: starting batch #${mig.nbBatches+1}")
+          recProcessOneBatch(MigrationProcessResult(mig.totalMigrated+k, mig.nbBatches+1))
+        case eb: EmptyBox =>
+          if(mig.nbBatches > 0) eb ?~! s"(already migrated ${mig.nbBatches} entries"
+          else eb
+      }
     }
+    logger.info(s"Starting batch migration from file format ${fromVersion} to ${toVersion} by batch of ${batchSize} events")
+    recProcessOneBatch(MigrationProcessResult(0,0))
   }
 
   private[this] def migrate(
@@ -343,25 +363,91 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
   }
 
   /**
-   * Actually save the crs in DB by batch of batchSize.
-   * The final result is a failure if any batch were in failure.
+   * Actually save the crs in DB
    */
   private[this] def saveResults(
       crs           : Seq[T]
     , save          : Seq[T] => Box[Seq[T]]
     , successLogger : Seq[MigrableEntity] => Unit
-    , batchSize     : Int
   ) : Box[Int] = {
-    (bestEffort(crs.grouped(batchSize).toSeq) { seq =>
-      val res = save(seq) ?~! "Error when saving logs (ids: %s)".format(seq.map( _.id).sorted.mkString(","))
+      val res = save(crs) ?~! "Error when saving logs (ids: %s)".format(crs.map( _.id).sorted.mkString(","))
       res.foreach { seq => successLogger(seq) }
-      res
-    }).map( _.flatten ).map( _.size ) //flatten else we have Box[Seq[Seq]]]
+      res.map( _.size )
   }
 
 
 }
 
+
+/**
+ * The migration for eventlogs.
+ * This is the intersting part for requests
+ */
+
+trait EventLogsMigration extends BatchElementMigration[MigrationEventLog] {
+
+  override final val elementName = "EventLog"
+  override final val rowMapper = MigrationEventLogMapper
+  override final def selectAllSqlRequest(batchSize: Int) = {
+    s"select id, eventType, data from (select id, eventType, data, ((xpath('/entry//@fileFormat',data))[1]::text) as version from eventlog) as T where version='${fromVersion}' limit ${batchSize}"
+  }
+
+  override final protected def save(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
+    val UPDATE_SQL = "UPDATE EventLog set eventType = ?, data = ? where id = ?"
+
+    val ilogs = logs match {
+      case x:IndexedSeq[_] => logs
+      case seq => seq.toIndexedSeq
+    }
+
+    tryo { jdbcTemplate.batchUpdate(
+               UPDATE_SQL
+             , new BatchPreparedStatementSetter() {
+                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
+                   ps.setString(1, ilogs(i).eventType )
+                   val sqlXml = ps.getConnection.createSQLXML()
+                   sqlXml.setString(ilogs(i).data.toString)
+                   ps.setSQLXML(2, sqlXml)
+                   ps.setLong(3, ilogs(i).id )
+                 }
+
+                 override def getBatchSize() = ilogs.size
+               }
+    ) }.map( _ => ilogs )
+  }
+}
+
+trait ChangeRequestsMigration extends BatchElementMigration[MigrationChangeRequest] {
+  override final val elementName = "ChangeRequest"
+  override final val rowMapper = MigrationChangeRequestMapper
+  override final def selectAllSqlRequest(batchSize:Int) = {
+    s"select id, name, content from (select id, name, content, ((xpath('/changeRequest/@fileFormat', content))[1]::text) as version from changerequest) as T where version='${fromVersion}' limit ${batchSize}"
+  }
+
+
+  override protected def save(logs:Seq[MigrationChangeRequest]) : Box[Seq[MigrationChangeRequest]] = {
+    val UPDATE_SQL = "UPDATE changerequest set content = ? where id = ?"
+
+    val ilogs = logs match {
+      case x:IndexedSeq[_] => logs
+      case seq => seq.toIndexedSeq
+    }
+
+    tryo { jdbcTemplate.batchUpdate(
+               UPDATE_SQL
+             , new BatchPreparedStatementSetter() {
+                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
+                   val sqlXml = ps.getConnection.createSQLXML()
+                   sqlXml.setString(ilogs(i).data.toString)
+                   ps.setSQLXML(1, sqlXml)
+                   ps.setLong(2, ilogs(i).id )
+                 }
+
+                 override def getBatchSize() = ilogs.size
+               }
+    ) }.map( _ => ilogs )
+  }
+}
 
 /**
  * A service able to migrate raw XML eventLog
