@@ -50,12 +50,6 @@ trait CheckMigrationXmlFileFormat extends BootstrapChecks {
 
   override def checks() : Unit = {
 
-    MigrationLogger(controler.toVersion).error("Start migration")
-
-    Thread.sleep(2000)
-
-    MigrationLogger(controler.toVersion).error("continue migration")
-
     val async = Future {
       controler.migrate()
     }
