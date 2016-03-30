@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -57,13 +57,39 @@ class Authz extends DispatchSnippet with Loggable {
 
   def dispatch = {
     case "render" => testRight
+    case "whennorights" => whenNoRights
+    case "whenhasrights" => whenHasRights
+  }
+
+
+  /*
+   * Check if no authorizations are defined for the
+   * current user - having even one "no_rights"
+   * make it true
+   */
+  private[this] def noRights(): Boolean = {
+    CurrentUser.getRights.authorizationTypes.contains(NoRights)
+  }
+
+  /*
+   * Display xml when the user has no rights
+   */
+  def whenNoRights(xml: NodeSeq): NodeSeq = {
+    if(noRights()) xml else NodeSeq.Empty
+  }
+
+  /*
+   * Display xml when the user has some rights
+   * (and no "no rights")
+   */
+  def whenHasRights(xml: NodeSeq): NodeSeq = {
+    if(noRights()) NodeSeq.Empty else xml
   }
 
 
   def testRight(xml:NodeSeq):NodeSeq =
    S.attr("role") match {
-
     case Full(role) if (CurrentUser.checkRights(AuthzToRights.parseAuthz(role).headOption.getOrElse(NoRights))) => xml
-    case _ => (NodeSeq.Empty)
+    case x => NodeSeq.Empty
   }
 }
