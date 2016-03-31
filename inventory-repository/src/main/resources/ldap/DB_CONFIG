@@ -31,4 +31,4 @@ set_flags DB_LOG_AUTOREMOVE
 set_lk_max_locks 4000
 
 # Note: special DB_CONFIG flags are no longer needed for "quick"
-# slapadd(8) or slapindex(8) access (see their -q option). 
+# slapadd(8) or slapindex(8) access (see their -q option).
