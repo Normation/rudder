@@ -56,7 +56,7 @@ policyServerId:root-policy-server
 nodeHostname: node0.normation.com
 inventoryDate: 20130515123456.948Z
 description: matchOnMe
-#description is the same as a logical 
+#description is the same as a logical
 #element of node3
 
 # Example of the same (almost) node, but not in ou=nodes
