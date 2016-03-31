@@ -10,18 +10,18 @@
   .deca input {
     width: 180px;
   }
-  
+
   .deca input.deleteNetwork {
     width: 20px;
   }
-  
+
   button.defaultButton {
     margin-top: -1px;
     margin-left: 15px;
     padding: 2px;
     width: 100px;
   }
-  
+
   select.twoCol {
     width:auto
   }
@@ -33,7 +33,7 @@
   .defaultButton span.ui-button-text {
     padding: 0;
 }
-  
+
 </style>
 
 </head>
@@ -106,7 +106,7 @@
           <h3>Security</h3>
           <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
             <form class="lift:form.ajax">
-              <div class="wbBaseField"> 
+              <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Require time synchronization between nodes and policy server: </span>
                       <span id="denyBadClocksTooltip" />
@@ -114,7 +114,7 @@
                     <input id="denyBadClocks" type="text"/>
               </div>
               <hr class="spacer"/>
-              <div class="wbBaseField"> 
+              <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Use reverse DNS lookups on nodes to reinforce authentication to policy server: </span>
                       <span id="skipIdentifyTooltip" />
@@ -130,11 +130,11 @@
           </div>
         </div>
         <hr class="spacer" />
-        
-        
+
+
       </div>
     </div>
-        
+
     <div class="inner-portlet">
       <div class="inner-portlet-header">Agent run schedule</div>
       <div class="portlet-content">
@@ -213,7 +213,7 @@
                             , "splayHour"   : 0
                             , "splayMinute" : 0
                             }
-          
+
           $scope.intervals = [
                                  {"m":5, "name": "5 minutes"}
                                , {"m":10, "name": "10 minutes"}
@@ -225,7 +225,7 @@
                                , {"m":240, "name": "4 hours"}
                                , {"m":360, "name": "6 hours"}
                              ];
-          
+
           $scope.checkHours = function() {
             return $scope.hours().length <= 1
           }
@@ -239,7 +239,7 @@
             }
             return h;
           }
-            
+
           $scope.minutes = function() {
             var m = [];
             var i = 0;
@@ -249,11 +249,11 @@
             }
             return m;
           }
-          
+
           $scope.onChange = function() {
             jQuery("#cfagentScheduleMessage").empty();
           }
-          
+
           $scope.onChangeInterval = function() {
             if(jQuery.inArray($scope.agentRun.starthour, $scope.hours() ) < 0 ) {
               $scope.agentRun.starthour = $scope.hours()[0];
@@ -269,17 +269,17 @@
             }
             $scope.onChange();
           }
-          
-           
-           
+
+
+
         });
         angular.bootstrap(document.getElementById("cfagentSchedule"),['cfagentSchedule']);
-     // ]]>            
+     // ]]>
         </script>
         <hr class="spacer" />
       </div>
     </div>
-    
+
     <div class="inner-portlet">
       <div class="inner-portlet-header">Configure change audit logs</div>
       <div class="portlet-content">
@@ -295,16 +295,16 @@
           <hr class="spacer" />
           <div class="deca">
             <form class="lift:form.ajax">
-            
-              <div class="wbBaseField"> 
+
+              <div class="wbBaseField">
                 <label class="threeCol textight" style="font-weight:bold;width: 20%;">Enable change audit logs:</label><input id="enabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <div class="wbBaseField">       
+              <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip" /></label><input id="mandatory" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-  		      <div class="wbBaseField"> 
+  		      <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
               </div>
               <hr class="spacer"/>
@@ -317,8 +317,8 @@
         </div>
       </div>
     </div>
-    
-    
+
+
     <div class="inner-portlet">
       <div class="inner-portlet-header">Configure Change Requests (validation workflow)</div>
       <div class="portlet-content">
@@ -340,16 +340,16 @@ If disabled, all changes to configuration will be immediately deployed.</p>
             class="lift:administration.PropertiesManagement.workflow"
             id="workflowForm">
             <form class="lift:form.ajax">
-            
-              <div class="wbBaseField"> 
+
+              <div class="wbBaseField">
                 <label class="threeCol textright" style="font-weight:bold;width: 20%;">Enable Change Requests:</label><input id="workflowEnabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <div class="wbBaseField">       
+              <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"/></label><input id="selfVal" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-  		      <div class="wbBaseField"> 
+  		      <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"/></label><input id="selfDep" type="checkbox"/>
               </div>
               <hr class="spacer"/>
@@ -362,7 +362,7 @@ If disabled, all changes to configuration will be immediately deployed.</p>
         </div>
       </div>
     </div>
-    
+
     <div class="inner-portlet">
       <div class="inner-portlet-header">Configure file retention</div>
       <div class="portlet-content">
@@ -515,8 +515,8 @@ Currently, Rudder will automatically do this update every <b id="techniqueLibrar
         </div>
       </div>
     </div>
-    
-    
+
+
 
   </div>
 </div>

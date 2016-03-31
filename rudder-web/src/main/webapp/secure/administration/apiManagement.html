@@ -29,7 +29,7 @@
         margin :0px 15px;
         padding : 10px
     }
-    
+
     form .ng-invalid-valid_empty {
         box-shadow : 0px 0px 1px 1px red;
     }
@@ -71,7 +71,7 @@
 
         <div class="deca" ng-controller="AccountCtrl">
         <div ng-show="errorTable" style="width:100%; text-align:center; color:red" > {{errorTable.errorDetails}} </div>
-        
+
           <lift:authz role="administration_write">
             <button ng-click="addAccount();"   >
               Add API Account
@@ -138,7 +138,7 @@
               </div>
             </div>
           </div>
-        
+
           <div id="oldAccountPopup" ng-show="myOldAccount" style="display: none;">
             <div id="deletionPopupContainer" ng-show="myOldAccount">
               <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
@@ -202,7 +202,7 @@
                 }
       };
     } );
-    
+
     accountManagement.controller('AccountCtrl', function ($scope, $http) {
 
       $http.get(apiPath).

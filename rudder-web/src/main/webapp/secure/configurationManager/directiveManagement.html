@@ -10,7 +10,7 @@ var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return fal
 var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
 var searchTree = function(inputId, treeId) {
   if (modifiedSearch==true){
-	if($(inputId).val() && $(inputId).val().length >= 3) { 
+	if($(inputId).val() && $(inputId).val().length >= 3) {
 	    $(treeId).jstree('search', $(inputId).val());
 	} else {
 	    $(treeId).jstree('clear_search');
@@ -19,8 +19,8 @@ var searchTree = function(inputId, treeId) {
   enableSubtree($(".jstree-search"));
   return false;
 }
-var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; } 
-var clearSearchFieldTree = function(inputId, treeId) { 
+var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; }
+var clearSearchFieldTree = function(inputId, treeId) {
   $(inputId).val('Search');
   $(treeId).jstree('clear_search');
   return false;
@@ -66,7 +66,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
 
 <div class="portlet">
   <div class="portlet-header">Directive Management</div>
-  <div class="portlet-content">  
+  <div class="portlet-content">
     <div class="intro">
     <lift:authz role="technique_read">
       <div>
@@ -75,7 +75,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </lift:authz>
     </div>
     <hr class="spacer"/>
-    
+
     <div class="column">
       <div class="inner-portlet">
         <div class="inner-portlet-header">Library</div>
@@ -116,7 +116,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
                   <span id="techniqueDescription">[technique.description]</span>
                 </fieldset>
               </div>
-            
+
               <div class="groupDiv">
                 <fieldset class="deca"><legend>Characteristics</legend>
                   <p id="techniqueLongDescription">[technique.longDescription]</p>
@@ -124,12 +124,12 @@ var clearSearchFieldTree = function(inputId, treeId) {
                   <p><span id="compatibility">[Supported operating systems : debian-5]</span></p>
                 </fieldset>
               </div>
-              
+
               <fieldset class="pimversionspad"><legend>Available versions</legend>
 <!--                 <ul class="evlogviewpad"> -->
 <!--                   <li id="techniqueVersions">[here come version: date]</li> -->
 <!--                 </ul> -->
-                
+
                 <table id="versionTable">
                   <thead>
                     <tr>
@@ -141,14 +141,14 @@ var clearSearchFieldTree = function(inputId, treeId) {
                   <tbody>
                     <tr id="techniqueVersions"/>
                   </tbody>
-                
+
                 </table>
-                
+
                 <div style="text-align: center;">
                 <lift:authz role="directive_write">
                   <button id="addButton">[Add a new instance]</button>
                 </lift:authz>
-                </div>         
+                </div>
                 <div id="migrate">
                   <br/>
                   <form>
@@ -158,20 +158,20 @@ var clearSearchFieldTree = function(inputId, treeId) {
                   </form>
                 </div>
               </fieldset>
-              
+
               <br/>
             </div>
-          </lift:configuration.DirectiveManagement.techniqueDetails>       
+          </lift:configuration.DirectiveManagement.techniqueDetails>
         </div>
       </div>
     </div>
-    
+
     <div id="createDirectivePopup" class="nodisplay">
       <lift:ignore>
       This div gets the content of the createDirective injected within
       </lift:ignore>
     </div>
-    
+
     <hr class="spacer"/>
     <a name="directiveDetails"/>
     <div>
@@ -180,7 +180,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </div>
     </div>
   </div>
-  
+
   <div id="finishMigrationPopup" class="nodisplay">
     <div class="simplemodal-title">
       <h1>Finish migration to a new version</h1>
@@ -195,9 +195,9 @@ var clearSearchFieldTree = function(inputId, treeId) {
       <hr class="spacer" />
       <br />
       <p>To finish the Directive migration to the new version, you have to edit and save the Directive parameters.</p>
-      <p>You can cancel the migration by reloading the page or choosing an other Directive in the tree 
-        without saving the form. 
-      </p>    
+      <p>You can cancel the migration by reloading the page or choosing an other Directive in the tree
+        without saving the form.
+      </p>
       <br />
       <div align="right">
         <button class="simplemodal-close" onClick="return false;">
@@ -207,8 +207,8 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </div>
     </div>
   </div>
-  
-  
+
+
   <br/>
 </div>
 </lift:surround>

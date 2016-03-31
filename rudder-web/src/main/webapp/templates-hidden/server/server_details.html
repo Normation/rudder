@@ -11,13 +11,13 @@
       <div class="composition">
         <span><query:typeQuery/></span><br />
         <span style="margin:5px 0px 7px 0px">
-        Match the criteria below with this operand: 
+        Match the criteria below with this operand:
         <span style="margin-left:5px"><query:composition/></span>
         </span>
       </div>
-  
+
       <table class="searchNodes" id="query_lines" cellspacing="0">
-      
+
       <!-- must add an empty value to the list -->
         <query:lines>
           <line:error />
@@ -39,7 +39,7 @@
       <content:gridResult/>
   </div>
 </query:SearchNodes>
-     
+
 <lift:ignore>This part is the detail of a node</lift:ignore>
 <detail:server>
 <div id="node_tabs" class="tabs">
@@ -51,8 +51,8 @@
       <li><a href="#node_reports">Reports</a></li>
       <li><a href="#node_logs">Technical logs</a></li>
     </ul>
-  
-  
+
+
   <div id="node_summary">
    <div id="nodeid" class="nodeSummary">
     <table class="nomargin">
@@ -69,13 +69,13 @@
     </table>
    </div>
   </div>
-    
+
   <div id="node_inventory">
    <div id="nodeInventory">
      <server:inventory/>
    </div>
   </div>
-  
+
   <server:extraContent/>
 
   <div id="node_reports">
