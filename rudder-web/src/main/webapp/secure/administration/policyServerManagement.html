@@ -7,18 +7,18 @@
   .deca input {
     width: auto;
   }
-  
+
   .deca input.deleteNetwork {
     width: 20px;
   }
-  
+
   button.defaultButton {
     margin-top: -1px;
     margin-left: 15px;
     padding: 2px;
     width: 100px;
   }
-  
+
   select.twoCol {
     width:auto
   }
@@ -30,7 +30,7 @@
   .defaultButton span.ui-button-text {
     padding: 0;
 }
-  
+
 </style>
 
 
@@ -98,7 +98,7 @@
           <h3>Security</h3>
           <div class="lift:administration.PropertiesManagement.denyBadClocks" id="denyBadClocksForm">
             <form class="lift:form.ajax">
-              <div class="wbBaseField"> 
+              <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Require time synchronization between nodes and policy server: </span>
                       <span id="denyBadClocksTooltip"></span>
@@ -106,7 +106,7 @@
                     <input id="denyBadClocks" type="text"/>
               </div>
               <hr class="spacer"/>
-              <div class="wbBaseField"> 
+              <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 50%;">
                       <span style="float:left">Use reverse DNS lookups on nodes to reinforce authentication to policy server: </span>
                       <span id="skipIdentifyTooltip"></span>
@@ -149,14 +149,14 @@
           </div>
         </div>
         <hr class="spacer" />
-        
-        
+
+
       </div>
     </div>
     <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
     <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule"></div>
-    
+
     <div class="inner-portlet">
       <div class="page-title">Change audit logs</div>
       <div class="portlet-content">
@@ -172,16 +172,16 @@
           <hr class="spacer" />
           <div class="deca">
             <form class="lift:form.ajax">
-            
-              <div class="wbBaseField"> 
+
+              <div class="wbBaseField">
                 <label class="threeCol textight" style="font-weight:bold;width: 20%;">Enable change audit logs:</label><input id="enabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <div class="wbBaseField">       
+              <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip"></span></label><input id="mandatory" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-  		      <div class="wbBaseField"> 
+  		      <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip"></span></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
               </div>
               <hr class="spacer"/>
@@ -194,8 +194,8 @@
         </div>
       </div>
     </div>
-    
-    
+
+
     <div class="inner-portlet">
       <div class="page-title">Change Requests (validation workflow)</div>
       <div class="portlet-content">
@@ -217,16 +217,16 @@ If disabled, all changes to configuration will be immediately deployed.</p>
             class="lift:administration.PropertiesManagement.workflow"
             id="workflowForm">
             <form class="lift:form.ajax">
-            
-              <div class="wbBaseField"> 
+
+              <div class="wbBaseField">
                 <label class="threeCol textright" style="font-weight:bold;width: 20%;">Enable Change Requests:</label><input id="workflowEnabled" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <div class="wbBaseField">       
+              <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"></span></label><input id="selfVal" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-  		      <div class="wbBaseField"> 
+  		      <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"></span></label><input id="selfDep" type="checkbox"/>
               </div>
               <hr class="spacer"/>
@@ -239,7 +239,7 @@ If disabled, all changes to configuration will be immediately deployed.</p>
         </div>
       </div>
     </div>
-    
+
     <div class="inner-portlet">
       <div class="page-title">File retention</div>
       <div class="portlet-content">
@@ -309,7 +309,7 @@ These files are automatically removed to save on disk space. You can configure t
         </div>
       </div>
     </div>
-    
+
     <div class="inner-portlet">
       <div class="page-title">Usage survey participation</div>
       <div class="portlet-content">
@@ -319,11 +319,11 @@ These files are automatically removed to save on disk space. You can configure t
             <div>
                   To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.<br/>
                   These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
-                   (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included 
+                   (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
                    (only stock Rudder-provided techniques are examined, no hostnames, etc).
                    We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics).<br/>
                   If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.<br/>
-                  This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about. 
+                  This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.
                   Please consider participating in the survey!
             </div>
           </div>
@@ -331,8 +331,8 @@ These files are automatically removed to save on disk space. You can configure t
           <hr class="spacer" />
           <div class="deca">
             <form class="lift:form.ajax">
-            
-              <div class="wbBaseField"> 
+
+              <div class="wbBaseField">
                 <label class="threeCol textright" for="sendMetricsCheckbox" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetricsCheckbox" type="checkbox"/>
               </div>
               <hr class="spacer"/>
@@ -359,8 +359,8 @@ These files are automatically removed to save on disk space. You can configure t
           <hr class="spacer" />
           <div class="deca">
             <form class="lift:form.ajax">
-            
-              <div class="wbBaseField"> 
+
+              <div class="wbBaseField">
                 <label class="threeCol textright" for="displayGraphsCheckbox" style="font-weight:bold;width: 20%;">Display changes graphs:</label><input id="displayGraphsCheckbox" type="checkbox"/>
               </div>
               <hr class="spacer"/>
@@ -370,9 +370,9 @@ These files are automatically removed to save on disk space. You can configure t
           </div>
         </div>
       </div>
-    </div>    
-    
-    
+    </div>
+
+
 
     <div class="inner-portlet">
       <div class="page-title">Clear policy caches</div>
@@ -455,7 +455,7 @@ Currently, Rudder will automatically do this update every <b id="techniqueLibrar
         </div>
       </div>
     </div>
-    
+
 
   </div>
 </div>

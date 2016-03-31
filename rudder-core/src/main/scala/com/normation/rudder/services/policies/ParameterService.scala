@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -53,12 +53,12 @@ trait RoParameterService {
    * Returns a Global Parameter by its name
    */
   def getGlobalParameter(parameterName : ParameterName) : Box[Option[GlobalParameter]]
-  
+
   /**
    * Returns all defined Global Parameters
    */
   def getAllGlobalParameters() : Box[Seq[GlobalParameter]]
-  
+
   /**
    * Returns all parameters applicable for a given node
    */
@@ -77,7 +77,7 @@ trait WoParameterService {
     , actor     : EventActor
     , reason    : Option[String]
   ) : Box[GlobalParameter]
-  
+
   /**
    * Updates a parameter
    * Returns the new global Parameter
@@ -89,7 +89,7 @@ trait WoParameterService {
     , actor     : EventActor
     , reason    : Option[String]
    ) : Box[GlobalParameter]
-  
+
   /**
    * Delete a global parameter
    */
@@ -106,7 +106,7 @@ class RoParameterServiceImpl(
     roParamRepo.getGlobalParameter(parameterName) match {
       case Full(entry) => Full(Some(entry))
       case Empty       => Full(None)
-      case e:Failure   => 
+      case e:Failure   =>
         logger.error("Error while trying to fetch param %s : %s".format(parameterName.value, e.messageChain))
         e
     }
@@ -119,12 +119,12 @@ class RoParameterServiceImpl(
     roParamRepo.getAllGlobalParameters() match {
       case Full(seq) => Full(seq)
       case Empty       => Full(Seq())
-      case e:Failure   => 
+      case e:Failure   =>
         logger.error("Error while trying to fetch all parameters : %s".format(e.messageChain))
         e
     }
   }
-  
+
   /**
    * Returns all parameters applicable for a given node
    * Hyper naive implementation : all parameters !
@@ -151,7 +151,7 @@ class WoParameterServiceImpl(
     , reason    : Option[String]
   ) : Box[GlobalParameter] = {
     woParamRepo.saveParameter(parameter, modId, actor, reason) match {
-      case e:Failure => 
+      case e:Failure =>
         logger.error("Error while trying to create param %s : %s".format(parameter.name.value, e.messageChain))
         e
       case Empty =>
@@ -175,7 +175,7 @@ class WoParameterServiceImpl(
         }
     }
   }
-  
+
     /**
    * Updates a parameter
    * Returns the new global Parameter
@@ -188,7 +188,7 @@ class WoParameterServiceImpl(
     , reason    : Option[String]
    ) : Box[GlobalParameter] = {
     woParamRepo.updateParameter(parameter, modId, actor, reason) match {
-      case e:Failure => 
+      case e:Failure =>
         logger.error("Error while trying to update param %s : %s".format(parameter.name.value, e.messageChain))
         e
       case Empty =>
@@ -212,10 +212,10 @@ class WoParameterServiceImpl(
         }
     }
   }
-  
+
   def delete(parameterName:ParameterName, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[ParameterName] = {
     woParamRepo.delete(parameterName, modId, actor, reason) match {
-      case e:Failure => 
+      case e:Failure =>
         logger.error("Error while trying to delete param %s : %s".format(parameterName.value, e.messageChain))
         e
       case Empty =>
