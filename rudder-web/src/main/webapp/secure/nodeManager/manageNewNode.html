@@ -12,14 +12,14 @@
   </div>
 
   <div class="portlet-content">
-   
+
     <lift:node.AcceptNode.head />
     <hr class="spacer"/>
     <div id="new_servers_tab" class="tabs">
       <ul>
         <li><a href="#review_new_server">Review new nodes</a></li>
         <li><a href="#history">History</a></li>
-      </ul> 
+      </ul>
 
       <div id="review_new_server">
         <div class="tabInform">
@@ -44,12 +44,12 @@
           </lift:node.AcceptNode.list>
         </div>
       </div>
-      
+
       <div id="history"><div data-lift="lazy-load">
         <div class="tabInform">
           <p>View history of Nodes that have been accepted or refused.</p>
           <p>Click on a node name to view detailed inventory information (as it was at review time).</p>
-        </div>    
+        </div>
         <lift:node.PendingHistoryGrid.displayAndInit>
           <pending:history/>
         </lift:node.PendingHistoryGrid.displayAndInit>
@@ -57,10 +57,10 @@
     </div>
     <div id="manageNewNode"/>
     <div id="expectedPolicyZone"/>
-  
+
   </div>
 </div>
 </div>
-  
+
 </lift:surround>
 
