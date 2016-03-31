@@ -15,15 +15,15 @@ limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
     <version>3.2.2-SNAPSHOT</version>
   </parent>
-  
+
   <artifactId>historization-api</artifactId>
-    
+
   <dependencies>
     <dependency>
       <groupId>net.liftweb</groupId>
@@ -53,7 +53,7 @@ limitations under the License.
       <artifactId>commons-io</artifactId>
       <version>${commons-io-version}</version>
       <scope>test</scope>
-    </dependency>    
+    </dependency>
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>utils</artifactId>
