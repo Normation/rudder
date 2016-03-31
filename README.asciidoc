@@ -1,9 +1,9 @@
 Scala-LDAP: an LDAP client library for Scala
 --------------------------------------------
 
-This project is part of Rudder - configuration management made easy. 
- 
-See: http://rudder-project.org for more information. 
+This project is part of Rudder - configuration management made easy.
+
+See: http://rudder-project.org for more information.
 
 [horizontal]
 Bug report:: http://www.rudder-project.org/redmine/projects/scala-ldap/issues
@@ -17,40 +17,40 @@ Normation http://normation.com
 
 === License
 
-This project is licensed under ASF 2.0 license, 
-see the provided "LICENSE" file  or 
+This project is licensed under ASF 2.0 license,
+see the provided "LICENSE" file  or
 http://www.apache.org/licenses/LICENSE-2.0.html
 
 === Contributing
 
 Thank you for your interest in your our project!
-The contribution process is detailed here: 
+The contribution process is detailed here:
 http://www.rudder-project.org/HowToContribute
 
 === Synopsis
 
 This package is a Scala wrapper around http://www.unboundid.com/products/ldapsdk/[UnboundID LDAP SDK].
-Its goal is to provide an efficient and idiomatic Scala library to deal with LDAP directories. 
-The efficient part is accomplished by the great UnboundID SDK, and so we will focus on the 
+Its goal is to provide an efficient and idiomatic Scala library to deal with LDAP directories.
+The efficient part is accomplished by the great UnboundID SDK, and so we will focus on the
 idiomatic Scala construction, especially:
 
-- providing something like the https://wiki.scala-lang.org/display/SYGN/Loan[loan pattern] 
+- providing something like the https://wiki.scala-lang.org/display/SYGN/Loan[loan pattern]
   for LDAP connection handling;
 - providing a monad API for connection (and so for operation composition);
 - mainly using immutable data structures (return collection, attributes, etc);
 - using Option (or Lift Box) in place of semantic null return;
-- using other idiomatic Scala goodies: conversion, apply, meaningful operators (but also 
+- using other idiomatic Scala goodies: conversion, apply, meaningful operators (but also
   providing full string method name), case classes, etc
-- trying to keep the same hierarchy / logic as UnboundID. 
+- trying to keep the same hierarchy / logic as UnboundID.
 
-Note: the first attempt for this module was to provide a blind Scala LDAP API implementation. 
-Today, it seems that for the coming years, the only stable, autonomous and efficient LDAP SDK will 
+Note: the first attempt for this module was to provide a blind Scala LDAP API implementation.
+Today, it seems that for the coming years, the only stable, autonomous and efficient LDAP SDK will
 remain UnboundID's one. The OpenDS/ApacheDS project is still young, and there are no other known
-alternatives. So, we choose to not try too hard to hide UnboundID, but still provide nice import scheme. 
+alternatives. So, we choose to not try too hard to hide UnboundID, but still provide nice import scheme.
 
 === Usage
 
-This project is managed thanks to Maven software project management (http://maven.apache.org/). 
+This project is managed thanks to Maven software project management (http://maven.apache.org/).
 You will have to have a working Maven (version 2.2.x or 3.0.x) installation.
 
 .Clean, build and install on your local repository:

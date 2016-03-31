@@ -72,7 +72,7 @@ class LDAPSchema {
     ocs.get(pKey) match {
       case None => throw new TechnicalException(s"Can not register object class ${oc.name} because its parent class ${oc.sup.name} is not yet registerd")
       case Some(p) => ocs.get(key) match {
-        case Some(x) if(x != oc) => throw new TechnicalException(s"""Can not register object class '${oc.name}' because an other different object class with same name was already registerd. 
+        case Some(x) if(x != oc) => throw new TechnicalException(s"""Can not register object class '${oc.name}' because an other different object class with same name was already registerd.
                                      | existing: ${x}
                                      | new     : ${oc}""".stripMargin('|'))
         case _ => {
