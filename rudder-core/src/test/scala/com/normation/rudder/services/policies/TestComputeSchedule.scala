@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -78,7 +78,7 @@ class TestComputeSchedule extends Specification {
         Failure("Agent execution interval can only be defined as minutes (less than 60) or complete hours, (1 hours 3 minutes is not supported)")
       )
     }
-    
+
     "be every hours if defined with an interval of 1 hour" in {
       ComputeSchedule.computeSchedule(0,0,60) must beEqualTo (
           Full(""""Hr00.Min00", "Hr01.Min00", "Hr02.Min00", "Hr03.Min00", "Hr04.Min00", "Hr05.Min00", "Hr06.Min00", "Hr07.Min00", "Hr08.Min00", "Hr09.Min00", "Hr10.Min00", "Hr11.Min00", "Hr12.Min00", "Hr13.Min00", "Hr14.Min00", "Hr15.Min00", "Hr16.Min00", "Hr17.Min00", "Hr18.Min00", "Hr19.Min00", "Hr20.Min00", "Hr21.Min00", "Hr22.Min00", "Hr23.Min00"""")

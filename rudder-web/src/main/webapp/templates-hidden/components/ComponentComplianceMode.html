@@ -33,7 +33,7 @@
         </label>
      </div>
      </div>
-          
+
       </div>
       <div ng-hide="complianceMode.name === 'full-compliance'" class="animate-hide">
         <div class="page-title">Agent run heartbeat</div>
@@ -48,9 +48,9 @@
               the frequency of the heartbeat message, so that it is only sent every N runs.
           </div>
             <div ng-if="isNodePage">
-              In "changes only" compliance mode, the agent will report a "heartbeat" when no other events are reported 
+              In "changes only" compliance mode, the agent will report a "heartbeat" when no other events are reported
               (no errors and no repairs). This frequency can be changed to send a heartbeat only every N runs.<br/>
-              This setting is defined as a default for all nodes in the global  
+              This setting is defined as a default for all nodes in the global
               <a href="{{contextPath}}/secure/administration/policyServerManagement#complianceMode">Settings</a>.<br/>
               The current global setting is to run every <b>{{globalValue}} runs</b>,
               (so every <b>{{globalValue * agentRun}} minutes)</b>.<br/>
@@ -93,7 +93,7 @@
           <lift:Msg id="complianceModeMessage">[messages]</lift:Msg>
         </div>
       </div>
-          
+
     </form>
   </div>
   </div>
