@@ -4,7 +4,7 @@
 <component:staticInit>
 <head>
   <style type="text/css">
-  
+
     .topLevelAction .twoColumns {
       vertical-align: middle;
       max-width: 45%;
@@ -13,34 +13,34 @@
       display*: inline;
       zoom*: 1;
     }
-    
+
     .topLevelAction .twoColumnsRight {
       margin-left:20px
     }
-    
+
     .topLevelAction .twoColumns > * {
       display: inline-block;
       vertical-align: middle;
       margin-left: 50px;
     }
-    
+
     .disableNotice {
       margin-top:10px;
       font-size:0.9em;
     }
-    
+
     #deleteActionDialog, #disableItemDependencies {
 /*       padding-left:20px; */
     }
-    
+
     .reasonsFieldset {
-    
+
     }
-    
+
     #explanationMessage {
       margin-bottom: 10px;
     }
-    
+
   </style>
 </head>
 </component:staticInit>
@@ -68,7 +68,7 @@ All text that will be modified will be put in []
     </div>
       <h4><span id="techniqueDescription">[technique.description]</span></h4>
     </div>
-    
+
     <div class="groupDiv">
       <p id="techniqueLongDescription">[technique.longDescription]</p>
       <p id="isSingle">Unique Technique</p>
@@ -87,13 +87,13 @@ All text that will be modified will be put in []
     <div class="disableNotice">
         Note: Disabling a Technique also globally disable all the Directive based on it.
     </div>
-    
+
   </div>
   </lift:authz>
 
   <div class="editZone">
     <div class="section-title">Category</div>
-    <div>Reference category: 
+    <div>Reference category:
       <ul id="breadcrumpReferenceCategory">[here come the breadcrump]</ul>
     </div>
     <div id="clientCategoryZone">[Here come the text for the client category breadcrump]</div>
@@ -112,8 +112,8 @@ All text that will be modified will be put in []
         <h1>Delete a Technique</h1>
         <hr/>
       </div>
-      <div class="simplemodal-content">    
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon" 
+      <div class="simplemodal-content">
+          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"
           style="margin-top:-7px"/>
 	        <h2>Are you sure that you want to completely delete this item?</h2>
         <hr class="spacer" />
@@ -122,7 +122,7 @@ All text that will be modified will be put in []
           </div>
         <br />
           <div>
-            Deleting this Technique will also delete its history and compliance reports, 
+            Deleting this Technique will also delete its history and compliance reports,
             and the Directives and Rules above.
           </div>
         <br />
@@ -130,12 +130,12 @@ All text that will be modified will be put in []
 		    <div id="explanationMessage">
 		      Here comes the explanation to reasons field
 		    </div>
-		    
+
 		    <div id="reasonsField">
 		      Here comes the reasons field
 		    </div>
 	    </div>
-	    
+
         <hr class="spacer" />
       </div>
       <div class="simplemodal-bottom">
@@ -164,22 +164,22 @@ All text that will be modified will be put in []
             [Here comes the tree of Directives / Rules that will be removed]
           </div>
           <br />
-          
+
           <div>
             Disabling this Technique will affect the Directives and Rules above.
           </div>
           <br />
-          
+
 		    <div class="reasonsFieldset">
 			    <div id="explanationMessage">
 			      Here comes the explanation to reasons field
 			    </div>
-			    
+
 			    <div id="reasonsField">
 			      Here comes the reasons field
 			    </div>
 		    </div>
-	    
+
           <br />
            <hr class="spacer" />
         </div>

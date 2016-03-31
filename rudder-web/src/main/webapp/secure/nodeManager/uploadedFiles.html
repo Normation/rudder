@@ -1,5 +1,5 @@
 <lift:surround with="common-layout" at="content">
-  
+
 <head>
 <title>Rudder - Upload Files</title>
 </head>
@@ -7,7 +7,7 @@
 
 <div class="portlet">
  <div class="portlet-content">
-  <hr class="spacer"/> 
+  <hr class="spacer"/>
   <lift:UploadedFiles.list form="POST">
     <table cellspacing="0" id="uploaded_files_grid">
     <thead>
@@ -18,7 +18,7 @@
         <th><files:delete/></th>
       </tr>
     </thead>
-    <tbody>    
+    <tbody>
       <files:lines>
         <tr>
           <td><line:name /></td>
@@ -30,9 +30,9 @@
     </tbody>
     </table>
     <div id="uploaded_files_grid_filter_area"/>
-  </lift:UploadedFiles.list>  
-    
-  <lift:UploadedFiles.upload multipart="true" form="POST">  
+  </lift:UploadedFiles.list>
+
+  <lift:UploadedFiles.upload multipart="true" form="POST">
     <div id="upload">
       <p>Upload a file: <files:select /> <files:upload /></p>
     </div>
