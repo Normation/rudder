@@ -513,7 +513,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var params = [];
     // parameter information are stored into generic methods (maybe a better solution would be to merge data when we fetch them ...)
     if (method_call.method_name in $scope.generic_methods ) {
-      var method = $scope.generic_methods[method_call.method_name];
+      var method = angular.copy($scope.generic_methods[method_call.method_name]);
       for (var i = 0; i < method.parameter.length; i++) {
          var parameter = method.parameter[i];
          var param_value = method_call.args[i];
