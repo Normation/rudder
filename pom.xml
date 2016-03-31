@@ -15,22 +15,22 @@ limitations under the License.
 -->
 <project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <parent>
     <groupId>com.normation</groupId>
     <artifactId>parent-pom</artifactId>
     <version>3.3.0~alpha1-SNAPSHOT</version>
   </parent>
-  
+
   <artifactId>scala-ldap</artifactId>
 
   <description>
     This project define a Scala API to interoperate with LDAP
-    protocol and directories. 
+    protocol and directories.
     It uses UnboundID LDAP SDK as back-end and add Scala more
     idiomatic APIs.
   </description>
-  
+
   <inceptionYear>2010</inceptionYear>
 
   <licenses>
@@ -42,7 +42,7 @@ limitations under the License.
         </comments>
     </license>
   </licenses>
-  
+
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
 
   <dependencies>
