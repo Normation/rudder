@@ -456,7 +456,7 @@ attributeTypes: ( 1.3.6.1.4.1.453.16.2.103 NAME 'numSubordinates'
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.27
   SINGLE-VALUE NO-USER-MODIFICATION USAGE directoryOperation
   X-ORIGIN 'draft-ietf-boreham-numsubordinates' )
-attributeTypes: ( 2.16.840.1.113730.3.1.35 NAME 'changelog' 
+attributeTypes: ( 2.16.840.1.113730.3.1.35 NAME 'changelog'
   DESC 'the distinguished name of the entry which contains
   the set of entries comprising this server's changelog'
   EQUALITY distinguishedNameMatch
