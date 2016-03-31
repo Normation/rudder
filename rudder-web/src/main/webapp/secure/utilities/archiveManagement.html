@@ -7,25 +7,25 @@
   .archiveAction {
     display: inline-block;
   }
-  
+
   .archiveAction .ui-button {
     width: 180px;
   }
-  
+
   .deca select {
     width: 180px;
   }
-  
+
   #exportAllButton, #exportGroupLibraryButton, #exportRulesButton, #exportDirectiveLibraryButton {
     margin-bottom: 10px;
   }
-  
+
 -->
 </style>
 
 <script>
 //<![CDATA[
-  function enableIfNonEmpty(selectId, buttonId) { 
+  function enableIfNonEmpty(selectId, buttonId) {
     $("#"+selectId).change(function () {
       $("#" + selectId + " option:selected").each(function () {
         if($(this).text() != "Choose an archive to restore...") {
@@ -40,7 +40,7 @@
       })
     })
   }
-//]]>  
+//]]>
 </script>
 
 </head>
@@ -95,7 +95,7 @@
             id="groupLibraryForm">
             <form class="lift:form.ajax">
               <input id="exportGroupLibraryButton"
-                type="submit" value="[Export GroupLibrary]" /> 
+                type="submit" value="[Export GroupLibrary]" />
                 <br/>
                 <select id="importGroupLibrarySelect">
                 <option>2011-10-08 21:21:21</option>
@@ -129,7 +129,7 @@
             id="rulesForm">
             <form class="lift:form.ajax">
              <input id="exportRulesButton" type="submit"
-                value="[Export CR]" /> 
+                value="[Export CR]" />
               <br/>
               <select
                 id="importRulesSelect">
@@ -180,7 +180,7 @@
         </div>
       </div>
     </div>
-    
+
   </div>
 </div>
 

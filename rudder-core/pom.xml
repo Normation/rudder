@@ -46,44 +46,44 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <description>
     This is the API/Core lib module that writes the promises of machines
   </description>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-api</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>utils</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.antlr</groupId>
       <artifactId>stringtemplate</artifactId>
       <version>3.2.1</version>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>${commons-io-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-codec</groupId>
       <artifactId>commons-codec</artifactId>
       <version>${commons-codec-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>org.eclipse.jgit</groupId>
       <artifactId>org.eclipse.jgit</artifactId>
@@ -107,7 +107,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>com.typesafe.slick</groupId>
       <artifactId>slick_${scala-binary-version}</artifactId>
       <version>2.1.0</version>
-    </dependency> 
+    </dependency>
     <!-- slick postgresql support:  https://github.com/tminglei/slick-pg -->
     <dependency>
       <groupId>com.github.tminglei</groupId>
@@ -127,7 +127,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <groupId>com.jolbox</groupId>
       <artifactId>bonecp</artifactId>
       <version>0.8.0.RELEASE</version>
-    </dependency>        
+    </dependency>
 
     <dependency>
       <groupId>commons-net</groupId>
@@ -145,11 +145,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           <groupId>org.slf4j</groupId>
         </exclusion>
       </exclusions>
-    </dependency> 
+    </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
-    </dependency>  
+    </dependency>
   </dependencies>
 </project>
