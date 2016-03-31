@@ -5,8 +5,8 @@
   <script type="text/javascript">
     // <![CDATA[
     var initReportDatepickler = function(selector) {
-      $(selector).datepicker({ 
-          dateFormat: 'yy-mm-dd' 
+      $(selector).datepicker({
+          dateFormat: 'yy-mm-dd'
         , showWeek: true
         , firstDay: 1
         , changeMonth: true
@@ -164,7 +164,7 @@
                     <span id="cleanParam">
                       <span id="modeSelector"></span> all reports older than: <input
                         id="reportFromDate" value="" />
-                        
+
                        <lift:authz role="administration_write">
                         <button id="archiveReports">Start cleaning reports</button>
                         </lift:authz>
