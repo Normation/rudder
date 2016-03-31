@@ -7,7 +7,7 @@
 
 <div class="portlet">
   <div class="portlet-header">Global Parameters</div>
-  <div class="portlet-content">  
+  <div class="portlet-content">
     <div class="intro">
       <div>
           <p>Here, you can create, update or delete Global Parameters.</p>
@@ -15,7 +15,7 @@
              directive parameter field and it will be replaced in the final rule by the value
              for that name.
            </p>
-           <p>The syntax to call a parameter is <b>${rudder.param.name}</b>, where name is the 
+           <p>The syntax to call a parameter is <b>${rudder.param.name}</b>, where name is the
               chosen name for you Global Parameter.
            </p>
            <p>Be careful to exactly use (lower case) <b>rudder.param</b> and your parameter name with
@@ -32,14 +32,14 @@
             <div class="lift:configuration.ParameterManagement.display"/>
           </div>
         </lift:authz>
-      </div>  
+      </div>
     </div>
     <hr class="spacer"/>
-    
+
     <lift:authz role="directive_write">
       <div id="globalParameterForm"/>
     </lift:authz>
-   
+
   </div>
     <div id="createGlobalParameterPopup" class="nodisplay">
 	    <lift:ignore>

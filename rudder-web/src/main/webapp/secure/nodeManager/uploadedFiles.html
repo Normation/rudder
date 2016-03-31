@@ -1,5 +1,5 @@
 <lift:surround with="menu/menu-node" at="content">
-  
+
 <head>
 <title>Rudder - Upload Files</title>
 </head>
@@ -7,12 +7,12 @@
 
 <div class="portlet">
  <div class="portlet-header">Manage uploaded files</div>
- <div class="portlet-content">  
+ <div class="portlet-content">
   <div class="intro">
-   <div>This portlet lists all the files that have been uploaded and are ready to be deployed. You can alse upload files to be deployed on nodes. 
+   <div>This portlet lists all the files that have been uploaded and are ready to be deployed. You can alse upload files to be deployed on nodes.
    </div>
-  </div> 
-  <hr class="spacer"/> 
+  </div>
+  <hr class="spacer"/>
   <lift:UploadedFiles.list form="POST">
     <table cellspacing="0" id="uploaded_files_grid">
     <thead>
@@ -23,7 +23,7 @@
         <th><files:delete/></th>
       </tr>
     </thead>
-    <tbody>    
+    <tbody>
       <files:lines>
         <tr>
           <td><line:name /></td>
@@ -35,9 +35,9 @@
     </tbody>
     </table>
     <div id="uploaded_files_grid_filter_area"/>
-  </lift:UploadedFiles.list>  
-    
-  <lift:UploadedFiles.upload multipart="true" form="POST">  
+  </lift:UploadedFiles.list>
+
+  <lift:UploadedFiles.upload multipart="true" form="POST">
     <div id="upload">
       <p>Upload a file: <files:select /> <files:upload /></p>
     </div>

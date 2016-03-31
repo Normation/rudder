@@ -9,7 +9,7 @@ var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return fal
 var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
 var searchTree = function(inputId, treeId) {
   if (modifiedSearch==true){
-    if($(inputId).val() && $(inputId).val().length >= 3) { 
+    if($(inputId).val() && $(inputId).val().length >= 3) {
         $(treeId).jstree('search', $(inputId).val());
     } else {
         $(treeId).jstree('clear_search');
@@ -18,8 +18,8 @@ var searchTree = function(inputId, treeId) {
   enableSubtree($(treeId+" .jstree-search"));
   return false;
 }
-var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; } 
-var clearSearchFieldTree = function(inputId, treeId) { 
+var focusSearchFieldTree = function(inputId) { if( $(inputId).val() == 'Search') { $(inputId).val('') ; modifiedSearch = true}; return false; }
+var clearSearchFieldTree = function(inputId, treeId) {
   $(inputId).val('Search');
   $(treeId).jstree('clear_search');
   return false;
@@ -32,7 +32,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
 
 <div class="portlet">
   <div class="portlet-header">Technique Library Management</div>
-  <div class="portlet-content">  
+  <div class="portlet-content">
     <div class="intro">
       <div>
         View available Techniques and configure your custom Directive library.
@@ -57,7 +57,7 @@ var clearSearchFieldTree = function(inputId, treeId) {
       </lift:authz>
     </div>
     <hr class="spacer"/>
-    
+
     <div class="column">
       <div class="inner-portlet">
         <div class="inner-portlet-header">Reference Technique library</div>
@@ -96,14 +96,14 @@ var clearSearchFieldTree = function(inputId, treeId) {
         </div>
       </div>
     </div>
-    
+
     <hr class="spacer"/>
 
-    <lift:administration.TechniqueLibraryManagement.bottomPanel /> 
-    
+    <lift:administration.TechniqueLibraryManagement.bottomPanel />
+
   </div>
-  
-  
+
+
 
   <div id="createActiveTechniqueCategoryPopup" class="nodisplay">
     <lift:ignore>
@@ -111,14 +111,14 @@ var clearSearchFieldTree = function(inputId, treeId) {
     </lift:ignore>
     <div id="createActiveTechniquesCategoryContainer"/>
   </div>
-  
+
   <div id="createActiveTechniquePopup" class="nodisplay">
     <lift:ignore>
       This div gets the content of the createActiveTechniqueCategoryPopup injected within
     </lift:ignore>
     <div id="createActiveTechniquesContainer"/>
   </div>
-  
+
   <br/>
 </div>
 </lift:surround>

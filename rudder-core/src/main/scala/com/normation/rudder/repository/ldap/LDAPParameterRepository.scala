@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -63,7 +63,7 @@ class RoLDAPParameterRepository(
   , val userLibMutex: ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
 ) extends RoParameterRepository with Loggable {
   repo =>
-  
+
   def getGlobalParameter(parameterName : ParameterName) : Box[GlobalParameter] = {
     for {
       locked  <- userLibMutex.readLock
@@ -74,27 +74,27 @@ class RoLDAPParameterRepository(
       param
     }
   }
-  
+
   def getAllGlobalParameters() : Box[Seq[GlobalParameter]] = {
      for {
       locked  <- userLibMutex.readLock
       con     <- ldap
       entries =  con.searchSub(rudderDit.PARAMETERS.dn, IS(OC_PARAMETER))
       params  <- sequence(entries) { entry =>
-                   mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry) 
+                   mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry)
                  }
     } yield {
       params
     }
   }
-  
+
   def getAllOverridable() : Box[Seq[GlobalParameter]] = {
     for {
       locked  <- userLibMutex.readLock
       con     <- ldap
       entries =  con.searchSub(rudderDit.PARAMETERS.dn, AND(IS(OC_PARAMETER), EQ(A_PARAMETER_OVERRIDABLE, true.toLDAPString)))
       params  <- sequence(entries) { entry =>
-                   mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry) 
+                   mapper.entry2Parameter(entry) ?~! "Error when transforming LDAP entry into global parameter. Entry: %s".format(entry)
                  }
     } yield {
       params
@@ -112,15 +112,15 @@ class WoLDAPParameterRepository(
   , autoExportOnModify        : Boolean
 ) extends WoParameterRepository with Loggable {
   repo =>
-  
+
   import roLDAPParameterRepository.{ ldap => roLdap, _ }
-    
+
   def saveParameter(
       parameter : GlobalParameter
     , modId     : ModificationId
     , actor     :EventActor
     , reason    :Option[String]) : Box[AddGlobalParameterDiff] = {
-    repo.synchronized { 
+    repo.synchronized {
       for {
         con             <- ldap
         doesntExists    <- roLDAPParameterRepository.getGlobalParameter(parameter.name) match {
@@ -156,12 +156,12 @@ class WoLDAPParameterRepository(
     , actor     : EventActor
     , reason    : Option[String]
    ) : Box[Option[ModifyGlobalParameterDiff]] = {
-    repo.synchronized { 
+    repo.synchronized {
       for {
         con             <- ldap
         oldParamEntry   <- roLDAPParameterRepository.getGlobalParameter(parameter.name) ?~! "Cannot update Global Parameter %s : there is no parameter with that name".format(parameter.name)
         paramEntry      =  mapper.parameter2Entry(parameter)
-        result          <- userLibMutex.writeLock { 
+        result          <- userLibMutex.writeLock {
                              con.save(paramEntry) ?~! "Error when saving parameter entry in repository: %s".format(paramEntry)
                            }
         optDiff         <- diffMapper.modChangeRecords2GlobalParameterDiff(
@@ -278,7 +278,7 @@ class WoLDAPParameterRepository(
       }
 
   }
-  
+
   def deleteSavedParametersArchiveId(archiveId:ParameterArchiveId) : Box[Unit] = {
     repo.synchronized {
       for {
