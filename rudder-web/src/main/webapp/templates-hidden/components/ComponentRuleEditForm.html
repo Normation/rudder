@@ -4,7 +4,7 @@
 <component:staticInit>
 <head>
   <style type="text/css">
-  
+
     .topLevelAction .twoColumns {
       text-align: center;
       vertical-align: middle;
@@ -13,48 +13,48 @@
       display*: inline;
       zoom*: 1;
     }
-    
+
     .topLevelAction .twoColumnsRight {
       margin-left:20px
       margin-right: 5px;
     }
-    
+
     .topLevelAction .twoColumns > * {
       display: inline-block;
       vertical-align: middle;
       margin-left: 50px;
     }
-    
+
     .disableNotice {
       margin-top:10px;
       font-size:0.9em;
     }
-    
+
     .editZone {
       margin-top:30px;
     }
-    
+
     .groupedEditZone {
       margin-bottom:10px;
     }
-    
+
     label.wbBaseFieldLabel {
       margin-right:5px;
       margin-bottom: 3px;
     }
-    
+
     .reasonsFieldset {
       width:96%;
       margin-top: 15px;
       margin-right: 5px;
       display: inline-block;
     }
-    
+
     .warnicon {
       margin-top:-7px;
       margin-right:9px;
     }
-    
+
     .simplemodal-content {
       margin-top:5px;
     }
@@ -130,10 +130,10 @@
       The following pending change requests affect this Rule, you should check that your modification is not already pending:
       <ul id="changeRequestList"/>
       </div>
-    </div> 
+    </div>
   </div>
   <hr class="spacer"/>
-  
+
   <div class="topLevelAction">
 
     <div id="removeAction" class="twoColumns">
@@ -141,17 +141,17 @@
       <button id="removeButton">Delete</button>
     </div>
 
-    
+
     <div id="desactivateAction" class="twoColumns twoColumnsRight">
       <button id="disactivateButton"><span id="disactivateButtonLabel">desactivate</span></button>
     </div>
-    
+
     <div id="cloneAction" class="twoColumns twoColumnsRight">
         <button id="clone"><span id="cloneButtonLabel">Clone</span></button>
     </div>
-    
+
     <div class="disableNotice">
-        Note: the Rule will be applied only if its status is Enabled and 
+        Note: the Rule will be applied only if its status is Enabled and
         its Directive, Technique and target node group are all Enabled.
     </div>
     </div>
@@ -180,10 +180,10 @@
       <div id="longDescriptionField">
         Here comes the longDescription field
       </div>
-    
+
       <hr class="spacer" />
     </div>
-    
+
 
     <div class="groupedEditZone">
       <div class="inner-portlet-header spacing-title">
@@ -263,7 +263,7 @@
         <h1>Delete a Rule</h1>
         <hr/>
       </div>
-      <div class="simplemodal-content">    
+      <div class="simplemodal-content">
         <div>
           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
 	        <h2>Are you sure that you want to completely delete this item?</h2>
@@ -282,7 +282,7 @@
 		      Here comes the reasons field
 		    </div>
 	    </div>
-	    
+
         <br />
         <hr class="spacer" />
       </div>
@@ -295,7 +295,7 @@
            </span>
          </div>
       </div>
-    </div>   
+    </div>
 </component:popupRemoveForm>
 
 <component:popupDisactivateForm>
@@ -307,13 +307,13 @@
       <div class="simplemodal-content">
         <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
         <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Rule?</h2>
-         
-     	<br /> 
+
+     	<br />
         <hr class="spacer" />
 <!--         <div id="errorDisplay"> -->
 <!--         	[Replace this div with potential errors] -->
 <!--         </div> -->
-        
+
        	<div class="reasonsFieldsetPopup">
 		    <div id="explanationMessage">
 		      Here comes the explanation to reasons field
@@ -328,7 +328,7 @@
         <hr/>
          <div class="popupButton">
            <span>
-             <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>  
+             <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
              <button id="dialogDisactivateButton">Disable</button>
            </span>
           </div>

@@ -46,20 +46,20 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <description>
     This is the API/Core lib module that writes the promises of machines
   </description>
-  
+
   <dependencies>
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-api</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.normation.inventory</groupId>
       <artifactId>inventory-repository</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>com.normation</groupId>
       <artifactId>cfclerk</artifactId>
@@ -84,13 +84,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>squeryl_${scala-binary-version}</artifactId>
       <version>${squeryl-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-dbcp</groupId>
       <artifactId>commons-dbcp</artifactId>
       <version>1.4</version>
     </dependency>
-        
+
     <dependency>
       <groupId>commons-net</groupId>
       <artifactId>commons-net</artifactId>
@@ -107,12 +107,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           <groupId>org.slf4j</groupId>
         </exclusion>
       </exclusions>
-    </dependency> 
+    </dependency>
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
-    </dependency>  
-  
+    </dependency>
+
   </dependencies>
 </project>
