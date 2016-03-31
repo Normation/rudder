@@ -15,19 +15,19 @@ limitations under the License.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <groupId>com.normation</groupId>
   <artifactId>parent-pom</artifactId>
   <version>3.3.0~alpha1-SNAPSHOT</version>
   <packaging>pom</packaging>
-  
+
   <!-- ====================================  PROJECT INFORMATION  ==================================== -->
-  
+
   <description>
     This is the master parent pom, which knows all common dependencies, generic infos about resources,users.
-    For now, it includes (Normation) private resources. 
+    For now, it includes (Normation) private resources.
   </description>
-  
+
   <organization>
     <name>Normation SAS</name>
     <url>http://www.normation.com/</url>
@@ -51,9 +51,9 @@ limitations under the License.
       <timezone>+1</timezone>
     </developer>
   </developers>
-  
+
   <!-- ====================================  /PROJECT INFORMATION  ==================================== -->
-  
+
   <!-- ====================================  PROJECT REPOS  ==================================== -->
 
   <repositories>
@@ -92,7 +92,7 @@ limitations under the License.
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
-        <version>${scala-maven-plugin-version}</version> 
+        <version>${scala-maven-plugin-version}</version>
       </plugin>
     </plugins>
   </reporting>
@@ -195,7 +195,7 @@ limitations under the License.
             </goals>
           </execution>
         </executions>
-      </plugin>      
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-source-plugin</artifactId>
@@ -241,13 +241,13 @@ limitations under the License.
                   <goals>
                     <goal>add-source</goal>
                     <goal>compile</goal>
-                    <goal>testCompile</goal>              
+                    <goal>testCompile</goal>
                   </goals>
                 </pluginExecutionFilter>
                 <action>
                   <configurator>
                     <id>org.maven.ide.eclipse.scala</id>
-                  </configurator>                  
+                  </configurator>
                 </action>
               </pluginExecution>
             </pluginExecutions>
@@ -257,11 +257,11 @@ limitations under the License.
     </plugins>
     </pluginManagement>
   </build>
-  
+
   <!-- ====================================  /PROJECT BUILD  ==================================== -->
-  
+
   <!-- ==================================== PROJECT PROPERTIES  ==================================== -->
- 
+
   <properties>
     <!-- we use UTF-8 for everything -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -273,7 +273,7 @@ limitations under the License.
 
     <rudder-version>3.3.0~alpha1-SNAPSHOT</rudder-version>
     <spring-run-dep-version>3.3.0~alpha1-SNAPSHOT</spring-run-dep-version>
-    
+
     <scala-version>2.11.7</scala-version>
     <scala-binary-version>2.11</scala-binary-version>
     <lift-version>2.6.2</lift-version>
@@ -292,25 +292,25 @@ limitations under the License.
     <jgit-version>3.4.1.201406201815-r</jgit-version>
     <cglib-version>3.1</cglib-version>
   </properties>
-  
+
   <!-- ==================================== PROJECT DEPENDENCIES  ==================================== -->
-  
+
   <dependencies>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>joda-time</groupId>
       <artifactId>joda-time</artifactId>
       <version>${jodatime-version}</version>
     </dependency>
-    <!-- 
-         The Scala compiler require to be able to find these symbol even if they are not used. 
+    <!--
+         The Scala compiler require to be able to find these symbol even if they are not used.
          So we mark them as needed for compilation, but "provided" so that it does not go into
-         the final jars. 
+         the final jars.
      -->
     <dependency>
       <groupId>org.joda</groupId>
@@ -318,7 +318,7 @@ limitations under the License.
       <version>${jodaconvert-version}</version>
       <scope>provided</scope>
     </dependency>
-  
+
     <dependency>
       <groupId>net.liftweb</groupId>
       <artifactId>lift-common_${scala-binary-version}</artifactId>
@@ -334,7 +334,7 @@ limitations under the License.
         </exclusion>
       </exclusions>
     </dependency>
-    
+
     <!--
       We use SLF4J log facade with logback implementation
     -->
@@ -370,10 +370,10 @@ limitations under the License.
       <version>${specs2-version}</version>
       <scope>test</scope>
     </dependency>
-    
-    <!-- 
-        included to use slf4j native backend 
-        If you want to use another backend, 
+
+    <!--
+        included to use slf4j native backend
+        If you want to use another backend,
         exclude these dependencies from parent
     -->
     <dependency>
@@ -386,12 +386,12 @@ limitations under the License.
       <artifactId>logback-classic</artifactId>
       <version>${logback-version}</version>
     </dependency>
-    
-    <!-- 
-        If you need to use Spring, you will HAVE TO include that first dependency 
+
+    <!--
+        If you need to use Spring, you will HAVE TO include that first dependency
         or com.normation.spring-run-dependencies pom
     -->
-    <!-- 
+    <!--
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
