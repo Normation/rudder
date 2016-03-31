@@ -41,9 +41,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </parent>
 
   <description>
-    This is the web front end project that manage the CMDB 
+    This is the web front end project that manage the CMDB
   </description>
-  
+
   <build>
     <plugins>
        <!-- this is needed to have Rudder plugins access rudder-web in jar format -->
@@ -69,7 +69,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </build>
 
   <dependencies>
-    
+
     <dependency>
       <groupId>com.typesafe</groupId>
       <artifactId>config</artifactId>
@@ -86,7 +86,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>authorization-api</artifactId>
       <version>${rudder-version}</version>
     </dependency>
-    
+
     <dependency>
       <groupId>net.liftmodules</groupId>
       <artifactId>widgets_2.5_${scala-binary-version}</artifactId>
@@ -99,26 +99,26 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>paranamer</artifactId>
       <version>2.6</version>
     </dependency>
-    
+
     <dependency>
       <groupId>javax.servlet</groupId>
       <artifactId>servlet-api</artifactId>
       <version>2.5</version>
       <scope>provided</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-servlets</artifactId>
       <version>7.1.6.v20100715</version>
     </dependency>
-    
+
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>${commons-io-version}</version>
     </dependency>
-    
+
     <!-- Authentication -->
     <!-- spring dep needed so that the correct version is resolved -->
     <dependency>
@@ -156,7 +156,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
           <groupId>commons-logging</groupId>
         </exclusion>
       </exclusions>
-    </dependency>     
+    </dependency>
     <dependency>
       <groupId>org.springframework.security</groupId>
       <artifactId>spring-security-web</artifactId>
@@ -177,7 +177,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>spring-security-config</artifactId>
       <version>${spring-security-version}</version>
     </dependency>
-    
+
     <!-- Needed for LDAP authentication -->
     <dependency>
       <groupId>org.springframework.security</groupId>
