@@ -5,11 +5,11 @@
 </head>
 
  <h1>Welcome to Rudder</h1>
-	
+
   <lift:msgs>
   <lift:error_class>error</lift:error_class>
   </lift:msgs>
-  
+
   <div class="portlet">
     <div class="portlet-header">Description</div>
     <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
@@ -25,7 +25,7 @@
         <lift:HomePage.rules/>
         </lift:authz>
       </ul>
-	
+
     </div>
    <br/>
    </div>
@@ -79,7 +79,7 @@
           <div class="portlet-header">Rudder Administration</div>
           <div class="portlet-content homePageBlock"><img src="/images/imgPortlet.jpg" alt=" " width="94" height="82" />
             <ul>
-              <li>Track all events that have occured: <a href="/secure/utilities/eventLogs">Event logs</a> </li> 
+              <li>Track all events that have occured: <a href="/secure/utilities/eventLogs">Event logs</a> </li>
               <lift:authz role="administration_edit">
               <li><a href="/secure/administration/policyServerManagement">Configure the Rudder server</a></li>
               </lift:authz>
