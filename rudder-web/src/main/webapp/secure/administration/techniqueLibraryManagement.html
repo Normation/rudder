@@ -7,8 +7,8 @@
 <lift:administration.TechniqueLibraryManagement.head />
 
 <div class="portlet">
-  <div class="portlet-content">  
-    
+  <div class="portlet-content">
+
     <div class="inner-portlet">
       <div class="page-title">Technique library</div>
         <div class="intro">
@@ -61,7 +61,7 @@
             <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to filter Techniques (name or description) in the tree.</span>
             <span onclick="clearSearchFieldTree('#treeSearch', '#activeTechniquesTree')"><img src="/images/close-cross.png" alt="Clear Search" title="Clear Search" width="16" height="16" style="float:none;margin:0px;vertical-align: bottom"/></span>
           </div>
-          
+
           <lift:authz role="technique_write">
           <lift:administration.TechniqueLibraryManagement.userLibraryAction />
           </lift:authz>
@@ -69,14 +69,14 @@
         </div>
       </div>
     </div>
-    
+
     <hr class="spacer"/>
 
-    <lift:administration.TechniqueLibraryManagement.bottomPanel /> 
-    
+    <lift:administration.TechniqueLibraryManagement.bottomPanel />
+
   </div>
-  
-  
+
+
 
   <div id="createActiveTechniqueCategoryPopup" class="nodisplay">
     <lift:ignore>
@@ -84,14 +84,14 @@
     </lift:ignore>
     <div id="createActiveTechniquesCategoryContainer"/>
   </div>
-  
+
   <div id="createActiveTechniquePopup" class="nodisplay">
     <lift:ignore>
       This div gets the content of the createActiveTechniqueCategoryPopup injected within
     </lift:ignore>
     <div id="createActiveTechniquesContainer"/>
   </div>
-  
+
   <br/>
 </div>
 </lift:surround>

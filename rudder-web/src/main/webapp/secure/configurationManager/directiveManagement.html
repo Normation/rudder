@@ -88,7 +88,7 @@
         <fieldset class="deca">
           <legend>Description</legend>
           <span id="techniqueDescription">[technique.description]</span>
-        </fieldset>            
+        </fieldset>
         <div class="groupDiv">
           <fieldset class="deca">
             <legend>Characteristics</legend>
@@ -129,23 +129,23 @@
            <lift:authz role="directive_write">
              <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version"/>
            </lift:authz>
-         </div>         
+         </div>
        </fieldset>
        </div>
      </div>
    </lift:configuration.DirectiveManagement.techniqueDetails>
-    
+
    <div class="directiveDetails">
      <lift:configuration.DirectiveManagement.showDirectiveDetails />
    </div>
 </div>
- 
+
 <div id="createDirectivePopup" class="nodisplay">
   <lift:ignore>
     This div gets the content of the createDirective injected within
   </lift:ignore>
 </div>
-  
+
   <div id="finishMigrationPopup" class="nodisplay">
     <div class="simplemodal-title">
       <h1>Finish migration to a new version</h1>
@@ -160,9 +160,9 @@
       <hr class="spacer" />
       <br />
       <p>To finish the Directive migration to the new version, you have to edit and save the Directive parameters.</p>
-      <p>You can cancel the migration by reloading the page or choosing an other Directive in the tree 
-        without saving the form. 
-      </p>    
+      <p>You can cancel the migration by reloading the page or choosing an other Directive in the tree
+        without saving the form.
+      </p>
       <br />
       <div align="right">
         <button class="simplemodal-close" onClick="return false;">
@@ -172,6 +172,6 @@
       </div>
     </div>
   </div>
-  
+
 </lift:surround>
 
