@@ -1156,7 +1156,7 @@
     <NAME>Android</NAME>
     <VERSION>4.0</VERSION>
   </OPERATINGSYSTEM>
-      
+
   </CONTENT>
   <!-- added by hand -->
   <UUID>2717e172-f2e7-48cb-8944-276c963e2389</UUID>
@@ -1165,5 +1165,5 @@
   <POLICY_SERVER>root</POLICY_SERVER>
   <AGENTSNAME>
     <AGENTNAME>Community</AGENTNAME>
-  </AGENTSNAME>  
+  </AGENTSNAME>
 </REQUEST>
