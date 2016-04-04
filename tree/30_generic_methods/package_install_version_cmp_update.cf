@@ -42,8 +42,8 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
   defaults:
       "action" string => "immediate", if_match_regex => "add";
       "action" string => "warn", if_match_regex => "verify|";
-      "update_policy" string => "addupdate", if_match_regex => "true";
-      "update_policy" string => "add",       if_match_regex => "false";
+      "update_policy" slist => {"add", "update"}, if_match_regex => "true";
+      "update_policy" string => "add",            if_match_regex => "false";
 
   classes:
       "local_package" expression => regcmp("(http:|file:)?/.*", "${package_name}");
@@ -51,7 +51,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "immediate" expression => strcmp("immediate", "${action}");
       "warn" expression => strcmp("warn", "${action}");
 
-      "update"    expression => strcmp("addupdate", "${update_policy}");
+      "update"    expression => strcmp("update", "${update_policy}");
 
   packages:
 
