@@ -91,14 +91,14 @@ object TechniqueEditForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "popupRemoveForm", xml)
+      chooseTemplate("component", "popupremoveform", xml)
     }) openOr Nil
 
   private def popupDisactivateForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "popupDisactivateForm", xml)
+      chooseTemplate("component", "popupdisableform", xml)
     }) openOr Nil
 
   private def crForm =
