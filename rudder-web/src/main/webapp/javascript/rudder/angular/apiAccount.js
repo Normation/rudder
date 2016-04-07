@@ -20,13 +20,17 @@ accountManagement.directive('validEmpty', function() {
     
 accountManagement.controller('AccountCtrl', function ($scope, $http) {
 
-  $http.get(apiPath).
-  success(function(data, status, headers, config) {
-    $scope.accounts = data.data.accounts;
-  }).
-  error(function(data, status, headers, config) {
-    $scope.errorTable = data;
-  });
+  $scope.getAccounts = function() {
+    $http.get(apiPath).
+    success(function(data, status, headers, config) {
+      $scope.accounts = data.data.accounts;
+      return $scope.accounts
+    }).
+    error(function(data, status, headers, config) {
+      $scope.errorTable = data;
+      return $scope.errorTable
+    });
+  }
 
 
   $scope.deleteAccount = function(account,index) {
@@ -34,9 +38,6 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
         success(function(data, status, headers, config) {
           $scope.accounts.splice(index,1);
           $scope.myNewAccount = undefined;
-
-          $("#accountGrid").dataTable().fnClearTable();
-          $("#accountGrid").dataTable().fnAddData($scope.accounts);
         }).
         error(function(data, status, headers, config) {
          $scope.errorTable = data;
@@ -50,8 +51,6 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
          $scope.accounts[index] = newAccount;
 
          $.extend($scope.myNewAccount, newAccount);
-         $("#accountGrid").dataTable().fnClearTable();
-         $("#accountGrid").dataTable().fnAddData($scope.accounts);
        }).
        error(function(data, status, headers, config) {
          $scope.errorTable = data;
@@ -167,27 +166,16 @@ $scope.columnDefs = [
 ]
 
 $scope.overrideOptions = {
-  "asStripeClasses": [ 'color1', 'color2' ],
-    "bAutoWidth": false,
-    "bFilter" : true,
-    "bPaginate" : true,
-    "bInfo" : false,
-    "bJQueryUI": true,
-    "bStateSave": true,
-    "fnStateSave": function (oSettings, oData) {
-      localStorage.setItem( 'DataTables_apiAccounts', JSON.stringify(oData) );
-    },
-    "fnStateLoad": function (oSettings) {
-      return JSON.parse( localStorage.getItem('DataTables_apiAccounts') );
-    },
-    "bLengthChange": true,
-    "sPaginationType": "full_numbers",
-    "oLanguage": {
-        "sZeroRecords": "No matching API accounts!",
+      "bFilter" : true
+    , "bPaginate" : true
+    , "bLengthChange": true
+    , "sPaginationType": "full_numbers"
+    , "oLanguage": {
         "sSearch": ""
-      },
-    "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-};
+    }
+    , "aaSorting": [[ 0, "asc" ]]
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  };
 
 $scope.popupCreation = function(account,index) {
   $scope.$apply(function() {
@@ -232,8 +220,6 @@ $scope.popupDeletion = function(account, index, action, actionName) {
        var newLength = $scope.accounts.push(newAccount);
        newAccount.index = newLength - 1 ;
        $scope.myNewAccount = undefined;
-       $("#accountGrid").dataTable().fnClearTable();
-       $("#accountGrid").dataTable().fnAddData($scope.accounts);
      }).
      error(function(data, status, headers, config) {
        if (isPopup)  {
@@ -273,4 +259,6 @@ $scope.popupDeletion = function(account, index, action, actionName) {
     if(isEnabled) return "Enabled";
     else return "Disabled";
   }
+
+  $scope.getAccounts();
 } );
