@@ -626,14 +626,6 @@ div#Detail {
   align:left;
   height:20px;
 }
-
-.paginateBold {
-  width : 50%;
-  align:left;
-  height:20px;
-  font-weight:bold;
-}
-
 .sorting span,.sorting_asc span,.sorting_desc span   {
   float:right;  
   width:14px;
@@ -646,14 +638,6 @@ div#Detail {
 }
 .sorting_desc { 
   cursor: pointer; 
-}
-
-.sorting_asc span:after {
-  content:url("../images/tableau/flecheHaut.png");
-}
-
-.sorting_desc span:after {
-  content:url("../images/tableau/flecheBas.png");
 }
 
 /**********************************
@@ -2911,4 +2895,8 @@ button.buttonMargin {
 #generation-status .glyphicon {
 	top 0;
 	font-size : 11px;
+}
+
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
 }
