@@ -44,19 +44,21 @@ angular
         if (attrs.fnRowCallback) {
             options["fnRowCallback"] = scope.$eval(attrs.fnRowCallback);
         }
+        var refresh = scope.$eval(attrs.refresh)
 
         // apply the plugin
-        var dataTable = element.dataTable(options);
+        var dataTable = createTable(element.attr('id'),[], attrs.aoColumnDefs, options, contextPath, refresh, "api_accounts");
 
         
         
         // watch for any changes to our data, rebuild the DataTable
-        scope.$watch(attrs.aaData, function(value) {
-            var val = value || null;
+        scope.$watch(attrs.aaData, function(newValue, oldValue) {
+            var val = newValue || null;
             if (val) {
-                dataTable.fnClearTable();
-                dataTable.fnAddData(scope.$eval(attrs.aaData));
-            }
-        });
+              dataTable.clear();
+              dataTable.rows.add(scope.$eval(attrs.aaData));
+              dataTable.draw();
+          }
+        }, true);
     };
 });
