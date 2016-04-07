@@ -39,7 +39,7 @@
 </head>
 
 
-<div class="portlet" ng-app="accountManagement" id="accountManagement" >
+<div class="portlet" ng-app="accountManagement" id="accountManagement" ng-cloak="" >
   <div class="portlet-content">
     <div class="inner-portlet">
       <div class="page-title">Configure allowed accounts</div>
@@ -70,7 +70,7 @@
               Add API Account
             </button>
           </lift:authz>
-          <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="accounts" id="accountGrid">
+          <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="accounts" id="accountGrid" refresh="getAccounts">
             <thead><tr class="head tablewidth">
                 <th style="width:100px">Account Name</th>
                 <th style="width:250px">Token</th>
@@ -87,7 +87,7 @@
 
 
           <!-- pop-ups -->
-          <div id="newAccountPopup" ng-show="myNewAccount">
+          <div id="newAccountPopup" ng-show="myNewAccount" >
             <div id="newAccountContainer" >
               <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
               <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; height: auto; width: 450px; left: 30%; top: 20%;">
