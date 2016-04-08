@@ -365,6 +365,7 @@ body copy_from ncf_local_cp_method(from, method)
 {
   source      => "${from}";
   compare     => "${method}";
+  copy_backup => "timestamp";
 }
 
 # Modular remote copy_from body
@@ -375,6 +376,8 @@ body copy_from ncf_remote_cp_method(from, server, method)
   source      => "${from}";
   portnumber  => "${configuration.cfengine_port}";
   compare     => "${method}";
+  encrypt     => "true";
+  copy_backup => "timestamp";
 }
 
 # Define x prefixes/suffixed with promises outcome, based on return codes
