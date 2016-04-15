@@ -184,8 +184,8 @@ class TechniqueEditForm(
           "#deleteActionDialog *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
           "#dialogDeleteButton" #> { deleteButton(activeTechnique.id) % ("id", "deleteButton") } &
           "#deleteItemDependencies *" #> dialogDeleteTree("deleteItemDependencies", activeTechnique)&
-          ".reasonsFieldset" #> { crReasonsRemovePopup.map { f =>
-            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+          ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
+            "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
             "#reasonsField" #> f.toForm_!
           } } &
           "#errorDisplay" #> { updateAndDisplayNotifications(formTrackerRemovePopup) }
@@ -204,7 +204,7 @@ class TechniqueEditForm(
           "#dialogDisableLabel" #> { if(activeTechnique.isEnabled) "disable" else "enable" } &
           "#disableItemDependencies *" #> dialogDisableTree("disableItemDependencies", activeTechnique) &
           ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
-            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+            "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
             "#reasonsField" #> f.toForm_!
           } } &
           "#time" #> <div>{ DateTime.now } </div>&
@@ -227,10 +227,10 @@ class TechniqueEditForm(
           "#disableButtonLabel" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
           "#dialogDisableTitle" #> { if(activeTechnique.isEnabled) "Disable" else "Enable" } &
           "#dialogdisableWarning" #> dialogDisableWarning(activeTechnique) &
-          ".reasonsFieldset" #> { crReasons.map { f =>
-            "#explanationMessage" #> <div>{userPropertyService.reasonsFieldExplanation}</div> &
+          ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
+            "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
             "#reasonsField" #> f.toForm_!
-          } }
+          } } 
         )(xml)
       } } &
       ".groupedEditZone" #> ((div:NodeSeq) => technique match {
@@ -302,10 +302,9 @@ class TechniqueEditForm(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  %
-        ("style" -> "height:8em;")
+      override def inputField = super.inputField % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       override def subContainerClassName = containerClass
       override def validations = {
         if(mandatory){
@@ -347,33 +346,31 @@ class TechniqueEditForm(
   }
 
   private[this] def onFailure() : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("There was problem with your request"))
     updateFormClientSide()
   }
 
   private[this] def onFailureRemovePopup() : JsCmd = {
-    val elemError = error("The form contains some errors, please correct them")
-    formTrackerRemovePopup.addFormError(elemError)
+    formTrackerRemovePopup.addFormError(error("There was problem with your request"))
     updateRemoveFormClientSide()
   }
 
   private[this] def onFailureDisablePopup() : JsCmd = {
-    val elemError = error("The form contains some errors, please correct them")
-    formTrackerDisactivatePopup.addFormError(elemError)
+    formTrackerDisactivatePopup.addFormError(error("There was problem with your request"))
     updateDisableFormClientSide()
   }
 
   private[this] def updateRemoveFormClientSide() : JsCmd = {
-    val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").removeClass('nodisplay')""")
+    val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").bsModal('show')""")
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
     jsDisplayRemoveDiv &
     initJs
   }
 
   private[this] def updateDisableFormClientSide() : JsCmd = {
-    val jsDisplayDisableDiv = JsRaw("""$("#disableActionDialog").removeClass('nodisplay')""")
+    val jsDisplayRemoveDiv = JsRaw("""$("#disableActionDialog").bsModal('show')""")
     Replace("disableActionDialog", this.showDisactivatePopupForm()) &
-    jsDisplayDisableDiv &
+    jsDisplayRemoveDiv &
     initJs
   }
 
@@ -389,7 +386,7 @@ class TechniqueEditForm(
       if(formTrackerRemovePopup.hasErrors) {
         onFailureRemovePopup
       } else {
-        JsRaw("$.modal.close();") &
+        JsRaw("$('#deleteActionDialog').bsModal('hide');") &
         {
           val modId = ModificationId(uuidGen.newUuid)
           (for {
@@ -434,7 +431,7 @@ class TechniqueEditForm(
       } else {
         currentActiveTechnique = currentActiveTechnique.map(
             activeTechnique => activeTechnique.copy(_isEnabled = status))
-        JsRaw("$.modal.close();") &
+        JsRaw("$('#disableActionDialog').bsModal('hide');") &
         statusAndDeployTechnique(activeTechnique.id, status)
       }
     }

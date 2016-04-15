@@ -328,7 +328,7 @@ class DirectiveEditForm(
   ////////////// Callbacks //////////////
 
   private[this] def onFailure(): JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them."))
+    formTracker.addFormError(error("There was problem with your request."))
     showErrorNotifications()
   }
 
@@ -573,22 +573,22 @@ class DirectiveEditForm(
         if(workflowEnabled) {
           (
               (crId: ChangeRequestId) => onSuccessCallback(Right(crId))
-            , (xml: NodeSeq) => JsRaw("$.modal.close();") & onFailure
+            , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
           )
         } else {
           val success = {
             if (action == ModificationValidationPopup.Delete) {
               val nSeq = <div id={ htmlId_policyConf }>Directive successfully deleted</div>
-              (_: ChangeRequestId) => JsRaw("$.modal.close();") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
+              (_: ChangeRequestId) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onRemoveSuccessCallBack() & SetHtml(htmlId_policyConf, nSeq) &
               successPopup(NodeSeq.Empty)
             } else {
-              (_: ChangeRequestId)  => JsRaw("$.modal.close();") & successPopup(NodeSeq.Empty) & onSuccessCallback(Left(newDirective))
+              (_: ChangeRequestId)  => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successPopup(NodeSeq.Empty) & onSuccessCallback(Left(newDirective))
             }
           }
 
           (
               success
-            , (xml: NodeSeq) => JsRaw("$.modal.close();") & onFailure
+            , (xml: NodeSeq) => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
           )
         }
       }

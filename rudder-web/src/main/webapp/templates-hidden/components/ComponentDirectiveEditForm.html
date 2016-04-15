@@ -212,15 +212,22 @@
     </lift:authz>
     <br/>
     </div>
-  <div id="removeActionDialog" ></div>
-  <div id="disableActionDialog" ></div>
-  <div id="confirmUpdateActionDialog" class="nodisplay"></div>
-  <div id="createCloneDirectivePopup" class="nodisplay">
-	  <lift:ignore>
-	    This div gets the content of the createDirective injected within
-	  </lift:ignore>
-	</div>
-
+    <div class="tw-bs">
+      <div id="removeActionDialog" class="modal fade"></div>
+    </div>
+    <div class="tw-bs">
+        <div id="disableActionDialog" class="modal fade"></div>
+    </div>
+    <div class="tw-bs">
+        <div id="confirmUpdateActionDialog" class="modal fade"></div>
+    </div>
+    <div class="tw-bs">
+      <div id="createCloneDirectivePopup" class="modal fade">
+          <lift:ignore>
+            This div gets the content of the createDirective injected within
+          </lift:ignore>
+        </div>
+    </div>
 </component:form>
 
 <component:informationTab>
@@ -320,6 +327,7 @@
        </div>
        <br />
        	<div class="reasonsFieldsetPopup">
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
 		    <div id="explanationMessage">
 		      Here comes the explanation to reasons field
 		    </div>
@@ -404,6 +412,7 @@
        	  <b>Warning:</b> This directive is currently disabled. Your changes will not take effect until it is enabled.
        	 </div>
          <div>
+           <span class="glyphicon glyphicon-info-sign"></span>
            Updating this Directive will have an impact on the following Rules which apply it.
          </div>
        <div id="updateItemDependencies">

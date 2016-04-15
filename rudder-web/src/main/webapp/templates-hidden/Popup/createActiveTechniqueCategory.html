@@ -1,29 +1,29 @@
 <!--
   This is the content of the create active technique category
  -->
-<technique:createCategoryPopup>
-    <div class="simplemodal-title">
-      <h1>Create a new Active Technique category</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <hr class="spacer"/>
-      <item:notifications ></item:notifications>
-      <hr class="spacer"/>
-      <item:itemName></item:itemName>
-      <hr class="spacer"/>
-      <item:itemContainer></item:itemContainer>
-      <hr class="spacer"/>
-      <item:itemDescription></item:itemDescription>
-      <hr class="spacer"/>
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-        <span>
-          <item:cancel></item:cancel>
-          <item:save></item:save>
-        </span>
-     </div>
-    </div>
+<technique:createCategoryPopup>  
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                    Create a new Active Technique category
+                </h4>
+            </div>
+            <div class="modal-body">
+                <item:notifications ></item:notifications>
+                <item:itemName></item:itemName>
+                <item:itemContainer></item:itemContainer>
+                <item:itemDescription></item:itemDescription>
+            </div>
+            <div class="modal-footer">
+                <item:cancel></item:cancel>
+                <item:save></item:save>
+            </div>  
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
  </technique:createCategoryPopup>

@@ -9,42 +9,42 @@
  - the workflows part (asking what to do if the wf is enable)
  -->
 <xml:group>
-<component:validationPopup>
-<div id="validationContainer">
-  <div class="simplemodal-title">
-    <h1 id="dialogTitle">[Some modification on item]</h1>
-    <hr />
-  </div>
-  <div id="validationForm">
-    <div class="simplemodal-content">
-      <div id="explanationMessageZone">
-        [Here come the explanation message]
-      </div>
-      <div id="disableItemDependencies">
-        Here comes the grid of Rules that will be removed
-      </div>
-      <div id="changeRequestZone">
-        <hr class="spacer" />
-        <div id="titleWorkflow"></div>
-        <hr class="spacer" />
-        <div class="notifications"></div>
-        <hr class="spacer" />
-        <input type="text" id="changeRequestName" ></input>
-        <hr class="spacer" />
-        <div class="reasonsFieldsetPopup"></div>
-        <hr class="spacer" />
-      </div>
-    </div>
-    <div class="simplemodal-bottom">
-      <hr />
-      <div class="popupButton">
-        <span>
-          <button class="simplemodal-close" onClick="$.modal.close();" style="float:left" tabindex="100">Cancel</button>
-          <button id="saveStartWorkflow">[Submit Draft]</button>
-        </span>
-      </div>
-    </div>
-  </div>
-</div>
-</component:validationPopup>
+    <component:validationPopup>
+        <div id="validationContainer">
+            <div id="validationForm">
+                <div class="modal-backdrop fade in" style="height: 100%;"></div>
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                            <span class="sr-only">Close</span>
+                            </div>
+                            <h4 id="dialogTitle" class="modal-title">
+                                [Some modification on item]
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <div id="explanationMessageZone">
+                                [Here come the explanation message]
+                            </div>
+                            <div id="disableItemDependencies">
+                                Here comes the grid of Rules that will be removed
+                            </div>
+                                <div id="changeRequestZone">
+                                    <div class="notifications"></div>
+                                    <div id="titleWorkflow"></div>
+                                    <input type="text" id="changeRequestName"/>
+                                    <div class="reasonsFieldsetPopup"></div>
+                                </div>
+                            </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                            <button id="saveStartWorkflow" class="btn">[Submit Draft]</button>
+                        </div>  
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div>
+        </div>
+    </component:validationPopup>
 </xml:group>
