@@ -75,7 +75,7 @@ class ChangeRequestEditForm (
 
   def dispatch = { case "details" => { _ => display } }
 
-  private[this] val changeRequestName =new WBTextField("Title", info.name) {
+  private[this] val changeRequestName =new WBTextField("Change request title", info.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def className = "twoCol"
     override def validations =
@@ -137,7 +137,7 @@ class ChangeRequestEditForm (
 
   def submit = {
     if (formTracker.hasErrors) {
-      formTracker.addFormError(error("The form contains some errors, please correct them"))
+      formTracker.addFormError(error("There was problem with your request"))
       updateFomClientSide
     }
     else {

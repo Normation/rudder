@@ -170,29 +170,38 @@ class NodeGroupCategoryForm(
 
     if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
       (
-        <button id="removeButton">Delete</button>
-        <div id="removeActionDialog" class="nodisplay">
-          <div class="simplemodal-title">
-            <h1>Delete a group category</h1>
-            <hr/>
-          </div>
-          <div class="simplemodal-content">
-            <div>
-              <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-              <h3>Are you sure that you want to completely delete this category ?</h3>
-            </div>
-             <hr class="spacer" />
-          </div>
-          <div class="simplemodal-bottom">
-            <hr/>
-            <div class="popupButton">
-               <span>
-                <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-                {SHtml.ajaxButton("Delete", onDelete _ ,("class", "dangerButton"))}
-              </span>
-            </div>
-          </div>
-        </div>
+       <button id="removeButton">Delete</button>
+        <div class="tw-bs">   
+            <div id="removeActionDialog" class="modal fade">
+                <div class="modal-backdrop fade in" style="height: 100%;"></div>
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <div class="close" data-dismiss="modal">
+                                <span aria-hidden="true">&times;</span>
+                                <span class="sr-only">Close</span>
+                            </div>
+                            <h4 class="modal-title text-left">
+                                Delete a group category
+                            </h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-lg-12">
+                                    <h4 class="text-center">
+                                        Are you sure that you want to completely delete this category ?
+                                    </h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer" style="text-align:center">
+                            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            {SHtml.ajaxButton("Delete", onDelete _ ,("class", "btn btn-danger"))}
+                        </div>
+                    </div><!-- /.modal-content -->
+                </div><!-- /.modal-dialog -->
+            </div><!-- /.modal -->
+        </div> 
       ) ++
       Script(JsRaw("""
         $('#removeButton').click(function() {
@@ -245,6 +254,8 @@ class NodeGroupCategoryForm(
         Seq("disabled"->"true")
       ) {
         override def className = "rudderBaseFieldSelectClassName"
+        override def validations =
+      valMinLen(1, "Please select a category") _ :: Nil
       }
     case Full(category) =>
       new WBSelectField(
@@ -253,6 +264,8 @@ class NodeGroupCategoryForm(
             map { case (id, name) => (id.value -> name)}
       , parentCategoryId)  {
           override def className = "rudderBaseFieldSelectClassName"
+          override def validations =
+      valMinLen(1, "Please select a category") _ :: Nil
       }
   }
 
@@ -265,7 +278,7 @@ class NodeGroupCategoryForm(
     initJs
   }
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def onSuccess : JsCmd = {
 
@@ -274,7 +287,7 @@ class NodeGroupCategoryForm(
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them."))
+    formTracker.addFormError(error("There was problem with your request."))
     updateFormClientSide & JsRaw("""scrollToElement("notifications","#groupDetails");""")
   }
 

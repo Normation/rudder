@@ -265,7 +265,7 @@ object DisplayDirectiveTree extends Loggable {
         val deprecated = technique.flatMap(_.deprecrationInfo) match {
           case Some(info) =>
             val tooltipId = Helpers.nextFuncName
-            <span class="glyphicon glyphicon-exclamation-sign text-danger deprecatedTechniqueIcon" tooltipid={tooltipId} title=""></span>
+            <span class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon" tooltipid={tooltipId} title=""></span>
             <div class="tooltipContent" id={tooltipId}>
               <div>Deprecated: {info.message}</div>
             </div>

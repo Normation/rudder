@@ -326,9 +326,11 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     val deleteButton : NodeSeq= {
        sm.node.main.status match {
           case AcceptedInventory =>
-            <div id={deleteNodePopupHtmlId}  class="nodisplay" />
-            <div id={errorPopupHtmlId}  class="nodisplay" />
-            <div id={successPopupHtmlId}  class="nodisplay" />
+            <div class="tw-bs">
+                <div id={deleteNodePopupHtmlId}  class="modal fade" />
+                <div id={errorPopupHtmlId}  class="modal fade" />
+                <div id={successPopupHtmlId}  class="modal fade" />
+            </div>
             <lift:authz role="node_write">
               {
                 if(!isRootNode(sm.node.main.id)) {
@@ -726,30 +728,32 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
   private[this] def showPopup(nodeId : NodeId) : JsCmd = {
     val popupHtml =
-    <div class="simplemodal-title">
-      <h1>Remove a node from Rudder</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <div>
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h2>If you choose to remove this node from Rudder, it won't be managed anymore, and all information about it will be removed from the application</h2>
-      </div>
-      <hr class="spacer"/>
-     </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-        <span>
-          <button class="simplemodal-close" onClick="$.modal.close();">
-          Cancel
-          </button>
-          {
-            SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
-          }
-        </span>
-      </div>
-    </div> ;
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                    Remove a node from Rudder
+                </h4>
+            </div>
+            <div class="modal-body">
+                <h4 class="text-center">If you choose to remove this node from Rudder, it won't be managed anymore, and all information about it will be removed from the application</h4>
+            </div>
+            <div class="modal-footer">
+                {
+                    SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } },("class","btn btn-danger"))
+                }
+
+                <button class="btn btn-default" type="button" data-dismiss="modal">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>; ;
 
     SetHtml(deleteNodePopupHtmlId, popupHtml) &
     JsRaw(s""" createPopup("${deleteNodePopupHtmlId}") """)
@@ -809,58 +813,63 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
   private[this] def onFailure(nodeId: NodeId) : JsCmd = {
     val popupHtml =
-    <div class="simplemodal-title">
-      <h1>Error while removing a node from Rudder</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <div>
-          <img src="/images/icfail.png" alt="Error!" height="32" width="32" class="erroricon"/>
-          <h2>There was an error while deleting the Node with ID {nodeId.value}. Please contact your administrator.</h2>
-      </div>
-      <hr class="spacer" />
-      <br />
-      <br />
-      <div align="right">
-        <button class="simplemodal-close" onClick="return false;">
-          Close
-        </button>
-      <br />
-      </div>
-    </div> ;
-
-    JsRaw( """$.modal.close();""") &
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                    Error while removing a node from Rudder
+                </h4>
+            </div>
+            <div class="modal-body">
+                <h4 class="text-center">
+                    <p>There was an error while deleting the Node with ID :</p>
+                    <p><b class="text-danger">{nodeId.value}</b></p>
+                    <p>Please contact your administrator.</p>
+                </h4>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" type="button" data-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>;
+    JsRaw( """$('#errorPopupHtmlId').bsModal('hide');""") &
     SetHtml(errorPopupHtmlId, popupHtml) &
     JsRaw( s""" callPopupWithTimeout(200,"${errorPopupHtmlId}")""")
   }
 
   private[this] def onSuccess : JsCmd = {
     val popupHtml =
-      <div class="simplemodal-title">
-      <h1>Success</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <br />
-      <div>
-        <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
-        <h2>The node has been successfully removed from Rudder.</h2>
-      </div>
-      <hr class="spacer" />
-      <br />
-      <br />
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <p align="right">
-        <button class="simplemodal-close" onClick="window.location.hash='#';location.reload(true);">
-          Close
-        </button>
-      <br />
-      </p>
+      <div class="modal-backdrop fade in" style="height: 100%;"></div>
+        <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                    Success
+                </h4>
+            </div>
+            <div class="modal-body">
+                <h4 class="text-center">The node has been successfully removed from Rudder.</h4>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" type="button" data-dismiss="modal">
+                    Close
+                </button>
+            </div>
+        </div>
     </div> ;
 
-    JsRaw( """$.modal.close();""") &
+    JsRaw( """$('#successPopupHtmlId').bsModal('hide');""") &
     SetHtml(successPopupHtmlId, popupHtml) &
     JsRaw( s""" callPopupWithTimeout(200,"${successPopupHtmlId}") """)
   }

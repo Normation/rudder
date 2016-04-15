@@ -3,38 +3,32 @@
   It get called to be injected within the group.html
  -->
 <groups:createGroupPopup>
-	<div class="simplemodal-title">
-		<h1>Create a new item</h1>
-		<hr />
-	</div>
-	<div class="simplemodal-content">
-		<div id="createANewItemContentForm">
-			<item:notifications></item:notifications>
-			<hr class="spacer" />
-		    <item:itemType ></item:itemType>
-			<hr class="spacer" >
-			<item:itemName ></item:itemName>
-			<hr class="spacer" />
-			<item:itemContainer></item:itemContainer>
-			<hr class="spacer" />
-			<item:itemDescription ></item:itemDescription>
-			<hr class="spacer" />
-			<div id="createGroupHiddable" class="nodisplay">
-				<item:groupType ></item:groupType>
-				<hr class="spacer" />
-			</div>
-            <hr class="spacer" />
-            <item:itemReason ></item:itemReason>
-			<hr class="spacer" />
-		</div>
-	</div>
-	<div class="simplemodal-bottom">
-		<hr />
-		<lift:authz role="node_write">
-			<div class="popupButton">
-				<span> <item:cancel ></item:cancel> <item:save ></item:save>
-				</span>
-			</div>
-		</lift:authz>
-	</div>
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">Create a new item</h4>
+            </div>
+            <div class="modal-body" id="createANewItemContentForm">
+                <item:notifications></item:notifications>
+                <item:itemType ></item:itemType>
+                <h4 class="col-lg-12 col-xs-12 col-sm-12 audit-title">New <span id="itemTitle">Group</span></h4>
+                <div id="createGroupHiddable" class="nodisplay">
+                    <item:groupType ></item:groupType>
+                </div>
+                <item:itemName ></item:itemName>
+                <item:itemContainer></item:itemContainer>
+                <item:itemDescription ></item:itemDescription>
+                <item:itemReason ></item:itemReason>
+            </div>
+            <div class="modal-footer">
+                <item:cancel></item:cancel>
+                <item:save></item:save>
+            </div>  
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
 </groups:createGroupPopup>

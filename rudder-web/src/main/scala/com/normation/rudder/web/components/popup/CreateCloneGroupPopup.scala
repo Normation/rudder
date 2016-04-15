@@ -61,15 +61,13 @@ class CreateCloneGroupPopup(
       "grouptype" -> piStatic.toForm_!,
       "itemreason" -> { piReasons.map { f =>
         <div>
-          <div style="margin:10px 0px 5px 0px; color:#444">
-            {userPropertyService.reasonsFieldExplanation}
-          </div>
+          <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
           {f.toForm_!}
         </div>
       } },
       "notifications" -> updateAndDisplayNotifications(formTracker),
-      "cancel" -> SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" ),
-      "save" -> SHtml.ajaxSubmit( "Save", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )
+      "cancel" -> SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" )% ( "class", "btn btn-default" ),
+      "save" -> SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )% ( "class", "btn btn-success" )
     ) ) ++ Script( OnLoad( initJs & JsRaw("updatePopup();") ) )
   }
 
@@ -85,7 +83,7 @@ class CreateCloneGroupPopup(
   def popupTemplate = chooseTemplate("groups", "createclonegrouppopup", template)
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw(""" $('#createCloneGroupPopup').bsModal('hide');""")
   }
 
   private[this] def onFailure() : JsCmd = {
@@ -93,11 +91,11 @@ class CreateCloneGroupPopup(
     updateFormClientSide()
   }
 //    private[this] def onFailure : JsCmd = {
-//    formTracker.addFormError(error("The form contains some errors, please correct them"))
+//    formTracker.addFormError(error("There was problem with your request"))
 //    updateFormClientSide()
 //  }
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
@@ -116,7 +114,7 @@ class CreateCloneGroupPopup(
           , NodeGroupCategoryId(piContainer.is)
           , ModificationId(uuidGen.newUuid)
           , CurrentUser.getActor
-          , Some("Node Group Category created by user from UI")
+          , Some("Node Group category created by user from UI")
         ) match {
           case Full(x) => closePopup() & onSuccessCallback(x.id.value) & onSuccessCategory(x)
           case Empty =>
@@ -171,8 +169,8 @@ class CreateCloneGroupPopup(
     }
     else {
       val html =
-        <div id="notifications" class="notify">
-          <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+        <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert">
+          <ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul>
         </div>
       html
     }
@@ -191,11 +189,11 @@ class CreateCloneGroupPopup(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
-        ("style" -> "height:5em;")
-      override def errorClassName = ""
+        ("style" -> "height:5em;") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
+      override def errorClassName = "col-lg-12 errors-container"
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -210,7 +208,7 @@ class CreateCloneGroupPopup(
       new WBTextField("Name",
         nodeGroup.map(x => "Copy of <%s>".format(x.name)).getOrElse("")) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def errorClassName = ""
+      override def errorClassName = "col-lg-12 errors-container"
       override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","1")
       override def validations =
         valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -221,7 +219,7 @@ class CreateCloneGroupPopup(
       nodeGroup.map(x => x.description).getOrElse("") ) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:5em") % ("tabindex","3")
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations =  Nil
   }
 
@@ -233,8 +231,8 @@ class CreateCloneGroupPopup(
     case "dynamic" =>
       <span title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
   }, Some(4)) {
-    override def className = "rudderBaseFieldSelectClassName"
-    override def errorClassName = "threeColErrors"
+    override def className = "col-lg-12 col-sm-12 col-xs-12"
+    override def errorClassName = "col-lg-12 errors-container"
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')")
   }
@@ -243,7 +241,9 @@ class CreateCloneGroupPopup(
       (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
       parentCategoryId) {
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createCOGSaveButton')") % ("tabindex","2")
-    override def className = "rudderBaseFieldSelectClassName"
+    override def className = "col-lg-12 col-sm-12 col-xs-12  form-control"
+    override def validations =
+      valMinLen(1, "Please select a category") _ :: Nil
   }
 
   private[this] def initJs : JsCmd = {

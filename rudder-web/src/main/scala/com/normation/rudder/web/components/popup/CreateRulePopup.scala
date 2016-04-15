@@ -102,23 +102,24 @@ class CreateOrCloneRulePopup(
       "itemshortdescription" -> ruleShortDescription.toForm_!,
       "itemreason" -> { reason.map { f =>
         <div>
-          <div style="margin:10px 0px 5px 0px; color:#444">
-            {userPropertyService.reasonsFieldExplanation}
-          </div>
-          {f.toForm_!}
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+            {f.toForm_!}
         </div>
+        
       } },
       "clonenotice" -> {
         if(clonedRule.isDefined)
-          <br/>
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-          <h3>The new rule will be disabled.</h3>
+            <hr class="css-fix"/>
+            <div class="alert alert-info text-center">
+                <span class="glyphicon glyphicon-info-sign"></span>
+                The new rule will be disabled.
+            </div>
         else
           NodeSeq.Empty
       },
       "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5"),
-      "save" -> SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Save", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","4")
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","5") % ("class","btn btn-default"),
+      "save" -> SHtml.ajaxSubmit(if(clonedRule.isDefined) "Clone" else "Create", onSubmit _) % ("id","createCRSaveButton") % ("tabindex","4") % ("class","btn btn-success")
 
     ))
   }
@@ -135,10 +136,10 @@ class CreateOrCloneRulePopup(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % ("style" -> "height:5em;") % ("tabindex" -> "3")
-      override def errorClassName = ""
+      override def inputField = super.inputField  % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
+      override def errorClassName = "col-lg-12 errors-container"
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -151,7 +152,7 @@ class CreateOrCloneRulePopup(
 
   private[this] val ruleName = new WBTextField("Name", clonedRule.map(r => "Copy of <%s>".format(r.name)).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createCRSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -160,7 +161,7 @@ class CreateOrCloneRulePopup(
   private[this] val ruleShortDescription = new WBTextAreaField("Description", clonedRule.map( _.shortDescription).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
 
   }
@@ -171,17 +172,19 @@ class CreateOrCloneRulePopup(
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(rootRuleCategory, None).map { case (id, name) => (id.value -> name)}
       , selectedCategory.value
     ) {
-    override def className = "rudderBaseFieldSelectClassName"
+    override def className = "form-control col-lg-12 col-sm-12 col-xs-12"
+    override def validations =
+      valMinLen(1, "Please select a category") _ :: Nil
   }
 
   private[this] val formTracker = new FormTracker(ruleName :: ruleShortDescription :: reason.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+      JsRaw(""" $('#createRulePopup').bsModal('hide');""")
   }
   /**
    * Update the form when something happened
@@ -234,7 +237,7 @@ class CreateOrCloneRulePopup(
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

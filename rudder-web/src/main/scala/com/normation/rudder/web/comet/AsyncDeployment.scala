@@ -132,24 +132,39 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case SuccessStatus(id,start,end,configurationNodes) =>
         commonStatement(start, end, "Update took", "Policies updated")
       case ErrorStatus(id,start,end,failure) =>
-        commonStatement(start, end, "Error occured in", "Error during policy update") ++
-        <li><a href="#" onClick={
-            """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 });
-               $('#simplemodal-container').css('height', 'auto');
-               correctButtons();
-               return false;"""}>Details</a></li> ++ {
-          ("#errorDetailsMessage" #> { failure.messageChain match {
+        val popupContent = 
+            failure.messageChain match {
             case  deployementErrorMessage(chain, error) =>
-              <span>{chain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</span>
+              <div class="alert alert-danger" role="alert">
+                {chain.split("<-").map(x =>  {<b>⇨&nbsp;</b>} ++ Text(x) ++  {<br/>})}
+              </div>
               <br/>
-              <div class="curspoint listopen" onClick="$('#deploymentErrorMsg').toggle();$('#simplemodal-container').css('width', '80%');$('#simplemodal-container').resize();$(this).toggleClass('listopen');$(this).toggleClass('listclose');"><b>Show technical details</b></div>
-              <br/>
-              <fieldset id="deploymentErrorMsg" style="display:none;"><legend><b>Technical details</b></legend>
-                <span>{error.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}<br/></span>
-              </fieldset>
+              <div class="panel-group" role="tablist">
+                <div class="panel panel-default">
+                <a class="" id="showTechnicalErrorDetails" role="button" data-toggle="collapse" href="#collapseListGroup1" aria-expanded="true" aria-controls="collapseListGroup1" onclick="reverseErrorDetails()">
+                    <div class="panel-heading" role="tab" id="collapseListGroupHeading1">
+                        <h4 class="panel-title">
+                                Show technical details
+                                <span id="showhidetechnicalerrors" class="glyphicon glyphicon-chevron-up up"></span>
+                        </h4>
+                    </div>
+                </a> 
+                    <div id="collapseListGroup1" class="panel-collapse collapse in" role="tabpanel" aria-labelledby="collapseListGroupHeading1" aria-expanded="true">
+                        <ul id="deploymentErrorMsg" class="list-group">
+                            {error.split("<-").map(x => <li class="list-group-item">{"⇨ " + x}</li>)}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+              
             case _ => <span>{failure.messageChain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</span>
-          } }).apply(errorPopup)
         }
+        
+        val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
+        
+        commonStatement(start, end, "Error occured in", "Error during policy update") ++
+        <li>{ SHtml.a(Text("Details"), callback, ("href","#"))}</li>
     }
   }
 
@@ -179,37 +194,40 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         <li>{currentStatus}</li>
       </ul>
     </li>
+    {errorPopup}
     </lift:authz>
   }
 
   private[this] def errorPopup = {
-    <div id="errorDetailsDialog" class="nodisplay">
-      <div class="simplemodal-title">
-        <h1>Error</h1>
-        <hr/>
+      <div class="modal fade" id="errorDetailsDialog">
+      <div class="modal-backdrop fade in" style="height: 100%;"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                    </div>
+                    <h4 class="modal-title">Error</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="row space-bottom">
+                        <div class="col-lg-12">
+                            <h4 class="text-center">
+                                Policy update process was stopped due to an error:
+                            </h4>
+                        </div>
+                    </div>
+                    <div id="errorDetailsMessage" class="space-bottom space-top">
+                        [Here come the error message]
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                </div>  
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
       </div>
-      <div class="simplemodal-content">
-       <br />
-        <div>
-          <img src="/images/icfail.png" alt="Error" height="24" width="24" class="erroricon" />
-          <h2>Policy update process was stopped due to an error:</h2>
-        </div>
-        <hr class="spacer" />
-        <br />
-        <p id="errorDetailsMessage">[Here come the error message]</p>
-        <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-        <div class="popupButton">
-          <span>
-            <button class="simplemodal-close" onClick="return false;">
-              Close
-            </button>
-          </span>
-        </div>
-      </div>
-    </div>
   }
 
 }

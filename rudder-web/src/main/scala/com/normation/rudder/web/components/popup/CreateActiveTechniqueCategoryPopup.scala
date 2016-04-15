@@ -88,15 +88,15 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
       "itemcontainer" -> categoryContainer.toForm_!,
       "itemdescription" -> categoryDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3")
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default"),
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3") % ("class","btn btn-success")
     ))
   }
 
 ///////////// fields for category settings ///////////////////
   private[this] val categoryName = new WBTextField("Name", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createATCSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -104,8 +104,8 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
   private[this] val categoryDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def inputField = super.inputField  % ("style" -> "height:10em") % ("tabindex","2")
-    override def errorClassName = ""
+    override def inputField = super.inputField  % ("class" , "form-control col-lg-12 col-sm-12 col-xs-12") % ("tabindex","2")
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
 
   }
@@ -113,17 +113,19 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   private[this] val categoryContainer = new WBSelectField("Parent category: ",
       (categories.getOrElse(Seq()).map(x => (x.id.value -> x.name))),
       "") {
-    override def className = "twoCol"
+    override def className = "form-control col-lg-12 col-sm-12 col-xs-12"
+      override def validations =
+      valMinLen(1, "Please select a category") _ :: Nil
   }
 
   private[this] val formTracker = new FormTracker(categoryName,categoryDescription,categoryContainer)
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = Text(msg)
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw(""" $('#createActiveTechniqueCategoryPopup').bsModal('hide');""")
   }
   /**
    * Update the form when something happened
@@ -166,7 +168,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("There was problem with your request"))
     updateFormClientSide()
   }
 
@@ -176,7 +178,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

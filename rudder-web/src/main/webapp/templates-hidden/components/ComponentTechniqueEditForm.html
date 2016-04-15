@@ -107,92 +107,102 @@ All text that will be modified will be put in []
 </component:form>
 
 <component:popupRemoveForm>
-    <div id="deleteActionDialog" class="nodisplay">
-      <div class="simplemodal-title">
-        <h1>Delete a Technique</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"
-          style="margin-top:-7px"/>
-	        <h2>Are you sure that you want to completely delete this item?</h2>
-        <hr class="spacer" />
-          <div id="deleteItemDependencies">
-            [Here comes the tree of Directives / Rules that will be removed]
-          </div>
-        <br />
-          <div>
-            Deleting this Technique will also delete its history and compliance reports,
-            and the Directives and Rules above.
-          </div>
-        <br />
-	    <div class="reasonsFieldset">
-		    <div id="explanationMessage">
-		      Here comes the explanation to reasons field
-		    </div>
+    <div class="tw-bs">
+        <div id="deleteActionDialog" class="modal fade">            
+            <div class="modal-backdrop fade in" style="height: 100%;"></div>
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Close</span>
+                        </div>
+                        <h4 class="modal-title">Delete a Technique</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row space-bottom">
+                            <div class="col-lg-12">
+                                <h4 class="text-center">
+                                    Are you sure that you want to completely delete this item ?
+                                </h4>
+                            </div>
+                        </div>
+                        <div id="deleteItemDependencies" class="well col-lg-12 col-xs-12 col-sm-12" >
+                            [Here comes the tree of Directives / Rules that will be removed]
+                        </div>
+                        <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center space-bottom" role="alert">
+                            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                            <span class="sr-only">Warning:</span>
+                            Deleting this Technique will also delete its history and compliance reports,
+                            and the Directives and Rules above.
+                        </div>
+                        <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+                        <div class="reasonsFieldset">
+                            <div id="reasonsField">
+                                Here comes the reasons field
+                            </div>
+                        </div>
+                        <hr class="spacer" />
 
-		    <div id="reasonsField">
-		      Here comes the reasons field
-		    </div>
-	    </div>
-
-        <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-        <div class="popupButton">
-          <span>
-            <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-            <button id="dialogDeleteButton">[Delete]</button>
-          </span>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                        <button id="dialogDeleteButton" class="btn btn-danger">[Delete]</button>
+                    </div>  
+                </div><!-- /.modal-content -->
+            </div><!-- /.modal-dialog -->
         </div>
-      </div>
     </div>
 </component:popupRemoveForm>
 
-<component:popupDisableForm>
- <div id="disableActionDialog" class="nodisplay">
-        <div class="simplemodal-title">
-          <h1><span id="dialogDisableTitle">Disable</span> a Technique</h1>
-        </div>
-        <hr/>
-        <div class="simplemodal-content" >
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon" style="margin-top:-7px"/>
-          <h2>Are you sure that you want to <span id="dialogDisableLabel">[disable]</span> this Technique?</h2>
-          <hr class="spacer" />
-          <div id="disableItemDependencies">
-            [Here comes the tree of Directives / Rules that will be removed]
-          </div>
-          <br />
-
-          <div>
-            Disabling this Technique will affect the Directives and Rules above.
-          </div>
-          <br />
-
-		    <div class="reasonsFieldset">
-			    <div id="explanationMessage">
-			      Here comes the explanation to reasons field
-			    </div>
-
-			    <div id="reasonsField">
-			      Here comes the reasons field
-			    </div>
-		    </div>
-
-          <br />
-           <hr class="spacer" />
-        </div>
-        <div class="simplemodal-bottom">
-          <hr/>
-          <div class="popupButton">
-            <span>
-              <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-              <button id="dialogDisableButton">[Disable]</button>
-            </span>
-          </div>
-        </div>
+<component:popupDisableForm>    
+<div class="tw-bs">
+    <div id="disableActionDialog" class="modal fade">            
+        <div class="modal-backdrop fade in" style="height: 100%;"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="close" data-dismiss="modal">
+                    <span aria-hidden="true">&times;</span>
+                    <span class="sr-only">Close</span>
+                    </div>
+                    <h4 class="modal-title">
+                        <span id="dialogDisableTitle">
+                            Disable 
+                        </span> 
+                        a Technique</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="row space-bottom">
+                        <div class="col-lg-12">
+                            <h4 class="text-center">
+                                Are you sure that you want to <span id="dialogDisableLabel">[disable]</span> this Technique?
+                            </h4>
+                        </div>
+                    </div>
+                    <div id="disableItemDependencies" class="well col-lg-12 col-xs-12 col-sm-12" >
+                        [Here comes the tree of Directives / Rules that will be removed]
+                    </div>
+                    <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center space-bottom" role="alert">
+                        <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+                        <span class="sr-only">Warning:</span>
+                        Disabling this Technique will affect the Directives and Rules above.
+                    </div>
+                    <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+                    <div class="reasonsFieldset">
+                        <div id="reasonsField">
+                            Here comes the reasons field
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button id="dialogDisableButton" class="btn btn-primary">[Delete]</button>
+                </div>  
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
     </div>
+</div>
 </component:popupDisableForm>
 
 </xml:group>

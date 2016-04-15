@@ -2,13 +2,13 @@ var accountManagement = angular.module('accountManagement', ['DataTables']);
 
 var popUpCreated = false;
 accountManagement.directive('validEmpty', function() {
-
   return {
       restrict: 'A'
     , require: 'ngModel'
     , link: function(scope, elm, attrs, ctrl) {
               var validator = function (viewValue) {
                 var valid = (scope.newAccount == undefined || viewValue != "");
+
                 ctrl.$setValidity('valid_empty', valid);
                 return viewValue;
               }
@@ -42,6 +42,7 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
         error(function(data, status, headers, config) {
          $scope.errorTable = data;
         });
+        $('#oldAccountPopup').bsModal('hide');
   }
 
   $scope.regenerateAccount = function(account,index) {
@@ -49,12 +50,12 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
        success(function(data, status, headers, config) {
          var newAccount = data.data.accounts[0];
          $scope.accounts[index] = newAccount;
-
          $.extend($scope.myNewAccount, newAccount);
        }).
        error(function(data, status, headers, config) {
          $scope.errorTable = data;
        });
+      $('#oldAccountPopup').bsModal('hide');
   }
 
 $scope.enableButton = function(account,index) {
@@ -84,6 +85,7 @@ if (account.enabled) {
 $scope.addAccount = function() {
   var newAccount = { id : "", name : "", token: "not yet obtained", enabled : true, description : ""}
   $scope.myNewAccount = newAccount;
+  $('#newAccountPopup').bsModal('show');  
 }
 
 //define what each column of the grid
@@ -184,6 +186,8 @@ $scope.popupCreation = function(account,index) {
      $scope.myNewAccount.index = index;
      $("#newAccountName").focus();
   });
+  $('#newAccountPopup').bsModal('show');  
+
   return account;
 };
 
@@ -194,6 +198,7 @@ $scope.popupDeletion = function(account, index, action, actionName) {
     $scope.myOldAccount.action = action;
     $scope.myOldAccount.actionName = actionName;
   });
+    $('#oldAccountPopup').bsModal('show');
   return account;
 };
 
@@ -220,6 +225,7 @@ $scope.popupDeletion = function(account, index, action, actionName) {
        var newLength = $scope.accounts.push(newAccount);
        newAccount.index = newLength - 1 ;
        $scope.myNewAccount = undefined;
+       $('#newAccountPopup').bsModal('hide');
      }).
      error(function(data, status, headers, config) {
        if (isPopup)  {
@@ -237,6 +243,8 @@ $scope.popupDeletion = function(account, index, action, actionName) {
        $scope.myNewAccount = undefined;
        $("#accountGrid").dataTable().fnClearTable();
        $("#accountGrid").dataTable().fnAddData($scope.accounts);
+       $('#newAccountPopup').bsModal('hide');
+
      }).
      error(function(data, status, headers, config) {
        if (isPopup)  {
@@ -259,6 +267,12 @@ $scope.popupDeletion = function(account, index, action, actionName) {
     if(isEnabled) return "Enabled";
     else return "Disabled";
   }
-
+  
   $scope.getAccounts();
+    
+  $scope.defineActionName = function(formName){
+      return formName.split(' ')[0];
+  }  
 } );
+
+

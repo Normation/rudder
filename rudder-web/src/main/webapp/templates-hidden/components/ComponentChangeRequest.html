@@ -82,52 +82,51 @@
 </component:changes>
 
 <component:popup>
-  <div id="changeStatePopup" class="ui-widget">
-    <div class="simplemodal-title">
-      <h1 ><span id="header"></span></h1>
-      <hr/>
+  <div id="changeStatePopup">
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="close" data-dismiss="modal">
+                        <span aria-hidden="true">&times;</span>
+                        <span class="sr-only">Close</span>
+                    </div>
+                    <h4 class="modal-title">Change Request state</h4>
+                </div>                
+                <div id="form"></div>              
+            </div>
+        </div>  
     </div>
-        <div id="form" >
-
-
-  </div>
-  </div>
+</div>
 </component:popup>
 
 <component:popupContent>
-    <div class="simplemodal-content">
-      <br />
-      <div class="popupContent" id="intro" style="margin-left:20px"></div>
-  <div style="padding:20px">
-  <div id="formError"></div>
-  <hr class="spacer" />
-  <div class="wbBaseField">
-    <b class="threeCol">Next state: </b>
-    <span id="next">
-      Here comes change request status
-    </span>
-  </div>
-  <hr class="spacer" />
-  <div id ="reason" ></div>
-    <hr class="spacer" />
-</div>
-</div>
-      <div class="simplemodal-bottom">
-    <hr/>
-    <div class="popupButton">
-      <button class="simplemodal-close" id="cancel">
-        Cancel
-      </button>
-      <button id="confirm">
-        Confirm
-      </button>
+<div class="modal-body">
+    <div class="row">
+        <div class="col-lg-12 text-center" id="intro"></div>
     </div>
-  </div>
+    <div id="formError"></div>
+    <div class="space-top">
+        <b class="col-lg-3 col-sm-12 col-xs-12 text-right wbBaseFieldLabel">Next state </b>
+        <div class="col-lg-9 col-sm-12 col-xs-12">
+            <span id="next">
+                Here comes change request status
+            </span>
+        </div>
+    </div>
+    <div id ="reason" class="space-top"></div>
+</div>
+<div class="modal-footer">
+    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+    <button type="button" class="btn" id="confirm">Confirm</button>
+</div>
 </component:popupContent>
 
 <component:actionButtons>
         <div id="backStep" ></div>
         <div id="nextStep" style="float:right"></div>
-        <div id="popupContent" class="nodisplay"></div>
+        <div class="tw-bs">
+          <div id="popupContent" class="modal fade"></div>
+        </div>
 </component:actionButtons>
 </xml:group>

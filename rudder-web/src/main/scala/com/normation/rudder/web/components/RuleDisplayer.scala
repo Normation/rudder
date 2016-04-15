@@ -200,7 +200,7 @@ class RuleDisplayer (
       </lift:authz>
       <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
       <hr class="spacer"/>
-      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true)  ++
+      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true, false)  ++
         Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
       }
 

@@ -169,10 +169,12 @@ abstract class RudderBaseField extends BaseField {
   def inputField : Elem
 
   // Class used for the elements
-  def subContainerClassName : String = "twoCol"
-  def className : String = "rudderBaseFieldClassName"
-  def labelClassName : String = "threeCol"
-  def errorClassName : String = "threeColErrors"
+  def subContainerClassName : String = "col-lg-9 col-sm-12 col-xs-12"
+  //def className : String = "rudderBaseFieldClassName"
+    def className : String = "rudderBaseFieldClassName form-control vresize col-lg-12 col-sm-12"
+  //def labelClassName : String = "threeCol"
+    def labelClassName : String = "col-lg-3 col-sm-12 col-xs-12 text-right"
+  def errorClassName : String = "col-lg-9 col-lg-offset-3 col-sm-12 col-xs-12 col-xs-offset-0 col-sm-offset-0"
   ///////// method to optionnaly override //////////
 
   // add some HTLM to help the user to fill that field
@@ -180,8 +182,8 @@ abstract class RudderBaseField extends BaseField {
   // override the field name look
   override def displayNameHtml: Box[NodeSeq] = {
     validations match {
-      case Nil => Some(<b>{displayName}:</b>)
-      case _ => Some(<b>{displayName}: *</b>)
+      case Nil => Some(<span class="text-fit">{displayName}</span>)
+      case _ => Some(<b>{displayName}</b>)
     }
   }
   //optionnaly override validate to add validation functions
@@ -202,10 +204,9 @@ abstract class RudderBaseField extends BaseField {
   override def get = is
 
   override def toForm = Full(toForm_!)
-
-  def toForm_! = bind("field",
-    <div class="wbBaseField">
-      <label for={id} class={labelClassName + " wbBaseFieldLabel textright"}><field:label /></label>
+    def toForm_! = bind("field",
+    <div class="row wbBaseField form-group">
+      <label for={id} class={labelClassName + " wbBaseFieldLabel"}><field:label /></label>
       <div class={subContainerClassName}>
         <field:input />
         <field:infos />
@@ -226,16 +227,15 @@ abstract class RudderBaseField extends BaseField {
       errors match {
         case Nil => NodeSeq.Empty
         case l =>
-          <span class={errorClassName}><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
+          <span class={errorClassName}><ul>{
+            l.map(e => <li class="text-danger">{e.msg}</li>)
           }</ul></span>
       }
     }
   )
-
   def readOnlyValue =
    <div class="wbBaseField">
-      <label class={labelClassName + " wbBaseFieldLabel textright"}>{displayHtml}</label>
+      <label class={labelClassName + " wbBaseFieldLabel"}>{displayHtml}</label>
       <div class={subContainerClassName}>
         {defaultValue}
       </div>
@@ -271,7 +271,7 @@ class WBCheckboxField(override val name:String, override val defaultValue:Boolea
 }
 
 
-class WBSelectField(override val name:String, val opts : Seq[(String, String)], override val defaultValue:String = "", val attrs : Seq[(String, String)] = Seq()) extends RudderBaseField{
+class WBSelectField(override val name:String, val opts : Seq[(String, String)], override val defaultValue:String = "", val attrs : Seq[(String, String)] = Seq()) extends RudderBaseField with StringValidators{
   type ValueType = String
 
   def defaultVal : Box[String] = {
@@ -284,8 +284,9 @@ class WBSelectField(override val name:String, val opts : Seq[(String, String)], 
 
   def inputField : Elem = SHtml.select(opts, defaultVal, set _, attrs:_*)
 
-//  protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
-//  protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
+    protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
+    protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
+    def maxLen: Int= 150
 
 }
 
@@ -325,17 +326,18 @@ class WBRadioField(
   def choiceHolder: ChoiceHolder[String] = SHtml.radio(opts, Full(value),  set _ , parameters:_*)
 
   def inputField : Elem = {
+
     <div>
-      {choiceHolder.flatMap { c =>
-       <span>
-         <label>{c.xhtml}<span class="radioTextLabel">{displayChoiceLabel(c.key)}</span></label>
-       </span>
-      }}
-    </div>
+    {choiceHolder.flatMap { c =>
+        <label class="radio-inline">
+            {c.xhtml}
+            <span class="radioTextLabel">{displayChoiceLabel(c.key)}</span>
+        </label>
+    }}
+  </div>
   }
 
   protected def valueTypeToBoxString(in: ValueType): Box[String] = Full(in)
   protected def boxStrToValType(in: Box[String]): ValueType = in openOr("")
-
   def maxLen: Int= 50
 }

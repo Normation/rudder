@@ -140,63 +140,70 @@ final case object CreateAndModRules extends Action { val displayName: String = "
     case CreateSolo => s"Create a ${item}"
     case CreateAndModRules => s"Create a ${item}"
   }
-
+   
   private def explanationMessages(item:String, action: Action) = action match {
     case Enable =>
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to enable this {item}?</h2>
-        <br />
-        <div id="dialogDisableWarning">
-          Enabling this {item} will have an impact on the following Rules which apply it.
+    <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to enable this {item}?
+        </h4>
+    </div>
+        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+            Enabling this {item} will have an impact on the following Rules which apply it.
         </div>
-      </div>
     case Disable =>
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to disable this {item}?</h2>
-        <br />
-        <div id="dialogDisableWarning">
-          Disabling this {item} will have an impact on the following Rules which apply it.
+      <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to disable this {item}?
+        </h4>
+    </div>
+        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+            Disabling this {item} will have an impact on the following Rules which apply it.
         </div>
-      </div>
     case Delete =>
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to delete this {item}?</h2>
-        <br />
-        <div id="dialogDisableWarning">
-          Deleting this {item} will also remove it from the following Rules.
+      <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to delete this {item}?
+        </h4>
+    </div>
+        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+            Deleting this {item} will have an impact on the following Rules which apply it.
         </div>
-      </div>
     case Save =>
-      <div>
-         <img src="/images/icDetails.png" alt="Details" height="20" width="22" class="icon"/>
-         <h2>Are you sure that you want to update this {item}?</h2>
-         <br />
-         <div id="directiveDisabled" class="nodisplay">
-           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-           <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
-         </div>
-         <div  id="dialogDisableWarning">
-           Updating this {item} will have an impact on the following Rules which apply it.
-         </div>
-      </div>
+        <div class="row">
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+                Are you sure that you want to update this {item}?
+            </h4>
+            <div id="directiveDisabled" class="nodisplay col-lg-12 col-sm-12 col-xs-12 alert alert-warning text-center" role="alert" >
+                <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
+                    <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
+                </div>
+                
+            </div>
+        </div>
+        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+            Updating this {item} will have an impact on the following Rules which apply it.
+        </div>
     case CreateSolo =>
-      <div><h2>Are you sure you want to create this {item}?</h2></div>
+      <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure you want to create this {item}?
+        </h4>
+    </div>
     case CreateAndModRules =>
-      <div>
-         <img src="/images/icDetails.png" alt="Details" height="20" width="22" class="icon"/>
-         <h2>Are you sure that you want to create this {item}?</h2>
-         <br />
-         <div id="directiveDisabled" class="nodisplay">
-           <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-           <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
-         </div>
-         <div  id="dialogDisableWarning">
-           Updating this {item} will have an impact on the following Rules which apply it.
-         </div>
-      </div>
+      <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to create this {item}?
+        </h4>
+    </div>
+    <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center">
+        <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
+        </div>
+    </div>
+   <div class="alert alert-info col-lg-12 col-sm-12 col-xs-12 text-center space-bottom">
+      <b>Info:</b> Updating this {item} will have an impact on the following Rules which apply it.
+    </div>
   }
 }
 
@@ -315,22 +322,42 @@ class ModificationValidationPopup(
 
   // _1 is explanation message, _2 is dependant rules
   def popupContent() : NodeSeq = {
-    def workflowMessage(directiveCreation: Boolean) =
-        <div>
-          <br/>
-          <img src="/images/ic_ChangeRequest.jpg" alt="Warning!" height="32" width="32" style="margin-top: 4px;" class="warnicon"/>
-          <h2>Workflows are enabled in Rudder, your change has to be validated in a Change request</h2>
-          <br />
-          {if(directiveCreation) <h3>The directive will be directly created, only rule changes have to been validated.</h3> else NodeSeq.Empty}
-        </div>
-
-    val (buttonName, classForButton, titleWorkflow) = (workflowEnabled, action) match {
-      case (false, _) => ("Save", "", NodeSeq.Empty)
-      case (true, CreateSolo) => ("Create", "", NodeSeq.Empty)
-      case (true, CreateAndModRules) => ("Submit for Validation", "wideButton", workflowMessage(true))
-      case (true, _) => ("Submit for Validation", "wideButton", workflowMessage(false))
+    val (titleAction) = (action) match {
+      case (CreateSolo) => ("create")
+      case (CreateAndModRules) => ("create")
+      case (Delete) => ("delete")
+      case (Save) => ("update")
+      case (Enable) => ("enable")
+      case (Disable) => ("disable")
     }
-
+    
+    def workflowMessage(directiveCreation: Boolean) =
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
+        <hr class="css-fix"/>
+        <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
+            <span class="glyphicon glyphicon-info-sign"></span>
+            Workflows are enabled in Rudder, your change has to be validated in a Change request
+            {
+            if(directiveCreation) 
+                <p>The directive will be directly created, only rule changes have to been validated.</p> 
+             else 
+                NodeSeq.Empty
+            }
+        </div>
+    val (buttonName, classForButton, titleWorkflow) = (workflowEnabled, action) match {
+      case (false, CreateSolo) => ("Create", "btn-success", NodeSeq.Empty)
+      case (false, CreateAndModRules) => ("Create", "btn-success", NodeSeq.Empty)
+      case (false, Delete) => ("Delete", "btn-danger", NodeSeq.Empty)
+      case (false, Save) => ("Update", "btn-success", NodeSeq.Empty)
+      case (false, Enable) => ("Enable", "btn-primary", NodeSeq.Empty)
+      case (false, Disable) => ("Disable", "btn-primary", NodeSeq.Empty)
+      case (true, CreateSolo) => ("Create" , "btn-success", NodeSeq.Empty)
+      case (true, CreateAndModRules) => ("Open request", "btn-primary", workflowMessage(true))
+      case (true, Delete) => ("Open request", "btn-primary", workflowMessage(false))
+      case (true, Save) => ("Open request", "btn-primary", workflowMessage(false))
+      case (true, Enable) => ("Open request", "btn-primary", workflowMessage(false))
+      case (true, Disable) => ("Open request", "btn-primary", workflowMessage(false))
+    }
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(name, action) &
@@ -339,14 +366,18 @@ class ModificationValidationPopup(
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
-            <div style="margin:10px 0px 5px 0px; color:#444">
-              {userPropertyService.reasonsFieldExplanation}
-            </div>
+							{
+                (workflowEnabled, action) match {
+                  case (true, CreateSolo) => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+                  case (true, _) => NodeSeq.Empty
+                  case _ => <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+                }
+              }
               {f.toForm_!}
-        </div>
+          </div>
         }
       } &
-      "#titleWorkflow *" #> titleWorkflow &
+      "#titleWorkflow" #> titleWorkflow &
       "#changeRequestName" #> {
         (workflowEnabled, action) match {
           case (true, CreateSolo) => Full(NodeSeq.Empty)
@@ -372,17 +403,16 @@ class ModificationValidationPopup(
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
         val cmp = new RuleGrid("remove_popup_grid", None, () => Full(false), false)
-        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, false)
+        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, false, true)
     }
   }
 
   ///////////// fields for category settings ///////////////////
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("tabindex" -> "2")
-      //override def subContainerClassName = containerClass
+      override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -402,7 +432,7 @@ class ModificationValidationPopup(
 
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -411,7 +441,7 @@ class ModificationValidationPopup(
   private[this] val changeRequestDescription = new WBTextAreaField("Description", "") {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2") % ("class" -> "nodisplay")
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
 
   }
@@ -431,10 +461,10 @@ class ModificationValidationPopup(
     }
   }
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw("""$.modal.close();""")
+    JsRaw("""$('#confirmUpdateActionDialog').bsModal('hide');""")
   }
 
   /**
@@ -645,8 +675,8 @@ class ModificationValidationPopup(
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
-    updateFormClientSide()
+    formTracker.addFormError(error("There was problem with your request"))
+    updateFormClientSide & JsRaw("""scrollToElementPopup('#notifications', 'confirmUpdateActionDialogconfirmUpdateActionDialog')""")
   }
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
@@ -654,7 +684,7 @@ class ModificationValidationPopup(
     formTracker.cleanErrors
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }
   }

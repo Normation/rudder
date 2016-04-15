@@ -63,34 +63,30 @@ import bootstrap.liftweb.RudderConfig
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
   val htmlId_popup = "createCloneDirectivePopup"
-
-  val html =  SHtml.ajaxForm(
-  <div id="createCloneDirectiveContainer">
-    <div class="simplemodal-title">
-      <h1>Clone directive</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <hr class="spacer"/>
-      <div id="notifications">Here comes validation messages</div>
-      <hr class="spacer"/>
-      <div id="itemName">Here come the Directive name</div>
-      <hr class="spacer"/>
-      <div id="itemDescription">Here come the short description</div>
-      <hr class="spacer"/>
-      <div id="itemReason">Here come the reason field</div>
-      <hr class="spacer"/>
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-        <span>
-          <button id="cancel" class="simplemodal-close">Cancel</button>
-          <button id="save">Clone</button>
-        </span>
-     </div>
-   </div>
-  </div>)
+val html =  SHtml.ajaxForm(    
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div id="createCloneDirectiveContainer" class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">Clone directive</h4>
+            </div>
+            <div class="modal-body">
+                <div id="notifications">Here comes validation messages</div>
+                <div id="itemName">Here come the Directive name</div>
+                <div id="itemDescription">Here come the short description</div>
+                <div id="itemReason">Here come the reason field</div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel" class="btn btn-default">Cancel</button>
+                <button id="save" class="btn btn-success">Clone</button>
+            </div>  
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+    )
 }
 
 
@@ -119,24 +115,22 @@ class CreateCloneDirectivePopup(
       "#techniqueName" #> techniqueName &
       "#itemName" #> directiveName.toForm_! &
       "#itemDescription" #> directiveShortDescription.toForm_! &
-      "#itemReason" #> { reason.map { f =>
+      "#itemReason" #> { reasons.map { f =>
         <div>
-          <div style="margin:10px 0px 5px 0px; color:#444">
-            {userPropertyService.reasonsFieldExplanation}
-          </div>
+           <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
           {f.toForm_!}
         </div>
       } } &
       "#notifications" #> updateAndDisplayNotifications() &
-      "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"))&
-      "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3"))
+      "#cancel" #> (SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4") % ("class","btn btn-default"))&
+      "#save" #> (SHtml.ajaxSubmit("Clone", onSubmit _) % ("id", "createDirectiveSaveButton") % ("tabindex","3") % ("class","btn"))
     )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
 
   }
 
   ///////////// fields for category settings ///////////////////
 
-  private[this] val reason = {
+  private[this] val reasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled => None
@@ -146,10 +140,10 @@ class CreateCloneDirectivePopup(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % ("style" -> "height:5em;") % ("tabindex" -> "3")
-      override def errorClassName = ""
+      override def inputField = super.inputField  % ("style" -> "height:5em;") % ("tabindex" -> "3") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
+      override def errorClassName = "col-lg-12 errors-container"
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -162,7 +156,7 @@ class CreateCloneDirectivePopup(
 
   private[this] val directiveName = new WBTextField("Name", "Copy of <%s>".format(directive.name)) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -172,7 +166,7 @@ class CreateCloneDirectivePopup(
     new WBTextAreaField("Short description", directive.shortDescription) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("style" -> "height:7em") % ("tabindex","2")
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
 
@@ -180,11 +174,11 @@ class CreateCloneDirectivePopup(
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = Text(msg)
 
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw(""" $('#createCloneDirectivePopup').bsModal('hide');""")
   }
   /**
    * Update the form when something happened
@@ -208,7 +202,7 @@ class CreateCloneDirectivePopup(
       )
       roDirectiveRepository.getActiveTechniqueAndDirective(directive.id) match {
         case Full((activeTechnique, _)) =>
-          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.getActor, reason.map(_.is)) match {
+          woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.getActor, reasons.map(_.is)) match {
             case Full(directive) => {
                closePopup() & onSuccessCallback(cloneDirective)
             }
@@ -228,7 +222,7 @@ class CreateCloneDirectivePopup(
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("There was problem with your request"))
     updateFormClientSide()
   }
 
@@ -238,7 +232,7 @@ class CreateCloneDirectivePopup(
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

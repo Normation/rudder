@@ -174,7 +174,7 @@ class AcceptNode extends Loggable {
       accept match {
       case f:Failure =>
         S.error(
-          <span class="error">
+          <span>
             {f.messageChain}
           </span>
         )
@@ -316,16 +316,17 @@ class AcceptNode extends Loggable {
                 SHtml.submit("Accept", {
                   () => { addNodes(listNode) }
                   S.redirectTo(S.uri)
-                })
+                }, ("class", "btn btn-success"))
             , "refuse" ->
                 SHtml.submit("Refuse", {
                   () => refuseNodes(listNode)
+                  JsRaw(s"""console.log('refuse');""")
                   S.redirectTo(S.uri)
-                }, ("class", "red"))
+                }, ("class", "btn btn-danger"))
             ,  "close" ->
                  SHtml.ajaxButton("Cancel", {
-                   () => JsRaw(" $.modal.close();") : JsCmd
-                 })
+                   () => JsRaw(" $('#confirmPopup').bsModal('hide');$('#refusePopup').bsModal('hide');") : JsCmd
+                 }, ("class", "btn btn-default"))
           )
         )
       case e:EmptyBox =>
@@ -351,7 +352,6 @@ class AcceptNode extends Loggable {
    * Display the expected Directives for a machine
    */
   def showExpectedPolicyPopup(node : Srv) = {
-
     SetHtml("expectedPolicyZone", (new ExpectedPolicyPopup("expectedPolicyZone", node)).display ) &
     OnLoad(JsRaw("""createPopup("expectedPolicyPopup")""") )
   }
