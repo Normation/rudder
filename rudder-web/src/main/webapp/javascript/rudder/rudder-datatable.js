@@ -1374,6 +1374,8 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     , "aoColumns": columns
     , "aaData": data
     , "bJQueryUI": true
+    , "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ]
+    , "pageLength": 25
   };
 
   if (storageId !== undefined) {
