@@ -21,7 +21,7 @@
 # @description Checks if a file exists and is a special file
 #
 # @parameter file_name File name
-# @parameter file_type File type
+# @parameter file_type File type to check, can be "block device", "character device", "directory", "FIFO/pipe", "regular file", "socket", "symlink"
 # 
 # @class_prefix file_check_special
 # @class_parameter file_name 

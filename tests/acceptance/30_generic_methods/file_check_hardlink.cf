@@ -62,11 +62,11 @@ bundle agent check
 {
   vars:
     # Check file type
-    "test_file_devino"        string => "/bin/stat -c %d:%i \"${init.file}\"";
-    "test_file2_devino"       string => "/bin/stat -c %d:%i \"${init.file2}\"";
+    "test_file_devino"        string => "/usr/bin/stat -c %d:%i \"${init.file}\"";
+    "test_file2_devino"       string => "/usr/bin/stat -c %d:%i \"${init.file2}\"";
 
     # Check hardlink type
-    "test_hardlink_devino"    string => "/bin/stat -c %d:%i \"${init.hardlink}\"";
+    "test_hardlink_devino"    string => "/usr/bin/stat -c %d:%i \"${init.hardlink}\"";
 
   classes:
     "test_hardlink_is_hardlink"
