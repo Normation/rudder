@@ -33,7 +33,12 @@
 bundle agent file_check_symlinkto(symlink, target)
 {
   vars:
-      "class_prefix"        string => canonify("file_check_symlinkto_${symlink}");
+      "old_class_prefix"  string => canonify("file_check_symlinkto_${symlink}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${symlink}", "${target}" };
+
+
       "real_path"           string => execresult("/bin/readlink -f \"${symlink}\"", "noshell");
 
   classes:
@@ -45,14 +50,17 @@ bundle agent file_check_symlinkto(symlink, target)
   methods:
     is_ok::
       "symlink_points_to_file"
+        usebundle => _classes_success("${old_class_prefix}");
+      "symlink_points_to_file"
         usebundle => _classes_success("${class_prefix}");
-
     !is_ok::
+      "symlink_does_not_point_to_file"
+        usebundle => _classes_failure("${old_class_prefix}");
       "symlink_does_not_point_to_file"
         usebundle => _classes_failure("${class_prefix}");
 
     any::
       "report"
-        usebundle => _logger("Check if ${symlink} points to ${target}", "${class_prefix}");
+        usebundle => _log("Check if ${symlink} points to ${target}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }

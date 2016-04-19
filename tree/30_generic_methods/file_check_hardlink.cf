@@ -32,7 +32,13 @@
 bundle agent file_check_hardlink(file_name_1, file_name_2)
 {
   vars:
-      "class_prefix"        string => canonify("file_check_hardlink_${file_name_1}");
+      "old_class_prefix"  string => canonify("file_check_hardlink_${file_name_1}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${file_name_1}", "${file_name_2}" };
+
+
+
       "file_1_devno"        string => filestat("${file_name_1}", "devno");
       "file_1_ino"          string => filestat("${file_name_1}", "ino");
       "file_2_devno"        string => filestat("${file_name_2}", "devno");
@@ -50,13 +56,17 @@ bundle agent file_check_hardlink(file_name_1, file_name_2)
   methods:
     files_are_hardlinks::
       "files_are_hardlinks"
+        usebundle => _classes_success("${old_class_prefix}");
+      "files_are_hardlinks"
         usebundle => _classes_success("${class_prefix}");
 
     !files_are_hardlinks::
+      "files_are_not_hardlinks"
+        usebundle => _classes_failure("${old_class_prefix}");
       "files_are_not_hardlinks"
         usebundle => _classes_failure("${class_prefix}");
 
     any::
       "report"
-        usebundle => _logger("Check if ${file_name_1} and ${file_name_2} are the same", "${class_prefix}");
+        usebundle => _log("Check if ${file_name_1} and ${file_name_2} are the same", "${old_class_prefix}", "${class_prefix}", @{args});
 }

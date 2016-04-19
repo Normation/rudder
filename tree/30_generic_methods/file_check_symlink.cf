@@ -31,8 +31,10 @@
 bundle agent file_check_symlink(file_name)
 {
   vars:
-      "class_prefix"
-        string => canonify("file_check_symlink_${file_name}");
+      "old_class_prefix"  string => canonify("file_check_symlink_${file_name}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"               slist => { "${file_name}" };
 
   classes:
       "file_exists_and_is_symlink"  
@@ -41,13 +43,17 @@ bundle agent file_check_symlink(file_name)
   methods:
     file_exists_and_is_symlink::
       "file_exists_and_is_symlink"
+        usebundle => _classes_success("${old_class_prefix}");
+      "file_exists_and_is_symlink"
         usebundle => _classes_success("${class_prefix}");
 
     !file_exists_and_is_symlink::
+      "file_dont_exists_or_is_not_a_symlink"
+        usebundle => _classes_failure("${old_class_prefix}");
       "file_dont_exists_or_is_not_a_symlink"
         usebundle => _classes_failure("${class_prefix}");
 
     any::
       "report"
-        usebundle => _logger("Check if ${file_name} is a symlink", "${class_prefix}");
+        usebundle => _log("Check if ${file_name} is a symlink", "${old_class_prefix}", "${class_prefix}", @{args});
 }
