@@ -1,0 +1,54 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+# Copyright 2016 Janos Mattyasovszky
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File check if regular 
+# @description Checks if a file exists and is a regular file
+#
+# @parameter file_name File name
+# 
+# @class_prefix file_check_regular
+# @class_parameter file_name
+# This bundle will define a class file_check_regular_${file_name}_{ok, reached, kept} if the
+# file is a regular_file, or file_check_regular_${file_name}_{not_ok, reached, not_kept, failed} if
+# the file is not a regular file or does not exist
+
+bundle agent file_check_regular(file_name)
+{
+
+  vars:
+      "class_prefix"
+        string => canonify("file_check_regular_${file_name}");
+
+  classes:
+      "file_exists_and_is_regular"  
+        expression => isplain("${file_name}");
+
+  methods:
+    file_exists_and_is_regular::
+      "file_exists_and_is_regular"
+        usebundle => _classes_success("${class_prefix}");
+
+    !file_exists_and_is_regular::
+      "file_dont_exists_or_is_not_a_regular"
+        usebundle => _classes_failure("${class_prefix}");
+
+    any::
+      "report"
+        usebundle => _logger("Check if ${file_name} is a regular file", "${class_prefix}");
+}
