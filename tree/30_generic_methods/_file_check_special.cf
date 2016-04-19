@@ -1,0 +1,56 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+# Copyright 2016 Janos Mattyasovszky
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File check is special
+# @description Checks if a file exists and is a special file
+#
+# @parameter file_name File name
+# @parameter file_type File type to check, can be "block device", "character device", "directory", "FIFO/pipe", "regular file", "socket", "symlink"
+# 
+# @class_prefix file_check_special
+# @class_parameter file_name 
+# This bundle will define a class file_check_${file_type}_${file_name}_{ok, reached, kept} if the
+# file is a special file of type ${file_type}, or file_check_${file_type}_${file_name}_{not_ok, reached, not_kept, failed} if
+# the file is not a special file or does not exist
+
+bundle agent file_check_special(file_name, file_type)
+{
+  vars:
+      "file_has_type"       string => filestat("${file_name}", "type");
+      "class_prefix"        string => canonify("file_check_${file_type}_${file_name}");
+
+  classes:
+      "file_exists"     expression => fileexists("${file_name}");
+      "file_is_special" expression => strcmp("${file_has_type}", "${file_type}");
+      "exists_special"  expression => "file_exists.file_is_special";
+
+
+  methods:
+    exists_special::
+      "file_exists_and_is_special"
+        usebundle => _classes_success("${class_prefix}");
+
+    !exists_special::
+      "file_doesnt_exists_or_is_not_special"
+        usebundle => _classes_failure("${class_prefix}");
+
+    any::
+      "report"
+        usebundle => _logger("Check if ${file_name} exists and is a ${file_type}", "${class_prefix}");
+}

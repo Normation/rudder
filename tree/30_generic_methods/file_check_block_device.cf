@@ -1,0 +1,37 @@
+#####################################################################################
+# Copyright 2013 Normation SAS
+# Copyright 2016 Janos Mattyasovszky
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File check if block device
+# @description Checks if a file exists and is a block device
+#
+# @parameter file_name File name
+# 
+# @class_prefix file_check_block_device
+# @class_parameter file_name
+# This bundle will define a class file_check_block_device_${file_name}_{ok, reached, kept} if the
+# file is a block_device, or file_check_block_device_${file_name}_{not_ok, reached, not_kept, failed} if
+# the file is not a block device or does not exist
+
+bundle agent file_check_block_device(file_name)
+{
+    methods:
+      "file_exists_and_is_block_device"
+        usebundle => file_check_special( "${file_name}", "block device");
+
+}
