@@ -19,15 +19,15 @@
 
 # @name File check is hardlink
 # @description Checks if two files are the same (hard links)
+# @documentation This bundle will define a class `file_check_hardlink_${file_name_1}_{ok, reached, kept}` if the
+# two files `${file_name_1}` and `${file_name_2}` are hard links of each other, or `file_check_hardlink_${file_name_1}_{not_ok, reached, not_kept, failed}` if
+# if the files are not hard links.
 #
 # @parameter file_name_1   File name #1
 # @parameter file_name_2   File name #2
 # 
 # @class_prefix file_check_hardlink
 # @class_parameter file_name_1
-# This bundle will define a class file_check_hardlink_${file_name_1}_{ok, reached, kept} if the
-# two files ${file_name_1} and ${file_name_2} are hard links of each other, or file_check_hardlink_${file_name_1}_{not_ok, reached, not_kept, failed} if
-# if the files are not hard links.
 
 bundle agent file_check_hardlink(file_name_1, file_name_2)
 {
