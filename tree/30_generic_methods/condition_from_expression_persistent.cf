@@ -18,13 +18,13 @@
 
 # @name Condition from expression persistent
 # @description Create a new condition class that persists accross runs
-# @documentation This bundle will define a class condition_from_expression_persistent_${condition_prefix}_{kept,ok,reached}
+# @documentation This bundle will define a class `condition_from_expression_persistent_${condition_prefix}_{kept,ok,reached}`
 #
-# This bundle will additionnaly produce a ${condition_prefix}_true or a ${condition_prefix}_false condition depending on the result on the expression
+# This bundle will additionnaly produce a `${condition_prefix}_true` or a `${condition_prefix}_false` condition depending on the result on the expression
 #
 # The created condition (class in cfengine speaking) is global to the agent and is persisted accross runs.
-# The persistence duration is controlled using ${duration}. There is no way to persist indefinitly.
-# To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
+# The persistence duration is controlled using `${duration}`. There is no way to persist indefinitly.
+# To make the condition specific to current technique instance (or directive), add `${class_prefix}` within the condition prefix,
 # this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or CFEngine >= 3.8
 #
 # @parameter condition_prefix     The condition prefix, use ${class_prefix}_name to create a local condition

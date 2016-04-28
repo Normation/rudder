@@ -18,12 +18,12 @@
 
 # @name Condition from command 
 # @description Execute a command and create outcome classes depending on its exit code
-# @documentation This bundle will define a class condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}
+# @documentation This bundle will define a class `condition_from_command_${condition_prefix}_{kept,not_ok,ok,reached}`
 # depending on the exit codes given in parameters.
 #
 # If the exit code is in the list, this will always produce a kept outcome class.
 # If the exit code is not in the list, this will produce an error outcome class.
-# If the exit code is in the list, this will additionnaly produce a ${condition_prefix}_true or a ${condition_prefix}_false condition.
+# If the exit code is in the list, this will additionnaly produce a `${condition_prefix}_true` or a `${condition_prefix}_false` condition.
 #
 # The created condition (class in cfengine speaking) is global to the agent.
 # To make the condition specific to current technique instance (or directive), add ${class_prefix} within the condition prefix,
