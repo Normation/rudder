@@ -80,7 +80,6 @@ class ExpectedPolicyPopup(
   }
 
   def display : NodeSeq = {
-
     //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
@@ -94,7 +93,7 @@ class ExpectedPolicyPopup(
     (
         ClearClearable &
         "#dependentRulesGrid" #> rulesGrid
-    )(bind("expectedPolicyPopup",expectedTechnique,
+    )(bind("expectedpolicypopup",expectedTechnique,
       "node" -> displayNode(nodeSrv),
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
     ) )
