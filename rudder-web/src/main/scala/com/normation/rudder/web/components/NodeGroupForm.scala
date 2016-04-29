@@ -102,7 +102,7 @@ class NodeGroupForm(
   , parentCategoryId  : NodeGroupCategoryId
   , rootCategory      : FullNodeGroupCategory
   , workflowEnabled   : Boolean
-  , onSuccessCallback : (Either[NodeGroup, ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
+  , onSuccessCallback : (Either[(NodeGroup, NodeGroupCategoryId), ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[NodeGroupForm] with Loggable {
   import NodeGroupForm._
@@ -318,7 +318,8 @@ class NodeGroupForm(
       def successCallback(crId:ChangeRequestId) = if (workflowEnabled) {
         onSuccessCallback(Right(crId))
       } else {
-        successPopup & onSuccessCallback(Left(newGroup)) &
+        val updateCategory = newCategory.getOrElse(parentCategoryId)
+        successPopup & onSuccessCallback(Left((newGroup,updateCategory))) &
         (if (action==ModificationValidationPopup.Delete)
            SetHtml(htmlId_item,NodeSeq.Empty)
         else
@@ -353,7 +354,6 @@ class NodeGroupForm(
                 Some(nodeGroup)
               , onSuccessCategory = displayACategory
               , onSuccessGroup = showGroupSection
-              , onSuccessCallback = (String) => onSuccessCallback(Left(nodeGroup))
             )))
     val nodeSeqPopup = popupSnippet.is match {
       case Failure(m, _, _) =>  <span class="error">Error: {m}</span>
@@ -391,7 +391,7 @@ class NodeGroupForm(
 
   private[this] def showGroupSection(group: NodeGroup, parentCategoryId: NodeGroupCategoryId) : JsCmd = {
     //update UI
-    refreshRightPanel(GroupForm(group, parentCategoryId))&
+    onSuccessCallback(Left(group, parentCategoryId))&
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(group.id.value))
   }
 
