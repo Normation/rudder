@@ -139,7 +139,7 @@ class ReportsExecutionService (
       // Executions status not initialized ... initialize it!
       case Full(None) =>
         reportsRepository.getReportsWithLowestId match {
-          case Full(Some((report,id))) =>
+          case Full(Some((id, report))) =>
             logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
             statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp)
           case Full(None) =>
