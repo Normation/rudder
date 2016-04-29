@@ -27,7 +27,7 @@
 #
 # @class_prefix file_template_expand
 # @class_parameter target_file
-# @deprecated Use file from template instead
+# @deprecated Use [file_from_template](#file_from_template) instead.
 
 bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
 {
