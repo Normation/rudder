@@ -40,13 +40,15 @@ package com.normation.rudder.batch
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.logger.AllReportLogger
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.utils.UuidRegex
 
 import net.liftweb.actor._
 import net.liftweb.common._
@@ -87,120 +89,185 @@ class AutomaticReportLogger(
   private class LAAutomaticReportLogger extends LiftActor with Loggable {
 
     /*
-     * Last id processed
-     */
-    private[this] var lastId   = propertyRepository.getReportLoggerLastId
-    /*
      * List of all reports kind processed by the logger
      */
-    private[this] var Reportskind = List(Reports.LOG_REPAIRED,Reports.RESULT_ERROR,Reports.RESULT_REPAIRED,Reports.LOG_WARN)
-
-    private[this] val reportLineTemplate = "[%s] N: %s S: [%s] R: %s D: %s T: %s C: [%s] V: [%s] %s"
+    private[this] val reportsKind = List(Reports.LOG_REPAIRED, Reports.RESULT_ERROR, Reports.RESULT_REPAIRED, Reports.LOG_WARN)
 
     override protected def messageHandler = {
       case StartAutomaticReporting =>
-
-
-      lastId match {
-        // Report logger was not running before, try to log the last hundred reports and initialize lastId
-        case Empty =>
-          logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
-          reportsRepository.getLastHundredErrorReports(Reportskind) match {
-            case Full(hundredReports) =>
+        propertyRepository.getReportLoggerLastId match {
+          // Report logger was not running before, try to log the last hundred reports and initialize lastId
+          case Empty =>
+            logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
+            val isSuccess = for {
+              hundredReports <- reportsRepository.getLastHundredErrorReports(reportsKind)
+              nodes          <- nodeInfoService.getAll
+              rules          <- ruleRepository.getAll(true)
+              directives     <- directiveRepository.getFullDirectiveLibrary()
+            } yield {
               val id = hundredReports.headOption match {
                 // None means this is a new rudder without any reports, don't log anything, current id is 0
                 case None =>
                   logger.warn("There is no reports to log")
                   0
 
-                  // return last id and report the latest 100 non compliant reports
+                // return last id and report the latest 100 non compliant reports
                 case Some(report) =>
-                  logReports(hundredReports.map(_._1).reverse)
-                  report._2
+                  logReports(hundredReports.reverse, nodes, rules.map(r => (r.id, r)).toMap, directives)
+                  report._1
               }
               updateLastId(id)
+            }
 
-            case eb:EmptyBox =>
-              logger.error("report logger could not fetch latest 100 non compliant reports, retry on next run",eb)
-          }
+            isSuccess match {
+              case eb:EmptyBox =>
+                logger.error("report logger could not fetch latest 100 non compliant reports, retry on next run",eb)
+              case Full(x) => //
+            }
 
-        case Full(last) =>
-          logger.trace("***** get current log id")
 
-          reportsRepository.getHighestId match {
-            case Full(currentId) if (currentId > last) =>
-              logger.trace("***** log report beetween ids %d and %d".format(last,currentId))
-              reportsRepository.getErrorReportsBeetween(last,currentId,Reportskind) match {
-                case Full(reports) =>
-                  logReports(reports)
-                  updateLastId(currentId)
-                case eb:EmptyBox =>
-                  logger.error("report logger could not fetch latest non compliant reports, try on next run",eb)
-              }
+          case Full(lastId) =>
+            logger.trace("***** get current highest report id")
+            val highest = reportsRepository.getHighestId()
+            logger.trace(s"***** highest report id = ${highest} and last processed id = ${lastId}")
+            highest match {
+              case Full(currentId) if (currentId > lastId) =>
+                logReportsBetween(lastId, currentId)
 
-            case _ =>
-              logger.trace("***** no reports to log")
-          }
+              case _ =>
+                logger.trace("***** no reports to log")
+            }
 
-        case Failure(message,_,_) =>
-          logger.error("could not fetch last id, don't log anything, wait next run, cause is %s".format(message))
-      }
+          case Failure(message,_,_) =>
+            logger.error(s"could not fetch last id, don't log anything, wait next run, cause is ${message}")
+        }
 
-      //schedule next log, every minute
-      LAPinger.schedule(this, StartAutomaticReporting, reportLogInterval*1000L*60)
-      () //ok for the unit value discarded
+        //schedule next log, every minute
+        LAPinger.schedule(this, StartAutomaticReporting, reportLogInterval*1000L*60)
+        () //ok for the unit value discarded
 
       case _ =>
         logger.error("Wrong message received by non compliant reports logger, do nothing")
     }
 
+    /*
+     * This method handle the logic to process non-compliant reports between the
+     * two id in parameter.
+     * It is in charge to:
+     * - update the last processed report id when needed
+     * - split the process in batches so that the memory consumption is bounded
+     *
+     * Both bounds are inclusive (so both fromId and maxId will be logged if
+     * they are non-compliant reports).
+     */
+    private[this] def logReportsBetween(lastProcessedId: Long, maxId: Long): Unit = {
 
-    def updateLastId(newId : Long) : Unit = {
-      propertyRepository.updateReportLoggerLastId(newId) match {
-        case f:Full[_]    =>
-          lastId = f
-        case eb:EmptyBox  =>
-          logger.error("could not update last id with id %d, retry now".format(newId),eb)
-          updateLastId(newId)
+      /*
+       * Log all non-compliant reports between fromId and maxId (both inclusive), limited to batch size max.
+       * If 0 reports where found, Full(None) is returned.
+       * If > 0 reports were logged, the highest logged report id is returned.
+       * Other param are context resources.
+       */
+      def log(fromId: Long, maxId: Long, batchSize: Int
+            , allNodes: Map[NodeId, NodeInfo], rules: Map[RuleId, Rule],  directives: FullActiveTechniqueCategory
+      ): Box[Long] = {
+        for {
+          reports <- reportsRepository.getReportsByKindBeetween(fromId, maxId, batchSize, reportsKind)
+        } yield {
+          //when we get an empty here, it means that we don't have more non-compliant report
+          //in the interval, just return the max id
+          val id = logReports(reports, allNodes, rules, directives).getOrElse(maxId)
+          logger.debug(s"Wrote non-compliant-reports logs from id '${fromId}' to id '${id}'")
+          updateLastId(id)
+          id
+        }
+      }
+
+      /*
+       * We need a way to let the gc reclame the memory used by the log seq, so to let "log" scope be closed before
+       * next logRec call.
+       */
+      def logRec(fromId: Long, maxId: Long, batchSize: Int, nodes: Map[NodeId, NodeInfo], rules: Map[RuleId, Rule],  directives: FullActiveTechniqueCategory): Box[Long] = {
+        log(fromId, maxId, batchSize, nodes, rules, directives) match {
+          case eb: EmptyBox => eb
+          case Full(id) =>
+            if(id < maxId) {
+              //one more time
+              //start at +1 because of inclusive bounds
+              logRec(id+1, maxId, batchSize, nodes, rules, directives)
+            } else {
+              // done
+              Full(id)
+            }
+        }
+      }
+
+      //start at +1 because of inclusive bounds
+      val startAt = lastProcessedId+1
+      logger.debug(s"Writting non-compliant-report logs beetween ids ${startAt} and ${maxId} (both incuded)")
+      (for {
+        nodes      <- nodeInfoService.getAll
+        rules      <- ruleRepository.getAll(true)
+        directives <- directiveRepository.getFullDirectiveLibrary()
+      } yield {
+        logRec(startAt, maxId, 10000, nodes, rules.map(r => (r.id, r)).toMap, directives)
+      }) match {
+          case eb: EmptyBox =>
+            logger.error("report logger could not fetch latest non compliant reports, try on next run", eb)
+          case Full(id) =>
+            logger.trace(s"***** done: log report beetween ids ${startAt} and ${maxId}")
       }
     }
 
-    def logReports(reports : Seq[Reports]) = {
-      for {
-        allNodes <- nodeInfoService.getAll
-        report <- reports
-      } logReport(report, allNodes)
+    def updateLastId(newId : Long) : Unit = {
+      //don't blow the stack
+      def maxTry(tried: Int): Unit = {
+        propertyRepository.updateReportLoggerLastId(newId) match {
+          case f:Full[_]    =>
+            //ok, nothing to do
+          case eb:EmptyBox  =>
+            if(tried >= 5) {
+              logger.error(s"Could not update property 'reportLoggerLastId' for 5 times in a row, trying on new batch")
+            } else {
+              logger.error(s"Could not update property 'reportLoggerLastId' with id ${newId}, retrying now",eb)
+              Thread.sleep(100)
+              maxTry(tried+1)
+            }
+        }
+      }
+      maxTry(0)
     }
-    /*
-     * Transform to log line and log a report with the appropriate kind
-     */
-    def logReport(report:Reports, allNodes: Map[NodeId, NodeInfo]) = {
-      val execDate = report.executionDate.toString("yyyy-MM-dd HH:mm:ssZ")
 
-      val rule = "%s [%s]".format(
-            report.ruleId.value
-          , ruleRepository.get(report.ruleId).map(_.name).openOr("Unknown rule")
-          )
+    def logReports(reports : Seq[(Long, Reports)], allNodes: Map[NodeId, NodeInfo], rules: Map[RuleId, Rule],  directives: FullActiveTechniqueCategory): Option[Long] = {
+      if(reports.isEmpty) {
+        None
+      } else {
+        val loggedIds = reports.map { case (id, report) =>
+          val t         = report.executionDate.toString("yyyy-MM-dd HH:mm:ssZ")
+          val s         = report.severity
+          val nid       = report.nodeId.value
+          val n         = allNodes.get(report.nodeId).map(_.hostname).getOrElse("Unknown node")
+          val rid       = report.ruleId.value
+          val r         = rules.get(report.ruleId).map(_.name).getOrElse("Unknown rule")
+          val did       = report.directiveId.value
+          val (d,tn,tv) = directives.allDirectives.get(report.directiveId) match {
+                            case Some((at, d)) => (d.name, at.techniqueName, d.techniqueVersion.toString)
+                            case _ => ("Unknown directive", "Unknown technique id", "N/A")
+                          }
+          val c         = report.component
+          val v         = report.keyValue
+          val m         = report.message
 
+          //exceptionnally use $var in place of ${var} for log format lisibility
+          val reportLine = s"[$t] N: $nid [$n] S: [$s] R: $rid [$r] D: $did [$d] T: $tn/$tv C: [$c] V: [$v] $m"
 
-      val node :String = "%s [%s]".format(
-            report.nodeId.value
-          , allNodes.get(report.nodeId).map(_.hostname).getOrElse("Unknown node")
-          )
+          AllReportLogger.FindLogger(report.severity)(reportLine)
 
-
-      val directive : String = "%s [%s]".format(
-            report.directiveId.value
-          , directiveRepository.getDirective(report.directiveId).map(_.name).openOr("Unknown directive")
-          )
-
-     val (techniqueName, techniqueVersion) = directiveRepository.getActiveTechniqueAndDirective(report.directiveId) match {
-       case Full((at, d)) => (at.techniqueName, d.techniqueVersion.toString)
-       case _ => ("Unknown technique id", "N/A")
-     }
-     val technique = "%s/%s".format(techniqueName,techniqueVersion)
-
-      AllReportLogger.FindLogger(report.severity)(reportLineTemplate.format(execDate,node,report.severity,rule,directive,technique,report.component,report.keyValue,report.message))
+          id
+        }
+        //return the max, ok since loggedIds.size >= 1
+        Some(loggedIds.max)
+      }
     }
   }
 }
