@@ -117,9 +117,13 @@ trait ReportsRepository {
   def deleteEntries(date : DateTime) : Box[Int]
 
   //automaticReportLogger only
-  def getHighestId : Box[Long]
-  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Long)]]
-  def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]]
+  /**
+   * Get the highest id of any kind of reports.
+   */
+  def getHighestId() : Box[Long]
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Long, Reports)]]
+  //return the reports between the two ids, limited to limit number of reports, in asc order of id.
+  def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long, Reports)]]
 
 
   //nodechangesServices
@@ -132,5 +136,5 @@ trait ReportsRepository {
    */
   def getReportsfromId(id : Long, endDate : DateTime) : Box[(Seq[AgentRun], Long)]
 
-  def getReportsWithLowestId : Box[Option[(Reports,Long)]]
+  def getReportsWithLowestId : Box[Option[(Long, Reports)]]
 }
