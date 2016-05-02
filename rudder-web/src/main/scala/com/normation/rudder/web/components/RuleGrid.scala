@@ -353,20 +353,19 @@ class RuleGrid(
     }
   }
 
-  private[this] def changesFuture (rules: Seq[Rule]): Future[Box[Map[RuleId, Map[Interval, Seq[ResultRepairedReport]]]]] = {
+  private[this] def changesFuture (rules: Seq[Rule]): Future[Box[Map[RuleId, Map[Interval, Int]]]] = {
     future {
       if(rules.isEmpty) {
         Full(Map())
       } else {
-        val default = recentChanges.getCurrentValidIntervals(None).map((_,Seq())).toMap
+        val default = recentChanges.getCurrentValidIntervals(None).map((_, 0)).toMap
         val start = System.currentTimeMillis
         for {
-                recentChanges <- recentChanges.getChangesByInterval(None)
-                nodeChanges = rules.map(rule => (rule.id, recentChanges.getOrElse(rule.id, default)))
-                after = System.currentTimeMillis
-                _ = TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
-
+          changes <- recentChanges.countChangesByRuleByInterval()
         } yield {
+          val nodeChanges = rules.map(rule => (rule.id, changes.getOrElse(rule.id, default)))
+          val after       = System.currentTimeMillis
+          TimingDebugLogger.debug(s"computing recent changes in Future took ${after - start}ms" )
           nodeChanges.toMap
         }
       }
@@ -427,7 +426,7 @@ class RuleGrid(
   }
 
   // Ajax call back to get recent changes
-  private[this] def ajaxChanges(displayGraph: Boolean, future : Future[Box[Map[RuleId,Map[Interval,Seq[ResultRepairedReport]]]]]) : JsCmd = {
+  private[this] def ajaxChanges(displayGraph: Boolean, future : Future[Box[Map[RuleId,Map[Interval, Int]]]]) : JsCmd = {
     SHtml.ajaxInvoke( () => {
       // Is my future completed ?
       if( future.isCompleted ) {
@@ -437,8 +436,8 @@ class RuleGrid(
             val computeGraphs = for {
               (ruleId,change) <- changes
             } yield {
-              val changeCount = change.values.map(_.size).sum
-              val data = NodeChanges.json(change)
+              val changeCount = change.values.sum
+              val data = NodeChanges.json(change, recentChanges.getCurrentValidIntervals(None))
               s"""computeChangeGraph(${data.toJsCmd},"${ruleId.value}",currentPageIds, ${changeCount}, ${displayGraph})"""
            }
 
