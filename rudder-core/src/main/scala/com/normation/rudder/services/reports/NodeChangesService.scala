@@ -49,6 +49,7 @@ import net.liftweb.common._
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
 import net.liftweb.http.js.JE._
+import com.normation.rudder.domain.reports.ResultRepairedReport
 
 /**
  * This service is responsible to make available node changes for nodes.
@@ -59,41 +60,48 @@ import net.liftweb.http.js.JE._
  */
 trait NodeChangesService {
 
-  type ChangesByRule  = Map[RuleId, Map[Interval,Seq[ResultRepairedReport]]]
+  type ChangesByRule  = Map[RuleId, Map[Interval, Int]]
+
+  /*
+   * Max number of days to look back for changes.
+   */
+  def changesMaxAge: Int
 
   /**
-   * Get all changes since a date specified as parameter and regroup them by interval of hours.
-   *
-   * If no starting date is specified, a default duration will be used to compute it.
-   *
+   * Get all changes for the last "changesMaxAge" and
+   * regroup them by rule, and by interval of 6 hours.
    */
-  def getChangesByInterval(since: Option[DateTime]) : Box[ChangesByRule]
+  def countChangesByRuleByInterval() : Box[ChangesByRule]
+
+
+  /**
+   * Get the changes for the given interval, which must be one of the
+   * interval returned by getCurrentValidIntervals methods.
+   * Optionally give a limit number of report to return (0 or negative number
+   * will be considered as None)
+   */
+  def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
 
   /**
    * For the given service, what are the intervals currently valid?
    * Optionnally give a starting date, or else the service is in charge
    * to provide a default value.
+   * The resulting list is sorted by interval start time, so that head is
+   * before tail.
+   *
+   * This is pure algo, so make all implementation use the same.
+   *
    */
-  def getCurrentValidIntervals(since: Option[DateTime]): Seq[Interval]
+  final def getCurrentValidIntervals(since: Option[DateTime]): List[Interval] = {
+    val startTime = since.getOrElse(DateTime.now.minusDays(changesMaxAge))
+    val endTime   = DateTime.now
+    getInterval(startTime, endTime)
+  }
 
   /*
-   * The two following methods are pure algorithm methods and we want that all
+   * The following method is pure algorithm methods and we want that all
    * implementation of getChangesByInterval use them.
    */
-
-  /**
-   * Group the given set of reports by rules and based on the allowed intervals
-   * given in parameter. All report outside any of the intervals is discared.
-   */
-  def filterGroupByInterval(intervals: Seq[Interval], changes: Seq[ResultRepairedReport]): ChangesByRule = {
-    changes.groupBy(_.ruleId).mapValues { ch =>
-      ( for {
-         interval <- intervals
-      } yield {
-        (interval,ch.filter(interval contains _.executionTimestamp))
-      } ).toMap
-    }
-  }
 
   /**
    * Stable computation of intervals of 6h starting at 0,6,12 or 18
@@ -102,68 +110,55 @@ trait NodeChangesService {
    * The date are always included in the resulting interval
    * sequence, which is also ordered by date.
    */
-  def getInterval(since: DateTime, to: DateTime): Seq[Interval] = {
-    // We want our first interval limit to be 00:00 | 06:00 | 12:00 | 18:00
 
-    val firstInterval = {
-      val firstHour =
-        if ( to isBefore to.withHourOfDay(6) ) {
-          to.withTimeAtStartOfDay()
-        } else {
-          if (to isBefore to.withHourOfDay(12)) {
-            to.withTimeAtStartOfDay().withHourOfDay(6)
-          } else {
-            if (to isBefore to.withHourOfDay(18)) {
-              to.withTimeAtStartOfDay().withHourOfDay(12)
-            } else {
-              to.withTimeAtStartOfDay().withHourOfDay(18)
-        } } }
-      // Fix minutes to 0
-      new Interval(firstHour, firstHour.plusHours(6))
-    }
+  private[this] final def getInterval(since: DateTime, to: DateTime): List[Interval] = {
+    if(to.isBefore(since)) {
+      Nil
+    } else {
+      // We want our first interval limit to be 00:00 | 06:00 | 12:00 | 18:00
 
-    // Compute intervals of changes recursively from the last interval lower
-    def computeIntervals(previousLowerBound: DateTime): List[Interval] = {
-      if ( previousLowerBound isBefore since) {
-        // Our last bound is before the limit, do not create a interval
-        Nil
-      } else {
-        val nextLowerBound = previousLowerBound.minusHours(6)
-        val interval = new Interval(nextLowerBound,previousLowerBound)
-        interval :: computeIntervals(nextLowerBound)
+      //utility that create an interval from the given date to date+6hours
+      def sixHours(t: DateTime): Interval = {
+        //6 hours in milliseconds
+        new Interval(t, new DateTime(t.getMillis + 6l * 3600 * 1000))
       }
-    }
 
-    firstInterval :: computeIntervals(firstInterval.getStart)
+      //find the starting time, set minute/seconds/millis to 0
+      val startTime = since.withTimeAtStartOfDay.withHourOfDay( since.getHourOfDay / 6 * 6)
+
+      // generate the stream of intervals, and stop when "to" is after
+      // start time of interval (as they are sorted)
+      Stream.iterate(sixHours(startTime)){ previousInterval =>
+        sixHours(previousInterval.getEnd)
+      }.takeWhile { i => i.getStart.isBefore(to) }.toList
+    }
   }
 }
 
 class NodeChangesServiceImpl(
-    reportsRepository: ReportsRepository
-  , changesMaxAge    : Int = 3 // in days
+    reportsRepository         : ReportsRepository
+  , override val changesMaxAge: Int = 3 // in days
 ) extends NodeChangesService with Loggable {
 
-  override def getCurrentValidIntervals(since: Option[DateTime]): Seq[Interval] = {
-    // Limit of changes.
-    val limit = since.getOrElse(DateTime.now.minusDays(changesMaxAge))
-    val now = DateTime.now
-
-    // compute intervals
-    getInterval(limit, now)
-  }
-
   /**
-   * Get all changes until a date specified as parameter and regroup them by interval of hours.
-   *
-   * Interval are 6 hour longs.
+   * Get all changes for the last "reportsRepository.maxChangeTime" and
+   * regroup them by rule, and by interval of 6 hours.
    */
-  override def getChangesByInterval(since: Option[DateTime]) = {
-
+  override def countChangesByRuleByInterval(): Box[ChangesByRule] = {
+    val start = getCurrentValidIntervals(None).map(_.getStart).minBy(_.getMillis)
     // Regroup changes by interval
     for {
-       changes <- reportsRepository.getChangeReports(since.getOrElse(DateTime.now.minusDays(changesMaxAge)))
+      changes <- reportsRepository.countChangeReports(start, 6)
     } yield {
-      filterGroupByInterval(getCurrentValidIntervals(None), changes)
+      changes
+    }
+  }
+
+  override def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
+    for {
+      changes <- reportsRepository.getChangeReportsByRuleOnInterval(ruleId, interval, limit)
+    } yield {
+      changes
     }
   }
 }
@@ -177,15 +172,15 @@ class CachedNodeChangesServiceImpl(
     changeService: NodeChangesService
 ) extends NodeChangesService with CachedRepository with Loggable {
 
+  override val changesMaxAge = changeService.changesMaxAge
+
   private[this] var cache = Option.empty[ChangesByRule]
 
   private[this] def cacheToLog(changes: ChangesByRule): String = {
     changes.map { case(ruleId, x) =>
-      val byInt = x.map { case (int, ch) =>
+      val byInt = x.map { case (int, size) =>
 
-        val changeArray = ch.mkString("  ", "\n  ", "")
-
-        s" ${int}\n${changeArray}"
+        s" ${int}:${size}"
       }.mkString(" ", "\n ", "")
 
       s"${ruleId.value}\n${byInt}"
@@ -197,15 +192,25 @@ class CachedNodeChangesServiceImpl(
    * the content of cache (other method can update the cache).
    */
   private[this] def initCache() : Box[ChangesByRule] = this.synchronized {
+    logger.debug("NodeChanges cache initialization...")
     cache match {
       case None =>
-        for {
-          changes <- changeService.getChangesByInterval(None)
-        } yield {
-          cache = Some(changes)
-          logger.debug("NodeChanges cache initialized")
-          logger.trace("NodeChanges cache content: " + cacheToLog(changes))
-          changes
+        try {
+          for {
+            changes <- changeService.countChangesByRuleByInterval()
+          } yield {
+            cache = Some(changes)
+            logger.debug("NodeChanges cache initialized")
+            logger.trace("NodeChanges cache content: " + cacheToLog(changes))
+            changes
+          }
+        } catch {
+          case ex: OutOfMemoryError =>
+            val msg = "NodeChanges cache can not be updated du to OutOfMemory error. That mean that either your installation is missing " +
+              "RAM (see: http://www.rudder-project.org/doc-3.2/_performance_tuning.html#_java_out_of_memory_error) or that the number of recent changes is " +
+              "overwhelming, and you hit: http://www.rudder-project.org/redmine/issues/7735. Look here for workaround"
+            logger.error(msg)
+            Failure(msg)
         }
       case Some(changes) =>
         logger.debug("NodeChanges cache hit")
@@ -221,14 +226,14 @@ class CachedNodeChangesServiceImpl(
    */
   private[this] def merge(on: Seq[Interval], changes1: ChangesByRule, changes2: ChangesByRule): ChangesByRule = {
     //shortcut that get map(k1)(k2) and return an empty seq if key not found
-    def get(changes: ChangesByRule, ruleId: RuleId, i: Interval): Seq[ResultRepairedReport] = {
-      changes.getOrElse(ruleId, Map()).getOrElse(i, Seq())
+    def get(changes: ChangesByRule, ruleId: RuleId, i: Interval): Int = {
+      changes.getOrElse(ruleId, Map()).getOrElse(i, 0)
     }
 
     (changes1.keySet ++ changes2.keySet).map { ruleId =>
       (ruleId,
         on.map { i =>
-          val updated = get(changes1, ruleId, i) ++ get(changes2, ruleId, i)
+          val updated = get(changes1, ruleId, i) + get(changes2, ruleId, i)
           (i, updated)
         }.toMap
       )
@@ -248,6 +253,7 @@ class CachedNodeChangesServiceImpl(
    * important than responsiveness.
    */
   def update(changes: Seq[ResultRepairedReport]): Box[Unit] = this.synchronized {
+    logger.debug(s"NodeChanges cache updating with ${changes.size} new changes...")
     if(changes.isEmpty) {
       Full(())
     } else {
@@ -255,7 +261,13 @@ class CachedNodeChangesServiceImpl(
         existing <- initCache()
       } yield {
         val intervals = changeService.getCurrentValidIntervals(None)
-        val newChanges = this.filterGroupByInterval(intervals, changes)
+        val newChanges = changes.groupBy(_.ruleId).mapValues { ch =>
+          ( for {
+             interval <- intervals
+          } yield {
+            (interval, ch.filter(interval contains _.executionTimestamp).size )
+          } ).toMap
+        }
         logger.debug("NodeChanges cache updated")
         cache = Some(merge(intervals, existing, newChanges))
         logger.trace("NodeChanges cache content: " + cacheToLog(cache.get))
@@ -277,57 +289,48 @@ class CachedNodeChangesServiceImpl(
     ()
   }
 
-  //just delegate to the actual service
-  override def getCurrentValidIntervals(since: Option[DateTime]) = {
-    changeService.getCurrentValidIntervals(since)
+
+  /*
+   * It's actually just using the cache
+   */
+  override def countChangesByRuleByInterval() = {
+    initCache()
   }
 
-  override def getChangesByInterval(since: Option[DateTime]) = {
-    for {
-      changes <- initCache()
-    } yield {
-      changes
-    }
+  /**
+   * Get the changes for the given interval, without using the cache.
+   */
+  override def getChangesForInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
+    changeService.getChangesForInterval(ruleId, interval, limit)
   }
+
 }
 
 object NodeChanges {
+  //a format for interval like "2016-01-27 06:00 - 12:00"
+  val startFormat = "yyyy-MM-dd HH:mm"
+  val endFormat = " - HH:mm"
 
-  // Filter changes on based on rules
-  def changesOnRule(ruleId : RuleId)(changes  : Map[Interval,Seq[ResultRepairedReport]]) = {
-    changes.mapValues(_.filter(_.ruleId == ruleId))
+  private[this] def displayPeriod(interval: Interval) = {
+    interval.getStart().toString(startFormat) + interval.getEnd().toString(endFormat)
   }
 
-  def displayPeriod(interval : Interval, now : DateTime) = {
+  /**
+   * Display the list of intervals, sorted by start time, and for each put
+   * the number of changes from changes.
+   * Intervals must be equals in changes and intervals.
+   */
+  def json (changes: Map[Interval, Int], intervals: List[Interval]) = {
 
-    val period = new Interval(interval.getStart, now).toPeriod()
-    //a format for time like "1d 5h ago"
-    val format = "yyyy-MM-dd HH:mm"
-    val endFormat = " - HH:mm"
-
-    interval.getStart().toString(format) + interval.getEnd().toString(endFormat)
-  }
-
-  def json (changes : Map[Interval,Seq[ResultRepairedReport]]) = {
-
-  // Order changes by interval start, then modify interval so we can have interval from now a
-  def changesByPeriod (changes : Map[Interval,Seq[ResultRepairedReport]]) : List[(String,Seq[ResultRepairedReport])] = {
-
-    val now = DateTime.now
-
-    changes.toList.sortWith((a,b) => dateOrdering(a._1.getStart,b._1.getStart)).map { case(interval, v) =>
-      (displayPeriod(interval,now),v)
+    //sort intervals, get number of changes for each (or 0)
+    val data = intervals.sortBy(_.getStartMillis).map { i =>
+      ( displayPeriod(i), changes.getOrElse(i, 0), i.getStartMillis )
     }
-  }
 
-  def dateOrdering (d1 : DateTime, d2 : DateTime) = {
-    d1 isBefore d2
-  }
-
-  val data = changesByPeriod(changes).map(a => (a._1,a._2.size))
     JsObj(
         ("x" -> JsArray(data.map(a => Str(a._1))))
       , ("y" -> JsArray(data.map(a => Num(a._2))))
+      , ("t" -> JsArray(data.map(a => Num(a._3))))
     )
   }
 }
