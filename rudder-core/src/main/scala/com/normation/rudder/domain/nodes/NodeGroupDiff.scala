@@ -80,7 +80,6 @@ final case class ModifyNodeGroupDiff(
 ) extends NodeGroupDiff with HashcodeCaching {
 
   def needDeployment : Boolean = {
-    modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined || modIsActivated.isDefined
+    modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined || modIsActivated.isDefined || modName.isDefined
   }
 }
-
