@@ -372,19 +372,20 @@ class DirectiveEditForm(
       , defaultValue = directive.priority
     ) {
       override val displayHtml =
-        <span class="tooltipable greytooltip" title="" tooltipid="priorityId">
-          <b>Priority:</b>
+        <div>
+        <b>Priority:</b>
+        <span class="tw-bs">
+					<span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
           <div class="tooltipContent" id="priorityId">
-          If a node is configured with several Directive derived from that template,
-          the one with the higher priority will be applied first. If several Directives
-          have the same priority, the application order between these two will be random.
-          If the template is unique, only one Directive derived from it may be used at
-          a given time onone given node. The one with the highest priority is chosen.
-          If several Directives have the same priority, one of them will be applied at
-          random. You should always try to avoid that last case.<br/>
-          The highest priority is 0.
+          	<h4> Priority </h4>
+						Priority determines which <b> unique </b> Directive will be applied.
+						<br/>
+						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied. 
+						<br/>
+						Highest Priority is 0
           </div>
-        </span>
+			  </span>
+      </div>
       override def className = "twoCol"
       override def labelClassName = "threeCol directiveInfo"
 
