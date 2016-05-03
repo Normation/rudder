@@ -26,13 +26,10 @@
 #
 # To use the generated variable, you must use the form `${variable_prefix.variable_name}` with each name replaced with the parameters of this method.
 # 
-# To create a local variable, use `${class_prefix}` as a prefix so that it is garanteed to be unique to this technique instance.
-# this variable is automatically defined in your technique and is available if you use Rudder agent >= 4.0 or CFEngine >= 3.8
-# to create a global variable, use a static name that you can reuse in other techniques.
 # Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
 # Please note that only global variables are available within templates.
 #
-# @parameter variable_prefix  The prefix of the variable name, use ${class_prefix} for a local variable and a static name for a global variable
+# @parameter variable_prefix  The prefix of the variable name
 # @parameter variable_name    The variable to define, the full name will be variable_prefix.variable_name
 # @parameter file_name        The path to the file
 # @parameter separator_regex  Regular expression that is used to split the value into items ( usually: \n )
