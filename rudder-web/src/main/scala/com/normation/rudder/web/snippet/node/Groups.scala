@@ -76,12 +76,10 @@ import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.services.DisplayNodeGroupTree
 
-
 object Groups {
   val htmlId_groupTree = "groupTree"
   val htmlId_item = "ajaxItemContainer"
   val htmlId_updateContainerForm = "updateContainerForm"
-
 
   private sealed trait RightPanel
   private case object NoPanel extends RightPanel
@@ -89,8 +87,6 @@ object Groups {
   private case class CategoryForm(category: NodeGroupCategory) extends RightPanel with HashcodeCaching
 
 }
-
-
 
 class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with Loggable {
   import Groups._
@@ -145,7 +141,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     NodeGroupForm.staticInit
    }
 
-
   /**
    * Display the Groups hierarchy fieldset, with the JS tree
    * @param html
@@ -169,7 +164,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   def initRightPanel(workflowEnabled: Boolean) : NodeSeq = {
     Script(OnLoad(parseJsArg(workflowEnabled)(boxGroupLib)))
   }
-
 
   /**
    * If a query is passed as argument, try to dejoniffy-it, in a best effort
@@ -207,7 +201,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     )
   }
 
-
   ////////////////////////////////////////////////////////////////////////////////////
 
   private[this] def htmlTreeNodeId(id:String) = "jsTree-" + id
@@ -226,11 +219,13 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           , parentCatId
           , rootCategory
           , workflowEnabled
-          , { (redirect: Either[NodeGroup,ChangeRequestId]) =>
+          , { (redirect: Either[(NodeGroup,NodeGroupCategoryId),ChangeRequestId]) =>
               redirect match {
-                case Left(group) =>
+                case Left((newGroup,newParentId)) =>
                   refreshGroupLib()
-                  refreshTree(htmlTreeNodeId(group.id.value), workflowEnabled)
+                  val newPanel = GroupForm(newGroup, newParentId)
+                  refreshTree(htmlTreeNodeId(newGroup.id.value), workflowEnabled) &
+                  refreshRightPanel(newPanel , workflowEnabled)
                 case Right(crId) =>
                   JsInitContextLinkUtil.redirectToChangeRequestLink(crId)
               }
@@ -278,7 +273,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] def onSuccessCallback(workflowEnabled: Boolean) = {
     (id: String) => {refreshGroupLib; refreshTree(htmlTreeNodeId(id), workflowEnabled) }
   }
-
 
   /**
    * build the tree of categories and group and init its JS
@@ -472,7 +466,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     }
   }
 
-
   private[this] def showPopup(workflowEnabled: Boolean) : JsCmd = {
 
     boxGroupLib match {
@@ -486,5 +479,3 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
     }
   }
 }
-
-
