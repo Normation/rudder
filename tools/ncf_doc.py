@@ -60,6 +60,9 @@ if __name__ == '__main__':
       content.append('<a class="anchor" name="'+generic_method["bundle_name"]+'"></a>')
       content.append('\n### '+ bundle_name)
       content.append(generic_method["description"])
+      if "deprecated" in generic_method:
+        content.append('\n**WARNING**: This generic method is deprecated.')
+        content.append(generic_method["deprecated"])
       content.append('\nCompatible with CFEngine '+generic_method["agent_version"])
       if "documentation" in generic_method:
         content.append('\n#### Usage')
