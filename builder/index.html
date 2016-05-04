@@ -44,7 +44,6 @@
             <button class="btn btn-default" ng-disabled="editForm.$invalid" ng-click="save()">Save Changes</button>
           </div>
         </script>
-        </script>
         <script type="text/ng-template" id="template/confirmModal.html">
           <div class="modal-header">
             <h3 class="modal-title">{{actionName}} {{kind}}</h3>
@@ -223,7 +222,6 @@
                                   {{getClassParameter(method_call)}}
                               </h5>
                           </div>
-                        </div>
                       </li>
                   </ul>
             </div>
@@ -266,11 +264,11 @@
                               <form class="form-inline" role="form">
                                 <div class="form-group" ng-show="checkMajorVersion()">
                                   <label for="os_class">Version (Major):</label>
-                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion"  placeholder=""></input>
+                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion"  placeholder="">
                                 </div>
                                 <div class="form-group" ng-show="checkMinorVersion()">
                                   <label for="os_class">Version (Minor):</label>
-                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder=""></input>
+                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="">
                                 </div>
                               </form>
                             </div>
