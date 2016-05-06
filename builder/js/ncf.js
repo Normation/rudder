@@ -23,7 +23,7 @@ function findIndex(array, elem) {
 };
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages'])
 
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
@@ -64,26 +64,71 @@ app.directive('bundlename', function($filter) {
   };
 });
 
-app.directive('showErrors', function() {
+app.directive('constraint', function($http, $q, $timeout) {
   return {
-    restrict: 'A',
-    require:  '^form',
-    link: function (scope, el, attrs, formCtrl) {
-      // find the text box element, which has the 'name' attribute
-      var inputEl   = el[0].querySelector("[name]");
-      // convert the native text box element to an angular element
-      var inputNgEl = angular.element(inputEl);
-      // get the name on the text box so we know the property to check
-      // on the form controller
-      var inputName = inputNgEl.attr('name');
+    scope: {
+      parameter: '='
+    },
+    require: 'ngModel',
+    link: function(scope, elm, attrs, ctrl) {
+    ctrl.$asyncValidators.constraint = function(modelValue, viewValue) {
+      if (modelValue === undefined)
+        return $q.when(modelValue); 
+      var data = {"value" : modelValue, "constraints" : scope.parameter.constraints}
 
-      el.toggleClass('has-error', formCtrl[inputName].$invalid);
-      // only apply the has-error class after the user leaves the text box
-      inputNgEl.bind('blur', function() {
-        el.toggleClass('has-error', formCtrl[inputName].$invalid);
-      })
-    }
+      var timeoutStatus = false;
+      var timeout = $q.defer();
+
+      var request = $http.post("/ncf/api/check/parameter",data, { 'timeout' : timeout.promise }).then(
+          function(successResult) {
+            scope.parameter.$errors= [];
+            if (! successResult.data.result) {
+              scope.parameter.$errors = successResult.data.errors;
+              return $q.reject('Constraint is not valid');
+            }
+            return $q.when(modelValue);
+          }
+        , function(errorResult) {
+          // If there was an error with the request, accept the value, it will be checked when saving 
+          // Maybe we should display a warning but I'm not sure at all ...
+            if (timeoutStatus) {
+              return $q.when('request timeout');
+            }
+            return $q.when('Error during check request')
+          }
+      )
+
+      $timeout( function() {
+        timeoutStatus = true;
+        timeout.resolve();
+      }, 500);
+      return request;
+    };
   }
+};
+});
+
+
+app.directive('showErrors', function() {
+return {
+  restrict: 'A',
+  require:  '^form',
+  link: function (scope, el, attrs, formCtrl) {
+    // find the text box element, which has the 'name' attribute
+    var inputEl   = el[0].querySelector("[name]");
+    // convert the native text box element to an angular element
+    var inputNgEl = angular.element(inputEl);
+    // get the name on the text box so we know the property to check
+    // on the form controller
+    var inputName = inputNgEl.attr('name');
+
+    el.toggleClass('has-error', formCtrl[inputName].$invalid);
+    // only apply the has-error class after the user leaves the text box
+    inputNgEl.bind('blur', function() {
+      el.toggleClass('has-error', formCtrl[inputName].$invalid);
+    })
+  }
+}
 });
 
 // Declare controller ncf-builder
@@ -125,173 +170,182 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Callback when an element is dropped on the list of method calls
   // return the element that will be added, if false do not add anything
   $scope.dropCallback = function(elem, nextIndex, type){
-
+  
     // Add element
     // if type is a bundle, then transform it to a method call and add it
     if (type === "bundle") {
       return toMethodCall(elem);
     }
-
+  
     // If selected method is the same than the one moving, we need to update selectedMethod
     if (angular.equals($scope.selectedMethod, elem)) {
       $scope.selectedMethod = elem;
     }
-
-   return elem
+  
+    return elem
   }
-  // Define path by getting url params now
-  $scope.setPath();
 
-  // Define hash location url, this will make the page scroll to the good element since we use $anchorScroll
-  $scope.scroll = function(id) {
-    $location.hash(id);
-    $anchorScroll();
-  };
+// Define path by getting url params now
+$scope.setPath();
 
-  // Capitalize first letter of a string
-  $scope.capitaliseFirstLetter = function (string) {
-    if (string.length === 0) {
-      return string;
+// Define hash location url, this will make the page scroll to the good element since we use $anchorScroll
+$scope.scroll = function(id) {
+  $location.hash(id);
+  $anchorScroll();
+};
+
+// Capitalize first letter of a string
+$scope.capitaliseFirstLetter = function (string) {
+  if (string.length === 0) {
+    return string;
+  } else {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+  }
+};
+
+function errorNotification (message,details) {
+  var errorMessage = '<b>An Error occured!</b> ' + message
+  if (details !== undefined) {
+    errorMessage += '<br/>Details: ' + details
+  }
+  ngToast.create({
+      content: errorMessage
+    , className: 'danger'
+    , dismissOnTimeout : false
+    , dismissButton : true
+    , dismissOnClick : false
+  });
+}
+
+$scope.handle_error = function( actionName ) {
+  return function(data, status, headers, config) {
+    if (status === 401) {
+      $scope.authenticated = false;
+      errorNotification('Could not authenticate '+ actionName);
     } else {
-      return string.charAt(0).toUpperCase() + string.slice(1);
-    }
-  };
-
-  function errorNotification (message,details) {
-    var errorMessage = '<b>An Error occured!</b> ' + message
-    if (details !== undefined) {
-      errorMessage += '<br/>Details: ' + details
-    }
-    ngToast.create({
-        content: errorMessage
-      , className: 	'danger'
-      , dismissOnTimeout 	: false
-      , dismissButton : true
-      , dismissOnClick : false
-    });
-  }
-
-  $scope.handle_error = function( actionName ) {
-    return function(data, status, headers, config) {
-      if (status === 401) {
-        $scope.authenticated = false;
-        errorNotification('Could not authenticate '+ actionName);
+      if (data.error !== undefined) {
+          $.each(data.error, function(index,error) {
+            errorNotification(error.message,error.details);
+          })
       } else {
-        if (data.error !== undefined) {
-            $.each(data.error, function(index,error) {
-              errorNotification(error.message,error.details);
-            })
-        } else {
-            errorNotification('Error '+ actionName)
-        }
+          errorNotification('Error '+ actionName)
       }
-    } };
+    }
+  } };
 
-  function defineMethodClassContext (method_call) {
-    // First split from .
-    var myclasses =  method_call.class_context.split(".");
-    // find os class from the first class of class_context
-    var osClass = find_os_class(myclasses[0], cfengine_OS_classes);
-    if ( $.isEmptyObject(osClass)) {
-      // first class is not an os class, class_context is only advanced class
-      method_call.advanced_class = method_call.class_context;
-    } else {
-      // We have an os class !
-      method_call.OS_class = osClass;
-      if (myclasses.length > 1) {
-        // We have more than one class, rest of the context is an advanced class
-        myclasses.splice(0,1);
-        method_call.advanced_class = myclasses.join(".");
-      }
+function defineMethodClassContext (method_call) {
+  // First split from .
+  var myclasses =  method_call.class_context.split(".");
+  // find os class from the first class of class_context
+  var osClass = find_os_class(myclasses[0], cfengine_OS_classes);
+  if ( $.isEmptyObject(osClass)) {
+    // first class is not an os class, class_context is only advanced class
+    method_call.advanced_class = method_call.class_context;
+  } else {
+    // We have an os class !
+    method_call.OS_class = osClass;
+    if (myclasses.length > 1) {
+      // We have more than one class, rest of the context is an advanced class
+      myclasses.splice(0,1);
+      method_call.advanced_class = myclasses.join(".");
     }
   }
+}
 
-  // Transform a ncf technique into a valid UI technique
-  // Add original_index to the method call, so we can track their modification on index
-  // Handle classes so we split them into OS classes (the first one only) and advanced classes
-  function toTechUI (technique) {
-    if ("method_calls" in technique) {
-      var calls = technique.method_calls.map( function (method_call, method_index) {
-        method_call["original_index"] = method_index;
-
-        // Handle class_context
-        defineMethodClassContext(method_call)
-        method_call.parameters=$scope.getMethodParameters(method_call)
-        return method_call;
-      } );
-      technique.method_calls = calls;
-    }
-    return technique;
-  };
-
-  // Transform a ui technique into a valid ncf technique by removint original_index param
-  function toTechNcf (baseTechnique) {
-    var technique = angular.copy(baseTechnique);
+// Transform a ncf technique into a valid UI technique
+// Add original_index to the method call, so we can track their modification on index
+// Handle classes so we split them into OS classes (the first one only) and advanced classes
+function toTechUI (technique) {
+  if ("method_calls" in technique) {
     var calls = technique.method_calls.map( function (method_call, method_index) {
-      delete method_call.original_index;
-      method_call.args = method_call.parameters.map ( function ( param, param_index) {
-        return param.value;
-      });
+      method_call["original_index"] = method_index;
+
+      // Handle class_context
+      defineMethodClassContext(method_call)
+      method_call.parameters=$scope.getMethodParameters(method_call)
       return method_call;
-    });
+    } );
     technique.method_calls = calls;
-    return technique;
-  };
+  }
+  return technique;
+};
 
-  // Check if a technique is selected
-  $scope.isSelected = function(technique) {
-    return angular.equals($scope.originalTechnique,technique);
-  };
+// Transform a ui technique into a valid ncf technique by removint original_index param
+function toTechNcf (baseTechnique) {
+  var technique = angular.copy(baseTechnique);
+  var calls = technique.method_calls.map( function (method_call, method_index) {
+    delete method_call.original_index;
+    method_call.args = method_call.parameters.map ( function ( param, param_index) {
+      return param.value;
+    });
+    return method_call;
+  });
+  technique.method_calls = calls;
+  return technique;
+};
 
-  // Check if a method is selected
-  $scope.isSelectedMethod = function(method) {
-    return angular.equals($scope.selectedMethod,method);
-  };
+// Check if a technique is selected
+$scope.isSelected = function(technique) {
+  return angular.equals($scope.originalTechnique,technique);
+};
 
-  // Call ncf api to get techniques
-  $scope.getTechniques = function () {
+// Check if a method is selected
+$scope.isSelectedMethod = function(method) {
+  return angular.equals($scope.selectedMethod,method);
+};
 
-    $scope.techniques = [];
-    var data = {params: {path: $scope.path}}
-    $http.get('/ncf/api/techniques',data).
-      success(function(data, status, headers, config) {
+// Call ncf api to get techniques
+$scope.getTechniques = function () {
 
-        $.each( data.data.techniques, function(techniqueName, technique_raw) {
+  $scope.techniques = [];
+  var data = {params: {path: $scope.path}}
+  $http.get('/ncf/api/techniques',data).
+    success(function(response, status, headers, config) {
+
+      if (response.data !== undefined && response.data.techniques !== undefined) {
+        $.each( response.data.techniques, function(techniqueName, technique_raw) {
           var technique = toTechUI(technique_raw);
           $scope.techniques.push(technique);
-        })
+        });
+      } else {
+        errorNotification( "Error while fetching techniques", "Data received via api are invalid")
+      }
 
-        // Display single errors
-        $.each( data.errors, function(index, error) {
-          errorNotification(error.message,error.details)
-        })
-      } ).
-      error($scope.handle_error(" while fetching techniques"));
-  };
+      // Display single errors
+      $.each( response.errors, function(index, error) {
+        errorNotification(error.message,error.details)
+      })
+    } ).
+    error($scope.handle_error(" while fetching techniques"));
+};
 
-  // Call ncf api to get genereric methods and then after that get Techniques
-  $scope.getMethodsAndTechniques = function () {
-    var data = {params: {path: $scope.path}}
-    $http.get('/ncf/api/generic_methods', data).
-      success(function(data, status, headers, config) {
-        $scope.generic_methods = data.data.generic_methods;
+// Call ncf api to get genereric methods and then after that get Techniques
+$scope.getMethodsAndTechniques = function () {
+  var data = {params: {path: $scope.path}}
+  $http.get('/ncf/api/generic_methods', data).
+    success(function(response, status, headers, config) {
+      if (response.data !== undefined && response.data.generic_methods !== undefined) {
+        $scope.generic_methods = response.data.generic_methods;
+        $scope.constraints = response.data.constraints;
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
         // Once we have our methods we can fetch our techniques which depends on them
         $scope.getTechniques();
+      } else {
+        errorNotification( "Error while fetching generic methods", "Data received via api are invalid")
+      }
+      // Display single errors
+      $.each( response.errors, function(index, error) {
+        errorNotification(error.message,error.details)
+      })
+    } ).
+    error($scope.handle_error(" while fetching generic methods"));
+};
 
-        // Display single errors
-        $.each( data.errors, function(index, error) {
-          errorNotification(error.message,error.details)
-        })
-      } ).
-      error($scope.handle_error(" while fetching generic methods"));
-  };
-
-  // Group methods by category, a category of a method is the first word in its name
-  $scope.groupMethodsByCategory = function () {
-    var groupedMethods = {};
-    for (var methodKey in $scope.generic_methods) {
+// Group methods by category, a category of a method is the first word in its name
+$scope.groupMethodsByCategory = function () {
+  var groupedMethods = {};
+  for (var methodKey in $scope.generic_methods) {
       var method = $scope.generic_methods[methodKey];
       var name = methodKey.split('_')[0];
       var grouped = groupedMethods[name];
@@ -448,7 +502,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       , "original_index" : original_index
       , "class_context" : "any"
       , "parameters": bundle.parameter.map(function(v,i) {
-        v["value"] = ""
+        v["value"] = undefined 
         return  v;
       })
     }
@@ -546,6 +600,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
           "name" : name
         , "value" : value
         , "description" : description
+        , "$errors" : []
       };
     }
     var params = [];
@@ -558,6 +613,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
          // Maybe parameter does not exists in current method_call, replace with empty value
          param_value = param_value !== undefined ? param_value : '';
          parameter["value"] = param_value;
+         parameter["$errors"] = [];
          params.push(parameter);
       }
     } else {
@@ -678,7 +734,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     return technique;
   }
 
-
   $scope.getBundleName = function (techniqueName) {
     // Replace all non alpha numeric character (\W is [^a-zA-Z_0-9]) by _
     return techniqueName ? techniqueName.replace(/\W/g,"_") : "";
@@ -689,6 +744,10 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       $scope.selectedTechnique.bundle_name = $scope.getBundleName($scope.selectedTechnique.name);
     }
   };
+
+  $scope.trimParameter = function(parameter) {
+    return ! (parameter.constraints.allow_whitespace_string);
+  }
 
   // Save a technique
   $scope.saveTechnique = function() {

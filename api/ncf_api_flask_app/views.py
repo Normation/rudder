@@ -5,6 +5,7 @@ import requests
 import os
 import sys
 import traceback
+from pprint import pprint
 
 # Add NCF_TOOLS_DIR to sys.path so we can access ncf module
 NCF_TOOLS_DIR = '/usr/share/ncf/tools'
@@ -13,6 +14,7 @@ sys.path[0:0] = [NCF_TOOLS_DIR]
 default_path = ""
 
 import ncf
+import ncf_constraints
 
 def format_error(exception, when, code):
   if not isinstance(exception, ncf.NcfError):
@@ -113,6 +115,7 @@ def get_techniques():
     return format_error(e, "techniques fetching", 500)
 
 
+
 @app.route('/api/generic_methods', methods = ['GET'])
 @check_auth
 def get_generic_methods():
@@ -160,6 +163,29 @@ def delete_technique(bundle_name):
     return jsonify({ "data": { "bundle_name" : bundle_name } })
   except Exception as e:
     return format_error(e, "technique deletion", 500)
+
+@app.route('/api/check/parameter', methods = ['POST'])
+@check_auth
+def check_parameter():
+  """Get all techniques from ncf folder passed as parameter, or default ncf folder if not defined"""
+  try:
+    if not "value" in request.json:
+      return format_error(ncf.NcfError("No value metadata provided in the request body."), "", 400)
+    else:
+       parameter_value = request.json['value']
+
+    if not "constraints" in request.json:
+      return format_error(ncf.NcfError("No constraints metadata provided in the request body."), "", 400)
+    else:
+      parameter_constraints = request.json['constraints']
+ 
+    # We need to get path from url params, if not present put "" as default value
+    check = ncf_constraints.check_parameter(parameter_value,parameter_constraints)
+    resp = jsonify( check )
+    return resp
+  except Exception as e:
+    return format_error(e, "checking parameter", 500)
+
 
 
 if __name__ == '__main__':
