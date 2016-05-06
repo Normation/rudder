@@ -236,7 +236,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     $http.get('/ncf/api/techniques',data).
       success(function(data, status, headers, config) {
 
-        $.each( data.data, function(techniqueName, technique_raw) {
+        $.each( data.data.techniques, function(techniqueName, technique_raw) {
           var technique = toTechUI(technique_raw);
           $scope.techniques.push(technique);
         })
@@ -254,7 +254,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var data = {params: {path: $scope.path}}
     $http.get('/ncf/api/generic_methods', data).
       success(function(data, status, headers, config) {
-        $scope.generic_methods = data.data;
+        $scope.generic_methods = data.data.generic_methods;
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
         // Once we have our methods we can fetch our techniques which depends on them
