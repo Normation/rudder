@@ -177,12 +177,16 @@ function displayInventoryGraph (id,data) {
        }
     });
 
-  // Hide data of legend, undefined means to hide all data)
-  legend.hide(undefined, {withLegend: false});
-  
   // append charts
   $('#'+id).append(chart.element);
   $('#'+id+'Legend').append(legend.element);
+    
+  // Hide data of legend, undefined means to hide all data)
+  if(userAgentIsIE()){
+    $('#'+id+'Legend>.c3>svg g:first').hide();  
+  }else{
+    legend.hide(undefined, {withLegend: false});
+  }
   
 }
 
@@ -200,3 +204,10 @@ function homePageSoftware (
   displayInventoryGraph('nodeAgents', nodeAgents)
 }
 
+function userAgentIsIE() {
+    var msie = window.navigator.userAgent.indexOf("MSIE ");
+    if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)){
+        return true;
+    }
+    return false;
+}
