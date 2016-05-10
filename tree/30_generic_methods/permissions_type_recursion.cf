@@ -42,6 +42,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       # Workaround for https://dev.cfengine.com/issues/7310
       "is_depth_zero"       expression => strcmp("${recursion}", "0");
 
+      "target_exists"       expression => fileexists("${path}");
       "is_target_directory" expression => isdir("${path}");
 
   files:
@@ -96,6 +97,11 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
         classes      => classes_generic("${class_prefix}");
 
   methods:
+
+    !target_exists::
+      "error report if target doesn't exist"
+        usebundle => _classes_failure("${class_prefix}");
+
       "report"
         usebundle  => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${class_prefix}");
 }
