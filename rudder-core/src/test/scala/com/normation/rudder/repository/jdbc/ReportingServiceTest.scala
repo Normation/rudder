@@ -115,8 +115,7 @@ class ReportingServiceTest extends DBCommon {
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(null) {
     override def update(changes: Seq[ResultRepairedReport]): Box[Unit] = Full(())
-    override def getCurrentValidIntervals(since: Option[DateTime]) = Seq()
-    override def getChangesByInterval(since: Option[DateTime]) = Empty
+    override def countChangesByRuleByInterval() = Empty
   }
 
   lazy val updateRuns = new ReportsExecutionService(
