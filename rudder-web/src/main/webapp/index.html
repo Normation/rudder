@@ -2,60 +2,122 @@
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-<title>Rudder - Login</title>
-<link href="/style/rudder-login.css" rel="stylesheet" type="text/css" media="screen" />
-<link href="/images/themes/ui-lightness/jquery.ui.all.css" rel="stylesheet" type="text/css" />
-
-<link href="/images/rudder-favicon.ico" rel="icon" type="image/x-icon" />
-<script type="text/javascript" src="/javascript/jquery/jquery-1.8.3.min.js"></script>
-
-<title>Rudder - Login</title>
+    <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Rudder - Login</title>
+    <link href="/bootstrap-3.2.0-dist/css/bootstrap.min.css" rel="stylesheet" type="text/css">
+    <link href="/style/font-awesome-4.6.2/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="/style/ionicons-2.0.1/css/ionicons.min.css" rel="stylesheet" type="text/css">
+    <link href="/style/login.css" rel="stylesheet" type="text/css">
+    <link href="/images/rudder-favicon.ico" rel="icon" type="image/x-icon" />
+    <script type="text/javascript" src="/javascript/jquery/jQuery-2.1.4.min.js"></script>
 </head>
-<body>
-<div id="login">
-  <div class="logo"><h1><img src="/images/logoIndexRudder.jpg" alt="Rudder" width="511" height="111" /></h1></div>
-
-  <form name="contact" id="contact" method="post" action="/j_spring_security_check">
-    <div id="corpForm">
-      <h2>Welcome, please sign in:</h2>
-      <p>
-        <label for="username">Username</label>
-        <input name="j_username" type="text" id="username" title="username" onfocus="this.className='focus';" onblur="this.className='normal';" value="" size="30" />
-      </p>
-      <p>
-        <label for="password">Password</label>
-        <input name="j_password" type="password" id="password" title="password" onfocus="this.className='focus';" onblur="this.className='normal';" onclick="password.value='';" value="" size="30" />
-<!--        <a href="javascript:;" title="Forgot your password">Forgot password ?</a>-->
-      </p>
-<!--      <p id="remember">-->
-<!--        <input name="remember" type="checkbox" title="Remember me" value="" />-->
-<!--        <label for="remember">Remember me</label>-->
-<!--      </p>-->
-    </div>
-    <div id="piedForm">
-      <input type="submit" name="valid" id="valid" value="Sign in" title="Sign in" />
-    </div>
-  </form>
-
-  <div id="loginError">
-    <noscript class="error"><p>WARNING: JavaScript must be enabled to use Rudder</p></noscript>
-    <p class="error">Login error. Please try again.</p>
-  </div>
-
-</div>
-<script type="text/javascript">
-  // <![CDATA[
-    $(document).ready(function() {
-        var urlVars = {};
-        var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-          urlVars[key] = value;
+<body id="login-page">
+    <form class="rudder-form col-lg-3 col-lg-offset-center-3 col-md-4 col-md-offset-4 col-sm-6 col-sm-offset-3 col-xs-12 col-xs-offset-0" name="contact" id="contact" method="post" action="/j_spring_security_check">
+      <fieldset>
+          <legend class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+          <img src="/images/login/logo-rudder.png" alt="Rudder">
+          <span>3.3.0 ~ alpha1</span>
+          </legend>
+          <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <h4 class="welcome col-lg-12 col-md-12 col-sm-12 col-xs-12">Welcome, please sign in:</h4>
+            <div class="form-group group-user has-feedback col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <label class="sr-only" for="username">Username</label>
+              <div class="input-group">
+                <label class="input-group-addon" for="username"><span class="ion ion-android-person"></span></label>
+                <input type="text" class="form-control" id="username" name="j_username" placeholder="Username" size="30">
+                <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
+              </div>
+                <span id="inputErrorStatus" class="sr-only">The field is required</span>
+                <span id="helpBlock" class="help-block">This field is required.</span>
+            </div>
+            <div class="form-group group-password has-feedback col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <label class="sr-only" for="password">Password</label>
+              <div class="input-group">
+                <label class="input-group-addon" for="password"><span class="ion ion-android-lock"></span></label>
+                <input type="password" class="form-control" id="password" name="j_password" placeholder="Password">
+                <span class="glyphicon glyphicon-remove form-control-feedback" aria-hidden="true" aria-describedby="inputError2Status"></span>
+              </div>
+              <span id="inputError2Status" class="sr-only">The field is required</span>
+              <span id="helpBlock2" class="help-block">This field is required.</span>  
+            </div>
+            <div class="form-group col-lg-12 col-md-12 col-sm-12 col-xs-12">
+              <label class="sr-only" for="valid">Sign in</label>
+              <div class="input-group col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                 <span id="errorInfo" class="help-block">
+                     Login error, please try again.
+                 </span>
+                <button class="btn btn-warning-rudder col-lg-12 col-md-12 col-sm-12 col-xs-12" id="valid" name="valid" type="button" onclick="checkForm();">
+                  Sign in
+                  <span class="ion ion-android-unlock"></span> 
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="form-footer col-lg-12 col-md-12 col-sm-12 col-xs-12">
+            <div class="no-padding col-lg-6 col-sm-6 col-md-6 col-xs-6">
+              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <a href="https://www.rudder-project.org/doc-3.3/" target="_blank">
+                <span class="fa fa-book"></span>
+                  Documentation
+                </a>
+              </div>
+              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <a href="https://www.rudder-project.org/site/community/mailing-lists/" target="_blank">
+                  <span class="ion ion-chatboxes"></span>
+                  Mailing list, IRC
+                </a>
+              </div>
+            </div>
+            <div class="no-padding col-lg-6 col-sm-6 col-md-6 col-xs-6">
+              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <a href="https://www.rudder-project.org/site/support/commercial-support/" target="_blank">
+                <span class="fa fa-life-ring"></span>
+                  Support
+                </a>
+              </div>
+              <div class="col-lg-12 col-md-12 col-sm-12 col-xs-12">
+                <a href="http://www.rudder-project.org/redmine/projects/rudder" target="_blank">
+                  <span class="ion ion-bug"></span>
+                  Bug report
+                </a>
+              </div>
+            </div>
+          </div>
+      </fieldset>
+    </form>
+    <script type="text/javascript" src="/javascript/login.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('.welcome').fadeIn(1000);
+            (function(){
+                var urlVars = {};
+                var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+                    urlVars[key] = value;
+                });
+                if(urlVars["login_error"]) {
+                    $('#errorInfo').toggleClass('has-error');
+                }
+            })();
         });
-        if(!urlVars["login_error"]) {
-          $("#loginError").hide();
+        function checkForm(){
+            var errors=false;
+            if($('.group-user input').val().length===0){
+                $('.group-user').addClass('has-error');
+                errors=true;
+            }else{
+                $('.group-user').removeClass('has-error');
+            }
+            if($('.group-password input').val().length===0){
+                $('.group-password').addClass('has-error');
+                errors=true;
+            }else{
+                $('.group-password').removeClass('has-error');
+            }
+            if(!errors){
+                $('form#contact').submit();
+            }
         }
-    });
-    // ]]>
-</script>
+    </script>
 </body>
 </html>
