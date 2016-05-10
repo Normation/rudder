@@ -25,6 +25,8 @@ bundle agent init
     "tmp"                    string => getenv("TEMP", 1024);
     "destination_file"       string => "${tmp}/remove_test";
     "destination_file_canon" string => canonify("${destination_file}");
+    "not_a_file"             string => "${tmp}/nonexistantfilenamefromncftests";
+    "not_a_file_canon"       string => canonify("${not_a_file}");
 
   files:
     "${destination_file}"
@@ -38,6 +40,7 @@ bundle agent test
 {
   methods:
     "ph1" usebundle => file_remove("${init.destination_file}");
+    "ph2" usebundle => file_remove("${init.not_a_file}");
 }
 
 #######################################################
@@ -46,14 +49,26 @@ bundle agent check
 {
   classes:
     "file_exists"      expression => fileexists("${init.destination_file}");
-
-    "ok"                   expression => "!file_exists.file_remove_${init.destination_file_canon}_repaired.!file_remove_${init.destination_file_canon}_error";
+    "ok_1"             expression => "!file_exists.file_remove_${init.destination_file_canon}_repaired.!file_remove_${init.destination_file_canon}_error";
+    "ok_2"             expression => "file_remove_${init.not_a_file_canon}_kept.!file_remove_${init.not_a_file_canon}_repaired.!file_remove_${init.not_a_file_canon}_error";
+    "ok"                      and => { "ok_1", "ok_2" };
 
   reports:
+    file_exists::
+      "First test: File ${init.destination_file} exists even though it should have been removed!";
+    ok_1::  "First test OK (removing existing file, ${init.destination_file})";
+    !ok_1:: "First test failed (removing existing file, ${init.destination_file})";
+    ok_2::  "Second test OK (removing a non existant file, ${init.not_a_file_canon})";
+    !ok_2:: "Second test failed (removing a non existant file, ${init.not_a_file_canon})";
+
+    !ok_2:: #debug
+      "Second test debug: class file_remove_${init.not_a_file_canon}_reached defined" ifvarclass => "file_remove_${init.not_a_file_canon}_reached";
+      "Second test debug: class file_remove_${init.not_a_file_canon}_kept defined" ifvarclass => "file_remove_${init.not_a_file_canon}_kept";
+      "Second test debug: class file_remove_${init.not_a_file_canon}_repaired defined" ifvarclass => "file_remove_${init.not_a_file_canon}_repaired";
+      "Second test debug: class file_remove_${init.not_a_file_canon}_error defined" ifvarclass => "file_remove_${init.not_a_file_canon}_error";
+
     ok::
       "$(this.promise_filename) Pass";
     !ok::
       "$(this.promise_filename) FAIL";
-    file_exists::
-      "File ${init.destination_file} exists even though it should have been removed!";
 }
