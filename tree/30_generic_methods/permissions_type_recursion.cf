@@ -102,6 +102,7 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
       "error report if target doesn't exist"
         usebundle => _classes_failure("${class_prefix}");
 
+    any::
       "report"
         usebundle  => _logger("Ensure permissions mode ${mode}, owner ${owner} and group ${group} on ${path}", "${class_prefix}");
 }
