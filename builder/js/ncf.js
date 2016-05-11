@@ -805,6 +805,16 @@ var SaveChangesModalCtrl = function ($scope, $modalInstance, technique, editForm
   };
 };
 
-app.config(function($locationProvider) {
-    $locationProvider.html5Mode(false).hashPrefix('!');;
+app.config(function($httpProvider,$locationProvider) {
+    $locationProvider.html5Mode(false).hashPrefix('!');    
+    //On some browsers, HTML get headers are bypassed during Angular GET requests, so these headers have to be reinitialized in the Angular httpProvider defaults headers GET.
+    if (!$httpProvider.defaults.headers.get) {
+        $httpProvider.defaults.headers.get = {};    
+    }
+    // Allows the browser to not use the GET request response to satisfy subsequent responses without first checking with the originating server
+    $httpProvider.defaults.headers.get['Cache-Control'] = 'no-cache';
+    //This previous header is ignored by some caches and browsers, for that it may be simulated by setting the Expires HTTP version 1.0 header field value to a time earlier than the response time
+    $httpProvider.defaults.headers.get['Expires'] = 'Thu, 01 Jan 1970 12:00:00 GMT';
+    //Allows the browser to indicate to the cache to retrieve the GET request content from the original server rather than sending one he must keep.
+    $httpProvider.defaults.headers.get['Pragma'] = 'no-cache';
 });
