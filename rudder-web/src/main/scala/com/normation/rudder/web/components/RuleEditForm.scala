@@ -211,14 +211,13 @@ class RuleEditForm(
         def updateCompliance() = {
            roRuleRepository.get(rule.id) match {
              case Full(updatedrule) =>
-               new RuleCompliance(updatedrule,directiveLib, nodeInfos, rootRuleCategory).display
+               new RuleCompliance(updatedrule, rootRuleCategory).display
              case eb:EmptyBox =>
                logger.error("could not get updated version of the Rule")
-               <div>Could not get updated version of the Rule, please </div>
+               <div>Could not get updated version of the Rule, please try again</div>
            }
 
         }
-        val ruleComplianceTabAjax = SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"), (v:String) => Replace("details",updateCompliance()))._2.toJsCmd
 
         form ++
         Script(
@@ -230,10 +229,7 @@ class RuleEditForm(
           JsRaw(s"""
 
             $$("#editRuleZonePortlet").removeClass("nodisplay");
-            $$("#editRuleZone").bind( "show", function(event, ui) {
-              if(ui.panel.id== 'ruleComplianceTab') { ${ruleComplianceTabAjax}; }
-            });
-            ${Replace("details", new RuleCompliance(rule,directiveLib, nodeInfos, rootRuleCategory).display).toJsCmd};
+            ${Replace("details", new RuleCompliance(rule, rootRuleCategory).display).toJsCmd};
             scrollToElement("${idToScroll}", ".rudder_col");
             """
           )
