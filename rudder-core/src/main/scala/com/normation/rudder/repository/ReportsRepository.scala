@@ -128,8 +128,13 @@ trait ReportsRepository {
 
 
   //nodechangesServices
-  def getChangeReports(notBefore: DateTime): Box[Seq[ResultRepairedReport]]
+  /*
+   *  Count change reports by rules on interval of intervalSizeHour hour, starting at startTime
+   *  StartTime should be a 00:00:00 time.
+   */
+  def countChangeReports(startTime: DateTime, intervalSizeHour: Int): Box[Map[RuleId, Map[Interval, Int]]]
   def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]]
+  def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
 
   //reportExecution only
   /**
