@@ -521,9 +521,8 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
 
     (nodeIds.flatMap { nodeId:NodeId =>
       (for {
-        nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
-        policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
-
+        nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID '${nodeId.value}' was not found in the list of known nodes"
+        policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Policy server with ID '${nodeInfo.policyServerId.value}' was not found (mandatory for building promises for the node)"
         nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
       } yield {
         (nodeId, InterpolationContext(

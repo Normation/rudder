@@ -190,8 +190,16 @@ trait NodeConfigurationCacheRepository {
    */
   def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
 
+  /**
+   * Return all known NodeConfigurationCache
+   */
   def getAll() : Box[Map[NodeId, NodeConfigurationCache]]
 
+  /**
+   * Update or add NodeConfigurationCache from parameters.
+   * No existing NodeConfigurationCache is deleted.
+   * Return newly cache node configuration.
+   */
   def save(nodeConfigurationCache: Set[NodeConfigurationCache]): Box[Set[NodeId]]
 }
 
@@ -356,12 +364,17 @@ class LdapNodeConfigurationCacheRepository(
   }
 
   def save(caches: Set[NodeConfigurationCache]): Box[Set[NodeId]] = {
+    val updatedIds = caches.map(_.id)
     for {
-      ldap  <- ldapCon
-      entry =  toLdap(caches.toSet)
-      saved <- ldap.save(entry)
+      ldap          <- ldapCon
+      existingEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
+      existingCache <- fromLdap(existingEntry)
+      //only update and add, keep existing config cache not updated
+      keptConfigs   =  existingCache.map(x => (x.id, x)).toMap.filterKeys( k => !updatedIds.contains(k) )
+      entry         =  toLdap(caches ++ keptConfigs.values)
+      saved         <- ldap.save(entry)
     } yield {
-      caches.map( _.id )
+      updatedIds
     }
   }
 }
