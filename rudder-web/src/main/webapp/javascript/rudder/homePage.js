@@ -110,7 +110,8 @@ function homePage (
 }
 
 function displayInventoryGraph (id,data) {
-
+  var colorPatternDonutCharts = ['rgb(31, 119, 180)', 'rgb(23, 190, 207)', 'rgb(255, 127, 14)', 'rgb(255, 224, 14)', 'rgb(227, 119, 194)', 'rgb(44, 160, 44)', 'rgb(255, 104, 105)', 'rgb(148, 103, 189)', 'rgb(140, 86, 75)', 'rgb(160, 160, 160)', 'rgb(146, 201, 74)', '#ffd203', 'rgb(132, 63, 152)'];
+    
   var smallHeight =  $(window).height() / 4 ;
   
   // The chart, without legend
@@ -131,6 +132,9 @@ function displayInventoryGraph (id,data) {
       , legend :  {
           show : false
         }
+      , color: {
+        pattern: colorPatternDonutCharts
+      }
     });
 
   // Define a 'chart' which will only display its legend with interactin with the chart defind above
@@ -175,14 +179,21 @@ function displayInventoryGraph (id,data) {
            }
          }
        }
+      , color: {
+        pattern: colorPatternDonutCharts
+      }
     });
 
-  // Hide data of legend, undefined means to hide all data)
-  legend.hide(undefined, {withLegend: false});
-  
   // append charts
   $('#'+id).append(chart.element);
   $('#'+id+'Legend').append(legend.element);
+    
+  // Hide data of legend, undefined means to hide all data)
+  if(userAgentIsIE()){
+    $('#'+id+'Legend>.c3>svg g:first').hide();  
+  }else{
+    legend.hide(undefined, {withLegend: false});
+  }
   
 }
 
@@ -200,3 +211,10 @@ function homePageSoftware (
   displayInventoryGraph('nodeAgents', nodeAgents)
 }
 
+function userAgentIsIE() {
+    var msie = window.navigator.userAgent.indexOf("MSIE ");
+    if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)){
+        return true;
+    }
+    return false;
+}
