@@ -431,10 +431,23 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
-  override def getChangeReports(notBefore: DateTime): Box[Seq[ResultRepairedReport]] = {
-    val query = s"${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and executionTimeStamp > '${new Timestamp(notBefore.getMillis)}'::timestamp order by executionTimeStamp asc"
+  override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
+    //be careful, extract from 'epoch' gives seconds, not millis
+    val mod = intervalInHour * 3600
+    val start = startTime.getMillis / 1000
+    val query = s"select ruleid, count(*) as number, ( extract('epoch' from executiontimestamp)::bigint - ${start})/${mod} as interval from ruddersysevents " +
+                s"where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(startTime.getMillis)}'::timestamp group by ruleid, interval;"
+
+    //that query will return interval number in the "interval" column. So interval=0 mean
+    //interval from startTime to startTime + intervalInHour hours, etc.
+    //=> little function to build an interval from its number
+    def interval(t:DateTime, int: Int)(num: Int) = new Interval(t.plusHours(num*int), t.plusHours((num+1)*int))
+
     try {
-      Full(jdbcTemplate.query(query,ReportsMapper).asScala.collect{case r:ResultRepairedReport => r})
+      val res = jdbcTemplate.query(query, CountChangesMapper(interval(startTime, intervalInHour))).asScala
+      //group by ruleId, and then interval
+      val groups = res.groupBy(_._1).mapValues( _.groupBy(_._3).mapValues(_.map( _._2).head)) //head non empty due to groupBy, and seq == 1 by query
+      Full(groups)
     } catch {
       case ex: Exception =>
         val error = Failure("Error when trying to retrieve change reports", Some(ex), Empty)
@@ -443,17 +456,35 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
   }
 
+
   override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
     val query = s"${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId} order by executionTimeStamp asc"
-    try {
-      Full(jdbcTemplate.query(query,ReportsMapper).asScala.collect{case r:ResultRepairedReport => r})
-    } catch {
-      case ex: Exception =>
-        val error = Failure("Error when trying to retrieve change reports", Some(ex), Empty)
-        logger.error(error)
-        error
-    }
+    transformJavaList(jdbcTemplate.query(query, ReportsMapper))
   }
+
+  override def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
+    val l = limit match {
+      case Some(i) if(i > 0) => s"limit ${i}"
+      case _                 => ""
+    }
+    val query = s"${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}' " +
+                s" and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp " +
+                s" and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}"
+
+    transformJavaList(jdbcTemplate.query(query, ReportsMapper))
+  }
+
+  private[this] def transformJavaList(l: java.util.List[Reports]) = {
+      try {
+        Full(l.asScala.collect{case r:ResultRepairedReport => r})
+      } catch {
+        case ex: Exception =>
+          val error = Failure("Error when trying to retrieve change reports", Some(ex), Empty)
+          logger.error(error)
+          error
+      }
+    }
+
 
   override def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
     if (lower>=upper)
@@ -469,6 +500,16 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       }
     }
   }
+}
+
+final case class CountChangesMapper(intMapper: Int => Interval) extends RowMapper[(RuleId, Int, Interval)] {
+   def mapRow(rs : ResultSet, rowNum: Int) : (RuleId, Int, Interval) = {
+        (
+          RuleId(rs.getString("ruleId"))
+        , rs.getInt("number")
+        , intMapper(rs.getInt("interval"))
+      )
+    }
 }
 
 object ReportsMapper extends RowMapper[Reports] {
