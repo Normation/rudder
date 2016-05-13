@@ -205,6 +205,39 @@ class DirectiveEditForm(
         logger.warn("could not find id for migration select version")
         "id_not_found"
     }
+    val (osCompatibility,agentCompatibility) : (NodeSeq,NodeSeq) = {
+      val osCompEmpty : NodeSeq =
+        <span>
+          Can be used on any system.
+        </span>
+
+      val agentCompEmpty : NodeSeq =
+        <span>
+          Can be used on any agent.
+	      </span>
+      technique.compatible match {
+        case None =>
+          (osCompEmpty,agentCompEmpty)
+        case Some(comp) =>
+          val osComp =  comp.os match {
+            case Seq() =>
+              osCompEmpty
+            case oses =>
+                <span>
+                  {oses.mkString(", ")}
+                </span>
+          }
+          val agentComp = comp.agents match {
+            case Seq() =>
+              agentCompEmpty
+            case agent =>
+                <span>
+                  {agent.mkString(", ")}
+	              </span>
+          }
+          (osComp,agentComp)
+      }
+    }
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
@@ -254,6 +287,8 @@ class DirectiveEditForm(
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
       "#isSingle *" #> showIsSingle &
+      "#compatibilityOs" #> osCompatibility &
+      "#compatibilityAgent" #> agentCompatibility &
       displayDeprecationWarning
     )(crForm) ++
     Script(OnLoad(
