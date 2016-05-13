@@ -327,7 +327,10 @@ function createComponentValueTable (isTopLevel, addCompliance, contextPath) {
           elem.attr("href","javascript://");
           elem.addClass("right noexpand");
           elem.text(sData);
-          elem.click(function() {oData.callback()});
+          elem.click(function() {
+              oData.callback();
+              
+          });
           $(nTd).empty();
           $(nTd).append(elem);
         }
@@ -711,10 +714,15 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var editLink = $("<a />");
         if ("callback" in oData) {
-          editLink.click(function(e) { oData.callback(); e.stopPropagation();});
+          editLink.click(function(e) {
+              oData.callback();
+              e.stopPropagation();
+              $('#query-search-content').toggle(400);
+              $('#querySearchSection').toggleClass('unfoldedSectionQuery');
+          });
           editLink.attr("href","javascript://");
         } else {
-          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}')
+          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
         }
         var editIcon = $("<img />");
         editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
