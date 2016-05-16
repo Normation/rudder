@@ -1,0 +1,62 @@
+#####################################################################################
+# Copyright 2015 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Variable iterator
+# @description Define a variable that will be automatically iterated over
+# @documentation The generated variable is a special variable (slist in cfengine speaking) that is automatically
+# iterated over. When you call a generic method with this variable as a parameter, n calls will be made,
+# one for each items of the variable.
+# Note: there is a limit of 10000 items 
+#
+# To use the generated variable, you must use the form `${variable_prefix.variable_name}` with each name replaced with the parameters of this method.
+# 
+# Be careful that using a global variable can lead to unpredictable content in case of multiple definition, which is implicitly the case when a technique has more than one instance (directive). 
+# Please note that only global variables are available within templates.
+#
+# @parameter variable_prefix The prefix of the variable name
+# @parameter variable_name   The variable to define, the full name will be variable_prefix.variable_name
+# @parameter value           The variable content
+# @parameter separator       Regular expression that is used to split the value into items ( usually: , )
+# 
+# @agent_version >=3.6
+#
+# @class_prefix variable_iterator
+# @class_parameter variable_name
+
+bundle agent variable_iterator(variable_prefix, variable_name, value, separator)
+{
+  vars:
+      "class_prefix"  string => canonify("variable_iterator_${variable_name}");
+
+      # define the variable within the variable_prefix namespace
+      "${variable_prefix}.${variable_name}" slist => string_split("${value}", "${separator}", "10000");
+
+  classes:
+     "variable_defined" expression => isvariable("${variable_prefix}.${variable_name}");
+
+  methods:
+    !variable_defined::
+      "error"    usebundle => _classes_failure("${class_prefix}");
+
+    variable_defined::
+      "success"  usebundle => _classes_success("${class_prefix}");
+
+    any::
+      "report"
+        usebundle  => _logger("Set the iterator ${variable_prefix}.${variable_name} value to ${value}", "${class_prefix}");
+}
