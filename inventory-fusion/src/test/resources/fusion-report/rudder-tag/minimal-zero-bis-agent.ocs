@@ -8,7 +8,6 @@
       <NAME>Debian</NAME>
       <VERSION>5.0.8</VERSION>
     </OPERATINGSYSTEM>
-  </CONTENT>
     <RUDDER>
     <!-- actually 0 agent, because that one is broken -->
       <AGENT>
@@ -19,6 +18,7 @@
        <HOSTNAME>debian-6-64.labo.normation.com</HOSTNAME>
       <UUID>b9a71482-5030-4699-984d-b03d28bbbf36</UUID>
     </RUDDER>
+  </CONTENT>
   <QUERY>INVENTORY</QUERY>
   <DEVICEID>foo</DEVICEID>
 </REQUEST>
