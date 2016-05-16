@@ -25,7 +25,7 @@ unset LANG
 
 # 1 - Install the dependencies
 apt-get update
-apt-get -y install ${TEST_DEPENDENCIES}
+apt-get -y install ${TEST_DEPENDENCIES} apt-transport-https
 
 # 2 - Install CFEngine from the Normation repository if necessary
 # Note: The second apt-get update is mandatory, need curl before adding the new apt source
