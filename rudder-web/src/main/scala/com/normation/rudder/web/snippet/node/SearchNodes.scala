@@ -108,7 +108,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   var srvList : Box[Seq[NodeInfo]] = Empty
 
-  setNodeGroupCategoryForm(None)
+  setSearcNodeComponent(None)
 
   var dispatch : DispatchIt = {
     case "showQuery" => searchNodeComponent.is match {
@@ -156,7 +156,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       )))
   }
 
-  private[this] def setNodeGroupCategoryForm(query:Option[Query]) : SearchNodeComponent = {
+  private[this] def setSearcNodeComponent (query:Option[Query]) : SearchNodeComponent = {
     def showNodeDetails(nodeId:String) : JsCmd = {
       updateLocationHash(nodeId) &
       JsRaw("""scrollToElement("serverDetails", ".rudder_col");""".format(nodeId))
@@ -189,7 +189,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * If a query is passed as argument, try to dejsoniffy-it, in a best effort
    * way - just don't take of errors.
    *
-   * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
+   * We want to look for #{ "nodeId":"XXXXXXXXXXXX" }
    */
   private[this] def parseHashtag(): JsCmd = {
     def displayDetails(nodeId:String) = {
@@ -198,7 +198,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
     def executeQuery(query:String) : JsCmd = {
       val q = queryParser(query)
-      val sc = setNodeGroupCategoryForm(q)
+      val sc = setSearcNodeComponent(q)
 
       q match {
         case f:Failure =>
