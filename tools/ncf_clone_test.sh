@@ -31,8 +31,8 @@ apt-get -y install ${TEST_DEPENDENCIES}
 # Note: The second apt-get update is mandatory, need curl before adding the new apt source
 if ! dpkg-query -W --showformat='${Status}\n' cfengine-community | grep -q "install ok installed"
 then
-	curl http://www.normation.com/cfengine-repo/gpg.key | apt-key add -
-	echo "deb http://www.normation.com/cfengine-repo/apt $(lsb_release -cs) main" > /etc/apt/sources.list.d/cfengine-community.list
+	wget -qO- https://cfengine-package-repos.s3.amazonaws.com/pub/gpg.key | apt-key add -
+	echo "deb https://cfengine-package-repos.s3.amazonaws.com/pub/apt/packages stable main" > /etc/apt/sources.list.d/cfengine-community.list
 	apt-get update
 	apt-get -y install cfengine-community
 fi
