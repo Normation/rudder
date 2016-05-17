@@ -117,7 +117,7 @@ class LogDisplayer(
     val lines : NodeSeq = reportRepository.findReportsByNode(nodeId, None, None, None, None).flatMap {
           case Reports(executionDate, ruleId, directiveId, nodeId, serial, component, keyValue, executionTimestamp, severity, message) =>
            <tr>
-            <td>{DateFormaterService.getFormatedDate(executionDate)}</td>
+            <td>{executionDate.toString("yyyy-MM-dd HH:mm:ss")}</td>
             <td>{severity}</td>
             <td>{getPIName(directiveId)}</td>
             <td>{getCRName(ruleId)}</td>
