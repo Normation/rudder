@@ -123,7 +123,9 @@ a:hover {
 .icon-margin {
     margin: 0 5px;
 }
-
+.method-settings .icon-margin {
+    margin: 0 3px;
+}
 .method-actions {
     opacity: 0.3 ;
 }
@@ -303,6 +305,8 @@ ul[dnd-list] .dndPlaceholder {
 .btn.btn-method {
   padding: 0;
   overflow:hidden;
+  text-align: left;
+  white-space: normal;
 }
 
 ul[dnd-list] {
@@ -341,4 +345,9 @@ ul[dnd-list] {
 .method-param {
   font-size: 16px;
   margin: 0;
+}
+
+.method-settings{
+    position: absolute;
+    right: 10px;
 }
