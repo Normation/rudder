@@ -722,11 +722,11 @@ function parseSearchHash(nodeIdCallback, queryCallback) {
   var hash = parseURLHash();
   if( hash.nodeId != null && hash.nodeId.length > 0) {
     nodeIdCallback(hash.nodeId);
-    $$('#query-search-content').hide();
-    $$('#querySearchSection').removeClass('unfoldedSectionQuery');
+    $('#query-search-content').hide();
+    $('#querySearchSection').removeClass('unfoldedSectionQuery');
   } else {
-    $$('#query-search-content').toggle();
-    $$('#querySearchSection').toggleClass('unfoldedSectionQuery');
+    $('#query-search-content').toggle();
+    $('#querySearchSection').toggleClass('unfoldedSectionQuery');
   }
   if( hash.query != null && JSON.stringify(hash.query).length > 0) {
     queryCallback(JSON.stringify(hash.query));
