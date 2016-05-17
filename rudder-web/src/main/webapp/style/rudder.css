@@ -844,8 +844,17 @@ div.foldedSection div.section-title:before {
   content: url("../images/tableau/flecheDroiteGris.png");
   padding-right: 3px;
 }
-
-
+#querySearchSection:hover{
+    cursor: pointer;
+}
+#querySearchSection:before {
+  content: url("../images/tableau/flecheDroiteGris.png");
+  padding-right: 3px;
+}
+#querySearchSection.unfoldedSectionQuery:before {
+  content: url("../images/tableau/flecheBasGris.png");
+  padding-right: 3px;
+}
 .foldedSection table, .foldedSection div {
   display:none;
 }
