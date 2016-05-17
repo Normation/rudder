@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -182,9 +182,9 @@ function recentChangesText(id) {
   createTooltip();
 }
 
-/*  
- * 
- *  The main rule grid table (list of all rules with their application status, compliance, etc). 
+/*
+ *
+ *  The main rule grid table (list of all rules with their application status, compliance, etc).
  *
  *   data:
  *   { "name" : Rule name [String]
@@ -214,7 +214,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     }
     return elem;
   }
-  
+
   // Define which columns should be sorted by default
   var sortingDefault;
   if (needCheckbox) {
@@ -446,11 +446,11 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
 
 /*
  * We have 3 ways of displaying compliance details:
- * 
+ *
  *  1/ for ONE node, by rules -> directives -> components -> values status with messages
  *  2/ for ONE rule, by directives -> components -> values compliance
  *  3/ for ONE rule, by nodes -> directives -> components -> values status with messages
- *  
+ *
  *  For 1/ and 3/, the value line looks like: [ VALUE | MESSAGES | STATUS ]
  *  For 2/, they looks like: [ VALUE | COMPLIANCE ]
  */
@@ -458,7 +458,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
 /*
  *   The table of rules compliance for a node (in the node details
  *   page, reports tab)
- * 
+ *
  *   Javascript object containing all data to create a line in the DataTable
  *   { "rule" : Rule name [String]
  *   , "id" : Rule id [String]
@@ -525,10 +525,10 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
 }
 
 /*
- *   Create a table of compliance for a Directive. 
+ *   Create a table of compliance for a Directive.
  *   Used in the compliance details for a Rule, and in the
  *   node details page, in report tab.
- *   
+ *
  *   Javascript object containing all data to create a line in the DataTable *   Javascript object containing all data to create a line in the DataTable
  *   { "directive" : Directive name [String]
  *   , "id" : Directive id [String]
@@ -624,9 +624,9 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
 }
 
 /*
- *   Create the table with the list of nodes, used in 
+ *   Create the table with the list of nodes, used in
  *   the pop-up from rule compliance details.
- * 
+ *
  *   Javascript object containing all data to create a line in the DataTable
  *   { "node" : Node name [String]
  *   , "id" : Node id [String]
@@ -691,8 +691,8 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
 }
 
 /*
- *   Details of a component. Used on all tables. 
- * 
+ *   Details of a component. Used on all tables.
+ *
  *   Javascript object containing all data to create a line in the DataTable
  *   { "component" : component name [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
@@ -751,7 +751,7 @@ function createComponentTable(isTopLevel, isNodeView, contextPath) {
 
 
 /*   Details of a value for a node
- *   
+ *
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
  *   , "status" : Worst status of the Directive [String]
@@ -801,9 +801,9 @@ function createNodeComponentValueTable(contextPath) {
 
 }
 
-/*   Details of a value for component in a directive in a rule details. 
+/*   Details of a value for component in a directive in a rule details.
  *   We don't have a status, but a compliance (composite values)
- *   
+ *
  *   Javascript object containing all data to create a line in the DataTable
  *   { "value" : value of the key [String]
  *   , "compliance" : array of number of reports by compliance status [Array[Float]]
@@ -854,7 +854,7 @@ function createRuleComponentValueTable (contextPath) {
 
 /*
  *  Table of nodes
- * 
+ *
  *   Javascript object containing all data to create a line in the DataTable
  *   { "name" : Node hostname [String]
  *   , "id" : Node id [String]
@@ -872,7 +872,12 @@ function createNodeTable(gridId, data, contextPath, refresh) {
   function callbackElement(oData, displayCompliance) {
     var elem = $("<a></a>");
     if("callback" in oData) {
-        elem.click(function(e) { oData.callback(displayCompliance); e.stopPropagation();});
+        elem.click(function(e) {
+          oData.callback(displayCompliance);
+          e.stopPropagation();
+          $('#query-search-content').toggle(400);
+          $('#querySearchSection').toggleClass('unfoldedSectionQuery');
+        });
         elem.attr("href","javascript://");
     } else {
         elem.attr("href",contextPath+'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'","displayCompliance":'+displayCompliance+'}');
@@ -889,7 +894,6 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         icon.attr("src",contextPath + "/images/icMagnify-right.png");
         link.append(icon);
         link.addClass("reportIcon");
-
         $(nTd).append(link);
       }
   } , {
@@ -1219,24 +1223,24 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
   createTable(gridId,data, columns, params, contextPath, refresh, "event_logs");
 
 
-  
+
 }
 
 
 /*
  * A function that build a compliance bar with colored zone for compliance
  * status cases based on Twitter Bootstrap: http://getbootstrap.com/components/#progress
- * 
+ *
  * Await a JSArray:
  * (pending, success, repaired, error, noAnswer, notApplicable)
- * 
+ *
  */
 function buildComplianceBar(compliance) {
   var content = $('<div class="tw-bs progress"></div>');
 
   // Correct compliance array, if sum is over 100, fix it y removing the excedent amount to the max value
   var sum = compliance.reduce(function(pv, cv) { return pv + cv; }, 0);
-  
+
   if (sum > 100) {
     var max_of_array = Math.max.apply(Math, compliance);
     var index = compliance.indexOf(max_of_array);
@@ -1299,7 +1303,7 @@ function buildComplianceBar(compliance) {
   }
 
   return content
-  
+
 }
 
 
@@ -1407,7 +1411,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
   $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
-  
+
   return $('#'+gridId).DataTable();
 }
 
@@ -1421,87 +1425,87 @@ function chartjsSparklineOption() {
       // Boolean - Whether to animate the chart
       animation: false //true
       // Number - Number of animation steps
-    , animationSteps: 60 
+    , animationSteps: 60
       // String - Animation easing effect
-    , animationEasing: "easeOutQuart" 
+    , animationEasing: "easeOutQuart"
       // Boolean - If we should show the scale at all
     , showScale: false //true
       // Boolean - If we want to override with a hard coded scale
-    , scaleOverride: false 
+    , scaleOverride: false
       // ** Required if scaleOverride is true **
       // Number - The number of steps in a hard coded scale
-    , scaleSteps: null 
+    , scaleSteps: null
       // Number - The value jump in the hard coded scale
-    , scaleStepWidth: null 
+    , scaleStepWidth: null
       // Number - The scale starting value
-    , scaleStartValue: null 
+    , scaleStartValue: null
       // String - Colour of the scale line
-    , scaleLineColor: "rgba(0,0,0,.1)" 
+    , scaleLineColor: "rgba(0,0,0,.1)"
       // Number - Pixel width of the scale line
     , scaleLineWidth: 1
       // Boolean - Whether to show labels on the scale
-    , scaleShowLabels: false //true 
+    , scaleShowLabels: false //true
       // Interpolated JS string - can access value
-    , scaleLabel: "<%=value%>" 
+    , scaleLabel: "<%=value%>"
       // Boolean - Whether the scale should stick to integers, not floats even if drawing space is there
-    , scaleIntegersOnly: true 
+    , scaleIntegersOnly: true
       // Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
-    , scaleBeginAtZero: false 
+    , scaleBeginAtZero: false
       // String - Scale label font declaration for the scale label
-    , scaleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif" 
+    , scaleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
       // Number - Scale label font size in pixels
-    , scaleFontSize: 12 
+    , scaleFontSize: 12
       // String - Scale label font weight style
-    , scaleFontStyle: "normal" 
+    , scaleFontStyle: "normal"
       // String - Scale label font colour
-    , scaleFontColor: "#666" 
+    , scaleFontColor: "#666"
       // Boolean - whether or not the chart should be responsive and resize when the browser does.
-    , responsive: false 
+    , responsive: false
       // Boolean - whether to maintain the starting aspect ratio or not when responsive, if set to false, will take up entire container
-    , maintainAspectRatio: true 
+    , maintainAspectRatio: true
       // Boolean - Determines whether to draw tooltips on the canvas or not
-    , showTooltips: true 
+    , showTooltips: true
       // Array - Array of string names to attach tooltip events
-    , tooltipEvents: ["mousemove", "mouseout"] 
+    , tooltipEvents: ["mousemove", "mouseout"]
       // String - Tooltip background colour
-    , tooltipFillColor: "rgba(0,0,0,0.8)" 
+    , tooltipFillColor: "rgba(0,0,0,0.8)"
       // String - Tooltip label font declaration for the scale label
-    , tooltipFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif" 
+    , tooltipFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
       // Number - Tooltip label font size in pixels
-    , tooltipFontSize: 10 //14 
+    , tooltipFontSize: 10 //14
       // String - Tooltip font weight style
-    , tooltipFontStyle: "normal" 
+    , tooltipFontStyle: "normal"
       // String - Tooltip label font colour
-    , tooltipFontColor: "#fff" 
+    , tooltipFontColor: "#fff"
       // String - Tooltip title font declaration for the scale label
-    , tooltipTitleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif" 
+    , tooltipTitleFontFamily: "'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
       // Number - Tooltip title font size in pixels
-    , tooltipTitleFontSize: 10 //14  
+    , tooltipTitleFontSize: 10 //14
       // String - Tooltip title font weight style
-    , tooltipTitleFontStyle: "bold" 
+    , tooltipTitleFontStyle: "bold"
       // String - Tooltip title font colour
-    , tooltipTitleFontColor: "#fff" 
+    , tooltipTitleFontColor: "#fff"
       // Number - pixel width of padding around tooltip text
-    , tooltipYPadding: 2 //6 
+    , tooltipYPadding: 2 //6
       // Number - pixel width of padding around tooltip text
-    , tooltipXPadding: 2 //6 
+    , tooltipXPadding: 2 //6
       // Number - Size of the caret on the tooltip
-    , tooltipCaretSize: 2 //8 
+    , tooltipCaretSize: 2 //8
       // Number - Pixel radius of the tooltip border
-    , tooltipCornerRadius: 6 
+    , tooltipCornerRadius: 6
       // Number - Pixel offset from point x to tooltip edge
-    , tooltipXOffset: 2 //10 
+    , tooltipXOffset: 2 //10
       // String - Template string for single tooltips
     , tooltipTemplate: "<%if (label){%><%=label%>: <%}%><%= value%> changes"
       // String - Template string for single tooltips
-    , multiTooltipTemplate: "<%= value %>" 
+    , multiTooltipTemplate: "<%= value %>"
       // Function - Will fire on animation progression.
-    , onAnimationProgress: function(){} 
+    , onAnimationProgress: function(){}
       // Function - Will fire on animation completion.
     , onAnimationComplete: function(){}
-      
+
       ///// bar specific /////
-    
+
 
     //Boolean - Whether the scale should start at zero, or an order of magnitude down from the lowest value
     , scaleBeginAtZero : true
@@ -1526,7 +1530,7 @@ function chartjsSparklineOption() {
 
     //Number - Spacing between data sets within X values
     , barDatasetSpacing : 0
-    
+
       //String - A legend template
     , legendTemplate : "" //"<ul class=\"<%=name.toLowerCase()%>-legend\"><% for (var i=0; i<datasets.length; i++){%><li><span style=\"background-color:<%=datasets[i].lineColor%>\"></span><%if(datasets[i].label){%><%=datasets[i].label%><%}%></li><%}%></ul>"
   };

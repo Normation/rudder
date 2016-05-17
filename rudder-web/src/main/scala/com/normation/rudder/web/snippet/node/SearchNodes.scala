@@ -189,7 +189,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * If a query is passed as argument, try to dejsoniffy-it, in a best effort
    * way - just don't take of errors.
    *
-   * We want to look for #{ "ruleId":"XXXXXXXXXXXX" }
+   * We want to look for #{ "nodeId":"XXXXXXXXXXXX" }
    */
   private[this] def parseHashtag(): JsCmd = {
     def displayDetails(jsonData: String) = {
