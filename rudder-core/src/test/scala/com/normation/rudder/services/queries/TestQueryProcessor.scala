@@ -101,11 +101,11 @@ class TestQueryProcessor extends Loggable {
 
   val ditQueryData = new DitQueryData(DIT, nodeDit)
 
-  val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null)
   val inventoryMapper = new InventoryMapper(ditService, pendingDIT, DIT, removedDIT)
+  val ldapMapper = new LDAPEntityMapper(rudderDit, nodeDit, DIT, null, inventoryMapper)
   val internalLDAPQueryProcessor = new InternalLDAPQueryProcessor(ldap,DIT,ditQueryData,ldapMapper)
 
-  val nodeInfoService = new NaiveNodeInfoServiceCachedImpl(ldap, nodeDit, DIT, removedDIT, ldapMapper)
+  val nodeInfoService = new NaiveNodeInfoServiceCachedImpl(ldap, nodeDit, DIT, removedDIT, pendingDIT, ldapMapper, inventoryMapper)
 
   val queryProcessor = new AccepetedNodesLDAPQueryProcessor(
       nodeDit,

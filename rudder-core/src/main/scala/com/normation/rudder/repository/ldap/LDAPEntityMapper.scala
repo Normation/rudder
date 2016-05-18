@@ -79,6 +79,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import net.liftweb.json._
 import JsonDSL._
 import com.normation.rudder.reports._
+import com.normation.inventory.ldap.core.InventoryMapper
 
 /**
  * Map objects from/to LDAPEntries
@@ -89,6 +90,7 @@ class LDAPEntityMapper(
   , nodeDit        : NodeDit
   , inventoryDit   : InventoryDit
   , cmdbQueryParser: CmdbQueryParser
+  , inventoryMapper: InventoryMapper
 ) extends Loggable {
 
     //////////////////////////////    Node    //////////////////////////////
@@ -178,57 +180,99 @@ class LDAPEntityMapper(
   }
     //////////////////////////////    NodeInfo    //////////////////////////////
 
-  val nodeInfoAttributes = Seq(A_OC, A_NODE_UUID, A_HOSTNAME,A_OS_NAME,A_CONTAINER_DN, A_OS_FULL_NAME,A_OS_SERVICE_PACK,A_OS_VERSION, A_NAME, A_POLICY_SERVER_UUID, A_LIST_OF_IP, A_OBJECT_CREATION_DATE,A_AGENTS_NAME,A_PKEYS, A_ROOT_USER)
-
   /**
    * From a nodeEntry and an inventoryEntry, create a NodeInfo
    *
    * The only thing used in machineEntry is its object class.
    *
    */
-  def convertEntriesToNodeInfos(nodeEntry:LDAPEntry, inventoryEntry:LDAPEntry, machineEntryObjectClass:Option[Seq[String]]) : Box[NodeInfo] = {
+  def convertEntriesToNodeInfos(nodeEntry: LDAPEntry, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : Box[NodeInfo] = {
     //why not using InventoryMapper ? Some required things for node are not
     // wanted here ?
     for {
-      node <- entryToNode(nodeEntry)
-
-      machineType  =  machineEntryObjectClass.map(machine => if (machine.exists( _ == OC_PM)) "Physical" else "Virtual").getOrElse("No Machine Inventory")
+      node         <- entryToNode(nodeEntry)
       checkSameID  <- if(nodeEntry(A_NODE_UUID).isDefined && nodeEntry(A_NODE_UUID) ==  inventoryEntry(A_NODE_UUID)) Full("Ok")
                       else Failure("Mismatch id for the node %s and the inventory %s".format(nodeEntry(A_NODE_UUID), inventoryEntry(A_NODE_UUID)))
 
+      nodeInfo     <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
+    } yield {
+      nodeInfo
+    }
+  }
+
+  /**
+   * Convert at the best you can node inventories to node information.
+   * Some information will be false for sure - that's understood.
+   */
+  def convertEntriesToSpecialNodeInfos(inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : Box[NodeInfo] = {
+    for {
+      id   <- inventoryEntry(A_NODE_UUID) ?~! s"Missing node id information in Node entry: ${inventoryEntry}"
+      node =  Node(
+                  NodeId(id)
+                , inventoryEntry(A_NAME).getOrElse("")
+                , inventoryEntry(A_DESCRIPTION).getOrElse("")
+                , inventoryEntry.getAsBoolean(A_IS_BROKEN).getOrElse(false)
+                , inventoryEntry.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+                , false //we don't know anymore if it was a policy server
+                , new DateTime(0) // we don't know anymore the acceptation date
+                , ReportingConfiguration(None, None) //we don't know anymore agent run frequency
+                , Seq() //we forgot node properties
+              )
+     nodeInfo <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
+    } yield {
+      nodeInfo
+    }
+  }
+
+  private[this] def inventoryEntriesToNodeInfos(node: Node, inventoryEntry: LDAPEntry, machineEntry: Option[LDAPEntry]) : Box[NodeInfo] = {
+    //why not using InventoryMapper ? Some required things for node are not
+    // wanted here ?
+    for {
       // Compute the parent policy Id
       policyServerId <- inventoryEntry.valuesFor(A_POLICY_SERVER_UUID).toList match {
-                          case Nil => Failure("No policy servers for a Node: %s".format(nodeEntry.dn))
+                          case Nil => Failure(s"Missing policy server id for Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                           case x :: Nil => Full(x)
-                          case _ => Failure("Too many policy servers for a Node: %s".format(nodeEntry.dn))
+                          case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                         }
       agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
                        AgentType.fromValue(x) ?~!
                          "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
                      }
-      osVersion   = inventoryEntry(A_OS_VERSION).getOrElse("N/A")
-      osName      = inventoryEntry(A_OS_NAME).getOrElse("N/A")
-      servicePack = inventoryEntry(A_OS_SERVICE_PACK)
-      serverRoles = inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
+      osDetails   <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
+      keyStatus   <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
+      serverRoles =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
     } yield {
+      val machineInfo = machineEntry.flatMap { e =>
+        for {
+          machineType <- inventoryMapper.machineTypeFromObjectClasses(e.valuesFor("objectClass"))
+          machineUuid <- e(A_MACHINE_UUID).map(MachineUuid)
+        } yield {
+          MachineInfo(
+              machineUuid
+            , machineType
+            , e(LDAPConstants.A_SERIAL_NUMBER)
+            , e(LDAPConstants.A_MANUFACTURER).map(Manufacturer(_))
+          )
+        }
+      }
+
       // fetch the inventory datetime of the object
       val dateTime = inventoryEntry.getAsGTime(A_INVENTORY_DATE) map(_.dateTime) getOrElse(DateTime.now)
       NodeInfo(
           node
         , inventoryEntry(A_HOSTNAME).getOrElse("")
-        //OsType.osTypeFromObjectClasses(inventoryEntry.valuesFor(A_OC)).map(_.toString).getOrElse(""),
-        , machineType
-        , osName
-        , osVersion
-        , servicePack
+        , machineInfo
+        , osDetails
         , inventoryEntry.valuesFor(A_LIST_OF_IP).toList
         , dateTime
         , inventoryEntry(A_PKEYS).getOrElse("")
+        , keyStatus
         , scala.collection.mutable.Seq() ++ agentsName
         , NodeId(policyServerId)
-        //nodeDit.NODES.NODE.idFromDn(policyServerDN).getOrElse(error("Bad DN found for the policy server of Node: %s".format(nodeEntry.dn))),
         , inventoryEntry(A_ROOT_USER).getOrElse("")
         , serverRoles
+        , inventoryEntry(A_ARCH)
+        , inventoryEntry(A_OS_RAM).map{ m  => MemorySize(m) }
       )
     }
   }
