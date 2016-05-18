@@ -109,7 +109,11 @@ class ShowNodeDetailsFromNode(
     for {
       complianceMode <- configService.rudder_compliance_mode_name
       gHeartbeat <- configService.rudder_compliance_heartbeatPeriod
-      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
+                       case Some(x) => Full(x)
+                     }
     } yield {
       // If heartbeat is not overriden, we revert to the default one
       val defaultHeartBeat = HeartbeatConfiguration(false, gHeartbeat)
@@ -156,7 +160,11 @@ class ShowNodeDetailsFromNode(
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule : Box[AgentRunInterval] = {
     for {
-      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
+                       case Some(x) => Full(x)
+                     }
     } yield {
       nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval))
     }
@@ -191,15 +199,16 @@ class ShowNodeDetailsFromNode(
 
   private[this] def privateDisplay(withinPopup : Boolean = false, displayCompliance : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
-      case Empty =>
+      case Full(None) =>
         <div class="error">Node with id {nodeId.value} was not found</div>
-      case f@Failure(_,_,_) =>
-        logger.debug("Root exception:", f)
+      case eb:EmptyBox =>
+        val e = eb ?~! s"Error when getting node with id '${nodeId.value}'"
+        logger.debug("Root exception:", e)
         <div class="error">
           <p>Node with id {nodeId.value} was not found</p>
-          <p>Error message was: {f.messageChain}</p>
+          <p>Error message was: {e.messageChain}</p>
         </div>
-      case Full(node) => // currentSelectedNode = Some(server)
+      case Full(Some(node)) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(node.id, AcceptedInventory) match {
           case Full(sm) =>
             val tab = if (displayCompliance) 9 else 0

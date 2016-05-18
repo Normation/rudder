@@ -57,6 +57,7 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.domain.nodes.MachineInfo
 
 
 
@@ -128,9 +129,9 @@ class AccepetedNodesLDAPQueryProcessor(
 
 
   private[this] case class QueryResult(
-      nodeEntry:LDAPEntry
-    , inventoryEntry:LDAPEntry
-    , machineObjectClass:Option[Seq[String]]
+      nodeEntry     : LDAPEntry
+    , inventoryEntry: LDAPEntry
+    , machineInfo   : Option[LDAPEntry]
   ) extends HashcodeCaching
 
   /**
@@ -154,7 +155,7 @@ class AccepetedNodesLDAPQueryProcessor(
     } yield {
 
       val inNodes = ldapEntries.map { case LDAPNodeInfo(nodeEntry, nodeInv, machineInv) =>
-        QueryResult(nodeEntry,nodeInv, machineInv)
+        QueryResult(nodeEntry, nodeInv, machineInv)
       }
 
       if(logger.isDebugEnabled) {
@@ -186,7 +187,7 @@ class AccepetedNodesLDAPQueryProcessor(
 
   override def process(query:Query) : Box[Seq[NodeInfo]] = {
     //only keep the one of the form Full(...)
-    queryAndChekNodeId(query, processor.ldapMapper.nodeInfoAttributes, None).map { seq => seq.flatMap {
+    queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
       case QueryResult(nodeEntry, inventoryEntry,machine) =>
         processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry,machine) match {
           case Full(nodeInfo) => Seq(nodeInfo)
