@@ -33,6 +33,8 @@
 # @parameter value           The variable content
 # @parameter separator       Regular expression that is used to split the value into items ( usually: , )
 # 
+# @agent_version >=3.6
+#
 # @class_prefix variable_iterator
 # @class_parameter variable_name
 
@@ -44,7 +46,7 @@ bundle agent variable_iterator(variable_prefix, variable_name, value, separator)
       "class_prefix"      string => canonify(join("_", "promisers"));
       "args"               slist => { "${variable_prefix}", "${variable_name}", "${value}", "${separator}" };
 
-      # define the variable within the class_prefix namespace
+      # define the variable within the variable_prefix namespace
       "${variable_prefix}.${variable_name}" slist => string_split("${value}", "${separator}", "10000");
 
   classes:
