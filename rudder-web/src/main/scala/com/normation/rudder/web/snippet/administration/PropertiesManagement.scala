@@ -129,7 +129,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
 
     // Check that there is some modification to enabled/disable save
     def check() = {
-      S.notice("updateChangeMsg","")
+      if(!noModif){
+        S.notice("updateChangeMsg","")
+      }
       Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif});""")
     }
 
@@ -271,7 +273,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                   )
 
     def check() = {
-      S.notice("updateWorkflow","")
+      if(!noModif){
+        S.notice("updateWorkflow","")
+      }
       Run(s"""$$("#workflowSubmit").button( "option", "disabled",${noModif});""")
     }
     def initJs(newStatus :Boolean) = {
@@ -392,7 +396,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     )
 
     def check() = {
-      S.notice("updateCfserverNetwork","")
+      if(!noModif){
+        S.notice("updateCfserverNetwork","")
+      }
       Run(s"""$$("#cfserverNetworkSubmit").button( "option", "disabled",${noModif});""")
     }
 
@@ -609,7 +615,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     )
 
     def check() = {
-      S.notice("updateCfengineGlobalProps","")
+      if(!noModif){
+        S.notice("updateCfengineGlobalProps","")
+      }
       Run(s"""$$("#cfengineGlobalPropsSubmit").button( "option", "disabled",${noModif});""")
     }
 
@@ -672,7 +680,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     )
 
     def check() = {
-      S.notice("loggingConfiguration","")
+      if(!noModif){
+        S.notice("loggingConfiguration","")
+      }
       Run(s"""$$("#loggingConfigurationSubmit").button( "option", "disabled",${noModif});""")
     }
 
