@@ -32,7 +32,10 @@
 bundle agent file_ensure_key_value(file, key, value, separator)
 {
   vars:
-      "class_prefix" string => canonify("file_ensure_key_value_${file}");
+      "old_class_prefix" string => canonify("file_ensure_key_value_${file}");
+      "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist => { "${file}", "${key}", "${value}","${separator}" };
 
       "keys[${key}]" string => "${value}";
 
@@ -45,5 +48,5 @@ bundle agent file_ensure_key_value(file, key, value, separator)
 
   methods:
       "report"
-        usebundle  => _logger("Ensure line in format key${separator}value in ${file}", "${class_prefix}");
+        usebundle  => _log("Ensure line in format key${separator}value in ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
 }
