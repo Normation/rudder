@@ -176,7 +176,7 @@ class CreateCloneDirectivePopup(
     override def validations = Nil
   }
 
-  private[this] val formTracker = new FormTracker(directiveName,directiveShortDescription)
+  private[this] val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reason.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
 
@@ -231,7 +231,6 @@ class CreateCloneDirectivePopup(
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors
