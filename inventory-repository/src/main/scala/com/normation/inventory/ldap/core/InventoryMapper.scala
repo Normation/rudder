@@ -391,7 +391,7 @@ class InventoryMapper(
     }
   }
 
-  private[this] def machineTypeFromObjectClasses(objectClassNames:Set[String]) = {
+  def machineTypeFromObjectClasses(objectClassNames:Set[String]) = {
     def objectClass2MachineType(oc : LDAPObjectClass) : Option[MachineType] = {
       oc match {
         case LDAPObjectClass(OC_VM,_,_,_)              => Some(VirtualMachineType(UnknownVmType))
@@ -775,10 +775,63 @@ class InventoryMapper(
     }
   }
 
-    def nodeFromEntry(entry:LDAPEntry) : Box[NodeInventory] = {
-    def missingAttr(attr:String) : String = "Missing required attribute %s".format(attr)
+  def mapOsDetailsFromEntry(entry: LDAPEntry) : Box[OsDetails] = {
     def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
+    for {
+      osName        <- requiredAttr(A_OS_NAME)
+      osVersion     <- requiredAttr(A_OS_VERSION).map(x => new Version(x))
+      kernelVersion <- requiredAttr(A_OS_KERNEL_VERSION).map(x => new Version(x))
+      osFullName    =  entry(A_OS_FULL_NAME).getOrElse("")
+      osServicePack =  entry(A_OS_SERVICE_PACK)
+      osDetails     <- if(entry.isA(OC_WINDOWS_NODE)) {
+                          val os = osName match {
+                            case A_OS_WIN_XP => WindowsXP
+                            case A_OS_WIN_VISTA => WindowsVista
+                            case A_OS_WIN_SEVEN => WindowsSeven
+                            case A_OS_WIN_2000 => Windows2000
+                            case A_OS_WIN_2003 => Windows2003
+                            case A_OS_WIN_2008 => Windows2008
+                            case A_OS_WIN_2008_R2 => Windows2008R2
+                            case A_OS_WIN_2012 => Windows2012
+                            case _ => UnknownWindowsType
+                          }
+                          val userDomain = entry(A_WIN_USER_DOMAIN)
+                          val registrationCompany = entry(A_WIN_COMPANY)
+                          val productKey = entry(A_WIN_KEY)
+                          val productId = entry(A_WIN_ID)
+                          Full(Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId))
 
+                        } else if(entry.isA(OC_LINUX_NODE)) {
+                          val os = osName match {
+                            case A_OS_DEBIAN  => Debian
+                            case A_OS_UBUNTU  => Ubuntu
+                            case A_OS_REDHAT  => Redhat
+                            case A_OS_CENTOS  => Centos
+                            case A_OS_FEDORA  => Fedora
+                            case A_OS_SUZE    => Suse
+                            case A_OS_ORACLE  => Oracle
+                            case A_OS_SCIENTIFIC => Scientific
+                            case A_OS_ANDROID => Android
+                            case _            => UnknownLinuxType
+                          }
+                          Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
+
+                        } else if(entry.isA(OC_SOLARIS_NODE)) {
+                          Full(Solaris(osFullName,osVersion,osServicePack,kernelVersion))
+                        } else if(entry.isA(OC_AIX_NODE)) {
+                          Full(Aix(osFullName,osVersion,osServicePack,kernelVersion))
+                        } else if(entry.isA(OC_NODE)) {
+                          Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
+                        } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))
+    } yield {
+      osDetails
+    }
+  }
+
+  private[this] def missingAttr(attr:String) : String = s"Missing required attribute ${attr}"
+
+  def nodeFromEntry(entry:LDAPEntry) : Box[NodeInventory] = {
+    def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
     for {
       dit <- ditService.getDit(entry.dn)
       //server.main info: id, status, rootUser, hostname, osDetails: all mandatories
@@ -788,58 +841,12 @@ class InventoryMapper(
       hostname <- requiredAttr(A_HOSTNAME)
       rootUser <- requiredAttr(A_ROOT_USER)
       policyServerId <- requiredAttr(A_POLICY_SERVER_UUID)
-      osName <- requiredAttr(A_OS_NAME)
-      osVersion <- requiredAttr(A_OS_VERSION).map(x => new Version(x))
-      kernelVersion <- requiredAttr(A_OS_KERNEL_VERSION).map(x => new Version(x))
-      osFullName = entry(A_OS_FULL_NAME).getOrElse("")
-      osServicePack = entry(A_OS_SERVICE_PACK)
       agentNames <- sequence(entry.valuesFor(A_AGENTS_NAME).toSeq){ x =>
                       AgentType.fromValue(x) ?~! "Error when mapping value '%s' to an agent type. Allowed values are %s".
                           format(x, AgentType.allValues.mkString(", "))
                     }
       //now, look for the OS type
-      osDetails <- {
-        if(entry.isA(OC_WINDOWS_NODE)) {
-          val os = osName match {
-            case A_OS_WIN_XP => WindowsXP
-            case A_OS_WIN_VISTA => WindowsVista
-            case A_OS_WIN_SEVEN => WindowsSeven
-            case A_OS_WIN_2000 => Windows2000
-            case A_OS_WIN_2003 => Windows2003
-            case A_OS_WIN_2008 => Windows2008
-            case A_OS_WIN_2008_R2 => Windows2008R2
-            case A_OS_WIN_2012 => Windows2012
-            case _ => UnknownWindowsType
-          }
-          val userDomain = entry(A_WIN_USER_DOMAIN)
-          val registrationCompany = entry(A_WIN_COMPANY)
-          val productKey = entry(A_WIN_KEY)
-          val productId = entry(A_WIN_ID)
-          Full(Windows(os,osFullName,osVersion,osServicePack,kernelVersion,userDomain,registrationCompany,productKey,productId))
-
-        } else if(entry.isA(OC_LINUX_NODE)) {
-          val os = osName match {
-            case A_OS_DEBIAN  => Debian
-            case A_OS_UBUNTU  => Ubuntu
-            case A_OS_REDHAT  => Redhat
-            case A_OS_CENTOS  => Centos
-            case A_OS_FEDORA  => Fedora
-            case A_OS_SUZE    => Suse
-            case A_OS_ORACLE  => Oracle
-            case A_OS_SCIENTIFIC => Scientific
-            case A_OS_ANDROID => Android
-            case _            => UnknownLinuxType
-          }
-          Full(Linux(os,osFullName,osVersion,osServicePack,kernelVersion))
-
-        } else if(entry.isA(OC_SOLARIS_NODE)) {
-          Full(Solaris(osFullName,osVersion,osServicePack,kernelVersion))
-        } else if(entry.isA(OC_AIX_NODE)) {
-          Full(Aix(osFullName,osVersion,osServicePack,kernelVersion))
-        } else if(entry.isA(OC_NODE)) {
-          Full(UnknownOS(osFullName,osVersion,osServicePack,kernelVersion))
-        } else Failure("Unknow OS type: %s".format(entry.valuesFor(A_OC).mkString(", ")))
-      }
+      osDetails <- mapOsDetailsFromEntry(entry)
       //now, optionnal things
       name = entry(A_NAME)
       description = entry(A_DESCRIPTION)
