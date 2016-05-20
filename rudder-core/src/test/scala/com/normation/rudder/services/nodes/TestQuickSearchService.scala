@@ -54,6 +54,7 @@ import org.specs2.specification.Fragments
 import org.specs2.specification.Step
 import net.liftweb.common._
 import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.inventory.ldap.core.InventoryMapper
 
 @RunWith(classOf[JUnitRunner])
 class TestQuickSearchService extends QuickSearchServiceSpec {
@@ -123,6 +124,7 @@ trait QuickSearchServiceSpec extends Specification with Loggable {
     , nodeDit         = nodeDit
     , inventoryDit    = inventoryDit
     , cmdbQueryParser = null
+    , inventoryMapper = new InventoryMapper(null, null, inventoryDit, null)
   )
 
 

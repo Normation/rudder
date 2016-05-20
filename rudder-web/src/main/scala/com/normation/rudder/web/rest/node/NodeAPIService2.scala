@@ -71,6 +71,7 @@ import com.normation.inventory.domain.PhysicalMachineType
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.web.rest.RestDataSerializer
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.common.Failure
 
 
 case class NodeApiService2 (
@@ -103,11 +104,13 @@ case class NodeApiService2 (
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "acceptedNodeDetails"
     nodeInfoService.getNodeInfo(id) match {
-      case Full(info) =>
+      case Full(Some(info)) =>
         val node =  serializeNodeInfo(info,"accepted",fixedTag)
         toJsonResponse(None, ( "nodes" -> JArray(List(node))))
+      case Full(None) =>
+        toJsonError(None, s"Could not find accepted Node ${id.value}")
       case eb:EmptyBox =>
-        val message = (eb ?~ s"Could not find accepted Node ${id.value}").msg
+        val message = (eb ?~ s"Could not find accepted Node ${id.value}").messageChain
         toJsonError(None, message)
     }
   }
@@ -168,8 +171,12 @@ case class NodeApiService2 (
   def modifyStatusFromAction(ids : Seq[NodeId], action : NodeStatusAction,modId : ModificationId, actor:EventActor) : Box[List[JValue]] = {
     def actualNodeDeletion(id : NodeId, modId : ModificationId, actor:EventActor) = {
       for {
-        info   <- nodeInfoService.getNodeInfo(id)
-        remove <- removeNodeService.removeNode(info.id, modId, actor)
+        optInfo <- nodeInfoService.getNodeInfo(id)
+        info    <- optInfo match {
+                     case None    => Failure(s"Can not removed the node with id '${id.value}' because it was not found")
+                     case Some(x) => Full(x)
+                   }
+        remove  <- removeNodeService.removeNode(info.id, modId, actor)
       } yield { serializeNodeInfo(info,"deleted", fixedTag) }
     }
 

@@ -441,7 +441,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       case AcceptedInventory =>
         val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
         nodeInfoBox match {
-          case Full(nodeInfo) =>
+          case Full(Some(nodeInfo)) =>
 
             val kind = {
               if(nodeInfo.isPolicyServer) {
@@ -466,8 +466,11 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
             }
 
             <span><b>Role: </b>Rudder {kind} {roles}</span><br/>
+          case Full(None) =>
+            logger.error(s"Could not fetch node details for node with id ${sm.node.main.id}")
+            <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
           case eb:EmptyBox =>
-            val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
+            val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}"
             logger.error(e.messageChain)
             <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
         }
@@ -484,8 +487,11 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         val e = eb ?~! s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}"
         logger.error(e.messageChain)
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
-      case Full(policyServerDetails) =>
+      case Full(Some(policyServerDetails)) =>
         <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+      case Full(None) =>
+        logger.error(s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}")
+        <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
     }
   }
 

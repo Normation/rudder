@@ -263,7 +263,7 @@ class NodeGrid(
     } yield (nodeId, sm, arg.jsid, status) ) match {
       case Full((nodeId, sm, jsid, status)) =>
         // Node may not be available, so we look for it outside the for comprehension
-        val node = nodeInfoService.getNodeInfo(nodeId)
+        val node = nodeInfoService.getNodeInfo(nodeId).openOr(None)
         SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
       case e:EmptyBox =>

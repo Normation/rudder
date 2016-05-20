@@ -126,13 +126,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     val currentNets = psService.getAuthorizedNetworks(policyServerId)
 
     val policyServerName = nodeInfoService.getNodeInfo(policyServerId) match {
-      case Full(nodeInfo) =>
+      case Full(Some(nodeInfo)) =>
         <span>{nodeInfo.hostname}</span>
-      case Failure(m,_,_) =>
-        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, reason is: ${m}")
+      case eb: EmptyBox =>
+        val e = eb ?~! s"Could not get details for Policy Server ID ${policyServerId.value}"
+        logger.error(e.messageChain)
         <span class="error">Unknown hostname</span>
-      case Empty =>
-        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, no reasons given")
+      case Full(None) =>
+        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, the details were not found for that ID")
         <span class="error">Unknown hostname</span>
     }
 
