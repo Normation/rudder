@@ -103,6 +103,8 @@ bundle agent permissions_type_recursion(path, mode, owner, group, type, recursio
 
     !target_exists::
       "error report if target doesn't exist"
+        usebundle => _classes_failure("${old_class_prefix}");
+      "error report if target doesn't exist"
         usebundle => _classes_failure("${class_prefix}");
 
     any::
