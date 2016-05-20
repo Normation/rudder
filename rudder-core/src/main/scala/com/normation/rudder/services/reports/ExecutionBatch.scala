@@ -197,6 +197,19 @@ case class UnexpectedVersion(
   , expectedExpiration: DateTime
 ) extends Unexpected with LastRunAvailable
 
+/**
+ * A case where we have a run without version,
+ * but we really should, because versions are init
+ * in the server for that node
+ */
+case class UnexpectedNoVersion(
+    lastRunDateTime   : DateTime
+  , lastRunConfigId   : NodeConfigIdInfo
+  , lastRunExpiration : DateTime
+  , expectedConfigId  : NodeConfigIdInfo
+  , expectedExpiration: DateTime
+) extends Unexpected with LastRunAvailable
+
 
 case class ComputeCompliance(
     lastRunDateTime    : DateTime
@@ -401,8 +414,8 @@ object ExecutionBatch extends Loggable {
             //we get a run without any config id => the node didn't updated its promises
             val currentConfig = configs.maxBy( _.creation.getMillis)
             val currentExpiration = currentConfig.creation.plus(updateValidityDuration)
-            runType(s"node send reports without nodeConfigId but the oldest configId (${oldestConfigId.configId.value} expired since ${oldestExpiration})"
-            , UnexpectedVersion(t, oldestConfigId, oldestExpiration, currentConfig, currentExpiration)
+            runType(s"node send reports without nodeConfigId but the oldest configId (${oldestConfigId.configId.value}) expired since ${oldestExpiration})"
+            , UnexpectedNoVersion(t, oldestConfigId, oldestExpiration, currentConfig, currentExpiration)
             )
           } else {
             val currentConfigId = configs.maxBy( _.creation.getMillis )
@@ -495,7 +508,7 @@ object ExecutionBatch extends Loggable {
     , expectedReports      : Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]
       // reports we get on the last know run
     , agentExecutionReports: Seq[Reports]
-  ) : Seq[RuleNodeStatusReport] = {
+  ) : (NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])) = {
 
 
     //a method to get the expected reports for the given configId and log a debug message is none
@@ -509,12 +522,23 @@ object ExecutionBatch extends Loggable {
       }
     }
 
+    def buildUnexpectedVersion(runTime: DateTime, runVersion: NodeConfigIdInfo, runExpiration: DateTime, expectedVersion: NodeConfigIdInfo, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]) = {
+        //mark all report of run unexpected,
+        //all expected missing
+        buildRuleNodeStatusReport(
+            MergeInfo(nodeId, Some(runTime), Some(expectedVersion.configId), expectedExpiration)
+          , getExpectedReports(expectedVersion.configId)
+          , MissingReportType
+        ) ++
+        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), Some(runVersion.configId), runExpiration), nodeStatusReports)
+    }
+
     //only interesting reports: for that node, with a status
     val nodeStatusReports = agentExecutionReports.collect{ case r: ResultReports if(r.nodeId == nodeId) => r }
 
-    ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: ${runInfo.toLog}")
+    ComplianceDebugLogger.node(nodeId).trace(s"Computing compliance for node ${nodeId.value} with: [${runInfo.toLog}]")
 
-    runInfo match {
+    val ruleNodeStatusReports = runInfo match {
 
       case ComputeCompliance(lastRunDateTime, lastRunConfigId, expectedConfigId, expirationTime, missingReportStatus) =>
         ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run ${lastRunConfigId.toLog} and expect reports ${expectedConfigId.toLog}")
@@ -565,16 +589,12 @@ object ExecutionBatch extends Loggable {
         )
 
       case UnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration) =>
-        //mark all report of run unexpected,
-        //all expected missing
         ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runVersion.configId.value}' but that node should be sending reports for configId ${expectedVersion.configId.value}")
+        buildUnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration, nodeStatusReports)
 
-        buildRuleNodeStatusReport(
-            MergeInfo(nodeId, Some(runTime), Some(expectedVersion.configId), expectedExpiration)
-          , getExpectedReports(expectedVersion.configId)
-          , MissingReportType
-        ) ++
-        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), Some(runVersion.configId), runExpiration), nodeStatusReports)
+      case UnexpectedNoVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration) => //same as unextected, different log
+        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedVersion.configId.value}")
+        buildUnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration, nodeStatusReports)
 
       case VersionNotFound(runTime, optConfigId) =>
         // these reports where not expected
@@ -588,11 +608,12 @@ object ExecutionBatch extends Loggable {
          * Really, this node exists ? Shouldn't we just declare Ragnarök at that point ?
          */
         ComplianceDebugLogger.node(nodeId).warn(s"Can not get compliance for node with ID '${nodeId.value}' because it has no configuration id initialised nor sent reports (node just added ?)")
-        Seq()
+        Set[RuleNodeStatusReport]()
 
 
     }
 
+    (nodeId, (runInfo, ruleNodeStatusReports))
   }
 
 
@@ -633,7 +654,7 @@ object ExecutionBatch extends Loggable {
       // we have a run but are not here. Basically, it's "missing" when on
       // full compliance and "success" when on changes only.
     , missingReportStatus            : ReportType
-  ): Seq[RuleNodeStatusReport] = {
+  ): Set[RuleNodeStatusReport] = {
 
 
     val complianceForRun: Map[SerialedRuleId, RuleNodeStatusReport] = (for {
@@ -737,7 +758,7 @@ object ExecutionBatch extends Loggable {
       newStatus.map { x => s"${x.ruleId.value}->${x.serial}"}.mkString("[", "][", "]")
     }")
 
-    computed ++ newStatus
+    (computed ++ newStatus).toSet
   }
 
 
@@ -750,7 +771,7 @@ object ExecutionBatch extends Loggable {
   }
 
 
-  private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Seq[RuleNodeStatusReport] = {
+  private[this] def buildUnexpectedReports(mergeInfo: MergeInfo, reports: Seq[Reports]): Set[RuleNodeStatusReport] = {
     reports.groupBy(x => (x.ruleId, x.serial)).map { case ((ruleId, serial), seq) =>
       RuleNodeStatusReport(
           mergeInfo.nodeId
@@ -761,7 +782,7 @@ object ExecutionBatch extends Loggable {
         , DirectiveStatusReport.merge(buildUnexpectedDirectives(seq))
         , mergeInfo.expirationTime
       )
-    }.toSeq
+    }.toSet
   }
 
   /**
@@ -782,7 +803,7 @@ object ExecutionBatch extends Loggable {
     , expectedReports: Map[SerialedRuleId, RuleNodeExpectedReports]
     , status         : ReportType
     , message        : String = ""
-  ): Seq[RuleNodeStatusReport] = {
+  ): Set[RuleNodeStatusReport] = {
     expectedReports.map { case (SerialedRuleId(ruleId, serial), expected) =>
       val d = expected.directives.map { d =>
         DirectiveStatusReport(d.directiveId,
@@ -804,7 +825,7 @@ object ExecutionBatch extends Loggable {
         , DirectiveStatusReport.merge(d)
         , mergeInfo.expirationTime
       )
-    }.toSeq
+    }.toSet
   }
 
 
