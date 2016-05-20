@@ -55,7 +55,7 @@ object FindNewReportsExecution {
 }
 class FindNewReportsExecution (
     reportsExecutionService : ReportsExecutionService
-  , val updateInterval      : Int // in minutes
+  , val updateInterval      : Int // in seconds
 ) extends AbstractScheduler {
 
   type T = Unit
