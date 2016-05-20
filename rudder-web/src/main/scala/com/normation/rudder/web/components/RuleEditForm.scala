@@ -552,7 +552,7 @@ class RuleEditForm(
         , action
         , workflowEnabled
         , cr => workflowCallBack(action)(cr)
-        , () => JsRaw("$.modal.close();") & onFailure
+        , () => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
         , parentFormTracker = Some(formTracker)
       )
 
@@ -566,14 +566,14 @@ class RuleEditForm(
 
   private[this] def workflowCallBack(action:String)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
-      JsRaw("$.modal.close();") & onSuccessCallback(rule) & SetHtml("editRuleZone",
+      JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onSuccessCallback(rule) & SetHtml("editRuleZone",
           <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
       )
     } else {
       returns match {
         case Left(rule) => // ok, we've received a rule, do as before
           this.rule = rule
-          JsRaw("$.modal.close();") &  onSuccess
+          JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") &  onSuccess
         case Right(changeRequestId) => // oh, we have a change request, go to it
           JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
       }
@@ -599,10 +599,11 @@ class RuleEditForm(
   ///////////// success pop-up ///////////////
   private[this] def successPopup : JsCmd = {
     def warning(warn : String) : NodeSeq = {
-      <div style="padding-top: 15px; clear:both">
-        <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"/>
-        <h4 style="float:left">{warn} No configuration policy will be deployed.</h4>
-      </div>
+        <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center" role="alert">
+            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+            <span class="sr-only">Warning:</span>
+            {warn} No configuration policy will be deployed.
+        </div>
     }
 
     val content =

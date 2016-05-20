@@ -201,7 +201,7 @@ function recentChangesText(id) {
  *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
  *   }
  */
-function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, addRecentChanges, allCheckboxCallback, contextPath, refresh) {
+function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, addRecentChanges, allCheckboxCallback, contextPath, refresh, isPopup) {
 
   //base element for the clickable cells
   function callbackElement(oData, action) {
@@ -264,7 +264,9 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         // Row parameters
         var parent = $(nTd).parent();
         // Add Class on the row, and id
-        parent.addClass(data.trClass);
+        if(!isPopup){
+            parent.addClass(data.trClass);
+        }
         parent.attr("id",data.id);
 
         // Description tooltip over the row
@@ -426,8 +428,11 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
 
-  var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules");
-  table.search("").columns().search("")
+  var table = createTable(gridId,data,columns, params, contextPath, refresh, "rules", isPopup);
+  table.search("").columns().search("");
+  if(isPopup){
+    $('#'+gridId).addClass("table table-hover table-striped table-bordered");   
+  }
   createTooltip();
 
   // Add callback to checkbox column
@@ -1370,7 +1375,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
 }
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
-function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId) {
+function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, isPopup) {
 
   var defaultParams = {
       "asStripeClasses": [ 'color1', 'color2' ]
@@ -1415,6 +1420,11 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   } );
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
+  $('.tw-bs .modal .dataTables_filter input').addClass("form-control"); 
+  $('#grid_remove_popup_grid').parent().addClass("table-responsive");
+  $('#grid_remove_popup_grid').parents('.modal-dialog').addClass("modal-lg");
+  
+   
   $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
 
   return $('#'+gridId).DataTable();

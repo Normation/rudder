@@ -6,45 +6,53 @@
  -->
 
 <accept_new_server:template>
-<div id="confirmPopup" class="nodisplay">
-<div id="confirmNodePopup">
-  <div class="simplemodal-title">
-      <h1>Accept nodes in Rudder</h1>
-      <hr/>
-  </div>
-  <div class="simplemodal-content">
-    <h3>Please confirm that you wish to ACCEPT the following nodes in Rudder</h3>
-
-    <div id="pendingNodeConfirm_paginate_area" class="nodisplay"></div>
-    <div class="newservertable">
-    <table cellspacing="0" id="pendingNodeConfirm" width="600" class="newservercell">
-      <thead>
-        <tr class="head">
-          <th>Node name</th>
-          <th>Operating system</th>
-        </tr>
-      </thead>
-      <tbody id="server_lines">
-      </tbody>
-    </table>
+<div class="tw-bs">
+    <div class="modal fade" id="confirmPopup">
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">Accept nodes in Rudder</h4>
+            </div>
+            <div class="modal-body">
+                <h4 class="text-center">
+                    Please confirm that you wish to <b class="text-success">accept</b> the following nodes in Rudder
+                </h4>
+                <div id="pendingNodeConfirm_paginate_area" class="nodisplay"></div>
+                <div class="table-responsive">
+                    <table id="pendingNodeConfirm" class="space-bottom space-top table table-stripped table-hover">
+                      <thead>
+                        <tr class="head">
+                          <th>Node name</th>
+                          <th>Operating system</th>
+                        </tr>
+                      </thead>
+                      <tbody id="server_lines">
+                      </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-info text-center" role="alert">
+                    <span aria-hidden="true" class="glyphicon glyphicon-info-sign"></span>
+                    <span>
+                        When these nodes join Rudder, the Rules they will have to comply to will be transferred to them.
+                    </span>
+                </div>
+                
+            </div>
+            <div class="modal-footer">
+                <form method="POST">
+                    <div class="popupButton">
+                        <servergrid:close></servergrid:close>
+                        <servergrid:accept></servergrid:accept>
+                    </div>
+                </form>
+            </div>  
+        </div>
     </div>
-    <div class="inform">
-      <img src="/images/icOK.png" alt="Note" height="32" width="32" class="warnicon"/>
-      <div>When these nodes join Rudder, the Rules they will have to comply to will be transferred to them.</div>
     </div>
-    <hr class="spacer" />
-  </div>
-  <div class="simplemodal-bottom">
-    <hr/>
-    <form method="POST">
-      <div class="popupButton">
-        <span>
-          <servergrid:close></servergrid:close>
-           <servergrid:accept></servergrid:accept>
-         </span>
-      </div>
-    </form>
-  </div>
-</div>
-</div>
+ </div>   
 </accept_new_server:template>

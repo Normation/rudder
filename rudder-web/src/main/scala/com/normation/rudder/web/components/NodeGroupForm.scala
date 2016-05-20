@@ -149,7 +149,7 @@ class NodeGroupForm(
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-
+  
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
       <div>
@@ -256,7 +256,7 @@ class NodeGroupForm(
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them."))
+    formTracker.addFormError(error("There was problem with your request."))
     updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#groupDetails");""")
   }
 
@@ -305,6 +305,7 @@ class NodeGroupForm(
   /*
    * Create the confirmation pop-up
    */
+  
   private[this] def displayConfirmationPopup(
       action     : ModificationValidationPopup.Action
     , newGroup   : NodeGroup
@@ -330,10 +331,11 @@ class NodeGroupForm(
           Right(newGroup, newCategory, optOriginal)
         , action
         , workflowEnabled
-        , crId => JsRaw("$.modal.close();") & successCallback(crId)
-        , xml => JsRaw("$.modal.close();") & onFailure
+        , crId => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & successCallback(crId)
+        , xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
         , parentFormTracker = formTracker
       )
+      
     }
 
     popup.popupWarningMessages match {

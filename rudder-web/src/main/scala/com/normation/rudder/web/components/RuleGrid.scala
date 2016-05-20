@@ -154,7 +154,7 @@ class RuleGrid(
   def reportTemplate = chooseTemplate("reports", "report", template)
 
   def dispatch = {
-    case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true, true)}
+    case "rulesGrid" => { _:NodeSeq => rulesGridWithUpdatedInfo(None, true, true, false)}
   }
 
   /**
@@ -223,7 +223,7 @@ class RuleGrid(
   /**
    * Display the selected set of rules.
    */
-  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, showComplianceColumns: Boolean): NodeSeq = {
+  def rulesGridWithUpdatedInfo(rules: Option[Seq[Rule]], showActionsColumn: Boolean, showComplianceColumns: Boolean, isPopup: Boolean): NodeSeq = {
 
     (for {
       allNodeInfos <- getAllNodeInfos()
@@ -268,6 +268,7 @@ class RuleGrid(
                 , ${allcheckboxCallback.toJsCmd}
                 , "${S.contextPath}"
                 , ${asyncDisplayAllRules(rules.map(_.map(_.id).toSet), showComplianceColumns, showRecentChanges).toJsCmd}
+                , ${isPopup}
               );
               createTooltip();
               createTooltiptr();

@@ -273,14 +273,14 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       SetHtml("CRStatusDetails",workflowService.findStep(cr.id).map(x => Text(x.value)).openOr(<div class="error">Cannot find the status of this change request</div>) ) &
       SetHtml("changeRequestChanges", new ChangeRequestChangesForm(cr).dispatch("changes")(NodeSeq.Empty)) &
       JsRaw("""correctButtons();
-               $.modal.close();""")
+               $('#changeStatePopup').bsModal('hide');""")
 
     var nextChosen = nextSteps.head
     def nextSelect(default:(WorkflowNodeId,stepChangeFunction)) =
       SHtml.selectObj(
           nextSteps.map(v => (v,v._1.value)), Full(nextChosen)
         , {t:(WorkflowNodeId,stepChangeFunction) => nextChosen = t}
-      )
+      ) % ("class", "form-control space-bottom")
     def nextOne(next:String) : NodeSeq=
 
         <span id="CRStatus">
@@ -288,9 +288,9 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
         </span>
 
     def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-      new WBTextAreaField("Message", "") {
+      new WBTextAreaField("Change audit message", "") {
         override def setFilter = notNull _ :: trim _ :: Nil
-        override def inputField = super.inputField  %  ("style" -> "height:8em;")
+        override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
         override def validations() = {
           if(mandatory){
             valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -313,9 +313,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
     def changeMessageDisplay = {
       changeMessage.map { f =>
         <div>
-          <div style="margin:10px 0px 5px 0px; color:#444">
-            {userPropertyService.reasonsFieldExplanation}
-          </div>
+          <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
           {f.toForm_!}
         </div>
       }
@@ -323,8 +321,8 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
     def next(default:(WorkflowNodeId,stepChangeFunction)) = {
       nextSteps match {
-        case Nil => <span id="CRStatus">Error</span>
-        case (head,_) :: Nil =>  <span id="CRStatus"> {head.value} </span>
+        case Nil => <span class="well" id="CRStatus">Error</span>
+        case (head,_) :: Nil =>  <span class="well" id="CRStatus"> {head.value} </span>
         case _ => nextSelect(default)
       }
     }
@@ -342,22 +340,26 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
 
     val introMessage = {
       <div>
-        <b>{ nextSteps match {
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">{ nextSteps match {
           case Nil => "You can't confirm"
           case (next,_) :: Nil => s"The change request will be sent to the '${next}' status"
-          case list => s"You have to chose a next status for the change request before you confirm"
+          case list => s"Please, choose the next state for this Change request"
         } }
-        </b>
+        </h4>
      </div>
     }
     def content(default:(WorkflowNodeId,stepChangeFunction)) = {
+      val classForButton = action match {
+      case "Decline" => "btn-danger"
+      case _ => "btn-success"
+    }
       ( "#header"   #>  s"${action} CR #${cr.id}: ${cr.info.name}" &
         "#form -*"  #>
           SHtml.ajaxForm(
             ( "#reason"  #> changeMessageDisplay &
               "#next"    #> next(default) &
               "#cancel"  #> SHtml.ajaxButton("Cancel", () => closePopup ) &
-              "#confirm" #> SHtml.ajaxSubmit("Confirm", () => confirm()) &
+              "#confirm" #> SHtml.ajaxSubmit(s"${action}", () => confirm(), ("class", classForButton)) &
               "#intro *+" #> introMessage andThen
               "#formError *" #> updateAndDisplayNotifications()
               ) (popupContent)
@@ -366,13 +368,13 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       Script(JsRaw("""updatePopup();"""))
     }
 
-    def updateForm(default:(WorkflowNodeId,stepChangeFunction)) = SetHtml("changeStatePopup",content(default))
+    def updateForm(default:(WorkflowNodeId,stepChangeFunction)) = SetHtml("popupContent",content(default))
 
-    def error(msg:String) = <span class="error">{msg}</span>
+    def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
     def confirm() : JsCmd = {
       if (formTracker.hasErrors) {
-        formTracker.addFormError(error("The form contains some errors, please correct them"))
+        formTracker.addFormError(error("There was problem with your request"))
         updateForm(nextChosen)
       }
       else {
@@ -390,7 +392,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
     }
 
     SetHtml("popupContent",content(nextChosen)) &
-    JsRaw("createPopup('changeStatePopup')")
+    JsRaw("createPopup('popupContent')")
 
   }
 }

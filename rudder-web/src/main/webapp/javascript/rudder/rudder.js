@@ -69,7 +69,7 @@ var bootstrapScrollspy = $.fn.scrollspy.noConflict();
 var bootstrapTab = $.fn.tab.noConflict();
 var bootstrapAffix = $.fn.affix.noConflict();
 var bootstrapModal = $.fn.modal.noConflict();
-$.fn.bsModal = bootstrapModal
+$.fn.bsModal = bootstrapModal;
 
 
 /**
@@ -78,6 +78,23 @@ $.fn.bsModal = bootstrapModal
  * tooltipid attribute, and display in the tooltip the content of the div with the id
  * tooltipid
  */
+function createTooltiptr() {
+    $(".tooltipabletr").tooltip({
+        show: {
+            effect: "none",
+            delay: 100
+        },
+        hide: {
+            effect: "none",
+            delay: 0
+        },
+        content: function () {
+            return $("#" + $(this).attr("tooltipid")).html();
+        },
+        track : true
+    });
+}
+
 function createTooltip() {
   $(".tooltipable").tooltip({
     show: {
@@ -138,14 +155,15 @@ function callPopupWithTimeout(timeout, popupName){
 }
 
 function createPopup(popupName){
-    $("#"+popupName).addClass("simplemodal-data");
-    $("#"+popupName).modal({
-            autoResize: true
-    });
-    // call Update popup to force resize of the popup and correct buttons
-    updatePopup();
+    $('#'+popupName).bsModal('show');
+    if($('#'+popupName+' #titleWorkflow').length){
+        $('#'+popupName+' .modal-dialog').addClass('modal-lg');
+    }
 }
 
+function reverseErrorDetails(){
+    $('#showTechnicalErrorDetails .panel-title span').toggleClass('up');
+}
 /* ignore event propagation (IE compliant) */
 
 function noBubble(event){
@@ -318,47 +336,36 @@ function jqCheckAll( id, name )
   });
 
 
-
-
 // Details
 
-    $.fx.speeds._default = 1000;
+  $.fx.speeds._default = 1000;
   $(function() {
     $('#dialogDetail').dialog({
-      autoOpen: false,
-      position: 'center',
-      width: 300,
-      show: '',
-      hide: ''
-    });
-    $('.openDetail').click(function() {
-      $('#dialogDetail').dialog('open');
-      return false;
+    autoOpen: false,
+    position: 'center',
+    width: 300,
+    show: '',
+    hide: ''		
+  });
+  $('.openDetail').click(function() {
+    $('#dialogDetail').dialog('open');
+	  return false;
     });
   });
 
-
-
   $(function() {
-      // Bouton rouge
+    // Bouton rouge
     $('#openAlert').click(function() {
-      $('#dialogAlert').modal({
-                minHeight:200,
-                minWidth: 450
-            });
-      $('#simplemodal-container').css('height', 'auto');
-      return false;
-    });
+    $('#dialogAlert').bsModal('show');
+    $('#simplemodal-container').css('height', 'auto');
+	return false;
+  });
 
-        // Logout
-        $('#logout').click(function() {
-      $('#dialogLogOut').modal({
-                minHeight:100,
-                minWidth: 430
-            });
-      $('#simplemodal-container').css('height', 'auto');
-      return false;
-    });
+  // Logout
+  $('#logout').click(function() {
+    $('#ModalLogOut').bsModal('show');
+    return false;
+  });
 
   });
 
@@ -377,7 +384,7 @@ function correctButtons() {
   //$("button, input:submit", ".popupButton").button();
 
   $("#logout").click(function() { return false; });
-  }
+}
 
 function processKey(e , buttonId){
     if (null == e)
@@ -414,7 +421,6 @@ function moveFilterAndPaginateArea(tableId) {
   if ($(tableId+"_filter_area")) {
     $(tableId+"_filter_area").append($(tableId+"_filter"));
   }
-
 }
 
 
@@ -504,11 +510,18 @@ function disableButton(buttonId) {
 function scrollToElement(elementId, containerSelector) {
   var container = $(containerSelector);
   // We need to remove the container offset from the elem offset so we scroll the correct amount in scroll function
-  var offset = $("#"+ elementId).offset().top - container.offset().top
+  var offset = $("#"+ elementId).offset().top - container.offset().top;
   container.animate({ scrollTop: offset }, 500);
-
 }
 
+function scrollToElementPopup(elementSelector, popupId){
+    //get the top offset of the target anchor
+    var target_offset = $("#"+ popupId +" .modal-body "+elementSelector).offset();
+    var container = $("#"+popupId+" .modal-body");
+    var target_top = target_offset.top-container.offset().top;
+    //goto that anchor by setting the body scroll top to anchor top
+    container.animate({scrollTop:target_top}, 500, 'easeInSine');
+};
 /*
 
 Correctly handle PNG transparency in Win IE 5.5 & 6.
