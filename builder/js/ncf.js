@@ -744,7 +744,6 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     window.top.location.reload();
   }
 
-
   $scope.reloadData();
   $scope.setPath();
 });
