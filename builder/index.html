@@ -65,8 +65,11 @@
               <div class="form-group">
                 <label for="cloneName" class="control-label">New Technique name:</label>
                 <div>
-                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required>
+                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required ng-maxlength="2048">
                 </div>
+                <span class="text-danger" ng-show="cloneForm.name.$error.maxlength">
+                  Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                </span>
                 <span class="text-danger pull-left" ng-show="cloneForm.name.$error.techniqueName">Technique name must be unique</span>
               </div>
             </div>
@@ -167,15 +170,21 @@
                             <div class="form-group" show-errors>
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
-                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required>
+                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-maxlength="255">
                                 </div>
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.maxlength">
+                                    Fields over 255 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                </span>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
                             </div>
                             <div class="form-group">
                                 <label for="techniqueDescription" class="col-sm-3 control-label">Description:</label>
                                 <div class="col-sm-8">
-                                    <textarea class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
+                                    <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description" ng-maxlength="2048"></textarea>
                                 </div>
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.description.$error.maxlength">
+                                    Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                </span>
                             </div>
                             <div class="form-group">
                                 <strong class="col-sm-3 text-right">Version:</strong>
@@ -252,30 +261,41 @@
                             <div class="form-group condition-form" id="os-form">
                               <label for="os_class">Operating system:</label>
                               <form class="form-inline" role="form">
-                                <div class="form-group">
+                                <div class="form-group" >
                                   <label for="os_class">Type:</label>
                                   <select class="form-control" ng-change="updateOSType()" ng-model="selectedMethod.OS_class.type" ng-options="type for type in type_classes" ></select>
                                 </div>
-                                <div  class="form-group" ng-show="os_classes_by_type[selectedMethod.OS_class.type].length > 0" >
+                                <div class="form-group" ng-show="os_classes_by_type[selectedMethod.OS_class.type].length > 0" >
                                   <label for="os_class">Name:</label>
                                   <select class="form-control" ng-change="updateOSName()" ng-model="selectedMethod.OS_class.name" ng-options="os for os in os_classes_by_type[selectedMethod.OS_class.type]"></select>
                                 </div>
                               </form>
-                              <form class="form-inline" role="form">
+                              <form class="form-inline" name="versionForm" role="form">
                                 <div class="form-group" ng-show="checkMajorVersion()">
                                   <label for="os_class">Version (Major):</label>
-                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion"  placeholder="">
+                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion" name="versionMaj" placeholder="" ng-maxlength="2048">
                                 </div>
+                                <span class="text-danger" ng-show="versionForm.versionMaj.$error.maxlength">
+                                    Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                </span>
                                 <div class="form-group" ng-show="checkMinorVersion()">
                                   <label for="os_class">Version (Minor):</label>
-                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="">
+                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="" name="versionMin" ng-maxlength="2048">
+                                  <span class="text-danger" ng-show="versionForm.versionMin.$error.maxlength">
+                                    Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                  </span>
                                 </div>
                               </form>
                             </div>
-                            <div class="form-group condition-form">
-                              <label for="advanced">Other CFEngine classes:</label>
-                              <input  type="text" id="advanced"  class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" placeholder="">
-                            </div>
+                            <form name="CForm">
+                                <div class="form-group condition-form">
+                                  <label for="advanced">Other CFEngine classes:</label>
+                                  <input  type="text" name="cfClasses" id="advanced"  class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" placeholder="" ng-maxlength="2048">
+                                  <span class="text-danger" ng-show="CForm.cfClasses.$error.maxlength">
+                                     Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                  </span>
+                                </div>
+                            </form>
                             <div class="form-group condition-form">
                               <label for="class_context">CFEngine class context:</label>
                               <input ng-readonly="true" type="text" id="" class="form-control" ng-model="selectedMethod.class_context" style="cursor:text">
@@ -288,17 +308,23 @@
                                 <i class="glyphicon" ng-class="{'glyphicon-chevron-down': isopen, 'glyphicon-chevron-right': !isopen}"></i>
                                 Parameters
                             </accordion-heading>
-                              <form class="" role="form">
                             <div class="form-group method-parameter" show-errors ng-form="subForm" style="margin: 15px 10px" ng-repeat="parameter in selectedMethod.parameters track by $index">
-                              <label for="param-{{$index}}"><h5 class="control-label method-param" >{{parameter.name}}:
-                              <br style="clear:both"/>
-                              <small class="pull-left method-margin" >
-                                {{parameter.description}}
-                          </small></h5></label>
-                              <br style="clear:both"/>
-                              <textarea msd-elastic name="param" class="form-control" rows="1" ng-required="true" id="param-{{$index}}" ng-model="parameter.value" placeholder=""></textarea>
+                              <ng-form name="paramForm" role="form">
+                                <label for="param-{{$index}}">
+                                  <h5 class="control-label method-param" >{{parameter.name}}:
+                                    <br style="clear:both"/>
+                                    <small class="pull-left method-margin" >
+                                      {{parameter.description}}
+                                    </small>
+                                  </h5>
+                                </label>
+                                <br style="clear:both"/>
+                                <textarea msd-elastic name="param" class="form-control" rows="1" ng-required="true" id="param-{{$index}}" ng-model="parameter.value" placeholder="" ng-maxlength="2048"></textarea>
+                                <span class="text-danger" ng-show="paramForm.param.$error.maxlength">
+                                  Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                </span>
+                              </ng-form>
                             </div>
-                          </form>
                         </accordion-group>
                     </accordion>
                 </div>
