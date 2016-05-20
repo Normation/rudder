@@ -44,7 +44,7 @@ bundle agent file_ensure_key_value(file, key, value, separator)
         create        => "true",
         edit_line     => maintain_key_values("file_ensure_key_value.keys", "${separator}"),
         edit_defaults => ncf_empty_select("false"),
-        classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
       "report"
