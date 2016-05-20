@@ -87,33 +87,45 @@ object RuleModificationValidationPopup extends Loggable {
     , "save"    -> "Update a Rule"
     , "create"  -> "Create a Rule"
   )
-
+  private def titleworkflow = Map(
+      "enable"  -> "enable"
+    , "disable" -> "disable"
+    , "delete"  -> "delete"
+    , "save"    -> "update"
+    , "create"  -> "create"
+  )
   private def explanationMessages = Map(
       "enable"  ->
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to enable this Rule?</h2>
-        <br />
-      </div>
+    <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to enable this Rule?
+        </h4>
+    </div>
     , "disable" ->
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to disable this Rule?</h2>
-        <br />
-      </div>
+    <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to disable this Rule?
+        </h4>
+    </div>
     , "delete"  ->
-      <div>
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to delete this Rule?</h2>
-        <br />
-      </div>
+
+    <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to delete this Rule?
+        </h4>
+    </div>
     , "save"    ->
-      <div>
-         <h2 style="padding-left:42px;">Are you sure that you want to update this Rule?</h2>
-         <br />
-      </div>
+      <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to update this Rule?
+        </h4>
+    </div>
     , "create"    ->
-      <div><h2 style="padding-left:42px;">Are you sure you want to create this Rule?</h2></div>
+      <div class="row">
+        <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+            Are you sure that you want to create this Rule?
+        </h4>
+    </div>
   )
 
 }
@@ -140,20 +152,25 @@ class RuleModificationValidationPopup(
   }
 
   def popupContent() : NodeSeq = {
-    val (buttonName, classForButton) = workflowEnabled match {
-      case true =>
-          ("Submit for Validation", "wideButton")
-      case false => ("Save", "")
+    val (buttonName, classForButton) = (workflowEnabled,action) match {
+      case (false, "save" )=> ("Update", "btn-success")
+      case (false, "delete" )=> ("Delete", "btn-danger")
+      case (false, "enable" )=> ("Enable", "btn-primary")
+      case (false, "disable" )=> ("Disable", "btn-primary")
+      case (false, "create" )=> ("Create", "btn-success")
+      case (false, _ )=> ("Save", "btn-success")
+      case (true, _ )=> ("Open request", "wideButton btn-primary")
     }
-
+    
     val titleWorkflow = workflowEnabled match {
       case true =>
-        <div>
-          <br/>
-          <img src="/images/ic_ChangeRequest.jpg" alt="Warning!" height="32" width="32" style="margin-top: 4px;" class="warnicon"/>
-          <h2>Workflows are enabled, your change has to be validated in a Change request</h2>
-          <br />
-        </div>
+          <h4 class="text-center titleworkflow">Are you sure that you want to {titleworkflow(action)} this rule?</h4>
+          <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
+          <hr class="css-fix"/>
+          <div class="text-center alert alert-info">
+            <span class="glyphicon glyphicon-info-sign"></span>
+            Workflows are enabled, your change has to be validated in a Change request
+          </div>
       case false =>  explanationMessages(action)
     }
     (
@@ -169,11 +186,11 @@ class RuleModificationValidationPopup(
       ".reasonsFieldsetPopup" #> {
         crReasons.map { f =>
           <div>
-            <div style="margin:10px 0px 5px 0px; color:#444">
-              {userPropertyService.reasonsFieldExplanation}
-            </div>
+            {if (!workflowEnabled) {
+              <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+            }}
               {f.toForm_!}
-        </div>
+          </div>           
         }
       } &
       "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmit(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
@@ -200,9 +217,9 @@ class RuleModificationValidationPopup(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("tabindex" -> "2")
+      override def inputField = super.inputField  %  ("style" -> "height:8em;") % ("tabindex" -> "2") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       //override def subContainerClassName = containerClass
       override def validations() = {
         if(mandatory){
@@ -223,9 +240,9 @@ class RuleModificationValidationPopup(
   )(action)
   private[this] val defaultRequestName = s"${defaultActionName} Rule ${rule.name}"
 
-  private[this] val changeRequestName = new WBTextField("Title", defaultRequestName) {
+  private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","1")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -241,10 +258,10 @@ class RuleModificationValidationPopup(
     new FormTracker(fields)
   }
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span>{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw("""$.modal.close();""")
+    JsRaw("""$('#confirmUpdateActionDialog').bsModal('hide');""")
   }
 
   /**
@@ -295,9 +312,9 @@ class RuleModificationValidationPopup(
         savedChangeRequest match {
           case Full(cr) =>
             if (workflowEnabled)
-              onSuccessCallBack(Right(cr))
+              closePopup() & onSuccessCallBack(Right(cr))
             else
-              onSuccessCallBack(Left(rule))
+              closePopup() & onSuccessCallBack(Left(rule))
           case eb:EmptyBox =>
             val e = (eb ?~! "Error when trying to save your modification")
             parentFormTracker.map( _.addFormError(error(e.messageChain)))
@@ -312,7 +329,7 @@ class RuleModificationValidationPopup(
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("There was problem with your request"))
     updateFormClientSide()
   }
 
@@ -321,7 +338,7 @@ class RuleModificationValidationPopup(
     formTracker.cleanErrors
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul></div>
       html
     }
   }

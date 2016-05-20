@@ -96,29 +96,35 @@ class TechniqueCategoryEditForm(
     <div id={htmlId_form} class="object-details">
       <div class="section-title">Category details</div>
         {categoryDetailsForm}
-          <div id="removeCategoryActionDialog" class="nodisplay">
-            <div class="simplemodal-title">
-              <h1>Delete a category</h1>
-              <hr/>
+    </div>
+    <div class="tw-bs">
+    <div id="removeCategoryActionDialog" class="modal fade">
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">
+                    Delete a category
+                </h4>
             </div>
-            <div class="simplemodal-content">
-              <hr class="spacer" />
-              <br />
-              <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-              <h2>Are you sure that you want to completely delete this item?</h2>
-              <br/>
-              <hr class="spacer" />
+            <div class="modal-body">
+                <div class="row">
+                    <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
+                        Are you sure that you want to completely delete this item?
+                    </h4>
+                </div>
             </div>
-            <div class="simplemodal-bottom">
-              <hr/>
-              <div class="popupButton">
-                <span>
-                 <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-                {SHtml.ajaxButton(<span class="red">Delete</span>, deleteCategory _)}
-                </span>
-              </div>
-            </div>
-          </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class","btn btn-danger")}
+            </div>  
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+    </div>
     </div>
   }
 
@@ -126,7 +132,7 @@ class TechniqueCategoryEditForm(
     activeTechniqueCategoryRepository.delete(currentCategory.id, ModificationId(uuidGen.newUuid),CurrentUser.getActor, Some("User deleted technique category from UI")) match {
       case Full(id) =>
         //update UI
-        JsRaw("$.modal.close();") &
+        JsRaw("$('#removeCategoryActionDialog').bsModal('hide');") &
         onSuccessCallback() & //Replace(htmlId_activeTechniquesTree, userLibrary) &
         SetHtml(htmlId_form, <span class="greenscala">Category successfully deleted</span>) &
         successPopup
@@ -175,7 +181,7 @@ class TechniqueCategoryEditForm(
         case Nil => NodeSeq.Empty
         case l =>
           <span><ul class="field_errors paddscala">{
-            l.map(e => <li class="field_error lopaddscala">{e.msg}</li>)
+            l.map(e => <li class="text-danger lopaddscala">{e.msg}</li>)
           }</ul></span><hr class="spacer"/>
       }
     }
@@ -242,8 +248,7 @@ class TechniqueCategoryEditForm(
        "delete" -> {
          if(currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
               {Script(OnLoad(JsRaw("""$( "#deleteCategoryButton" ).click(function() {
-                $("#removeCategoryActionDialog").modal();
-                $('#simplemodal-container').css('height', 'auto');
+                $("#removeCategoryActionDialog").bsModal('show');
                 return false;
               })""")))} ++ {
               <button id="deleteCategoryButton">Delete</button>

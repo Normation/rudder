@@ -34,8 +34,9 @@
 *
 *************************************************************************************
 */
-
-
+@-moz-document url-prefix() {
+  fieldset { display: table-cell; }
+}
 /**********************************
  *Node inventory details
  **********************************/
@@ -435,8 +436,6 @@ Tableau
   margin-top:5px;
 }
 
-
-
 .dataTables_wrapper table {
   width:100%;	
   border-right: 1px solid #B4B3A8;
@@ -471,6 +470,7 @@ tr.head {
   background-image: -moz-linear-gradient(top, #888, #555);
   background-color: #666;
 }
+
 .head th.first {
    padding: 5px 10px;
    background: url(../images/tableau/cGhaut.jpg) no-repeat top left;
@@ -493,6 +493,7 @@ th a {
 tr.color1 {
    background-color: #eee;
 }
+
 tr.color2 {
    background-color: #fff;
 }
@@ -670,7 +671,9 @@ table.noMarginGrid {
 #reportsGrid_wrapper {
   margin: 0;
 }
-
+#explanationMessage{
+    display: inline-block;
+}
 .dataTables_wrapper_top {
   padding: 6px;
   overflow: hidden;
@@ -1635,11 +1638,6 @@ div#account,
    display: block;
    min-height: 107px; 
 }
-
-div#refusePopup {
-  background-color: #FFEEE0;
-}
-
 /********************
 * Popup
 ********************/
@@ -2102,6 +2100,9 @@ hr.spacer {
    clear: both;
 }
 
+.float-inherit{
+    float: inherit !important;
+}
 .twoCol {
     float:left;
     width:67%;
@@ -2244,10 +2245,6 @@ div.serverDetail {
 
 div.tabInform {
   padding:5px;
-}
-
-.errorInput {
-  border-color: red;    
 }
 
 .reportLine {
@@ -2583,6 +2580,13 @@ table thead th div.DataTables_sort_wrapper span {
   right: 0;
 }
 
+#grid_remove_popup_grid,#grid_dependentRulesGrid{
+    border-left: 1px solid #B4B3A8;
+    border-right: 1px solid #B4B3A8;
+    font-size: 12px;
+    margin-bottom: 0;
+}
+
 table thead th {
   border-top: none !important; 
   border-right: none !important; 
@@ -2793,10 +2797,6 @@ table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   width:100%;
 }
 
-form .tw-bs input {
-  width: auto;
-}
-
 #cfagentSchedule h4 {
   margin-bottom: 10px;
   margin-top: 10px;
@@ -2888,11 +2888,6 @@ input[type="number"] {
 	margin-bottom:5px;
 	font-style:italic;
 }
-  
-  
-#createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
-	width : 500px;
-}
 
 #recentChanges {
 	/** If we want to scroll correctly to recent changes we need to set a minimum height,
@@ -2916,4 +2911,9 @@ button.buttonMargin {
 
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
   display: none !important;
+}
+
+
+label span.text-fit{
+    font-weight: normal !important;
 }

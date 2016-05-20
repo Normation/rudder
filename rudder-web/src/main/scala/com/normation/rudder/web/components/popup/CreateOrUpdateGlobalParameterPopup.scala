@@ -89,12 +89,12 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] val titleWorkflow = workflowEnabled match {
       case true =>
-        <div>
-          <br/>
-          <img src="/images/ic_ChangeRequest.jpg" alt="Warning!" height="32" width="32" style="margin-top: 4px;" class="warnicon"/>
-          <h2>Workflows are enabled, your change has to be validated in a Change request</h2>
-          <br />
-        </div>
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4> 
+              <hr class="css-fix"/>
+              <div class="text-center alert alert-info">
+                <span class="glyphicon glyphicon-info-sign"></span>
+                Workflows are enabled, your change has to be validated in a Change request
+              </div>
       case false =>  NodeSeq.Empty
     }
 
@@ -162,14 +162,14 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw("""$('#createGlobalParameterPopup').bsModal('hide');""")
   }
 
   /**
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent()) & JsRaw("correctButtons();")
+    SetHtml(htmlId_popupContainer, popupContent()) & JsRaw("""correctButtons();""")
   }
 
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
@@ -180,8 +180,7 @@ class CreateOrUpdateGlobalParameterPopup(
       NodeSeq.Empty
     }
     else {
-      <div id="notifications" class="notify">
-        <ul class="field_errors">{notifications.map( n => <li>{n}</li>) }</ul>
+      <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul>
       </div>
     }
   }
@@ -191,7 +190,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] val parameterName = new WBTextField("Name", parameter.map(_.name.value).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = (parameter match {
       case Some(entry) => super.inputField % ("disabled" -> "true")
       case None => super.inputField
@@ -208,7 +207,7 @@ class CreateOrUpdateGlobalParameterPopup(
       case "delete" => super.inputField % ("disabled" -> "true")
       case _ => super.inputField
     }) % ("style" -> "height:4em")  % ("tabindex","2")
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
 
@@ -218,7 +217,7 @@ class CreateOrUpdateGlobalParameterPopup(
       case "delete" => super.inputField % ("disabled" -> "true")
       case _ => super.inputField
     })  % ("tabindex","3")
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations = Nil
   }
 
@@ -227,12 +226,17 @@ class CreateOrUpdateGlobalParameterPopup(
       , "create"  -> "Create"
       , "delete"  -> "Delete"
     )(action)
-
+  
+  private[this] val defaultClassName = Map (
+      "save"    -> "btn-success"
+    , "create"  -> "btn-success"
+    , "delete"  -> "btn-danger"
+  )(action)
+  
   private[this] val defaultRequestName = s"${defaultActionName} Global Parameter " + parameter.map(_.name.value).getOrElse("")
-
-  private[this] val changeRequestName = new WBTextField("Title", defaultRequestName) {
+  private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def errorClassName = ""
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField % ("onkeydown" , "return processKey(event , 'createDirectiveSaveButton')") % ("tabindex","4")
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -250,11 +254,11 @@ class CreateOrUpdateGlobalParameterPopup(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
-        ("style" -> "height:5em;")  % ("tabindex","5")
-      override def errorClassName = ""
+        ("style" -> "height:5em;")  % ("tabindex","5") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
+      override def errorClassName = "col-lg-12 errors-container"
       override def validations() = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
@@ -275,13 +279,13 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = Text(msg)
 
   def popupContent() = {
     val (buttonName, classForButton) = workflowEnabled match {
       case true =>
-         ("Submit for Validation", "wideButton")
-      case false => (defaultActionName, "")
+         ("Open Request", "wideButton btn-primary")
+      case false => (defaultActionName, defaultClassName)
     }
 
     (
@@ -298,64 +302,60 @@ class CreateOrUpdateGlobalParameterPopup(
       } &
       "#delete *" #> {
         if (action=="delete") {
-          <div>
-            <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-           <h2 id="areYouSure">Are you sure that you want to delete this item?</h2>
-         </div>
+        <div class="row">
+        </div>
         } else {
           NodeSeq.Empty
         }
       } &
-      ".itemReason *" #> { paramReasons.map { f =>
+      ".itemReason *" #> {
+        //if (buttonName=="Delete") 
+        paramReasons.map { f =>
         <div>
-          <div style="margin:10px 0px 5px 0px; color:#444">
-            {userPropertyService.reasonsFieldExplanation}
-          </div>
-          {f.toForm_!}
+          {if (!workflowEnabled) {
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
+          }}
+            {f.toForm_!}
         </div>
       } } &
-      "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex","6")) &
-      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id","createParameterSaveButton")  % ("tabindex","5") % ("class", classForButton)) andThen
+      
+      "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex","6") % ("class","btn btn-default") ) &
+      "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id","createParameterSaveButton")  % ("tabindex","5") % ("class", s"btn ${classForButton}")) andThen
       ".notifications *"  #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())
+      
   }
-
   private[this] def formXml() : NodeSeq = {
     SHtml.ajaxForm(
-    <div id="paramForm">
-      <div class="simplemodal-title">
-        <h1 id="title">Here comes title</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">
-        <div class="notifications">Here comes validation messages</div>
-        <hr class="spacer"/>
-        <div class="name"/>
-        <hr class="spacer"/>
-        <div class="value"/>
-        <hr class="spacer" />
-        <div class="description"/>
-        <hr class="spacer" />
-        <div id="changeRequestZone">
-          <div id="titleWorkflow"/>
-          <hr class="spacer" />
-          <input type="text" id="changeRequestName" />
-          <hr class="spacer" />
-        </div>
-        <div class="itemReason"/>
-        <hr class="spacer" />
-        <div id="delete" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-        <div class="popupButton">
-          <span>
-            <div id="cancel"/>
-            <div id="save"/>
-          </span>
-        </div>
-      </div>
-    </div>)
+    <div id="paramForm" class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title" id="title">Here come title</h4>
+            </div>
+            <div class="modal-body">
+                <div class="notifications">Here comes validation messages</div>
+                <div class="name"/>
+                <div class="value"/>
+                <div class="description"/>
+                <div id="changeRequestZone">
+                    <div id="titleWorkflow"/>
+                    <input type="text" id="changeRequestName" />
+                </div>
+                <div class="itemReason"/>
+                <div id="delete" />
+            </div>
+            <div class="modal-footer">
+                <div id="cancel"/>
+                <div id="save"/>
+            </div>  
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+    )
   }
 }
 

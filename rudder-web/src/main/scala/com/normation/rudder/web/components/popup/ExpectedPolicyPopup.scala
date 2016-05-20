@@ -83,7 +83,7 @@ class ExpectedPolicyPopup(
     //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
-        (new RuleGrid("dependentRulesGrid", None, () => Full(false), false )).rulesGridWithUpdatedInfo(Some(seq), false, false)
+        (new RuleGrid("dependentRulesGrid", None, () => Full(false), false )).rulesGridWithUpdatedInfo(Some(seq), false, false, true)
       case e:EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
         logger.error(msg, e)
@@ -95,6 +95,7 @@ class ExpectedPolicyPopup(
         "#dependentRulesGrid" #> rulesGrid
     )(bind("expectedpolicypopup",expectedTechnique,
       "node" -> displayNode(nodeSrv),
+      "os" -> displayNodeOs(nodeSrv),
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
     ) )
   }
@@ -115,7 +116,9 @@ class ExpectedPolicyPopup(
   }
 
   private[this] def displayNode(srv : Srv) : NodeSeq = {
-    Text(srv.hostname + " - " + srv.osFullName)
+    Text(srv.hostname)
   }
-
+  private[this] def displayNodeOs(srv : Srv) : NodeSeq = {
+    Text(srv.osFullName)
+  }
 }

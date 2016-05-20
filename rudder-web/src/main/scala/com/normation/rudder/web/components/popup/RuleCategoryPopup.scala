@@ -115,12 +115,18 @@ class RuleCategoryPopup(
   val title = {
     targetCategory match {
       case None => "Create new Rule category"
-      case Some(c) => s"Update Category ${c.name}"
+      case Some(c) => s"Update category '${c.name}'"
     }
   }
-
+  val TextForButton = {
+    targetCategory match {
+      case None => "Create"
+      case Some(c) => s"Update"
+    }
+  }
+  
   val parentCategory = targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value)
-  def popupContent() : NodeSeq = {
+    def popupContent() : NodeSeq = {
      (
 
       "#creationForm *"        #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
@@ -131,42 +137,49 @@ class RuleCategoryPopup(
       "#categoryId *"          #> (targetCategory match {
                                     case None => NodeSeq.Empty
                                     case Some(c) =>
-                                      <div class="wbBaseField" style="font-size: 11px;">
-                                        <span class="threeCol textright"><b>Rudder ID:</b></span>
-                                        <div class="twoCol"><span>{c.id.value}</span></div>
-                                      </div>
+                                      <div class="row form-group">
+                                        <label class="col-lg-3 col-sm-12 col-xs-12 text-right wbBaseFieldLabel"><b>Rudder ID</b>
+                                        </label>
+                                        <div class="col-lg-9 col-sm-12 col-xs-12">
+                                        	<input class="form-control col-lg-12 col-sm-12 col-xs-12" type="text" value={c.id.value} disabled="true">
+                                        	</input>
+																				</div>
+                                        </div>
                                   }) &
-      "#saveCategory"          #> SHtml.ajaxSubmit("Save", () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
+      "#saveCategory"          #> SHtml.ajaxSubmit(TextForButton, () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
       ".notifications *"       #> updateAndDisplayNotifications()
 
     )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
   }
-
+    
+    
   def deletePopupContent(canBeDeleted : Boolean) : NodeSeq = {
     val action = () => if (canBeDeleted)  onSubmitDelete else closePopup
     val disabled  = if (canBeDeleted) ("","") else ("disabled","true")
      (
       "#dialogTitle *"  #> s"Delete Rule category ${s"'${targetCategory.map(_.name).getOrElse("")}'"}" &
-      "#text * "        #> (if(canBeDeleted) "Are you sure you want to delete this rule category?" else "This Rule category is not empty and therefore cannot be deleted")  &
-      "#deleteCategoryButton" #> SHtml.ajaxButton("Confirm", action, ("id", "createRuleCategorySaveButton") ,("tabindex","1") , ("style","margin-left:5px;"), disabled )
+      "#text * "        #> (if(canBeDeleted) "Are you sure you want to delete this Rule category?" else "This Rule category is not empty and therefore cannot be deleted")  &
+      "#deleteCategoryButton" #> SHtml.ajaxButton("Delete", action, ("id", "createRuleCategorySaveButton") ,("tabindex","1") , ("class","btn-danger"), disabled )
     )(deleteHtml ++ Script(OnLoad(JsRaw(s"updatePopup(); "))))
   }
 
   ///////////// fields for category settings ///////////////////
-  private[this] val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
+  
+    private[this] val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def subContainerClassName = "twoColPopup"
-    override def errorClassName = "threeColErrors"
+    override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
+    override def errorClassName = "col-lg-12 errors-container"
     override def inputField = super.inputField %("onkeydown" , "return processKey(event , 'createRuleCategorySaveButton')") % ("tabindex","2")
     override def validations =
       valMinLen(1, "The name must not be empty.") _ :: Nil
   }
-
+   
+    
   private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
-    override def subContainerClassName = "twoColPopup"
+    override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
     override def setFilter = notNull _ :: trim _ :: Nil
     override def inputField = super.inputField  % ("tabindex","4")
-    override def errorClassName = "threeColErrors"
+    override def errorClassName = "col-lg-12 errors-container"
     override def validations =  Nil
 
   }
@@ -179,19 +192,21 @@ class RuleCategoryPopup(
       , categoryHierarchyDisplayer.getRuleCategoryHierarchy(categories, None).map { case (id, name) => (id.value -> name)}
       , parentCategory.getOrElse(selectedCategory.value)
     ) {
-    override def subContainerClassName = "twoColPopup"
+    override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
     override def inputField = super.inputField % ("tabindex","3")
-    override def className = "rudderBaseFieldSelectClassName"
+    override def className = "col-lg-12 col-sm-12 col-xs-12 form-control"
+    override def validations =
+      valMinLen(1, "Please select a category") _ :: Nil
   }
 
   private[this] val formTracker = new FormTracker(categoryName, categoryDescription, categoryParent)
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw(""" $('#createRuleCategoryPopup').bsModal('hide');""")
   }
   /**
    * Update the form when something happened
@@ -277,7 +292,7 @@ class RuleCategoryPopup(
 
     if(notifications.isEmpty) NodeSeq.Empty
     else {
-      val html = <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+      val html = <div id="notifications" class="alert alert-danger text-center col-lg-12 col-xs-12 col-sm-12" role="alert"><ul class="text-danger">{notifications.map( n => <li>{n}</li>) }</ul></div>
       notifications = Nil
       html
     }

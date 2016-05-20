@@ -97,9 +97,7 @@ class GiveReasonPopup(
     SHtml.ajaxForm(bind("item", popupTemplate,
        "reason" -> crReasons.map {f =>
          <div>
-          <div style="margin-bottom:5px">
-            {userPropertyService.reasonsFieldExplanation}
-          </div>
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
          </div>
         },
@@ -120,10 +118,10 @@ class GiveReasonPopup(
   }
 
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
-    new WBTextAreaField("Message", "") {
+    new WBTextAreaField("Change audit message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
-        ("style" -> "height:8em;")
+        ("style" -> "height:8em;") % ("placeholder" -> {userPropertyService.reasonsFieldExplanation})
       override def subContainerClassName = containerClass
       override def validations() = {
         if(mandatory){
@@ -142,10 +140,10 @@ class GiveReasonPopup(
 
   private[this] var notifications = List.empty[NodeSeq]
 
-  private[this] def error(msg:String) = <span class="error">{msg}</span>
+  private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw(""" $('#popupContent').bsModal('hide');""")
   }
 
   /**
@@ -197,7 +195,7 @@ class GiveReasonPopup(
   }
 
   private[this] def onFailure : JsCmd = {
-    formTracker.addFormError(error("The form contains some errors, please correct them"))
+    formTracker.addFormError(error("There was problem with your request"))
     updateFormClientSide()
   }
 
