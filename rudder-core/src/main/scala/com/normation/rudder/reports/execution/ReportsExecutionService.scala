@@ -49,6 +49,8 @@ import ExecutionContext.Implicits.global
 import scala.util.Success
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.inventory.domain.NodeId
+import org.joda.time.Duration
+import org.joda.time.format.PeriodFormat
 
 /**
  * That service contains most of the logic to merge
@@ -98,6 +100,17 @@ class ReportsExecutionService (
               }
 
 
+              // Save new executions
+              val res = writeExecutions.updateExecutions(reportExec) match {
+                case Full(result) =>
+                  val executionTime = DateTime.now().getMillis() - startTime
+                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
+                  statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
+
+                case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
+                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to ${(lastReportDate plusDays(maxDays)).toString(format)}, cause is : ${fail.messageChain}")
+              }
+
               /*
                * here is a hook to plug the update for changes.
                * it should be made generic and inverted with some hooks method defined in
@@ -110,19 +123,11 @@ class ReportsExecutionService (
                * So, until we have a better view of what the actual user are, I let that
                * here.
                */
-              this.asyncHook(lastReportId, maxReportId, reportExec.map { _.agentRunId.nodeId}.toSet )
+
+              this.hook(lastReportId, maxReportId, reportExec.map { _.agentRunId.nodeId}.toSet )
               // end of hooks code
 
-              // Save new executions
-              writeExecutions.updateExecutions(reportExec) match {
-                case Full(result) =>
-                  val executionTime = DateTime.now().getMillis() - startTime
-                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
-                  statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
-
-                case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
-                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to ${(lastReportDate plusDays(maxDays)).toString(format)}, cause is : ${fail.messageChain}")
-              }
+              res
 
             } else {
               logger.debug("There are no nodes executions to store")
@@ -162,36 +167,39 @@ class ReportsExecutionService (
    * The hook method where the other method needing to happen when
    * new reports are processed are called.
    */
-  private[this] def asyncHook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
-    //for now, just update the list of changes by rule
-    future {
-      for {
-        changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
-        updated <- cachedChanges.update(changes)
-      } yield {
-        updated
-      }
-    }.onComplete {
-      case Success(x) => x match {
-        case eb: EmptyBox =>
-          val e = eb ?~! "An error occured when trying to update the cache of last changes"
-          logger.error(e.messageChain)
-          e.rootExceptionCause.foreach { ex =>
-            logger.error("Root exception was: ", ex)
-          }
-        case Full(x) => //youhou
-      }
-      case scala.util.Failure(ex) =>
-        logger.error("An error occured when trying to update the cache of last changes", ex)
+  private[this] def hook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
+    val startHooks = System.currentTimeMillis
+
+    //update changes by rules
+    (for {
+      changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
+      updated <- cachedChanges.update(changes)
+    } yield {
+      updated
+    }) match {
+      case eb: EmptyBox =>
+        val e = eb ?~! "An error occured when trying to update the cache of last changes"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          logger.error("Root exception was: ", ex)
+        }
+      case Full(x) => //youhou
+        logger.trace("Cache for changes by rule updates after new run received")
     }
 
-    future {
-      cachedCompliance.invalidate(updatedNodeIds)
-    }.onComplete {
-      case Success(x) => x //youhou
-      case scala.util.Failure(ex) =>
-        logger.error("An error occured when trying to invalidate entries in the cache of compliance", ex)
+    // update compliance cache
+    cachedCompliance.invalidate(updatedNodeIds) match {
+      case eb: EmptyBox =>
+        val e = eb ?~! "An error occured when trying to update the cache for compliance"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach { ex =>
+          logger.error("Root exception was: ", ex)
+        }
+      case Full(x) => //youhou
+        logger.trace("Cache for compliance updates after new run received")
     }
+
+    logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
 
   }
 
