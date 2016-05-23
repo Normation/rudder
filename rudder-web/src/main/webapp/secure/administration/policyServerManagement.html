@@ -79,7 +79,7 @@
 	                    value="delete" /></td>
 	                  <td><input name="network"
 	                    class="networkField" /></td>
-	                  <td><span class="lift:Msg?errorClass=error">[error]</span></td>
+	                  <td id="errorNetworkField"></td>
 	                </tr>
 	              </tbody>
 	            </table>
@@ -187,7 +187,7 @@
               <hr class="spacer"/>
               <lift:authz role="administration_write">
                 <input type="submit" value="Reload" id="changeMessageSubmit"/>
-                <span class="lift:Msg?id=updateChangeMsg">[messages]</span>
+                <span class="lift:Msg?id=updateChangeMsg;errorClass=bs-text-danger;">[messages]</span>
               </lift:authz>
             </form>
           </div>
@@ -272,7 +272,7 @@ These files are automatically removed to save on disk space. You can configure t
                 <hr class="spacer"/>
                 <lift:authz role="administration_write">
                   <input type="submit" value="[save]" id="cfengineGlobalPropsSubmit"/>
-                  <span class="lift:Msg?id=updateCfengineGlobalProps">[messages]</span>
+                  <span class="lift:Msg?id=updateCfengineGlobalProps;errorClass=bs-text-danger;">[messages]</span>
                 </lift:authz>
               </form>
             </div>
