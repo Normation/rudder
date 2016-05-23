@@ -50,10 +50,12 @@ import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.web.rest.ApiVersion
+import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 
 class NodeApiService4 (
     inventoryRepository : LDAPFullInventoryRepository
   , nodeInfoService     : NodeInfoService
+  , softwareRepository  : ReadOnlySoftwareDAO
   , uuidGen             : StringUuidGenerator
   , restExtractor       : RestExtractorService
   , restSerializer      : RestDataSerializer
@@ -63,14 +65,34 @@ class NodeApiService4 (
 
   def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion) = {
     for {
-      inventory <- inventoryRepository.get(nodeId,state)
-      node      <- state match {
-        case AcceptedInventory => nodeInfoService.getNode(nodeId)
-        // For other state we have to define a default Node object
-        case _ => Full(Node(inventory))
-      }
+      optNodeInfo <- state match {
+                    case AcceptedInventory => nodeInfoService.getNodeInfo(nodeId)
+                    case PendingInventory  => nodeInfoService.getPendingNodeInfo(nodeId)
+                    case RemovedInventory  => nodeInfoService.getDeletedNodeInfo(nodeId)
+                  }
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id ${nodeId.value} was not found in ${state.name} nodes")
+                       case Some(x) => Full(x)
+                     }
+      inventory <- if(detailLevel.needFullInventory()) {
+                     inventoryRepository.get(nodeId, state).map(Some(_))
+                   } else {
+                     Full(None)
+                   }
+      software  <- if(detailLevel.needSoftware()) {
+                     for {
+                       software <- inventory match {
+                                      case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
+                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).flatMap( _.get(nodeId))
+                                    }
+                     } yield {
+                       software
+                     }
+                   } else {
+                     Full(Seq())
+                   }
     } yield {
-      serializeInventory(node, inventory, detailLevel, version)
+      serializeInventory(nodeInfo, state, inventory, software, detailLevel, version)
     }
   }
 

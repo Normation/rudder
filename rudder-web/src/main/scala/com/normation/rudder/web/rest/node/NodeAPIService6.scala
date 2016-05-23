@@ -48,35 +48,46 @@ import com.normation.rudder.domain.nodes._
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.domain.queries.Query
+import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 
 case class NodeApiService6 (
-    nodeInfoService   : NodeInfoService
-  , inventoryRepository : LDAPFullInventoryRepository
-  , restExtractor     : RestExtractorService
-  , restSerializer    : RestDataSerializer
+    nodeInfoService           : NodeInfoService
+  , inventoryRepository       : LDAPFullInventoryRepository
+  , softwareRepository        : ReadOnlySoftwareDAO
+  , restExtractor             : RestExtractorService
+  , restSerializer            : RestDataSerializer
   , acceptedNodeQueryProcessor: QueryProcessor
 ) extends Loggable {
 
   import restSerializer._
   def listNodes ( state: InventoryStatus, detailLevel : NodeDetailLevel, nodeFilter : Option[Seq[NodeId]], version : ApiVersion)( implicit prettify : Boolean) = {
     implicit val action = s"list${state.name.capitalize}Nodes"
-    ( for {
-        inventories <- inventoryRepository.getAllInventories(state)
-        nodes <- state match {
-          case AcceptedInventory => nodeInfoService.getAllNodes
-          case _ => Full(inventories.mapValues(Node(_)))
-        }
-      } yield {
-        val nodeIds = nodeFilter.getOrElse(inventories.keys)
-        for {
-          nodeId <- nodeIds
-          inventory <- inventories.get(nodeId)
-          node <- nodes.get(nodeId)
-        } yield {
-          serializeInventory(node, inventory, detailLevel, version)
-        }
 
+    (for {
+      nodeInfos   <- state match {
+                       case AcceptedInventory => nodeInfoService.getAll()
+                       case PendingInventory  => nodeInfoService.getPendingNodeInfos()
+                       case RemovedInventory  => nodeInfoService.getDeletedNodeInfos()
+                     }
+      inventories <- if(detailLevel.needFullInventory()) {
+                       inventoryRepository.getAllInventories(state)
+                     } else {
+                       Full(Map[NodeId, FullInventory]())
+                     }
+      software    <- if(detailLevel.needSoftware()) {
+                       softwareRepository.getSoftwareByNode(nodeInfos.keySet, state)
+                     } else {
+                       Full(Map[NodeId, Seq[Software]]())
+                     }
+    } yield {
+      val nodeIds = nodeFilter.getOrElse(nodeInfos.keySet)
+      for {
+        nodeId    <- nodeIds
+        nodeInfo  <- nodeInfos.get(nodeId)
+      } yield {
+        serializeInventory(nodeInfo, state, inventories.get(nodeId), software.getOrElse(nodeId, Seq()), detailLevel, version)
       }
+    }
     ) match {
       case Full(nodes) => {
         toJsonResponse(None, ( "nodes" -> JArray(nodes.toList)))
