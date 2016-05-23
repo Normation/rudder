@@ -115,7 +115,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_ui_changeMessage_mandatory(mandatory).foreach(updateOk => initMandatory = Full(mandatory))
 
       configService.set_rudder_ui_changeMessage_explanation(explanation).foreach(updateOk => initExplanation = Full(explanation))
-
+      S.clearCurrentNotices
       S.notice("updateChangeMsg","Change audit logs configuration correctly updated")
       check()
     }
@@ -127,13 +127,17 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       && initMandatory.map(_ == mandatory).getOrElse(false)
       && initExplanation.map(_ == explanation).getOrElse(false)
     )
-
+    def emptyString = explanation.trim().length==0
     // Check that there is some modification to enabled/disable save
     def check() = {
       if(!noModif){
-        S.notice("updateChangeMsg","")
+        if(emptyString){
+          S.error("updateChangeMsg","The message field cannot be empty.")
+        }else{
+          S.notice("updateChangeMsg","")
+        }    
       }
-      Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif||emptyString});""")
     }
 
     // Initialisation of form
@@ -609,7 +613,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } catch {
         case ex:NumberFormatException =>
 
-          S.error("updateCfengineGlobalProps", ex.getMessage())
+          S.error("updateCfengineGlobalProps", "Invalid value "+ex.getMessage().replaceFirst("F", "f"))
           Noop
       }
 
