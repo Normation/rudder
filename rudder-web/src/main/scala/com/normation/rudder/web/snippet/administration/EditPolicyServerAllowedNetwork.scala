@@ -208,7 +208,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
         (
           ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
-          "errorClass=error [id]" #> ("error" + id) &
+          "#errorNetworkField" #> <td id="errorNetworkField"><span class={"lift:Msg?errorClass=bs-text-danger;id=errornetwork_"+i}>[error]</span></td> &
           ".networkField [name]" #> id andThen
           ".networkField" #> SHtml.text(net,  {x =>
             allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }
