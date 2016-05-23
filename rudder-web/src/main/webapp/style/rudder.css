@@ -2909,3 +2909,7 @@ button.buttonMargin {
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
   display: none !important;
 }
+
+.bs-text-danger{
+	color:#a94442;
+}
