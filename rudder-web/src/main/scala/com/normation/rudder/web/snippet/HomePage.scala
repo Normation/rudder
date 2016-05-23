@@ -68,6 +68,8 @@ import com.normation.utils.Control.sequence
 import com.unboundid.ldap.sdk.SearchRequest
 import com.unboundid.ldap.sdk.controls.MatchedValuesRequestControl
 import com.unboundid.ldap.sdk.controls.MatchedValuesFilter
+import com.normation.inventory.domain.VirtualMachineType
+import com.normation.inventory.domain.PhysicalMachineType
 
 sealed trait ComplianceLevelPieChart{
   def color : String
@@ -283,9 +285,13 @@ class HomePage extends Loggable {
     ( for {
       nodeInfos <- HomePage.boxNodeInfos.is
     } yield {
-      val machines = nodeInfos.values.groupBy(_.machineType).mapValues(_.size).map{case (a,b) => JsArray(a, b)}
+      val machines = nodeInfos.values.map { _.machine.map(_.machineType) match {
+                        case Some(_: VirtualMachineType) => "Virtual"
+                        case Some(PhysicalMachineType)   => "Physical"
+                        case _                           => "No Machine Inventory"
+                      } }.groupBy(identity).mapValues(_.size).map{case (a,b) => JsArray(a, b)}
       val machinesArray = JsArray(machines.toList)
-      val os = nodeInfos.values.groupBy(_.osName).mapValues(_.size).map{case (a,b) => JsArray(a, b)}
+      val os = nodeInfos.values.groupBy(_.osDetails.os.name).mapValues(_.size).map{case (a,b) => JsArray(a, b)}
       val osArray = JsArray(os.toList)
 
       Script(OnLoad(JsRaw(s"""

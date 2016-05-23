@@ -53,6 +53,7 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
 import net.liftweb.common.Loggable
+import com.normation.inventory.ldap.core.InventoryMapper
 
 @RunWith(classOf[JUnitRunner])
 class TestQuickSearchService extends QuickSearchServiceSpec {
@@ -122,6 +123,7 @@ trait QuickSearchServiceSpec extends Specification with Loggable {
     , nodeDit         = nodeDit
     , inventoryDit    = inventoryDit
     , cmdbQueryParser = null
+    , inventoryMapper = new InventoryMapper(null, null, inventoryDit, null)
   )
 
 

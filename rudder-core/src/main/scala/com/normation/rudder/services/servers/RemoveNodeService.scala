@@ -77,7 +77,11 @@ class RemoveNodeServiceImpl(
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
         for {
-          nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+          optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+          nodeInfo    <- optNodeInfo match {
+                           case None    => Failure(s"The node with id ${nodeId.value} was not found and can not be deleted")
+                           case Some(x) => Full(x)
+                         }
 
           moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~!
                    "Error when archiving a node"
@@ -87,7 +91,7 @@ class RemoveNodeServiceImpl(
                             nodeId           = nodeInfo.id
                           , inventoryVersion = nodeInfo.inventoryDate
                           , hostname         = nodeInfo.hostname
-                          , fullOsName       = nodeInfo.osName
+                          , fullOsName       = nodeInfo.osDetails.fullName
                           , actorIp          = actor.name
                         )
             val eventlog = DeleteNodeEventLog.fromInventoryLogDetails(

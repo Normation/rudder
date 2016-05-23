@@ -54,6 +54,8 @@ import com.normation.rudder.web.rest.node.NodeDetailLevel
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.web.rest.node.CustomDetailLevel
+import com.normation.rudder.web.rest.node.MinimalDetailLevel
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -78,7 +80,7 @@ trait RestDataSerializer {
 
   def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
 
-  def serializeInventory(node: Node, inventory: FullInventory, detailLevel: NodeDetailLevel, apiVersion: ApiVersion) : JValue
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
 }
 
 case class RestDataSerializerImpl (
@@ -88,42 +90,46 @@ case class RestDataSerializerImpl (
 
   import net.liftweb.json.JsonDSL._
 
+  private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
+    machine match {
+      case None                           => "No machine Inventory"
+      case Some(PhysicalMachineType)      => "Physical"
+      case Some(VirtualMachineType(kind)) => "Virtual"
+    }
+  }
+
   def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
-    (   ("id"          -> nodeInfo.id.value)
-      ~ ("status"      -> status)
-      ~ ("hostname"    -> nodeInfo.hostname)
-      ~ ("osName"      -> nodeInfo.osName)
-      ~ ("osVersion"   -> nodeInfo.osVersion)
-      ~ (machineTypeTag -> nodeInfo.machineType)
+    (   ("id"           -> nodeInfo.id.value)
+      ~ ("status"       -> status)
+      ~ ("hostname"     -> nodeInfo.hostname)
+      ~ ("osName"       -> nodeInfo.osDetails.os.name)
+      ~ ("osVersion"    -> nodeInfo.osDetails.version.value)
+      ~ (machineTypeTag -> serializeMachineType(nodeInfo.machine.map(_.machineType)))
     )
   }
 
-  def serializeInventory(node: Node, inventory : FullInventory, detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
-    val filteredFields = if(apiVersion.value <= 4) {
-      detailLevel.fields - "properties"
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
+    val filteredLevel = if(apiVersion.value <= 4) {
+      CustomDetailLevel(MinimalDetailLevel, detailLevel.fields - "properties")
     } else {
-      detailLevel.fields
+      detailLevel
     }
-    val fields : Set[JField] = filteredFields.map(field => JField(field, NodeDetailLevel.allFields(field)(node, inventory)))
-    JObject(fields.toList)
+    filteredLevel.toJson(nodeInfo, status, inventory, software)
   }
 
   def serializeInventory (inventory: FullInventory, status: String, tagFixed: Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
-    val machineType = inventory.machine.map(_.machineType match {
-      case PhysicalMachineType => "Physical"
-      case VirtualMachineType(kind) => "Virtual"
-    }).getOrElse("No machine Inventory")
 
-    (   ("id"          -> inventory.node.main.id.value)
-      ~ ("status"      -> status)
-      ~ ("hostname"    -> inventory.node.main.hostname)
-      ~ ("osName"      -> inventory.node.main.osDetails.os.name)
-      ~ ("osVersion"   -> inventory.node.main.osDetails.version.toString)
-      ~ (machineTypeTag -> machineType)
+
+    (   ("id"           -> inventory.node.main.id.value)
+      ~ ("status"       -> status)
+      ~ ("hostname"     -> inventory.node.main.hostname)
+      ~ ("osName"       -> inventory.node.main.osDetails.os.name)
+      ~ ("osVersion"    -> inventory.node.main.osDetails.version.toString)
+      ~ (machineTypeTag -> serializeMachineType(inventory.machine.map( _.machineType )))
     )
   }
 
