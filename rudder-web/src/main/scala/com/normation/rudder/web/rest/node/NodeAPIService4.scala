@@ -49,7 +49,6 @@ import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.services.nodes.NodeInfoService
-import scalaz.Need
 import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 
 
