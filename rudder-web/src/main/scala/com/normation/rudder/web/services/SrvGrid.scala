@@ -61,6 +61,9 @@ import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.inventory.domain.VirtualMachineType
+import com.normation.inventory.domain.PhysicalMachineType
+
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
  *
@@ -235,10 +238,14 @@ case class NodeLine (
    JsObj(
        ( "name" -> hostname )
      , ( "id" -> node.id.value )
-     , ( "machineType" -> node.machineType )
-     , ( "osName") -> S.?(s"os.name.${node.osName}")
-     , ( "osVersion" -> node.osVersion)
-     , ( "servicePack" -> node.servicePack.getOrElse("N/A"))
+     , ( "machineType" -> node.machine.map { _.machineType match {
+                            case _: VirtualMachineType => "Virtual"
+                            case PhysicalMachineType   => "Physical"
+                          } }.getOrElse("No Machine Inventory" )
+       )
+     , ( "osName") -> S.?(s"os.name.${node.osDetails.os.name}")
+     , ( "osVersion" -> node.osDetails.version.value)
+     , ( "servicePack" -> node.osDetails.servicePack.getOrElse("N/A"))
      , ( "lastReport" ->  lastReportValue )
      )
   }

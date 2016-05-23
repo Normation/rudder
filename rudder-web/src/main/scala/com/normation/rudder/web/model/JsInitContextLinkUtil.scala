@@ -152,10 +152,10 @@ object JsInitContextLinkUtil extends Loggable {
 
   def createNodeLink(id: NodeId) = {
     nodeInfoService.getNodeInfo(id) match {
-      case t: EmptyBox =>
-        <span>Node {id.value}</span>
-      case Full(node) =>
+      case Full(Some(node)) =>
         <span>Node <a href={baseNodeLink(id)}>{node.hostname}</a> (Rudder ID: {id.value})</span>
+      case _ =>
+        <span>Node {id.value}</span>
     }
   }
   // Naive implementation that redirect simply to all Global Parameter page

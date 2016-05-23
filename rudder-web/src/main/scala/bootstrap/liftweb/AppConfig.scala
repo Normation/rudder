@@ -672,6 +672,7 @@ object RudderConfig extends Loggable {
       , new NodeApiService4 (
             fullInventoryRepository
           , nodeInfoService
+          , softwareInventoryDAO
           , uuidGen
           , restExtractorService
           , restDataSerializer
@@ -699,6 +700,7 @@ object RudderConfig extends Loggable {
       , new NodeApiService6(
             nodeInfoService
           , fullInventoryRepository
+          , softwareInventoryDAO
           , restExtractorService
           , restDataSerializer
           , queryProcessor
@@ -857,7 +859,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
   private[this] lazy val variableBuilderService: VariableBuilderService = new VariableBuilderServiceImpl()
-  private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser)
+  private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
 
   ///// items serializer - service that transforms items to XML /////
   private[this] lazy val ruleSerialisation: RuleSerialisation = new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
@@ -1544,7 +1546,9 @@ object RudderConfig extends Loggable {
     , nodeDitImpl
     , acceptedNodesDitImpl
     , removedNodesDitImpl
+    , pendingNodesDitImpl
     , ldapEntityMapper
+    , inventoryMapper
   )
   private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
         roLdap
