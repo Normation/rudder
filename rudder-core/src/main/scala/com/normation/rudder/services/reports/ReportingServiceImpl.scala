@@ -152,14 +152,11 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Invalidate some keys in the cache. That won't charge them again
    * immediately
    */
-  def invalidate(nodeIds: Set[NodeId]): Unit = this.synchronized {
+  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, Set[RuleNodeStatusReport]]] = this.synchronized {
     logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
     cache = cache -- nodeIds
     //preload new results
-    Future {
-      checkAndUpdateCache(nodeIds)
-    }
-    ()
+    checkAndUpdateCache(nodeIds)
   }
 
   /**
