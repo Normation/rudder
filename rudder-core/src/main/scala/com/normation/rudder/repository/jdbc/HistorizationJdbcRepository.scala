@@ -71,25 +71,25 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 
   def getAllOpenedNodes() : Seq[SerializedNodes] = {
 
-    squerylConnectionProvider.ourSession {
-	    val q = from(Nodes.nodes)(node =>
-	      where(node.endTime.isNull)
-	      select(node)
-	    )
+    squerylConnectionProvider.ourTransaction {
+      val q = from(Nodes.nodes)(node =>
+        where(node.endTime.isNull)
+        select(node)
+      )
       Seq() ++ q.toList
     }
   }
 
   def getAllNodes(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedNodes] = {
-    squerylConnectionProvider.ourSession {
-	    val q = from(Nodes.nodes)(node =>
-	      where(after.map(date => {
-	        node.startTime > toTimeStamp(date) or
-	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))or
+    squerylConnectionProvider.ourTransaction {
+      val q = from(Nodes.nodes)(node =>
+        where(after.map(date => {
+          node.startTime > toTimeStamp(date) or
+          (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))or
           ( (fetchUnclosed === true) and node.endTime.isNull)
-	      }).getOrElse(1===1))
-	      select(node)
-	    )
+        }).getOrElse(1===1))
+        select(node)
+      )
       Seq() ++ q.toList
     }
   }
@@ -114,29 +114,29 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
    * nodes within
    */
   def getAllOpenedGroups() : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       // first, fetch all the groups (without nodes
-	    val q = from(Groups.groups)(group =>
-	      where(group.endTime.isNull)
-	      select(group)
-	    )
-	    getNodesFromSerializedGroups(Seq() ++ q.toList)
+      val q = from(Groups.groups)(group =>
+        where(group.endTime.isNull)
+        select(group)
+      )
+      getNodesFromSerializedGroups(Seq() ++ q.toList)
 
     }
   }
 
   def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
-    squerylConnectionProvider.ourSession {
-	    val q = from(Groups.groups)(group =>
-	      where(after.map(date => {
-	        group.startTime > toTimeStamp(date) or
-	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date)))) or
+    squerylConnectionProvider.ourTransaction {
+      val q = from(Groups.groups)(group =>
+        where(after.map(date => {
+          group.startTime > toTimeStamp(date) or
+          (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date)))) or
           (fetchUnclosed === true and group.endTime.isNull)
-	      }).getOrElse(1===1))
-	      select(group)
-	    )
+        }).getOrElse(1===1))
+        select(group)
+      )
 
-	    getNodesFromSerializedGroups(Seq() ++ q.toList)
+      getNodesFromSerializedGroups(Seq() ++ q.toList)
     }
   }
 
@@ -176,7 +176,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 
 
   def getAllOpenedDirectives() : Seq[SerializedDirectives] = {
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       val q = from(Directives.directives)(directive =>
         where(directive.endTime.isNull)
         select(directive)
@@ -187,7 +187,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   }
 
    def getAllDirectives(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedDirectives] = {
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       val q = from(Directives.directives)(directive =>
         where(after.map(date => {
           directive.startTime > toTimeStamp(date) or
@@ -219,7 +219,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   }
 
   def getAllOpenedRules() : Seq[Rule] = {
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       val q = from(Rules.rules)(rule =>
         where(rule.endTime.isNull)
         select(rule)
@@ -249,7 +249,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   }
 
   def getAllRules(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])] = {
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       val q = from(Rules.rules)(rule =>
          where(after.map(date => {
           rule.startTime > toTimeStamp(date) or
@@ -310,7 +310,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
 
   def getOpenedGlobalSchedule() : Option[SerializedGlobalSchedule] = {
 
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       val q = from(GlobalSchedule.globalSchedule)(globalSchedule =>
         where(globalSchedule.endTime.isNull)
         select(globalSchedule)
@@ -320,7 +320,7 @@ class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionP
   }
 
   def getAllGlobalSchedule(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGlobalSchedule] = {
-    squerylConnectionProvider.ourSession {
+    squerylConnectionProvider.ourTransaction {
       val q = from(GlobalSchedule.globalSchedule)(globalSchedule =>
         where(after.map(date => {
           globalSchedule.startTime > toTimeStamp(date) or

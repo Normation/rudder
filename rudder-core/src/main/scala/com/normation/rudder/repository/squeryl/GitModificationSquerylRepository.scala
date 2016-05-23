@@ -41,7 +41,7 @@ class GitModificationSquerylRepository(
 
   def getCommits(modificationId: ModificationId): Box[Option[GitCommitId]] = {
     try {
-       sessionProvider.ourSession {
+       sessionProvider.ourTransaction {
        val q = from(commitTable)(entry =>
 
              where(entry.ModificationId === modificationId.value)
