@@ -349,11 +349,9 @@ object ExecutionBatch extends Loggable {
               val expireTime = currentConfig.creation.plus(updateValidityTime(intervalInfo))
 
               if(expireTime.isBefore(now)) {
-                ComplianceDebugLogger.node(nodeId).trace(s"Run config for node ${nodeId.value}: NoReportInInterval")
                 runType("no run (ever or too old)", NoReportInInterval(currentConfig))
               } else {
-                ComplianceDebugLogger.node(nodeId).trace(s"Run config for node ${nodeId.value}: Pending until ${expireTime}")
-                runType("no run (ever or too old)", Pending(currentConfig, None, expireTime, missingReportType))
+                runType(s"no run (ever or too old), Pending until ${expireTime}", Pending(currentConfig, None, expireTime, missingReportType))
               }
             }
 

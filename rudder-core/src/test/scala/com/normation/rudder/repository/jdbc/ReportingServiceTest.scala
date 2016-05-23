@@ -93,7 +93,7 @@ class ReportingServiceTest extends DBCommon {
     def nodeInfoService: NodeInfoService = null
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
-    override def invalidate(nodeIds: Set[NodeId]) = ()
+    override def invalidate(nodeIds: Set[NodeId]) = Full(Map())
   }
 
   lazy val pgIn = new PostgresqlInClause(2)
