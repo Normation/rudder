@@ -182,7 +182,7 @@ case class ReportLine (
     override val json  = {
 
       JsObj(
-          ( "executionDate", DateFormaterService.getFormatedDate(executionDate) )
+          ( "executionDate", executionDate.toString("yyyy-MM-dd HH:mm:ss") )
         , ( "severity", severity )
         , ( "ruleName", ruleName )
         , ( "directiveName",  directiveName )
