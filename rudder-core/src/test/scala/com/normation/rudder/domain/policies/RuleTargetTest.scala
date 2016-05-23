@@ -15,6 +15,10 @@ import com.normation.rudder.domain.nodes.NodeGroupCategoryId
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.domain.nodes.Node
+import com.normation.inventory.domain.Debian
+import com.normation.inventory.domain.Linux
+import com.normation.inventory.domain.Version
+import com.normation.inventory.domain.UndefinedKey
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
@@ -35,10 +39,11 @@ class RuleTargetTest extends Specification with Loggable {
       , NodeInfo (
             newNode(id)
           , s"Node-${id}"
-          , "" ,"" ,""
-          , None, Nil, DateTime.now
-          , "", Seq(), NodeId("root")
-          , "" , Set()
+          , None
+          , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
+          , Nil, DateTime.now
+          , "", UndefinedKey, Seq(), NodeId("root")
+          , "" , Set(), None, None
       )
     )
   }.toMap
