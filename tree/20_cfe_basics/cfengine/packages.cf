@@ -106,6 +106,19 @@ bundle common rpm_knowledge
       "rpm3_arch_regex" string => "\S+\s+(\S+).*";
 }
 
+bundle common redhat_no_locking_knowledge {
+  vars:
+    redhat_setopt_available::
+      "no_locking_option" string => "--setopt=exit_on_lock=True";
+    !redhat_setopt_available::
+      "no_locking_option" string => "";
+
+
+  classes:
+    redhat::
+      "redhat_setopt_available" not => returnszero("LANG=C ${paths.path[yum]} --setopt=exit_on_lock=True 2>&1 | ${paths.path[grep]} -E '(Command line error: no such option: --setopt|Main config did not have a exit_on_lock attr. before setopt)'", "useshell");
+
+}
 bundle common redhat_knowledge
 # This common bundle has useful information about Red Hat and its
 # derivatives
@@ -121,8 +134,9 @@ bundle common redhat_knowledge
     centos_4|redhat_4|centos_3|redhat_3::
       "yum_options" string => "";
 
+      # for centos 5 and more, we have a chance to have also a non locking yum
     !(centos_4|redhat_4|centos_3|redhat_3)::
-      "yum_options" string => "--quiet";
+      "yum_options" string => "--quiet ${redhat_no_locking_knowledge.no_locking_option}";
     any::
       "yum_offline_options" string => "$(yum_options) -C";
 
@@ -157,6 +171,7 @@ bundle common redhat_knowledge
             bbegin;            # Jump back to begin.
         };
         p;                     # Print current buffer.'";
+
 }
 
 bundle common suse_knowledge
@@ -489,8 +504,8 @@ body package_method msi_explicit(repo)
 body package_method yum
 {
       package_changes => "bulk";
-      package_list_command => "/usr/bin/yum --quiet list installed";
-      package_patch_list_command => "/usr/bin/yum --quiet check-update";
+      package_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} list installed";
+      package_patch_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
 
       # Remember to escape special characters like |
 
@@ -505,7 +520,7 @@ body package_method yum
       package_delete_convention => "$(name)";
 
       # set it to "0" to avoid caching of list during upgrade
-      package_list_update_command => "/usr/bin/yum --quiet check-update";
+      package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
       package_list_update_ifelapsed => "240";
 
       package_patch_installed_regex => "^\s.*";
@@ -538,7 +553,7 @@ body package_method yum_rpm
 {
   package_changes => "bulk";
   package_list_command => "/bin/rpm -qa --qf '%{name}.%{arch} %{version}-%{release}\n'";
-  package_patch_list_command => "/usr/bin/yum --quiet check-update";
+  package_patch_list_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
 
   package_list_name_regex    => "([^.]+).*";
   package_list_version_regex => "[^\s]\s+([^\s]+).*";
@@ -551,7 +566,7 @@ body package_method yum_rpm
   package_delete_convention => "$(name)";
 
   # set it to "0" to avoid caching of list during upgrade
-  package_list_update_command => "/usr/bin/yum --quiet check-update";
+  package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
   package_list_update_ifelapsed => "240";
 
   package_patch_installed_regex => "^\s.*";
@@ -1116,13 +1131,13 @@ SuSE::
 redhat::
  package_changes => "bulk";
  package_list_command => "$(rpm_knowledge.call_rpm) -qa --qf '%{name} %{version}-%{release} %{arch}\n'";
- package_patch_list_command => "$(redhat_knowledge.call_yum) --quiet check-update";
+ package_patch_list_command => "$(redhat_knowledge.call_yum) ${redhat_knowledge.yum_options} check-update";
  package_list_name_regex    => "^(\S+?)\s\S+?\s\S+$";
  package_list_version_regex => "^\S+?\s(\S+?)\s\S+$";
  package_list_arch_regex    => "^\S+?\s\S+?\s(\S+)$";
  package_installed_regex => ".*";
  package_name_convention => "$(name)";
- package_list_update_command => "/usr/bin/yum --quiet check-update";
+ package_list_update_command => "/usr/bin/yum ${redhat_knowledge.yum_options} check-update";
  package_list_update_ifelapsed => "0";     # sometimes, caching is pretty disturbing
  package_patch_installed_regex => "^\s.*";
  package_patch_name_regex    => "([^.]+).*";

@@ -204,16 +204,18 @@
                             <span class="input-group-addon cursorMove"><b>:::</b></span>
                             <div class="panel-heading" style="overflow:hidden">
                                 <h4 class="panel-title">
+                                <div class="method-settings">
+                                      <i type="button" class="glyphicon glyphicon-circle-arrow-up icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
+                                      <i type="button" class="glyphicon glyphicon-circle-arrow-down icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
+                                      <i aria-hidden="true" class="glyphicon glyphicon-remove-sign icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
+                                     <i type="button" class="glyphicon icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
+                                </div>
                                   <span class="pull-left">
                                     {{getMethodName(method_call)}}
                                     <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{getMethodBundleName(method_call)}}">
                                       <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
                                     </a>
                                   </span>
-                                  <i type="button" class="glyphicon pull-right icon-margin" ng-class="{'glyphicon-chevron-left': isSelectedMethod(method_call), 'glyphicon-chevron-right': !isSelectedMethod(method_call)}"></i>
-                                  <i aria-hidden="true" class="glyphicon glyphicon-remove-sign pull-right icon-margin icon-delete method-actions" ng-click="removeMethod($index); $event.stopPropagation();"></i>
-                                  <i type="button" class="glyphicon glyphicon-circle-arrow-down pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === selectedTechnique.method_calls.length - 1" ng-click="moveUp($index); $event.stopPropagation();"></i>
-                                  <i type="button" class="glyphicon glyphicon-circle-arrow-up pull-right icon-margin  method-actions" aria-hidden="true" ng-hide="$index === 0" ng-click="moveDown($index); $event.stopPropagation();"></i>
                                 <br style="clear:both"/>
                                 <small class="pull-left method-margin" >
                                     {{getMethodDescription(method_call)}}
