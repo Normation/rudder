@@ -51,13 +51,11 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.services.eventlog.EventLogFactory
 
-
-
 import net.liftweb.common._
+import org.joda.time.DateTime
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
-
 
   /**
    * Save an eventLog
@@ -325,7 +323,6 @@ trait EventLogRepository {
     )
   }
 
-
   /**
    * Node properties: heartbeat, agent run, properties
    */
@@ -382,6 +379,10 @@ trait EventLogRepository {
    */
   def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String] = None) : Box[Seq[EventLog]]
 
+  /**
+   * Returns all events produced after a Date
+   */
+  def getEventAfterDate( after : DateTime) : Box[Seq[EventLog]]
 
   def getEventLogByChangeRequest(changeRequest : ChangeRequestId, xpath:String, optLimit:Option[Int] = None, orderBy:Option[String] = None, eventTypeFilter : Option[Seq[EventLogFilter]] = None) : Box[Seq[EventLog]]
 
