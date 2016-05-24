@@ -248,11 +248,11 @@
             </div>
             </form>
 
-            <div class="col-md-5 ncf_col" style="vertical-align:top; padding-left:0px;" ng-if="selectedMethod">
+            <div class="col-md-5 ncf_col" style="vertical-align:top; padding-left:0px;" ng-if="selectedMethod !== undefined">
                 <div style="padding-left:15px;margin-bottom:95px;">
                     <div class="title">Method</div>
                     <h3 >{{getMethodName(selectedMethod)}}
-                        <button ng-disabled="isUnchangedMethod(selectedMethod)" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
+                        <button ng-disabled="! canResetMethod()" class="btn btn-default pull-right top-margin" ng-click="resetMethod()">Reset</button>
                     </h3>
                     <accordion>
                         <accordion-group ng-init="isopen = false" is-open="isopen">
