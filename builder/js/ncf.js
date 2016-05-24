@@ -109,7 +109,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     // Add element
     // if type is a bundle, then transform it to a method call and add it
     if (type === "bundle") {
-      return $scope.toMethodCall(elem);
+      return toMethodCall(elem);
     }
 
     // If selected method is the same than the one moving, we need to update selectedMethod
@@ -167,32 +167,35 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       }
     } };
 
+  function defineMethodClassContext (method_call) {
+    // First split from .
+    var myclasses =  method_call.class_context.split(".");
+    // find os class from the first class of class_context
+    var osClass = find_os_class(myclasses[0], cfengine_OS_classes);
+    if ( $.isEmptyObject(osClass)) {
+      // first class is not an os class, class_context is only advanced class
+      method_call.advanced_class = method_call.class_context;
+    } else {
+      // We have an os class !
+      method_call.OS_class = osClass;
+      if (myclasses.length > 1) {
+        // We have more than one class, rest of the context is an advanced class
+        myclasses.splice(0,1);
+        method_call.advanced_class = myclasses.join(".");
+      }
+    }
+  }
+
   // Transform a ncf technique into a valid UI technique
   // Add original_index to the method call, so we can track their modification on index
   // Handle classes so we split them into OS classes (the first one only) and advanced classes
-  $scope.toTechUI = function (technique) {
+  function toTechUI (technique) {
     if ("method_calls" in technique) {
       var calls = technique.method_calls.map( function (method_call, method_index) {
         method_call["original_index"] = method_index;
 
         // Handle class_context
-        // First split from .
-        var myclasses =  method_call.class_context.split(".");
-        // find os class from the first class of class_context
-        var osClass = find_os_class(myclasses[0], cfengine_OS_classes);
-        if ( $.isEmptyObject(osClass)) {
-          // first class is not an os class, class_context is only advanced class
-          method_call.advanced_class = method_call.class_context;
-        } else {
-          // We have an os class !
-          method_call.OS_class = osClass;
-          if (myclasses.length > 1) {
-            // We have more than one class, rest of the context is an advanced class
-            myclasses.splice(0,1);
-            method_call.advanced_class = myclasses.join(".");
-          }
-        }
-
+        defineMethodClassContext(method_call)
         method_call.parameters=$scope.getMethodParameters(method_call)
         return method_call;
       } );
@@ -202,7 +205,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   // Transform a ui technique into a valid ncf technique by removint original_index param
-  $scope.toTechNcf = function (baseTechnique) {
+  function toTechNcf (baseTechnique) {
     var technique = angular.copy(baseTechnique);
     var calls = technique.method_calls.map( function (method_call, method_index) {
       delete method_call.original_index;
@@ -234,7 +237,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       success(function(data, status, headers, config) {
 
         $.each( data.data, function(techniqueName, technique_raw) {
-          var technique = $scope.toTechUI(technique_raw);
+          var technique = toTechUI(technique_raw);
           $scope.techniques.push(technique);
         })
 
@@ -301,8 +304,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Click on a Technique
   // Select it if it was not selected, unselect it otherwise
   $scope.selectTechnique = function(technique) {
-    // Always clean Selected methods and add method
-    $scope.selectedMethod = undefined;
+    // Always clean Selected methods and display methods list
+     $scope.selectedMethod = undefined;
     // Check if that technique is the same as the original selected one
     if(angular.equals($scope.originalTechnique,technique) ) {
       // It's the same, unselect the technique
@@ -408,7 +411,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
       // We need a timeout so model change can be taken into account and element to scroll is displayed
       $timeout( function() {$anchorScroll();}, 0 , false)
     } else {
-      $scope.selectedMethod=method_call;
+      $scope.selectedMethod = method_call;
       $scope.updateClassContext();
     }
   };
@@ -418,8 +421,8 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     $scope.selectedMethod = undefined;
   };
 
-  $scope.toMethodCall = function(bundle) {
-    var original_index = $scope.selectedTechnique.method_calls.length;
+  function toMethodCall(bundle) {
+    var original_index = undefined;
     var call = {
         "method_name" : bundle.bundle_name
       , "original_index" : original_index
@@ -429,12 +432,13 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
         return  v;
       })
     }
-    return call
+    defineMethodClassContext(call)
+    return angular.copy(call)
   }
 
   // Add a method to the technique
   $scope.addMethod = function(bundle) {
-    var call = $scope.toMethodCall(bundle);
+    var call = toMethodCall(bundle);
     $scope.selectedTechnique.method_calls.push(call);
   };
 
@@ -449,13 +453,27 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   };
 
   // Check if a method has not been changed, and if we can use reset function
-  $scope.isUnchangedMethod = function(methodCall) {
-    return angular.equals(methodCall, $scope.originalTechnique.method_calls[methodCall.original_index]);
+  $scope.canResetMethod = function() {
+    var canReset = true;
+    if ($scope.selectedMethod.original_index === undefined) {
+      canReset = false;
+    } else {
+      var oldValue = $scope.originalTechnique.method_calls[$scope.selectedMethod.original_index];
+      if ( oldValue === undefined) {
+        canReset = false;
+      }  else {
+        canReset = ! angular.equals($scope.selectedMethod, oldValue);
+      }
+    }
+    
+    return canReset;
   };
 
   // Reset a method to the current value in the technique
   $scope.resetMethod = function() {
-    $scope.selectedMethod=angular.copy($scope.originalTechnique.method_calls[methodCall.original_index]);
+    var oldValue = $scope.originalTechnique.method_calls[$scope.selectedMethod.original_index];
+    $scope.selectedMethod.class_context = oldValue.class_context;
+    $scope.selectedMethod.parameters = oldValue.parameters;
   };
 
   // Create a new technique stub
@@ -602,6 +620,17 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Resets a Technique to its original state
   $scope.resetTechnique = function() {
     $scope.selectedTechnique=angular.copy($scope.originalTechnique);
+    // Reset selected method too
+    if ($scope.selectedMethod !== undefined) {
+      // if original_index did not exists, close the edit method tab
+      if ($scope.selectedMethod.original_index === undefined) {
+        $scope.selectedMethod = undefined;
+      } else {
+        // Synchronize the selected method with the one existing in the updated selected technique
+        var method = $scope.selectedTechnique.method_calls[$scope.selectedMethod.original_index]
+        $scope.selectedMethod = method;
+      }
+    }
   };
 
   // Delete a technique
@@ -638,26 +667,33 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
     var technique = angular.copy($scope.selectedTechnique);
     var origin_technique = angular.copy($scope.originalTechnique);
 
-    var data = { "path" :  $scope.path, "technique" : $scope.toTechNcf(technique) }
-
+    // transform technique so it is valid to send to API:
+    var ncfTechnique = toTechNcf(technique);
+    var data = { "path" :  $scope.path, "technique" : ncfTechnique }
     // Function to use after save is done
     // Update selected technique if it's still the same technique
     // update technique from the tree
     var saveSuccess = function(data, status, headers, config) {
+      // Transform back ncfTechnique to UITechnique, that will make it ok
+      var savedTechnique = toTechUI(ncfTechnique);
+
+       // Update technique if still selected
+      if (angular.equals($scope.originalTechnique, origin_technique)) {
+        $scope.originalTechnique=angular.copy(savedTechnique);
+        $scope.selectedTechnique=angular.copy(savedTechnique);
+        // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
+        $scope.selectedMethod = undefined;
+      }
 
       ngToast.create({ content: "<b>Success! </b> Technique '" + technique.name + "' saved!"});
       // Find index of the technique in the actual tree of technique (look for original technique)
       var index = findIndex($scope.techniques,origin_technique);
       if ( index === -1) {
         // Add a new techniuqe
-        $scope.techniques.push(technique);
+        $scope.techniques.push(savedTechnique);
       } else {
         // modify techique in array
-        $scope.techniques[index] = technique;
-      }
-      // Update technique if still selected
-      if (angular.equals($scope.selectedTechnique, technique)) {
-        $scope.originalTechnique=angular.copy(technique);
+        $scope.techniques[index] = savedTechnique;
       }
     }
 
