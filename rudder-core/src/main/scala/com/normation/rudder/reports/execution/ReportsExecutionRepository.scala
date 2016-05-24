@@ -41,6 +41,7 @@ import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.rudder.repository.CachedRepository
+import com.normation.rudder.domain.logger.ReportLogger
 
 /**
  * Service for reading or storing execution of Nodes
@@ -85,6 +86,8 @@ class CachedReportsExecutionRepository(
   , writeBackend: WoReportsExecutionRepository
 ) extends RoReportsExecutionRepository with WoReportsExecutionRepository with CachedRepository {
 
+  val logger = ReportLogger
+
   /*
    * We need to synchronise on cache to avoid the case:
    * - initial state: RUNS_0 in backend
@@ -125,7 +128,9 @@ class CachedReportsExecutionRepository(
     for {
       runs <- writeBackend.updateExecutions(executions)
     } yield {
-      cache = cache ++ runs.filter( _.isCompleted ).map(x => (x.agentRunId.nodeId, Some(x))).toMap
+      val complete = runs.filter( _.isCompleted )
+      logger.debug(s"Updating agent runs cache: [${complete.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
+      cache = cache ++ complete.map(x => (x.agentRunId.nodeId, Some(x))).toMap
       runs
     }
   }
