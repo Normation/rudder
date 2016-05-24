@@ -83,7 +83,8 @@ class ReportsExecutionService (
                               lastReportDate.plusDays(maxDays)
                             }
 
-        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Starting analysis for run times from ${lastReportDate.toString(format)} up to ${endBatchDate.toString(format)} (runs after SQL table ID ${lastReportId})")
+        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Starting analysis for run times from "+
+            s"${lastReportDate.toString(format)} up to ${endBatchDate.toString(format)} (runs after SQL table ID ${lastReportId})")
 
         reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
@@ -104,11 +105,13 @@ class ReportsExecutionService (
               val res = writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
-                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
+                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. " +
+                      s"Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
                   statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
-                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to ${(lastReportDate plusDays(maxDays)).toString(format)}, cause is : ${fail.messageChain}")
+                  logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to " +
+                      s"${(lastReportDate plusDays(maxDays)).toString(format)}, cause is : ${fail.messageChain}")
               }
 
               /*
@@ -123,16 +126,16 @@ class ReportsExecutionService (
                * So, until we have a better view of what the actual user are, I let that
                * here.
                */
-
-              this.hook(lastReportId, maxReportId, reportExec.map { _.agentRunId.nodeId}.toSet )
+              val completedRuns = reportExec.filter( _.isCompleted )
+              this.hook(lastReportId, maxReportId, completedRuns.map { _.agentRunId.nodeId}.toSet )
               // end of hooks code
 
               res
 
             } else {
-              logger.debug("There are no nodes executions to store")
               val executionTime = DateTime.now().getMillis() - startTime
-              logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. Added or updated 0 agent runs (up to SQL table ID ${maxReportId})")
+              logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. " +
+                  s"Added or updated 0 agent runs (up to SQL table ID ${maxReportId})")
               statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
             }
 
