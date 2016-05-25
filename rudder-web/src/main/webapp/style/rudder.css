@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -71,7 +71,7 @@
 }
 
 div.innerDetails {
-	display: none; 
+  display: none;
     background : #DEDEDE;
     padding-left:5%;
 }
@@ -124,8 +124,8 @@ td.nodeIndernal {
  **********************************/
 
 .directiveTechnicalInfo{
-	padding-top: 12px;
-	margin-left:10px;
+  padding-top: 12px;
+  margin-left:10px;
 }
 
 .portlet-header .ui-icon {
@@ -248,15 +248,15 @@ form button {
 
 button.ui-state-default {
    width: 130px;
-   
+
 }
 
 .dangerButton {
-	color: #990000 !important;
+  color: #990000 !important;
 }
 
 .dangerButton:hover {
-	background-color: #B33630 !important;
+  background-color: #B33630 !important;
     background-image: linear-gradient(#DC5F59, #B33630) !important;
     background-repeat: repeat-x !important;
     border-color: #CD504A !important;
@@ -299,7 +299,7 @@ form span.inputDetail {
 }
 form input.button {
    margin: 10px 0;
-   padding: 10px; 
+   padding: 10px;
    color: #fff;
    font-weight: bold;
    border: none;
@@ -325,8 +325,8 @@ form input.btnSearch {
 }
 
 
-#searchControl { 
-  margin-top:10px; 
+#searchControl {
+  margin-top:10px;
 }
 #searchControl span {
   margin-left: 10px;
@@ -345,7 +345,7 @@ input.queryInputValue, select.queryInputValue {
   width:280px !important;
   margin: 0px !important;
   padding: 0px !important;
-  
+
 }
 
 .cursor{
@@ -401,7 +401,7 @@ Tableau
 }
 
 .sgridbph{
-  border:0; 
+  border:0;
   padding:0;
   height:200px;
 }
@@ -438,17 +438,17 @@ Tableau
 
 
 .dataTables_wrapper table {
-  width:100%;	
+  width:100%;
   border-right: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
 }
 
 #grid_rules_grid_zone {
-  width:100%; 
+  width:100%;
 }
 
 #acceptNodeGrid_wrapper {
-  margin: 10px; 
+  margin: 10px;
 }
 
 caption {
@@ -536,7 +536,7 @@ div#Detail {
    min-height: 100%;
    background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
    display: block;
-   min-height: 107px; 
+   min-height: 107px;
 }
 #Detail div {
    padding: 10px;
@@ -549,15 +549,15 @@ div#Detail {
 }
 
 .field_errors, .error, .errors {
-  color: red;  
+  color: red;
 }
 
 .field_errors {
-  margin-top:4px;   
+  margin-top:4px;
 }
 
 .field_errors li {
-  list-style-position:inside;   
+  list-style-position:inside;
 }
 
 
@@ -626,23 +626,23 @@ div#Detail {
   height:20px;
 }
 .sorting span,.sorting_asc span,.sorting_desc span   {
-  float:right;  
+  float:right;
   width:14px;
 }
 .sorting {
-  cursor: pointer; 
+  cursor: pointer;
 }
-.sorting_asc { 
-  cursor: pointer; 
+.sorting_asc {
+  cursor: pointer;
 }
-.sorting_desc { 
-  cursor: pointer; 
+.sorting_desc {
+  cursor: pointer;
 }
 
 /**********************************
- * Pagination nested 
+ * Pagination nested
  **********************************/
- 
+
 .dataTables_paginate {
   float: right;
   text-align: right;
@@ -660,7 +660,7 @@ div#Detail {
 
 
 table.noMarginGrid {
-	border-left : 0 ;
+  border-left : 0 ;
     border-right : 0 ;
 }
 .noMarginGrid {
@@ -673,7 +673,7 @@ table.noMarginGrid {
 .dataTables_wrapper_top {
   padding: 6px;
   overflow: hidden;
-  display: block; 
+  display: block;
   border-top: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
   border-right: 1px solid #B4B3A8;
@@ -684,7 +684,7 @@ table.noMarginGrid {
 .dataTables_wrapper_bottom {
   padding: 6px;
   overflow: hidden;
-  display: inline-block; 
+  display: inline-block;
   display: block;
   border-bottom: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
@@ -697,7 +697,7 @@ table.noMarginGrid {
   border-right: 1px solid #B4B3A8;
   width: 100%;
 }
- 
+
 .paginate_disabled_previous, .paginate_enabled_previous, .paginate_disabled_next, .paginate_enabled_next {
   height: 19px;
   width: 19px;
@@ -776,7 +776,7 @@ table.noMarginGrid {
 
 .variableDefinition td {
   border-bottom:dotted 1 px lightgrey;
-  
+
 }
 
 .variableDefinition span,
@@ -863,7 +863,7 @@ div.foldedSection div.section-title:before {
 }
 
 /**********************************
- *add / remove group 
+ *add / remove group
  **********************************/
 
 .lopaddscala{
@@ -960,7 +960,7 @@ padding:0 20px;
   padding: 0px 0px 0px 15px;
 }
 .catdelete{
-  font-size:0.9em; 
+  font-size:0.9em;
   margin-left: 5px;
 }
 .margins{
@@ -1002,12 +1002,12 @@ fieldset.groupCategoryUpdateComponent {
   padding:5px;
   margin:5px;
   width: 580px;
-  
+
 }
 fieldset.groupUpdateComponent {
   padding:8px;
   margin:5px;
-  width: 580px; 
+  width: 580px;
 }
 
 tr.query_line, .query_line td {
@@ -1060,7 +1060,7 @@ table#serverGrid tbody td {
   float:left;
 }
 div.dataTables_scroll {
-  clear: both; 
+  clear: both;
 }
 
 #serverGrid_info_area {
@@ -1112,7 +1112,7 @@ fieldset.hierarchy {
   margin:5px;
   padding:5px;
   /*float: left;*/
-  display: inline-block; 
+  display: inline-block;
   vertical-align: top;
 }
 
@@ -1121,7 +1121,7 @@ fieldset.groupCategory {
   margin:5px;
   padding:5px;
   float: left;
-  
+
 }
 
 .nodeGroupSubmitSearch {
@@ -1138,7 +1138,7 @@ fieldset.crEditHierarchy {
   vertical-align: top;
 }
 /* Firefox specific behavior cause bug https://bugzilla.mozilla.org/show_bug.cgi?id=504622 https://bugzilla.mozilla.org/show_bug.cgi?id=261037 */
-@-moz-document url-prefix() { 
+@-moz-document url-prefix() {
   fieldset.crEditHierarchy {
     display: table-column;
   }
@@ -1179,7 +1179,7 @@ a:focus {
 structure
 **************************************/
 .subContainerReasonField {
-    padding: 0 4px 0 4px;    
+    padding: 0 4px 0 4px;
 }
 
 div#prelude {
@@ -1257,17 +1257,17 @@ div#infosUser {
 #documentation {
   float: right;
   font-size: 14px;
-  font-weight: bold;  
+  font-weight: bold;
   padding-right: 20px;
 }
 
 #documentation a {
-    color: #999; 
+    color: #999;
 }
 
 
 .automaticCleanDetail {
-	padding : 5px 5px 0;
+  padding : 5px 5px 0;
 } 
 #create-user {
    border: none;
@@ -1406,7 +1406,7 @@ menu secondaire
 }
 
 .portlet {
-	border-radius: 0 !important;
+  border-radius: 0 !important;
 }
 *html #navigation.minimized #slickbox {
    width: 10px;
@@ -1475,7 +1475,7 @@ div#slickbox {
    color: #f79d10;
    font-size: 1.2em;
    border-top: 1px solid #2d2d2d;
-   background: url(../images/puceNiv2.jpg) no-repeat left top;   
+   background: url(../images/puceNiv2.jpg) no-repeat left top;
 }
 #slickbox .niv2 a:hover {
    height: 20px;
@@ -1618,13 +1618,13 @@ p img {
 popin
 **************************************/
 
-div#login, 
-div#account, 
+div#login,
+div#account,
 #addPopupContent {
    height: auto;
    background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
    display: block;
-   min-height: 107px; 
+   min-height: 107px;
 }
 
 div#refusePopup {
@@ -1649,7 +1649,7 @@ div#refusePopup {
   overflow-y: scroll;
 }
 .newservercell{
-  overflow:scroll; 
+  overflow:scroll;
   max-height: 100px;
 }
 
@@ -1677,8 +1677,8 @@ div#refusePopup {
 popin Login
 **************************************/
 
-#dialogLogOut { 
-  display:none; 
+#dialogLogOut {
+  display:none;
 }
 
 #dialogLogOut a:hover {
@@ -1741,7 +1741,7 @@ popin Account
 }
 #account input#acSubmit {
    margin: 10px 0;
-   padding: 10px; 
+   padding: 10px;
    color: #fff;
    font-weight: bold;
    border: none;
@@ -1777,9 +1777,9 @@ popin Alert
   display:none;
   }
 #simplemodal-container {
-  color:#000000; 
-  background-color:#FFFFFF; 
-  border:4px solid #F79D10; 
+  color:#000000;
+  background-color:#FFFFFF;
+  border:4px solid #F79D10;
   padding:0px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
     }
@@ -1826,23 +1826,23 @@ popin Alert
   padding:6px;
 }
 #simplemodal-container code {
-  background:#141414; 
-  border-left:3px solid #65B43D; 
-  color:#bbb; 
-  display:block; 
-  font-size:12px; 
-  margin-bottom:12px; 
+  background:#141414;
+  border-left:3px solid #65B43D;
+  color:#bbb;
+  display:block;
+  font-size:12px;
+  margin-bottom:12px;
   padding:4px 6px 6px;
 }
 #simplemodal-container a.modalCloseImg {
-  background:url("../images/popin/croix.png") no-repeat; 
-  width:31px; 
-  height:30px; 
-  display:inline; 
-  z-index:3200; 
-  position:absolute; 
-  top:-15px; 
-  right:-16px; 
+  background:url("../images/popin/croix.png") no-repeat;
+  width:31px;
+  height:30px;
+  display:inline;
+  z-index:3200;
+  position:absolute;
+  top:-15px;
+  right:-16px;
   cursor:pointer;
 }
 #simplemodal-overlay {
@@ -1923,15 +1923,15 @@ popin Alert
   opacity: 0.85;
   padding: 4px;
 }
-#tooltip h3, #tooltip div { 
-  margin: 0; 
+#tooltip h3, #tooltip div {
+  margin: 0;
 }
 
 /* tooltip styling.  */
 
 .tooltipContent {
   display:none;
-  
+
 }
 
 .red {
@@ -1949,18 +1949,18 @@ color: #FF0000 !important;
 }
 
 .smallButton span {
-  padding-top: 0px !important;	
-  padding-bottom: 2px !important;	
-  padding-left: 0px !important;	
-  padding-right: 0px !important;	
+  padding-top: 0px !important;
+  padding-bottom: 2px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
 }
 
 td.complianceTd, td.parametersTd {
-	text-align: center !important;
+  text-align: center !important;
 }
 
 .smallButton img {
-  height: 15px;	
+  height: 15px;
 }
 
 .mediumButton {
@@ -1969,14 +1969,14 @@ td.complianceTd, td.parametersTd {
 }
 
 .mediumButton span {
-  padding-top: 0px !important;	
-  padding-bottom: 0px !important;	
-  padding-left: 0px !important;	
-  padding-right: 0px !important;	
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
 }
 
 .mediumButton img {
-  height: 15px;	
+  height: 15px;
 }
 .autoWidthButton {
   width: auto !important;
@@ -1988,8 +1988,8 @@ td.complianceTd, td.parametersTd {
   border-bottom:1px solid red;
   cursor:pointer;
 }
-.tree li.filteredNode { 
-  display:none; 
+.tree li.filteredNode {
+  display:none;
 }
 .deca{
   padding: 10px;
@@ -2009,8 +2009,8 @@ td.complianceTd, td.parametersTd {
 }
 .green{
   color:green;
-  margin:5px; 
-  font-style:italic; 
+  margin:5px;
+  font-style:italic;
   font-size: 0.9em;
 }
 .warnicon{
@@ -2018,11 +2018,11 @@ td.complianceTd, td.parametersTd {
   margin-right:9px;
 }
 .erroricon{
-  float:left; 
+  float:left;
   margin-right:10px;
 }
 .icon{
-  float:left; 
+  float:left;
   margin-right:20px;
 }
 .greenscala{
@@ -2032,7 +2032,7 @@ td.complianceTd, td.parametersTd {
   text-align:center;
 }
 .greyscala{
-  color:grey; 
+  color:grey;
   border-bottom:1px dotted grey;
 }
 .checkbox{
@@ -2052,7 +2052,7 @@ td.complianceTd, td.parametersTd {
     margin-left: -50px;
     margin-top: -50px;
     z-index:9999;
-    overflow: auto; 
+    overflow: auto;
     display:none;
 }
 
@@ -2065,7 +2065,7 @@ div#footer {
    height: 40px;
    color: #999;
    font-size: 1.3em;
-   background: #2e2d2d url(../images/fondBody.jpg) repeat-x top left; 
+   background: #2e2d2d url(../images/fondBody.jpg) repeat-x top left;
    position:absolute;
    bottom:0;
    width:100%;
@@ -2119,13 +2119,13 @@ hr.spacer {
 
 .threeCol {
     float:left;
-    width:30%; 
+    width:30%;
     margin-right: 4px;
 }
 
 .threeColReason {
     float:left;
-    width:30%; 
+    width:30%;
     margin-right: 2px;
     margin-bottom: 5px;
 }
@@ -2143,7 +2143,7 @@ hr.spacer {
 .largeCol {
    float:left;
    margin-right: 2px;
-   width:60%; 
+   width:60%;
 }
 
 .align-radio span {
@@ -2162,7 +2162,7 @@ hr.spacer {
 
 .groupDiv {
    margin-top: 5px;
-   margin-bottom: 10px;  
+   margin-bottom: 10px;
 }
 
 legend {
@@ -2180,7 +2180,7 @@ legend {
 
 /************************************
 Portlet content for object details
-(for example, details about a Directive 
+(for example, details about a Directive
 template, a Directive, etc)
 ************************************/
 
@@ -2238,7 +2238,7 @@ div.tabInform {
 }
 
 .errorInput {
-  border-color: red;    
+  border-color: red;
 }
 
 .reportLine {
@@ -2250,8 +2250,8 @@ div.tabInform {
 }
 
 .filter {
-	float : right;
-	margin-right : 14px;
+  float : right;
+  margin-right : 14px;
 }
 /***********************************
  *Directive display
@@ -2303,8 +2303,8 @@ tr.parametersDescription {
 }
 
 .emptyTd {
-	border: 0pt none !important;
-	background : #DEDEDE !important;
+  border: 0pt none !important;
+  background : #DEDEDE !important;
 }
 
 .reportTable {
@@ -2316,17 +2316,17 @@ border-bottom : 2pt ridge;
 }
 .firstTd {
 
-	border-left: 1px ridge #ABABAB !important;
+  border-left: 1px ridge #ABABAB !important;
 }
 
 td.nestedImg{
-	padding: 0px 3px !important;
+  padding: 0px 3px !important;
 }
 .evlogviewpad li{
   list-style-type: disc;
 }
 .evloglmargin{
-  margin: 7px;  
+  margin: 7px;
 }
 .reportsList {
   margin : 10px;
@@ -2415,12 +2415,12 @@ td.Missing {
 }
 
 td.details{
-	border:none;
+  border:none;
 }
 
 li.eventLogUpdatePolicy {
-  list-style-position: inside;  
-  list-style-type: none;    
+  list-style-position: inside;
+  list-style-type: none;
 }
 
 table.eventLogUpdatePolicy {
@@ -2470,7 +2470,7 @@ tr.unfoldable {
 
 .quickSearch {
   text-align: center;
-  margin-top: 5px;	
+  margin-top: 5px;
 }
 
 .topQuickSearch {
@@ -2487,14 +2487,14 @@ tr.unfoldable {
 }
 
 
-  
+
 
 .topQuickSearchResults ul li {
   font-size: 10px;
 }
 
 div.topQuickSearchResults.ac_results {
-  width: 200px !important;  
+  width: 200px !important;
 }
 
 /***********************************
@@ -2544,7 +2544,7 @@ a>.jstree-icon
 }
 
 .homePageBlock {
-  margin: 10px; 
+  margin: 10px;
 }
 
 .homePageBlock li {
@@ -2556,7 +2556,7 @@ del {
   text-decoration: none;
   background: #FFD6D6;
 }
- 
+
 ins {
   text-decoration: none;
   background: #D6FFD6;
@@ -2566,7 +2566,7 @@ table thead th div.DataTables_sort_wrapper {
   position: relative;
   padding-right: 20px;
 }
- 
+
 table thead th div.DataTables_sort_wrapper span {
   position: absolute;
   top: 50%;
@@ -2575,21 +2575,21 @@ table thead th div.DataTables_sort_wrapper span {
 }
 
 table thead th {
-  border-top: none !important; 
-  border-right: none !important; 
+  border-top: none !important;
+  border-right: none !important;
 }
 
 .fg-button {
-  border-top: 1px solid #B4B3A8; 
-  border-right: none !important; 
+  border-top: 1px solid #B4B3A8;
+  border-right: none !important;
   font-weight: normal !important;
 }
 
 .paginate_button_disabled, .paginate_button, .paginate_active {
-  border-top: 1px solid #B4B3A8; 
-  border-bottom: 1px solid #B4B3A8; 
-  border-left: 1px solid #B4B3A8; 
-  border-right: none; 
+  border-top: 1px solid #B4B3A8;
+  border-bottom: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: none;
   display:inline-block;
 }
 
@@ -2598,7 +2598,7 @@ table thead th {
 }
 
 .dataTables_wrapper table {
-	border-collapse: collapse;
+  border-collapse: collapse;
 }
 
 #serverGrid_wrapper .dataTables_wrapper_top {
@@ -2616,7 +2616,7 @@ table thead th {
 }
 
 #allowedNetworksForm {
-  margin-top: -7px;	
+  margin-top: -7px;
 }
 
 .database-info-table {
@@ -2624,15 +2624,15 @@ table thead th {
 }
 
 .database-info-table td {
-  border: none !important;	
+  border: none !important;
 }
 
 #reportFromDate, #archiveReports {
-  margin-left: 7px;	
+  margin-left: 7px;
 }
 
 div.ac_results {
-  width: 304px !important;	
+  width: 304px !important;
 }
 
 .ac_over {
@@ -2645,12 +2645,12 @@ fieldset {
 }
 
 .note {
-  color: #555555;	
-  margin: 5px 0px 0px 0px; 
+  color: #555555;
+  margin: 5px 0px 0px 0px;
 }
 
 .groupCategoryUpdateComponent {
-  width: 450px;	
+  width: 450px;
 }
 
 #ajaxItemContainer {
@@ -2750,29 +2750,29 @@ li.excluded a{
 }
 
 .ui-tooltip {
-	max-width: 600px !important;
+  max-width: 600px !important;
     border: 1px solid #DDDDDD !important;
     color: #333333 !important;
 }
 
 .techniqueEditorLink {
-	float:right;
-	text-decoration:none;
-	font-weight:bold;
-	font-size:13px;
-	margin-top:-5px;
+  float:right;
+  text-decoration:none;
+  font-weight:bold;
+  font-size:13px;
+  margin-top:-5px;
 }
 
 .simplemodal-bottom {
-	height:45px;
+  height:45px;
 }
 
 .searchNodes tr td {
-	padding: 0 5px;
+  padding: 0 5px;
 }
 
 .deprecatedTechniqueIcon {
-	margin-left : 3px;
+  margin-left : 3px;
 }
 
 #displayDeprecation {
@@ -2797,11 +2797,11 @@ form .tw-bs input {
 }
 
 #cfagentSchedule #scheduleMessage {
-	margin:10px 0 0 15px;
+  margin:10px 0 0 15px;
 }
 
 .form-group select {
-	width: auto;
+  width: auto;
 }
 
 .animate-hide {
@@ -2850,14 +2850,14 @@ input[type="number"] {
 }
 
 #createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
-	width : 500px;
+  width : 500px;
 }
 
 #recentChanges {
-	/** If we want to scroll correctly to recent changes we need to set a minimum height,
-	    or else when the graph appear (just after the scroll) we will only the the recent change section title
-	*/
-	min-height: 520px;
+  /** If we want to scroll correctly to recent changes we need to set a minimum height,
+      or else when the graph appear (just after the scroll) we will only the the recent change section title
+  */
+  min-height: 520px;
 }
 
 button.buttonMargin {
@@ -2865,14 +2865,19 @@ button.buttonMargin {
 }
 
 .c3-legend-item-hidden {
-	opacity : 1;
+  opacity : 1;
 }
 
 #generation-status .glyphicon {
-	top 0;
-	font-size : 11px;
+  top 0;
+  font-size : 11px;
 }
 
 [ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
   display: none !important;
+}
+
+#node-compliance-intro{
+  padding: 10px 15px;
+  margin: 10px;
 }

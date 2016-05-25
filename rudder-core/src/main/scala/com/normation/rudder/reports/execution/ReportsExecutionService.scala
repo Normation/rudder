@@ -51,6 +51,7 @@ import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.inventory.domain.NodeId
 import org.joda.time.Duration
 import org.joda.time.format.PeriodFormat
+import org.joda.time.format.DateTimeFormat
 
 /**
  * That service contains most of the logic to merge
@@ -65,9 +66,8 @@ class ReportsExecutionService (
   , maxDays                : Int // in days
 ) {
 
-  val format = "yyyy/MM/dd HH:mm:ss"
-
   val logger = ReportLogger
+  var idForCheck: Long = 0
 
   def findAndSaveExecutions(processId : Long) = {
     val startTime = DateTime.now().getMillis()
@@ -76,6 +76,14 @@ class ReportsExecutionService (
       // Find it, start looking for new executions
       case Full(Some((lastReportId,lastReportDate))) =>
 
+        //a test to let the user that there is some inconsistencies in the run
+        //we are tracking, and that it may have serious problem.
+        if(idForCheck != 0 && lastReportId != idForCheck) {
+          logger.error(s"There is an inconsistency in the processed agent runs: last process report id shoudl be ${idForCheck} " +
+              s"but the value ${lastReportDate} was retrieve from base. Check that you don't have several Rudder application " +
+              s"using the same database, or report that message to you support")
+        }
+
         // Get reports of the last id and before last report date plus maxDays
         val endBatchDate = if (lastReportDate.plusDays(maxDays).isAfter(DateTime.now)) {
                               DateTime.now
@@ -83,8 +91,8 @@ class ReportsExecutionService (
                               lastReportDate.plusDays(maxDays)
                             }
 
-        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Starting analysis for run times from "+
-            s"${lastReportDate.toString(format)} up to ${endBatchDate.toString(format)} (runs after SQL table ID ${lastReportId})")
+        logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] checking agent runs from SQL ID ${lastReportId} " +
+            s"[${lastReportDate.toString()} - ${endBatchDate.toString()}]")
 
         reportsRepository.getReportsfromId(lastReportId, endBatchDate) match {
           case Full((reportExec, maxReportId)) =>
@@ -105,13 +113,14 @@ class ReportsExecutionService (
               val res = writeExecutions.updateExecutions(reportExec) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
-                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. " +
-                      s"Added or updated ${result.size} agent runs, up to SQL table ID ${maxReportId} (last run time was ${maxDate.toString(format)})")
+                  logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
+                      s"Added or updated ${result.size} agent runs, up to SQL ID ${maxReportId} (last run time was ${maxDate.toString()})")
+                  idForCheck = maxReportId
                   statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
                   logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to " +
-                      s"${(lastReportDate plusDays(maxDays)).toString(format)}, cause is : ${fail.messageChain}")
+                      s"${(lastReportDate plusDays(maxDays)).toString()}, cause is : ${fail.messageChain}")
               }
 
               /*
@@ -134,8 +143,9 @@ class ReportsExecutionService (
 
             } else {
               val executionTime = DateTime.now().getMillis() - startTime
-              logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME}] Task #${processId}: Finished analysis in ${executionTime} ms. " +
-                  s"Added or updated 0 agent runs (up to SQL table ID ${maxReportId})")
+              logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
+                  s"Added or updated 0 agent runs")
+              idForCheck = lastReportId
               statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
             }
 
@@ -149,6 +159,7 @@ class ReportsExecutionService (
         reportsRepository.getReportsWithLowestId match {
           case Full(Some((id, report))) =>
             logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
+            idForCheck = id
             statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp)
           case Full(None) =>
             logger.debug("There are no node execution in the database, cannot save the execution")
