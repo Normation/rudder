@@ -50,6 +50,7 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
         int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
+    (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept.!logger_rudder_temp_resfile_repaired.final_resfile_exists)::
       "report_data_read"    expression => isgreaterthan("${number_lines}","0");
   
       # We want to detect if expected report data is available in v2 format.
@@ -76,6 +77,7 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
       # 5/ we aggregate this with the availability of the promiser stack to know if we should report using v2 format
       "report_v2"           expression => "expected_report_v2_csv.expected_report_v2_res.method_v2.has_promiser_stack.class_prefix_v2";
 
+    any::
       "keys_defined"        expression => isvariable("keys");
 
       "no_old_class_prefix" expression => strcmp("${old_class_prefix}", "");
