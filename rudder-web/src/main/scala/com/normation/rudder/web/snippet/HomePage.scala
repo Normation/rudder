@@ -174,7 +174,7 @@ class HomePage extends Loggable {
       _ = TimingDebugLogger.debug(s"Compute compliance: ${n3 - n2}ms")
     } yield {
 
-      val reportsByNode = reports.groupBy(_.nodeId).mapValues(reports => ComplianceLevel.sum(reports.map(_.compliance)))
+      val reportsByNode = reports.mapValues { case(run, reports) => ComplianceLevel.sum(reports.map(_.compliance)) }
 
       /*
        * Here, for the compliance by node, we want to distinguish (but NOT ignore, like in globalCompliance) the
@@ -240,7 +240,7 @@ class HomePage extends Loggable {
      val diagramColor = JsObj(sorted.map(_.jsColor):_*)
 
      // Data used for compliance bar, compliance without pending
-     val compliance = ComplianceLevel.sum(reports.map(_.compliance)).copy(pending = 0)
+     val compliance = ComplianceLevel.sum(reports.flatMap( _._2._2.toSeq.map( _.compliance))).copy(pending = 0)
 
      val complianceBar = JsArray(
          JE.Num(compliance.pc_notApplicable)

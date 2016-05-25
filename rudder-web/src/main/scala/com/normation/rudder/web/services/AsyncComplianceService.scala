@@ -75,7 +75,10 @@ class AsyncComplianceService (
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
-        reports.groupBy( groupBy _ ).map { case (nodeId, nodeReports) =>
+        //here, we are flatMapping to potentially groupBy nodeId again,
+        //but I don't see how to keep be being generic without that.
+        //flatMap on a Set is OK, since reports are different for different nodeIds
+        reports.flatMap( _._2._2 ).groupBy( groupBy _ ).map { case (nodeId, nodeReports) =>
           //BE CAREFUL: nodeReports is a SET - and it's likely that
           //some compliance will be equals. So change to seq.
           val compliance = ComplianceLevel.sum(nodeReports.toSeq.map(_.compliance))

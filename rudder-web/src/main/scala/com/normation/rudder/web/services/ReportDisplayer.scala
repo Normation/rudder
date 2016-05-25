@@ -61,6 +61,9 @@ import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.services.reports._
+import com.normation.rudder.repository.NodeConfigIdInfo
+import org.joda.time.format.DateTimeFormat
 
 /**
  * Display the last reports of a server
@@ -110,10 +113,12 @@ class ReportDisplayer(
   def refreshReportDetail(node : NodeInfo) = {
     def refreshData : Box[JsCmd] = {
       for {
-        reports <- reportingService.findNodeStatusReport(node.id)
-        data    <- getComplianceData(node.id, reports)
+        report  <- reportingService.findNodeStatusReport(node.id)
+        data    <- getComplianceData(node.id, report)
       } yield {
-        JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd});""")
+        import net.liftweb.util.Helpers.encJs
+        val intro = encJs(displayIntro(report).toString)
+        JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})""")
       }
     }
 
@@ -127,6 +132,106 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
+
+  private[this] def displayIntro(report: NodeStatusReport): NodeSeq = {
+    def explainCompliance(info: RunAndConfigInfo): NodeSeq = {
+      val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
+
+      def currentConfigId(expectedConfigId: NodeConfigIdInfo) = {
+        s"Current configuration ID for the node is '${expectedConfigId.configId.value}' (generated on ${expectedConfigId.creation.toString(dateFormat)})"
+      }
+
+      info match {
+        case ComputeCompliance(lastRunDateTime, lastRunConfigId, expectedConfigId, expirationDateTime, missingReportStatus) =>
+          (
+            <p>{currentConfigId(expectedConfigId)}.</p>
+            <p>Last complete agent run has correct configuration ID, started on node at {lastRunDateTime.toString(dateFormat)}.</p>
+          )
+
+        case Pending(expectedConfigId, optLastRun, expirationDateTime, missingReportStatus) =>
+          val runInfo = optLastRun match {
+            case None => "No recent runs received for this node"
+            case Some((date, id)) =>
+              s"Last run for node started at ${date.toString(dateFormat)} for configuration ID ${id.configId.value} " +
+              (id.endOfLife match {
+                case None => ""
+                case Some(exp) => s"which expired at ${exp.toString(dateFormat)}"
+              })
+          }
+          (
+            <p>{currentConfigId(expectedConfigId)}.</p>
+            <p>The node is expected to send a report for that configuration ID before {expirationDateTime.toString(dateFormat)} but no reports
+               have been received yet. If that state persists, check that the agent is running.</p>
+            <p>{runInfo}</p>
+          )
+
+        case NoReportInInterval(expectedConfigId) =>
+          (
+            <p>{currentConfigId(expectedConfigId)}.</p>
+            <p>No recent runs were received for node, and the grace period to receive them expired.</p>
+          )
+
+        case NoRunNoInit =>
+          <p>No configuration ID and no run received for that node. It may have been accepted after the last policy regeneration.</p>
+
+        case VersionNotFound(lastRunDateTime, lastRunConfigId) =>
+
+          <p>No configuration ID found for that node, but a run was received at {lastRunDateTime.toString(dateFormat)}. There is probably a
+             problem with that node, perhaps was it deleted and reaccepted, and it is not yet up to date</p>
+
+        case UnexpectedVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
+          (
+            <p>{currentConfigId(expectedConfigId)} but we received a run, started at {lastRunDateTime.toString(dateFormat)}, with a different configuration ID ({lastRunConfigId.configId.value}).</p>
+            <p>The time since generation of the new configuration is longer than the grace period, so all received reports will be mark as unexpected.
+               Please check that the node is able to get its new policies by running 'rudder agent update' on the node.</p>
+          )
+
+        case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
+          (
+            <p>{currentConfigId(expectedConfigId)} but we received a run, started at {lastRunDateTime.toString(dateFormat)}, without any configuration ID.</p>
+            <p>The time since generation of the new configuration is longer than the grace period, so all received reports will be marked as unexpected.
+               Please check that the node is able to get its new policies.</p>
+          )
+
+      }
+
+    }
+    import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
+    //what we print before all the tables
+    val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.repaired + report.compliance.missing + report.compliance.unexpected
+
+    //depending on the kind of report, choose the background.
+
+    val background = report.runInfo match {
+      case _: Pending => "bg-info"
+      case _: ComputeCompliance =>
+        if(nbAttention > 0) {
+          "bg-warning text-warning"
+        } else {
+          "bg-success text-success"
+        }
+      case _          =>
+          "bg-danger text-danger"
+    }
+
+
+    <div class="tw-bs">
+      <div id="node-compliance-intro" class={background}>
+        <p>{explainCompliance(report.runInfo)}</p>
+        <p>{
+          if(nbAttention > 0) {
+            s"There are ${nbAttention} out of ${report.compliance.total} reports that require attention"
+          } else if(report.compliance.pc_pending > 0) {
+            "Policy update in progress"
+          } else {
+            "All the last execution reports for this server are ok"
+          }
+        }</p>
+      </div>
+    </div>
+  }
+
+
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
     val boxXml = (
       for {
@@ -134,21 +239,12 @@ class ReportDisplayer(
         directiveLib <- directiveRepository.getFullDirectiveLibrary
       } yield {
 
-        //what we print before all the tables
-        val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.repaired
-        val intro = if(nbAttention > 0) {
-          <div>There are {nbAttention} out of {report.compliance.total} reports that require our attention</div>
-        } else if(report.compliance.pc_pending > 0) {
-          <div>Policy update in progress</div>
-        } else {
-          <div>All the last execution reports for this server are ok</div>
-        }
 
-        val missing = getComponents(MissingReportType, report, directiveLib).toSet
+        val missing    = getComponents(MissingReportType   , report, directiveLib).toSet
         val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
 
-        bind("lastReportGrid",reportByNodeTemplate
-          , "intro"      ->  intro
+        bind("lastReportGrid", reportByNodeTemplate
+          , "intro"      -> displayIntro(report)
           , "grid"       -> showReportDetail(report, node)
           , "missing"    -> showMissingReports(missing)
           , "unexpected" -> showUnexpectedReports(unexpected)
