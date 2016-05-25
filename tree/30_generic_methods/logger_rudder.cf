@@ -48,8 +48,10 @@ bundle agent logger_rudder(message, class_prefix)
         int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
+    (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept.!logger_rudder_temp_resfile_repaired.final_resfile_exists)::
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
 
+    any::
       "keys_defined"     expression => isvariable("keys");
 
       "final_resfile_exists" expression => fileexists("${expected_reports_file}");
