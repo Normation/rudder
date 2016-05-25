@@ -48,6 +48,9 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import com.normation.rudder.services.reports.Pending
+import com.normation.rudder.repository.NodeConfigIdInfo
+import org.joda.time.DateTime
 
 /**
  * Test properties about status reports,
@@ -217,7 +220,13 @@ class StatusReportTest extends Specification {
   }
 
   "Node status reports" should {
-    val report = NodeStatusReport(NodeId("n1"), parse("""
+    val report = NodeStatusReport(
+        NodeId("n1")
+      , Pending(
+            NodeConfigIdInfo(NodeConfigId("plop"), DateTime.now(), None)
+          , None, DateTime.now.plusMinutes(15), MissingReportType
+        )
+    , parse("""
        n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 12, d1, c1  , v1  , "", pending   , pending msg
        n1, r2, 12, d1, c0  , v0  , "", success   , pending msg

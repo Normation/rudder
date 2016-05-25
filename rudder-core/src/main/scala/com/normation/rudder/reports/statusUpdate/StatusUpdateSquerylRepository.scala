@@ -61,8 +61,8 @@ class StatusUpdateSquerylRepository (
     try {
       sessionProvider.ourSession {
         val q = from(statusTable)(entry =>
-	        where(entry.key === key)
-	        select(entry)
+          where(entry.key === key)
+          select(entry)
         )
         val result = q.toList
 
@@ -91,9 +91,9 @@ class StatusUpdateSquerylRepository (
     try {
       sessionProvider.ourTransaction {
         val timeStamp = new Timestamp(reportsDate.getMillis)
-      	val q = update(statusTable)(entry =>
-        	where(entry.key === key)
-        	set(entry.lastId := reportId, entry.date := timeStamp))
+        val q = update(statusTable)(entry =>
+          where(entry.key === key)
+          set(entry.lastId := reportId, entry.date := timeStamp))
         val entry = new UpdateEntry(key, reportId, timeStamp)
         if (q ==0) // could not update
           Full(statusTable.insert(entry))
@@ -116,7 +116,7 @@ case class UpdateEntry(
     @Column("lastid") lastId : Long,
     @Column("date")   date   : Timestamp
 ) extends KeyedEntity[String]  {
-	def id = key
+  def id = key
 }
 
 object StatusUpdate extends Schema {

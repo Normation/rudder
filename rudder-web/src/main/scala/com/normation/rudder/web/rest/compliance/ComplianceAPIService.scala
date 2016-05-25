@@ -75,11 +75,13 @@ class ComplianceAPIService(
       groupLib      <- nodeGroupRepo.getFullGroupLibrary()
       nodeInfos     <- nodeInfoService.getAll()
       compliance    <- getGlobalComplianceMode()
-      reportsByRule <- reportingService.findRuleNodeStatusReports(
+      reportsByNode <- reportingService.findRuleNodeStatusReports(
                         nodeInfos.keySet, rules.map(_.id).toSet
-                      ).map( _.groupBy(_.ruleId))
+                      )
     } yield {
 
+      //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
+      val reportsByRule = reportsByNode.flatMap { case(nodeId, (runInfo, nodeRuleStatusReports)) => nodeRuleStatusReports }.groupBy( _.ruleId)
 
       // get an empty-initialized array of compliances to be used
       // as defaults
@@ -184,7 +186,7 @@ class ComplianceAPIService(
       compliance   <- getGlobalComplianceMode()
       reports      <- reportingService.findRuleNodeStatusReports(
                         nodeInfos.keySet, rules.map(_.id).toSet
-                      ).map( _.groupBy( _.nodeId ) )
+                      )
     } yield {
 
       //get nodeIds by rules
@@ -215,11 +217,11 @@ class ComplianceAPIService(
 
       //for each rule for each node, we want to have a
       //directiveId -> reporttype map
-      val nonEmptyNodes = reports.map { case (ruleId, ruleNodeStatusReports) =>
+      val nonEmptyNodes = reports.map { case (nodeId, (runInfo, ruleNodeStatusReports)) =>
         (
-          ruleId,
+          nodeId,
           ByNodeNodeCompliance(
-              ruleId
+              nodeId
             , ComplianceLevel.sum(ruleNodeStatusReports.map(_.compliance))
             , compliance.mode
             , ruleNodeStatusReports.toSeq.map(r =>
