@@ -57,6 +57,7 @@ import com.normation.rudder.services.nodes.NodeInfoService
 
 import scala.concurrent._
 import scala.concurrent.ExecutionContext.Implicits.global
+import javax.naming.NoInitialContextException
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -95,17 +96,17 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
       nodeIds <- confExpectedRepo.findCurrentNodeIds(ruleId)
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
-      RuleStatusReport(ruleId, reports.toIterable)
+      val toKeep = reports.values.flatMap( _._2 )
+      RuleStatusReport(ruleId, toKeep)
     }
   }
 
    override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
     for {
-      reports <- findRuleNodeStatusReports(Set(nodeId), Set())
-      report  =  reports.groupBy(_.nodeId).map { case(nodeId, reports) => NodeStatusReport(nodeId, reports) }.toSet
-      result  <- if(report.size == 1) Full(report.head) else Failure("Found bad number of reports for node " + nodeId)
+      reports    <- findRuleNodeStatusReports(Set(nodeId), Set())
+      (run, set) <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
     } yield {
-      result
+      NodeStatusReport(nodeId, run, set)
     }
   }
 
@@ -124,25 +125,19 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * A missing nodeId mean that the cache wasn't initialized for
    * that node.
    */
-  private[this] var cache = Map.empty[NodeId, Set[RuleNodeStatusReport]]
+  private[this] var cache = Map.empty[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]
 
-  private[this] def cacheToLog(c: Map[NodeId, Set[RuleNodeStatusReport]]): String = {
+  private[this] def cacheToLog(c: Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]): String = {
+    import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
+
     //display compliance value and expiration date.
-    c.map { case (nodeId, reports) =>
+    c.map { case (nodeId, (run, reports)) =>
 
       val reportsString = reports.map { r =>
-        val run = r.agentRunTime match {
-          case None => "no agent run"
-          case Some(r) => s"last run@${r}"
-        }
-        val cfid = r.configId match {
-          case None => "no config id"
-          case Some(c) => s"configId:${c.value}"
-        }
-        s"${r.ruleId.value}/${r.serial}[exp:${r.expirationDate}][${run}][${cfid}]${r.compliance.toString}"
+        s"${r.ruleId.value}/${r.serial}[exp:${r.expirationDate}]${r.compliance.toString}"
       }.mkString("\n  ", "\n  ", "")
 
-      s"node: ${nodeId.value}${reportsString}"
+      s"node: ${nodeId.value}${run.toLog}${reportsString}"
     }.mkString("\n", "\n", "")
   }
 
@@ -151,7 +146,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * Invalidate some keys in the cache. That won't charge them again
    * immediately
    */
-  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, Set[RuleNodeStatusReport]]] = this.synchronized {
+  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = this.synchronized {
     logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
     cache = cache -- nodeIds
     //preload new results
@@ -164,7 +159,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
    * - initialized, else go find missing rule node status reports (one time for all)
    * - none reports is expired, else switch its status to "missing" for all components
    */
-  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, Set[RuleNodeStatusReport]]] = this.synchronized {
+  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = this.synchronized {
     if(nodeIdsToCheck.isEmpty) {
       Full(Map())
     } else {
@@ -185,23 +180,15 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
         (expired, upToDate) =  nodeIds.partition { id =>  //two group: expired id, and up to date info
                                  cache.get(id) match {
                                    case None      => true
-                                   case Some(set) => set.exists { _.expirationDate.isBefore(now) }
+                                   case Some((run,set)) => set.exists { _.expirationDate.isBefore(now) }
                                  }
                                }
-
         newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
       } yield {
-        /*
-         * Here, it's missing all the UnexpectedVersion/NoInitNoVersion results, because, well, they
-         * actually don't have rulenodestatutreport. So.
-         * We add them in NodeId -> Set()
-         */
-        val updated = newStatus.groupBy { _.nodeId }
-        val invalidVersion = expired -- updated.keySet
-        logger.debug(s"Compliance cache miss (invalid version):[${invalidVersion.map(_.value).mkString(" , ")}],"+
-                               s" cache miss (updated):[${updated.keySet.map(_.value).mkString(" , ")}], "+
+        //here, newStatus.keySet == expired.keySet, so we have processed all nodeIds that should be modified.
+        logger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], "+
                                s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
-        cache = cache ++ invalidVersion.map(id => (id,Set[RuleNodeStatusReport]())).toMap ++ updated
+        cache = cache ++ newStatus
         val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
         logger.trace("Compliance cache content: " + cacheToLog(toReturn))
         toReturn
@@ -209,11 +196,15 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     }
   }
 
-  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
     for {
       reports <- checkAndUpdateCache(nodeIds)
     } yield {
-      reports.values.flatten.filter( report => ruleIds.isEmpty || ruleIds.contains(report.ruleId)).toSet
+      if(ruleIds.isEmpty) {
+        reports
+      } else {
+        reports.mapValues { case(run, set) => (run, set.filter(r => ruleIds.contains(r.ruleId) ))}.filter( _._2._2.nonEmpty )
+      }
     }
   }
 
@@ -247,7 +238,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def runIntervalService: AgentRunIntervalService
   def getComplianceMode : () => Box[ComplianceMode]
 
-  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Set[RuleNodeStatusReport]] = {
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
     /*
      * This is the main logic point to get reports.
      *
@@ -272,7 +263,10 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      *
      * }
      *
-     *
+     * All nodeIds get a value in the returnedMap, because:
+     * - getNodeRunInfos(nodeIds).keySet == nodeIds AND
+     * - runInfos.keySet == buildNodeStatusReports(runInfos,...).keySet
+     * So nodeIds === returnedMap.keySet holds
      */
     val t0 = System.currentTimeMillis
     for {
@@ -301,7 +295,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       t3                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
     } yield {
-      nodeStatusReports.toSet
+      nodeStatusReports
     }
   }
 
@@ -309,6 +303,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * For each node, get the config it has.
    * This method bases its result on THE LAST RUN
    * of each node, and try to discover the run linked information (datetime, config id).
+   *
+   * A value is return for ALL nodeIds, so the assertion nodeIds == returnedMap.keySet holds.
    *
    */
   private[this] def getNodeRunInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, RunAndConfigInfo]] = {
@@ -343,12 +339,15 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    * execution reports and then nodestatusreports, being smart about what to
    * query for
    * When a node is in pending state, we drop the olderExpectedReports from it
+   *
+   * Each runInfo get a result, even if we don't have information about it.
+   * So runInfos.keySet == returnedMap.keySet holds.
    */
   private[this] def buildNodeStatusReports(
       runInfos          : Map[NodeId, RunAndConfigInfo]
     , allExpectedReports: Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , ruleIds           : Set[RuleId]
-  ): Box[Seq[RuleNodeStatusReport]] = {
+  ): Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
 
     val now = DateTime.now
 
@@ -371,13 +370,13 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       reports <- reportsRepository.getExecutionReports(agentRunIds, ruleIds)
     } yield {
       //we want to have nodeStatus for all asked node, not only the ones with reports
-      runInfos.flatMap { case(nodeId, runInfo) =>
+      runInfos.map { case(nodeId, runInfo) =>
         ExecutionBatch.getNodeStatusReports(nodeId, runInfo
             , allExpectedReports.getOrElse(nodeId, Map())
             , reports.getOrElse(nodeId, Seq())
         )
       }
-    }.toSeq
+    }
   }
 }
 
