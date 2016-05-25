@@ -45,6 +45,7 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 
 import net.liftweb.common.Loggable
+import com.normation.rudder.services.reports.RunAndConfigInfo
 
 /**
  * That file contains all the kind of status reports for:
@@ -86,6 +87,7 @@ object RuleStatusReport {
 
 final class NodeStatusReport private (
     val forNode: NodeId
+  , val runInfo: RunAndConfigInfo
   , val report : AggregatedStatusReport
 ) extends StatusReport {
   val compliance = report.compliance
@@ -93,8 +95,8 @@ final class NodeStatusReport private (
 }
 
 object NodeStatusReport {
-  def apply(nodeId: NodeId, reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
+  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, reports: Iterable[RuleNodeStatusReport]) = {
+    new NodeStatusReport(nodeId, runInfo, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
   }
 }
 

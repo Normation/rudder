@@ -720,7 +720,7 @@ class RuleGrid(
     for {
       reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
     } yield {
-      reports.groupBy( _.ruleId ).map { case (ruleId, nodeReports) =>
+      reports.values.flatMap(_._2).groupBy( _.ruleId ).map { case (ruleId, nodeReports) =>
         (
             ruleId
             //BE CAREFUL: nodeReports is a SET - and it's likelly that
