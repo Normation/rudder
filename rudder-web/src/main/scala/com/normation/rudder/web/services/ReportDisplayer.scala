@@ -175,9 +175,14 @@ class ReportDisplayer(
           <p>No configuration ID and no run received for that node. It may have been accepted after the last policy regeneration.</p>
 
         case VersionNotFound(lastRunDateTime, lastRunConfigId) =>
+          val configIdmsg = lastRunConfigId match {
+            case None     =>  "without any configuration ID, when one was required"
+            case Some(id) => s"with configuration ID '${id.value}' that is unknown in Rudder base"
+          }
 
-          <p>No configuration ID found for that node, but a run was received at {lastRunDateTime.toString(dateFormat)}. There is probably a
-             problem with that node, perhaps was it deleted and reaccepted, and it is not yet up to date</p>
+          <p>The node sent a run (started at {lastRunDateTime.toString(dateFormat)}) {configIdmsg}. Either that configuration ID was deleted from Rudder DB or
+             the node is sending a corrupted configuration ID. You should update node policies with "rudder agent update -f", and if the problem persists,
+             try to regenerate policies with the "clear cache" action.</p>
 
         case UnexpectedVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
           (
