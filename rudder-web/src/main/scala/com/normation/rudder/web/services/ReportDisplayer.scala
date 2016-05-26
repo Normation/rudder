@@ -198,12 +198,12 @@ class ReportDisplayer(
     }
     import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
     //what we print before all the tables
-    val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.repaired + report.compliance.missing + report.compliance.unexpected
+    val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.missing + report.compliance.unexpected
 
     //depending on the kind of report, choose the background.
 
     val background = report.runInfo match {
-      case _: Pending => "bg-info"
+      case _: Pending => "bg-info text-info"
       case _: ComputeCompliance =>
         if(nbAttention > 0) {
           "bg-warning text-warning"
