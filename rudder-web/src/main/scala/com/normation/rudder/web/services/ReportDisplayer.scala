@@ -217,17 +217,21 @@ class ReportDisplayer(
 
     <div class="tw-bs">
       <div id="node-compliance-intro" class={background}>
-        <p>{explainCompliance(report.runInfo)}</p>
-        <p>{
-          if(nbAttention > 0) {
-            s"There are ${nbAttention} out of ${report.compliance.total} reports that require attention"
-          } else if(report.compliance.pc_pending > 0) {
-            "Policy update in progress"
-          } else {
-            "All the last execution reports for this server are ok"
-          }
-        }</p>
-      </div>
+        <p>{explainCompliance(report.runInfo)}</p>{
+        if(report.compliance.total <= 0) {
+          NodeSeq.Empty
+        } else {
+          <p>{
+            if(nbAttention > 0) {
+              s"There are ${nbAttention} out of ${report.compliance.total} reports that require attention"
+            } else if(report.compliance.pc_pending > 0) {
+              "Policy update in progress"
+            } else {
+              "All the last execution reports for this server are ok"
+            }
+          }</p>
+        }
+      }</div>
     </div>
   }
 
