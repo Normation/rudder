@@ -175,9 +175,14 @@ class ReportDisplayer(
           <p>No configuration ID and no run received for that node. It may have been accepted after the last policy regeneration.</p>
 
         case VersionNotFound(lastRunDateTime, lastRunConfigId) =>
+          val configIdmsg = lastRunConfigId match {
+            case None     =>  "without any configuration ID, when one was required"
+            case Some(id) => s"with configuration ID '${id.value}' that is unknown in Rudder base"
+          }
 
-          <p>No configuration ID found for that node, but a run was received at {lastRunDateTime.toString(dateFormat)}. There is probably a
-             problem with that node, perhaps was it deleted and reaccepted, and it is not yet up to date</p>
+          <p>The node sent a run (started at {lastRunDateTime.toString(dateFormat)}) {configIdmsg}. Either that configuration ID was deleted from Rudder DB or
+             the node is sending a corrupted configuration ID. You should update node policies with "rudder agent update -f", and if the problem persists,
+             try to regenerate policies with the "clear cache" action.</p>
 
         case UnexpectedVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
           (
@@ -202,7 +207,7 @@ class ReportDisplayer(
     }
     import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
     //what we print before all the tables
-    val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.repaired + report.compliance.missing + report.compliance.unexpected
+    val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.missing + report.compliance.unexpected
 
     //depending on the kind of report, choose the background.
 
@@ -224,17 +229,21 @@ class ReportDisplayer(
 
     <div class="tw-bs">
       <div id="node-compliance-intro" class={background}>
-        <p>{explainCompliance(report.runInfo)}</p>
-        <p>{
-          if(nbAttention > 0) {
-            s"There are ${nbAttention} out of ${report.compliance.total} reports that require attention"
-          } else if(report.compliance.pc_pending > 0) {
-            "Policy update in progress"
-          } else {
-            "All the last execution reports for this server are ok"
-          }
-        }</p>
-      </div>
+        <p>{explainCompliance(report.runInfo)}</p>{
+        if(report.compliance.total <= 0) {
+          NodeSeq.Empty
+        } else {
+          <p>{
+            if(nbAttention > 0) {
+              s"There are ${nbAttention} out of ${report.compliance.total} reports that require attention"
+            } else if(report.compliance.pc_pending > 0) {
+              "Policy update in progress"
+            } else {
+              "All the last execution reports for this server are ok"
+            }
+          }</p>
+        }
+      }</div>
     </div>
   }
 
