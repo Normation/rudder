@@ -1,0 +1,493 @@
+html,body{
+	height: 100%;
+	padding: 0;
+}
+@media (min-width: 1200px){
+	.col-lg-offset-center-3{
+		margin-left: 37.5%;
+	}
+}
+.no-padding{
+  padding: 0 !important;
+}
+#login-page{
+	background-color: #222D32;
+	background-image: url(../images/login/background.jpg);
+	background-size: cover;
+}
+#login-page a:hover{
+    text-decoration: none;
+}
+#login-page form{
+	margin-bottom: 0;
+	height: 100%;
+	background-color: #fff;
+	padding: 0;
+	border-radius: 5px;
+	box-shadow: 0 0 15px #283135;
+	margin-top: 0;
+}
+
+#login-page form legend{
+	border-top-left-radius: 5px;
+	border-top-right-radius: 5px;
+    color: #fff;
+    background-color: #f08004;
+    padding: 20px 50px;
+    margin-bottom: 0;
+}
+#login-page form legend img{
+	height: auto;
+	width: 100%;
+}
+#login-page form legend span{
+	position: absolute;
+    right: 5px;
+    font-size: 15px;
+    font-weight: 600;
+    bottom: 1px;
+}
+#login-page form .welcome{
+	color: #222D32;
+	text-align: center;
+	font-style: italic;
+	-webkit-animation: opacity-1 1.4s ease forwards;
+	-moz-animation: opacity-1 1.4s ease forwards;
+	-ms-animation: opacity-1 1.4s ease forwards;
+	-o-animation: opacity-1 1.4s ease forwards;
+	animation: opacity-1 1.4s ease forwards;
+}
+#login-page form .input-group-addon{
+	background-color: #222D32;
+	color: #fff;
+    border-color: #222D32;
+	border-top-left-radius:5px;
+	border-bottom-left-radius:5px;  
+	font-size: 20px;
+}
+#login-page .rudder-form .has-feedback label~.form-control-feedback {
+    top: 0px;
+}
+#login-page form .input-group-addon .ion-android-lock{
+	width: 15px;
+}
+#login-page .rudder-form .has-error .help-block {
+	left: 40px;
+    position: relative;
+    z-index: 5;
+}
+#login-page .rudder-form .has-error .help-block:before {
+	top: -8px;
+}
+#errorInfo{
+  display: none;
+  animation: opacity-0 .2s linear forwards;
+  margin-bottom: 6px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  z-index: 20;  
+}
+#errorInfo.has-error{
+  display: inline-block;
+  animation: opacity-1 .3s linear forwards;
+  background-color: #C50000;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 3px;
+}
+#errorInfo:before {
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 12px solid #C50000;
+    display: inline-block;
+    content: " ";
+    position: absolute;
+    top: 30px;
+    left: calc(50% - 10px);
+}
+#login-page form.rudder-form .form-control:focus,#login-page .rudder-form .form-group.has-error .form-control:focus {
+    box-shadow: none;
+}
+#login-page form .form-control{
+	font-size: 20px;
+	border-top-right-radius:5px;
+	border-bottom-right-radius:5px;  
+}
+#login-page form .form-control:focus{
+	color: #222D32;
+	border-color: #222D32;
+}
+#login-page form .btn.btn-warning-rudder{
+	font-weight: 600;
+    background-color: #f08004;
+    color: #fff;
+    font-size: 20px;
+    animation-duration: .1s;
+    height: 45px;
+    margin-bottom: 10px;
+    outline: none !important;
+}
+#login-page form .btn.btn-warning-rudder span{
+	font-size: 25px;
+    top: 8px;
+}
+#login-page form .btn.btn-warning-rudder:active{
+	outline: none;
+}
+
+#login-page form .form-footer{
+	background-color: #222D32;
+	color: #fff;
+	padding-top: 30px;
+	border-bottom-left-radius:4px; 
+	border-bottom-right-radius:4px; 
+}
+#login-page form .form-footer div{
+	margin-bottom: 15px;
+}
+#login-page form .form-footer div a{
+	color: #fff;
+	opacity: .5;
+	font-size: 16px;
+	transition-duration:.1s;
+}
+#login-page form .form-footer div a:focus {
+    outline: none;
+}
+#login-page form .form-footer div a:hover, a:focus {
+    text-decoration: none;
+}
+#login-page form .form-footer div a:hover{
+	opacity: 1;
+}
+#login-page form .form-footer div a span{
+	width: 25px;
+	font-size: 20px;
+}
+#login-page form .form-footer div a:hover span{
+	color:#f08004;
+}
+
+/* ------------- FORM --------------- */
+form.rudder-form .form-group {
+    margin-bottom: 8px;
+}
+form.rudder-form{
+    box-shadow: 0px 10px 10px -10px rgba(0, 0, 0, 0.18);
+    margin-bottom: 15px;
+    padding-bottom: 20px;
+}
+
+form.rudder-form legend{
+    padding-left: 15px;
+    padding-bottom: 5px;
+    padding-top: 5px;
+}
+
+form.rudder-form .form-group label{
+  margin-bottom: 3px;
+}
+form.rudder-form .form-control{
+  border-radius: 3px;
+  border-color: rgb(198, 200, 201);
+  box-shadow: 0 0 2px #C1BFBF;
+}
+form.rudder-form .form-control:focus,.rudder-form .form-group.has-error .form-control:focus{
+  box-shadow: 0 0 6px #C1BFBF;
+}
+
+/* WITH ERRORS */
+.rudder-form .form-group.has-error label {
+    color: #C50000;
+}
+.rudder-form .form-group.has-error .form-control {
+    border-color: rgb(198, 200, 201);
+    box-shadow: 0 0 2px #C1BFBF;
+}
+.rudder-form .help-block{
+  display: none;
+  animation: opacity-0 .2s linear forwards;
+}
+.rudder-form .has-error .help-block{
+  display: inline-block;
+  animation: opacity-1 .3s linear forwards;
+  background-color: #C50000;
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 3px;
+  margin-bottom: 0;
+}
+.rudder-form .has-error .help-block:before{
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 12px solid #C50000;
+  display: inline-block;
+  content: " ";
+  position: absolute;
+  z-index: 1;
+  top: 52px;
+}
+.rudder-form .has-feedback label~.form-control-feedback {
+  top: 23px;
+  color:#C50000;
+  animation: opacity-0 .2s linear forwards;
+}
+.rudder-form .has-error.has-feedback label~.form-control-feedback {
+  animation: opacity-1 .3s linear forwards;
+}
+
+/* ----------------- BUTTONS -----------------  */
+.btn span.ion{
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  animation: opacity-0 .2s linear forwards;
+}
+.btn:hover span.ion{
+animation: opacity-1 .2s linear forwards;
+}
+.btn:focus span.ion{
+animation: opacity-1 .2s linear forwards;
+}
+
+/* BUTTON warning */
+.btn-warning-rudder {
+    text-transform: uppercase;
+    background-color: #FFF;
+    border: 2px solid #f08004;
+    font-weight: bold;
+    color: #f08004;
+    box-shadow: 1px 5px 8px 0px rgba(0, 0, 0, 0.18);
+    outline: none;
+    transition-property: background-color;
+    transition-duration: .1s;
+}
+.btn-warning-rudder:active {
+  outline: none;
+}
+.btn-warning-rudder:hover {
+  background-color: #f08004;
+  color:#fff;
+}
+.btn-warning-rudder:disabled:hover {
+  background-color: inherit;
+  color:#f08004;
+}
+.btn-warning-rudder:focus {
+  color:#f08004;
+}
+.btn-warning-rudder:focus:hover {
+  color:#fff;
+}
+
+/* LG */
+@media (min-width: 1200px){
+	#login-page form{
+		margin-top: 80px;
+	    height: auto;	 
+	}
+	#login-page form legend{
+		margin-bottom: 30px;
+	}
+	#login-page form .welcome{
+		margin-bottom: 40px;
+	}
+	#login-page form .group-password{
+		margin-bottom: 45px;
+	}
+	#login-page form .group-user{
+		margin-bottom: 40px
+	}
+	#login-page form .group-user.has-error{
+		margin-bottom: 15px;
+	}
+}	
+/* MD */
+@media (min-width: 992px) and (max-width: 1200px){
+	#login-page form{
+	    height: auto;
+		margin-top: 20px; 
+	}
+	#login-page form legend{
+		margin-bottom: 30px;
+	}
+	#login-page form .welcome{
+		margin-bottom: 40px;
+	}
+	#login-page form .group-password{
+		margin-bottom: 30px;
+	}
+	#login-page form .group-password{
+		margin-top: 20px
+	}
+	#login-page form .form-control,#login-page form .welcome,#login-page form .btn.btn-warning-rudder{
+		font-size: 16px;
+	}
+	#login-page form .form-footer div a {
+	    font-size: 14px;
+	}
+}
+/* SM */
+@media (min-width: 768px) and (max-width: 992px){
+	#login-page form{
+		height: auto;
+		margin-top: 20px; 
+	}
+	#login-page form legend{
+		margin-bottom: 30px;
+	}
+	#login-page form .welcome{
+		margin-bottom: 40px;
+	}
+	#login-page form .group-password{
+		margin-bottom: 30px;
+	}
+	#login-page form .group-password{
+		margin-top: 20px
+	}
+}
+/* XS */
+@media (max-width: 768px){
+	#login-page form,#login-page form legend{
+		border-top-left-radius:  0 !important;
+    	border-top-right-radius: 0 !important;
+    	border-bottom-left-radius:  0 !important;
+    	border-bottom-right-radius: 0 !important;
+	}
+	#login-page form legend img{
+	    padding: 0 50px;
+	}
+
+	#login-page form .welcome{
+		margin: 50px 0;
+		font-size: 20px;
+	}
+	#login-page form .group-password{
+		margin-bottom: 30px;
+	}
+	#login-page form .group-user{
+		margin-bottom: 40px
+	}
+	#login-page form .group-user.has-error{
+		margin-bottom: 10px;
+	}
+	#login-page form .form-footer {
+		position: absolute;
+		bottom: 0;
+	}
+}
+
+@-webkit-keyframes opacity {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}
+@-moz-keyframes opacity {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}
+@-ms-keyframes opacity {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}
+@-o-keyframes opacity {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}
+@keyframes opacity {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}
+
+@-webkit-keyframes opacity-1 {
+    0%   {opacity: 0;visibility: visible;}
+    100% {opacity: 1;visibility: visible;}
+}
+@-moz-keyframes opacity-1 {
+    0%   {opacity: 0;visibility: visible;}
+    100% {opacity: 1;visibility: visible;}
+}
+@-ms-keyframes opacity-1 {
+    0%   {opacity: 0;visibility: visible;}
+    100% {opacity: 1;visibility: visible;}
+}
+@-o-keyframes opacity-1 {
+    0%   {opacity: 0;visibility: visible;}
+    100% {opacity: 1;visibility: visible;}
+}
+@keyframes opacity-1 {
+    0%   {opacity: 0;visibility: visible;}
+    100% {opacity: 1;visibility: visible;}
+}
+
+@-webkit-keyframes opacity-0 {
+    0%   {opacity: 1;visibility: visible;}
+    99% {opacity: 0;visibility: visible;}
+    100% {opacity: 0;visibility: hidden;}
+}
+@-moz-keyframes opacity-0 {
+    0%   {opacity: 1;visibility: visible;}
+    99% {opacity: 0;visibility: visible;}
+    100% {opacity: 0;visibility: hidden;}
+}
+@-ms-keyframes opacity-0 {
+    0%   {opacity: 1;visibility: visible;}
+    99% {opacity: 0;visibility: visible;}
+    100% {opacity: 0;visibility: hidden;}
+}
+@-o-keyframes opacity-0 {
+    0%   {opacity: 1;visibility: visible;}
+    99% {opacity: 0;visibility: visible;}
+    100% {opacity: 0;visibility: hidden;}
+}
+@keyframes opacity-0 {
+    0%   {opacity: 1;visibility: visible;}
+    99% {opacity: 0;visibility: visible;}
+    100% {opacity: 0;visibility: hidden;}
+}
+
+@-webkit-keyframes text-radio-on {
+    0%   {color: #646464;}
+    100% {color: #222D32;}
+}
+@-moz-keyframes text-radio-on {
+    0%   {color: #646464;}
+    100% {color: #222D32;}
+}
+@-ms-keyframes text-radio-on {
+    0%   {color: #646464;}
+    100% {color: #222D32;}
+}
+@-o-keyframes text-radio-on {
+    0%   {color: #646464;}
+    100% {color: #222D32;}
+}
+@keyframes text-radio-on {
+    0%   {color: #646464;}
+    100% {color: #222D32;}
+}
+
+@-webkit-keyframes text-radio-off {
+    0%   {color: #222D32;}
+    100% {color: #646464;}
+}
+@-moz-keyframes text-radio-off {
+    0%   {color: #222D32;}
+    100% {color: #646464;}
+}
+@-ms-keyframes text-radio-off {
+    0%   {color: #222D32;}
+    100% {color: #646464;}
+}
+@-o-keyframes text-radio-off {
+    0%   {color: #222D32;}
+    100% {color: #646464;}
+}
+@keyframes text-radio-off {
+    0%   {color: #222D32;}
+    100% {color: #646464;}
+}
