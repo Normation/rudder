@@ -643,8 +643,8 @@ class RuleGrid(
       , reasons
    )
   }
-
 }
+
 
   /*
    *   Javascript object containing all data to create a line in the DataTable

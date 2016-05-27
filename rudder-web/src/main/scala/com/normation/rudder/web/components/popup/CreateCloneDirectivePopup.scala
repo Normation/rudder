@@ -59,11 +59,10 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.WoDirectiveRepository
 import bootstrap.liftweb.RudderConfig
 
-
 object CreateCloneDirectivePopup {
   val htmlId_popupContainer = "createCloneDirectiveContainer"
   val htmlId_popup = "createCloneDirectivePopup"
-val html =  SHtml.ajaxForm(    
+val html =  SHtml.ajaxForm(
     <div class="modal-backdrop fade in" style="height: 100%;"></div>
     <div id="createCloneDirectiveContainer" class="modal-dialog">
         <div class="modal-content">
@@ -83,12 +82,11 @@ val html =  SHtml.ajaxForm(
             <div class="modal-footer">
                 <button id="cancel" class="btn btn-default">Cancel</button>
                 <button id="save" class="btn btn-success">Clone</button>
-            </div>  
+            </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
     )
 }
-
 
 class CreateCloneDirectivePopup(
   techniqueName:String,
@@ -107,7 +105,6 @@ class CreateCloneDirectivePopup(
   def dispatch = {
     case "popupContent" => { _ => popupContent }
   }
-
 
   def popupContent() : NodeSeq = {
 
@@ -170,12 +167,11 @@ class CreateCloneDirectivePopup(
     override def validations = Nil
   }
 
-  private[this] val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reason.toList)
+  private[this] val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reasons.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
 
   private[this] def error(msg:String) = Text(msg)
-
 
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $('#createCloneDirectivePopup').bsModal('hide');""")
@@ -238,5 +234,3 @@ class CreateCloneDirectivePopup(
     }
   }
 }
-
-
