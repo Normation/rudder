@@ -125,6 +125,7 @@ class CachedReportsExecutionRepository(
   }
 
   override def updateExecutions(executions : Seq[AgentRun]) : Box[Seq[AgentRun]] = this.synchronized {
+    logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
     for {
       runs <- writeBackend.updateExecutions(executions)
     } yield {

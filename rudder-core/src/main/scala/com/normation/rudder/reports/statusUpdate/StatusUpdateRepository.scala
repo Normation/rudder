@@ -45,6 +45,12 @@ import net.liftweb.common.Box
  */
 trait StatusUpdateRepository {
 
+  /*
+   * BE CAREFUL : these methods will report false value
+   * if two instance of Rudder are using the same
+   * database.
+   */
+
   def getExecutionStatus : Box[Option[(Long,DateTime)]]
 
   def setExecutionStatus (newId : Long, reportsDate : DateTime) : Box[UpdateEntry]

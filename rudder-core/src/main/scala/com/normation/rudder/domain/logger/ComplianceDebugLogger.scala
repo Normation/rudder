@@ -46,7 +46,6 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.FullCompliance
-import com.normation.rudder.reports.ResolvedAgentRunInterval
 import com.normation.rudder.reports.ChangesOnly
 import com.google.common.cache.CacheBuilder
 import java.util.concurrent.TimeUnit
@@ -81,35 +80,41 @@ object ComplianceDebugLogger extends Logger {
   }
 
   implicit class RunAndConfigInfoToLog(c: RunAndConfigInfo) {
-    val toLog: String = c match {
+
+    val logDetails: String = c match {
       case NoRunNoInit =>
-        "[NoRunNoInit: expected NodeConfigId: not found | last run: not found]"
+        "expected NodeConfigId: not found | last run: not found"
 
       case VersionNotFound(lastRunDateTime, lastRunConfigId) =>
-         s"[VersionNotFound: expected NodeConfigId: not found |"+
-         s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime}]"
+         s"expected NodeConfigId: not found |"+
+         s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime}"
 
       case NoReportInInterval(expectedConfigId) =>
-         s"[NoReportInInterval: expected NodeConfigId: ${expectedConfigId.toLog}|"+
-         s" last run: none available (or too old)]"
+         s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
+         s" last run: none available (or too old)"
 
       case ReportsDisabledInInterval(expectedConfigId) =>
-         s"ReportsDisabledInInterval: expected NodeConfigId: ${expectedConfigId.toLog}|"+
+         s"expected NodeConfigId: ${expectedConfigId.toLog}|"+
          s" last run: none available (compliance mode is reports-disabled)]"
 
       case Pending(expectedConfigId, optLastRun, expirationDateTime, missingStatus) =>
-        s"[Pending: until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
-        s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}]"
+        s"until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
+        s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}"
 
       case UnexpectedVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
-        s"[UnexpectedVersion: expected NodeConfigId: ${expectedConfigId.toLog} |"+
+        s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: nodeConfigId: ${lastRunConfigId.toLog} received at ${lastRunDateTime} |"+
-        s" expire at ${lastRunExpiration}]"
+        s" expired at ${lastRunExpiration}"
+
+      case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
+        s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
+        s" last run: no configId, received at ${lastRunDateTime} |"+
+        s" expired at ${lastRunExpiration}"
 
       case ComputeCompliance(lastRunDateTime, lastRunConfigId, expectedConfigId, expirationDateTime, missingStatus) =>
-        s"[CheckChanges: expected NodeConfigId: ${expectedConfigId.toLog} |"+
+        s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: nodeConfigId: ${lastRunConfigId.toLog} received at ${lastRunDateTime} |"+
-        s" expire at ${expirationDateTime}]"
+        s" expired at ${expirationDateTime}"
 
     }
 
@@ -120,8 +125,11 @@ object ComplianceDebugLogger extends Logger {
       case _: ReportsDisabledInInterval => "ReportsDisabledInInterval"
       case _: Pending                   => "Pending"
       case _: UnexpectedVersion         => "UnexpectedVersion"
+      case _: UnexpectedNoVersion       => "UnexpectedNoVersion"
       case _: ComputeCompliance         => "ComputeCompliance"
     }
+
+    val toLog: String = logName + ": " + logDetails
   }
 
   implicit class AgentRunConfigurationToLog(info: (NodeId, ComplianceMode, ResolvedAgentRunInterval)) {

@@ -55,7 +55,7 @@ trait ReportingService {
    * Optionally restrict the set to some rules if filterByRules is non empty (else,
    * find node status reports for all rules)
    */
-  def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): Box[Set[RuleNodeStatusReport]]
+  def findRuleNodeStatusReports(nodeIds: Set[NodeId], filterByRules : Set[RuleId]): Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]]
 
   /**
    * find rule status reports for a given rule.
