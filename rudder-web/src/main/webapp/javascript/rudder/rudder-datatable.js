@@ -524,6 +524,127 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
 
 }
 
+/**
+ *
+ * This is the expected report table that we display on node details, for
+ * reports, when we don't have relevant information for compliance
+ * (for example when we get reports for the wrong configuration id).
+ *
+ * The parameters are the same than for the above "createRuleComplianceTable"
+ * method, and more preciselly, the whole implementation is a simplified
+ * version of that method, where only the first(s) column are kept.
+ *
+ */
+function createExpectedReportTable(gridId, data, contextPath, refresh) {
+  var defaultParams = {
+      "bFilter" : false
+    , "bPaginate" : false
+    , "bLengthChange": false
+    , "bInfo" : false
+    , "aaSorting": [[ 0, "asc" ]]
+  };
+
+  var localNodeComponentValueTable = function() {
+    var columns = [ {
+        "mDataProp": "value"
+      , "sTitle"   : "Value"
+    } ];
+    return function (gridId,data) {createTable(gridId, data, columns, defaultParams, contextPath); createTooltip();}
+  };
+
+  var localComponentTable = function() {
+    var columns = [ {
+        "mDataProp": "component"
+      , "sTitle"   : "Component"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+            $(nTd).addClass("listopen");
+        }
+    } ];
+
+    var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
+      createInnerTable(this, localNodeComponentValueTable());
+    }}, defaultParams);
+
+    return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
+  };
+
+  var localDirectiveTable = function() {
+    var columns = [ {
+        "mDataProp": "directive"
+      , "sTitle": "Directive"
+      , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+          $(nTd).addClass("listopen");
+
+          var tooltipIcon = $("<img />");
+          tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
+          tooltipIcon.addClass("reportIcon");
+          var tooltipId = oData.jsid+"-tooltip";
+          tooltipIcon.attr("tooltipid",tooltipId);
+          tooltipIcon.attr("title","");
+          tooltipIcon.addClass("tooltip tooltipable");
+          var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
+          toolTipContainer.addClass("tooltipContent");
+          toolTipContainer.attr("id",tooltipId);
+
+          $(nTd).append(tooltipIcon);
+          $(nTd).append(toolTipContainer);
+
+          if (! oData.isSystem) {
+            var editLink = $("<a />");
+            editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
+            var editIcon = $("<img />");
+            editIcon.attr("src",contextPath + "/images/icPen.png");
+            editLink.click(function(e) {e.stopPropagation();});
+            editLink.append(editIcon);
+            editLink.addClass("reportIcon");
+
+            $(nTd).append(editLink);
+          }
+        }
+    } ];
+
+    var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
+      createInnerTable(this, localComponentTable(), contextPath, "directive");
+    }}, defaultParams);
+
+
+    return function (gridId, data, refresh) {
+      createTable(gridId, data, columns, params, contextPath, refresh);
+      createTooltip();
+    }
+  };
+
+  var ruleColumn = [ {
+    "mDataProp": "rule"
+  , "sTitle"   : "Rule"
+  , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+      $(nTd).addClass("listopen");
+
+      if (! oData.isSystem) {
+        var editLink = $("<a />");
+        editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
+        var editIcon = $("<img />");
+        editIcon.attr("src",contextPath + "/images/icPen.png");
+        editLink.click(function(e) {e.stopPropagation();});
+        editLink.append(editIcon);
+        editLink.addClass("reportIcon");
+
+        $(nTd).append(editLink);
+      }
+    }
+  } ];
+  var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
+        createInnerTable(this, localDirectiveTable(), contextPath, "rule");
+      }
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+  }
+  , defaultParams);
+
+  createTable(gridId,data, ruleColumn, params, contextPath, refresh);
+
+}
+
+
 /*
  *   Create a table of compliance for a Directive.
  *   Used in the compliance details for a Rule, and in the

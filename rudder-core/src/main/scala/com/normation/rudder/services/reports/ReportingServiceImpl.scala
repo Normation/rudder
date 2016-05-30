@@ -274,9 +274,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       runInfos            <- getNodeRunInfos(nodeIds)
 
       // that gives us configId for runs, and expected configId (some may be in both set)
-      expectedConfigId    =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigId.configId) }
+      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigInfo.configId) }
       lastrunConfigId     =  runInfos.collect {
-                               case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId.configId)
+                               case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
                                case (nodeId, Pending(_, Some(run), _, _)) => NodeAndConfigId(nodeId, run._2.configId)
                              }
 
@@ -284,7 +284,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t1-t0}ms")
 
       // so now, get all expected reports for these config id
-      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigId.toSet++lastrunConfigId, ruleIds)
+      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigIds.toSet++lastrunConfigId, ruleIds)
 
       t2                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: get expected reports: ${t2-t1}ms")

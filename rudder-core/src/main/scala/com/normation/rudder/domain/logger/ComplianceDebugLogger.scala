@@ -84,10 +84,10 @@ object ComplianceDebugLogger extends Logger {
   implicit class RunAndConfigInfoToLog(c: RunAndConfigInfo) {
 
     val logDetails: String = c match {
-      case NoRunNoInit =>
+      case NoRunNoExpectedReport =>
         "expected NodeConfigId: not found | last run: not found"
 
-      case VersionNotFound(lastRunDateTime, lastRunConfigId) =>
+      case NoExpectedReport(lastRunDateTime, lastRunConfigId) =>
          s"expected NodeConfigId: not found |"+
          s" last run: nodeConfigId: ${lastRunConfigId.fold("none")(_.value)} received at ${lastRunDateTime}"
 
@@ -99,31 +99,32 @@ object ComplianceDebugLogger extends Logger {
         s"until ${expirationDateTime} expected NodeConfigId: ${expectedConfigId.toLog} |"+
         s" last run: ${optLastRun.fold("none (or too old)")(x => s"nodeConfigId: ${x._2.toLog} received at ${x._1}")}"
 
-      case UnexpectedVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
+      case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigId, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
-        s" last run: nodeConfigId: ${lastRunConfigId.toLog} received at ${lastRunDateTime} |"+
+        s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"
 
-      case UnexpectedNoVersion(lastRunDateTime, lastRunConfigId, lastRunExpiration, expectedConfigId, expectedExpiration) =>
-        s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
+      case UnexpectedNoVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigInfo, expectedExpiration) =>
+        s"expected NodeConfigId: ${expectedConfigInfo.toLog} |"+
         s" last run: no configId, received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"
 
-      case ComputeCompliance(lastRunDateTime, lastRunConfigId, expectedConfigId, expirationDateTime, missingStatus) =>
-        s"expected NodeConfigId: ${expectedConfigId.toLog} |"+
-        s" last run: nodeConfigId: ${lastRunConfigId.toLog} received at ${lastRunDateTime} |"+
+      case x@ComputeCompliance(lastRunDateTime, expectedConfigInfo, expirationDateTime, missingStatus) =>
+        s"expected NodeConfigId: ${expectedConfigInfo.toLog} |"+
+        s" last run: nodeConfigId: ${x.lastRunConfigId.value} received at ${lastRunDateTime} |"+
         s" expired at ${expirationDateTime}"
 
     }
 
     val logName =  c match {
-      case    NoRunNoInit         => "NoRunNoInit"
-      case _: VersionNotFound     => "VersionNotFound"
-      case _: NoReportInInterval  => "NoReportInInterval"
-      case _: Pending             => "Pending"
-      case _: UnexpectedVersion   => "UnexpectedVersion"
-      case _: UnexpectedNoVersion => "UnexpectedNoVersion"
-      case _: ComputeCompliance   => "ComputeCompliance"
+      case    NoRunNoExpectedReport   => "NoRunNoExpectedReport"
+      case _: NoExpectedReport        => "NoRunNoExpectedReport"
+      case _: NoReportInInterval      => "NoReportInInterval"
+      case _: UnexpectedVersion       => "UnexpectedVersion"
+      case _: UnexpectedNoVersion     => "UnexpectedNoVersion"
+      case _: UnexpectedUnknowVersion => "UnexpectedUnknowVersion"
+      case _: Pending                 => "Pending"
+      case _: ComputeCompliance       => "ComputeCompliance"
     }
 
     val toLog: String = logName + ": " + logDetails
