@@ -170,7 +170,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
 
                            prepareRulesForAgents(nodePromisePath, newNodePromisePath, backupNodePath, node, rootNodeId, templates) match {
                              case Full(x) =>
-                               folders ++= x
+                               folders.synchronized(folders ++= x)
                              case e: EmptyBox => return (e ?~! "Error when preparing rules for agents")
                            }
 
