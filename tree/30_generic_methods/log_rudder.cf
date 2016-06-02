@@ -35,7 +35,7 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
       "expected_reports_temp"   string => "${expected_reports_source}.tmp";
       "expected_reports_file"   string => "${expected_reports_source}.res";
 
-    (!final_resfile_exists.logger_rudder_temp_resfile_reached|logger_rudder_temp_resfile_repaired)::
+    pass1.(!final_resfile_exists.logger_rudder_temp_resfile_reached|logger_rudder_temp_resfile_repaired)::
       # 2/ If the temporary file has been updated, read it to get all values in an array, and canonify the first entry
       "dim" int => readstringarrayidx("reports", "${expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
       "keys" slist => getindices("reports");
@@ -83,6 +83,10 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
       "no_old_class_prefix" expression => strcmp("${old_class_prefix}", "");
 
       "final_resfile_exists" expression => fileexists("${expected_reports_file}");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
 
   files:
 
