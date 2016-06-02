@@ -283,7 +283,20 @@ class LdapNodeConfigurationCacheRepository(
            Some(read[NodeConfigurationCache](json))
          } catch {
            case e: Exception =>
-             logger.warn(s"Ignoring following node configuration cache info because of deserialisation error: ${json}", e)
+             //try to get the nodeid from what should be some json
+             try {
+               for {
+                 JString(id) <- parse(json) \\ "id" \ "value"
+               } yield {
+                 logger.info(s"Ignoring following node configuration cache info because of deserialisation error: ${id}. Policies will be regenerated for it.")
+               }
+             } catch {
+               case e:Exception => //ok, that's does not seem to be json
+                 logger.info(s"Ignoring an unknown node configuration cache info because of deserialisation problem.")
+             }
+
+             logger.debug(s"Faulty json and exception was: ${json}", e)
+
              None
          }
        }
