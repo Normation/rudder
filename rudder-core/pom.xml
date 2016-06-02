@@ -37,7 +37,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <parent>
     <groupId>com.normation.rudder</groupId>
     <artifactId>rudder-parent</artifactId>
-    <version>2.11.22-SNAPSHOT</version>
+    <version>2.11.22</version>
   </parent>
 
   <artifactId>rudder-core</artifactId>
