@@ -358,6 +358,19 @@ trait WoNodeGroupRepository {
   def updateSystemGroup(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
 
   /**
+   * Update the given existing dynamic group, and only the node list
+   * part (but the group can be system or not).
+   *
+   * If anything else than the node list changed compared to the
+   * group given in parameter in the backend, an error is raised.
+   *
+   * That method does nothing at the configuration level,
+   * so you will have to manage rule deployment
+   * if needed
+   */
+  def updateDynGroupNodes(group:NodeGroup, modId: ModificationId, actor:EventActor, whyDescription:Option[String]) : Box[Option[ModifyNodeGroupDiff]]
+
+  /**
    * Move the given existing group to the new container.
    *
    * That *only* move the group, and don't modify anything
