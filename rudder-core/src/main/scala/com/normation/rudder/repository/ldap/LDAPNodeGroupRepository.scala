@@ -788,18 +788,29 @@ class WoLDAPNodeGroupRepository(
   }
 
 
-  private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean): Box[Option[ModifyNodeGroupDiff]] = {
+  private[this] def internalUpdate(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String], systemCall:Boolean, onlyUpdateNodes: Boolean): Box[Option[ModifyNodeGroupDiff]] = this.synchronized {
     for {
       con          <- ldap
       existing     <- getSGEntry(con, nodeGroup.id) ?~! "Error when trying to check for existence of group with id %s. Can not update".format(nodeGroup.id)
       oldGroup     <- mapper.entry2NodeGroup(existing) ?~! "Error when trying to check for the group %s".format(nodeGroup.id.value)
-      systemCheck  <- (oldGroup.isSystem, systemCall) match {
-                          case (true, false) => Failure("System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value))
-                          case (false, true) => Failure("You can not modify a non system group (%s) with that method".format(oldGroup.name))
-                          case _ => Full(oldGroup)
-                        }
+      systemCheck  <- if(onlyUpdateNodes) {
+                        Full(oldGroup)
+                      } else (oldGroup.isSystem, systemCall) match {
+                        case (true, false) => Failure("System group '%s' (%s) can not be modified".format(oldGroup.name, oldGroup.id.value))
+                        case (false, true) => Failure("You can not modify a non system group (%s) with that method".format(oldGroup.name))
+                        case _ => Full(oldGroup)
+                      }
       exists       <- if (nodeGroupExists(con, nodeGroup.name, nodeGroup.id)) Failure("Cannot change the group name to %s : there is already a group with the same name".format(nodeGroup.name))
                       else Full(Unit)
+      onlyNodes    <- if(!onlyUpdateNodes) {
+                        Full("ok")
+                      } else { //check that nothing but the node list changed
+                        if(nodeGroup.copy(serverList = oldGroup.serverList) == oldGroup) {
+                          Full("ok")
+                        } else {
+                          Failure("The group configuration changed compared to the reference group you want to change the node list for. Aborting to preserve consistency")
+                        }
+                      }
       entry        =  rudderDit.GROUP.groupModel(
                           nodeGroup.id.value
                         , existing.dn.getParent
@@ -830,12 +841,17 @@ class WoLDAPNodeGroupRepository(
     }
   }
 
+  override def updateDynGroupNodes(group:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyNodeGroupDiff]] = {
+    internalUpdate(group, modId, actor, reason, true, true)
+  }
+
+
   override def update(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(nodeGroup, modId, actor, reason, false)
+    internalUpdate(nodeGroup, modId, actor, reason, false, false)
   }
 
   override def updateSystemGroup(nodeGroup:NodeGroup, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Option[ModifyNodeGroupDiff]] = {
-    internalUpdate(nodeGroup, modId, actor, reason, true)
+    internalUpdate(nodeGroup, modId, actor, reason, true, false)
   }
 
   override def move(nodeGroupId:NodeGroupId, containerId : NodeGroupCategoryId, modId: ModificationId, actor:EventActor, reason:Option[String]): Box[Option[ModifyNodeGroupDiff]] = {
