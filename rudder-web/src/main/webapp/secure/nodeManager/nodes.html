@@ -1,18 +1,17 @@
 <lift:surround with="common-layout" at="content">
-
-<head>
-<title>Rudder - Nodes</title>
-</head>
-
-  <div class="portlet">
-   <div class="portlet-content">
-   <div class="inner-portlet">
+  <head>
+    <title>Rudder - Nodes</title>
+  </head>
+  <div class="tw-bs">
+    <div class="portlet col-lg-12">
+      <div class="portlet-content">
+        <div class="inner-portlet">
           <div class="page-title">Nodes</div>
-    <div data-lift="node.Nodes.table" />
-</div>
-     </div>
-     <br/>
+          <div data-lift="node.Nodes.table" />
+        </div>
+      </div>
+      <br/>
     </div>
-
-    <div data-lift="node.Nodes.loadData" />
+  </div>
+<div data-lift="node.Nodes.loadData" />
 </lift:surround>

@@ -103,11 +103,10 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
       )
 
 
-   <lift:form class="navbar-form navbar-left">
-        <div class="form-group">
+   <lift:form class="sidebar-form">
+        <div class="input-group col-xs-12">
           {searchInput}
         </div>
     </lift:form>
-
   }
 }
