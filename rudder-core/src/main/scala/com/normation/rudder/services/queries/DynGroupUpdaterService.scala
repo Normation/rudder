@@ -104,11 +104,7 @@ class DynGroupUpdaterServiceImpl(
       newMemberIdsSet = newMembers.map( _.id).toSet
       savedGroup <- {
                       val newGroup = group.copy(serverList = newMemberIdsSet)
-                      if(group.isSystem) {
-                        woNodeGroupRepository.updateSystemGroup(newGroup, modId, actor, reason)
-                      } else {
-                        woNodeGroupRepository.update(newGroup, modId, actor, reason)
-                      }
+                      woNodeGroupRepository.updateDynGroupNodes(newGroup, modId, actor, reason)
                     } ?~! s"Error when saving update for dynamic group '${group.name}' (${group.id.value})"
     } yield {
       val plus = newMemberIdsSet -- group.serverList
