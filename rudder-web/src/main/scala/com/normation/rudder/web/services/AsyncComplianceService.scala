@@ -72,24 +72,19 @@ class AsyncComplianceService (
     val jsContainer : String
 
     // Compute compliance
-    def computeCompliance : Box[Map[Kind,Option[ComplianceLevel]]] =  {
-      for {
-        reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
-      } yield {
-        //here, we are flatMapping to potentially groupBy nodeId again,
-        //but I don't see how to keep be being generic without that.
-        //flatMap on a Set is OK, since reports are different for different nodeIds
-        reports.flatMap( _._2._2 ).groupBy( groupBy _ ).map { case (nodeId, nodeReports) =>
-          //BE CAREFUL: nodeReports is a SET - and it's likely that
-          //some compliance will be equals. So change to seq.
-          val compliance = ComplianceLevel.sum(nodeReports.toSeq.map(_.compliance))
-          ( nodeId, Some(compliance))
-        }
+    def computeCompliance : Box[Map[Kind,Option[ComplianceLevel]]]
+
+    final protected def toCompliance(id: Kind, reports: Iterable[RuleNodeStatusReport]) = {
+      //BE CAREFUL: reports may be a SET - and it's likely that
+      //some compliance will be equals. So change to seq.
+      val compliance = {
+        val c = ComplianceLevel.sum(reports.toSeq.map(_.compliance))
+        //if compliance is exactly 0, we want to display a bar of "unknown"
+        if(c.total == 0) c.copy(missing = 1) else c
       }
+      (id, Some(compliance))
     }
 
-    // How reports should be grouped by
-    def groupBy (report : RuleNodeStatusReport) : Kind
     // Is the compliance empty (No nodes? no Rules ? )
     def empty : Boolean
 
@@ -119,7 +114,18 @@ class AsyncComplianceService (
     def value(key : NodeId) : String = key.value
     val jsContainer : String = "nodeCompliances"
     def empty : Boolean = nodeIds.isEmpty
-    def groupBy(report : RuleNodeStatusReport) : NodeId = report.nodeId
+
+    // Compute compliance
+    def computeCompliance : Box[Map[NodeId,Option[ComplianceLevel]]] =  {
+      for {
+        reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
+      } yield {
+        reports.map { case (nodeId, (run, reports)) =>
+          toCompliance(nodeId, reports)
+        }
+      }
+    }
+
   }
 
   private[this] class RuleCompliance(
@@ -129,7 +135,18 @@ class AsyncComplianceService (
     def value(key : RuleId) : String = key.value
     val jsContainer : String = "ruleCompliances"
     def empty : Boolean = ruleIds.isEmpty
-    def groupBy (report : RuleNodeStatusReport) : RuleId = report.ruleId
+
+    // Compute compliance
+    def computeCompliance : Box[Map[RuleId, Option[ComplianceLevel]]] =  {
+      for {
+        reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
+      } yield {
+        //flatMap on a Set is OK, since reports are different for different nodeIds
+        reports.flatMap( _._2._2 ).groupBy( _.ruleId ).map { case (ruleId, reports) =>
+          toCompliance(ruleId, reports)
+        }
+      }
+    }
   }
 
 
