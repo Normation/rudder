@@ -451,6 +451,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] def showGroupSection(workflowEnabled: Boolean)(g: NodeGroup, parentCategoryId: NodeGroupCategoryId) = {
     refreshRightPanel(GroupForm(g, parentCategoryId), workflowEnabled)&
     JsRaw(s"""
+        jQuery('#groupDetails').show();
         var groupId = JSON.stringify({'groupId':'${g.id.value}'});
         window.location.hash = "#"+groupId""")
   }

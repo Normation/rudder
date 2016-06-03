@@ -170,7 +170,7 @@ class CreateCloneDirectivePopup(
     override def validations = Nil
   }
 
-  private[this] val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reason.toList)
+  private[this] val formTracker = new FormTracker(directiveName :: directiveShortDescription :: reasons.toList)
 
   private[this] var notifications = List.empty[NodeSeq]
 

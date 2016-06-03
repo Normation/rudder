@@ -40,10 +40,11 @@
 }
 
 .tw-bs .modal-header {
-  background-color: #ee7f00;
-  background-image : linear-gradient(#ffa033, #ee7f00 50%, #b86200);
-  font-family: sans-serif;
-  font-weight:bold;
+    background-color: #f08004;
+    font-family: sans-serif;
+    font-weight: bold;
+    color: #fff;
+    border-radius: 0;
 }
 
 .tw-bs .modal-body {
@@ -419,7 +420,7 @@
 }
 
 .tw-bs .modal .modal-content {
-    border-radius: 4px;
+    border-radius: 6px;
 }
 .tw-bs .modal .modal-header {
     border-top-left-radius: 4px;

@@ -69,17 +69,18 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
 
 
   val layout =
-
-    <li class="dropdown">
-          <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
-            <span>CR</span>
-            <span class="badge" id="number">42</span>
-            <span class="caret"></span>
-          </a>
-          <ul class="dropdown-menu" role="menu">
-          </ul>
-  </li>
-
+    <li class="dropdown notifications-menu">
+      <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+        <span>CR</span>
+        <span id="number" class="badge rudder-badge"></span>
+        <i class="fa fa-angle-down" style="margin-left:15px;"></i>
+      </a>
+      <ul class="dropdown-menu" role="menu">
+        <li>
+          <ul class="menu"></ul>
+        </li>
+      </ul>
+    </li>
 
   def render = {
     val xml = RudderConfig.configService.rudder_workflow_enabled match {
@@ -98,10 +99,10 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
           if(workflowEnabled && (isValidator || isDeployer )) {
             {
               if (isValidator) pendingModifications
-              else ".dropdown-menu *+" #> NodeSeq.Empty
+              else ".menu *+" #> NodeSeq.Empty
             } & {
               if (isDeployer) pendingDeployment
-              else ".dropdown-menu *+" #> NodeSeq.Empty
+              else ".menu *+" #> NodeSeq.Empty
             } &
             "#number *" #> requestCount(workflowService)
           } else {
@@ -129,7 +130,7 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
   def pendingModifications = {
     val xml = pendingModificationRec(workflowService)
 
-    ".dropdown-menu *+" #> xml
+    ".menu *+" #> xml
   }
 
   private[this] def pendingModificationRec(workflowService: WorkflowService): NodeSeq = {
@@ -137,25 +138,26 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
       case ws:TwoValidationStepsWorkflowServiceImpl =>
         ws.getItemsInStep(ws.Validation.id) match {
           case Full(seq) =>
-                <li >
-                  <a href="/secure/utilities/changeRequests/Pending_validation">
-                  Pending review:
-                  <span class="badge">{seq.size}</span>
-                  </a>
-               </li>
+            <li>
+              <a href="/secure/utilities/changeRequests/Pending_validation">
+                <i class="fa fa fa-flag-o"></i>
+                Pending review
+                <span class="label pull-right">{seq.size}</span>
+              </a>
+            </li>
           case e:EmptyBox =>
-            <p class="error">Error when trying to fetch pending change requests.</p>
+            <li><p class="error">Error when trying to fetch pending change requests.</p></li>
         }
       case either: EitherWorkflowService => pendingModificationRec(either.current)
       case _ => //For other kind of workflows, this has no meaning
-        <p class="error">Error, the configured workflow does not have that step.</p>
+        <li><p class="error">Error, the configured workflow does not have that step.</p></li>
     }
   }
 
   def pendingDeployment = {
     val xml = pendingDeploymentRec(workflowService)
 
-    ".dropdown-menu *+" #> xml
+    ".menu *+" #> xml
   }
 
   private[this] def pendingDeploymentRec(workflowService: WorkflowService): NodeSeq = {
@@ -163,19 +165,19 @@ class WorkflowInformation extends CometActor with CometListener with Loggable {
       case ws:TwoValidationStepsWorkflowServiceImpl =>
         ws.getItemsInStep(ws.Deployment.id) match {
           case Full(seq) =>
-                <li>
-                  <a href="/secure/utilities/changeRequests/Pending_deployment">
-                  Pending deployment:
-                  <span class="badge">{seq.size}</span>
-                  </a>
-               </li>
-
+            <li>
+              <a href="/secure/utilities/changeRequests/Pending_deployment">
+                <i class="fa fa fa-flag-checkered"></i>
+                Pending deployment
+                <span class="label pull-right">{seq.size}</span>
+              </a>
+            </li>
           case e:EmptyBox =>
-            <p class="error">Error when trying to fetch pending change requests.</p>
+            <li><p class="error">Error when trying to fetch pending change requests.</p></li>
         }
       case either: EitherWorkflowService => pendingDeploymentRec(either.current)
       case _ => //For other kind of workflows, this has no meaning
-        <p class="error">Error, the configured workflow does not have that step.</p>
+        <li><p class="error">Error, the configured workflow does not have that step.</p></li>
     }
   }
 
