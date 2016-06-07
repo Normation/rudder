@@ -45,10 +45,10 @@ import bootstrap.liftweb.RudderConfig
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds.Alert
-import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.util.Helpers.strToSuperArrowAssoc
-import net.liftweb.http.js.JsCmds.Run
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.S
 
 /**
  * This snippet allow to display the node "quick search" field.
@@ -60,7 +60,32 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
   private[this] val quickSearchService = RudderConfig.quickSearchService
 
   def dispatch = {
-    case "render" => quickSearch
+    case "render" => chooseSearch
+  }
+
+  def chooseSearch(html: NodeSeq): NodeSeq = {
+
+    if(RudderConfig.RUDDER_FEATURE_ENABLE_QUICKSEARCH) {
+    (
+      <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="navbar-form navbar-left">
+        <div angucomplete-ie8=""
+             placeholder="Search anything"
+             maxlength="100"
+             pause="500"
+             selected-object="selectedObject"
+             remote-url={s"${S.contextPath}/secure/api/quicksearch/"}
+             remote-url-data-field="data"
+             title-field="name"
+             description-field="desc"
+             minlength="3"
+             input-class="form-control ac_input"
+             match-class="highlight"
+        ></div>
+      </div>
+    )
+    } else {
+      quickSearch(html)
+    }
   }
 
   def quickSearch(html:NodeSeq) : NodeSeq = {
@@ -90,9 +115,10 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
     }
 
 
-
-    val searchInput =
-      AutoCompleteAutoSubmit (
+    //actual XML returned by the method
+    <lift:form class="navbar-form navbar-left">
+      <div class="form-group">
+      {AutoCompleteAutoSubmit (
           ""
         , buildQuery _
         , { s:String => parse(s) }
@@ -100,13 +126,8 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
         , ("resultsClass", "'topQuickSearchResults ac_results '") :: Nil
         , ("placeholder" -> "Search nodes")
         ,  ("class" -> "form-control")
-      )
-
-
-   <lift:form class="navbar-form navbar-left">
-        <div class="form-group">
-          {searchInput}
-        </div>
+      )}
+      </div>
     </lift:form>
 
   }

@@ -144,6 +144,8 @@ import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.web.rest.compliance.ComplianceAPI6
 import com.normation.rudder.web.rest.compliance.ComplianceAPIService
 import com.normation.rudder.web.rest.technique._
+import com.normation.rudder.services.QuicksearchService
+
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -268,6 +270,18 @@ object RudderConfig extends Loggable {
   val RUDDER_SERVER_ROLES_DB    = config.getString("rudder.server-roles.db")
   val RUDDER_SERVER_ROLES_FRONT = config.getString("rudder.server-roles.relay-top")
   val RUDDER_SERVER_ROLES_WEBAPP= config.getString("rudder.server-roles.web")
+
+
+  //Feature switch
+  val RUDDER_FEATURE_ENABLE_QUICKSEARCH = {
+    val p = "rudder.feature.quicksearchEverything"
+    if(config.hasPath(p)) {
+      config.getBoolean(p)
+    } else {
+      false
+    }
+  }
+
 
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
@@ -492,6 +506,7 @@ object RudderConfig extends Loggable {
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
   val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
   val restDataSerializer = RestDataSerializerImpl(techniqueRepository,diffService)
+  val restQuicksearch = new RestQuicksearch(new QuicksearchService(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit))
 
   val ruleApiService2 =
     new RuleApiService2(
