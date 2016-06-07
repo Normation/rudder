@@ -128,7 +128,7 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * a => b => c => d => e => f => ... => "42"
    *
    * This is not a very big limitation, as we are not building
-   * a programming language, and users can easily resovle
+   * a programming language, and users can easily resolve
    * the problem by just making smaller cycle.
    *
    */
