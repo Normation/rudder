@@ -170,7 +170,7 @@
                             <div class="form-group" show-errors>
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
-                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-maxlength="255">
+                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-maxlength="255" ng-change="updateBundleName()">
                                 </div>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.maxlength">
                                     Fields over 255 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
@@ -185,6 +185,13 @@
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.description.$error.maxlength">
                                     Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
                                 </span>
+                            </div>
+                            <div class="form-group" show-errors>
+                                <label for="bundleName" class="col-sm-3 control-label">Bundle name:</label>
+                                <div class="col-sm-8">
+                                    <input disabled id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name">
+                                </div>
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">Bundle name must be unique</span>
                             </div>
                             <div class="form-group">
                                 <strong class="col-sm-3 text-right">Version:</strong>

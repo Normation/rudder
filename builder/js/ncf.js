@@ -35,12 +35,30 @@ app.directive('techniquename', function($filter) {
       ctrl.$validators.techniqueName = function(modelValue, viewValue) {
          // Get all techniqueNames in lowercase
          var techniqueNames = scope.techniques.map(function (technique,index) { return technique.name.toLowerCase()})
-         // Remove he original name from the technique names array
+         // Remove the original name from the technique names array
          if (scope.originalTechnique !== undefined && scope.originalTechnique.name !== undefined) {
            techniqueNames = $filter("filter")(techniqueNames, scope.originalTechnique.name.toLowerCase(), function(actual,expected) { return ! angular.equals(expected,actual)})
          }
          // technique name is ok if the current value is not in the array
          return $.inArray(viewValue.toLowerCase(), techniqueNames) === -1
+      };
+    }
+  };
+});
+
+app.directive('bundlename', function($filter) {
+  return {
+    require: 'ngModel',
+    link: function(scope, elm, attrs, ctrl) {
+      ctrl.$validators.bundleName = function(modelValue, viewValue) {
+         // Get all bundleNames
+         var bundleNames = scope.techniques.map(function (technique,index) { return technique.bundle_name})
+         // Remove the original bundle name from the bundle names array
+         if (scope.originalTechnique !== undefined && scope.originalTechnique.bundle_name !== undefined) {
+           bundleNames = $filter("filter")(bundleNames, scope.originalTechnique.bundle_name, function(actual,expected) { return ! angular.equals(expected,actual)})
+         }
+         // bundle name is ok if the current value is not in the array
+         return $.inArray(viewValue, bundleNames) === -1
       };
     }
   };
@@ -90,6 +108,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.selectedMethod;
   // Are we authenticated on the interface
   $scope.authenticated = false;
+
 
   $scope.setPath = function() {
     var path = $location.search().path;
@@ -653,12 +672,22 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
 
   $scope.setBundleName = function (technique) {
     if (technique.bundle_name === undefined) {
-      // Replace all non alpha numeric character (\W is [^a-zA-Z_0-9]) by _
-      var bundle_name = technique.name.replace(/\W/g,"_");
-      technique.bundle_name = bundle_name;
+      technique.bundle_name =  $scope.getBundleName(technique.name);
     }
     return technique;
   }
+
+
+  $scope.getBundleName = function (techniqueName) {
+    // Replace all non alpha numeric character (\W is [^a-zA-Z_0-9]) by _
+    return techniqueName ? techniqueName.replace(/\W/g,"_") : "";
+  }
+
+  $scope.updateBundleName = function () {
+    if($scope.originalTechnique.bundle_name===undefined){
+      $scope.selectedTechnique.bundle_name = $scope.getBundleName($scope.selectedTechnique.name);
+    }
+  };
 
   // Save a technique
   $scope.saveTechnique = function() {
@@ -825,7 +854,6 @@ var cloneModalCtrl = function ($scope, $modalInstance, technique, techniques) {
 };
 
 var SaveChangesModalCtrl = function ($scope, $modalInstance, technique, editForm) {
-  console.log(editForm)
   $scope.editForm = editForm;
   $scope.technique = technique;
   $scope.save = function() {
