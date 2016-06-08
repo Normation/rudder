@@ -42,6 +42,12 @@
     clear: both;
 }
 
+
+.angucomplete-summary {
+    background-color: #ff7125;
+    color: #000000;
+}
+
 .angucomplete-selected-row {
     background-color: lightblue;
     color: #ffffff;

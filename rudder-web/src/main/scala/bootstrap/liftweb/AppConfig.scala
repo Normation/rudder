@@ -144,7 +144,7 @@ import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.web.rest.compliance.ComplianceAPI6
 import com.normation.rudder.web.rest.compliance.ComplianceAPIService
 import com.normation.rudder.web.rest.technique._
-import com.normation.rudder.services.QuicksearchService
+import com.normation.rudder.services.quicksearch.FullQuickSearchService
 
 /**
  * Define a resource for configuration.
@@ -506,7 +506,7 @@ object RudderConfig extends Loggable {
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
   val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
   val restDataSerializer = RestDataSerializerImpl(techniqueRepository,diffService)
-  val restQuicksearch = new RestQuicksearch(new QuicksearchService(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit))
+  val restQuicksearch = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository))
 
   val ruleApiService2 =
     new RuleApiService2(

@@ -68,6 +68,40 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
     if(RudderConfig.RUDDER_FEATURE_ENABLE_QUICKSEARCH) {
     (
       <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="navbar-form navbar-left">
+
+        <script type="text/ng-template" id="/my-custom-template.html">
+          <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown}">
+            <input ng-model="searchStr"
+              ng-disabled="disableInput"
+              type="text"
+              placeholder="{{placeholder}}"
+              ng-focus="resetHideResults(); onFocusHandler()"
+              class="{{inputClass}}"
+              ng-blur="hideResults($event)"
+              autocapitalize="off"
+              autocorrect="off"
+              autocomplete="off"
+              ng-change="inputChangeHandler(searchStr)"/>
+            <div class="angucomplete-dropdown" ng-show="showDropdown">
+              <div class="angucomplete-searching" ng-show="searching" ng-bind="textSearching"></div>
+              <div class="angucomplete-searching" ng-show={"!searching && (!results || results.length == 0)"} ng-bind="textNoResults"></div>
+              <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{'angucomplete-selected-row': $index == currentIndex}">
+                <div ng-if={"result.originalObject.name"} class="angucomplete-item">
+                  <div>
+                       <span class="angucomplete-title">{{{{result.originalObject.type}}}}: {{{{result.originalObject.name}}}}</span>
+                  </div>
+                  <div ng-if={"matchClass && result.description && result.description != ''"} class="angucomplete-description" ng-bind-html="result.description"></div>
+                  <div ng-if={"!matchClass && result.description && result.description != ''"} class="angucomplete-description">{{result.description}}</div>
+                </div>
+                <div ng-if={"result.originalObject.summary"} class="angucomplete-summary">
+                  <span class="angucomplete-title">{{{{result.originalObject.type}}}}</span>
+                  <span class="angucomplete-description">{{{{result.originalObject.summary}}}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </script>
+
         <div angucomplete-ie8=""
              placeholder="Search anything"
              maxlength="100"
@@ -80,6 +114,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
              minlength="3"
              input-class="form-control ac_input"
              match-class="highlight"
+             template-url="/my-custom-template.html"
         ></div>
       </div>
     )
