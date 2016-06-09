@@ -41,6 +41,13 @@
   To create a sha512 hash of your password, please run this command:
     read mypass; echo -n $mypass | sha512sum
 
+  If you configured the use of LDAP or Active Directory in rudder-web.properties file,
+  you still need to specify here one user entry by user, with both the "password"
+  field (which will be ignored - it can be left empty) and the "role" field
+  (where you define the actual authorisations of the user). The "hash" field of
+  "authentication" can be omitted.
+
+
   The "role" tag must contain one or more of these values (comma separated), depending
   on the what the user should be allowed to do:
     "administrator" (all rights), "administration_only" (administration tab), "user"
