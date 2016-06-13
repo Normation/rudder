@@ -483,8 +483,10 @@ def generate_technique_content(technique_metadata, methods):
     # Treat each argument of the method_call
     if 'args' in method_call:
       for index, arg in enumerate(method_call['args']):
-        parameter = methods[method_name]["parameter"][index]
-        arg_constraint = parameter.get("constraints", {})
+        arg_constraint = {}
+        if method_name in methods:
+          parameter = methods[method_name]["parameter"][index]
+          arg_constraint = parameter.get("constraints", {})
         check = ncf_constraints.check_parameter(arg, arg_constraint)
         if not check['result']:
             error_constraint = "'"+"', '".join(check['errors'])+"'"

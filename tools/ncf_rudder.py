@@ -25,7 +25,7 @@ from pprint import pprint
 
 def write_all_techniques_for_rudder(root_path):
   write_category_xml(root_path)
-  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
+  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['techniques']
   ret = 0
   for technique, metadata in techniques.items():
     try:
@@ -40,7 +40,7 @@ def write_all_techniques_for_rudder(root_path):
 
 def write_one_technique_for_rudder(destination_path, bundle_name):
   write_category_xml(destination_path)
-  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
+  techniques = ncf.get_all_techniques_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['techniques']
   if bundle_name in techniques.keys():
     try:
       metadata = techniques[bundle_name]
@@ -163,7 +163,7 @@ def get_technique_metadata_xml(technique_metadata, include_rudder_reporting = Fa
   """Get metadata xml for a technique as string"""
 
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
 
   content = []
   content.append('<TECHNIQUE name="'+technique_metadata['name']+'">')
@@ -256,7 +256,7 @@ def generate_value_xml(method_call,generic_method):
 def get_technique_expected_reports(technique_metadata):
   """Generates technique expected reports from technique metadata"""
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')["data"]
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')["data"]['generic_methods']
 
   # Content start with a header
   content = ["""# This file contains one line per report expected by Rudder from this technique
@@ -293,7 +293,7 @@ def get_path_for_technique(root_path, technique_metadata):
 def generate_rudder_reporting(technique):
   """Generate complementary reporting needed for Rudder in rudder_reporting.st file"""
   # Get all generic methods
-  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']
+  generic_methods = ncf.get_all_generic_methods_metadata(alt_path='/var/rudder/configuration-repository/ncf')['data']['generic_methods']
 
   content = []
   content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting')

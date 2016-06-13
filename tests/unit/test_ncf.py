@@ -16,8 +16,9 @@ class TestNcf(unittest.TestCase):
       self.technique_content = fd.read()
     with open(self.test_generic_method_file) as fd:
       self.generic_method_content = fd.read()
-    
-    self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)
+    self.all_methods = ncf.get_all_generic_methods_metadata()["data"]["generic_methods"]
+
+    self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)['result']
     method_calls = ncf.parse_technique_methods(self.test_technique_file)
     self.technique_metadata['method_calls'] = method_calls
 
@@ -60,12 +61,12 @@ class TestNcf(unittest.TestCase):
 
   def test_parse_technique(self):
     """Parsing should return a dict with all defined technique tags"""
-    metadata = ncf.parse_technique_metadata(self.technique_content)
+    metadata = ncf.parse_technique_metadata(self.technique_content)['result']
     self.assertEqual(sorted(metadata.keys()), sorted(ncf.tags["technique"]+ncf.tags["common"]))
 
   def test_parse_technique_data(self):
     """Parsing should return a dict with the data from the test technique"""
-    metadata = ncf.parse_technique_metadata(self.technique_content)
+    metadata = ncf.parse_technique_metadata(self.technique_content)['result']
     self.assertEqual(metadata['name'], "Bla Technique for evaluation of parsingness")
     self.assertEqual(metadata['description'], "This meta-Technique is a sample only, allowing for testing.")
     self.assertEqual(metadata['version'], "0.1")
@@ -78,17 +79,17 @@ class TestNcf(unittest.TestCase):
 
   def test_parse_generic_method(self):
     """Parsing a generic method should return a dict with all defined generic_method tags"""
-    metadata = ncf.parse_generic_method_metadata(self.generic_method_content)
+    metadata = ncf.parse_generic_method_metadata(self.generic_method_content)['result']
     self.assertTrue(set(metadata.keys()).issuperset(set(self.methods_expected_tags)))
 
   def test_parse_generic_method_data(self):
     """Parsing should return a dict with the data from the test generic_method"""
-    metadata = ncf.parse_generic_method_metadata(self.generic_method_content)
+    metadata = ncf.parse_generic_method_metadata(self.generic_method_content)['result']
     self.assertEqual(metadata['bundle_name'], "package_install_version")
     self.assertEqual(metadata['bundle_args'], ["package_name", "package_version"])
     self.assertEqual(metadata['name'], "Package install")
     self.assertEqual(metadata['description'], "Install a package by name from the default system package manager")
-    self.assertEqual(metadata['parameter'], [{'name': 'package_name', 'description': 'Name of the package to install'},{'name': 'package_version', 'description': 'Version of the package to install'}])
+    self.assertEqual(metadata['parameter'], [ { 'constraints': {'allow_whitespace_string': False, 'allow_empty_string': False }, 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': {'allow_whitespace_string': False, 'allow_empty_string': False }, 'name': 'package_version', 'description': 'Version of the package to install'}])
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)
@@ -164,7 +165,7 @@ class TestNcf(unittest.TestCase):
 
   def test_get_all_generic_methods_metadata(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
-    metadata = ncf.get_all_generic_methods_metadata()["data"]
+    metadata = ncf.get_all_generic_methods_metadata()["data"]["generic_methods"]
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames())
     self.assertEqual(number_generic_methods, len(metadata))
@@ -172,7 +173,7 @@ class TestNcf(unittest.TestCase):
   def test_get_all_generic_methods_metadata_with_arg(self):
     """get_all_generic_methods_metadata should return a list of all generic_methods with all defined metadata tags"""
     alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
-    metadata = ncf.get_all_generic_methods_metadata(alternative_path)["data"]
+    metadata = ncf.get_all_generic_methods_metadata(alternative_path)["data"]["generic_methods"]
 
     number_generic_methods = len(ncf.get_all_generic_methods_filenames(alternative_path))
     self.assertEqual(number_generic_methods, len(metadata))
@@ -180,7 +181,7 @@ class TestNcf(unittest.TestCase):
   def test_get_all_techniques_metadata(self):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
     metadata = ncf.get_all_techniques_metadata()
-    data = metadata["data"]
+    data = metadata["data"]["techniques"]
     errors = metadata["errors"]
     all_metadata = len(data) + len(errors)
 
@@ -192,7 +193,7 @@ class TestNcf(unittest.TestCase):
     """get_all_techniques_metadata should return a list of all techniques with all defined metadata tags and methods_called"""
     alternative_path = os.path.dirname(os.path.realpath(__file__)) + "/test_methods"
     metadata = ncf.get_all_techniques_metadata(alt_path=alternative_path)
-    data = metadata["data"]
+    data = metadata["data"]["techniques"]
     errors = metadata["errors"]
     all_metadata = len(data) + len(errors)
 
@@ -303,7 +304,7 @@ class TestNcf(unittest.TestCase):
 
   def test_generate_technique_content(self):
     """Check that generate_technique_content works correctly - including escaping " in arguments"""
-    content = ncf.generate_technique_content(self.technique_metadata_test)
+    content = ncf.generate_technique_content(self.technique_metadata_test, self.all_methods)
     self.assertEqual(self.technique_test_expected_content, content)
 
   def test_parse_technique_methods_unescape_double_quotes(self):
