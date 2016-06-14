@@ -21,21 +21,21 @@ class TestNcfRudder(unittest.TestCase):
     self.test_technique_file = os.path.realpath('test_technique.cf')
     with open(self.test_technique_file) as fd:
       self.technique_content = fd.read()
-    self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)
+    self.technique_metadata = ncf.parse_technique_metadata(self.technique_content)['result']
     method_calls = ncf.parse_technique_methods(self.test_technique_file)
     self.technique_metadata['method_calls'] = method_calls
 
     self.test_reporting = os.path.realpath('test_technique_reporting.cf')
     with open(self.test_reporting) as fd:
       self.reporting_content = fd.read()
-    self.reporting_metadata = ncf.parse_technique_metadata(self.reporting_content)
+    self.reporting_metadata = ncf.parse_technique_metadata(self.reporting_content)['result']
     reporting_method_calls = ncf.parse_technique_methods(self.test_reporting)
     self.reporting_metadata['method_calls'] = reporting_method_calls
 
     self.test_reporting_with_var = os.path.realpath('test_technique_with_variable.cf')
     with open(self.test_reporting_with_var) as fd:
       self.reporting_with_var_content = fd.read()
-    self.reporting_with_var_metadata = ncf.parse_technique_metadata(self.reporting_with_var_content)
+    self.reporting_with_var_metadata = ncf.parse_technique_metadata(self.reporting_with_var_content)['result']
     reporting_with_var_method_calls = ncf.parse_technique_methods(self.test_reporting_with_var)
     self.reporting_with_var_metadata['method_calls'] = reporting_with_var_method_calls
 
@@ -43,7 +43,7 @@ class TestNcfRudder(unittest.TestCase):
     self.test_any_technique = os.path.realpath('test_technique_any.cf')
     with open(self.test_any_technique) as fd:
       self.any_technique_content = fd.read()
-    self.any_technique_metadata = ncf.parse_technique_metadata(self.any_technique_content)
+    self.any_technique_metadata = ncf.parse_technique_metadata(self.any_technique_content)['result']
     any_technique_method_calls = ncf.parse_technique_methods(self.test_any_technique)
     self.any_technique_metadata['method_calls'] = any_technique_method_calls
 

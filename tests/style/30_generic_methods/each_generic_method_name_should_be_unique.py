@@ -12,7 +12,7 @@ def check_comments_for_all_generic_methods():
   for file in filenames:
     content = open(file).read()
     try:
-      metadata = ncf.parse_generic_method_metadata(content)
+      metadata = ncf.parse_generic_method_metadata(content)['result']
     except Exception as e:
       print "Error in " + file + ": " + e.__str__()
 
