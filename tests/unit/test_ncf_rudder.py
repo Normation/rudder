@@ -55,7 +55,7 @@ class TestNcfRudder(unittest.TestCase):
     # Testing Techniques with quote
     self.test_technique_with_quote_file = os.path.realpath('test_technique_with_quote.cf')
     self.technique_with_quote_content = open(self.test_technique_with_quote_file).read()
-    self.technique_with_quote_metadata = ncf.parse_technique_metadata(self.technique_with_quote_content)
+    self.technique_with_quote_metadata = ncf.parse_technique_metadata(self.technique_with_quote_content)['result']
     method_with_quote_calls = ncf.parse_technique_methods(self.test_technique_with_quote_file)
     self.technique_with_quote_metadata['method_calls'] = method_with_quote_calls
 
@@ -112,15 +112,15 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('    !(debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("service_start_apache2");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "service_start_apache2");')
+    expected_result.append('      "dummy_report" usebundle => log_rudder("Not applicable", "service_start_apache2", "", "");')
     expected_result.append('')
     expected_result.append('    !(service_start_apache2_repaired)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "package_install_openssh_server");')
+    expected_result.append('      "dummy_report" usebundle => log_rudder("Not applicable", "package_install_openssh_server", "", "");')
     expected_result.append('')
     expected_result.append('    !(!service_start_apache2_repaired.debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("command_execution__bin_date");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "command_execution__bin_date");')
+    expected_result.append('      "dummy_report" usebundle => log_rudder("Not applicable", "command_execution__bin_date", "", "");')
     expected_result.append('}')
 
     # Join all lines with \n
@@ -141,7 +141,7 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("file_create_${sys.workdir}_module_env"),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "file_create_${sys.workdir}_module_env"),')
+    expected_result.append('      "dummy_report" usebundle => log_rudder("Not applicable", "file_create_${sys.workdir}_module_env", "", ""),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
     expected_result.append('}')
 
