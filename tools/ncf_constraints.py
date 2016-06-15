@@ -30,7 +30,10 @@ def select( parameter_value, accepted_result):
 def max_length( parameter_value, max_size):
   current_length = len(parameter_value)
   result = current_length <= max_size
-  error_message = "Max length is " + str(max_size) + ". Current size is " + str(current_length)
+  error_message = "Max length is " + str(max_size)
+  if max_length == 2048:
+      error_message = "Fields over 2048 characters are currently not supported. If you want to edit a file, please insert your content into a file, and copy it with a file_copy_* method, or use a template"
+  error_message += ". Current size is " + str(current_length)
   return return_constraint(result, error_message)
 
 def min_length( parameter_value, min_size):
@@ -104,6 +107,7 @@ variable_constraints = {
 default_constraint = {
     "allow_whitespace_string" : False
   , "allow_empty_string" : False
+  , "max_length" : 2048
 }
 
 def check_parameter(parameter_value, parameter_constraints):
