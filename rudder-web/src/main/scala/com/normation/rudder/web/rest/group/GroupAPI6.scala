@@ -82,7 +82,6 @@ class GroupAPI6(
         , s"Could not fetch Group category tree"
       ) ("GetGroupTree")
 
-
     case Get("categories"  :: id :: Nil, req) => {
       response (
           serviceV6.getCategoryDetails(NodeGroupCategoryId(id))
@@ -136,7 +135,6 @@ class GroupAPI6(
         , s"Could not create Group category"
       ) ("createGroupCategory")
     }
-
 
     case Put("categories" :: Nil, req) => {
       val restCategory = restExtractor.extractGroupCategory(req.params)

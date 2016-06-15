@@ -143,7 +143,7 @@ import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
 import com.normation.rudder.web.rest.compliance.ComplianceAPI6
 import com.normation.rudder.web.rest.compliance.ComplianceAPIService
-
+import com.normation.rudder.web.rest.technique._
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -552,6 +552,19 @@ object RudderConfig extends Loggable {
       , directiveApiService2
     )
 
+  val TechniqueApiService6 =
+    new TechniqueAPIService6 (
+        roDirectiveRepository
+      , restDataSerializer
+      , techniqueRepositoryImpl
+    )
+
+  val techniqueApi6 =
+    new TechniqueAPI6 (
+        restExtractorService
+      , TechniqueApiService6
+    )
+
   val groupApiService2 =
     new GroupApiService2 (
         roNodeGroupRepository
@@ -647,8 +660,6 @@ object RudderConfig extends Loggable {
     )
   }
 
-
-
   val nodeApi6 = {
     new NodeAPI6 (
         nodeApi5
@@ -712,12 +723,11 @@ object RudderConfig extends Loggable {
       )
   )
 
-
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
-  val apiV6 : List[RestAPI] = complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
+  val apiV6 : List[RestAPI] = techniqueApi6 ::complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
 
   val apis = {
     Map (
