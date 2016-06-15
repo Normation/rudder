@@ -162,7 +162,8 @@ def parse_bundlefile_metadata(content, bundle_type):
           param_names.add(param_name)
         if tag == "parameter_constraint":
           constraint = json.loads("{" + match.group(4)+ "}")
-          param_constraints.setdefault(match.group(3), {}).update(constraint)
+          # extend default_constraint if it was not already defined)
+          param_constraints.setdefault(match.group(3), ncf_constraints.default_constraint.copy()).update(constraint)
         else:
           res[tag] = match.group(2)
         previous_tag = tag
@@ -483,7 +484,7 @@ def generate_technique_content(technique_metadata, methods):
     # Treat each argument of the method_call
     if 'args' in method_call:
       for index, arg in enumerate(method_call['args']):
-        arg_constraint = {}
+        arg_constraint = ncf_constraints.default_constraint
         if method_name in methods:
           parameter = methods[method_name]["parameter"][index]
           arg_constraint = parameter.get("constraints", {})
