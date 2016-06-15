@@ -147,8 +147,9 @@ def create_technique():
     else:
       path = default_path
   
-    ncf.write_technique(technique,path)
-    return jsonify({ "data": technique }), 201
+    result = ncf.write_technique(technique,path)
+
+    return jsonify(result), 201
 
   except Exception as e:
     return format_error(e, "technique writing", 500)

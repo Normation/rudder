@@ -410,8 +410,10 @@ def check_technique_method_call(bundle_name, method_call):
 
 
 def check_technique_metadata(technique_metadata):
-  """Check technique metdata, if one is missing raise an exception"""
+  """Check technique metdata, if one is missing raise an exception, returns an array of warnings"""
   mandatory_keys = [ 'name', 'bundle_name', 'method_calls' ]
+  warnings = []
+
   for key in mandatory_keys:
     if not key in technique_metadata:
       raise NcfError("Mandatory key "+key+" is missing from Technique metadata")
@@ -421,6 +423,12 @@ def check_technique_metadata(technique_metadata):
     if technique_metadata[key] == "":
       raise NcfError("A technique must have a "+key+", but there is none")
 
+  # File name of the technique will be invalid on most filesystem, do not save technique
+  if len(technique_metadata['bundle_name']) > 253:
+    raise NcfError("Bundle names longer than 255 characters won't work on most filesystems.")
+  elif len(technique_metadata['bundle_name']) > 100:
+      warnings.push("Bundle names longer than 100 characters may not work on some filesystems (Windows, in particular).")
+
   # If there is no method call, raise an exception
   if len(technique_metadata['method_calls']) == 0:
     raise NcfError("A technique must have at least one method call, and there is none in Technique "+technique_metadata['bundle_name'])
@@ -428,6 +436,7 @@ def check_technique_metadata(technique_metadata):
   for call in technique_metadata['method_calls']:
     check_technique_method_call(technique_metadata['bundle_name'], call)
 
+  return warnings
 
 def add_default_values_technique_method_call(method_call):
   """Set default values on some fields in a method call"""
@@ -439,8 +448,7 @@ def add_default_values_technique_method_call(method_call):
 
 
 def add_default_values_technique_metadata(technique_metadata):
-  """Check the technique and set default values on some fields"""
-  check_technique_metadata(technique_metadata)
+  """set default values on technique metadata if missing"""
 
   technique = technique_metadata
   if not 'description' in technique:
@@ -467,10 +475,8 @@ def canonify_class_context(class_context):
   return regex.sub(r'",canonify("\1"),"', class_context)
 
 
-def generate_technique_content(technique_metadata, methods):
+def generate_technique_content(technique, methods):
   """Generate technique CFEngine file as string from its metadata"""
-
-  technique = add_default_values_technique_metadata(technique_metadata)
 
   content = []
   for metadata_key in [ 'name', 'description', 'version' ]:
@@ -511,7 +517,7 @@ def generate_technique_content(technique_metadata, methods):
   # Join all lines with \n to get a pretty CFEngine file
   result =  '\n'.join(content)+"\n"
 
-  return result
+  return result 
 
 
 # FUNCTIONS called directly by the API code
@@ -596,12 +602,16 @@ def write_technique(technique_metadata, alt_path = ""):
     execute_hooks("pre", action, path, bundle_name)
 
     # Write technique file
-    content = generate_technique_content(technique_metadata, methods)
+    warnings = check_technique_metadata(technique_metadata)
+    technique = add_default_values_technique_metadata(technique_metadata)
+    content = generate_technique_content(technique, methods)
     with codecs.open(filename, "w", encoding="utf-8") as fd:
       fd.write(content)
 
     # Execute post hooks
     execute_hooks("post", action, path, bundle_name)
+   
+    return { "data" : { "technique" : technique } , "warnings" : warnings }
 
   except NcfError as e:
     if not 'bundle_name' in technique_metadata:
