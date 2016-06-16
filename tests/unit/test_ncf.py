@@ -3,9 +3,11 @@
 
 import unittest
 import ncf
+import ncf_constraints
 import os.path
 import subprocess
 import shutil
+from pprint import pprint
 
 class TestNcf(unittest.TestCase):
 
@@ -89,7 +91,7 @@ class TestNcf(unittest.TestCase):
     self.assertEqual(metadata['bundle_args'], ["package_name", "package_version"])
     self.assertEqual(metadata['name'], "Package install")
     self.assertEqual(metadata['description'], "Install a package by name from the default system package manager")
-    self.assertEqual(metadata['parameter'], [ { 'constraints': {'allow_whitespace_string': False, 'allow_empty_string': False }, 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': {'allow_whitespace_string': False, 'allow_empty_string': False }, 'name': 'package_version', 'description': 'Version of the package to install'}])
+    self.assertEqual(metadata['parameter'], [ { 'constraints': ncf_constraints.default_constraint, 'name': 'package_name', 'description': 'Name of the package to install'},{ 'constraints': ncf_constraints.default_constraint, 'name': 'package_version', 'description': 'Version of the package to install'}])
     self.assertEqual(metadata['class_prefix'], "package_install")
     self.assertEqual(metadata['class_parameter'], "package_name")
     self.assertEqual(metadata['class_parameter_id'], 1)
