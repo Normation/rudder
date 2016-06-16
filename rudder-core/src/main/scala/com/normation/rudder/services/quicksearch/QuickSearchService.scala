@@ -47,6 +47,7 @@ import com.normation.utils.Control._
 
 import net.liftweb.common.Box
 import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 
 /**
  * This class allow to return a list of Rudder object given a string.
@@ -61,7 +62,7 @@ class FullQuickSearchService(implicit
   , val inventoryDit  : InventoryDit
   , val rudderDit     : RudderDit
   , val directiveRepo : RoDirectiveRepository
-) {
+) extends Loggable {
 
   import QuickSearchService._
 
@@ -74,8 +75,12 @@ class FullQuickSearchService(implicit
   def search(token: String): Box[Set[QuickSearchResult]] = {
     for {
       query   <- token.parse
+      _       =  logger.debug(s"User query for '${token}', parsed as user query: '${query.userToken}' on objects: " +
+                 s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'")
       results <- sequence(QSBackend.all.toSeq) { b =>
-                   b.search(query)
+                   val res = b.search(query)
+                   logger.debug(s"  - [${b}] found ${res.size} results")
+                   res
                  }
     } yield {
       results.toSet.flatten
@@ -108,27 +113,5 @@ object QuickSearchService {
     }
 
   }
-
-  // default sort for QuickSearchResult:
-  // - by type
-  // - then by name
-  def sortQuickSearchResult(a: QuickSearchResult, b: QuickSearchResult): Boolean = {
-    implicit class QSObjectOrder(o: QSObject) {
-      def order() = o match {
-        case Node      => 1
-        case Group     => 2
-        case Directive => 3
-        case Parameter => 4
-        case Rule      => 5
-      }
-    }
-
-    if(new QSObjectOrder(a.id.tpe).order == b.id.tpe.order) {
-      String.CASE_INSENSITIVE_ORDER.compare(a.name, b.name) <= 0
-    } else {
-      a.id.tpe.order <= b.id.tpe.order
-    }
-  }
-
 }
 

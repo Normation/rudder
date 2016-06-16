@@ -14,6 +14,7 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QuickSearchResult
+import com.normation.rudder.services.quicksearch.QSObject
 
 
 /**
@@ -41,7 +42,7 @@ class RestQuicksearch (
 ) extends RestHelper with Loggable {
 
 
-  final val MAX_RES_BY_KINd = 10
+  final val MAX_RES_BY_KINd = 3
 
   serve {
     case Get("secure" :: "api" :: "quicksearch" :: token :: Nil, req) => {
@@ -69,12 +70,12 @@ class RestQuicksearch (
    *   crunching the browser with thousands of answers
    */
   private[this] def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
-    import com.normation.rudder.services.quicksearch.QSObject
 
     // group by kind, and build the summary for each
     val map = results.groupBy( _.id.tpe ).map { case (tpe, set) =>
       //distinct by id:
-      val unique   = set.map(x => (x.id, x) ).toMap.values.toSeq
+      val unique   = set.map(x => (x.id, x) ).toMap.values.toSeq.sortBy(_.name)
+      //on take the nth first, sorted by name
       val returned = unique.take(maxByKind)
 
       val summary = ResultTypeSummary(tpe.name, unique.size, returned.size)
@@ -90,7 +91,7 @@ class RestQuicksearch (
     // - parameters
     // - rules
 
-    val jsonList = QSObject.all.toList.flatMap { tpe =>
+    val jsonList = QSObject.all.toList.sortWith(sortQSObject).flatMap { tpe =>
       val (summary, res) = map.getOrElse(tpe, (ResultTypeSummary(tpe.name, 0,0), Seq()) )
       if(res.isEmpty) {
         Nil
@@ -123,6 +124,25 @@ class RestQuicksearch (
     }
   }
 
+
+  // default sort for QuickSearchResult:
+  // - by type
+  // - then by name
+  private[this] def sortQSObject(a: QSObject, b:QSObject): Boolean = {
+    import com.normation.rudder.services.quicksearch.QSObject._
+
+    implicit class QSObjectOrder(o: QSObject) {
+      def order() = o match {
+        case Node      => 1
+        case Group     => 2
+        case Directive => 3
+        case Parameter => 4
+        case Rule      => 5
+      }
+    }
+    a.order <= b.order
+  }
+
   private[this] implicit class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId
     import com.normation.rudder.domain.policies.DirectiveId
@@ -152,7 +172,7 @@ class RestQuicksearch (
         else                     r.value
       }
 
-      val desc = s"${r.attribute.map( _.name + ": ").getOrElse("")}{v}"
+      val desc = s"${r.attribute.map( _.name + ": ").getOrElse("")}${v}"
 
       (
           ( "name" -> r.name        )

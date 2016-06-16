@@ -132,6 +132,13 @@ object QSAttribute {
   final case object ParameterName  extends QSAttribute { override val name = "id" }
   final case object ParameterValue extends QSAttribute { override val name = "value" }
 
+  //Rules
+  final case object RuleId       extends QSAttribute { override val name = "id" }
+  final case object DirectiveIds extends QSAttribute { override val name = "directives" }
+  final case object Targets      extends QSAttribute { override val name = "targets" }
+
+
+  ////// all attributes /////
   final val all: Set[QSAttribute] = sealerate.values[QSAttribute]
 
 }

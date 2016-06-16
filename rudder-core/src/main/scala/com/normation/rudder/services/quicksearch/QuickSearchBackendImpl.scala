@@ -54,6 +54,7 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.unboundid.ldap.sdk.Filter
 
 import net.liftweb.common.Box
+import net.liftweb.common.Full
 
 
 /**
@@ -70,7 +71,12 @@ import net.liftweb.common.Box
 
 
 object QSDirectiveBackend {
-
+  import com.normation.rudder.repository.FullActiveTechnique
+  import com.normation.rudder.domain.policies.Directive
+  import com.normation.rudder.domain.policies.DirectiveId
+  import QSObject.{Directive => QSDirective }
+  import QSAttribute.{ DirectiveId => QSDirectiveId, _ }
+  import QuickSearchResultId.QRDirectiveId
 
   /*
    * The filter that allows to know if a couple (activeTechnique, directive) match
@@ -83,18 +89,86 @@ object QSDirectiveBackend {
    */
   def search(query: Query)(implicit repo: RoDirectiveRepository): Box[Set[QuickSearchResult]] = {
 
+    // only search if query is on Directives and attributes contains
+    // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion
+
+    val attributes: Set[QSAttribute] = query.attributes.intersect(Set(
+        QSDirectiveId
+      , DirectiveVarName
+      , DirectiveVarValue
+      , TechniqueName
+      , TechniqueVersion
+      , Description
+      , ShortDescription
+      , LongDescription
+      , Name
+    ) )
 
 
-    for {
-      directiveLib <- repo.getFullDirectiveLibrary
-    } yield {
+    if(query.objectClass.contains(QSDirective) && attributes.nonEmpty) {
+      for {
+        directiveLib <- repo.getFullDirectiveLibrary
+      } yield {
+        (for {
+          (at, dir) <- directiveLib.allDirectives.values
+          attribute <- attributes
+        } yield {
+          attribute.find(at, dir, query.userToken)
+        }).flatten.toSet
+      }
+    } else {
+      Full(Set())
+    }
+  }
 
-      directiveLib.allDirectives.collect { case (id, (at, dir) ) =>
-        ???
+  implicit class QSAttributeFilter(a: QSAttribute) {
+    def find(at: FullActiveTechnique, dir: Directive, token: String): Option[QuickSearchResult] = {
+
+      val pattern = s""".*${Pattern.quote(token)}.*""".r.pattern
+
+      val toMatch: Option[Set[String]] = a match {
+        case QSDirectiveId     => Some(Set(dir.id.value))
+        case DirectiveVarName  => Some(dir.parameters.keySet)
+        case DirectiveVarValue => Some(dir.parameters.values.flatten.toSet)
+        case TechniqueName     => Some(Set(at.techniqueName.toString))
+        case TechniqueVersion  => Some(Set(dir.techniqueVersion.toString))
+        case Description       => Some(Set(dir.shortDescription, dir.longDescription))
+        case ShortDescription  => Some(Set(dir.shortDescription))
+        case LongDescription   => Some(Set(dir.longDescription))
+        case Name              => Some(Set(dir.name))
+        case IsEnabled         => None
+        case NodeId            => None
+        case Fqdn              => None
+        case OsType            => None
+        case OsName            => None
+        case OsVersion         => None
+        case OsFullName        => None
+        case OsKernelVersion   => None
+        case OsServicePack     => None
+        case Arch              => None
+        case Ram               => None
+        case IpAddresses       => None
+        case PolicyServerId    => None
+        case Properties        => None
+        case RudderRoles       => None
+        case GroupId           => None
+        case IsDynamic         => None
+        case ParameterName     => None
+        case ParameterValue    => None
+        case RuleId            => None
+        case DirectiveIds      => None
+        case Targets           => None
+      }
+
+      toMatch.flatMap { set => set.find( s => pattern.matcher(s).matches) }.map{ s =>
+        QuickSearchResult(
+            QRDirectiveId(dir.id.value)
+          , dir.name
+          , Some(a)
+          , s
+        )
       }
     }
-
-    ???
   }
 
 }
@@ -138,7 +212,7 @@ object QSLdapBackend {
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result
-        val keepAttribute = s"""(?i).*${query.userToken}.*""".r.pattern
+        val keepAttribute = s"""(?i).*${Pattern.quote(query.userToken)}.*""".r.pattern
         entries.flatMap( _.toResult(keepAttribute))
       }
     }
@@ -179,6 +253,9 @@ object QSLdapBackend {
       , TechniqueVersion  -> ""
       , ParameterName     -> A_PARAMETER_NAME
       , ParameterValue    -> A_PARAMETER_VALUE
+      , RuleId            -> A_RULE_UUID
+      , DirectiveIds      -> A_DIRECTIVE_UUID
+      , Targets           -> A_RULE_TARGET
     )
 
     if(m.size != QSAttribute.all.size) {
@@ -199,35 +276,41 @@ object QSLdapBackend {
    * Mapping between attributes and their filter in the backend
    */
   implicit class QSAttributeLdapFilter(a: QSAttribute) {
-    def filter(token: String): Option[Filter] = a match {
-      case Name              => Some(SUB(a.ldapName, null, Array(token), null ))
-      case Description       => Some(SUB(a.ldapName, null, Array(token), null ))
-      case ShortDescription  => Some(SUB(a.ldapName, null, Array(token), null ))
-      case LongDescription   => Some(SUB(a.ldapName, null, Array(token), null ))
-      case IsEnabled         => Some(SUB(a.ldapName, null, Array(token), null ))
-      case NodeId            => Some(SUB(a.ldapName, null, Array(token), null ))
-      case Fqdn              => Some(SUB(a.ldapName, null, Array(token), null ))
-      case OsType            => Some(EQ(a.ldapName, token+"Node")) // objectClass=linuxNode etc
-      case OsName            => Some(SUB(a.ldapName, null, Array(token), null ))
-      case OsVersion         => Some(SUB(a.ldapName, null, Array(token), null ))
-      case OsFullName        => Some(SUB(a.ldapName, null, Array(token), null ))
-      case OsKernelVersion   => Some(SUB(a.ldapName, null, Array(token), null ))
-      case OsServicePack     => Some(SUB(a.ldapName, null, Array(token), null ))
-      case Arch              => Some(SUB(a.ldapName, null, Array(token), null ))
-      case Ram               => Some(SUB(a.ldapName, null, Array(token), null ))
-      case IpAddresses       => Some(SUB(a.ldapName, null, Array(token), null ))
-      case PolicyServerId    => Some(SUB(a.ldapName, null, Array(token), null ))
-      case Properties        => Some(SUB(a.ldapName, null, Array(token), null ))
-      case RudderRoles       => Some(SUB(a.ldapName, null, Array(token), null ))
-      case GroupId           => Some(SUB(a.ldapName, null, Array(token), null ))
-      case IsDynamic         => Some(SUB(a.ldapName, null, Array(token), null ))
-      case DirectiveId       => None
-      case DirectiveVarName  => None
-      case DirectiveVarValue => None
-      case TechniqueName     => None
-      case TechniqueVersion  => None
-      case ParameterName     => Some(SUB(a.ldapName, null, Array(token), null ))
-      case ParameterValue    => Some(SUB(a.ldapName, null, Array(token), null ))
+    def filter(token: String): Option[Filter] = {
+      def sub() = Some(SUB(a.ldapName, null, Array(token), null ))
+      a match {
+        case Name              => sub
+        case Description       => sub
+        case ShortDescription  => sub
+        case LongDescription   => sub
+        case IsEnabled         => sub
+        case NodeId            => sub
+        case Fqdn              => sub
+        case OsType            => Some(EQ(a.ldapName, token+"Node")) // objectClass=linuxNode etc
+        case OsName            => sub
+        case OsVersion         => sub
+        case OsFullName        => sub
+        case OsKernelVersion   => sub
+        case OsServicePack     => sub
+        case Arch              => sub
+        case Ram               => sub
+        case IpAddresses       => sub
+        case PolicyServerId    => sub
+        case Properties        => sub
+        case RudderRoles       => sub
+        case GroupId           => sub
+        case IsDynamic         => sub
+        case DirectiveId       => None
+        case DirectiveVarName  => None
+        case DirectiveVarValue => None
+        case TechniqueName     => None
+        case TechniqueVersion  => None
+        case ParameterName     => sub
+        case ParameterValue    => sub
+        case RuleId            => sub
+        case DirectiveIds      => sub
+        case Targets           => sub
+      }
     }
   }
 
