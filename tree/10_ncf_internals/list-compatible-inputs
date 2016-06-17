@@ -5,8 +5,8 @@ set -e
 # Need at least 3 parameters
 if [ "$#" -lt 3 ]
 then
-  echo "Usage $0 <CFEngine_version> <ncf_framework_path> <nn_directory> [<nn_directory ...]"
-  echo "  Finds all *.cf files in <ncf_framework>/<nn_directory> that are compatible with the given CFEngine version"
+  echo "Usage $0 <CFEngine_version> <ncf_framework_path> [common|local]/<nn_directory> [<nn_directory ...]"
+  echo "  Finds all *.cf files in <ncf_framework>/[common|local]<nn_directory> that are compatible with the given CFEngine version"
   exit 1
 fi
 
@@ -23,6 +23,9 @@ export PATH
 version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
 cfengine_major=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\1/"`
 cfengine_minor=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\2/"`
+
+# move into framework path
+cd "${framework_path}"
 
 # Last parameters not named to keep them as a quoted array
 for directory in "$@"
@@ -45,7 +48,7 @@ do
   # first remove obsolete cache for exclude list
   if [ -f "${exclude_file}" ]
   then
-    newer_files=`find "${framework_path}/${directory}" -type f -newer "${exclude_file}"`
+    newer_files=`find "${directory}" -type f -newer "${exclude_file}"`
     if [ "${newer_files}" != "" ]
     then
       rm -f "${exclude_file}"
@@ -59,7 +62,7 @@ do
   else
     # sed -ne '/regex/F' prints file name when regex matches
     tag_regex='^#[ \t]*@agent_version[ \t]*'
-    for file in `find "${framework_path}/${directory}" -name '*.cf' -exec grep -l "${tag_regex}" '{}' \;`
+    for file in `find "${directory}" -name '*.cf' -exec grep -l "${tag_regex}" '{}' \;`
     do
       if grep -q "${tag_regex}>=" "${file}"; then operator=">="; fi
       if grep -q "${tag_regex}<" "${file}"; then operator="<"; fi
@@ -91,6 +94,6 @@ do
 
   # eventually call find
   # posix compliant version of find without -printf '%p\n', it should work with darwin and aix
-  find "${framework_path}/${directory}" ${excludes} -name '*.cf' -print
+  find "${directory}" ${excludes} -name '*.cf' -print
 done
 
