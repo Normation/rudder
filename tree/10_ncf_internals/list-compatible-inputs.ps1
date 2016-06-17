@@ -1,7 +1,7 @@
 param(
   [Parameter(Mandatory=$true)][string]$cfengine_version=$(throw "CFEngine version is mandatory, please provide a value, in the form major.minor (e.g., 3.6)"),
   [Parameter(Mandatory=$true)][string]$framework_path=$(throw "Framework path is mandatory, please provide a value."),
-  [Parameter(Mandatory=$true)][string]$nn_directory=$(throw "nn_directory is mandatory, please provide a value, in the form nn_directory (e.g. 30_generic_methods")
+  [Parameter(Mandatory=$true)][string]$nn_directory=$(throw "nn_directory is mandatory, please provide a value, in the form [common|local]\nn_directory (e.g. local\30_generic_methods")
 )
 $path="$framework_path\$nn_directory"
 
@@ -30,5 +30,4 @@ $matching_files | ForEach {
 }
 
 # return all files in folder, minus the exclude list
-Get-ChildItem $path -rec -filter *.cf | where { (!$_.PSIsContainer) -and ($excludes -notcontains $_.FullName) } |  Select-Object -expandproperty FullName
-
+Get-ChildItem $path -rec -filter *.cf | where { (!$_.PSIsContainer) -and ($excludes -notcontains $_.FullName) } |  Select-Object -expandproperty FullName | Foreach-Object { $_.replace($framework_path, "") }
