@@ -16,7 +16,7 @@ unset LANG
 
 # Configuration
 TEST_WORKDIR=/tmp
-TEST_DEPENDENCIES="curl lsb-release"
+TEST_DEPENDENCIES="curl lsb-release htop"
 
 # Default values
 BRANCH="master"
