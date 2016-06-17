@@ -106,8 +106,7 @@ bundle agent check
   classes:
       # Make sure the package is actually installed
       "package_installed_ok"
-        expression => returnszero("${init.package_info_cmd}", "noshell"),
-        ifvarclass => canonify("package_check_installed_${init.package_name}_reached");
+        expression => returnszero("${init.package_info_cmd}", "noshell");
 
       # Compare the package info we got now to what we had before running the test, to make sure this didn't change anything
       "package_info_ok" expression => strcmp("${init.package_info}", "${package_info}");
