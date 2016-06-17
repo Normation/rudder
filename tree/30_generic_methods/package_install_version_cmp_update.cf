@@ -29,6 +29,7 @@
 # @parameter package_version     The version of the package to verify (can be "latest" for latest version)
 # @parameter action              Action to perform, can be add, verify (defaults to verify)
 # @parameter update_policy       While verifying packages, check against latest version ("true") or just installed ("false")
+# @parameter_constraint version_comparator  "select" : [ "==", "<=", ">=", "<", ">" , "!=" ]
 # 
 # @class_prefix package_install
 # @class_parameter package_name

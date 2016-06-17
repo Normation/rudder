@@ -28,6 +28,7 @@
 # @parameter version_comparator  Comparator between installed version and defined version, can be ==,<=,>=,<,>,!=
 # @parameter package_version     The version of the package to verify (can be "latest" for latest version)
 # @parameter action              Action to perform, can be add, verify (defaults to verify)
+# @parameter_constraint version_comparator  "select" : [ "==", "<=", ">=", "<", ">" , "!=" ]
 # 
 # @class_prefix package_install
 # @class_parameter package_name

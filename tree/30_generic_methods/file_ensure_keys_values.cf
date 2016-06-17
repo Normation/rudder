@@ -22,6 +22,7 @@
 # @parameter file File name to edit
 # @parameter keys Dict structure containing the keys (keys of the dict), and values to define (values of the dict)
 # @parameter separator Separator between key and value (for example "=" or " ")
+# @parameter_constraint separator "allow_whitespace_string" : true 
 #
 # @documentation You can create a dict variable by using the variable_dict* methods.
 #
