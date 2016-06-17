@@ -132,4 +132,4 @@ git pull origin ${BRANCH}
 
 # Start the test suite
 echo "Beginning tests, using CFEngine version \"`cf-agent -V`\""
-make test
+make test-unsafe
