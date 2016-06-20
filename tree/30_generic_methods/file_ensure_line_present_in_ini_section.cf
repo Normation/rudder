@@ -55,6 +55,6 @@ bundle agent file_ensure_line_present_in_ini_section(file, section, line)
         classes       => classes_generic("${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
 }

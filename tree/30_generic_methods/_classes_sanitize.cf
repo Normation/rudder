@@ -1,0 +1,44 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Classes sanitize
+# @description Sanitize a class prefix, ie error > repaired > kept and there cannot be any overlap
+# @documentation This bundle will undefine class ${prefix}_{kept,repaired,not_ok,ok,reached}
+# based on the overlapping of ${prefix}_{kept,repaired,not_ok,ok,reached}
+#
+# @parameter prefix      The prefix of the source class to copy
+#
+# @class_prefix 
+# @class_parameter 
+
+bundle agent _classes_sanitize(prefix)
+{
+  vars:
+    # this is a way to remove the class withouto side effect
+    unset_kept::
+      "ignored_kept"     string => "", classes => cancel("${prefix}_kept");
+    unset_repaired::
+      "ignored_repaired" string => "", classes => cancel("${prefix}_repaired");
+    unset_ok::
+      "ignored_ok"       string => "", classes => cancel("${prefix}_ok");
+
+  classes:
+    "unset_kept"     expression => "${prefix}_kept.(${prefix}_error|${prefix}_repaired)";
+    "unset_repaired" expression => "${prefix}_repaired.${prefix}_error";
+    "unset_ok"       expression => "${prefix}_ok.${prefix}_error";
+}

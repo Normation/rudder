@@ -44,6 +44,6 @@ bundle agent file_ensure_key_value(file, key, value, separator)
         classes       => classes_generic("${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Ensure line in format key${separator}value in ${file}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Ensure line in format key${separator}value in ${file}", "${class_prefix}");
 }

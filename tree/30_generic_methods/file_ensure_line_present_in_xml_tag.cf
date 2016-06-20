@@ -48,6 +48,6 @@ bundle agent file_ensure_line_present_in_xml_tag(file, tag, line)
       "failure" usebundle => _classes_failure("${class_prefix}");
 
     any::
-      "report"
-        usebundle  => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Insert line(s) ${line} into ${file}", "${class_prefix}");
 }

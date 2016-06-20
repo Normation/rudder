@@ -52,7 +52,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
     any::
-
-      "report"          usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Build file ${destination} from ${template_type} template ${source_template}", "${class_prefix}");
 
 }
