@@ -271,18 +271,6 @@ object RudderConfig extends Loggable {
   val RUDDER_SERVER_ROLES_FRONT = config.getString("rudder.server-roles.relay-top")
   val RUDDER_SERVER_ROLES_WEBAPP= config.getString("rudder.server-roles.web")
 
-
-  //Feature switch
-  val RUDDER_FEATURE_ENABLE_QUICKSEARCH = {
-    val p = "rudder.feature.quicksearchEverything"
-    if(config.hasPath(p)) {
-      config.getBoolean(p)
-    } else {
-      false
-    }
-  }
-
-
   val licensesConfiguration = "licenses.xml"
   val logentries = "logentries.xml"
   val prettyPrinter = new RudderPrettyPrinter(Int.MaxValue, 2)

@@ -55,6 +55,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   </modules>
 
   <dependencies>
+    <!-- Utility to generate all case of a sealed base class -->
+    <dependency>
+      <groupId>ca.mrvisser</groupId>
+      <artifactId>sealerate_${scala-binary-version}</artifactId>
+      <version>0.0.4</version>
+    </dependency>
     <!-- Spring Framework Project libraries -->
     <dependency>
       <groupId>com.normation</groupId>

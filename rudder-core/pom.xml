@@ -101,11 +101,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>slick-pg_joda-time_${scala-binary-version}</artifactId>
       <version>0.6.3</version>
     </dependency>
-    <dependency>
-      <groupId>ca.mrvisser</groupId>
-      <artifactId>sealerate_${scala-binary-version}</artifactId>
-      <version>0.0.4</version>
-    </dependency>
+
 
     <!-- pool connection: https://github.com/wwadge/bonecp/blob/master/bonecp/src/main/javadoc/overview.html -->
     <!-- We can't use HikariCP as it has different binaries for java6/7 and java8 -->

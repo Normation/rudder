@@ -62,6 +62,33 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
+import ca.mrvisser.sealerate
+import com.normation.rudder.web.components.popup.ModificationValidationPopup.Disable
+
+
+/**
+ * A little domain language for feature switches
+ * (just enabled/disabled with the parsing)
+ */
+sealed trait FeatureSwitch { def name: String }
+object FeatureSwitch {
+
+  final case object Enabled  extends FeatureSwitch { override val name = "enabled"  }
+  final case object Disabled extends FeatureSwitch { override val name = "disabled" }
+
+  final val all: Set[FeatureSwitch] = sealerate.values[FeatureSwitch]
+
+  def parse(value: String): Box[FeatureSwitch] = {
+    value match {
+            case null|"" => Failure("An empty or null string can not be parsed as a feature switch status")
+            case s => s.trim.toLowerCase match {
+              case Enabled.name  => Full(Enabled)
+              case Disabled.name => Full(Disabled)
+              case _             => Failure(s"Cannot parse the given value as a valid feature switch status: '${value}'. Authorised values are: '${all.map( _.name).mkString(", ")}'")
+            }
+          }
+  }
+}
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -146,6 +173,11 @@ trait ReadConfigService {
    * Should we display recent changes graphs  ?
    */
   def display_changes_graph(): Box[Boolean]
+
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch]
 }
 
 /**
@@ -224,6 +256,10 @@ trait UpdateConfigService {
    */
   def set_display_changes_graph(displayGraph : Boolean): Box[Unit]
 
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -254,6 +290,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.compliance.heartbeatPeriod=1
        rudder.syslog.protocol=UDP
        display.changes.graph=true
+       rudder.featureSwitch.quicksearchEverything=disabled
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -310,6 +347,17 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     } catch {
       case ex:NumberFormatException => Failure(ex.getMessage)
     }
+  }
+
+  /**
+   * A feature switch is defaulted to Disabled is parsing fails.
+   */
+  private[this] implicit def toFeatureSwitch(p: RudderWebProperty): FeatureSwitch = FeatureSwitch.parse(p.value) match {
+    case Full(status) => status
+    case eb: EmptyBox =>
+      val e = eb ?~! s"Error when trying to parse property '${p.name}' with value '${p.value}' into a feature switch status"
+      logger.warn(e.messageChain)
+      FeatureSwitch.Disabled
   }
 
   def rudder_ui_changeMessage_enabled() = get("rudder_ui_changeMessage_enabled")
@@ -435,4 +483,16 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def display_changes_graph(): Box[Boolean] =  get("display_changes_graph")
 
   def set_display_changes_graph(displayGraphs : Boolean): Box[Unit] = save("display_changes_graph", displayGraphs)
+
+
+  /////
+  ///// Feature switches /////
+  /////
+
+
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch] = get("rudder_featureSwitch_quicksearchEverything")
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_quicksearchEverything", status)
 }

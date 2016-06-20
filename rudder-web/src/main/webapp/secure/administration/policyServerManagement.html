@@ -63,31 +63,31 @@
             <div id="allowedNetworksForm"  class="deca">
               <div id="policyServerDetails"/>
               <div id="policyServerText"/>
-	          <form class="lift:form.ajax">
-	            <table>
-	              <thead>
-	                <tr>
-	                  <th width="20px">Delete</th>
-	                  <th width="200px">Allowed network</th>
-	                  <th></th>
-	                </tr>
-	              </thead>
-	              <tbody id="allowNetworkFields">
-	                <tr>
-	                  <td class="delete"><input
-	                    class="deleteNetwork" type="submit"
-	                    value="delete" /></td>
-	                  <td><input name="network"
-	                    class="networkField" /></td>
-	                  <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
-	                </tr>
-	              </tbody>
-	            </table>
+            <form class="lift:form.ajax">
+              <table>
+                <thead>
+                  <tr>
+                    <th width="20px">Delete</th>
+                    <th width="200px">Allowed network</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="allowNetworkFields">
+                  <tr>
+                    <td class="delete"><input
+                      class="deleteNetwork" type="submit"
+                      value="delete" /></td>
+                    <td><input name="network"
+                      class="networkField" /></td>
+                    <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
+                  </tr>
+                </tbody>
+              </table>
               <lift:authz role="administration_write">
-	              <input id="addNetworkButton" type="submit" value="Add a network" />
-	              <input id="submitAllowedNetwork" type="submit" value="Submit" />
+                <input id="addNetworkButton" type="submit" value="Add a network" />
+                <input id="submitAllowedNetwork" type="submit" value="Submit" />
               </lift:authz>
-	          </form>
+            </form>
             </div>
             <hr class="spacer" />
           </div>
@@ -165,7 +165,7 @@
           <div class="intro">
             <div>
               <p>If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
-		  	   These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in <span id="configurationRepoPath"></span></p>
+           These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in <span id="configurationRepoPath"></span></p>
             </div>
           </div>
 
@@ -181,7 +181,7 @@
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Make message mandatory: </span><span id="mandatoryTooltip" /></label><input id="mandatory" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-  		      <div class="wbBaseField">
+            <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
               </div>
               <hr class="spacer"/>
@@ -226,7 +226,7 @@ If disabled, all changes to configuration will be immediately deployed.</p>
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self validation: </span><span id="selfValTooltip"/></label><input id="selfVal" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-  		      <div class="wbBaseField">
+            <div class="wbBaseField">
                     <label class="threeCol textright" style="font-weight:bold;width: 20%;"><span style="float:left">Allow self deployment: </span><span id="selfDepTooltip"/></label><input id="selfDep" type="checkbox"/>
               </div>
               <hr class="spacer"/>
@@ -292,7 +292,7 @@ These files are automatically removed to save on disk space. You can configure t
           </div>
 
           <hr class="spacer" />
-	      <div class="deca">
+        <div class="deca">
 
             <form class="lift:form.ajax">
               <div class="wbBaseField">
@@ -371,7 +371,36 @@ These files are automatically removed to save on disk space. You can configure t
         </div>
       </div>
     </div>
+    <div class="inner-portlet">
+      <div class="page-title">Enable QuickSearch on Everything</div>
+      <div class="portlet-content">
 
+        <div class="lift:administration.PropertiesManagement.quickSearchConfiguration" id="quickSearchConfiguration">
+          <div class="intro">
+            <div>
+              In the status bar, you have access to a "quick search" input field. By default, the quick search only
+              works on node hostname or identifier. When this option is enabled, the quick search also works for
+              groups, directives, parameters and rules, and for a much bigger number of properties (node os, directive
+              variable's values, rule description, etc).
+              Enabling this feature is very low risk.
+            </div>
+          </div>
+
+          <hr class="spacer" />
+          <div class="deca">
+            <form class="lift:form.ajax">
+
+              <div class="wbBaseField">
+                <label class="threeCol textright" for="quickSearchEverythingCheckbox" style="font-weight:bold;width: 20%;">Enable quick search on everything:</label><input id="quickSearchEverythingCheckbox" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="Save Changes" id="quickSearchEverythingSubmit"/>
+              <lift:Msg id="quickSearchEverythingMsg">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
 
 
     <div class="inner-portlet">

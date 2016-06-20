@@ -60,6 +60,7 @@ import com.normation.rudder.web.components.ComplianceModeEditForm
 import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.web.components.popup.ModificationValidationPopup.Enable
 
 /**
  * This class manage the displaying of user configured properties.
@@ -90,6 +91,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "networkProtocolSection" => networkProtocolSection
     case "displayGraphsConfiguration" => displayGraphsConfiguration
+    case "quickSearchConfiguration" => quickSearchConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -785,4 +787,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         } )
     } ) apply xml
   }
-}
+
+  def quickSearchConfiguration = { xml : NodeSeq =>
+    import com.normation.rudder.appconfig.FeatureSwitch._
+
+    ( configService.rudder_featureSwitch_quicksearchEverything() match {
+      case Full(initialValue) =>
+
+        var x = initialValue
+        def noModif() = x == initialValue
+        def check() = {
+          S.notice("quickSearchEverythingMsg","")
+          Run(s"""$$("#quickSearchEverythingSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_featureSwitch_quicksearchEverything(x)
+          S.notice("quickSearchEverythingMsg", save match {
+            case Full(_)  =>
+              "'quick search everything' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'quick search everything' property"
+          } )
+        }
+
+        ( "#quickSearchEverythingCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                x == Enabled
+              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
+              , ("id","quickSearchEverythingCheckbox")
+            )
+          } &
+          "#quickSearchEverythingSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#quickSearchEverythingSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#quickSearchEverything" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'quick search everything'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml }
+  }

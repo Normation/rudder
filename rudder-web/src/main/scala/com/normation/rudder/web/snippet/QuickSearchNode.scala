@@ -49,6 +49,7 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.util.Helpers.strToSuperArrowAssoc
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.S
+import com.normation.rudder.appconfig.FeatureSwitch
 
 /**
  * This snippet allow to display the node "quick search" field.
@@ -58,6 +59,7 @@ import net.liftweb.http.S
 class QuickSearchNode extends DispatchSnippet with Loggable {
 
   private[this] val quickSearchService = RudderConfig.quickSearchService
+  private[this] val config = RudderConfig.configService
 
   def dispatch = {
     case "render" => chooseSearch
@@ -65,7 +67,19 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
 
   def chooseSearch(html: NodeSeq): NodeSeq = {
 
-    if(RudderConfig.RUDDER_FEATURE_ENABLE_QUICKSEARCH) {
+    config.rudder_featureSwitch_quicksearchEverything() match {
+      case Full(FeatureSwitch.Enabled ) => quickSearchEveryting(html)
+      case Full(FeatureSwitch.Disabled) => quickSearchNode(html)
+      case eb: EmptyBox                 =>
+        val e = eb ?~! "Error when trying to know what quicksearch bar should be displayed, defaulting to the default one"
+        logger.warn(e.messageChain)
+        //default to node quicksearch
+        quickSearchNode(html)
+    }
+
+  }
+
+  def quickSearchEveryting(html: NodeSeq) : NodeSeq = {
     (
       <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="navbar-form navbar-left">
 
@@ -118,12 +132,9 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
         ></div>
       </div>
     )
-    } else {
-      quickSearch(html)
-    }
   }
 
-  def quickSearch(html:NodeSeq) : NodeSeq = {
+  def quickSearchNode(html:NodeSeq) : NodeSeq = {
     def buildQuery(current: String, limit: Int): Seq[String] = {
       quickSearchService.lookup(current,100) match {
         case Full(seq) => seq.map(nodeInfo => "%s [%s]".format(nodeInfo.hostname, nodeInfo.id.value))
