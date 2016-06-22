@@ -68,8 +68,12 @@ bundle agent ncf_splay(test_splay)
       "splay_max" string => "268435455";
       # pseudorandon deterministic hex number of 7 nibbles
       "splay_hex" string => string_head(hash("${sys.host}${sys.ipv4}", "md5"), "7");
+
       # decimal version of the splay integer
+    !windows::
       "splay" string => execresult("/usr/bin/printf '%d' 0x${splay_hex}", "noshell");
+    windows::
+      "splay" string => execresult("[Convert]::ToInt32('0x${splay_hex}', 16)", "powershell");
     test::
       "splay" string => "${test_splay}";
 
