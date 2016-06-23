@@ -56,6 +56,7 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.rest.node.CustomDetailLevel
 import com.normation.rudder.web.rest.node.MinimalDetailLevel
+import com.normation.rudder.repository.FullActiveTechnique
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -81,6 +82,8 @@ trait RestDataSerializer {
   def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
 
   def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
+
+  def serializeTechnique(technique:FullActiveTechnique): JValue
 }
 
 case class RestDataSerializerImpl (
@@ -122,7 +125,6 @@ case class RestDataSerializerImpl (
   def serializeInventory (inventory: FullInventory, status: String, tagFixed: Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
-
 
     (   ("id"           -> inventory.node.main.id.value)
       ~ ("status"       -> status)
@@ -522,6 +524,12 @@ case class RestDataSerializerImpl (
       ~ ("isAcceptable" -> isAcceptable)
       ~ ("description"  -> changeRequest.info.description)
       ~ ("changes"      -> changes)
+    )
+  }
+
+  def serializeTechnique(technique:FullActiveTechnique): JValue = {
+    (   ( "name"     -> technique.techniqueName.value )
+      ~ ( "versions" ->  technique.techniques.map(_._1.toString ) )
     )
   }
 
