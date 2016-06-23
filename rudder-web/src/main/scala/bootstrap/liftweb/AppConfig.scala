@@ -148,6 +148,7 @@ import com.typesafe.config.ConfigException
 import org.apache.commons.io.FileUtils
 import com.normation.templates.FillTemplatesService
 
+import com.normation.rudder.web.rest.technique._
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -602,6 +603,19 @@ object RudderConfig extends Loggable {
       , directiveApiService2
     )
 
+  val TechniqueApiService6 =
+    new TechniqueAPIService6 (
+        roDirectiveRepository
+      , restDataSerializer
+      , techniqueRepositoryImpl
+    )
+
+  val techniqueApi6 =
+    new TechniqueAPI6 (
+        restExtractorService
+      , TechniqueApiService6
+    )
+
   val groupApiService2 =
     new GroupApiService2 (
         roNodeGroupRepository
@@ -767,8 +781,8 @@ object RudderConfig extends Loggable {
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
   // Allow empty query for groups, add key-values support on nodes
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
-  // Add compliance endpoint and filtering off node/rule/group results
-  val apiV6 : List[RestAPI] = complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
+  // Add compliance and technique endpoint and filtering off node/rule/group results
+  val apiV6 : List[RestAPI] = techniqueApi6 ::complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
   // apiv7 just add compatible changes on compliances, adding "level" option and "compliance mode" attribute in response
   val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
 
