@@ -45,6 +45,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils.response
+import com.normation.rudder.web.rest.ApiVersion
 
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
@@ -57,7 +58,7 @@ class TechniqueAPI6 (
   , apiV6         : TechniqueAPIService6
 ) extends TechniqueAPI with Loggable{
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get( Nil, req) =>
       response(
