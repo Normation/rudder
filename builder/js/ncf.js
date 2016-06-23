@@ -109,6 +109,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   // Are we authenticated on the interface
   $scope.authenticated = false;
 
+  $scope.CForm = {};
 
   $scope.setPath = function() {
     var path = $location.search().path;
