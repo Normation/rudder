@@ -87,15 +87,15 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('    !(debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("service_start_apache2");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "service_start_apache2");')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Service start apache2 if debian", "service_start_apache2");')
     expected_result.append('')
     expected_result.append('    !(service_start_apache2_repaired)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("package_install_openssh_server");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "package_install_openssh_server");')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Package install openssh-server if service_start_apache2_repaired", "package_install_openssh_server");')
     expected_result.append('')
     expected_result.append('    !(!service_start_apache2_repaired.debian)::')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("command_execution__bin_date");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "command_execution__bin_date");')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("Command execution /bin/date if !service_start_apache2_repaired.debian", "command_execution__bin_date");')
     expected_result.append('}')
 
     # Join all lines with \n
@@ -103,8 +103,28 @@ class TestNcfRudder(unittest.TestCase):
 
     generated_result = ncf_rudder.generate_rudder_reporting(self.reporting_metadata)
 
+    diff = self._unidiff_output(result, generated_result)
+
+    if len(diff):
+        print
+        print "Test test_rudder_reporting_content failed, this is the diff between expected and actual result:"
+        print diff
+
     self.assertEqual(result, generated_result)
 
+
+  def _unidiff_output(self, expected, actual):
+    """
+    Helper function. Returns a string containing the unified diff of two multiline strings.
+    """
+
+    import difflib
+    expected=expected.splitlines(1)
+    actual=actual.splitlines(1)
+
+    diff=difflib.unified_diff(expected, actual)
+
+    return ''.join(diff)
 
   def test_rudder_reporting_with_variable_content(self):
 
@@ -116,7 +136,7 @@ class TestNcfRudder(unittest.TestCase):
     expected_result.append('')
     expected_result.append('      "dummy_report" usebundle => _classes_noop("file_create_${sys.workdir}_module_env"),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
-    expected_result.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "file_create_${sys.workdir}_module_env"),')
+    expected_result.append('      "dummy_report" usebundle => logger_rudder("File create ${sys.workdir}/module/env if directory_create_${sys.workdir}_module_repaired", "file_create_${sys.workdir}_module_env"),')
     expected_result.append('                    ifvarclass => concat("!(directory_create_",canonify("${sys.workdir}"),"_module_repaired)");')
     expected_result.append('}')
 
@@ -124,6 +144,13 @@ class TestNcfRudder(unittest.TestCase):
     result = '\n'.join(expected_result)+"\n"
 
     generated_result = ncf_rudder.generate_rudder_reporting(self.reporting_with_var_metadata)
+
+    diff = self._unidiff_output(result, generated_result)
+
+    if len(diff):
+        print
+        print "Test test_rudder_reporting_with_variable_content failed, this is the diff between expected and actual result:"
+        print diff
 
     self.assertEqual(result, generated_result)
 

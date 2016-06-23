@@ -319,6 +319,7 @@ def generate_rudder_reporting(technique):
     key_value_canonified = regex.sub("_", key_value)
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
+    logger_rudder_call = '"dummy_report" usebundle => logger_rudder("' + generic_method['name'] + ' ' + key_value + ' if ' + method_call['class_context'] + '", "' + class_prefix +'")'
 
     # Always add an empty line for readability
     content.append('')
@@ -326,14 +327,14 @@ def generate_rudder_reporting(technique):
     if not "$" in method_call['class_context']:
       content.append('    !('+method_call['class_context']+')::')
       content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'");')
-      content.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "'+class_prefix+'");')
+      content.append('      ' + logger_rudder_call + ';')
 
     else:
       class_context = ncf.canonify_class_context(method_call['class_context'])
 
       content.append('      "dummy_report" usebundle => _classes_noop("'+class_prefix+'"),')
       content.append('                    ifvarclass => concat("!('+class_context+')");')
-      content.append('      "dummy_report" usebundle => logger_rudder("Not applicable", "'+class_prefix+'"),')
+      content.append('      ' + logger_rudder_call + ',')
       content.append('                    ifvarclass => concat("!('+class_context+')");')
 
   content.append('}')
