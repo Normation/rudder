@@ -65,11 +65,8 @@
               <div class="form-group">
                 <label for="cloneName" class="control-label">New Technique name:</label>
                 <div>
-                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required ng-maxlength="2048">
+                  <input  type="text" id="cloneName" name="name" techniquename class="form-control" ng-model="technique.name" placeholder="Technique Name" required>
                 </div>
-                <span class="text-danger" ng-show="cloneForm.name.$error.maxlength">
-                  Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
-                </span>
                 <span class="text-danger pull-left" ng-show="cloneForm.name.$error.techniqueName">Technique name must be unique</span>
               </div>
             </div>
@@ -170,28 +167,30 @@
                             <div class="form-group" show-errors>
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
-                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-maxlength="255" ng-change="updateBundleName()">
+                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()">
                                 </div>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.maxlength">
-                                    Fields over 255 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
-                                </span>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
                             </div>
                             <div class="form-group">
                                 <label for="techniqueDescription" class="col-sm-3 control-label">Description:</label>
                                 <div class="col-sm-8">
-                                    <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description" ng-maxlength="2048"></textarea>
+                                    <textarea name="description" class="form-control" id="techniqueDescription" msd-elastic rows="1" ng-model="selectedTechnique.description" placeholder="Technique Description"></textarea>
                                 </div>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.description.$error.maxlength">
-                                    Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
-                                </span>
                             </div>
                             <div class="form-group" show-errors>
                                 <label for="bundleName" class="col-sm-3 control-label">Bundle name:</label>
                                 <div class="col-sm-8">
-                                    <input disabled id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name">
+                                    <input disabled id="bundleName" bundlename name="bundle_name" class="form-control" ng-model="selectedTechnique.bundle_name" ng-maxlength="252">
                                 </div>
-                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">Bundle name must be unique</span>
+                                <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.maxlength">
+                                    Technique names longer than 255 characters won't work on most filesystems.
+                                </span>
+                                <span class="text-warning col-sm-8 col-sm-offset-3" ng-show="editForm.bundle_name.$error.bundleName">
+                                  Bundle name must be unique
+                                </span>
+                                <span class="rudder-text-warning col-sm-8 col-sm-offset-3" ng-show="selectedTechnique.bundle_name.length > 100 && selectedTechnique.bundle_name.length < 253">
+                                  <b><span class="glyphicon glyphicon-exclamation-sign"></span></b> Technique names longer than 100 characters may not work on some filesystems (Windows, in particular).
+                                </span>
                             </div>
                             <div class="form-group">
                                 <strong class="col-sm-3 text-right">Version:</strong>
@@ -249,7 +248,7 @@
                         <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                         Add methods
                     </div>
-                    <button ng-disabled="editForm.$invalid || checkSelectedTechnique()" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
+                    <button ng-disabled="editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique()" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
                     <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
                 </div>
             </div>
@@ -282,33 +281,27 @@
                               <form class="form-inline" name="versionForm" role="form">
                                 <div class="form-group" ng-show="checkMajorVersion()">
                                   <label for="os_class">Version (Major):</label>
-                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion" name="versionMaj" placeholder="" ng-maxlength="2048">
+                                  <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion" name="versionMaj" placeholder="">
                                 </div>
-                                <span class="text-danger" ng-show="versionForm.versionMaj.$error.maxlength">
-                                    Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
-                                </span>
                                 <div class="form-group" ng-show="checkMinorVersion()">
                                   <label for="os_class">Version (Minor):</label>
-                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="" name="versionMin" ng-maxlength="2048">
-                                  <span class="text-danger" ng-show="versionForm.versionMin.$error.maxlength">
-                                    Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
-                                  </span>
+                                  <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="" name="versionMin">
                                 </div>
                               </form>
                             </div>
-                            <form name="CForm">
+                            <form name="CForm.form">
                                 <div class="form-group condition-form">
                                   <label for="advanced">Other CFEngine classes:</label>
-                                  <input  type="text" name="cfClasses" id="advanced"  class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" placeholder="" ng-maxlength="2048">
-                                  <span class="text-danger" ng-show="CForm.cfClasses.$error.maxlength">
-                                     Fields over 2048 characters are currently not supported. Please insert your content into a file, and copy it with a file_copy_* method, or use a template.
+                                  <input  type="text" name="cfClasses" id="advanced"  class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" placeholder="">
+                                </div>
+                                <div class="form-group condition-form">
+                                  <label for="class_context">CFEngine class context:</label>
+                                  <input ng-readonly="true" type="text" id="" name="cfClassContext" class="form-control" ng-model="selectedMethod.class_context" style="cursor:text" ng-maxlength="2048">
+                                  <span class="text-danger" ng-show="CForm.form.cfClassContext.$error.maxlength">
+                                    Classes over 2048 characters are currently not supported.
                                   </span>
                                 </div>
                             </form>
-                            <div class="form-group condition-form">
-                              <label for="class_context">CFEngine class context:</label>
-                              <input ng-readonly="true" type="text" id="" class="form-control" ng-model="selectedMethod.class_context" style="cursor:text">
-                            </div>
                         </accordion-group>
                     </accordion>
                     <accordion >
@@ -340,7 +333,7 @@
 
                 <div class="col-md-5 fixed-footer" style="padding-top: 0; border-right:0; padding-bottom: 0;">
                     <h4 style="text-align:left; margin-top:0px;" class="panel-title">
-                        Result classes defined by this method
+                      Result classes defined by this method
                     </h4>
                     <form class="form-horizontal editForm" name="editForm">
                         <div class="form-group"  style="margin-bottom:3px;margin-top:3px">
