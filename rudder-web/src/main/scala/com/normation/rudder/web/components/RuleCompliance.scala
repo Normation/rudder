@@ -133,10 +133,22 @@ class RuleCompliance (
     <div id="recentChangesSection" class="unfoldedSection" onclick="$('#recentChanges').toggle(400); $('#recentChangesSection').toggleClass('foldedSection');$('#recentChangesSection').toggleClass('unfoldedSection');">
       <div class="section-title">Recent changes</div>
     </div>
-    <div id="recentChanges">
-      {SHtml.button("Refresh", () => refresh())}
+    <div id="recentChanges" class="tw-bs">
+      <div class="alert alert-info " style="font-size: 14px">
+        <div style="width:90%;display:inline-block;">
+        <span class="glyphicon glyphicon-info-sign"></span>
+        Details of changes on a selected period are displayed below the graph. Clicking on a bar change the selected period.
+        </div>
+        <div class="recentChange_refresh">
+          {SHtml.button(<img src='/images/icRefresh.png'/>, () => refresh() , ("class","recentChangeGraph ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only refreshButton") , ("title","Refresh"))}
+        </div>
+      </div>
+
       <div id="changesChart">  </div>
       <hr class="spacer" />
+        <div class="tw-bs">
+            <span id="selectedPeriod" class="text-primary">Selected period : <b> --- </b></span>
+        </div>
       <table id="changesGrid" cellspacing="0">  </table>
     </div> ++
     Script(After(0,JsRaw(s"""
@@ -167,6 +179,7 @@ class RuleCompliance (
         data.splice(0,0,'Recent changes')
         var x = recentChanges.x
         x.splice(0,0,'x')
+        var selectedIndex = x.length-2;
         //recentChart variable has to be global because we need it to refresh the graph clicking on compliance tab.
         recentChart = c3.generate({
           data: {
@@ -174,8 +187,16 @@ class RuleCompliance (
               , columns: [ x , data ]
               , type: 'bar'
               , onclick: function (d, element) {
-                  ${SHtml.ajaxCall(JsRaw("recentChanges.t[d.index]"),  s => refreshTableChanges(Some(s.toLong)))}
+                  selectedIndex = d.index;
+                  ${SHtml.ajaxCall(JsRaw("recentChanges.t[selectedIndex]"),  s => refreshTableChanges(Some(s.toLong)))}
+                  selectInterval(x[selectedIndex+1],element);
                 }
+              , onmouseover : function (element) {
+                changeCursor(element.value);
+              }
+              , onmouseout : function (element) {
+                changeCursor(element.value);
+              }
             }
           , bindto : '#changesChart'
           , bar: {
@@ -192,6 +213,10 @@ class RuleCompliance (
                 x: { show: true }
               , y: { show: true }
             }
+          , onrendered: function () {
+              var element = document.getElementsByClassName('c3-bar-'+(selectedIndex).toString())[0];
+              selectInterval(x[selectedIndex+1],element);
+          }
         } );
         createTooltip();
       """)
