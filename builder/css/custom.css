@@ -353,3 +353,17 @@ ul[dnd-list] {
     position: absolute;
     right: 10px;
 }
+
+/* --- IFRAME --- */
+body.iframe .navbar-inverse.navbar-static-top {
+    display: none;
+}
+
+body.iframe .jumbotron h1{
+    padding-bottom: 5px;
+    border-bottom: 2px solid #f08004;
+}
+body.iframe .Override.container {
+    margin: 0;
+    padding: 0;
+}

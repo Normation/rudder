@@ -7,7 +7,6 @@
         <script src="js/angular-sanitize.min.js"></script>
         <script src="js/ngToast.min.js"></script>
         <script src="js/angular-drag-and-drop-lists.min.js"></script>
-
         <link href="css/bootstrap.min.css" rel="stylesheet">
         <link href="css/ngToast.min.css" rel="stylesheet">
         <link href="css/custom.css" rel="stylesheet">
@@ -78,6 +77,13 @@
           </form >
         </script>
         <script src="js/ncf.js" ></script>
+        <script type="text/javascript">
+          ($(function() {
+            if (window.self != window.top) {
+              $(document.body).addClass("iframe");
+            }
+          }));
+        </script>
          <base href="/ncf-builder" />
     </head>
     <body ng-controller="ncf-builder">
@@ -168,7 +174,7 @@
                             <div class="form-group" show-errors>
                                 <label for="techniqueName" class="col-sm-3 control-label">Name:</label>
                                 <div class="col-sm-8">
-                                    <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()">
+                  <input  type="text" id="techniqueName" name="name" class="form-control" techniquename ng-model="selectedTechnique.name" placeholder="Technique Name" required ng-change="updateBundleName()" focus-on="focusTechniqueName">
                                 </div>
                                 <span class="text-danger col-sm-8 col-sm-offset-3" ng-show="editForm.name.$error.techniqueName">Technique name must be unique</span>
                             </div>

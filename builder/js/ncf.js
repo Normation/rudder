@@ -23,7 +23,7 @@ function findIndex(array, elem) {
 };
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages', 'mp.autoFocus'])
 
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
@@ -44,6 +44,24 @@ app.directive('techniquename', function($filter) {
       };
     }
   };
+});
+
+app.directive('focusOn', function() {
+   return function(scope, elem, attr) {
+      scope.$on('focusOn', function(e, name) {
+        if(name === attr.focusOn) {
+          elem[0].focus();
+        }
+      });
+   };
+});
+
+app.factory('focus', function ($rootScope, $timeout) {
+  return function(name) {
+    $timeout(function (){
+      $rootScope.$broadcast('focusOn', name);
+    });
+  }
 });
 
 app.directive('bundlename', function($filter) {
@@ -132,7 +150,7 @@ return {
 });
 
 // Declare controller ncf-builder
-app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast, $timeout) {
+app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus) {
 
   // Variable we use in the whole application
 
@@ -373,6 +391,7 @@ $scope.groupMethodsByCategory = function () {
         $scope.selectPopup(technique, select);
       }
     }
+    focus('focusTechniqueName');
   };
 
   // Click on a Technique
