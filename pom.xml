@@ -335,6 +335,13 @@ limitations under the License.
       </exclusions>
     </dependency>
 
+    <!-- Utility to get all case object of a sealed trait -->
+    <dependency>
+      <groupId>ca.mrvisser</groupId>
+      <artifactId>sealerate_${scala-binary-version}</artifactId>
+      <version>0.0.4</version>
+    </dependency>
+
     <!--
       We use SLF4J log facade with logback implementation
     -->
