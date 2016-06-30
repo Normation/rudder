@@ -173,7 +173,7 @@ def parse_bundlefile_metadata(content, bundle_type):
      
     # Parse line without tag, if previous tag was a multiline tag
     if previous_tag is not None and previous_tag in multiline_tags:
-      match = re.match("^\s*# (.*)$", line, flags=re.UNICODE)
+      match = re.match("^\s*# ?(.*)$", line, flags=re.UNICODE)
       if match:
         res[previous_tag] += "\n"+match.group(1)
         continue
