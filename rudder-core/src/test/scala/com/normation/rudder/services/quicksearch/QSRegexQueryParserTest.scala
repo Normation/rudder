@@ -82,7 +82,7 @@ class QSRegexQueryParserTest extends Specification {
       parse(" \t  ").mustFails
     }
     "be refused because only filters" in {
-      parse(" object:directives ").mustFails
+      parse(" in:directives ").mustFails
     }
   }
 
@@ -103,22 +103,22 @@ class QSRegexQueryParserTest extends Specification {
 
   "Queries with filter" should {
     "on both sides works" in {
-      parse(" ObjEct:Directive objEct:RuLes atTribUte:displayName here, the query attribute:NodeId").mustFull(
+      parse(" In:Directive in:RuLes iN:displayName here, the query in:NodeId").mustFull(
           Query("here, the query", Set(Directive, Rule), Set(NodeId, Name))
       )
     }
     "only at end works" in {
-      parse(" here, the query object:node atTriBute:descriptions").mustFull(
+      parse(" here, the query in:node in:descriptions").mustFull(
           Query("here, the query", Set(Node), Set(Description, LongDescription, ShortDescription))
       )
     }
     "only at starts works" in {
-      parse(" objeCt:Directive objEct:RuLes attributE:displayName here, the query ").mustFull(
+      parse(" in:Directive in:RuLes in:displayName here, the query ").mustFull(
           Query("here, the query", Set(Directive, Rule), Set(Name))
       )
     }
     "parse multiple filter comma separated" in {
-      parse(" ObjEct:Directive,rules atTribUte:displayName here, the query attribute:NodeId,RuleId").mustFull(
+      parse(" in:Directive,rules in:displayName here, the query in:NodeId,RuleId").mustFull(
           Query("here, the query", Set(Directive, Rule), Set(NodeId, Name, RuleId))
       )
     }

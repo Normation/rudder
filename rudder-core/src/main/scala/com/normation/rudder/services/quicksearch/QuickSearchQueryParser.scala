@@ -90,21 +90,27 @@ object QSRegexQueryParser extends RegexParsers {
         FailedBox("No query string was found (the query is only composed of whitespaces and filters)")
 
       case (CharSeq(query), filters) =>
-        val objects    = filters.collect { case ObjectFilter   (set) => set }.flatten.toSet
-        val attributes = filters.collect { case AttributeFilter(set) => set }.flatten.toSet
-        for {
-          objs  <- getObjects(objects)
-          attrs <- getAttributes(attributes)
-        } yield {
+        // get all keys, and sort them between objets/attributes/ERRORS
+        val names = filters.map( _.keys).flatten.toSet
+
+        val (objs , oKeys) = getObjects(names)
+        val (attrs, aKeys) = getAttributes(names)
+
+        val missings = names -- oKeys -- aKeys
+
+        if(missings.nonEmpty) {
+          val allNames = (objectNameMapping.keys.map( _.capitalize) ++ attributeNameMapping.keys).toSeq.sorted.mkString("', '")
+          FailedBox(s"Query containts 'in' keys that are not knows: '${missings.mkString("','")}'. Please choose among '${allNames}'")
+        } else {
           /*
            * we need to add all attributes and objects if
            * sets are empty - the user just didn't provided any filters.
            */
-          Query(
+          Full(Query(
               query
             , if( objs.isEmpty) { QSObject.all    } else { objs  }
             , if(attrs.isEmpty) { QSAttribute.all } else { attrs }
-          )
+          ))
         }
     }
   }
@@ -130,11 +136,8 @@ object QSRegexQueryParser extends RegexParsers {
   final case class  CharSeq(s:String) extends QueryString
   final case object EmptyQuery        extends QueryString
 
-  //filters like object:rule,directive
-  sealed trait     Filter                                   extends Token
-  final case class ObjectFilter   (objects:    Set[String]) extends Filter
-  final case class AttributeFilter(attributes: Set[String]) extends Filter
-
+  //filters like in:rule,directive,names,descriptions
+  final case class Filter(keys: Set[String]) extends Token
 
   //// parsing language
 
@@ -174,12 +177,9 @@ object QSRegexQueryParser extends RegexParsers {
   ///// simple elements: filters
   /////
 
-  // deal with filters, either objects or attributes
-  private[this] def filter         : Parser[Filter] = ( objectFilter | attributeFilter )
+  // deal with filters: they all start with "in:"
+  private[this] def filter         : Parser[Filter] = word("in:") ~> filterKeys ^^ { Filter }
 
-  // a filter, with key words
-  private[this] def objectFilter   : Parser[Filter] = word("object")    ~> ":" ~> filterKeys ^^ { ObjectFilter    }
-  private[this] def attributeFilter: Parser[Filter] = word("attribute") ~> ":" ~> filterKeys ^^ { AttributeFilter }
   // the keys part
   private[this] def filterKeys     : Parser[Set[String]] = filterKey ~ rep("," ~> filterKey) ^^ { case ~(h, t) => (h :: t).toSet }
   private[this] def filterKey      : Parser[String]      = """[\-\._a-zA-Z0-9]+""".r
@@ -189,8 +189,8 @@ object QSRegexQueryParser extends RegexParsers {
   /////
 
   // we need to case, because regex are bad to look-ahead and see if there is still filter after. .+? necessary to stop at first filter
-  private[this] def queryInMiddle  : Parser[QueryString] = """(?iums)(.+?(?=(object:|attribute:)))""".r ^^ { x => CharSeq(x.trim) }
-  private[this] def queryAtEnd     : Parser[QueryString] = """(?iums)(.+)""".r                          ^^ { x => CharSeq(x.trim) }
+  private[this] def queryInMiddle  : Parser[QueryString] = """(?iums)(.+?(?=(in:)))""".r ^^ { x => CharSeq(x.trim) }
+  private[this] def queryAtEnd     : Parser[QueryString] = """(?iums)(.+)""".r           ^^ { x => CharSeq(x.trim) }
 
 
   /////
@@ -249,7 +249,7 @@ object QSRegexQueryParser extends RegexParsers {
       case LongDescription   => (a, descriptions)
       case IsEnabled         => (a, Set(IsEnabled.name, "enabled") )
       case NodeId            => (a, Set(NodeId.name, "nodeid") )
-      case Fqdn              => (a, Set(Fqdn.name, "hostname") )
+      case Fqdn              => (a, Set(Fqdn.name, "fqdn") )
       case OsType            => (a, Set(OsType.name, "ostype", "os"))
       case OsName            => (a, Set(OsName.name, "osname", "os") ) //not also full name because osFullname contains osName, not the reverse
       case OsVersion         => (a, Set(OsVersion.name, "osversion", "os") )
@@ -281,20 +281,26 @@ object QSRegexQueryParser extends RegexParsers {
     byNames.mapValues( _.map(_._2))
   }
 
-  private[this] def getMapping[T](names: Set[String], map: Map[String, T]): Box[Set[T]] = {
-    sequence(names.toSeq) { name =>
+  private[this] def getMapping[T](names: Set[String], map: Map[String, T]): (Set[T], Set[String]) = {
+    val pairs = names.flatMap { name =>
       map.get(name.toLowerCase) match {
-        case Some(obj) => Full(obj)
-        case None      => FailedBox(s"Requested type '${name}' is not known. Please choose among '${map.keys.toSeq.sorted.mkString("', '")}'")
+        case Some(obj) => Some((obj, name))
+        case None      => None
       }
-    }.map( _.toSet )
+    }
+    val keys   = pairs.map( _._2).toSet
+    val values = pairs.map( _._1).toSet
+    (values, keys)
   }
 
   /**
    * Mapping between a string and actual object.
    * We try to be kind with users: not case sensitive, not plural sensitive
+   *
+   * Returned the set of matching attribute, and set of matching names for the
+   * inputs
    */
-  private[this] def getObjects(names: Set[String]): Box[Set[QSObject]] = {
+  private[this] def getObjects(names: Set[String]): (Set[QSObject], Set[String]) = {
     getMapping(names, objectNameMapping)
   }
 
@@ -302,8 +308,9 @@ object QSRegexQueryParser extends RegexParsers {
    * Mapping between a string and actual attributes.
    * We try to be kind with users: not case sensitive, not plural sensitive
    */
-  private[this] def getAttributes(names: Set[String]): Box[Set[QSAttribute]] = {
-    getMapping(names, attributeNameMapping).map( _.flatten )
+  private[this] def getAttributes(names: Set[String]): (Set[QSAttribute], Set[String]) = {
+    val (attrs, keys) = getMapping(names, attributeNameMapping)
+    (attrs.flatten, keys)
   }
 }
 
