@@ -628,3 +628,45 @@ form .tw-bs input {
 .tw-bs .modal tr.color1 {
    background-color: #fff;
 }
+.tw-bs #newAccountPopup .has-feedback .form-control-feedback {
+    top: 33px;
+    right: 15px;
+}
+.tw-bs #newAccountPopup .has-feedback textarea+.form-control-feedback {
+    top: 40px;
+}
+.tw-bs #newAccountPopup button>.ion{
+	font-size: 16px;
+}
+.tw-bs .rudder-form .help-block.invisible{
+  animation: opacity-0 .2s linear forwards;
+}
+.tw-bs .rudder-form .help-block{
+  visibility:hidden;
+  opacity:0;
+  color: #fff;
+  background-color: #5CB85C;
+  padding: 6px 12px;
+  border-radius: 3px;
+  margin-bottom: 0;
+  display: inline-block;
+}
+.tw-bs .rudder-form .has-error .help-block,.tw-bs .rudder-form .help-block.visible{
+  animation: opacity-1 .2s linear forwards;
+}
+
+.tw-bs .rudder-form .help-block:before{
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 12px solid #5CB85C;
+  display: inline-block;
+  content: " ";
+  position: absolute;
+  z-index: 100;
+  top: 315px;
+}
+.tw-bs #oldAccountPopup .rudder-form .help-block:before{
+  top: 195px;
+}

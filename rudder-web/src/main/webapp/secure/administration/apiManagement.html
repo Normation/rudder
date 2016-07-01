@@ -92,7 +92,7 @@
         <div class="modal-dialog" role="document">
             <div class="modal-content">
                 <div class="modal-header">
-                    <div class="close" data-dismiss="modal">
+                    <div class="close" data-dismiss="modal" ng-hide="showToken">
                     <span aria-hidden="true">&times;</span>
                     <span class="sr-only">Close</span>
                     </div>
@@ -101,20 +101,42 @@
                     </h4>
                 </div>
                 <div class="modal-body">
-                    <form name="newAccount">
-                        <div class="form-group" class="" ng-class="{'has-error': newAccount.$invalid && !newAccount.$pristine}">
-                            <label class="control-label col-lg-3 col-sm-12 col-xs-12 valign"><b>Name</b></label>
-                            <input type="text" class="form-control col-lg-9 col-sm-12 col-xs-12 float-inherit"  valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()">
+                    <form name="newAccount" class="rudder-form">
+                        <div class="form-group" ng-class="{'has-error': ((newAccount.$invalid && !newAccount.$pristine)||(errorPopup)),'has-success has-feedback':showToken}">
+                            <label class="control-label col-xs-12 valign"><b>Name</b></label>
+                            <input type="text" class="form-control col-lg-9 col-sm-12 col-xs-12 float-inherit"  valid-empty="valid-empty" ng-model="myNewAccount.name" name="newAccountName" id="newAccountName" ng-change="$(newAccountName).focus()" ng-disabled="showToken">
+                              <span class="glyphicon glyphicon-ok form-control-feedback" aria-hidden="true" ng-show="showToken"></span>
+                            <span ng-show="errorPopup" class="text-danger" style="margin-top:4px;padding:0;font-size:12px;">{{errorPopup.errorDetails}}</span>
                         </div>
-                        <div class="form-group">
-                            <label class="control-label col-lg-3 col-sm-12 col-xs-12 valign">Description</label>
-                            <textarea class="form-control vresize col-lg-9 col-sm-12 col-xs-12 float-inherit"></textarea>
+                        <div class="form-group" ng-class="{'has-success has-feedback':showToken}">
+                            <label class="control-label col-xs-12 valign">Description</label>
+                            <textarea class="form-control vresize col-lg-9 col-sm-12 col-xs-12 float-inherit" ng-disabled="showToken"></textarea>
+                            <span class="glyphicon glyphicon-ok form-control-feedback" aria-hidden="true" ng-show="showToken"></span>
                         </div>
                     </form>
-                </div>
+                    <div ng-show="showToken">
+                      <div class="form-group rudder-form">
+                        <label class="control-label col-xs-12 valign"><b>Generated API Token</b></label>
+                        <div class="alert alert-warning col-xs-12">
+                          <span class="glyphicon glyphicon-info-sign"></span>
+                          This API token is displayed only once. You should copy it.
+                        </div>
+                        <div class="input-group">
+                          <input type="text" class="form-control float-inherit" ng-model="myNewAccount.token" id="apitoken" readonly>
+                          <span class="input-group-btn">
+                            <button class="btn btn-default" type="button" id="copyToken" data-clipboard-target="#apitoken" ng-click="showCopyInfo(1100);">
+                              <span class="ion ion-clipboard"></span>
+                            </button>
+                          </span>
+                        </div>
+                        <span class="help-block" ng-class="{visible:copied,invisible:!copied}">Copied!</span>
+                      </div>
+                    </div>
+                  </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-                    <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" value="{{defineActionName(formTitle(myNewAccount))}}">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" ng-hide="showToken">Close</button>
+                    <input type="submit" class="btn btn-success" ng-disabled="newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);" value="{{defineActionName(formTitle(myNewAccount))}}" ng-show="!showToken">
+                    <button class="btn btn-success" ng-disabled="" ng-click="validateCreation()" ng-show="showToken">Confirm</button>
                 </div>
             </div>
         </div>
@@ -136,21 +158,43 @@
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-lg-12 col-sm-12 col-xs-12">
-                            <h4 class="text-center" id="areYouSure">
+                            <h4 class="text-center" id="areYouSure" ng-hide="showToken">
                                 You are about to {{myOldAccount.actionName.toLowerCase()}} an API Account.
+                            </h4>
+                            <h4 class="text-center" id="areYouSure" ng-show="showToken">
+                                Token successfully regenerated
                             </h4>
                         </div>
                     </div>
-                    <div class="alert alert-warning text-center space-top" role="alert">
-                        <span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign"></span>
-                        <span>
-                            If you continue, any scripts using this will no longer be able to connect to Rudder's API.
-                        </span>
+                    <div class="alert alert-warning text-center space-top" role="alert" ng-hide="showToken">
+                      <span aria-hidden="true" class="glyphicon glyphicon-exclamation-sign" ng-hide=""></span>
+                      <span>
+                        If you continue, any scripts using this will no longer be able to connect to Rudder's API.
+                      </span>
+                    </div>
+                  <div ng-show="showToken">
+                      <div class="form-group rudder-form">
+                        <label class="control-label col-xs-12 valign"><b>Generated API Token</b></label>
+                        <div class="alert alert-warning col-xs-12">
+                          <span class="glyphicon glyphicon-info-sign"></span>
+                          This API token is displayed only once. You should copy it.
+                        </div>
+                        <div class="input-group">
+                          <input type="text" class="form-control float-inherit" ng-model="myOldAccount.token" id="regenapitoken" readonly>
+                          <span class="input-group-btn">
+                            <button class="btn btn-default" type="button" id="copyToken2" data-clipboard-target="#regenapitoken" ng-click="showCopyInfo(1100);">
+                              <span class="ion ion-clipboard"></span>
+                            </button>
+                          </span>
+                        </div>
+                        <span class="help-block" ng-class="{visible:copied,invisible:!copied}">Copied!</span>
+                      </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
-                     <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index);myOldAccount=undefined;" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}">{{defineActionName(myOldAccount.actionName)}}</button>
+                     <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index);" class="btn" ng-class="{'btn btn-danger':myOldAccount.actionName=='Delete' , 'btn btn-primary':myOldAccount.actionName!='Delete'}" ng-hide="showToken">{{defineActionName(myOldAccount.actionName)}}</button>
+                     <button ng-click="validateRegeneration()" class="btn btn-primary" ng-show="showToken">Confirm</button>
                 </div>
             </div>
         </div>

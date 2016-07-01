@@ -2927,3 +2927,19 @@ label span.text-fit{
   padding: 10px 15px;
   margin: 10px;
 }
+@keyframes show-and-hide {
+    0%   {opacity: 0;visibility: visible;}
+    10%  {opacity: 1;visibility: visible;}
+    90%  {opacity: 1;visibility: visible;}
+    99%  {opacity: 0;visibility: visible;}
+    100% {opacity: 0;visibility: hidden;}
+}
+@keyframes opacity-1 {
+    0%   {opacity: 0;visibility: visible;}
+    100% {opacity: 1;visibility: visible;}
+}
+@keyframes opacity-0 {
+    0%   {opacity: 1;}
+    99% {opacity: 0;}
+    100% {opacity: 0;visibility: hidden;}
+}

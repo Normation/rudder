@@ -18,7 +18,7 @@ accountManagement.directive('validEmpty', function() {
   };
 } );
     
-accountManagement.controller('AccountCtrl', function ($scope, $http) {
+accountManagement.controller('AccountCtrl', function ($scope, $http, $timeout) {
 
   $scope.getAccounts = function() {
     $http.get(apiPath).
@@ -51,11 +51,19 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
          var newAccount = data.data.accounts[0];
          $scope.accounts[index] = newAccount;
          $.extend($scope.myNewAccount, newAccount);
+         $scope.myOldAccount.token=newAccount.token;
+         $scope.showToken=true;
+         new Clipboard('#copyToken2');
        }).
        error(function(data, status, headers, config) {
          $scope.errorTable = data;
        });
-      $('#oldAccountPopup').bsModal('hide');
+  }
+
+  $scope.validateRegeneration = function(){
+	$scope.showToken = false;
+	myOldAccount=undefined;
+    $('#oldAccountPopup').bsModal('hide');
   }
 
 $scope.enableButton = function(account,index) {
@@ -85,6 +93,7 @@ if (account.enabled) {
 $scope.addAccount = function() {
   var newAccount = { id : "", name : "", token: "not yet obtained", enabled : true, description : ""}
   $scope.myNewAccount = newAccount;
+  $scope.showToken=false;
   $('#newAccountPopup').bsModal('show');  
 }
 
@@ -102,7 +111,7 @@ $scope.columnDefs = [
           content.click( function() {
             $scope.popupDeletion(oData,iRow,$scope.regenerateAccount,"Regenerate token of");
           });
-          var stringContent = $("<div style='padding-top:7px;' >"+sData+"</div>");
+          var stringContent = $("<div style='padding-top:7px;' >"+$scope.getSecretToken(sData)+"</div>");
           $(nTd).empty();
           $(nTd).prepend(stringContent);
           $(nTd).prepend(content);
@@ -197,6 +206,7 @@ $scope.popupDeletion = function(account, index, action, actionName) {
     $scope.myOldAccount.index = index;
     $scope.myOldAccount.action = action;
     $scope.myOldAccount.actionName = actionName;
+    $scope.showToken=false;
   });
     $('#oldAccountPopup').bsModal('show');
   return account;
@@ -212,6 +222,15 @@ $scope.popupDeletion = function(account, index, action, actionName) {
      $scope.saveAccount(account,index,true);
    }
  }
+
+ $scope.showToken = false;
+
+ $scope.validateCreation = function(){
+	$scope.myNewAccount = undefined;
+	$scope.showToken = false;
+	$('#newAccountPopup').bsModal('hide');
+ }
+
  $scope.saveAccount = function(account,index,isPopup) {
    if (isPopup)  {
      $scope.errorPopup = undefined;
@@ -224,8 +243,11 @@ $scope.popupDeletion = function(account, index, action, actionName) {
        var newAccount = data.data.accounts[0];
        var newLength = $scope.accounts.push(newAccount);
        newAccount.index = newLength - 1 ;
-       $scope.myNewAccount = undefined;
-       $('#newAccountPopup').bsModal('hide');
+       $scope.showToken = true;
+       $scope.copied=false;
+       new Clipboard('#copyToken');
+       $('#newAccountPopup').on('hidden.bs.modal',$scope.validateCreation )
+       $scope.myNewAccount.token=newAccount.token;
      }).
      error(function(data, status, headers, config) {
        if (isPopup)  {
@@ -271,8 +293,21 @@ $scope.popupDeletion = function(account, index, action, actionName) {
   $scope.getAccounts();
     
   $scope.defineActionName = function(formName){
-      return formName.split(' ')[0];
-  }  
+      return formName ? formName.split(' ')[0] : '';
+  }
+
+  $scope.showCopyInfo = function(timeOut){
+	$scope.copied=true;
+    $timeout(function(){
+      $scope.$apply();
+      $scope.copied=false;
+      console.log($scope.copied);
+    }, timeOut);
+  }
+
+  $scope.getSecretToken = function(token){
+    return token.slice(0,3)+token.substring(3,token.length-2).replace(/./g,"*")+token.slice(token.length-2);
+  }
 } );
 
 
