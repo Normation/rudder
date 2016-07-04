@@ -163,7 +163,7 @@ class Boot extends Loggable {
 
     // All the following is related to the sitemap
     val nodeManagerMenu =
-      Menu("NodeManagerHome", <span>Node Management</span>) /
+      Menu("NodeManagerHome", <i class="fa fa-sitemap"></i> ++ <span>Node Management</span>) /
         "secure" / "nodeManager" / "index"  >> TestAccess( ()
             => userIsAllowed("/secure/index",Read("node")) ) submenus (
 
@@ -189,7 +189,7 @@ class Boot extends Loggable {
       )
 
     def buildManagerMenu(name:String) =
-      Menu(name+"ManagerHome", <span>{name.capitalize} Policy</span>) /
+      Menu(name+"ManagerHome", <i class="fa fa-gears"></i> ++ <span>{name.capitalize} Policy</span>) /
         "secure" / (name+"Manager") / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",Read("configuration")) ) submenus (
 
@@ -210,11 +210,11 @@ class Boot extends Loggable {
       )
 
     def administrationMenu =
-      Menu("AdministrationHome", <span>Administration</span>) /
+      Menu("AdministrationHome", <i class="fa fa-gear"></i> ++ <span>Settings</span>) /
         "secure" / "administration" / "index" >> TestAccess ( ()
             => userIsAllowed("/secure/index",Read("administration"), Read("technique")) ) submenus (
 
-          Menu("policyServerManagement", <span>Settings</span>) /
+          Menu("policyServerManagement", <span>General</span>) /
             "secure" / "administration" / "policyServerManagement"
             >> LocGroup("administrationGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
@@ -244,7 +244,7 @@ class Boot extends Loggable {
       // (don't give rights if you don't know)
       def workflowEnabled = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
 
-      Menu("UtilitiesHome", <span>Utilities</span>) /
+      Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
           if (workflowEnabled || CurrentUser.checkRights(Read("administration")))
@@ -291,7 +291,7 @@ class Boot extends Loggable {
     }
 
     val rootMenu = List(
-        Menu("Home", <span>Home</span>) / "secure" / "index" >> Hidden
+        Menu("Dashboard", <i class="fa fa-dashboard"></i> ++ <span>Dashboard</span>) / "secure" / "index"
       , Menu("Login") / "index" >> Hidden
       , nodeManagerMenu
       , buildManagerMenu("configuration")

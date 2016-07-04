@@ -108,29 +108,33 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       case IdleDeployer =>
         deploymentStatus.current match {
           case NoStatus =>
-            <span class="glyphicon glyphicon-question-sign"></span>
+            <span id="generation-status" class="label label-neutral"><span class="glyphicon glyphicon-question-sign"></span></span>
           case _:SuccessStatus =>
-            <span class="glyphicon glyphicon-ok"></span>
+            <span id="generation-status" class="label label-success"><span class="fa fa-check"></span></span>
           case _:ErrorStatus =>
-            <span class="glyphicon glyphicon-remove"></span>
+            <span id="generation-status" class="label label-danger"><span class="fa fa-times"></span></span>
         }
       case _ =>
-          <img src="/images/ajax-loader-small.gif" />
+          <span id="generation-status" class="label label-neutral"><i class="fa fa-refresh fa-spin"></i></span>
     }
 
   }
 
   private[this] def lastStatus  = {
-    def commonStatement(start : DateTime, end : DateTime, durationText : String, headText : String) = {
-      <li class="dropdown-header">{headText}</li>
-      <li class="dropdown-header">Started at {DateFormaterService.getFormatedDate(start)}</li>
-      <li class="dropdown-header" >Finished <span id="deployment-end">{DateFormaterService.getFormatedPeriod(end, DateTime.now)}</span> ago</li>
-      <li class="dropdown-header">{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</li>
+    def commonStatement(start : DateTime, end : DateTime, durationText : String, headText : String, iconClass: String, statusClass : String) = {
+      <li>
+        <ul class="menu">
+          <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span> {headText}</a></li>
+          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-start"}></span>Started at {DateFormaterService.getFormatedDate(start)}</a></li>
+          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-end"}></span>Finished <span id="deployment-end">{DateFormaterService.getFormatedPeriod(end, DateTime.now)}</span> ago</a></li>
+          <li><a href="#" class="no-click"><span class={statusClass +" fa fa-clock-o"}></span>{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</a></li>
+        </ul>
+      </li>
     }
     deploymentStatus.current match {
       case NoStatus => <li class="dropdown-header">Policy update status unavailable</li>
       case SuccessStatus(id,start,end,configurationNodes) =>
-        commonStatement(start, end, "Update took", "Policies updated")
+        commonStatement(start, end, "Update took", "Policies updated","text-success fa fa-check","text-success")
       case ErrorStatus(id,start,end,failure) =>
         val popupContent = 
             failure.messageChain match {
@@ -163,8 +167,8 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
         
         val callback = JsRaw("$('#errorDetailsDialog').bsModal('show');") & SetHtml("errorDetailsMessage" , popupContent)
         
-        commonStatement(start, end, "Error occured in", "Error during policy update") ++
-        <li>{ SHtml.a(Text("Details"), callback, ("href","#"))}</li>
+        commonStatement(start, end, "Error occured in", "Error during policy update","text-danger fa fa-times","text-danger") ++
+        <li class="footer">{ SHtml.a(Text("Details"), callback, ("href","#") , ("style","color:#a94442 !important;"))}</li>
     }
   }
 
@@ -184,22 +188,27 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def layout = {
-
     <lift:authz role="deployment_read">
-    <li class="dropdown">
-      <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
-        <span>Status</span> <span class="badge" id="generation-status"> {statusIcon}</span><span class="caret" style="margin-left:5px"></span></a>
-      <ul class="dropdown-menu" role="menu">
-        {lastStatus}
-        <li>{currentStatus}</li>
-      </ul>
-    </li>
-    {errorPopup}
+      <li class="dropdown notifications-menu">
+        <a href="#" class="dropdown-toggle" data-toggle="dropdown">
+          Status
+          <i class="fa fa-heartbeat"></i>
+          {statusIcon}
+          <i class="fa fa-angle-down" style="margin-left:15px;"></i>
+        </a>
+        <ul class="dropdown-menu" role="menu">
+          {lastStatus}
+          <li class="footer">
+            {currentStatus}
+          </li>
+        </ul>
+      </li>
+      {errorPopup}
     </lift:authz>
   }
 
   private[this] def errorPopup = {
-      <div class="modal fade" id="errorDetailsDialog">
+    <div class="modal fade" id="errorDetailsDialog">
       <div class="modal-backdrop fade in" style="height: 100%;"></div>
         <div class="modal-dialog">
             <div class="modal-content">
@@ -231,3 +240,4 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
 }
+

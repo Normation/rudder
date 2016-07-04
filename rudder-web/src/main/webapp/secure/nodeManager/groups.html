@@ -16,10 +16,10 @@ input.queryInputValue, select.queryInputValue {
 </head>
 
 <span data-list="node.Groups.head" ></span>
-
+<div class="nodeGroupContainer">
   <div class="col col-sm">
     <div data-lift="node.Groups.groupHierarchy">
-      <div class="inner-portlet" style="float:left; margin-right:15px;">
+      <div class="inner-portlet">
         <div class="page-title">Group hierarchy</div>
         <div class="inner-portlet-content">
           <div>
@@ -27,32 +27,26 @@ input.queryInputValue, select.queryInputValue {
               <div id="newItem">Here comes the New item Button</div>
             </lift:Authz>
           </div>
-
-  <div id="groupTree_actions_zone" style="margin:5px 0;">
-    <img onclick="openAllNodes('#groupTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
-
-    <img onclick="closeAllNodes('#groupTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
-
-    <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#groupTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
-
-    <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
-
-    <img onclick="clearSearchFieldTree('#treeSearch', '#groupTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
-
- </div>
-
-
+          <div id="groupTree_actions_zone" style="margin:5px 0;">
+            <img onclick="openAllNodes('#groupTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
+            <img onclick="closeAllNodes('#groupTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
+            <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#groupTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
+            <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+            <img onclick="clearSearchFieldTree('#treeSearch', '#groupTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+          </div>
           <div id="groupTree">Here comes the Groups Tree</div>
-          <p class="note"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
+            <p class="note"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
+          </div>
         </div>
       </div>
-    </div>
   </div>
-  <div class="col col-xl" id="groupDetails">
+
+  <div class="col col-xl box-shadow" id="groupDetails" style="display:none;">
     <div id="ajaxItemContainer" style="width: 100%">
       <span data-lift="node.Groups.initRightPanel"></span>
     </div>
   </div>
+</div>
 
   <div class="spacer"></div>
 
@@ -63,5 +57,6 @@ input.queryInputValue, select.queryInputValue {
 </div>
 
   <div data-lift="node.Groups.detailsPopup"></div>
+
 </lift:surround>
 
