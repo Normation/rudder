@@ -167,7 +167,8 @@ class RuleCompliance (
         data.splice(0,0,'Recent changes')
         var x = recentChanges.x
         x.splice(0,0,'x')
-        var chart = c3.generate({
+        //recentChart variable has to be global because we need it to refresh the graph clicking on compliance tab.
+        recentChart = c3.generate({
           data: {
                 x: 'x'
               , columns: [ x , data ]
@@ -176,6 +177,7 @@ class RuleCompliance (
                   ${SHtml.ajaxCall(JsRaw("recentChanges.t[d.index]"),  s => refreshTableChanges(Some(s.toLong)))}
                 }
             }
+          , bindto : '#changesChart'
           , bar: {
                 width: {
                     ratio: 1 // this makes bar width 50% of length between ticks
@@ -191,7 +193,6 @@ class RuleCompliance (
               , y: { show: true }
             }
         } );
-        $$('#changesChart').html(chart.element);
         createTooltip();
       """)
     }) match  {
