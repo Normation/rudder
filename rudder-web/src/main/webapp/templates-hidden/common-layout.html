@@ -56,55 +56,87 @@
     <script type="text/javascript" src="/javascript/rudder/angular/complianceMode.js" id="angular-complianceMode"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/agentSchedule.js" id="angular-agentSchedule"></script>
 
+	<link type="text/css" rel="stylesheet" href="/style/newTheme/AdminLTE.min.css">
+	<link type="text/css" rel="stylesheet" href="/style/newTheme.css">
+	<link rel="stylesheet" href="/style/font-awesome-4.6.3/css/font-awesome.min.css">
+	<script type="text/javascript" src="/javascript/newTheme/app.min.js"></script>
+
+	<script>
+	(function($) {
+	    $.fn.hasScrollBar = function() {
+	        return this.get(0) ? this.get(0).scrollHeight > this.innerHeight() : false;
+	    }
+	})(jQuery);
+	($(function(){
+		if(window.innerWidth<1375){$('body').addClass('sidebar-collapse');}else{$('body').removeClass('sidebar-collapse');}
+	}));
+	$(window).resize(function(){
+	    if(window.innerWidth<1375){$('body').addClass('sidebar-collapse');}else{$('body').removeClass('sidebar-collapse');}
+	});
+	</script>
+
     <script data-lift="SendMetricsPopup.display" ></script>
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->
   </head>
-<body>
+<body class="skin-yellow sidebar-mini">
 
 <div class="tw-bs">
-  <nav class="navbar navbar-rudder navbar-static-top" role="navigation">
-    <div class="container-fluid">
-      <div class="navbar-header">
-        <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
-          <span class="sr-only">Toggle navigation</span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-          <span class="icon-bar"></span>
-        </button>
-        <a href="/secure/"><img src="/images/logo_Rudder.png" alt="Rudder" /></a>
-      </div>
-      <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-        <!-- Base Menu -->
-        <span class="lift:BootstrapMenu?linkToSelf=true;expandAll=true"></span>
-        <!-- Quick Search -->
-         <div data-lift="QuickSearchNode.render" ></div>
-        <!-- Right Menu -->
-        <ul class="nav navbar-nav navbar-right">
-          <!-- Change request  -->
-          <li class="lift:comet?type=WorkflowInformation" name="workflowInfo" ></li>
-          <!-- Promise Generation -->
-          <li class="lift:comet?type=AsyncDeployment" name="deploymentStatus"  ></li>
-          <!-- Manual -->
-          <li><a href="/rudder-doc" target="_blank">User manual</a></li>
-          <!-- User -->
-          <li class="dropdown">
-            <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
-              <span data-lift="UserInformation.userCredentials">
-                <span style="margin-right:5px;" class="glyphicon glyphicon-user"></span>
-                <span id="openerAccount">[User name]</span>
-                <span class="caret"></span>
-              </span>
-            </a>
-            <ul class="dropdown-menu" role="menu">
-              <li><a href="#" id="logout">Log out</a></li>
+  <div class="wrapper">
+      <header class="main-header">
+        <a href="/secure/" class="logo fixed">
+          <span class="logo-mini"><b>R</b></span>
+          <span class="logo-lg"><b>Rudder</b></span>
+        </a>
+        <nav class="navbar navbar-static-top" role="navigation">
+          <a href="#" class="sidebar-toggle" data-toggle="offcanvas" role="button">
+            <span class="sr-only">Toggle navigation</span>
+          </a>
+          <div class="navbar-custom-menu">
+            <ul class="nav navbar-nav">
+            <!-- Change request  -->
+            <li class="lift:comet?type=WorkflowInformation" name="workflowInfo" ></li>
+            <!-- Promise Generation -->
+            <li class="lift:comet?type=AsyncDeployment" name="deploymentStatus"  ></li>
+              <li class="tasks-menu">
+                <a target="_blank" href="/rudder-doc">
+                  <i class="fa fa-book"></i>
+                  <span class="hidden-xs"> User manual </span>
+                </a>
+              </li>
+              <!-- User -->
+              <li class="user user-menu">
+                <a href="#">
+                  <span data-lift="UserInformation.userCredentials">
+                    <span class="hidden-xs glyphicon glyphicon-user"></span>
+                    <span id="openerAccount">[User name]</span>
+                  </span>
+                </a>
+              </li>
+              <!-- Log out -->
+              <li>
+                <a id="logout" href="#" data-toggle="control-sidebar"><i class="fa fa-power-off"></i></a>
+              </li>
             </ul>
-          </li>
-        </ul>
-      </div>
+          </div>
+        </nav>
+      </header>
+      <aside class="main-sidebar fixed">
+        <section class="sidebar">
+          <!-- Quick Search-->
+         <div data-lift="QuickSearchNode.render" ></div>
+          <!-- Navigation Menu -->
+          <ul class="sidebar-menu">
+            <span class="lift:BootstrapMenu?linkToSelf=true;"></span>
+            <li class="treeview footer">
+              <span>Rudder v.3.3.0</span>
+              <a href="https://www.normation.com/fr/" target="_blank">© Normation 2016</a>
+            </li>
+          </ul>
+        </section>
+      </aside>
     </div>
-  </nav>
 </div>
 
 <div class="tw-bs">
@@ -173,24 +205,20 @@
   class="ajaxloader"
   src="/images/ajax-loader.gif"/>
 
-  <div class="container">
+  <div class="content-wrapper">
   <div class="rudder_col">
   <lift:Authz.whenhasrights>
     <lift:bind name="content" />
   </lift:Authz.whenhasrights>
 
   <lift:Authz.whennorights>
-    <div class="portlet"><div class="portlet-content"><div class="intro" style="padding: 30px; text-align:center">
+    <div class="portlet"><div class="portlet-content"><div class="callout-fade callout-warning" style="padding: 30px; text-align:center">
          You don't have sufficient authorization rights to access this content. Please contant your administrator to have more informations.
     </div></div></div>
   </lift:Authz.whennorights>
 
     </div>
     </div>
-  <hr class="spacer" />
-<div id="footer">
-  <p>Rudder v2.3 - &copy; <a href="http://www.normation.com/" target="_blank">Normation</a></p>
-</div>
  <div class="tw-bs">   
  	<div id="successConfirmationDialog" class="modal fade">
         <div class="modal-backdrop fade in" style="height: 100%;"></div>
@@ -212,7 +240,6 @@
                         </div>
                     </div>
                     <div id="successDialogContent">
-                        
                     </div>
                 </div>
                 <div class="modal-footer" style="text-align:center">
@@ -221,8 +248,7 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div><!-- /.modal -->
- </div>  
-    
+ </div>
 </body>
 </html>
 

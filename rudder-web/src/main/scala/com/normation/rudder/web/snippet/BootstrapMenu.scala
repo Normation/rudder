@@ -52,7 +52,6 @@ class BootstrapMenu {
       } yield {
         sm.buildMenu(req.location).lines
       } ).getOrElse(Nil)
-
     }
 
     val menu = {
@@ -63,12 +62,16 @@ class BootstrapMenu {
 
         item.kids match {
           case Nil =>
-            <li class={style}><a href={item.uri}>{item.text}</a></li>
-
+            <li class={style + " treeview"}>
+              <a href={item.uri}>{item.text}</a>
+            </li>
           case kids =>
-            <li class={style + " dropdown"}>
-              <a href={item.uri} class="dropdown-toggle" data-toggle="dropdown">{item.text} <span class="caret"></span></a>
-              <ul class="dropdown-menu" role="menu"> {
+            <li class={style + " treeview"}>
+              <a href="#">
+                {item.text}
+                <i class="fa fa-angle-left pull-right"></i>
+              </a>
+              <ul class="treeview-menu"> {
                 for (kid <- kids) yield {
                   <li><a href={kid.uri}>{kid.text}</a></li>
                 }
@@ -77,11 +80,6 @@ class BootstrapMenu {
         }
       }
     }
-
-    <ul class="nav navbar-nav">
-      {menu}
-    </ul>
-
+    {menu}
   }
-
 }

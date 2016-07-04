@@ -46,9 +46,9 @@ function homePage (
   createTooltip();
 
 
-  var activeNodes = nodeCount.active + " Nodes."
+  var activeNodes ="<span class='highlight'>" + nodeCount.active + "</span> Nodes."
   if (nodeCount.active === 1) {
-    activeNodes = nodeCount.active + " Node."
+    activeNodes = "<span class='highlight'>" + nodeCount.active + "</span> Node."
   }
   var stats = "Compliance based on "+ activeNodes
   if (nodeCount.pending !== null) {
@@ -60,7 +60,7 @@ function homePage (
     }
     stats += " There "+ verb +" also " + pendingNodes + " for which we are still waiting for data (" + nodeCount.pending.percent + "%)."
   }
-  $("#globalComplianceStats").text(stats);
+  $("#globalComplianceStats").html(stats);
   
   var opts = {
       lines: 12, // The number of lines to draw
