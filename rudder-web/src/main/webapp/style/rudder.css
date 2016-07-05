@@ -603,20 +603,24 @@ div#Detail {
   width:50%;
   text-align:right
 }
-
-.dataTables_refresh .refreshButton img{
+.recentChange_refresh {
+    float: right;
+    width: 10%;
+    text-align: right;
+}
+.dataTables_refresh .refreshButton img,.recentChange_refresh .refreshButton img{
   margin: 0;
   float:none;
 }
 
-.dataTables_refresh .refreshButton {
+.dataTables_refresh .refreshButton,.recentChange_refresh .refreshButton {
   height: auto;
   width: auto;
   margin: 0;
   padding: 0;
 }
 
-.dataTables_refresh .refreshButton .ui-button-text {
+.dataTables_refresh .refreshButton .ui-button-text, .recentChange_refresh .refreshButton span {
   padding: 8px;
   line-height: 0;
 }
@@ -2894,7 +2898,27 @@ input[type="number"] {
   */
   min-height: 520px;
 }
-
+#recentChanges .alert-info{
+	font-size:14px;
+}
+#recentChanges .alert-info .glyphicon{
+	font-size:16px;
+}
+#selectedPeriod{
+	font-size:14px;
+}
+body.cursorPointer{
+	cursor:pointer;
+}
+path.c3-bar.c3-shape.c3-bar-highlighted{
+  stroke: rgb(63, 185, 243) !important;
+  fill: rgb(63, 185, 243) !important;
+}
+button.recentChangeGraph{
+	position: relative;
+    top: -8px;
+    right: -10px;
+}
 button.buttonMargin {
  margin: 0 10px;
 }
