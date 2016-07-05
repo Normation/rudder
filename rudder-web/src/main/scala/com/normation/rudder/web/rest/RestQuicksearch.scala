@@ -90,7 +90,7 @@ class RestQuicksearch (
     // - directives
     // - parameters
     // - rules
-
+    import com.normation.rudder.services.quicksearch.QSObject.sortQSObject
     val jsonList = QSObject.all.toList.sortWith(sortQSObject).flatMap { tpe =>
       val (summary, res) = map.getOrElse(tpe, (ResultTypeSummary(tpe.name, 0,0), Seq()) )
       if(res.isEmpty) {
@@ -125,23 +125,7 @@ class RestQuicksearch (
   }
 
 
-  // default sort for QuickSearchResult:
-  // - by type
-  // - then by name
-  private[this] def sortQSObject(a: QSObject, b:QSObject): Boolean = {
-    import com.normation.rudder.services.quicksearch.QSObject._
 
-    implicit class QSObjectOrder(o: QSObject) {
-      def order() = o match {
-        case Node      => 1
-        case Group     => 2
-        case Directive => 3
-        case Parameter => 4
-        case Rule      => 5
-      }
-    }
-    a.order <= b.order
-  }
 
   private[this] implicit class JsonSearchResult(r: QuickSearchResult) {
     import com.normation.inventory.domain.NodeId

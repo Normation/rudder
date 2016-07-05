@@ -4,6 +4,8 @@ var quicksearch = angular.module('quicksearch', ["angucomplete-ie8"]);
 quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope) {
 
 
+  $scope.docinfo = []
+
 
   $scope.selectedObject = function(selected) {
     if(selected && selected.originalObject.url) {
@@ -18,11 +20,10 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope) {
 
 
 // Helper function to access from outside angular scope
-//
-//function initQuicksearchUrl(url) {
-//  var scope = angular.element($("#quicksearch")).scope();
-//  scope.$apply(function() {
-//    scope.setContextPath(url);
-//  });
-//};
-//
+
+function initQuicksearchDocinfo(json) {
+  var scope = angular.element($("#quicksearch")).scope();
+  scope.$apply(function() {
+    scope.docinfo = JSON.parse(json);
+  });
+};

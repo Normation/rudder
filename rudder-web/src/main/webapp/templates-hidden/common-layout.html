@@ -114,8 +114,87 @@
       <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
         <!-- Base Menu -->
         <span class="lift:BootstrapMenu?linkToSelf=true;expandAll=true"></span>
+
         <!-- Quick Search -->
-        <lift:QuickSearchNode.render />
+
+        <lift:QuickSearchNode.render>
+
+          <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="navbar-form navbar-left">
+
+          <script type="text/ng-template" id="/my-custom-template.html">
+            <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown};">
+              <input ng-model="searchStr"
+                ng-disabled="disableInput"
+                type="text"
+                placeholder="{{placeholder}}"
+                ng-focus="resetHideResults(); onFocusHandler()"
+                class="{{inputClass}}"
+                ng-blur="hideResults($event)"
+                autocapitalize="off"
+                autocorrect="off"
+                autocomplete="off"
+                ng-change="inputChangeHandler(searchStr)"/>
+              <div class="angucomplete-dropdown" ng-show="showDropdown">
+                <div class="angucomplete-searching" ng-show="searching" ng-bind="textSearching"></div>
+                <div class="angucomplete-searching" ng-show="!searching && (!results || results.length == 0);" ng-bind="textNoResults"></div>
+                <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{'angucomplete-selected-row': $index == currentIndex}">
+                  <div ng-if="result.originalObject.name" class="angucomplete-item">
+                    <div>
+                       <span class="angucomplete-title">{{result.originalObject.type}}: {{result.originalObject.name}}</span>
+                    </div>
+                    <div ng-if="matchClass && result.description && result.description != '';" class="angucomplete-description" ng-bind-html="result.description"></div>
+                    <div ng-if="!matchClass && result.description && result.description != '';" class="angucomplete-description">{{result.description}}</div>
+                  </div>
+                  <div ng-if="result.originalObject.summary" class="angucomplete-summary">
+                    <span class="angucomplete-title">{{result.originalObject.type}}</span>
+                    <span class="angucomplete-description">{{result.originalObject.summary}}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </script>
+
+            <div id="angucomplete-ie8-quicksearch"
+                 angucomplete-ie8=""
+                 placeholder="Search anything"
+                 maxlength="100"
+                 pause="500"
+                 selected-object="selectedObject"
+                 remote-url="api-url-to-change"
+                 remote-url-data-field="data"
+                 title-field="name"
+                 description-field="desc"
+                 minlength="3"
+                 input-class="form-control ac_input"
+                 match-class="highlight"
+                 template-url="/my-custom-template.html"
+            >
+            </div>
+
+          <div class="dropdown">
+            <a href="#" data-toggle="dropdown" class="dropdown-toggle">[?] <b class="caret"></b></a>
+
+            <div class="dropdown-menu" style="height:500px; width:600px; overflow: scroll;">
+              <div>
+                Searh text in node informations, groups, directives, paramater and rules.
+                You can filter results by looking only in a subset of objects or their attributes with the
+                syntaxe "in:filter1,filter2,filter3", where "filterN" is chosen in the following names, case insentively (you
+                can indeferently use aliases in brakets):
+              </div>
+
+              <div ng-repeat="object in docinfo">
+                <div class="angucomplete-summary">{{object.name}}</div>
+                <ul ng-repeat="attribute in object.attributes">
+                  <li>
+                    <span>{{attribute.name}}</span>
+                    [<span class="angucomplete-description"  ng-repeat="alias in attribute.aliases"><span>{{alias}}, </span></span>]
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          </div>
+        </lift:QuickSearchNode.render>
         <!-- Right Menu -->
         <ul class="nav navbar-nav navbar-right">
           <!-- Change request -->

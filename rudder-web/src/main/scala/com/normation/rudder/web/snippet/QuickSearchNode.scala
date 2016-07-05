@@ -42,6 +42,8 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.components.AutoCompleteAutoSubmit
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.util._
+import net.liftweb.util.Helpers._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JsCmd
@@ -50,6 +52,8 @@ import net.liftweb.util.Helpers.strToSuperArrowAssoc
 import net.liftweb.http.js.JsCmds._
 import net.liftweb.http.S
 import com.normation.rudder.appconfig.FeatureSwitch
+import com.normation.rudder.services.quicksearch.QSObject
+import com.normation.rudder.services.quicksearch.QSMapping
 
 /**
  * This snippet allow to display the node "quick search" field.
@@ -80,59 +84,34 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
   }
 
   def quickSearchEveryting(html: NodeSeq) : NodeSeq = {
-    (
-      <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="navbar-form navbar-left">
-
-        <script type="text/ng-template" id="/my-custom-template.html">
-          <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown}">
-            <input ng-model="searchStr"
-              ng-disabled="disableInput"
-              type="text"
-              placeholder="{{placeholder}}"
-              ng-focus="resetHideResults(); onFocusHandler()"
-              class="{{inputClass}}"
-              ng-blur="hideResults($event)"
-              autocapitalize="off"
-              autocorrect="off"
-              autocomplete="off"
-              ng-change="inputChangeHandler(searchStr)"/>
-            <div class="angucomplete-dropdown" ng-show="showDropdown">
-              <div class="angucomplete-searching" ng-show="searching" ng-bind="textSearching"></div>
-              <div class="angucomplete-searching" ng-show={"!searching && (!results || results.length == 0)"} ng-bind="textNoResults"></div>
-              <div class="angucomplete-row" ng-repeat="result in results" ng-click="selectResult(result)" ng-mouseenter="hoverRow($index)" ng-class="{'angucomplete-selected-row': $index == currentIndex}">
-                <div ng-if={"result.originalObject.name"} class="angucomplete-item">
-                  <div>
-                       <span class="angucomplete-title">{{{{result.originalObject.type}}}}: {{{{result.originalObject.name}}}}</span>
-                  </div>
-                  <div ng-if={"matchClass && result.description && result.description != ''"} class="angucomplete-description" ng-bind-html="result.description"></div>
-                  <div ng-if={"!matchClass && result.description && result.description != ''"} class="angucomplete-description">{{result.description}}</div>
-                </div>
-                <div ng-if={"result.originalObject.summary"} class="angucomplete-summary">
-                  <span class="angucomplete-title">{{{{result.originalObject.type}}}}</span>
-                  <span class="angucomplete-description">{{{{result.originalObject.summary}}}}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </script>
-
-        <div angucomplete-ie8=""
-             placeholder="Search anything"
-             maxlength="100"
-             pause="500"
-             selected-object="selectedObject"
-             remote-url={s"${S.contextPath}/secure/api/quicksearch/"}
-             remote-url-data-field="data"
-             title-field="name"
-             description-field="desc"
-             minlength="3"
-             input-class="form-control ac_input"
-             match-class="highlight"
-             template-url="/my-custom-template.html"
-        ></div>
-      </div>
+    val bind = (
+      "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch/"
     )
+    (bind(html) ++ Script(OnLoad(JsRaw(s"initQuicksearchDocinfo(${jsonDocinfo})"))))
   }
+
+  //json view of the aliases
+  val jsonDocinfo = {
+    import net.liftweb.json._
+    import net.liftweb.json.JsonAST.{render => _, _}
+    import net.liftweb.json.JsonDSL._
+    import com.normation.rudder.services.quicksearch.QSObject._
+
+    val objs: List[JObject] = QSObject.all.toList.sortWith(sortQSObject).map { obj =>
+
+      (
+          ( "name" -> obj.name )
+        ~ ( "attributes" -> obj.attributes.toSeq.map ( attr => (
+                ( "name" -> attr.name )
+              ~ ( "aliases" -> QSMapping.attributeNames.getOrElse(attr, Set()).toList )
+          ) ) )
+      )
+    }
+
+    "'" + compact(render(objs)) + "'"
+  }
+
+
 
   def quickSearchNode(html:NodeSeq) : NodeSeq = {
     def buildQuery(current: String, limit: Int): Seq[String] = {

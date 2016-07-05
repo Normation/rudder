@@ -92,18 +92,7 @@ object QSDirectiveBackend {
     // only search if query is on Directives and attributes contains
     // DirectiveId, DirectiveVarName, DirectiveVarValue, TechniqueName, TechniqueVersion
 
-    val attributes: Set[QSAttribute] = query.attributes.intersect(Set(
-        QSDirectiveId
-      , DirectiveVarName
-      , DirectiveVarValue
-      , TechniqueName
-      , TechniqueVersion
-      , Description
-      , ShortDescription
-      , LongDescription
-      , Name
-    ) )
-
+    val attributes: Set[QSAttribute] = query.attributes.intersect(QSObject.Directive.attributes)
 
     if(query.objectClass.contains(QSDirective) && attributes.nonEmpty) {
       for {
