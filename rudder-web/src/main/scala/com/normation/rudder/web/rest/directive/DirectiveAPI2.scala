@@ -49,6 +49,8 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
 import com.normation.rudder.web.rest.ApiVersion
+import net.liftweb.http.NotFoundResponse
+import com.normation.rudder.domain.policies.DirectiveId
 
 class DirectiveAPI2 (
     readDirective : RoDirectiveRepository
@@ -79,19 +81,35 @@ class DirectiveAPI2 (
 
     case Delete(id :: Nil, req) =>  apiV2.deleteDirective(id,req)
 
-    case id :: Nil JsonPost body -> req => {
+    case id :: check JsonPost body -> req => {
+      val directiveId = DirectiveId(id)
       req.json match {
         case Full(arg) =>
           val restDirective = restExtractor.extractDirectiveFromJSON(arg)
-          apiV2.updateDirective(id,req,restDirective)
+          check match {
+            case Nil =>
+              apiV2.updateDirective(directiveId,req,restDirective)
+            case "check" :: Nil =>
+              apiV2.checkDirective(directiveId,req,restDirective)
+            case notFound =>
+             NotFoundResponse(s"Directive api url '${id}/${notFound.mkString("/")}' does not exists")
+          }
         case eb:EmptyBox=>
           toJsonError(None, JString("No Json data sent"))("updateDirective",restExtractor.extractPrettify(req.params))
       }
     }
 
-    case Post(id:: Nil, req) => {
+    case Post(id:: check, req) => {
+      val directiveId = DirectiveId(id)
       val restDirective = restExtractor.extractDirective(req.params)
-      apiV2.updateDirective(id,req,restDirective)
+      check match {
+        case Nil =>
+          apiV2.updateDirective(directiveId,req,restDirective)
+        case "check" :: Nil =>
+          apiV2.checkDirective(directiveId,req,restDirective)
+        case notFound =>
+          NotFoundResponse(s"Directive api url '${id}/${notFound.mkString("/")}' does not exists")
+      }
     }
 
   }
