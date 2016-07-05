@@ -46,7 +46,8 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.cfclerk.domain.TechniqueName
-
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.cfclerk.domain.Technique
 
 trait DirectiveAPI extends RestAPI {
   val kind = "directives"
@@ -92,3 +93,14 @@ case class RestDirective(
 
     }
 }
+
+case class DirectiveState (
+    technique : Technique
+  , directive : Directive
+)
+
+case class DirectiveUpdate(
+    activeTechnique: ActiveTechnique
+  , before: DirectiveState
+  , after : DirectiveState
+)
