@@ -55,7 +55,6 @@ import net.liftweb.util.Helpers.tryo
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 
-
 /**
  */
 object RestUtils extends Loggable {
@@ -86,7 +85,6 @@ object RestUtils extends Loggable {
     case _ => Failure("Prettify should only have one value, and should be set to true or false")
   }
 
-
   /**
    * Our own JSON render function to extends net.liftweb.json.JsonAst.render function
    * All code is taken from JsonAst object from lift-json_2.10-2.5.1.jar (dépendency used in rudder 2.10 at least)
@@ -100,9 +98,6 @@ object RestUtils extends Loggable {
 
     import scala.text.{Document, DocText}
     import scala.text.Document._
-
-
-
 
     // Helper functions, needed but private in JSONAst,
     // That one modified, add a bref after the punctuate
@@ -180,13 +175,12 @@ object RestUtils extends Loggable {
 
   }
 
-
   def toJsonResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) : LiftResponse = {
     effectiveResponse (id, message, RestOk, action, prettify)
   }
 
   def toJsonError(id:Option[String], message:JValue)( implicit action : String = "rest", prettify : Boolean) : LiftResponse = {
-    effectiveResponse (id, message, RestError, action, prettify)
+    effectiveResponse (id, message, InternalError, action, prettify)
   }
 
   def notValidVersionResponse(action:String)(implicit availableVersions : List[ApiVersion]) = {
@@ -228,6 +222,10 @@ object RestUtils extends Loggable {
     }
   }
 
+  def notFoundResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) = {
+    effectiveResponse (id, message, NotFoundError, action, prettify)
+ }
+
 }
 
 sealed case class ApiVersion (
@@ -262,7 +260,6 @@ object ApiVersion {
     }
   }
 
-
 }
 
 sealed trait HttpStatus {
@@ -277,8 +274,18 @@ object RestOk extends HttpStatus{
   val container = "data"
 }
 
-object RestError extends HttpStatus{
-  val code = 500
+trait RestError extends HttpStatus{
   val status = "error"
   val container = "errorDetails"
+}
+
+object InternalError extends RestError {
+  val code = 500
+}
+
+object NotFoundError extends RestError {
+  val code = 404
+}
+object ForbiddenError extends RestError {
+  val code = 403
 }

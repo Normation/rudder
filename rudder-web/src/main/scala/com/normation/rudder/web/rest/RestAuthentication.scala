@@ -49,7 +49,6 @@ import net.liftweb.json.JsonDSL._
 
 object RestAuthentication extends RestHelper with Loggable {
 
-
   serve {
 
     case Get("authentication" :: Nil,  req) => {
@@ -63,7 +62,7 @@ object RestAuthentication extends RestHelper with Loggable {
           } else {
             val msg = s"Authentication API forbids read access to Techniques for user ${CurrentUser.getActor.name}"
             logger.error(msg)
-            (msg, RestError)
+            (msg, ForbiddenError)
           }
         case _ => //checking for write access - by defaults, we look for the higher priority
           if(CurrentUser.checkRights(Write("technique"))) {
@@ -71,10 +70,9 @@ object RestAuthentication extends RestHelper with Loggable {
           } else {
             val msg = s"Authentication API forbids write access to Techniques for user ${CurrentUser.getActor.name}"
             logger.error(msg)
-            (msg,RestError)
+            (msg,ForbiddenError)
           }
       }
-
 
       val content =
         ( "action" -> "authentication" ) ~
