@@ -90,13 +90,12 @@
           <div id="newAccountPopup" ng-show="myNewAccount" >
             <div id="newAccountContainer" >
               <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
-              <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; height: auto; width: 450px; left: 30%; top: 20%;">
+              <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; height: auto; width: 450px; left: -225px; margin-left: 50%; top: 20%;">
                 <a title="Close" ng-click="closePopup();newAccount.$setPristine();" class="modalCloseImg simplemodal-close"></a>
                 <div tabindex="-1" class="simplemodal-wrap" style="height: 100%; outline: 0px none; width: 100%; overflow: auto;">
                   <div id="paramForm">
-                    <div class="simplemodal-title">
+                    <div class="simplemodal-title" style="border-bottom: 1px solid #9A9A9A;">
                       <h1 id="title" style="color: #000; wrap-word:break-word;">{{formTitle(myNewAccount)}}</h1>
-                      <hr/>
                     </div>
                     <form  name="newAccount" >
                       <div class="simplemodal-content" >
@@ -117,8 +116,7 @@
                       </div>
                       <hr class="spacer"/>
                       <div class="simplemodal-bottom">
-                        <hr/>
-                        <div class="popupButton" style="width:97%">
+                        <div class="popupButton" style="width: 98%;border-top: 1px solid #9A9A9A;margin-top: 10px;">
                           <span>
                             <input type="submit" class="btn-primary" style="float:right;" value="Save" ng-disabled="newAccount.$pristine || newAccount.$invalid" ng-click="checkAndSaveAccount(myNewAccount,myNewAccount.index,newAccount);newAccount.$setPristine();" />
                             <button class="simplemodal-close" ng-click="closePopup();newAccount.$setPristine();">Cancel</button>
@@ -135,14 +133,13 @@
           <div id="oldAccountPopup" ng-show="myOldAccount" >
             <div id="deletionPopupContainer" ng-show="myOldAccount">
               <div id="simplemodal-overlay" class="simplemodal-overlay" style="opacity: 0.5; height: 100%; width: 100%; position: fixed; left: 0px; top: 0px; z-index: 1001;"></div>
-              <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; max-height: 300px; width: 500px; left: 30%; top: 20%;">
+              <div id="simplemodal-container" class="simplemodal-container" style="position: fixed; z-index: 1002; max-height: 300px; width: 510px; left: -255px; margin-left: 50%; top: 20%;">
                 <a title="Close" ng-click="myOldAccount=undefined;" class="modalCloseImg simplemodal-close"></a>
                 <div tabindex="-1" class="simplemodal-wrap" style="height: auto; outline: 0px none; width: auto; overflow: auto;">
                   <div id="paramForm">
                     <div id="deletionPopup">
-                      <div class="simplemodal-title">
+                      <div class="simplemodal-title" style="border-bottom: 1px solid #9A9A9A;">
                         <h1 id="title" style="color:#000">{{myOldAccount.actionName}} API Account '{{myOldAccount.name}}'</h1>
-                        <hr/>
                       </div>
                       <div class="simplemodal-content">
                         <div>
@@ -154,11 +151,10 @@
                         <hr class="spacer" />
                       </div>
                       <div class="simplemodal-bottom">
-                        <hr/>
-                        <div class="popupButton">
+                        <div class="popupButton" style="width: 98%;border-top: 1px solid #9A9A9A;margin-top: 10px;">
                           <span>
+                            <button class="btn-primary" style="float:right;" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index);myOldAccount=undefined;">Confirm</button>
                             <button class="simplemodal-close" ng-click="myOldAccount=undefined;">Cancel</button>
-                            <button id="dialogRemoveButton" ng-click="myOldAccount.action(myOldAccount,myOldAccount.index);myOldAccount=undefined;" >Confirm</button>
                           </span>
                         </div>
                       </div>
