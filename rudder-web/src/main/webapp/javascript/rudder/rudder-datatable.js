@@ -1315,7 +1315,7 @@ function refreshTable (gridId, data) {
 }
 
 function selectInterval(interval, element){
-  $("#selectedPeriod b").text(interval);
+  $("#selectedPeriod").text(interval);
   $(".c3-bar-highlighted").each(function() {
     this.classList.remove("c3-bar-highlighted");
   });
