@@ -1319,6 +1319,18 @@ function refreshTable (gridId, data) {
   table.draw();
 }
 
+function selectInterval(interval, element){
+  $("#selectedPeriod b").text(interval);
+  $(".c3-bar-highlighted").each(function() {
+    this.classList.remove("c3-bar-highlighted");
+  });
+  element.classList.add("c3-bar-highlighted");
+}
+function changeCursor(clickable){
+  if(clickable){
+    $('body').toggleClass('cursorPointer');
+  }
+}
 /*
  * Function to define opening of an inner table
  */
