@@ -141,7 +141,9 @@ import com.normation.rudder.reports.ComplianceModeService
 import com.normation.rudder.reports.ComplianceModeServiceImpl
 import com.normation.rudder.reports.AgentRunIntervalService
 import com.normation.rudder.reports.AgentRunIntervalServiceImpl
-
+import com.normation.rudder.web.rest.compliance.ComplianceAPI6
+import com.normation.rudder.web.rest.compliance.ComplianceAPIService
+import com.normation.rudder.web.rest.technique._
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -303,6 +305,7 @@ object RudderConfig extends Loggable {
   val eventLogRepository: EventLogRepository = logRepository
   val eventLogDetailsService: EventLogDetailsService = eventLogDetailsServiceImpl
   val reportingService: ReportingService = reportingServiceImpl
+  lazy val asyncComplianceService : AsyncComplianceService = new AsyncComplianceService(reportingService)
   val stringUuidGenerator: StringUuidGenerator = uuidGen
   val quickSearchService: QuickSearchService = quickSearchServiceImpl
   val cmdbQueryParser: CmdbQueryParser = queryParser
@@ -343,7 +346,7 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  lazy val srvGrid = new SrvGrid(roAgentRunsRepository)
+  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -510,6 +513,23 @@ object RudderConfig extends Loggable {
       , ruleApiService2
     )
 
+    val ruleApiService6 =
+    new RuleApiService6 (
+        roRuleCategoryRepository
+      , roRuleRepository
+      , woRuleCategoryRepository
+      , ruleCategoryService
+      , restDataSerializer
+    )
+
+  val ruleApi6 =
+    new RuleAPI6 (
+        ruleApiService6
+      , ruleApi2
+      , restExtractorService
+      , uuidGen
+    )
+
    val directiveApiService2 =
     new DirectiveAPIService2 (
         roDirectiveRepository
@@ -530,6 +550,19 @@ object RudderConfig extends Loggable {
         roDirectiveRepository
       , restExtractorService
       , directiveApiService2
+    )
+
+  val TechniqueApiService6 =
+    new TechniqueAPIService6 (
+        roDirectiveRepository
+      , restDataSerializer
+      , techniqueRepositoryImpl
+    )
+
+  val techniqueApi6 =
+    new TechniqueAPI6 (
+        restExtractorService
+      , TechniqueApiService6
     )
 
   val groupApiService2 =
@@ -562,6 +595,21 @@ object RudderConfig extends Loggable {
       , groupApiService5
     )
 
+    val groupApiService6 =
+    new GroupApiService6 (
+        roNodeGroupRepository
+      , woNodeGroupRepository
+      , restDataSerializer
+    )
+
+  val groupApi6 =
+    new GroupAPI6 (
+        groupApiService6
+      , groupApi5
+      , restExtractorService
+      , uuidGen
+    )
+
     val nodeApiService2 =
       NodeApiService2 (
         newNodeManager
@@ -587,6 +635,7 @@ object RudderConfig extends Loggable {
       , new NodeApiService4 (
             fullInventoryRepository
           , nodeInfoService
+          , softwareInventoryDAO
           , uuidGen
           , restExtractorService
           , restDataSerializer
@@ -606,6 +655,21 @@ object RudderConfig extends Loggable {
           , nodeInfoService
           , uuidGen
           , restExtractorService
+        )
+      , restExtractorService
+    )
+  }
+
+  val nodeApi6 = {
+    new NodeAPI6 (
+        nodeApi5
+      , new NodeApiService6(
+            nodeInfoService
+          , fullInventoryRepository
+          , softwareInventoryDAO
+          , restExtractorService
+          , restDataSerializer
+          , queryProcessor
         )
       , restExtractorService
     )
@@ -650,21 +714,32 @@ object RudderConfig extends Loggable {
       , changeRequestApiService3
     )
 
+  val complianceApi6 = new ComplianceAPI6(restExtractorService,
+      new ComplianceAPIService(
+          roRuleRepository
+        , nodeInfoService
+        , roNodeGroupRepository
+        , reportingService
+      )
+  )
+
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   val apiV3 : List[RestAPI] = changeRequestApi3 :: apiV2
   val apiV4 : List[RestAPI] = nodeApi4 :: apiV3.filter( _ != nodeApi2)
   val apiV5 : List[RestAPI] = nodeApi5 :: groupApi5 :: apiV4.filter( _ != nodeApi4).filter( _ != groupApi2)
+  val apiV6 : List[RestAPI] = techniqueApi6 ::complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
 
   val apis = {
     Map (
-        ( ApiVersion(2) -> apiV2 )
-      , ( ApiVersion(3) -> apiV3 )
-      , ( ApiVersion(4) -> apiV4 )
-      , ( ApiVersion(5) -> apiV5 )
+        ( ApiVersion(2,true) -> apiV2 )
+      , ( ApiVersion(3,true) -> apiV3 )
+      , ( ApiVersion(4,true) -> apiV4 )
+      , ( ApiVersion(5,false) -> apiV5 )
+      , ( ApiVersion(6,false) -> apiV6 )
     )
   }
 
-  val apiDispatcher = APIDispatcher(apis)
+  val apiDispatcher = APIDispatcher(apis, restExtractorService)
 
   lazy val configService: ReadConfigService with UpdateConfigService =
     new LDAPBasedConfigService(
@@ -734,7 +809,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val uuidGen: StringUuidGenerator = new StringUuidGeneratorImpl
   private[this] lazy val systemVariableSpecService = new SystemVariableSpecServiceImpl()
   private[this] lazy val variableBuilderService: VariableBuilderService = new VariableBuilderServiceImpl()
-  private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser)
+  private[this] lazy val ldapEntityMapper = new LDAPEntityMapper(rudderDitImpl, nodeDitImpl, acceptedNodesDitImpl, queryParser, inventoryMapper)
 
   ///// items serializer - service that transforms items to XML /////
   private[this] lazy val ruleSerialisation: RuleSerialisation = new RuleSerialisationImpl(Constants.XML_CURRENT_FILE_FORMAT.toString)
@@ -1202,6 +1277,7 @@ object RudderConfig extends Loggable {
     , configService.cfengine_outputs_ttl _
     , configService.rudder_store_all_centralized_logs_in_file _
     , configService.send_server_metrics _
+    , configService.rudder_syslog_protocol _
   )
   private[this] lazy val rudderCf3PromisesFileWriterService = new RudderCf3PromisesFileWriterServiceImpl(
     techniqueRepositoryImpl,
@@ -1403,7 +1479,9 @@ object RudderConfig extends Loggable {
     , nodeDitImpl
     , acceptedNodesDitImpl
     , removedNodesDitImpl
+    , pendingNodesDitImpl
     , ldapEntityMapper
+    , inventoryMapper
   )
   private[this] lazy val dependencyAndDeletionServiceImpl: DependencyAndDeletionService = new DependencyAndDeletionServiceImpl(
         roLdap

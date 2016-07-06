@@ -45,25 +45,59 @@ import com.normation.rudder.web.components.DateFormaterService
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.nodes.JsonSerialisation._
+import com.normation.rudder.domain.nodes.NodeInfo
 
 sealed trait NodeDetailLevel {
   def fields : Set[String]
+
+  /**
+   * Build the JSON object, for the given list of fields.
+   * The object is always built with the fields on the same order.
+   */
+  final def toJson(nodeInfo: NodeInfo, status: InventoryStatus, inventory: Option[FullInventory], software: Seq[Software]): JObject = {
+
+    val jsonFields: List[JField] = NodeDetailLevel.allFields.filter(fields.contains).map { field =>
+      //map the field to its value with the correct context
+      val json =                      NodeDetailLevel.statusInfoFields.   get(field).map( _(status)).
+        orElse(                       NodeDetailLevel.nodeInfoFields.     get(field).map( _(nodeInfo))).
+        orElse(inventory.flatMap(i => NodeDetailLevel.fullInventoryFields.get(field).map( _(i)))).
+        orElse(NodeDetailLevel.softwareFields.get(field).map( _(software))).
+        getOrElse(JNothing)
+
+      //return the pair
+      JField(field, json)
+    }
+
+    //transform the seq to a json object
+    JObject(jsonFields)
+  }
+
+  /**
+   * Does any of the listed fields need to be looked-up
+   * with full inventory ?
+   */
+  final def needFullInventory() = NodeDetailLevel.fullInventoryFields.keySet.intersect(fields).nonEmpty
+
+  /**
+   * Does any of the listed fields need software look-up?
+   */
+  final def needSoftware() = NodeDetailLevel.softwareFields.keySet.intersect(fields).nonEmpty
 }
 
 case object MinimalDetailLevel extends NodeDetailLevel {
-  val fields = NodeDetailLevel.minimalFields.keySet
+  val fields = NodeDetailLevel.minimalFields.toSet
 }
 
 case object DefaultDetailLevel extends NodeDetailLevel {
-  val fields = NodeDetailLevel.defaultFields.keySet
+  val fields = NodeDetailLevel.defaultFields.toSet
 }
 
 case object FullDetailLevel extends NodeDetailLevel {
-  val fields = NodeDetailLevel.allFields.keySet
+  val fields = NodeDetailLevel.allFields.toSet
 }
 
 case object API2DetailLevel extends NodeDetailLevel {
-  val fields = NodeDetailLevel.minimalFields.keySet ++ Set("os","machine")
+  val fields = NodeDetailLevel.minimalFields.toSet ++ Set("os","machine")
 }
 
 case class CustomDetailLevel (
@@ -75,40 +109,71 @@ case class CustomDetailLevel (
 
 object NodeDetailLevel {
 
-  type AllNodeInfo = (Node, FullInventory)
 
-  type InventoryToJson = AllNodeInfo => JValue
+  val otherDefaultFields = List(
+        "os"
+      , "architectureDescription"
+      , "ram"
+      , "machine"
+      , "ipAddresses"
+      , "description"
+      , "lastInventoryDate"
+      , "policyServerId"
+      , "managementTechnology"
+      , "properties"
+  )
 
-  val getSoftwareService = RudderConfig.readOnlySoftwareDAO
+  val otherAllFields = List(
+        "accounts"
+      , "bios"
+      , "controllers"
+      , "environmentVariables"
+      , "fileSystems"
+      , "managementTechnologyDetails"
+      , "memories"
+      , "networkInterfaces"
+      , "processes"
+      , "processors"
+      , "slots"
+      , "software"
+      , "sound"
+      , "storage"
+      , "ports"
+      , "videos"
+      , "virtualMachines"
 
-  // Maps of fields, and their transformation from inventory to json
+  )
 
-  // Minimal
-  val minimalFields = {
+  val minimalFields = List("id", "hostname", "status")
+  val defaultFields = minimalFields ::: otherDefaultFields
+  val allFields = defaultFields ::: otherAllFields
 
-    val id : InventoryToJson = (inv : AllNodeInfo) => inv._2.node.main.id.value
+  /**
+   * A methods that map fields that only use nodeInfo
+   */
 
-    val hostname : InventoryToJson = (inv : AllNodeInfo) => inv._2.node.main.hostname
-
-    val status : InventoryToJson =  (inv : AllNodeInfo) => inv._2.node.main.status.name
+  private val statusInfoFields: Map[String, InventoryStatus => JValue] = {
+    val status: InventoryStatus => JValue = (x: InventoryStatus) => x.name
 
     Map (
-        ( "id"       -> id )
-      , ( "hostname" -> hostname )
-      , ( "status"   -> status )
+      ( "status" -> status )
     )
   }
 
-  // Default
-  val defaultFields = {
+  private val nodeInfoFields: Map[String, NodeInfo => JValue] = {
 
-    val description : InventoryToJson = (inv : AllNodeInfo) => inv._2.node.description
-
-    val policyServer : InventoryToJson = (inv : AllNodeInfo) => inv._2.node.main.policyServerId.value
+    val id           : NodeInfo => JValue = (inv: NodeInfo) => inv.id.value
+    val hostname     : NodeInfo => JValue = (inv: NodeInfo) => inv.hostname
+    val description  : NodeInfo => JValue = (inv: NodeInfo) => inv.description
+    val policyServer : NodeInfo => JValue = (inv: NodeInfo) => inv.policyServerId.value
+    val ram          : NodeInfo => JValue = (inv: NodeInfo) => inv.ram.map(MemorySize.sizeMb)
+    val arch         : NodeInfo => JValue = (inv: NodeInfo) => inv.archDescription
+    val inventoryDate: NodeInfo => JValue = (inv: NodeInfo) => DateFormaterService.getFormatedDate(inv.inventoryDate)
+    val properties   : NodeInfo => JValue = (inv: NodeInfo) => inv.properties.toApiJson
 
     val os = {
-      ( inv : AllNodeInfo ) =>
-        val osType = inv._2.node.main.osDetails.os match {
+      ( inv : NodeInfo ) =>
+        val osType = inv.osDetails.os match {
           case _:LinuxType   => "Linux"
           case _:WindowsType => "Windows"
           case AixOS         => "AIX"
@@ -116,38 +181,37 @@ object NodeDetailLevel {
           case UnknownOSType => "Unknown"
         }
         ( "type" -> osType ) ~
-        ( "name" -> inv._2.node.main.osDetails.os.name ) ~
-        ( "version"  -> inv._2.node.main.osDetails.version.value ) ~
-        ( "fullName" -> inv._2.node.main.osDetails.fullName ) ~
-        ( "servicePack"   -> inv._2.node.main.osDetails.servicePack ) ~
-        ( "kernelVersion" -> inv._2.node.main.osDetails.kernelVersion.value )
+        ( "name" -> inv.osDetails.os.name ) ~
+        ( "version"  -> inv.osDetails.version.value ) ~
+        ( "fullName" -> inv.osDetails.fullName ) ~
+        ( "servicePack"   -> inv.osDetails.servicePack ) ~
+        ( "kernelVersion" -> inv.osDetails.kernelVersion.value )
     }
 
     val machine = {
-      ( inv : AllNodeInfo ) =>
-        val (machineType,provider) = inv._2.machine.map(_.machineType match {
+      ( inv : NodeInfo ) =>
+        val (machineType,provider) = inv.machine.map(_.machineType match {
           case PhysicalMachineType => ("Physical",None)
           case VirtualMachineType(kind) => ("Virtual",Some(kind))
         }).getOrElse(("No machine Inventory",None))
 
-        ( "id"   -> inv._2.machine.map(_.id.value) ) ~
+        ( "id"   -> inv.machine.map(_.id.value) ) ~
         ( "type" -> machineType ) ~
         ( "provider" -> provider.map(_.name) ) ~
-        ( "manufacturer" -> inv._2.machine.flatMap( _.manufacturer.map(_.name))) ~
-        ( "serialNumber" -> inv._2.machine.flatMap(_.systemSerialNumber))
+        ( "manufacturer" -> inv.machine.flatMap( _.manufacturer.map(_.name))) ~
+        ( "serialNumber" -> inv.machine.flatMap(_.systemSerial))
     }
 
-    val ram : InventoryToJson = ( inv : AllNodeInfo ) => inv._2.node.ram.map(MemorySize.sizeMb)
 
     val ips = {
-      ( inv : AllNodeInfo ) =>
-        val ips =inv._2.node.serverIps.map(ip => JString(ip)).toList
+      ( inv : NodeInfo ) =>
+        val ips =inv.ips.map(ip => JString(ip)).toList
         JArray(ips)
     }
 
     val management = {
-     ( inv : AllNodeInfo ) =>
-       val agents : List[JValue] = inv._2.node.agentNames.map{
+     ( inv : NodeInfo ) =>
+       val agents : List[JValue] = inv.agentsName.map{
          agent =>
            ( "name"    -> agent.fullname ) ~
            ( "version" -> JNothing )
@@ -155,15 +219,12 @@ object NodeDetailLevel {
        JArray(agents)
     }
 
-    val arch : InventoryToJson = ( inv : AllNodeInfo ) => inv._2.node.archDescription
 
-    val inventoryDate : InventoryToJson = ( inv : AllNodeInfo ) => inv._2.node.inventoryDate.map(DateFormaterService.getFormatedDate)
 
-    val properties: InventoryToJson = ( inv : AllNodeInfo ) => inv._1.properties.toApiJson
-
-    minimalFields ++
     Map (
-        ( "os"  -> os )
+        ( "id"       -> id )
+      , ( "hostname" -> hostname )
+      , ( "os"  -> os )
       , ( "ram" -> ram )
       , ( "machine"     -> machine )
       , ( "ipAddresses" -> ips)
@@ -176,13 +237,46 @@ object NodeDetailLevel {
     )
   }
 
+  private val softwareFields : Map[String, Seq[Software] => JValue] = {
+    val software: Seq[Software] => JValue = {
+      (soft: Seq[Software]) =>
 
-  // all fields
-  val allFields : Map[String, InventoryToJson] = {
+        def licenseJson (license : License) = {
+          ( "oem"            -> license.oem ) ~
+          ( "name"           -> license.name ) ~
+          ( "productId"      -> license.productId ) ~
+          ( "productKey"     -> license.productKey ) ~
+          ( "description"    -> license.description ) ~
+          ( "expirationDate" -> license.expirationDate.map(DateFormaterService.getFormatedDate) )
+        }
+
+        if(soft.isEmpty) {
+          JNothing
+        } else {
+          val softwares = soft.map{
+            software =>
+              ( "name"        -> software.name ) ~
+              ( "editor"      -> software.editor.map(_.name) ) ~
+              ( "version"     -> software.version.map(_.value) ) ~
+              ( "license"     -> software.license.map(licenseJson) ) ~
+              ( "description" -> software.description ) ~
+              ( "releaseDate" -> software.releaseDate.map(DateFormaterService.getFormatedDate) )
+          }.toList
+          JArray(softwares)
+        }
+    }
+
+    Map(
+      ( "software" -> software )
+    )
+
+  }
+
+  private val fullInventoryFields : Map[String, FullInventory => JValue] = {
 
     val env = {
-      ( inv : AllNodeInfo ) =>
-        val variables = inv._2.node.environmentVariables.map{
+      ( inv : FullInventory ) =>
+        val variables = inv.node.environmentVariables.map{
           env =>
             val value = JString(env.value.getOrElse(""))
             JField(env.name ,value)
@@ -191,8 +285,8 @@ object NodeDetailLevel {
     }
 
     val network = {
-      ( inv : AllNodeInfo ) =>
-        val network = inv._2.node.networks.map(
+      ( inv : FullInventory ) =>
+        val network = inv.node.networks.map(
           network =>
               ( "name"   -> network.name )
             ~ ( "mask"   -> network.ifMask.map(_.getHostAddress) )
@@ -207,15 +301,15 @@ object NodeDetailLevel {
     }
 
     val managementDetails = {
-      ( inv : AllNodeInfo ) =>
-        val keys = inv._2.node.publicKeys.map{cfKey =>  JString(cfKey.key)}
+      ( inv : FullInventory ) =>
+        val keys = inv.node.publicKeys.map{cfKey =>  JString(cfKey.key)}
         ( "cfengineKeys" -> JArray(keys.toList) ) ~
-        ( "cfengineUser" -> inv._2.node.main.rootUser )
+        ( "cfengineUser" -> inv.node.main.rootUser )
     }
 
     val fileSystems = {
-      ( inv : AllNodeInfo ) =>
-        val fs = inv._2.node.fileSystems.map{
+      ( inv : FullInventory ) =>
+        val fs = inv.node.fileSystems.map{
           fs =>
             ( "name" -> fs.name ) ~
             ( "fileCount"   -> fs.fileCount ) ~
@@ -226,13 +320,13 @@ object NodeDetailLevel {
         }.toList
         val swap =
           ("name" -> "swap" ) ~
-          ("totalSpace" -> inv._2.node.swap.map(MemorySize.sizeMb) )
+          ("totalSpace" -> inv.node.swap.map(MemorySize.sizeMb) )
         JArray(swap :: fs)
     }
 
-    val memories : InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val memories :FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.memories.isEmpty) {
               JNothing
@@ -254,9 +348,9 @@ object NodeDetailLevel {
         }
     }
 
-    val storages :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val storages : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.storages.isEmpty) {
               JNothing
@@ -279,8 +373,8 @@ object NodeDetailLevel {
     }
 
     val accounts = {
-     ( inv : AllNodeInfo ) =>
-       val agents = inv._2.node.accounts.toList.map(JString)
+     ( inv : FullInventory ) =>
+       val agents = inv.node.accounts.toList.map(JString)
        if (agents.isEmpty){
          JNothing
        } else {
@@ -288,9 +382,9 @@ object NodeDetailLevel {
        }
     }
 
-    val processors :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val processors : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.processors.isEmpty) {
               JNothing
@@ -316,9 +410,9 @@ object NodeDetailLevel {
         }
     }
 
-    val ports :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val ports : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.ports.isEmpty) {
               JNothing
@@ -335,12 +429,12 @@ object NodeDetailLevel {
         }
     }
 
-    val virtualMachines :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        if (inv._2.node.vms.isEmpty) {
+    val virtualMachines : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        if (inv.node.vms.isEmpty) {
           JNothing
         } else {
-          val virtualMachines = inv._2.node.vms.map{
+          val virtualMachines = inv.node.vms.map{
             virtualMachine =>
               ( "name" -> virtualMachine.name ) ~
               ( "type" -> virtualMachine.vmtype ) ~
@@ -356,42 +450,9 @@ object NodeDetailLevel {
         }
     }
 
-    val softwares :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-
-        def licenseJson (license : License) = {
-          ( "oem"  -> license.oem ) ~
-          ( "name" -> license.name ) ~
-          ( "productId"  -> license.productId ) ~
-          ( "productKey" -> license.productKey ) ~
-          ( "description"    -> license.description ) ~
-          ( "expirationDate" -> license.expirationDate.map(DateFormaterService.getFormatedDate) )
-        }
-        getSoftwareService.getSoftware(inv._2.node.softwareIds) match {
-          case Full(softs) =>
-            if (softs.isEmpty) {
-              JNothing
-            } else {
-              val softwares = softs.map{
-                software =>
-                  ( "name" -> software.name ) ~
-                  ( "editor"  -> software.editor.map(_.name) ) ~
-                  ( "version" -> software.version.map(_.value) ) ~
-                  ( "license" -> software.license.map(licenseJson) ) ~
-                  ( "description" -> software.description ) ~
-                  ( "releaseDate" -> software.releaseDate.map(DateFormaterService.getFormatedDate) )
-              }.toList
-              JArray(softwares)
-            }
-          case eb:EmptyBox =>
-            //log error
-            JNothing
-        }
-    }
-
-    val videos :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val videos : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.videos.isEmpty) {
               JNothing
@@ -410,9 +471,9 @@ object NodeDetailLevel {
         }
     }
 
-    val bios :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val bios : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.bios.isEmpty) {
               JNothing
@@ -432,9 +493,9 @@ object NodeDetailLevel {
         }
     }
 
-    val controllers :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val controllers : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.controllers.isEmpty) {
               JNothing
@@ -452,9 +513,9 @@ object NodeDetailLevel {
         }
     }
 
-    val slots :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val slots : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.slots.isEmpty) {
               JNothing
@@ -471,9 +532,9 @@ object NodeDetailLevel {
         }
     }
 
-    val sounds :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        inv._2.machine.map {
+    val sounds : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        inv.machine.map {
           machine =>
             if (machine.sounds.isEmpty) {
               JNothing
@@ -489,12 +550,12 @@ object NodeDetailLevel {
         }
     }
 
-    val processes :  InventoryToJson = {
-      ( inv : AllNodeInfo ) =>
-        if (inv._2.node.processes.isEmpty) {
+    val processes : FullInventory => JValue = {
+      ( inv : FullInventory ) =>
+        if (inv.node.processes.isEmpty) {
           JNothing
         } else {
-          val processes = inv._2.node.processes.map{
+          val processes = inv.node.processes.map{
             process =>
               ( "pid"  -> process.pid ) ~
               ( "tty"  -> process.tty ) ~
@@ -510,7 +571,6 @@ object NodeDetailLevel {
         }
     }
 
-    defaultFields ++
     Map (
         ( "bios"  -> bios )
       , ( "slots" -> slots )
@@ -519,7 +579,6 @@ object NodeDetailLevel {
       , ( "videos"   -> videos )
       , ( "storage"  -> storages )
       , ( "accounts" -> accounts )
-      , ( "software" -> softwares )
       , ( "memories" -> memories )
       , ( "processes"   -> processes )
       , ( "processors"  -> processors )
@@ -530,6 +589,8 @@ object NodeDetailLevel {
       , ( "environmentVariables" -> env )
       , ( "managementTechnologyDetails" -> managementDetails )
     )
+
   }
+
 
 }

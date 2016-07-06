@@ -52,6 +52,12 @@ import com.normation.inventory.domain.ServerRole
 import com.normation.rudder.domain.nodes.Node
 import com.normation.rudder.domain.policies.RuleWithCf3PolicyDraft
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.inventory.domain.UndefinedKey
+import com.normation.inventory.domain.VirtualBox
+import com.normation.inventory.domain.VirtualMachineType
+import com.normation.rudder.domain.nodes.MachineInfo
+import com.normation.inventory.domain.MemorySize
+import com.normation.inventory.domain.MachineUuid
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -84,13 +90,11 @@ object NodeConfigData {
   val root = NodeInfo (
       rootNode
     , rootHostname
-    , "vm"
-    , "Debian"
-    , "7.0"
-    , None
+    , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
+    , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.now
-    , ""
+    , "", UndefinedKey
     , Seq(COMMUNITY_AGENT)
     , rootId
     , rootAdmin
@@ -104,6 +108,8 @@ object NodeConfigData {
         , "rudder-server-root"
         , "rudder-webapp"
       ).map(ServerRole(_))
+    , None
+    , None
   )
 
   val node1Node = Node (
@@ -121,17 +127,17 @@ object NodeConfigData {
   val node1 = NodeInfo (
       node1Node
     , hostname1
-    , "vm"
-    , "Debian"
-    , "7.0"
-    , None
+    , Some(MachineInfo(MachineUuid("machine1"), VirtualMachineType(VirtualBox), None, None))
+    , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("192.168.0.10")
     , DateTime.now
-    , ""
+    , "", UndefinedKey
     , Seq(COMMUNITY_AGENT)
     , rootId
     , admin1
     , Set()
+    , None
+    , Some(MemorySize(1460132))
   )
 
   val nodeInventory1: NodeInventory = NodeInventory(
@@ -142,29 +148,29 @@ object NodeConfigData {
         , node1.hostname
         , Linux(Debian, "test machine", new Version("1.0"), None, new Version("3.42"))
         , root.id
-  // 3.1      , UndefinedKey
+        , UndefinedKey
       )
-      , name                 = None
-      , description          = None
-      , ram                  = None
-      , swap                 = None
-      , inventoryDate        = None
-      , receiveDate          = None
-      , archDescription      = None
-      , lastLoggedUser       = None
-      , lastLoggedUserTime   = None
-      , agentNames           = Seq()
-      , publicKeys           = Seq()
-      , serverIps            = Seq()
-      , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
-      , softwareIds          = Seq()
-      , accounts             = Seq()
-      , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
-      , processes            = Seq()
-      , vms                  = Seq()
-      , networks             = Seq()
-      , fileSystems          = Seq()
-      , serverRoles          = Set()
+    , name                 = None
+    , description          = None
+    , ram                  = None
+    , swap                 = None
+    , inventoryDate        = None
+    , receiveDate          = None
+    , archDescription      = None
+    , lastLoggedUser       = None
+    , lastLoggedUserTime   = None
+    , agentNames           = Seq()
+    , publicKeys           = Seq()
+    , serverIps            = Seq()
+    , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field
+    , softwareIds          = Seq()
+    , accounts             = Seq()
+    , environmentVariables = Seq(EnvironmentVariable("THE_VAR", Some("THE_VAR value!")))
+    , processes            = Seq()
+    , vms                  = Seq()
+    , networks             = Seq()
+    , fileSystems          = Seq()
+    , serverRoles          = Set()
   )
 
   //node1 us a relay

@@ -61,6 +61,8 @@ import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.inventory.domain.VirtualMachineType
+import com.normation.inventory.domain.PhysicalMachineType
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -82,7 +84,8 @@ object SrvGrid {
  * - call the display(servers) method
  */
 class SrvGrid(
-  roAgentRunsRepository : RoReportsExecutionRepository
+    roAgentRunsRepository : RoReportsExecutionRepository
+  , asyncComplianceService : AsyncComplianceService
 ) extends Loggable {
 
   private def templatePath = List("templates-hidden", "srv_grid")
@@ -110,7 +113,7 @@ class SrvGrid(
   def displayAndInit(
       nodes    : Seq[NodeInfo]
     , tableId  : String
-    , callback : Option[String => JsCmd] = None
+    , callback : Option[(String, Boolean) => JsCmd] = None
     , refreshNodes : Option[ () => Seq[NodeInfo]] = None
    ) : NodeSeq = {
     tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback,refreshNodes)))
@@ -125,7 +128,7 @@ class SrvGrid(
   def initJs(
       tableId  : String
     , nodes    : Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String, Boolean) => JsCmd]
     , refreshNodes : Option[ () => Seq[NodeInfo]]
   ) : JsCmd = {
 
@@ -135,12 +138,11 @@ class SrvGrid(
 
     JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh});""")
 
-   }
-
+  }
 
   def getTableData (
       nodes    : Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String,Boolean) => JsCmd]
   ) = {
 
     val now = System.currentTimeMillis
@@ -169,13 +171,19 @@ class SrvGrid(
 
   def refreshData (
       refreshNodes : () => Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String, Boolean) => JsCmd]
     , tableId: String
   ) = {
     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
       val nodes = refreshNodes()
+      val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, Set(), tableId)
+
       val data = getTableData(nodes,callback)
-      JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd});""")
+      JsRaw(s"""
+          nodeCompliances = {};
+          refreshTable("${tableId}",${data.json.toJsCmd});
+          ${futureCompliances.toJsCmd}
+      """)
     } )
 
     AnonFunc("",ajaxCall)
@@ -205,12 +213,14 @@ class SrvGrid(
 case class NodeLine (
     node       : NodeInfo
   , lastReport : Box[Option[AgentRun]]
-  , callback   : Option[String => JsCmd]
+  , callback   : Option[(String, Boolean) => JsCmd]
 ) extends JsTableLine {
 
-
   val optCallback = {
-    callback.map(cb => ("callback", AnonFunc(ajaxCall(JsNull, s => cb(node.id.value)))))
+    callback.map(cb => ("callback", AnonFunc("displayCompliance", ajaxCall(JsVar("displayCompliance"), s =>
+      {
+       val displayCompliance = s.toBoolean
+      cb(node.id.value,displayCompliance)}))))
   }
   val hostname = {
     if (isEmpty(node.hostname)) {
@@ -233,10 +243,14 @@ case class NodeLine (
    JsObj(
        ( "name" -> hostname )
      , ( "id" -> node.id.value )
-     , ( "machineType" -> node.machineType )
-     , ( "osName") -> S.?(s"os.name.${node.osName}")
-     , ( "osVersion" -> node.osVersion)
-     , ( "servicePack" -> node.servicePack.getOrElse("N/A"))
+     , ( "machineType" -> node.machine.map { _.machineType match {
+                            case _: VirtualMachineType => "Virtual"
+                            case PhysicalMachineType   => "Physical"
+                          } }.getOrElse("No Machine Inventory" )
+       )
+     , ( "osName") -> S.?(s"os.name.${node.osDetails.os.name}")
+     , ( "osVersion" -> node.osDetails.version.value)
+     , ( "servicePack" -> node.osDetails.servicePack.getOrElse("N/A"))
      , ( "lastReport" ->  lastReportValue )
      )
   }

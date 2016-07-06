@@ -28,7 +28,7 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
         $scope.target.exclude.or.splice(index,1);
         $scope.updateTarget();
         var jsId = excluded.replace(':','\\:');
-        $("#jstree-"+jsId).removeClass("targetExcluded");
+        $("#jstree-"+jsId).removeClass("excluded");
       };
     };
 
@@ -40,7 +40,7 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
         $scope.target.include.or.splice(index,1);
         $scope.updateTarget();
         var jsId = included.replace(':','\\:');
-        $("#jstree-"+jsId).removeClass("targetIncluded");
+        $("#jstree-"+jsId).removeClass("included");
       };
     };
 
@@ -51,7 +51,7 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
       if ( index == -1 )  {
         $scope.target.include.or.push(included);
         var jsId = included.replace(':','\\:');
-        $("#jstree-"+jsId).addClass("targetIncluded");
+        $("#jstree-"+jsId).addClass("included");
         $scope.removeExclude(included);
         $scope.updateTarget();
       };
@@ -64,7 +64,7 @@ groupManagement.controller('GroupCtrl', ['$scope', function($scope) {
       if ( index == -1 )  {
         $scope.target.exclude.or.push(excluded);
         var jsId = excluded.replace(':','\\:');
-        $("#jstree-"+jsId).addClass("targetExcluded");
+        $("#jstree-"+jsId).addClass("excluded");
         $scope.removeInclude(excluded);
         $scope.updateTarget();
       };

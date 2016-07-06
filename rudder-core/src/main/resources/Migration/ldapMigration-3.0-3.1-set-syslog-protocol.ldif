@@ -1,5 +1,5 @@
 ###############################################################################
-# Copyright 2014 Normation SAS
+# Copyright 2015 Normation SAS
 ###############################################################################
 #
 # This file is part of Rudder.
@@ -33,14 +33,12 @@
 #
 ###############################################################################
 
-# This file creates all the necessary entries in LDAP Directory to add group of all nodes with no server role
+# Create the syslog protocotl portperty with value 'TCP', a different value from new rudder installation
+# By doing so, we keep the same behavior as before 
 
-# Create the special rule targe for all nodes that have no server role
-dn: ruleTarget=special:all_nodes_without_role,groupCategoryId=SystemGroups,groupCategoryId=GroupRoot,ou=Rudder,cn=rudder-configuration
-objectClass: specialRuleTarget
+dn: propertyName=rudder_syslog_protocol,ou=Application Properties,cn=rudder-
+ configuration
+objectClass: property
 objectClass: top
-ruleTarget: special:all_nodes_without_role
-cn: All nodes excluding Rudder server roles
-description: All nodes excluding Rudder server components
-isEnabled: TRUE
-isSystem: TRUE
+propertyName: rudder_syslog_protocol
+propertyValue: TCP

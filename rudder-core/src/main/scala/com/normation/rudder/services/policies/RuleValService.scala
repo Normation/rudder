@@ -50,6 +50,7 @@ import com.normation.utils.Control.sequenceEmptyable
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.InterpolationContext
 import com.normation.rudder.domain.policies.InterpolationContext
+import com.normation.cfclerk.domain.BundleOrder
 
 trait RuleValService {
   def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
@@ -147,6 +148,7 @@ class RuleValServiceImpl(
               , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
               , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
+              , BundleOrder(directive.name)
             ))
         }
     }
@@ -163,7 +165,8 @@ class RuleValServiceImpl(
         rule.id,
         targets,
         containers.flatten,
-        rule.serial
+        rule.serial,
+        BundleOrder(rule.name)
       )
     }
   }

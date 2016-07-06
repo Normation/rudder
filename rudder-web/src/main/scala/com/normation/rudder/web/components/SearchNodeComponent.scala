@@ -80,7 +80,7 @@ class SearchNodeComponent(
   , _query           : Option[Query]
   , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
-  , onClickCallback  : Option[(String) => JsCmd] = None // this callback is used when we click on an element in the grid
+  , onClickCallback  : Option[(String, Boolean) => JsCmd] = None // this callback is used when we click on an element in the grid
   , onSearchCallback : (Boolean, Option[Query]) => JsCmd = {(_, _) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
@@ -91,10 +91,8 @@ class SearchNodeComponent(
   private[this] var query = _query.map(x => x.copy())
   private[this] var srvList = _srvList.map(x => Seq() ++ x)
 
-
   private[this] val nodeInfoService = RudderConfig.nodeInfoService
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
-
 
   // The portlet for the server detail
   private[this] def serverPortletPath = List("templates-hidden", "server", "server_details")
@@ -107,15 +105,12 @@ class SearchNodeComponent(
   private[this] def searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
   private[this] def content = chooseTemplate("content","query",searchNodes)
 
-
-
   /**
    * External exposition of the current state of server list.
    * Page/component which includes SearchNodeComponent can use it.
    * @return
    */
   def getSrvList() : Box[Seq[NodeInfo]] = srvList
-
 
   /**
    * External exposition of the current state of query.
@@ -145,14 +140,12 @@ class SearchNodeComponent(
     </head>
   }
 
-
   def buildQuery : NodeSeq = {
 
     if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
-
 
     def addLine(i:Int) : JsCmd = {
       if(i >= 0) {
@@ -207,7 +200,6 @@ class SearchNodeComponent(
     def ajaxCriteriaRefresh : JsCmd = {
           SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
     }
-
 
     /**
      * Display the query part
@@ -303,8 +295,6 @@ class SearchNodeComponent(
     gridResult
   }
 
-
-
   /**
    * When we change the form, we can update the query
    * @return
@@ -334,7 +324,6 @@ class SearchNodeComponent(
   }
 
 }
-
 
 /*
  * Structure of the Query:
@@ -460,7 +449,6 @@ object SearchNodeComponent {
       case Some((c_val,v_eltid)) => setIsEnableFor(c_val,v_eltid)
     }
   }
-
 
   //expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
   def ajaxAttr(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199

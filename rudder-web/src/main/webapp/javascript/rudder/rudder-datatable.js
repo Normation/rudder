@@ -42,6 +42,8 @@ var recentChanges = {};
 var recentChangesCount = {};
 var recentGraphs = {};
 
+var nodeCompliances = {};
+
 /*
  * This function is used to resort a table after its sorting datas were changed ( like sorting function below)
  */
@@ -60,6 +62,24 @@ $.fn.dataTableExt.afnSortData['compliance'] = function ( oSettings, iColumn )
         , function (elem, index) {
             if (elem.id in ruleCompliances) {
               var compliance = ruleCompliances[elem.id];
+              return compliance[0] + compliance[1] + compliance[2]
+            }
+            return -1;
+          }
+      )
+    return data;
+};
+
+
+$.fn.dataTableExt.afnSortData['node-compliance'] = function ( oSettings, iColumn )
+{
+    var data =
+      $.map(
+          // All data of the table
+          oSettings.oApi._fnGetDataMaster(oSettings)
+        , function (elem, index) {
+            if (elem.id in nodeCompliances) {
+              var compliance = nodeCompliances[elem.id];
               return compliance[0] + compliance[1] + compliance[2]
             }
             return -1;
@@ -843,51 +863,68 @@ function createRuleComponentValueTable (contextPath) {
  *   , "osVersion" : Node OS version [ String ]
  *   , "servicePack" : Node OS service pack [ String ]
  *   , "lastReport" : Last report received about that node [ String ]
- *   , "callBack" : Callback on Node, if absend replaced by a link to nodeId [ Function ]
+ *   , "callBack" : Callback on Node, if missing, replaced by a link to nodeId [ Function ]
  *   }
  */
 function createNodeTable(gridId, data, contextPath, refresh) {
 
+  //base element for the clickable cells
+  function callbackElement(oData, displayCompliance) {
+    var elem = $("<a></a>");
+    if("callback" in oData) {
+        elem.click(function(e) {
+          oData.callback(displayCompliance);
+          e.stopPropagation();
+          $('#query-search-content').toggle(400);
+          $('#querySearchSection').toggleClass('unfoldedSectionQuery');
+        });
+        elem.attr("href","javascript://");
+    } else {
+        elem.attr("href",contextPath+'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'","displayCompliance":'+displayCompliance+'}');
+    }
+    return elem;
+  }
   var columns = [ {
-      "sWidth": "30%"
+      "sWidth": "25%"
     , "mDataProp": "name"
     , "sTitle": "Node name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var editLink = $("<a />");
-        if ("callback" in oData) {
-          editLink.click(function(e) {
-              oData.callback();
-              e.stopPropagation();
-              $('#query-search-content').toggle(400);
-              $('#querySearchSection').toggleClass('unfoldedSectionQuery');
-          });
-          editLink.attr("href","javascript://");
-        } else {
-          editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
-        }
-        var editIcon = $("<img />");
-        editIcon.attr("src",contextPath + "/images/icMagnify-right.png");
-        editLink.append(editIcon);
-        editLink.addClass("reportIcon");
-
-        $(nTd).append(editLink);
+        var link = callbackElement(oData, false)
+        var icon = $("<img />");
+        icon.attr("src",contextPath + "/images/icMagnify-right.png");
+        link.append(icon);
+        link.addClass("reportIcon");
+        $(nTd).append(link);
       }
   } , {
       "sWidth": "10%"
     , "mDataProp": "machineType"
-     , "sTitle": "Machine type"
+    , "sTitle": "Machine type"
   } , {
-      "sWidth": "20%"
+      "sWidth": "10%"
     , "mDataProp": "osName"
     , "sTitle": "OS name"
   } , {
-      "sWidth": "10%"
+      "sWidth": "5%"
     , "mDataProp": "osVersion"
     , "sTitle": "OS version"
   } , {
-      "sWidth": "10%"
+      "sWidth": "5%"
     , "mDataProp": "servicePack"
     , "sTitle": "OS SP"
+  } , {
+      "mDataProp": "name"
+    , "sWidth": "25%"
+    , "sTitle": "Compliance"
+    , "sSortDataType": "node-compliance"
+    , "sType" : "numeric"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        var link = callbackElement(oData, true)
+        var complianceBar = '<div id="compliance-bar-'+oData.id+'"><center><img height="26" width="26" src="'+contextPath+'/images/ajax-loader.gif" /></center></div>';
+        link.append(complianceBar)
+        $(nTd).empty();
+        $(nTd).prepend(link);
+      }
   } , {
       "sWidth": "20%"
     , "mDataProp": "lastReport"
@@ -902,6 +939,16 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "oLanguage": {
         "sSearch": ""
     }
+    , "fnDrawCallback": function( oSettings ) {
+        var rows = this._('tr', {"page":"current"});
+        $.each(rows, function(index,row) {
+          // Display compliance progress bar if it has already been computed
+          var compliance = nodeCompliances[row.id]
+          if (compliance !== undefined) {
+            $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
+          }
+        })
+      }
     , "aaSorting": [[ 0, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -1267,6 +1314,18 @@ function refreshTable (gridId, data) {
   table.draw();
 }
 
+function selectInterval(interval, element){
+  $("#selectedPeriod").text(interval);
+  $(".c3-bar-highlighted").each(function() {
+    this.classList.remove("c3-bar-highlighted");
+  });
+  element.classList.add("c3-bar-highlighted");
+}
+function changeCursor(clickable){
+  if(clickable){
+    $('body').toggleClass('cursorPointer');
+  }
+}
 /*
  * Function to define opening of an inner table
  */

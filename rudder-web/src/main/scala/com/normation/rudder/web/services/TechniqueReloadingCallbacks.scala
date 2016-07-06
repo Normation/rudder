@@ -81,7 +81,11 @@ class SaveDirectivesOnTechniqueCallback(
                         for {
                           paramEditor  <- directiveEditorService.get(TechniqueId(inActiveTechnique.techniqueName, directive.techniqueVersion), directive.id, directive.parameters)
                           newDirective =  directive.copy(parameters = paramEditor.mapValueSeq)
-                          saved        <- woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                          saved        <- if(directive.isSystem) {
+                                            woDirectiveRepo.saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                          } else {
+                                            woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                          }
                         } yield {
                           logger.debug(s"Technique ${inActiveTechnique.techniqueName.value} changed => saving directive '${directive.name}' [${directive.id.value}]")
                         }

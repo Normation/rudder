@@ -80,7 +80,7 @@ class ReportsExecutionService (
         //we are tracking, and that it may have serious problem.
         if(idForCheck != 0 && lastReportId != idForCheck) {
           logger.error(s"There is an inconsistency in the processed agent runs: last process report id shoudl be ${idForCheck} " +
-              s"but the value ${lastReportDate} was retrieve from base. Check that you don't have several Rudder application " +
+              s"but the value ${lastReportId} was retrieve from base. Check that you don't have several Rudder application " +
               s"using the same database, or report that message to you support")
         }
 
@@ -184,33 +184,38 @@ class ReportsExecutionService (
   private[this] def hook(lowestId: Long, highestId: Long, updatedNodeIds: Set[NodeId]) : Unit = {
     val startHooks = System.currentTimeMillis
 
-    //update changes by rules
-    (for {
-      changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
-      updated <- cachedChanges.update(changes)
-    } yield {
-      updated
-    }) match {
-      case eb: EmptyBox =>
-        val e = eb ?~! "An error occured when trying to update the cache of last changes"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was: ", ex)
-        }
-      case Full(x) => //youhou
-        logger.trace("Cache for changes by rule updates after new run received")
+
+    future {
+      //update changes by rules
+      (for {
+        changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
+        updated <- cachedChanges.update(changes)
+      } yield {
+        updated
+      }) match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "An error occured when trying to update the cache of last changes"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception was: ", ex)
+          }
+        case Full(x) => //youhou
+          logger.trace("Cache for changes by rule updates after new run received")
+      }
     }
 
-    // update compliance cache
-    cachedCompliance.invalidate(updatedNodeIds) match {
-      case eb: EmptyBox =>
-        val e = eb ?~! "An error occured when trying to update the cache for compliance"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was: ", ex)
-        }
-      case Full(x) => //youhou
-        logger.trace("Cache for compliance updates after new run received")
+    future {
+      // update compliance cache
+      cachedCompliance.invalidate(updatedNodeIds) match {
+        case eb: EmptyBox =>
+          val e = eb ?~! "An error occured when trying to update the cache for compliance"
+          logger.error(e.messageChain)
+          e.rootExceptionCause.foreach { ex =>
+            logger.error("Root exception was: ", ex)
+          }
+        case Full(x) => //youhou
+          logger.trace("Cache for compliance updates after new run received")
+      }
     }
 
     logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")

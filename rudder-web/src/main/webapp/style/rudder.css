@@ -80,20 +80,21 @@ div.innerDetails {
  * Node details
  **********************************/
 
-fieldset.crTree {
-  margin: 2px;
-  padding: 5px;
-  vertical-align: top;
+
+#nodeDetails {
+ padding:10px;
 }
 
-fieldset.nodeIndernal {
-  margin: 2px;
-  padding: 5px;
-  vertical-align: top;
+#node_summary #nodeDetails {
+ float:left;
+ width:50%;
+ border-right : 2px #b2b2b2 solid;
 }
 
-.nodeSummary {
-
+#node_summary #nodeGroups {
+ float:left;
+ width:50%;
+ padding:10px;
 }
 
 table.nomargin {
@@ -602,20 +603,24 @@ div#Detail {
   width:50%;
   text-align:right
 }
-
-.dataTables_refresh .refreshButton img{
+.recentChange_refresh {
+    float: right;
+    width: 10%;
+    text-align: right;
+}
+.dataTables_refresh .refreshButton img,.recentChange_refresh .refreshButton img{
   margin: 0;
   float:none;
 }
 
-.dataTables_refresh .refreshButton {
+.dataTables_refresh .refreshButton,.recentChange_refresh .refreshButton {
   height: auto;
   width: auto;
   margin: 0;
   padding: 0;
 }
 
-.dataTables_refresh .refreshButton span {
+.dataTables_refresh .refreshButton span,.recentChange_refresh .refreshButton span {
   padding: 8px;
 }
 
@@ -1534,12 +1539,6 @@ Home portlet
 .column {
    width: 50%;
    float: left;
-}
-
-
-.portlet img {
-   float: left;
-   margin: 0px 20px 20px 10px;
 }
 
 p img {
@@ -2738,13 +2737,13 @@ img.treeAction.noRight {
   padding-left : 5px
 }
 
-li.targetIncluded a {
+li.included a {
   background: none repeat scroll 0 0 #DDFFDD !important;
   border: 1px dotted #48A648 !important;
   padding: 0 2px 0 1px;
 }
 
-li.targetExcluded a{
+li.excluded a{
   background: none repeat scroll 0 0 #FFDDDD !important;
   border: 1px dotted #A64848 !important;
   padding: 0 2px 0 1px;
@@ -2846,6 +2845,11 @@ input[type="number"] {
     padding-right: 3px;
 }
 
+.filterIcon {
+  margin-bottom:-3px;
+}
+
+
 .ui-button-disabled  {
     opacity: 0.5;
 }
@@ -2858,9 +2862,29 @@ input[type="number"] {
   /** If we want to scroll correctly to recent changes we need to set a minimum height,
       or else when the graph appear (just after the scroll) we will only the the recent change section title
   */
-  min-height: 520px;
+  min-height: 300px;
 }
-
+#recentChanges .alert-info{
+	font-size:14px;
+}
+#recentChanges .alert-info .glyphicon{
+	font-size:16px;
+}
+#selectedPeriod{
+	font-size:14px;
+}
+body.cursorPointer{
+	cursor:pointer;
+}
+path.c3-bar.c3-shape.c3-bar-highlighted{
+  stroke: rgb(63, 185, 243) !important;
+  fill: rgb(63, 185, 243) !important;
+}
+button.recentChangeGraph{
+	position: relative;
+    top: -8px;
+    right: -10px;
+}
 button.buttonMargin {
  margin: 0 10px;
 }

@@ -68,7 +68,7 @@ import com.normation.rudder.web.model.JsNodeId
 
 object ShowNodeDetailsFromNode {
 
-  private val htmlId_crTree = "crTree"
+  private val groupTreeId = "node_groupTree"
 
   private def serverPortletPath = List("templates-hidden", "server", "server_details")
   private def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
@@ -109,7 +109,11 @@ class ShowNodeDetailsFromNode(
     for {
       complianceMode <- configService.rudder_compliance_mode_name
       gHeartbeat <- configService.rudder_compliance_heartbeatPeriod
-      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
+                       case Some(x) => Full(x)
+                     }
     } yield {
       // If heartbeat is not overriden, we revert to the default one
       val defaultHeartBeat = HeartbeatConfiguration(false, gHeartbeat)
@@ -156,7 +160,11 @@ class ShowNodeDetailsFromNode(
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule : Box[AgentRunInterval] = {
     for {
-      nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
+                       case Some(x) => Full(x)
+                     }
     } yield {
       nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval))
     }
@@ -173,31 +181,44 @@ class ShowNodeDetailsFromNode(
   }
 
   def mainDispatch = Map(
-    "displayInPopup"    -> { _:NodeSeq => privateDisplay(true)  }
-  , "displayMainWindow" -> { _:NodeSeq => privateDisplay(false) }
+    "popupDetails"    -> { _:NodeSeq => privateDisplay(true, false)  }
+  , "popupCompliance" -> { _:NodeSeq => privateDisplay(true, true)   }
+  , "mainDetails"     -> { _:NodeSeq => privateDisplay(false, false) }
+  , "mainCompliance"  -> { _:NodeSeq => privateDisplay(false, true)  }
   )
 
-  def display(withinPopup : Boolean = false) : NodeSeq = {
-    if(withinPopup) dispatch("displayInPopup")(NodeSeq.Empty)
-    else dispatch("displayMainWindow")(NodeSeq.Empty)
+  def display(popupDisplay : Boolean, complianceDisplay : Boolean) : NodeSeq = {
+    val dispatchName = (popupDisplay, complianceDisplay) match {
+      case (true, true)  => "popupCompliance"
+      case (true, _)     => "popupDetails"
+      case (false, true) => "mainCompliance"
+      case (false, _)    => "mainDetails"
+    }
+    dispatch (dispatchName) (NodeSeq.Empty)
   }
 
-  private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
+  private[this] def privateDisplay(withinPopup : Boolean = false, displayCompliance : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
-      case Empty =>
+      case Full(None) =>
         <div class="error">Node with id {nodeId.value} was not found</div>
-      case f@Failure(_,_,_) =>
-        logger.debug("Root exception:", f)
+      case eb:EmptyBox =>
+        val e = eb ?~! s"Error when getting node with id '${nodeId.value}'"
+        logger.debug("Root exception:", e)
         <div class="error">
           <p>Node with id {nodeId.value} was not found</p>
-          <p>Error message was: {f.messageChain}</p>
+          <p>Error message was: {e.messageChain}</p>
         </div>
-      case Full(node) => // currentSelectedNode = Some(server)
+      case Full(Some(node)) => // currentSelectedNode = Some(server)
         serverAndMachineRepo.get(node.id, AcceptedInventory) match {
           case Full(sm) =>
-            bindNode(node, sm, withinPopup) ++ Script(OnLoad(
+            val tab = if (displayCompliance) 9 else 0
+            val jsId = JsNodeId(nodeId,"")
+            def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
+            val detailsId = htmlId(jsId,"details_")
+            bindNode(node, sm, withinPopup,displayCompliance) ++ Script(OnLoad(
               DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
-              OnLoad(buildJsTree(htmlId_crTree))
+              OnLoad(buildJsTree(groupTreeId) &
+              JsRaw(s"""$$( "#${detailsId}" ).tabs('select', ${tab})"""))
             ))
           case e:EmptyBox =>
             val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
@@ -212,14 +233,14 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean) : NodeSeq = {
     val id = JsNodeId(node.id)
     ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
-      "#groupTree *" #>
-        <div id={htmlId_crTree}>
+      "#node_groupTree" #>
+        <div id={groupTreeId}>
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node)}</ul>
         </div> &
-      "#nodeDetails *" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
+      "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
       "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
