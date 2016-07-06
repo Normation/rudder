@@ -1,0 +1,708 @@
+/*
+*************************************************************************************
+* Copyright 2016 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+*
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+*
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+package com.normation.rudder.services.policies
+
+import java.security.Permission
+import java.util.PropertyPermission
+import java.util.concurrent._
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
+import java.util.concurrent.atomic.AtomicInteger
+import java.io.File
+
+import scala.language.implicitConversions
+
+import com.normation.cfclerk.domain.HashAlgoConstraint._
+
+import com.normation.cfclerk.domain.Variable
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.services.policies.HashOsType._
+import com.normation.rudder.services.policies.JsEngine._
+import com.normation.utils.Control. _
+
+import ca.mrvisser.sealerate
+import javax.script.Bindings
+import javax.script.ScriptEngine
+import javax.script.ScriptEngineManager
+import javax.script.ScriptException
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import java.io.FilePermission
+import java.lang.reflect.ReflectPermission
+import java.security.SecurityPermission
+import org.apache.commons.codec.digest.Md5Crypt
+import org.apache.commons.codec.digest.Sha2Crypt
+import com.normation.cfclerk.domain.AixPasswordHashAlgo
+import com.normation.cfclerk.domain.HashAlgoConstraint
+import com.normation.cfclerk.domain.AbstactPassword
+import java.security.NoSuchAlgorithmException
+
+sealed trait HashOsType
+
+final object HashOsType {
+  final case object AixHash   extends HashOsType
+  final case object CryptHash extends HashOsType //linux, bsd,...
+
+  def all = sealerate.values[HashOsType]
+}
+
+
+
+/*
+ * Define implicit bytes from string methods
+ */
+abstract class ImplicitGetBytes {
+  protected implicit def getBytes(s: String): Array[Byte] = {
+    s.getBytes("UTF-8")
+  }
+}
+
+/*
+ * we need to define each class of the lib as class, because
+ * nashorn can't access static field.
+ */
+class JsLibHash() extends ImplicitGetBytes {
+  def md5    (s: String): String = MD5.hash(s)
+  def sha1   (s: String): String = SHA1.hash(s)
+  def sha256 (s: String): String = SHA256.hash(s)
+  def sha512 (s: String): String = SHA512.hash(s)
+}
+
+trait JsLibPassword extends ImplicitGetBytes {
+
+  /// Standard Unix (crypt) specific
+
+  def cryptMd5    (s: String): String = Md5Crypt.md5Crypt(s)
+  def cryptSha256 (s: String): String = Sha2Crypt.sha256Crypt(s)
+  def cryptSha512 (s: String): String = Sha2Crypt.sha512Crypt(s)
+
+  def cryptMd5    (s: String, salt: String): String = Md5Crypt.md5Crypt(s, salt)
+  def cryptSha256 (s: String, salt: String): String = Sha2Crypt.sha256Crypt(s, "$5$" + salt)
+  def cryptSha512 (s: String, salt: String): String = Sha2Crypt.sha512Crypt(s, "$6$" + salt)
+
+  /// Aix specific
+
+  def aixMd5    (s: String): String = AixPasswordHashAlgo.smd5(s)
+  def aixSha256 (s: String): String = AixPasswordHashAlgo.ssha256(s)
+  def aixSha512 (s: String): String = AixPasswordHashAlgo.ssha512(s)
+
+  def aixMd5    (s: String, salt: String): String = AixPasswordHashAlgo.smd5(s, Some(salt))
+  def aixSha256 (s: String, salt: String): String = AixPasswordHashAlgo.ssha256(s, Some(salt))
+  def aixSha512 (s: String, salt: String): String = AixPasswordHashAlgo.ssha512(s, Some(salt))
+
+  /// one automatically choosing correct hash also based of the kind of HashOsType
+  /// method accessible from JS
+
+  def md5    (s: String): String
+  def sha256 (s: String): String
+  def sha512 (s: String): String
+
+  def md5    (s: String, salt: String): String
+  def sha256 (s: String, salt: String): String
+  def sha512 (s: String, salt: String): String
+
+  /// Advertised methods
+  def unix(algo: String, s: String): String = {
+    algo.toLowerCase match {
+      case "md5" => cryptMd5(s)
+      case "sha-256" | "sha256" => cryptSha256(s)
+      case "sha-512" | "sha512" => cryptSha512(s)
+      case _ => // unknown value, fail
+        throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
+    }
+  }
+
+  def unix(algo: String, s: String, salt: String): String = {
+    algo.toLowerCase match {
+      case "md5" => cryptMd5(s)
+      case "sha-256" | "sha256" => aixSha256(s, salt)
+      case "sha-512" | "sha512" => cryptSha512(s, salt)
+      case _ => // unknown value, fail
+        throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
+    }
+  }
+
+  def aix(algo: String, s: String): String = {
+    algo.toLowerCase match {
+      case "md5" => aixMd5(s)
+      case "sha-256" | "sha256" => cryptSha256(s)
+      case "sha-512" | "sha512" => aixSha512(s)
+      case _ => // unknown value, fail
+        throw new NoSuchAlgorithmException(s"Evaluating script 'aix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
+    }
+  }
+
+  def aix(algo: String, s: String, salt: String): String = {
+    algo.toLowerCase match {
+      case "md5" => aixMd5(s)
+      case "sha-256" | "sha256" => cryptSha256(s, salt)
+      case "sha-512" | "sha512" => aixSha512(s, salt)
+      case _ => // unknown value, fail
+        throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
+    }
+  }
+
+  def auto(algo: String, s: String): String = {
+    algo.toLowerCase match {
+      case "md5" => md5(s)
+      case "sha-256" | "sha256" => sha256(s)
+      case "sha-512" | "sha512" => sha512(s)
+      case _ => // unknown value, fail
+        throw new NoSuchAlgorithmException(s"Evaluating script 'auto(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
+    }
+  }
+
+  def auto(algo: String, s: String, salt: String): String = {
+    algo.toLowerCase match {
+      case "md5" => aixMd5(s)
+      case "sha-256" | "sha256" => sha256(s, salt)
+      case "sha-512" | "sha512" => sha512(s, salt)
+      case _ => // unknown value, fail
+        throw new NoSuchAlgorithmException(s"Evaluating script 'auto(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
+    }
+  }
+}
+
+/*
+ * This class provides the Rudder JS lib.
+ * All method signatures are available in JS.
+ *
+ * This lib is intended to be bound to the "rudder" namespace,
+ * so that one can access:
+ * ## Under the "rudder.hash" namespace, simple hashing methods:
+ * - rudder.hash.md5(value)
+ * - rudder.hash.sha256(value)
+ * - rudder.hash.sha512(value)
+ *
+ * ## Under the "rudder.password" namespace, salted hashing functions
+ *    compatible with Unix crypt (Linux, BSD...) or AIX
+ * ### Automatically chosen based on the node type:
+ * - rudder.password.md5(value [, salt])
+ * - rudder.password.sha256(value [, salt])
+ * - rudder.password.sha512(value [, salt])
+ *
+ * ### Generates Unix crypt password compatible hashes:
+ * - rudder.password.cryptMd5(value [, salt])
+ * - rudder.password.cryptSha256(value [, salt])
+ * - rudder.password.cryptSha512(value [, salt])
+ *
+ * ### Generates AIX password compatible hashes:
+ * - rudder.password.aixMd5(value [, salt])
+ * - rudder.password.aixSha256(value [, salt])
+ * - rudder.password.aixSha512(value [, salt])
+ *
+ * ### Public methods (advertised to the users, fallback to the previous methods)
+ * - rudder.password.auto(algo, password [, salt])
+ * - rudder.password.unix(algo, password [, salt])
+ * - rudder.password.aix(algo, password [, salt])
+ *
+ *   where algo can be MD5, SHA-512, SHA-256 (case insensitive, with or without -)
+ *   * auto automatically choose the encryption based on the node type
+ *   * unix generated Unix crypt password compatible hashes (Linux, BSD, ...)
+ *   * aix generates AIX password compatible hashes
+ */
+final class JsRudderLibImpl(
+  hashKind: HashOsType
+) {
+
+  ///// simple hash algorithms /////
+  private val hash = new JsLibHash()
+  // with the getter, it will be accessed with rudder.hash...
+  def getHash() = hash
+
+  ///// unix password hash /////
+  private val password = hashKind match {
+    case CryptHash =>
+      new JsLibPassword() {
+        /// method accessible from JS
+        def md5    (s: String): String = super.cryptMd5(s)
+        def sha256 (s: String): String = super.cryptSha256(s)
+        def sha512 (s: String): String = super.cryptSha512(s)
+
+        def md5    (s: String, salt: String): String = super.cryptMd5(s, salt)
+        def sha256 (s: String, salt: String): String = super.cryptSha256(s, salt)
+        def sha512 (s: String, salt: String): String = super.cryptSha512(s, salt)
+
+      }
+    case AixHash =>
+      new JsLibPassword() {
+        /// method accessible from JS
+        def md5    (s: String): String = super.aixMd5(s)
+        def sha256 (s: String): String = super.aixSha256(s)
+        def sha512 (s: String): String = super.aixSha512(s)
+
+        def md5    (s: String, salt: String): String = super.aixMd5(s, salt)
+        def sha256 (s: String, salt: String): String = super.aixSha256(s, salt)
+        def sha512 (s: String, salt: String): String = super.aixSha512(s, salt)
+
+      }
+  }
+
+  // with the getter, it will be accessed with rudder.password...
+  def getPassword = password
+}
+
+sealed trait JsRudderLibBinding { def bindings: Bindings }
+
+object JsRudderLibBinding {
+
+  import java.util.{ HashMap => JHMap }
+  import javax.script.SimpleBindings
+
+  private[this] def toBindings(k: String, v: JsRudderLibImpl): Bindings = {
+    val m = new JHMap[String, Object]()
+    m.put(k, v)
+    new SimpleBindings(m)
+  }
+
+  /*
+   * Be carefull, as bindings are mutable, we can't have
+   * a val for bindings, else the same context is shared...
+   */
+  final object Aix extends JsRudderLibBinding {
+    def bindings = toBindings("rudder", new JsRudderLibImpl(AixHash))
+  }
+
+  final object Crypt extends JsRudderLibBinding {
+    def bindings = toBindings("rudder", new JsRudderLibImpl(CryptHash))
+  }
+}
+
+
+/**
+ * This class provides the Rhino (java 7) or Longhorn (Java 8 & up)
+ * java script engine.
+ *
+ * It allows to eval parameters in directives which are starting
+ * with $eval.
+ *
+ */
+final object JsEngineProvider {
+
+
+  /**
+   * Initialize a new JsEngine with the correct bindings.
+   *
+   * Not all Libs (bindings in JSR-223 name) can't be provided here,
+   * because we want to make them specific to each eval
+   * (i.e: different eval may have to different bindings).
+   * So we just provide eval-indep lib here, but we don't
+   * have any for now.
+   */
+  def withNewEngine[T](feature: FeatureSwitch)(script: JsEngine => Box[T]): Box[T] = {
+    feature match {
+      case FeatureSwitch.Enabled  =>
+        SandboxedJsEngine.sandboxed { engine => script(engine) }
+      case FeatureSwitch.Disabled =>
+        script(DisabledEngine)
+    }
+  }
+
+}
+
+sealed trait JsEngine {
+  /**
+   *
+   * Parse a value looking for EVAL keyword.
+   * Return the correct NodeContextualizedValue type.
+   *
+   * Note that the eval result is ALWAY cast to
+   * string. So computation, object, etc must be
+   * correctly defined by the user to get and
+   * interesting value.
+   */
+  def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable]
+}
+
+/*
+ * Our JsEngine.
+ */
+final object JsEngine {
+  // Several evals: one default and one JS (in the future, we may have several language)
+  final val DEFAULT_EVAL = "eval"
+  final val EVALJS = "evaljs"
+
+  final val default_pattern = """(?ms)(.*)\$\{eval\s+(.*)}(.*)""".r
+  final val js_pattern = """(?ms)(.*)\$\{evaljs\s+(.*)}(.*)""".r
+
+  final object DisabledEngine extends JsEngine {
+    /*
+     * Eval does nothing on variable without the EVAL keyword, and
+     * fails on variable with the keyword.
+     */
+    def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
+      sequence(variable.values) { v => v match {
+          /*
+           * Here, we need to chose between:
+           * - fails when the feature is disabled, but the string starts with $eval,
+           *   meaning that maybe the user wanted to use it anyway.
+           *   But that means that we are changing GENERATION behavior on existing prod,
+           *   for a feature the user don't know anything.
+           * - not fails, because perhaps the user had that in its parameter. But in
+           *   that case, it will fails when feature is enabled by default.
+           *   And we risk to let the user spread sensitive information  into nodes
+           *   (because he thought the will be hashed, but in fact no).
+           *
+           * For now, failing because it seems to be the safe bet.
+           */
+        case default_pattern(_, _, _) => 
+                Failure(s"Value '${v}' contains with the ${DEFAULT_EVAL} keyword, but the 'parameter evaluation feature' "
+                  +"is disable. Please, either don't use the keyword or enable the feature")
+        case js_pattern(_,_,_) =>
+                Failure(s"Value '${v}' contains the ${EVALJS} keyword, but the 'parameter evaluation feature' "
+                  +"is disable. Please, either don't use the keyword or enable the feature")
+        case _ => Full(variable)
+
+      } }.map(x => variable) // if we only have Full, return the variable as success
+    }
+  }
+
+  final object SandboxedJsEngine {
+    /*
+     * The value is purelly arbitrary. We expects that a normal use case ends in tens of ms.
+     * But we don't want the user to have a whole generation fails because it scripts took 2 seconds
+     * for reasons. As it is something rather exceptionnal, and which will ends the
+     * Policy Generation, the value can be rather hight.
+     *
+     * Note: maybe make that a parameter so that we can put an even higher value here,
+     * but only put 1s in tests so that they end quickly
+     */
+    val MAX_EVAL_DURATION = (5, TimeUnit.SECONDS)
+
+    /**
+     * Get a new JS Engine.
+     * This is expensive, several seconds on a 8-core i7 @ 3.5Ghz.
+     * So you should minimize the number of time it is done.
+     */
+    def sandboxed[T](script: SandboxedJsEngine => Box[T]): Box[T] = {
+      var sandbox = new SandboxSecurityManager()
+      var threadFactory = new RudderJsEngineThreadFactory(sandbox)
+      var pool = Executors.newSingleThreadExecutor(threadFactory)
+      System.setSecurityManager(sandbox)
+
+      getJsEngine().flatMap { jsEngine =>
+        val engine = new SandboxedJsEngine(jsEngine, sandbox, pool, MAX_EVAL_DURATION)
+
+        try {
+          script(engine)
+        } catch {
+          case RudderFatalScriptException(message, cause) =>
+            Failure(message)
+        } finally {
+          //clear everything
+          pool = null
+          threadFactory = null
+          sandbox = null
+          //check & clear interruption of the calling thread
+          Thread.currentThread().isInterrupted()
+          //restore the "none" security manager
+          System.setSecurityManager(null)
+        }
+      }
+    }
+
+    protected[policies] def getJsEngine(): Box[ScriptEngine] = {
+      val message = s"Error when trying to get the java script engine. Check with your system administrator that you JVM support JSR-223 with javascript"
+      try {
+        // create a script engine manager
+        val factory = new ScriptEngineManager()
+        // create a JavaScript engine
+        factory.getEngineByName("JavaScript") match {
+          case null   => Failure(message)
+          case engine => Full(engine)
+        }
+      } catch {
+        case ex: Exception =>
+         Failure(s"${message}. Exception message was: ${ex.getMessage}")
+      }
+    }
+  }
+
+  /*
+   * The whole idea is to give a throwable Sandox class whose only
+   * goal is to run a thread in a contained environment.
+   * Notice that using the sandox HAS a global effect, because it
+   * changes the security manager.
+   * So generally, you want to manage that in a contained scope.
+   */
+
+  final class SandboxedJsEngine private (jsEngine: ScriptEngine, sm: SecurityManager, pool: ExecutorService, maxTime: (Int, TimeUnit)) extends JsEngine {
+
+    private[this] trait KillingThread {
+      /**
+       * Force stop the thread, throws a the ThreadDeath error.
+       *
+       * As explained in Thread#stop(), that method has consequences and
+       * can cause random error in all the object interracting with it
+       * (because monitor released without any protection).
+       * So caller of that method should ensure to 1/ contains
+       * the thread to abort and 2/ clean as best as possible object
+       * which interrected with it.
+       *
+       */
+      def abortWithConsequences(): Unit = {
+        Thread.currentThread().stop()
+      }
+    }
+
+    /**
+     * This is the user-accessible eval.
+     * It is expected to throws, and should always be used in
+     * a SandboxedJsEngine.sandboxed wrapping call.
+     *
+     * Nothing fancy here.
+     */
+    def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
+
+      // We only have one engine, so use it for default algo and js type
+      def scriptEvaluation(before: String, script: String, after: String) : Box[String] = {
+        // Evaluate the script, and concatenate back the result
+        singleEval(script, lib.bindings).map ( x => before ++ x ++ after)
+      }
+      for {
+        values <- sequence(variable.values) { value =>
+          (value match {
+            case default_pattern(before, script, after) =>
+              scriptEvaluation(before, script, after)
+            case js_pattern(before, script, after) =>
+              scriptEvaluation(before, script, after)
+            case _ =>
+              Full(value)
+          }) ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
+        }
+      } yield {
+          variable.copyWithSavedValues(values)
+      }
+    }
+
+    /**
+     * The single eval method encapsulate the evaluation in a dedicated thread.
+     * We check that the evaluation doesn't take to much time, and if so, we
+     * kill the thread (gently, and then with a force stop).
+     * The thread is also restricted, and can't do dangerous things (access
+     * to FS, Network, System (jvm), class loader, etc).
+     */
+    def singleEval(value: String, bindings: Bindings): Box[String] = {
+      val res = safeExec(value) {
+        try {
+          jsEngine.eval(value, bindings) match {
+            case null => Failure(s"The script '${value}' was evaluated to disallowed value 'null'")
+            case x    => Full(x.toString)
+          }
+        } catch {
+          case ex: ScriptException => Failure(ex.getMessage)
+        }
+      }
+      res
+    }
+
+    /**
+     * The safe eval method encapsulate the evaluation of a block of code
+     * in a dedicated thread.
+     * We check that the evaluation doesn't take to much time, and if so, we
+     * kill the thread (gently, and then with a force stop).
+     * The thread is also restricted, and can't do dangerous things (access
+     * to FS, Network, System (jvm), class loader, etc).
+     */
+    def safeExec[T](name: String)(block: => Box[T]): Box[T] = {
+      //create the callable object
+      val scriptCallable = new Callable[Box[T]] with KillingThread() {
+        def call() = {
+          try {
+            block
+          } catch {
+            case ex: Exception => Failure(s"Error when evaluating value '${name}': ${ex.getMessage}", Full(ex), Empty)
+          }
+        }
+      }
+
+      try {
+        // submit to the pool and synchroniously retrieve the value with a timeout
+        pool.submit(scriptCallable).get(maxTime._1, maxTime._2)
+      } catch {
+        case ex: ExecutionException => //this can happen when rhino get security exception... Yeah...
+          throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted due to ${ex.getMessage}, aborting.", ex)
+
+        case ex: TimeoutException =>
+          //try to interrupt the thread
+          try {
+            // try to gently terminate the thread
+            pool.shutdownNow()
+            Thread.sleep(200)
+            if(pool.isTerminated()) {
+              Failure(s"Evaluating script '${name}' took more than ${maxTime._1}s, aborting")
+            } else {
+              //not interrupted - force kill
+              scriptCallable.abortWithConsequences() //that throws TreadDead, the following is never reached
+              Failure(s"Evaluating script '${name}' took more than ${maxTime._1}s, and " +
+                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls")
+            }
+          } catch {
+            case ex: ThreadDeath =>
+              throw RudderFatalScriptException(s"Evaluating script '${name}' took more than ${maxTime._1}s, and " +
+                    "we were force to kill the thread. Check for infinite loop or uninterruptible system calls", ex)
+
+            case ex: InterruptedException =>
+              throw RudderFatalScriptException(s"Evaluating script '${name}' was forced interrupted, aborting.", ex)
+          }
+      }
+    }
+  }
+
+  /*
+   * An exception marker class to handle thread related error cases
+   */
+  protected[policies] case class RudderFatalScriptException(message: String, cause: Throwable) extends Exception(message, cause)
+
+  /*
+   * A sandboxed security manager, allowing only restricted
+   * set of operation for restricted thread.
+   * The RudderJsEngineThreadFactory take care of correctly initializing
+   * threads.
+   *
+   * BE CAREFULL - this sandbox won't prevent an attacker to get/do things.
+   * It's goal is to prevent a user to do obviously bad things on the servers,
+   * but more by mistake (because he didn't understood when the script is evaled,
+   * for example).
+   *
+   */
+  protected[policies] class SandboxSecurityManager extends SecurityManager {
+    //by default, we don't sand box. Thread will do it in their factory
+    val isSandboxed = {
+      val itl = new InheritableThreadLocal[Boolean]()
+      itl.set(false)
+      itl
+    }
+
+    //authorized / needed runtime permissions
+    private[this] val runtimePerms = Set(
+        "modifyThread"      //needed by thread factory to try to kill the thread
+      , "createClassLoader" //needed by rhino to run almost anything, like creating a var - else NPE
+      , "nashorn.createGlobal" //needed by Nashorn to do stuff
+      , "accessDeclaredMembers" //needed by Nashorn to do stuff
+      , "loadLibrary.sunec"     //needed by Rudder JS Lib
+      , "loadLibrary.j2pkcs11"  //needed by Rudder JS Lib
+      , "accessClassInPackage.org.jcp.xml.dsig.internal.dom"
+      , "getProtectionDomain"
+    )
+    private[this] val reflectPerms = Set(
+        "suppressAccessChecks" //needed by rhino to run almost anything, like creating a var - else NPE
+    )
+    private[this] val securityPerms = Set( //needed by rudder js lib
+        //we are checking the start for them
+        "getProperty.security.provider"
+      , "putProviderProperty"
+      , "getProperty.securerandom.source"
+      , "getProperty.jdk.certpath.disabledAlgorithms"
+    )
+
+    private[this] val filePerms = Set( //we only authorize read access
+        "/dev/random"
+      , "/dev/urandom"
+    )
+
+    override def checkPermission(permission: Permission): Unit = {
+      if(isSandboxed.get) {
+
+        permission match {
+          case x: FilePermission     if( x.getActions == "read" && filePerms.contains(x.getName)    ) => // ok
+            // We need to authorize access to a lot of jar/classes for crypto (lot of dependencies). However listing all
+            // classes is impossible, causing a stackoverflow error see: http://stackoverflow.com/questions/2510683/securitymanager-stackoverflowerror
+            // so we work-around by authorizing a lot of stuff
+          case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") ) )  => // ok
+          case x: SecurityPermission if( securityPerms.exists( p => x.getName.startsWith(p) )       ) => // ok
+          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.nashorn")   ) => // ok
+          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.security.") ) => // ok
+          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.org.mozilla.javascript") ) => // ok
+          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.internal.org.objectweb.asm") ) => // ok
+          case x: RuntimePermission  if( runtimePerms.contains(x.getName)  ) => // ok
+          case x: ReflectPermission  if( reflectPerms.contains(x.getName)  ) => // ok
+          case x: PropertyPermission if( x.getActions == "read"            ) => // ok
+          case _ =>
+            throw new SecurityException("access denied to: " + permission)    // error
+        }
+      } else {
+        // don't check anything - it's the nearest to having a
+        // null SecurityManager, what is the default in Rudder
+      }
+    }
+
+    override def checkPermission(permission: Permission , context: Any): Unit = {
+      if(isSandboxed.get) this.checkPermission(permission)
+      else super.checkPermission(permission, context)
+    }
+  }
+
+  /**
+   * A thread factory that works with a SandboxSecurityManager and correctly
+   * set the sandboxed value of the thread.
+   */
+  protected[policies] class RudderJsEngineThreadFactory(sm: SandboxSecurityManager) extends ThreadFactory {
+    val RUDDER_JSENGINE_THREAD = "rudder-jsengine"
+    class SandboxedThread(group: ThreadGroup, target: Runnable, name: String, stackSize: Long) extends Thread(group, target, name, stackSize) {
+      override def run() {
+        sm.isSandboxed.set(true)
+        super.run()
+      }
+    }
+
+    val threadNumber = new AtomicInteger(1)
+    val group = sm.getThreadGroup()
+
+    override def newThread(r: Runnable): Thread = {
+      val t = new SandboxedThread(group, r, RUDDER_JSENGINE_THREAD + "-" + threadNumber.getAndIncrement(), 0)
+
+
+      if(t.isDaemon) {
+        t.setDaemon(false)
+      }
+      if(t.getPriority != Thread.NORM_PRIORITY) {
+        t.setPriority(Thread.NORM_PRIORITY)
+      }
+
+      t
+    }
+
+  }
+
+}
+

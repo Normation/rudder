@@ -1344,6 +1344,7 @@ object RudderConfig extends Loggable {
         , configService.agent_run_splaytime
         , configService.agent_run_start_hour
         , configService.agent_run_start_minute
+        , configService.rudder_featureSwitch_directiveScriptEngine
     )}
     val agent = new AsyncDeploymentAgent(
         deploymentService
