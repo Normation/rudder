@@ -137,20 +137,19 @@ class RuleCompliance (
       <div class="alert alert-info " style="font-size: 14px">
         <div style="width:90%;display:inline-block;">
         <span class="glyphicon glyphicon-info-sign"></span>
-        Details of changes on a selected period are displayed below the graph. Clicking on a bar change the selected period.
+        Details of changes for each period are displayed below the graph. Click to change the selected period.
         </div>
         <div class="recentChange_refresh">
-          {SHtml.button(<img src='/images/icRefresh.png'/>, () => refresh() , ("class","recentChangeGraph ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only refreshButton") , ("title","Refresh"))}
+          {SHtml.ajaxButton(<img src='/images/icRefresh.png'/>, () => refresh() , ("class","recentChangeGraph refreshButton") , ("title","Refresh"))}
         </div>
       </div>
 
       <div id="changesChart">  </div>
+      </div>
       <hr class="spacer" />
-        <div class="tw-bs">
-            <span id="selectedPeriod" class="text-primary">Selected period : <b> --- </b></span>
-        </div>
-      <table id="changesGrid" cellspacing="0">  </table>
-    </div> ++
+      <span >Changes during period <b id="selectedPeriod"> --- </b> (selected in graph above)</span>
+
+      <table id="changesGrid" cellspacing="0">  </table>  ++
     Script(After(0,JsRaw(s"""
       function refresh() {${refresh().toJsCmd}};
       createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",[],refresh);
@@ -197,6 +196,9 @@ class RuleCompliance (
               , onmouseout : function (element) {
                 changeCursor(element.value);
               }
+            }
+          , legend : {
+              show : false
             }
           , bindto : '#changesChart'
           , bar: {
@@ -311,4 +313,3 @@ class RuleCompliance (
   }
 
 }
-
