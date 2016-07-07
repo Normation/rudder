@@ -16,6 +16,12 @@
 #
 #####################################################################################
 
+# Constants definitions
+bundle common ncf_const {
+  vars:
+      "s" string => " ";
+}
+
 # Install packages using yum localinstall, disable package caching
 body package_method redhat_local_install
 {
