@@ -1,0 +1,132 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# There is 3 ways to have a promise dry-runned:
+#  - set the global_dry_run class (this one is not set by ncf)
+#  - call set_dry_run_mode()
+#  - set a <promise_type>_dry_run class to make only this promise type to be dry-runned
+
+# @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
+# 
+# WARNING:
+# WARNING: Be carefull to have a different promiser content for each call to this method!
+# WARNING:
+bundle agent set_dry_run_mode(mode)
+{
+  vars:
+    # this is a way to remove the class without side effect
+    pass2.unset_mode::
+      "ignored" string => "", classes => if_ok_cancel("dry_run"); 
+
+  classes:
+      # double negation, so that the default is dry_run (in case of error)
+      "unset_mode" expression => strcmp("${mode}", "false");
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+    pass2.!unset_mode::
+      "dry_run" expression => "any", scope => "namespace";
+}
+
+###############################################################################
+# Body that can enable dry-run with a promise type granularity.
+# We dont put some promise type here because they should not be dry runned.
+# They are:
+#  - meta
+#  - vars
+#  - defaults
+#  - classes
+#  - methods
+#  - reports
+#  - ... and all promise types that are not for the agent
+###############################################################################
+
+# Actions that can be dry runned
+body action users_default_action
+{
+  user_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(user_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action files_default_action
+{
+  files_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(files_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action packages_default_action
+{
+  packages_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(packages_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action guest_environments_default_action
+{
+  guest_environments_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(guest_environments_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action processes_default_action
+{
+  processes_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(processes_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action services_default_action
+{
+  services_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(services_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action commands_default_action
+{
+  commands_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(commands_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action storage_default_action
+{
+  storage_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(storage_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+body action databases_default_action
+{
+  databases_dry_run|dry_run|global_dry_run::
+    action_policy => "warn";
+  !(databases_dry_run|dry_run|global_dry_run)::
+    action_policy => "fix";
+}
+
+
