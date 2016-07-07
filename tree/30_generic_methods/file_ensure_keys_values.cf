@@ -48,5 +48,4 @@ bundle agent file_ensure_keys_values(file, keys, separator)
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "report"   usebundle => _log("Ensure lines in format key${separator}values into ${file}", "${old_class_prefix}", "${class_prefix}", @{args});
->>>>>>> v0.x
 }
