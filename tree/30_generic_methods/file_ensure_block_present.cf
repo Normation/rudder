@@ -35,9 +35,9 @@ bundle agent file_ensure_block_present(file, block)
         create        => "true",
         edit_line     => ncf_insert_block("${block}"),
         edit_defaults => ncf_empty_select("false"),
-	classes       => classes_generic("${class_prefix}");
+        classes       => classes_generic("${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Insert text block ${block} into ${file}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Insert text block ${block} into ${file}", "${class_prefix}");
 }

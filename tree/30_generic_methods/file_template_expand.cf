@@ -42,6 +42,6 @@ bundle agent file_template_expand(tml_file, target_file, mode, owner, group)
         classes       => classes_generic("${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Expand template ${tml_file} into ${target_file} with perms ${mode}, ${owner}, ${group}", "${class_prefix}");
 }

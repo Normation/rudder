@@ -38,6 +38,6 @@ bundle agent file_ensure_lines_absent(file, lines)
         classes       => classes_generic("${class_prefix}");
 
   methods:
-      "report"
-        usebundle  => _logger("Ensure line(s) '${lines}' absent from ${file}", "${class_prefix}");
+      "sanitize" usebundle => _classes_sanitize("${class_prefix}");
+      "report"   usebundle => _logger("Ensure line(s) '${lines}' absent from ${file}", "${class_prefix}");
 }
