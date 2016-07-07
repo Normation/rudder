@@ -153,7 +153,7 @@ def parse_bundlefile_metadata(content, bundle_type):
     match = re.match("^\s*#\s*@(\w+)\s+(([a-zA-Z0-9_]+)\s+(.*)|.*)$", line, flags=re.UNICODE)
     if match :
       tag = match.group(1)
-      # Check ig we are a valid tag
+      # Check if we are a valid tag
       if tag in tags[bundle_type]:
         # tag "parameter" may be multi-valued
         if tag == "parameter":
@@ -232,6 +232,11 @@ def parse_bundlefile_metadata(content, bundle_type):
     
   if bundle_type == "generic_method" and not "agent_version" in res:
     res["agent_version"] = ">= 3.5"
+
+  # Remove trailing line breaks
+  for tag in multiline_tags:
+    if tag in res:
+      res[tag] = res[tag].strip('\n\r')
 
   all_tags = tags[bundle_type] + tags["common"]
   expected_tags = [ tag for tag in all_tags if not tag in optionnal_tags]
