@@ -46,13 +46,14 @@ bundle agent file_from_template(source_template, destination)
       classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
-
     !template_exists::
 
       "template_absent" usebundle => _classes_failure("${old_class_prefix}");
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
     any::
+      "sanitize"        usebundle => _classes_sanitize("${old_class_prefix}");
+      "sanitize"        usebundle => _classes_sanitize("${class_prefix}");
       "report"          usebundle => _log("Build file ${destination} from template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
 
 }
