@@ -179,7 +179,7 @@ class CreateCategoryOrGroupPopup(
 
   }
 
-  private[this] val piStatic = new WBRadioField("Group type", Seq("static", "dynamic"), "static", {
+  private[this] val piStatic = new WBRadioField("Group type", Seq("static", "dynamic"), "dynamic", {
     //how to display label ? Capitalize, and with a tooltip
     case "static" =>
       <span title="The list of member nodes is defined at creation and will not change automatically.">
