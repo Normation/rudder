@@ -71,6 +71,15 @@ class Boot extends Loggable {
 
   def boot {
 
+    //
+    // In Rudder 3.1, keep the same XHTML parser / output than we add in
+    // Lift 2.5. The work to switch to HTML 5 is done in Rudder 3.2
+    // Note that we could also use XHtmlInHtml5OutProperties to
+    // keep the XML templates but have an HTML 5 output
+    //
+    LiftRules.htmlProperties.default.set((r: Req) => new OldHtmlProperties(r.userAgent))
+
+
     // Set locale to English to prevent having localized message in some exception message (like SAXParserException in AppConfigAuth).
     // For now we don't manage locale in Rudder so setting it to English is harmless.
     // If one day we handle it in Rudder we should start from here by modifying code here..
