@@ -12,6 +12,7 @@ NCF_TOOLS_DIR = '/usr/share/ncf/tools'
 sys.path[0:0] = [NCF_TOOLS_DIR]
 
 default_path = ""
+use_rudder_auth = True
 
 import ncf
 import ncf_constraints
@@ -70,7 +71,9 @@ def get_authentication_modules():
   # List of all authentication modules
   authentication_modules = { "Rudder" : check_authentication_from_rudder, "None" : no_authentication }
   # Name of all available modules, should read from a file or ncf path. only Rudder available for now
-  available_modules_name = ["Rudder"]
+  available_modules_name = ["None"]
+  if use_rudder_auth:
+    available_modules_name = ["Rudder"]
 
   available_modules = [ module for module_name, module in authentication_modules.items() if module_name in available_modules_name ]
   return available_modules
@@ -125,6 +128,7 @@ def get_generic_methods():
     path = get_path_from_args(request)
   
     generic_methods = ncf.get_all_generic_methods_metadata(alt_path = path)
+    generic_methods["data"]["usingRudder"] = use_rudder_auth
     resp = jsonify( generic_methods )
     return resp
   except Exception as e:

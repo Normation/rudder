@@ -374,7 +374,7 @@
                                 <div class="panel-heading" style="overflow:hidden">
                                     <h4 class="panel-title">
                                         <span class="pull-left"> {{method.name}}
-                                            <a ng-click="$event.stopPropagation();" target="_blank" ng-href="http://www.ncf.io/pages/reference.html#{{method.bundle_name}}">
+                                            <a ng-click="$event.stopPropagation();" target="_blank" ng-href="{{methodUrl(method, kind)}}">
                                                 <i class="glyphicon glyphicon-info-sign method-actions grey-icon"></i>
                                             </a>
                                         </span>

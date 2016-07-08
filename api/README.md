@@ -77,6 +77,6 @@ At this point you need a running rudder (dev or not) on localhost to access ncf 
 
 to remove this need:
 
-* edit /path/to/ncf/api/ncf_flask_app/views.py
-* Replace line ' available_modules_name = ["Rudder"]' by  available_modules_name = ["None"]
+* Edit /path/to/ncf/api/ncf_flask_app/views.py
+* Set value of 'use_rudder_auth' to False
 
