@@ -53,16 +53,16 @@ bundle agent init
     any::
       "create repo file 1"   usebundle => file_create("${init.repo_file_1}");
     debian_7::
-      "remove package"       usebundle => command_execution("/usr/bin/apt-get purge -y ${init.package_name}");
-      "add repo key"         usebundle => command_execution("/usr/bin/apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 474A19E8");
+      "remove package"       usebundle => command_execution("$(debian_knowledge.call_apt_get) purge -y ${init.package_name}");
+      "add repo key"         usebundle => command_execution("$(debian_knowledge.apt_prefix) /usr/bin/apt-key adv --recv-keys --keyserver keyserver.ubuntu.com 474A19E8");
       "set up repo"          usebundle => file_ensure_lines_present("${init.repo_file_1}", "deb http://www.rudder-project.org/apt-stable/ wheezy main");
-      "update package list"  usebundle => command_execution("/usr/bin/apt-get update");
-      "install test package" usebundle => command_execution("/usr/bin/apt-get install -y ${init.package_name}");
+      "update package list"  usebundle => command_execution("$(debian_knowledge.call_apt_get) update");
+      "install test package" usebundle => command_execution("$(debian_knowledge.call_apt_get) install -y ${init.package_name}");
     centos_6::
       "remove package"       usebundle => command_execution("/bin/rpm -e ${init.package_name}");
       "set up repo"          usebundle => file_ensure_lines_present("${init.repo_file_1}", "[ncf-tests]${const.n}name=ncf-test${const.n}baseurl=http://www.rudder-project.org/rpm-stable/RHEL_6/${const.n}enabled=1${const.n}gpgcheck=1${const.n}gpgcheck=http://www.rudder-project.org/rpm-stable/RHEL_6/repodata/repomd.xml.key");
-      "update package list"  usebundle => command_execution("/usr/bin/yum clean all");
-      "install test package" usebundle => command_execution("/usr/bin/yum install -y ${init.package_name}");
+      "update package list"  usebundle => command_execution("/usr/bin/yum ${redhat_knowledge.yum_options} clean all");
+      "install test package" usebundle => command_execution("/usr/bin/yum ${redhat_knowledge.yum_options} install -y ${init.package_name}");
 
     any::
 
@@ -73,10 +73,10 @@ bundle agent init
 
     debian_7::
       "update repo to use"   usebundle => file_ensure_lines_present("${init.repo_file_2}", "deb http://www.rudder-project.org/apt-nightly/ wheezy main");
-      "update packages"      usebundle => command_execution("/usr/bin/aptitude update");
+      "update packages"      usebundle => command_execution("$(debian_knowledge.call_aptitude) update");
     centos_6::
       "set up repo"          usebundle => file_ensure_lines_present("${init.repo_file_2}", "[ncf-tests]${const.n}name=ncf-test${const.n}baseurl=http://www.rudder-project.org/rpm-nightly/RHEL_6/${const.n}enabled=1${const.n}gpgcheck=1${const.n}gpgcheck=http://www.rudder-project.org/rpm-nightly/RHEL_6/repodata/repomd.xml.key");
-      "update packages"      usebundle => command_execution("/usr/bin/yum check-update");
+      "update packages"      usebundle => command_execution("/usr/bin/yum ${redhat_knowledge.yum_options} check-update");
 
     # Nuke CFEngine's cache file to force it to run "aptitude update" or the yum equivalent again
     any::
