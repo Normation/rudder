@@ -33,6 +33,9 @@ SOURCE="$1"
 # CFEngine versions must by of the x.y.z form
 VERSION="$2"
 
+APT_GET="DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get"
+YUM="/usr/bin/yum --quiet --setopt=exit_on_lock=True"
+
 # ncf branch to test
 if [ "z$3" != "z" ]; then
 	BRANCH="$3"
@@ -64,10 +67,10 @@ usage() {
 
 install_dependencies() {
 	if type apt-get >/dev/null 2>/dev/null; then
-	    apt-get update
-		apt-get -y install ${TEST_DEPENDENCIES}
+	    ${APT_GET} update
+		${APT_GET} -y install ${TEST_DEPENDENCIES}
 	elif type yum >/dev/null 2>/dev/null; then
-	  	yum install ${TEST_DEPENDENCIES}
+	  	${YUM} install ${TEST_DEPENDENCIES}
 	else
 		echo "Unsupported platform."
 		exit 1
