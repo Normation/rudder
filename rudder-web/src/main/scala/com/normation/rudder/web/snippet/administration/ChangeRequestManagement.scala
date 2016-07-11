@@ -225,7 +225,7 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
     }
     def unexpandedFilter(default:String):NodeSeq = {
       val multipleValues = ("","All") :: ("Pending","Open") :: ("^(?!Pending)","Closed") :: Nil
-      val select :Elem =SHtml.select(
+      val select :Elem =SHtml.select (
           (multipleValues ::: selectValues).map{ case (a,b) => SelectableOption(a,b)}
         , Full(default)
         , list => value = list
