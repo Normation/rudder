@@ -153,6 +153,7 @@ app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, 
   $scope.selectedMethod;
   // Are we authenticated on the interface
   $scope.authenticated = false;
+  var usingRudder = false;
 
   $scope.CForm = {};
 
@@ -329,6 +330,9 @@ $scope.getMethodsAndTechniques = function () {
         $scope.constraints = response.data.constraints;
         $scope.methodsByCategory = $scope.groupMethodsByCategory();
         $scope.authenticated = true;
+        if (response.data.usingRudder !== undefined) {
+          usingRudder = response.data.usingRudder;
+        }
         // Once we have our methods we can fetch our techniques which depends on them
         $scope.getTechniques();
       } else {
@@ -592,6 +596,14 @@ $scope.groupMethodsByCategory = function () {
       return "";
     }
   };
+
+  $scope.methodUrl = function(method,kind) {
+    if (usingRudder) {
+      return "/rudder-doc/#"+method.bundle_name
+    } else {
+      return "http://www.ncf.io/pages/reference.html#"+method.bundle_name
+    }
+  }
 
   // Get parameters information relative to a method_call
   $scope.getMethodParameters = function(method_call) {
