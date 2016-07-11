@@ -599,7 +599,7 @@ $scope.groupMethodsByCategory = function () {
 
   $scope.methodUrl = function(method,kind) {
     if (usingRudder) {
-      return "/rudder-doc/#"+method.bundle_name
+      return "/rudder-doc/"+kind".html#"+method.bundle_name
     } else {
       return "http://www.ncf.io/pages/reference.html#"+method.bundle_name
     }
