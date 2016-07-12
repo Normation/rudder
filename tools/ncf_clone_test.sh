@@ -33,7 +33,7 @@ SOURCE="$1"
 # CFEngine versions must by of the x.y.z form
 VERSION="$2"
 
-APT_GET="DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get"
+APT_GET="/usr/bin/env DEBIAN_FRONTEND=noninteractive /usr/bin/apt-get"
 YUM="/usr/bin/yum --quiet --setopt=exit_on_lock=True"
 
 # ncf branch to test
