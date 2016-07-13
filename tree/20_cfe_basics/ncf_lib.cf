@@ -358,13 +358,56 @@ bundle edit_line ensure_line_in_xml_tag(tag_name, line)
       comment       => "Insert line in section ${tag_name}";
 }
 
-
 body select_region ncf_section_selector(section_start, section_end)
 {
   select_start => "${section_start}";
   select_end   => "${section_end}";
 }
 
+
+# Edit AIX password file /etc/security/passwd
+bundle edit_line ncf_ensure_AIX_password(username, password) {
+  vars:
+      "current_date" int => now();
+
+  classes:
+      # does the section exists, or should it be created ?
+      "section_absent" not => regline("${username}:", "${edit.filename}");
+
+  insert_lines:
+    section_absent::
+      "${username}:
+	password = ${password}
+	lastupdate = ${current_date}"
+        insert_type => "preserve_block";
+
+  field_edits:
+    !section_absent::
+      "\s*password\s*=.*"
+        # We need to put a space before password to keep the format password = <PASSWORD>
+        edit_field => col("=", "2", " ${password}", "set"),
+        select_region => ncf_section_AIX_user("${username}");
+}
+
+# Define the lastupdate date when a password is changed
+bundle edit_line ncf_edit_lastupdate_AIX_password(username) {
+  vars:
+      "current_date" int => now();
+
+  field_edits:
+    section_absent::
+      "\s*lastupdate\s*=.*"
+        # We need to put a space before password to keep the format password = <PASSWORD>
+        edit_field => col("=", "2", " ${password}", "set"),
+        select_region => ncf_section_AIX_user("${username}");
+
+}
+# Select region in /etc/security/passwd file
+body select_region ncf_section_AIX_user(username)
+{
+  select_start => "${username}:";
+  select_end => ".*:";
+}
 
 # Modular local copy_from body
 body copy_from ncf_local_cp_method(from, method)
