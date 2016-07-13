@@ -403,34 +403,42 @@ case class RestDataSerializerImpl (
   }
 
   def serializeDirectiveChange(change : DirectiveChange): Box[JValue] = {
-    def serializeDirectiveDiff(diff:ModifyDirectiveDiff,initialState:Directive, technique:Technique) : JValue= {
-      implicit def convert[T] (value : T) : JValue =  value
-      def convertParameters(sv : SectionVal) : JValue = serializeSectionVal(sv)
-      val name :JValue             = diff.modName.map(displaySimpleDiff(_) ).getOrElse(initialState.name)
-      val shortDescription :JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
-      val longDescription :JValue  = diff.modLongDescription.map(displaySimpleDiff(_)).getOrElse(initialState.longDescription)
-      val techniqueVersion :JValue = diff.modTechniqueVersion.map(displaySimpleDiff(_)(_.toString)).getOrElse(initialState.techniqueVersion.toString)
-      val priority :JValue         = diff.modPriority.map(displaySimpleDiff(_)).getOrElse(initialState.priority)
-      val enabled :JValue          = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
-      val initialParams :JValue    = serializeSectionVal(SectionVal.directiveValToSectionVal(technique.rootSection, initialState.parameters))
-      val parameters :JValue       = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
-      val extension : JObject =
-        ( ("isEnabled" -> enabled )
-        ~ ("isSystem" -> initialState.isSystem )
-        )
-      val base =
-        ( ("id"               -> initialState.id.value)
-        ~ ("displayName"      -> name )
-        ~ ("shortDescription" -> shortDescription)
-        ~ ("longDescription"  -> longDescription)
-        ~ ("techniqueName"    -> technique.id.name.value)
-        ~ ("techniqueVersion" -> techniqueVersion)
-        ~ ("parameters"       -> parameters )
-        ~ ("priority"         -> priority)
-        ~ ("enabled"        -> enabled )
-        ~ ("system"         -> initialState.isSystem )
-        )
-        extendResponseCompatibility(base, extension)
+    def serializeDirectiveDiff(diff:ModifyDirectiveDiff,initialState:Directive, technique:Technique, initialRootSection: SectionSpec) : Box[JValue] = {
+      // This is in a try/catch because directiveValToSectionVal may fail (it can throw exceptions, so we need to catch them)
+      try {
+        implicit def convert[T] (value : T) : JValue =  value
+        def convertParameters(sv : SectionVal) : JValue = serializeSectionVal(sv)
+        val name :JValue             = diff.modName.map(displaySimpleDiff(_) ).getOrElse(initialState.name)
+        val shortDescription :JValue = diff.modShortDescription.map(displaySimpleDiff(_)).getOrElse(initialState.shortDescription)
+        val longDescription :JValue  = diff.modLongDescription.map(displaySimpleDiff(_)).getOrElse(initialState.longDescription)
+        val techniqueVersion :JValue = diff.modTechniqueVersion.map(displaySimpleDiff(_)(_.toString)).getOrElse(initialState.techniqueVersion.toString)
+        val priority :JValue         = diff.modPriority.map(displaySimpleDiff(_)).getOrElse(initialState.priority)
+        val enabled :JValue          = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
+        val initialParams :JValue    = serializeSectionVal(SectionVal.directiveValToSectionVal(initialRootSection, initialState.parameters))
+        val parameters :JValue       = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
+        val extension : JObject =
+          ( ("isEnabled" -> enabled )
+          ~ ("isSystem" -> initialState.isSystem )
+          )
+        val base =
+          ( ("id"               -> initialState.id.value)
+          ~ ("displayName"      -> name )
+          ~ ("shortDescription" -> shortDescription)
+          ~ ("longDescription"  -> longDescription)
+          ~ ("techniqueName"    -> technique.id.name.value)
+          ~ ("techniqueVersion" -> techniqueVersion)
+          ~ ("parameters"       -> parameters )
+          ~ ("priority"         -> priority)
+          ~ ("enabled"        -> enabled )
+          ~ ("system"         -> initialState.isSystem )
+          )
+          Full(extendResponseCompatibility(base, extension))
+      } catch {
+         case e:Exception => e
+             val errorMsg = "Error while trying to serialize Directive Diff. cause is: " + e.getMessage()
+             logger.error(errorMsg)
+             Failure(errorMsg)
+      }
     }
 
     for {
@@ -455,9 +463,9 @@ case class RestDataSerializerImpl (
           val technique =  readTechnique.get(TechniqueId(techniqueName,directive.techniqueVersion))
 
           val result = change.initialState match {
-            case Some((techniqueName,init,rs)) =>
-              val diff = diffService.diffDirective(init, rs, directive, rootSection,techniqueName)
-              technique.map(t => serializeDirectiveDiff(diff, init, t)).getOrElse(JString("Error while fetching technique"))
+            case Some((techniqueName,initialState,initialRootSection)) =>
+              val diff = diffService.diffDirective(initialState, initialRootSection, directive, rootSection,techniqueName)
+              technique.flatMap(t => serializeDirectiveDiff(diff, initialState, t, initialRootSection)).getOrElse(JString("Error while fetching technique"))
             case None => JString(s"Error while fetching initial state of change request.")
           }
           (   ("action" -> modify)
