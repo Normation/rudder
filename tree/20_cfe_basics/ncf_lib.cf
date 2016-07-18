@@ -374,19 +374,20 @@ bundle edit_line ncf_ensure_AIX_password(username, password) {
       # does the section exists, or should it be created ?
       "section_absent" not => regline("${username}:", "${edit.filename}");
 
-  insert_lines:
-    section_absent::
-      "${username}:
-	password = ${password}
-	lastupdate = ${current_date}"
-        insert_type => "preserve_block";
-
   field_edits:
     !section_absent::
       "\s*password\s*=.*"
         # We need to put a space before password to keep the format password = <PASSWORD>
         edit_field => col("=", "2", " ${password}", "set"),
         select_region => ncf_section_AIX_user("${username}");
+
+  insert_lines:
+    section_absent::
+      "${username}:
+        password = ${password}
+        lastupdate = ${current_date}"
+        insert_type => "preserve_block";
+
 }
 
 # Define the lastupdate date when a password is changed
