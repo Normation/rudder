@@ -101,6 +101,19 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
         case _ => //OK
       }
 
+
+      /*
+       * Check that all "used" variable are (at least) defined elsewhere in the technique
+       */
+      val definedNotUsed = {
+        val varNames = root.getAllVariables.map( _.name ).toSet
+        val used = root.getAllVariables.flatMap( _.constraint.usedFields ).toSet
+        used -- varNames
+      }
+      if(definedNotUsed.nonEmpty) {
+        throw new ParsingException(s"The following variables names are used in <${CONSTRAINT_PWD_AUTOSUBVARIABLES}>, but are not defined: '${definedNotUsed.mkString("','")}'")
+      }
+
       root
     }
   }
@@ -214,13 +227,15 @@ class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
       }
     }
 
-    for {
+    (for {
       child <- node.child
       if !child.isEmpty && child.label != "#PCDATA"
     } yield child.label match {
-      case v if SectionVariableSpec.isVariable(v) => parseOneVariable(sectionName, child)
-      case s if SectionSpec.isSection(s) => parseOneSection(child,id,policyName)
+      case v if SectionVariableSpec.isVariable(v) =>
+        val (mainVar, secondaries) = parseOneVariable(sectionName, child)
+        mainVar :: secondaries
+      case s if SectionSpec.isSection(s) => parseOneSection(child,id,policyName) :: Nil
       case x => throw new ParsingException("Unexpected <%s> child element in policy package %s: %s".format(SECTIONS_ROOT,id, x))
-    }
+    }).flatten
   }
 }

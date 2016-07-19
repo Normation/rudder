@@ -57,7 +57,6 @@ import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 
 @RunWith(classOf[JUnitRunner])
 class TechniqueTest extends Specification {
-  val doc = readFile("testTechnique.xml")
 
   val techniqueParser = {
     val varParser = new VariableSpecParser
@@ -66,7 +65,7 @@ class TechniqueTest extends Specification {
 
   val id = TechniqueId(TechniqueName("foo"), TechniqueVersion("1.0"))
 
-  val technique = techniqueParser.parseXml(doc, id, true)
+  val technique = techniqueParser.parseXml(readFile("testTechnique.xml"), id, true)
 
 
   "Compatible OS and Agents" should {

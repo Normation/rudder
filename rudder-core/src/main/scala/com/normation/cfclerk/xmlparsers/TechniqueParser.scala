@@ -118,7 +118,7 @@ class TechniqueParser(
             ) {
               //ok
             } else {
-              throw new ParsingException("The bouding variable '%s' for policy info variable does not exists".format(bound))
+              throw new ParsingException("The bounding variable '%s' for policy info variable does not exists".format(bound))
             }
           }
 

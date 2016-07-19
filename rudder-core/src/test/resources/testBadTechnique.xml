@@ -1,0 +1,25 @@
+<TECHNIQUE name="Test technique">
+  <DESCRIPTION>A test technique</DESCRIPTION>
+
+  <SYSTEM>true</SYSTEM>
+
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+
+  <TMLS>
+  </TMLS>
+
+  <SYSTEMVARS>
+  </SYSTEMVARS>
+
+  <TRACKINGVARIABLE>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <SECTION name="common">
+      <INPUT>
+        <NAME>A</NAME>
+        <DESCRIPTION>...</DESCRIPTION>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+</TECHNIQUE>

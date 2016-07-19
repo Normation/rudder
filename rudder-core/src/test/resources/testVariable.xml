@@ -120,11 +120,11 @@
   </INPUT>
 
   <INPUT>
-	<NAME>raw_type</NAME>
-	<DESCRIPTION>a variable that isn't automatically escaped</DESCRIPTION>
-	<CONSTRAINT>
-		<TYPE>raw</TYPE>
-	</CONSTRAINT>
+  <NAME>raw_type</NAME>
+  <DESCRIPTION>a variable that isn't automatically escaped</DESCRIPTION>
+  <CONSTRAINT>
+    <TYPE>raw</TYPE>
+  </CONSTRAINT>
   </INPUT>
 
   <INPUT>
@@ -206,12 +206,23 @@
       <PASSWORDHASH>linux-shadow-sha256</PASSWORDHASH>
     </CONSTRAINT>
   </INPUT>
+
   <INPUT>
     <NAME>password11</NAME>
     <DESCRIPTION>Some password</DESCRIPTION>
     <CONSTRAINT>
       <TYPE>password</TYPE>
       <PASSWORDHASH>linux-shadow-sha512</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>password_master</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>masterPassword</TYPE>
+      <PASSWORDHASH>linux-shadow-sha512</PASSWORDHASH>
+      <AUTOSUBVARIABLES>AIX</AUTOSUBVARIABLES>
     </CONSTRAINT>
   </INPUT>
 
