@@ -81,7 +81,8 @@ object VTypeConstraint {
     IntegerVType(r) :: BasicStringVType(r) :: TextareaVType(r) ::
     Nil ::: regexTypes ::: sizeTypes
   def validTypes(r: Option[RegexConstraint], algos:Seq[HashAlgoConstraint]) : List[VTypeConstraint] =
-    PermVType :: PasswordVType(algos) :: UploadedFileVType :: DestinationPathVType ::
+    PermVType :: PasswordVType(algos) :: AixDerivedPasswordVType :: LinuxDerivedPasswordVType :: MasterPasswordVType(algos) ::
+    UploadedFileVType :: DestinationPathVType ::
     BooleanVType :: RawVType :: Nil ::: stringTypes(r)
 
   def getRegexConstraint(vType : VTypeConstraint) : Option[RegexConstraint] =
@@ -96,7 +97,9 @@ object VTypeConstraint {
       case _ => Seq()
     }
   }
-  def fromString(s:String, r: Option[RegexConstraint], algos:Seq[HashAlgoConstraint]) : Option[VTypeConstraint] = validTypes(r,algos).find(t => t.name == s)
+  def fromString(s:String, r: Option[RegexConstraint], algos:Seq[HashAlgoConstraint]) : Option[VTypeConstraint] = {
+    validTypes(r,algos).find(t => t.name == s)
+  }
 
   val allTypeNames = validTypes(None,Seq()).map( _.name ).mkString(", ")
 }
@@ -160,13 +163,29 @@ case class TimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstra
 
 //other types
 
-//password: the list of hashes must be non-empty
-case class PasswordVType(authorizedHash:Seq[HashAlgoConstraint]) extends VTypeConstraint {
-  override val name = "password"
-  override def getTypedValue(value:String, forField:String) : Box[Any] = {
+// passwords
+sealed trait AbstactPassword extends VTypeConstraint {
+  override final def getTypedValue(value:String, forField:String) : Box[Any] = {
     HashAlgoConstraint.unserialize(value).map( _._2 ).map(escapeString(_))
   }
 }
+
+//simple password: the list of hashes must be non-empty
+final case class PasswordVType(authorizedHash:Seq[HashAlgoConstraint]) extends AbstactPassword {
+  override val name = "password"
+}
+final case class MasterPasswordVType(authorizedHash:Seq[HashAlgoConstraint]) extends AbstactPassword {
+  override val name = s"masterPassword"
+}
+
+sealed trait DerivedPasswordVType extends AbstactPassword {
+  def tpe: HashAlgoConstraint.DerivedPasswordType
+  override lazy val name = s"derivedPassword:${tpe.name}"
+}
+
+final case object AixDerivedPasswordVType   extends DerivedPasswordVType { override val tpe = HashAlgoConstraint.DerivedPasswordType.AIX   }
+final case object LinuxDerivedPasswordVType extends DerivedPasswordVType { override val tpe = HashAlgoConstraint.DerivedPasswordType.Linux }
+
 case object BooleanVType extends VTypeConstraint {
   override val name = "boolean"
   override def getTypedValue(value:String, forField:String) : Box[Any] = {
@@ -190,6 +209,7 @@ case class Constraint(
     typeName: VTypeConstraint = BasicStringVType()
   , default: Option[String] = None
   , mayBeEmpty: Boolean = false
+  , usedFields: Set[String] = Set()
 ) extends HashcodeCaching {
 
   def check(varValue: String, varName: String) : Unit = {

@@ -45,6 +45,7 @@ import com.normation.utils.XmlUtils._
 import com.normation.cfclerk.exceptions._
 import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control
+import com.normation.cfclerk.domain.HashAlgoConstraint.DerivedPasswordType
 
 
 case class EmptyReportKeysValue(sectionName: String) extends Exception(s"In '${sectionName}', the element ${REPORT_KEYS} must have a non empty list of provided values: <${REPORT_KEYS}><${REPORT_KEYS_VALUE}>val foo</${REPORT_KEYS_VALUE}><${REPORT_KEYS_VALUE}>...")
@@ -70,7 +71,7 @@ class VariableSpecParser {
   }
 
 
-  def parseSectionVariableSpec(parentSectionName: String, elt: Node): Box[SectionVariableSpec] = {
+  def parseSectionVariableSpec(parentSectionName: String, elt: Node): Box[(SectionVariableSpec, List[SectionVariableSpec])] = {
 
     val markerName = elt.label
     if (!SectionVariableSpec.isVariable(markerName)) {
@@ -93,7 +94,7 @@ class VariableSpecParser {
 
       val p = parseProvidedValues(elt)
 
-      Full(SectionVariableSpec(
+      Full((SectionVariableSpec(
           varName = reportKeysVariableName(parentSectionName)
         , description = s"Expected Report key names for component ${parentSectionName}"
         , markerName = markerName
@@ -104,7 +105,7 @@ class VariableSpecParser {
         , checked = true
         , constraint = Constraint()
         , p
-      ))
+      ), Nil))
     } else { //normal variable
 
       //name and description are mandatory
@@ -130,16 +131,16 @@ class VariableSpecParser {
               case _ => false
             }
 
-            val constraint: Constraint = (elt \ VAR_CONSTRAINT).toList match {
-              case h :: Nil => parseConstraint(h)
-              case Nil => Constraint()
+            val (constraint, secondaryVar) : (Constraint, List[SectionVariableSpec]) = (elt \ VAR_CONSTRAINT).toList match {
+              case h :: Nil => parseConstraint(name, h)
+              case Nil => (Constraint(), Nil)
               case _ => throw new TechniqueException("Only one <%s> it authorized".format(VAR_CONSTRAINT))
             }
 
             val checked = "true" == getUniqueNodeText(elt, VAR_IS_CHECKED, "true").toLowerCase
 
 
-            Full(SectionVariableSpec(
+            Full((SectionVariableSpec(
               varName = name,
               description = desc,
               markerName = markerName,
@@ -150,7 +151,7 @@ class VariableSpecParser {
               checked = checked,
               constraint = constraint,
               Nil
-            ))
+            ), secondaryVar))
         }
     }
   }
@@ -189,7 +190,7 @@ class VariableSpecParser {
      }).map( _.trim ).filter( _.nonEmpty )
   }
 
-  def parseConstraint(elt: Node): Constraint = {
+  def parseConstraint(varName: String, elt: Node): (Constraint, List[SectionVariableSpec]) = {
 
     val passwordHashes = getUniqueNodeText(elt, CONSTRAINT_PASSWORD_HASH, "")
 
@@ -216,12 +217,51 @@ class VariableSpecParser {
       case s: NodeSeq => Some(s.text)
     }
 
+    //other fields needed used by that field - for now, we have only a working case
+    //for masterPassword, so we want to ensure that only that one is parsed
+    //First, an utility method to build a derivedPassword field from a name and type
+    def derivedPasswordVar(
+        parentName  : String
+      , tpe         : DerivedPasswordType
+      , mayBeEmpty  : Boolean
+      , defaultValue: Option[String]
+    ): SectionVariableSpec = {
+      val (postfix, vtype) = tpe match {
+        case DerivedPasswordType.AIX   => ("AIX"  , AixDerivedPasswordVType  )
+        case DerivedPasswordType.Linux => ("LINUX", LinuxDerivedPasswordVType)
+      }
 
-    Constraint(typeName, defaultValue, mayBeEmpty)
+      SectionVariableSpec(
+          varName        = s"${parentName}_${postfix}"
+        , description    = s"This password field value is derived from input value from ${parentName}"
+        , markerName     = INPUT
+        , constraint     = Constraint(vtype, defaultValue, mayBeEmpty, Set())
+        , valueslabels   = Nil
+        , providedValues = Nil
+      )
+    }
+
+    //then, the actual match
+    val derivedVars = typeName match {
+      case MasterPasswordVType(_) => getUniqueNodeText(elt, CONSTRAINT_PWD_AUTOSUBVARIABLES, "").split(",").flatMap { s =>
+          s.toLowerCase.trim match {
+            case "aix"  =>
+              Some(derivedPasswordVar(varName, DerivedPasswordType.AIX,   mayBeEmpty, defaultValue))
+
+            case "linux" =>
+              Some(derivedPasswordVar(varName, DerivedPasswordType.Linux, mayBeEmpty, defaultValue))
+
+            case _ => None
+          }
+        }.toList
+      case _ => Nil
+    }
+
+    (Constraint(typeName, defaultValue, mayBeEmpty, derivedVars.map(_.name).toSet), derivedVars)
   }
 
   private[this] def parseAlgoList(algos:String) : Seq[HashAlgoConstraint] = {
-    if(algos.trim.isEmpty) HashAlgoConstraint.algorithmes
+    if(algos.trim.isEmpty) HashAlgoConstraint.sort(HashAlgoConstraint.algorithms)
     else {
       Control.sequence(algos.split(",")) { algo =>
         HashAlgoConstraint.fromString( algo.trim )

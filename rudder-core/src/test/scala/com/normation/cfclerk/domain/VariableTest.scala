@@ -59,6 +59,7 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
 import com.normation.exceptions.TechnicalException
+import com.normation.cfclerk.domain.HashAlgoConstraint._
 
 
 @RunWith(classOf[JUnitRunner])
@@ -66,7 +67,7 @@ class VariableTest extends Specification {
   def variableSpecParser = new VariableSpecParser()
 
 
-  val nbVariables = 26
+  val nbVariables = 28
 
   val refName = "name"
   val refDescription = "description"
@@ -115,7 +116,7 @@ class VariableTest extends Specification {
       specNode <- elt.nonEmptyChildren
       if(!specNode.isInstanceOf[Text])
     } {
-      val spec = variableSpecParser.parseSectionVariableSpec("default section", specNode).openOrThrowException("I'm a failing test!")
+      val (spec, other) = variableSpecParser.parseSectionVariableSpec("default section", specNode).openOrThrowException("I'm a failing test!")
       variables += {
         //special case for reportkeys because name depends of section name, and here, we
         //don't have several sections
@@ -127,6 +128,7 @@ class VariableTest extends Specification {
           case _ => spec.name -> spec.toVariable()
         }
       }
+      variables ++= other.map(x => (x.name, x.toVariable()))
     }
     variables
   }
@@ -155,6 +157,7 @@ class VariableTest extends Specification {
           ipVar, varName, varDate, varList, gui_only, rawVar
       )
       variables must haveKeys( (1 to 6).map( "password" + _):_*)
+      variables must haveKeys( Seq("", "_AIX").map(s => "password_master"+s):_*)
 
     }
   }
@@ -443,6 +446,31 @@ class VariableTest extends Specification {
     }
   }
 
+  "password_master" should {
+    val v = variables("password_master")
+    val algos = LinuxShadowSHA512 :: Nil
+
+    "Be an input master password input" in {
+      v.spec.isInstanceOf[InputVariableSpec] and
+      v.spec.constraint.typeName.name == "masterPassword"
+    }
+
+    s"Have hash algorithm of type ${algos.map( _.prefix).mkString(",")}" in {
+      v.spec.constraint.typeName match {
+        case MasterPasswordVType(a) => a ==== (algos)
+        case _ => ko("Variable is not a password input")
+      }
+    }
+
+    "uses others inputs" in {
+      v.spec.constraint.usedFields === Set("password_master_AIX")
+    }
+
+    "we have a derived password variable" in {
+      variables("password_master_AIX").spec.constraint.typeName === AixDerivedPasswordVType
+    }
+  }
+
   // predef variables
 
   "unvalid predef value (empty VALUES tag)" should {
@@ -582,16 +610,16 @@ class VariableTest extends Specification {
   }
 
   private[this] def haveNoAlgo(implicit variable: Variable) = {
-    s"Have an user defined hash algorithme (and so none constrained)" in {
+    s"Have an user defined hash algorithm (and so none constrained)" in {
       variable.spec.constraint.typeName match {
-        case PasswordVType(algos) => algos must containTheSameElementsAs(HashAlgoConstraint.algorithmes)
+        case PasswordVType(algos) => algos must containTheSameElementsAs(HashAlgoConstraint.algorithms.toSeq)
         case _ => ko("Variable is not a password input")
       }
     }
   }
 
   private[this] def haveAlgo(algos:List[HashAlgoConstraint])(implicit variable: Variable) = {
-    s"Have hash algorithme of type ${algos.map( _.prefix).mkString(",")}" in {
+    s"Have hash algorithm of type ${algos.map( _.prefix).mkString(",")}" in {
       variable.spec.constraint.typeName match {
         case PasswordVType(a) => a ==== (algos)
         case _ => ko("Variable is not a password input")
