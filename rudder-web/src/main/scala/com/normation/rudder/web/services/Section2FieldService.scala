@@ -49,6 +49,7 @@ import com.normation.cfclerk.domain._
 import com.normation.exceptions.TechnicalException
 import org.slf4j.LoggerFactory
 import com.normation.utils.HashcodeCaching
+import com.normation.utils.Control.sequence
 
 /**
  * Create web representation of Directive in the goal
@@ -80,9 +81,43 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
     val isNewPolicy = valuesByName.size < 1 || valuesByName.forall { case (n,vals) => vals.size < 1 }
     logger.debug("Is it a new directive ? " + isNewPolicy)
 
-    val sectionField = createSectionField(sections, valuesByName, isNewPolicy)
+    val bounds = vars.map { v =>
+      val used = v.spec.constraint.usedFields
+      if(used.isEmpty) {
+        Option.empty[(String, Seq[String])]
+      } else {
+        Some((v.spec.name, used.toSeq))
+      }
+    }.flatten.toMap
+
+    //create the fields "used" mapping
+    val sectionField = createSectionField(sections, valuesByName, isNewPolicy, bounds)
 
     Full(DirectiveEditor(policy.id, directiveId, policy.name, policy.description, sectionField, variableSpecs, providesExpectedReports))
+  }
+
+  //bound used section fields to
+  private[this] def boundUsedFields(section: SectionField, bounds: Map[String, Seq[String]]): SectionField = {
+    val allFields = section.getAllDirectVariables
+    allFields.values.foreach { f =>
+      bounds.get(f.id) match {
+        case None       => Full("ok")
+        case Some(used) =>
+          (for {
+            fields <- sequence(used) { id =>
+                        Box(allFields.get(id)) ?~! s"Variable '${id}' used by variable '${f.id}' was not found - are you sure all dependant fields are on the same section of the technique?"
+                      }
+          } yield {
+            fields
+          }) match {
+            case e: EmptyBox =>
+              logger.error((e ?~! "Error when binding dependant fields").messageChain)
+            case Full(fields) =>
+              f.usedFields = fields
+          }
+      }
+    }
+    section
   }
 
   // --------------------------------------------
@@ -110,7 +145,7 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
   // createSingleSectionFieldForMultisec
   // --------------------------------------------
 
-  def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean): SectionField = {
+  def createSectionField(section: SectionSpec, valuesByName:Map[String,Seq[String]], isNewPolicy:Boolean, usedFields: Map[String, Seq[String]]): SectionField = {
     val seqOfSectionMap = {
       if (isNewPolicy) Seq(createDefaultMap(section))
       else {
@@ -121,100 +156,78 @@ class Section2FieldService(val fieldFactory: DirectiveFieldFactory, val translat
 
     val readOnlySection = section.children.collect{ case x:PredefinedValuesVariableSpec => x}.size > 0
     if (section.isMultivalued) {
-      val sectionFields = for (sectionMap <- seqOfSectionMap) yield createSingleSectionFieldForMultisec(section,sectionMap, isNewPolicy)
+      val sectionFields = for (sectionMap <- seqOfSectionMap) yield boundUsedFields(createSingleSectionFieldForMultisec(section,sectionMap, isNewPolicy, usedFields), usedFields)
       MultivaluedSectionField(sectionFields, () => {
           //here, valuesByName is empty, we are creating a new map.
-          createSingleSectionField(section,Map(),createDefaultMap(section), true)
+          boundUsedFields(createSingleSectionField(section,Map(),createDefaultMap(section), true, usedFields), usedFields)
         }
         , priorityToVisibility(section.displayPriority)
         , readOnlySection
       )
     } else {
-      createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy)
+      boundUsedFields(createSingleSectionField(section, valuesByName, seqOfSectionMap.head, isNewPolicy, usedFields), usedFields)
     }
   }
 
-  private[this] def createSingleSectionField(sectionSpec:SectionSpec, valuesByName:Map[String,Seq[String]], sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
+
+  private[this] def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): (DirectiveField,  (String, () => String)) = {
+    val fieldKey = varSpec.name
+    val field = fieldFactory.forType(varSpec, fieldKey)
+
+    val varMappings = translators.get(field.manifest) match {
+      case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
+      case Some(t) =>
+        t.to.get("self") match {
+          case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
+          case Some(c) => //close the returned function with f and store it into varMappings
+            logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
+            valueOpt match {
+              case None =>
+                varSpec.constraint.default foreach (  setValueForField(_, field, t.from) )
+              case Some(value) =>
+                setValueForField(value, field, t.from)
+            }
+            (fieldKey -> { () => c(field.get) })
+        }
+    }
+
+    field.displayName = varSpec.description
+    field.tooltip = varSpec.longDescription
+    field.optional = varSpec.constraint.mayBeEmpty
+    (field, varMappings)
+  }
+
+  private[this] def createSingleSectionField(sectionSpec:SectionSpec, valuesByName:Map[String,Seq[String]], sectionMap: Map[String, Option[String]], isNewPolicy:Boolean, usedFields: Map[String, Seq[String]]): SectionField = {
     // only variables of the current section
     var varMappings = Map[String, () => String]()
 
-    def createVarField(varSpec: VariableSpec, valueOpt: Option[String]): DirectiveField = {
-      val fieldKey = varSpec.name
-      val field = fieldFactory.forType(varSpec, fieldKey)
-
-      translators.get(field.manifest) match {
-        case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
-        case Some(t) =>
-          t.to.get("self") match {
-            case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
-            case Some(c) => //close the returned function with f and store it into varMappings
-              logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
-              varMappings += (fieldKey -> { () => c(field.get) })
-
-              valueOpt match {
-                case None =>
-                  varSpec.constraint.default foreach (  setValueForField(_, field, t.from) )
-                case Some(value) =>
-                  setValueForField(value, field, t.from)
-              }
-          }
-      }
-
-      field.displayName = varSpec.description
-      field.tooltip = varSpec.longDescription
-      field.optional = varSpec.constraint.mayBeEmpty
-      field
-    }
-
     val children = for (child <- sectionSpec.children) yield {
       child match {
-        case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap(varSpec.name))
-        case sectSpec: SectionSpec => createSectionField(sectSpec, valuesByName, isNewPolicy)
+        case varSpec: SectionVariableSpec =>
+          val (field, mapping) = createVarField(varSpec, sectionMap(varSpec.name))
+          varMappings += mapping
+          field
+        case sectSpec: SectionSpec => boundUsedFields(createSectionField(sectSpec, valuesByName, isNewPolicy, usedFields), usedFields)
       }
     }
 
     //actually create the SectionField for createSingleSectionField
-    SectionFieldImp(sectionSpec.name, children, priorityToVisibility(sectionSpec.displayPriority), varMappings)
+    boundUsedFields(SectionFieldImp(sectionSpec.name, children, priorityToVisibility(sectionSpec.displayPriority), varMappings), usedFields)
   }
 
-  private[this] def createSingleSectionFieldForMultisec(sectionSpec:SectionSpec, sectionMap: Map[String, Option[String]], isNewPolicy:Boolean): SectionFieldImp = {
+  private[this] def createSingleSectionFieldForMultisec(sectionSpec:SectionSpec, sectionMap: Map[String, Option[String]], isNewPolicy:Boolean, usedFields: Map[String, Seq[String]]): SectionFieldImp = {
     // only variables of the current section
     var varMappings = Map[String, () => String]()
 
-    def createVarField(varSpec: SectionVariableSpec, valueOpt: Option[String]): DirectiveField = {
-      val fieldKey = varSpec.name
-      val field = fieldFactory.forType(varSpec, fieldKey)
-
-      translators.get(field.manifest) match {
-        case None => throw new TechnicalException("No translator from type: " + field.manifest.toString)
-        case Some(t) =>
-          t.to.get("self") match {
-            case None => throw new TechnicalException("Missing 'self' translator property (from type %s to a serialized string for Variable)".format(field.manifest))
-            case Some(c) => //close the returned function with f and store it into varMappings
-              logger.trace("Add translator for variable '%s', get its value from field '%s.self'".format(fieldKey, fieldKey))
-              varMappings += (fieldKey -> { () => c(field.get) })
-
-              valueOpt match {
-                case None =>
-                  varSpec.constraint.default foreach (  setValueForField(_, field, t.from) )
-                case Some(value) =>
-                  setValueForField(value, field, t.from)
-              }
-          }
-      }
-
-      field.displayName = varSpec.description
-      field.tooltip = varSpec.longDescription
-      field.optional = varSpec.constraint.mayBeEmpty
-      field
-    }
-
     val children = for (child <- sectionSpec.children) yield {
       child match {
-        case varSpec: SectionVariableSpec => createVarField(varSpec, sectionMap.getOrElse(varSpec.name,None))
+        case varSpec: SectionVariableSpec =>
+          val (field, mapping) = createVarField(varSpec, sectionMap.getOrElse(varSpec.name,None))
+          varMappings += mapping
+          field
         case sectSpec: SectionSpec =>
           val subSectionMap = if(isNewPolicy) createDefaultMap(sectSpec) else sectionMap
-          createSingleSectionFieldForMultisec(sectSpec, subSectionMap, isNewPolicy)
+          boundUsedFields(createSingleSectionFieldForMultisec(sectSpec, subSectionMap, isNewPolicy, usedFields), usedFields)
       }
     }
 

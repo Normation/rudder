@@ -605,7 +605,7 @@ class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstra
     else {
       _x = x
       val r = {
-          HashAlgoConstraint.unserializeIn(algos, x) match {
+          HashAlgoConstraint.unserializeIn(algos.toSet, x) match {
             case Full((a,hash)) =>
               //update the hash algo to use only if not specified.
               //we don't check if previous hash and current algo matches: we only enforce
@@ -631,7 +631,7 @@ class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstra
 
   var initialPass: String = null
 
-  def toForm() = {
+  def toForm = {
     //the radio - the default value is keep
     val (radioKeep, radioChange, radioBlank) = {
       val radios : ChoiceHolder[String] = SHtml.radio(Seq("keep","change", "blank"), Full(currentRadio), { s =>
@@ -708,5 +708,235 @@ object PasswordField {
         </td>
       </tr>
     </table>
+}
 
+class MasterPasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstraint]) extends DirectiveField {
+  self =>
+  type ValueType = String
+  def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+  def getDefaultValue = ""
+  def manifest = manifestOf[String]
+  override val uniqueFieldId = Full(id)
+  def name = id
+  def validate = Nil
+  def validations = Nil
+  def setFilter = Nil
+
+  override def usedFields_=(fields: Seq[DirectiveField]): Unit = {
+    _usedFields = fields
+    slaves = fields.collect { case f: DerivedPasswordField => f }.toList
+  }
+
+  var slaves = List[DerivedPasswordField]() // will be init on usedField update - I hate mutable state
+
+  //the actual backend value like: sha1:XXXXXX
+  private[this] var _x: String = getDefaultValue
+
+  //the algo to use
+  private[this] var currentAlgo: Option[HashAlgoConstraint] = algos.headOption
+  private[this] var currentHash: String = ""
+
+  //to store the result
+  private[this] var currentValue: String = ""
+  private[this] var currentRadio: String = "keep"
+
+  private[this] var blank = false
+  private[this] var keepCurrent = true
+
+  /*
+   * find the new internal value of the hash given:
+   * - past value
+   * - blank required
+   * - new value
+   */
+  private[this] def newInternalValue(keepCurrentPwd: Boolean, blankPwd:Boolean, pastValue:String, newInput:String, chosenAlgo:HashAlgoConstraint) : String = {
+    slaves.foreach { s =>
+      s.updateValue(keepCurrentPwd, blankPwd, pastValue, newInput, chosenAlgo)
+    }
+
+    currentValue = newInput
+
+    if(keepCurrentPwd) pastValue
+    else if(blankPwd) ""
+    else if(newInput == "") ""
+    else chosenAlgo.serialize(newInput.getBytes())
+  }
+
+
+  def parseClient(s: String): Unit = {
+    if (null == s) _x = "" else _x = s
+  }
+  def toClient: String = if (null == _x) "" else _x
+
+  def get = _x
+
+  //initialize the field
+  def set(x: String) = {
+    if (null == x || "" == x) _x = ""
+    else {
+      _x = x
+      val r = {
+          HashAlgoConstraint.unserializeIn(algos.toSet, x) match {
+            case Full((a,hash)) =>
+              //update the hash algo to use only if not specified.
+              //we don't check if previous hash and current algo matches: we only enforce
+              //that new passwords use the new specified algo
+              (Some(a),hash)
+            case eb:EmptyBox =>
+              //we don't have a password with the correct format.
+              //report an error, assume the default (first) algo
+              logger.error((eb ?~! "Error when reading stored password hash").messageChain)
+              (None, x)
+          }
+      }
+      currentAlgo = r._1
+      currentHash = r._2
+    }
+
+    //initialise what to display for "current value" the first time
+    _x
+  }
+
+  def currentValue(): NodeSeq = { //I hate mutable state
+        if(toClient == "") {
+          <span>: No password defined</span>
+        } else {
+          val algoName = currentAlgo match {
+            case Some(a) => a.name
+            case None => "Unknown"
+          }
+
+          val hashList = toClient :: slaves.collect { case s if(s.toClient != "") => s.toClient }
+
+
+          (
+           <span> ({algoName} hash):</span>
+           <ul style="overflow-x: scrollbar">{hashList.map(x => <li><pre>{x.replaceAll(":", ": ").take(60)}...</pre></li>)}</ul>
+          )
+        }
+  }
+
+  //add a mapping between algo names and what is displayed, because having
+  //linux-... or aix-... does not make sense in that context
+  implicit class AlgoToDisplayName(a: HashAlgoConstraint) {
+    import com.normation.cfclerk.domain.HashAlgoConstraint._
+
+    def name = a match {
+      case PLAIN                         => "Verbatim text"
+      case MD5                           => "MD5 (Non salted)"
+      case SHA1                          => "SHA1 (Non salted)"
+      case SHA256                        => "SHA256 (Non salted)"
+      case SHA512                        => "SHA512 (Non salted)"
+      case LinuxShadowMD5    | AixMD5    => "MD5 (Unix Crypt)"
+      case LinuxShadowSHA256 | AixSHA256 => "SHA256 (Unix Crypt)"
+      case LinuxShadowSHA512 | AixSHA512 => "SHA512 (Unix Crypt)"
+      case UnixCryptDES                  => "DES (Unix Crypt)"
+    }
+  }
+
+  def toForm = {
+    //the radio - the default value is keep
+    val (radioKeep, radioChange, radioBlank) = {
+      val radios : ChoiceHolder[String] = SHtml.radio(Seq("keep","change", "blank"), Full(currentRadio), { s =>
+        currentRadio = s
+        s match {
+          case "keep" => blank = false ; keepCurrent = true;
+          case "blank" => blank = true ; keepCurrent = false;
+          case _ => blank = false; keepCurrent = false;
+      } }, ("style" -> "margin-right:10px") )
+
+      (radios(0),radios(1),radios(2))
+    }
+
+    val form =
+      "zone=value *" #> currentValue() &
+      "zonechooseHash" #> ( (xml:NodeSeq) => if(algos.size < 1) Text(s"hash with) ${algos.head.prefix.toUpperCase}") else xml ) &
+      "name=hash" #> (if(algos.size == 1) {
+                       Text(algos.head.prefix.toUpperCase)
+                     } else {
+                       SHtml.selectObj(algos.map(a => (a, a.name))
+                                      , Box(currentAlgo)
+                                      , { (a:HashAlgoConstraint) => currentAlgo = Some(a) }
+                       )
+                     } ) &
+      ".radioKeep" #> radioKeep &
+      ".radioChange" #> radioChange &
+      "name=password" #> S.formGroup(10) { //use formGroup because must be the last evaluated method
+                           //always "" for default value
+                           SHtml.password(
+                               currentValue
+                                // ".get" should be licit at that point, because is only when reading from LDAP
+                             , {s => parseClient(newInternalValue(keepCurrent, blank, toClient, s, currentAlgo.get)) }
+                           )
+                         } &
+      "zone=blank" #>  { (nodes:NodeSeq) =>
+                         (if(blankable) {
+                           (".radioBlank" #> { (nodes:NodeSeq) => radioBlank }).apply(nodes)
+                         } else {
+                           NodeSeq.Empty
+                         })
+      }
+
+
+    Full(form.apply(PasswordField.xml))
+
+  }
+}
+
+
+
+class DerivedPasswordField(val id: String, mapping: HashAlgoConstraint.DerivedPasswordType) extends DirectiveField {
+  self =>
+  type ValueType = String
+  def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+  def getDefaultValue = ""
+  def manifest = manifestOf[String]
+  override val uniqueFieldId = Full(id)
+  def name = id
+  def validate = Nil
+  def validations = Nil
+  def setFilter = Nil
+
+
+  //the actual backend value like: sha1:XXXXXX
+  private[this] var _x: String = getDefaultValue
+
+  //the mapping between source algo and corresponding algo
+
+
+  /*
+   * Update internal value thanks to a new value from the
+   * master passwords field
+   */
+  def updateValue(keepCurrentPwd: Boolean, blankPwd:Boolean, pastValue:String, newInput:String, chosenAlgo:HashAlgoConstraint) : String = {
+    if(keepCurrentPwd) {
+      /*nothing*/
+    } else if(blankPwd || newInput == "") {
+      _x = ""
+    } else {
+      _x = mapping.hash(chosenAlgo).serialize(newInput.getBytes())
+    }
+    _x
+  }
+
+
+  def parseClient(s: String): Unit = {
+    if (null == s) _x = "" else _x = s
+  }
+  def toClient: String = if (null == _x) "" else _x
+  def get = _x
+
+  //initialize the field
+  def set(x: String) = {
+    if (null == x || "" == x) _x = ""
+    else _x = x
+    _x
+  }
+
+  //we don't want to display ANYTHING for that field
+           def toForm        = Full(NodeSeq.Empty)
+  override def toFormNodeSeq = NodeSeq.Empty
+  override def toHtmlNodeSeq = <span></span>
+  override def displayValue  = <span></span>
+  override def displayHtml   = Text("")
 }
