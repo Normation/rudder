@@ -122,6 +122,14 @@ trait DirectiveField extends BaseField with SectionChildField {
   //update list error accordingly
   def parseClient(s: String): Unit
 
+
+  //reference to other fields used by that field
+  protected var _usedFields = Seq[DirectiveField]()
+  def usedFields_=(fields: Seq[DirectiveField]): Unit = {
+    _usedFields = fields
+  }
+  def usedFields = _usedFields
+
   private var description: String = ""
   override def displayName = description
   def displayName_=(s: String): Unit = description = s
@@ -227,6 +235,23 @@ trait SectionField extends SectionChildField {
   // - the user want to have the section displayed
   // - the user want to have the section hidden
   var displayed : Option[Boolean] = Option.empty[Boolean]
+
+  def collectVariables(onlyDirect: Boolean): Map[String, DirectiveField] = {
+    childFields.flatMap { x => x match {
+        case v: DirectiveField => Seq((v.id -> v))
+        case s: SectionField   =>
+          if(onlyDirect) {
+            Seq[(String, DirectiveField)]()
+          } else {
+            s.collectVariables(onlyDirect)
+      }
+    } }.toMap
+  }
+
+  // get all variables in that section
+  def getAllDirectVariables: Map[String, DirectiveField] = collectVariables(true)
+  //get all sub-variables
+  def getAllVariables: Map[String, DirectiveField] = collectVariables(false)
 
   def isMultivalued = this match {
     case _: MultivaluedSectionField => true

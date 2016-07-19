@@ -1777,6 +1777,9 @@ object RudderConfig extends Loggable {
           case BooleanVType => new CheckboxField(id)
           case TextareaVType(r) => new TextareaField(id)
           case PasswordVType(algos) => new PasswordField(id, input.constraint.mayBeEmpty, algos)
+          case MasterPasswordVType(algos) => new MasterPasswordField(id, input.constraint.mayBeEmpty, algos)
+          case AixDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.AIX)
+          case LinuxDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.Linux)
           case _ => default(id)
         }
         case predefinedField: PredefinedValuesVariableSpec => new ReadOnlyTextField(id)
