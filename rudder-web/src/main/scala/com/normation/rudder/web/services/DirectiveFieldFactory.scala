@@ -54,7 +54,7 @@ trait DirectiveFieldFactory {
    * should be never null.
    * If the required type is not known, return a default field
    */
-  def forType(fieldType:VariableSpec,id:String) : DirectiveField
+  def forType(fieldType:VariableSpec, id: String) : DirectiveField
 
   def default(id:String) : DirectiveField
 }
