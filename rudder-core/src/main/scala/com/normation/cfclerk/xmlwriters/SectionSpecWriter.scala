@@ -53,47 +53,52 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
 
   }
   private[this] def serializeVariable(variable:SectionVariableSpec):NodeSeq = {
+    //special case for derived password that are invisible
+    variable.constraint.typeName match {
+      case _:DerivedPasswordVType => NodeSeq.Empty
+      case _ =>
 
-    val (label,valueLabels) = variable match {
-      case input:InputVariableSpec => (INPUT,Seq())
-        // Need to pattern match ValueLabel or compiler complains about missing patterns
-      case predefined: PredefinedValuesVariableSpec => (REPORT_KEYS, Seq())
-        // Need to pattern match PredefinedValuesVariableSpec or compiler complains about missing patterns
-      case valueLabel:ValueLabelVariableSpec =>
-        val label = valueLabel match {
-          case select:SelectVariableSpec => SELECT
-          case selectOne:SelectOneVariableSpec => SELECT1
+        val (label,valueLabels) = variable match {
+          case input:InputVariableSpec => (INPUT,Seq())
+            // Need to pattern match ValueLabel or compiler complains about missing patterns
+          case predefined: PredefinedValuesVariableSpec => (REPORT_KEYS, Seq())
+            // Need to pattern match PredefinedValuesVariableSpec or compiler complains about missing patterns
+          case valueLabel:ValueLabelVariableSpec =>
+            val label = valueLabel match {
+              case select:SelectVariableSpec => SELECT
+              case selectOne:SelectOneVariableSpec => SELECT1
+            }
+
+            (label, valueLabel.valueslabels)
         }
 
-        (label, valueLabel.valueslabels)
-    }
+        // if we have a predefined values variables, we need to serialize it
+        val predefinedValues = variable match {
+          case predefined: PredefinedValuesVariableSpec =>
+            predefined.nelOfProvidedValues.map(x => <VALUE>{x}</VALUE>)
+          case _ => NodeSeq.Empty
+        }
+        val name            = createXmlTextNode(VAR_NAME,               variable.name)
+        val description     = createXmlTextNode(VAR_DESCRIPTION,        variable.description)
+        val longDescription = createXmlTextNode(VAR_LONG_DESCRIPTION,   variable.longDescription)
+        val isUnique        = createXmlTextNode(VAR_IS_UNIQUE_VARIABLE, variable.isUniqueVariable.toString)
+        val isMultiValued   = createXmlTextNode(VAR_IS_MULTIVALUED,     variable.multivalued.toString)
+        val checked         = createXmlTextNode(VAR_IS_CHECKED,         variable.checked.toString)
+        val items           = (valueLabels.map(serializeItem(_))/:NodeSeq.Empty)((a,b) => a ++ b)
+        val constraint      = serializeConstraint(variable.constraint)
 
-    // if we have a predefined values variables, we need to serialize it
-    val predefinedValues = variable match {
-      case predefined: PredefinedValuesVariableSpec =>
-        predefined.nelOfProvidedValues.map(x => <VALUE>{x}</VALUE>)
-      case _ => NodeSeq.Empty
-    }
-    val name            = createXmlTextNode(VAR_NAME,               variable.name)
-    val description     = createXmlTextNode(VAR_DESCRIPTION,        variable.description)
-    val longDescription = createXmlTextNode(VAR_LONG_DESCRIPTION,   variable.longDescription)
-    val isUnique        = createXmlTextNode(VAR_IS_UNIQUE_VARIABLE, variable.isUniqueVariable.toString)
-    val isMultiValued   = createXmlTextNode(VAR_IS_MULTIVALUED,     variable.multivalued.toString)
-    val checked         = createXmlTextNode(VAR_IS_CHECKED,         variable.checked.toString)
-    val items           = (valueLabels.map(serializeItem(_))/:NodeSeq.Empty)((a,b) => a ++ b)
-    val constraint      = serializeConstraint(variable.constraint)
-
-    val children = (  name
-                   ++ description
-                   ++ longDescription
-                   ++ isUnique
-                   ++ isMultiValued
-                   ++ checked
-                   ++ items
-                   ++ constraint
-                   ++ predefinedValues
-                   ).flatten
-    createXmlNode(label,children)
+        val children = (  name
+                       ++ description
+                       ++ longDescription
+                       ++ isUnique
+                       ++ isMultiValued
+                       ++ checked
+                       ++ items
+                       ++ constraint
+                       ++ predefinedValues
+                       ).flatten
+        createXmlNode(label,children)
+      }
   }
 
   private[this] def serializeItem(item:ValueLabel):NodeSeq = {
@@ -123,8 +128,28 @@ class SectionSpecWriterImpl extends SectionSpecWriter {
                              CONSTRAINT_PASSWORD_HASH
                            , VTypeConstraint.getPasswordHash(constraint.typeName).map(_.prefix).mkString(",")
                          )
+    val derived        = {
+                           val types = constraint.usedFields.flatMap { x =>
+                             val y = x.toUpperCase
+                             if(y.endsWith("_AIX")) {
+                               Some("AIX")
+                             } else if(y.endsWith("_LINUX")) {
+                               Some("LINUX")
+                             } else {
+                               None
+                             }
+                           }
+                           if(types.isEmpty) {
+                             NodeSeq.Empty
+                           } else {
+                             createXmlTextNode(
+                                 CONSTRAINT_PWD_AUTOSUBVARIABLES
+                               , types.mkString(",")
+                             )
+                           }
+                         }
 
-    val children       = Seq(constraintType,dflt,empty,regexp,hashAlgos).flatten
+    val children       = Seq(constraintType,dflt,empty,regexp,hashAlgos,derived).flatten
 
     createXmlNode(VAR_CONSTRAINT,children)
   }
