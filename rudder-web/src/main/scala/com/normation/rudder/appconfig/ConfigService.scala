@@ -97,6 +97,11 @@ trait ReadConfigService {
    * Logging properties
    */
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
+
+  /**
+   * Should we send backward compatible data from API
+   */
+  def api_compatibility_mode(): Box[Boolean]
 }
 
 /**
@@ -140,6 +145,11 @@ trait UpdateConfigService {
    */
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean): Box[Unit]
 
+  /**
+   * Should we send backward compatible data from API
+   */
+  def set_api_compatibility_mode(value: Boolean): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -165,6 +175,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.modified.files.ttl=30
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
+       api.compatibility.mode=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -254,7 +265,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
         }
     }
 
-
   }
   def set_agent_run_interval(value: Int): Box[Unit] = {
     cacheExecutionInterval = Some(value)
@@ -281,5 +291,11 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean] = get("rudder_store_all_centralized_logs_in_file")
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean) = save("rudder_store_all_centralized_logs_in_file", value)
+
+  /**
+   * Should we send backward compatible data from API
+   */
+  def api_compatibility_mode(): Box[Boolean] = get("api_compatibility_mode")
+  def set_api_compatibility_mode(value : Boolean): Box[Unit] = save("api_compatibility_mode", value)
 
 }

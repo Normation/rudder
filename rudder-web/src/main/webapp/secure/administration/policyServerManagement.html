@@ -434,6 +434,40 @@ These files are automatically removed to save on disk space. You can configure t
     </div>
 
     <div class="inner-portlet">
+      <div class="inner-portlet-header">Api backward compatibility</div>
+      <div class="portlet-content">
+
+        <div class="lift:administration.PropertiesManagement.apiMode" id="storeAllLogsForm">
+          <div class="intro">
+            <div>
+              <p> API response used to send data that may not be sent back to the API for modification.
+                 Parameter to enable a directive is 'enabled', but API response was using 'isEnabled' for that parameter, so you had to handle this case before sending data.
+                 We have harmonized response and parameters (in this <a href="http://www.rudder-project.org/redmine/issues/8687"></a>).
+                 But if you had script based on malformed response, you can enable this option.
+              </p>
+            </div>
+          </div>
+
+          <hr class="spacer" />
+        <div class="deca">
+
+            <form class="lift:form.ajax">
+              <div class="wbBaseField">
+                    <label class="threeCol textight" for="apiMode" style="font-weight:bold;width: 40%;">
+                      <span style="float:left">Enable API backward compatibility: </span>
+                    </label>
+                    <input id="apiMode" type="text"/>
+              </div>
+              <hr class="spacer"/>
+              <input type="submit" value="[save]" id="apiModeSubmit"/>
+              <lift:Msg id="apiModeMsg">[messages]</lift:Msg>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
       <div class="inner-portlet-header">Clear policy caches</div>
       <div class="portlet-content">
 
