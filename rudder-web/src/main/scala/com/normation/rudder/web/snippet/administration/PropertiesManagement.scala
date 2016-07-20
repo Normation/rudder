@@ -52,7 +52,6 @@ import com.normation.rudder.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
 
-
 class PropertiesManagement extends DispatchSnippet with Loggable {
 
   private[this] val configService : ReadConfigService with UpdateConfigService = RudderConfig.configService
@@ -71,11 +70,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "cfagentSchedule" => cfagentScheduleConfiguration
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
+    case "apiMode" => apiComptabilityMode
   }
 
-
   def changeMessageConfiguration = { xml : NodeSeq =>
-
 
     // initial values
     var initEnabled = configService.rudder_ui_changeMessage_enabled
@@ -130,7 +128,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       )
     }
 
-
     // Rendering
     ( "#configurationRepoPath" #> RudderConfig.RUDDER_DIR_GITROOT &
       "#enabled" #> {
@@ -177,7 +174,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
         initExplanation match {
           case Full(value) =>
-
 
             SHtml.ajaxText(
                 value
@@ -243,7 +239,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var enabled = initEnabled.getOrElse(false)
     var selfVal = initSelfVal.getOrElse(false)
     var selfDep = initSelfDep.getOrElse(false)
-
 
     def submit = {
       configService.set_rudder_workflow_enabled(enabled).foreach(updateOk => initEnabled = Full(enabled))
@@ -362,11 +357,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     //convention: we negate on server i/o, not anywhere else
     var initNoSkipIdentify = configService.cfengine_server_skipidentify.map( !_ )
 
-
     // form values
     var denyBadClocks = initDenyBadClocks.getOrElse(false)
     var noSkipIdentify = initNoSkipIdentify.getOrElse(false)
-
 
     def submit = {
       configService.set_cfengine_server_denybadclocks(denyBadClocks).foreach(updateOk => initDenyBadClocks = Full(denyBadClocks))
@@ -418,7 +411,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                to within an hour. Disabling this will bypass this check, but may open a window for replay attacks.
             </div>
 
-
           case _ => NodeSeq.Empty
         }
       } &
@@ -463,7 +455,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
-
   def cfagentScheduleConfiguration = { xml : NodeSeq =>
 
     var jsonSchedule = "{}"
@@ -471,7 +462,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     //return a box of (interval, start hour, start min, splay)
     def parseJsonSchedule(s: String) : Box[(Int, Int, Int, Int)] = {
       import net.liftweb.json._
-
 
       val json = parse(s)
 
@@ -527,7 +517,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       Noop
     }
 
-
     val transform = (for {
       starthour <- configService.agent_run_start_hour
       startmin  <- configService.agent_run_start_minute
@@ -570,11 +559,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     var initModifiedFilesTtl = configService.cfengine_modified_files_ttl
     var initCfengineOutputsTtl = configService.cfengine_outputs_ttl
 
-
     // form values
     var modifiedFilesTtl = initModifiedFilesTtl.getOrElse(30).toString
     var cfengineOutputsTtl = initCfengineOutputsTtl.getOrElse(7).toString
-
 
     def submit = {
       // first, check if the content are effectively Int
@@ -694,7 +681,49 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
+  def apiComptabilityMode = { xml : NodeSeq =>
+
+    //  initial values, updated on successfull submit
+    var initApiMode = configService.api_compatibility_mode()
+
+    // form values
+    var apiMode  = initApiMode.getOrElse(true)
+
+    def submit = {
+      configService.set_api_compatibility_mode(apiMode).foreach(updateOk => initApiMode = Full(apiMode))
+
+      S.notice("apiModeMsg", "Api compatibility mode changed")
+      check()
+    }
+
+    def noModif = (
+         initApiMode.map(_ == apiMode).getOrElse(false)
+    )
+
+    def check() = {
+      if(!noModif){
+        S.notice("apiModeMsg","")
+      }
+      Run(s"""$$("#apiModeSubmit").button( "option", "disabled",${noModif});""")
+    }
+
+    ( "#apiMode" #> {
+      initApiMode match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value
+            , (b : Boolean) => { apiMode = b; check() }
+            , ("id","apiMode")
+          )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Api compatibility mode' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+      "#apiModeSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
 
 }
-
-
