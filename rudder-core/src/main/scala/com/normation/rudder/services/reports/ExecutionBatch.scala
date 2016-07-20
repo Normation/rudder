@@ -104,7 +104,7 @@ sealed trait RunAndConfigInfo
 sealed trait ErrorNoConfigData extends RunAndConfigInfo
 
 sealed trait ExpectedConfigAvailable extends RunAndConfigInfo {
-  def expectedConfigId: NodeConfigIdInfo
+  def expectedConfigInfo: NodeConfigIdInfo
 }
 
 sealed trait NoReport extends ExpectedConfigAvailable
@@ -125,8 +125,15 @@ sealed trait LastRunAvailable extends RunAndConfigInfo {
   //config id because we must have some logic to find WHAT
   //is the applicable version in all case - it's one of the
   //major goal of ExecutionBatch#computeNodeRunInfo
-  def lastRunConfigId: NodeConfigIdInfo
+  def lastRunConfigId: NodeConfigId
+
+  // most of the time, we do have the corresponding
+  // configId in base. But not always, for example
+  // if the node configId was corrupted
+  def lastRunConfigInfo: Option[NodeConfigIdInfo]
 }
+
+
 
 /**
  * The date and time when the status expires.
@@ -148,7 +155,7 @@ sealed trait ExpiringStatus extends RunAndConfigInfo {
 /*
  * Really, that node exists ?
  */
-case object NoRunNoInit extends ErrorNoConfigData
+case object NoRunNoExpectedReport extends ErrorNoConfigData
 
 /*
  * We don't have the needed configId in the expected
@@ -157,7 +164,7 @@ case object NoRunNoInit extends ErrorNoConfigData
  * (it is some weird data lost in the server, or a node
  * not yet initialized)
  */
-case class VersionNotFound(
+case class NoExpectedReport(
     lastRunDateTime: DateTime
   , lastRunConfigId: Option[NodeConfigId]
 ) extends ErrorNoConfigData
@@ -167,7 +174,7 @@ case class VersionNotFound(
  * some but too old for our situation)
  */
 case class NoReportInInterval(
-    expectedConfigId: NodeConfigIdInfo
+    expectedConfigInfo: NodeConfigIdInfo
 ) extends NoReport
 
 /*
@@ -175,11 +182,11 @@ case class NoReportInInterval(
  * we are on the correct mode for that
  */
 case class ReportsDisabledInInterval(
-    expectedConfigId: NodeConfigIdInfo
+    expectedConfigInfo: NodeConfigIdInfo
 ) extends NoReport
 
 case class Pending(
-    expectedConfigId   : NodeConfigIdInfo
+    expectedConfigInfo : NodeConfigIdInfo
   , optLastRun         : Option[(DateTime, NodeConfigIdInfo)]
   , expirationDateTime : DateTime
   , missingReportStatus: ReportType
@@ -192,11 +199,13 @@ case class Pending(
  */
 case class UnexpectedVersion(
     lastRunDateTime   : DateTime
-  , lastRunConfigId   : NodeConfigIdInfo
+  , lastRunConfigInfo : Some[NodeConfigIdInfo]
   , lastRunExpiration : DateTime
-  , expectedConfigId  : NodeConfigIdInfo
+  , expectedConfigInfo: NodeConfigIdInfo
   , expectedExpiration: DateTime
-) extends Unexpected with LastRunAvailable
+) extends Unexpected with LastRunAvailable {
+  val lastRunConfigId = lastRunConfigInfo.get.configId
+}
 
 /**
  * A case where we have a run without version,
@@ -205,20 +214,39 @@ case class UnexpectedVersion(
  */
 case class UnexpectedNoVersion(
     lastRunDateTime   : DateTime
-  , lastRunConfigId   : NodeConfigIdInfo
+  , lastRunConfigInfo : Some[NodeConfigIdInfo]
   , lastRunExpiration : DateTime
-  , expectedConfigId  : NodeConfigIdInfo
+  , expectedConfigInfo: NodeConfigIdInfo
   , expectedExpiration: DateTime
-) extends Unexpected with LastRunAvailable
+) extends Unexpected with LastRunAvailable {
+  val lastRunConfigId = lastRunConfigInfo.get.configId
+}
+
+/**
+ * A case where we have a run with a version,
+ * but we didn't find it in db,
+ * but we really should, because versions are init
+ * in the server for that node
+ */
+case class UnexpectedUnknowVersion(
+    lastRunDateTime   : DateTime
+  , lastRunConfigId   : NodeConfigId
+  , expectedConfigInfo: NodeConfigIdInfo
+  , expectedExpiration: DateTime
+) extends Unexpected with LastRunAvailable {
+  val lastRunConfigInfo = None
+}
 
 
 case class ComputeCompliance(
     lastRunDateTime    : DateTime
-  , lastRunConfigId    : NodeConfigIdInfo
-  , expectedConfigId   : NodeConfigIdInfo
+  , expectedConfigInfo : NodeConfigIdInfo
   , expirationDateTime : DateTime
   , missingReportStatus: ReportType
-) extends Ok with LastRunAvailable with ExpiringStatus with MissingReportStatus
+) extends Ok with LastRunAvailable with ExpiringStatus with MissingReportStatus {
+  val lastRunConfigId   = expectedConfigInfo.configId
+  val lastRunConfigInfo = Some(expectedConfigInfo)
+}
 
 /**
  * An execution batch contains the node reports for a given Rule / Directive at a given date
@@ -318,6 +346,7 @@ object ExecutionBatch extends Loggable {
     }
 
     val now = DateTime.now
+
     nodeIds.foreach { case (nodeId, runInfos) =>
       ComplianceDebugLogger.node(nodeId).debug(s"Node run configuration: ${(nodeId, complianceMode, runInfos).toLog }")
     }
@@ -332,7 +361,7 @@ object ExecutionBatch extends Loggable {
           case Some(configs) if(configs.nonEmpty) =>
             runType(s"compliance mode is set to '${}', it's ok to not having reports", ReportsDisabledInInterval(configs.maxBy(_.creation.getMillis)))
           case _ =>
-            runType(s"nodeId has no configuration ID version (it should, even in ${ReportsDisabled.name} compliance mode", NoRunNoInit)
+            runType(s"nodeId has no configuration ID version (it should, even in ${ReportsDisabled.name} compliance mode", NoRunNoExpectedReport)
         }
       } else {
 
@@ -352,12 +381,12 @@ object ExecutionBatch extends Loggable {
 
         (optRun, optInfo) match {
           case (None, None) =>
-            runType("", NoRunNoInit)
+            runType("", NoRunNoExpectedReport)
 
           // There is no run for this node
           case (None, Some(configs)) =>
             if(configs.isEmpty) {
-              runType("nodeId exists in DB but has no version (due to cleaning?)", NoRunNoInit)
+              runType("nodeId exists in DB but has no version (due to cleaning?)", NoRunNoExpectedReport)
             } else {
               val currentConfig = configs.maxBy(_.creation.getMillis)
               val expireTime = currentConfig.creation.plus(updateValidityTime(intervalInfo))
@@ -399,12 +428,12 @@ object ExecutionBatch extends Loggable {
     (runToCheck, nodeConfigIdInfos) match {
 
       case (AgentRun(AgentRunId(_, t), optConfigId, _, _), None) =>
-        runType("need to regenerate policies?", VersionNotFound(t, optConfigId))
+        runType("need to regenerate policies?", NoExpectedReport(t, optConfigId))
 
       //The run does not have a configId: migration, new nodes, etc.
       case (AgentRun(AgentRunId(_, t), None, _, _), Some(configs)) =>
         if(configs.isEmpty) {
-          runType("nodeId exists in DB but has no version (due to cleaning?)", VersionNotFound(t, None))
+          runType("nodeId exists in DB but has no version (due to cleaning?)", NoExpectedReport(t, None))
         } else {
           /*
            * Here, we want to check two things:
@@ -422,7 +451,7 @@ object ExecutionBatch extends Loggable {
             val currentConfig = configs.maxBy( _.creation.getMillis)
             val currentExpiration = currentConfig.creation.plus(updateValidityDuration)
             runType(s"node send reports without nodeConfigId but the oldest configId (${oldestConfigId.configId.value}) expired since ${oldestExpiration})"
-            , UnexpectedNoVersion(t, oldestConfigId, oldestExpiration, currentConfig, currentExpiration)
+            , UnexpectedNoVersion(t, Some(oldestConfigId), oldestExpiration, currentConfig, currentExpiration)
             )
           } else {
             val currentConfigId = configs.maxBy( _.creation.getMillis )
@@ -444,17 +473,20 @@ object ExecutionBatch extends Loggable {
         if(configs.isEmpty) {
           //error: we have a MISSING config id. Contrary to the case where any config id is missing
           //for the node, here we have a BAD id.
-          runType("nodeId exists in DB but has no version (due to cleaning?)", VersionNotFound(t, Some(rv)))
+          runType("nodeId exists in DB but has no version (due to cleaning?)", NoExpectedReport(t, Some(rv)))
         } else {
           configs.find { i => i.configId == rv} match {
             case None =>
-              //it's a bad version.
-              runType(s"nodeId exists in DB and has configId, but not ${rv.value} (due to cleaning?)", VersionNotFound(t, Some(rv)))
+              //it's a bad version, but we have config id in DB => likelly a corruption on node
+              val expectedVersion = configs.maxBy( _.creation.getMillis )
+              //expirationTime is the date after which we must have gotten a report for that version
+              val expirationTime = expectedVersion.creation.plus(updateValidityDuration)
+
+              runType(s"nodeId exists in DB and has configId, expected configId is ${expectedVersion.configId.value}, but ${rv.value} was not found (node corruption?)",
+                  UnexpectedUnknowVersion(t, rv, expectedVersion, expirationTime)
+              )
 
             case Some(v) => //nominal case !
-              //check if the run is not too old for the version, i.e if endOflife + grace is before run
-              val currentConfigId = configs.maxBy( _.creation.getMillis )
-
               v.endOfLife match {
                 case None =>
                   //nominal (bis)! The node is answering to current config !
@@ -465,11 +497,14 @@ object ExecutionBatch extends Loggable {
                     )
                   } else { //nominal case
                     runType(s"Last run at ${t} is for the correct configId ${v.configId.value} and not expired, compute compliance"
-                    , ComputeCompliance(t, v, currentConfigId, expirationTime, missingReportType)
+                    , ComputeCompliance(t, v, expirationTime, missingReportType)
                     )
                   }
 
                 case Some(eol) =>
+                  //check if the run is not too old for the version, i.e if endOflife + grace is before run
+                  val currentConfigId = configs.maxBy( _.creation.getMillis )
+
                   // a more recent version exists, so we are either awaiting reports
                   // for it, or in some error state (completely unexpected version or "just" no report
                   val eolExpiration = eol.plus(updateValidityDuration)
@@ -477,7 +512,7 @@ object ExecutionBatch extends Loggable {
                   if(eolExpiration.isBefore(t)) {
                     //we should have had a more recent run
                     runType(s"node sent reports at ${t} for configId ${rv.value} (which expired at ${eol}) but should have been for configId ${currentConfigId.configId.value}"
-                    , UnexpectedVersion(t, v, eolExpiration, currentConfigId, expirationTime)
+                    , UnexpectedVersion(t, Some(v), eolExpiration, currentConfigId, expirationTime)
                     )
                   } else {
                     if(expirationTime.isBefore(timeToCompareTo)) {
@@ -528,7 +563,7 @@ object ExecutionBatch extends Loggable {
       }
     }
 
-    def buildUnexpectedVersion(runTime: DateTime, runVersion: NodeConfigIdInfo, runExpiration: DateTime, expectedVersion: NodeConfigIdInfo, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]) = {
+    def buildUnexpectedVersion(runTime: DateTime, runVersion: Option[NodeConfigIdInfo], runExpiration: DateTime, expectedVersion: NodeConfigIdInfo, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]) = {
         //mark all report of run unexpected,
         //all expected missing
         buildRuleNodeStatusReport(
@@ -536,7 +571,7 @@ object ExecutionBatch extends Loggable {
           , getExpectedReports(expectedVersion.configId)
           , MissingReportType
         ) ++
-        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), Some(runVersion.configId), runExpiration), nodeStatusReports)
+        buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
     }
 
     //only interesting reports: for that node, with a status
@@ -556,12 +591,12 @@ object ExecutionBatch extends Loggable {
           , DisabledReportType
         )
 
-      case ComputeCompliance(lastRunDateTime, lastRunConfigId, expectedConfigId, expirationTime, missingReportStatus) =>
-        ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run ${lastRunConfigId.toLog} and expect reports ${expectedConfigId.toLog}")
+      case ComputeCompliance(lastRunDateTime, expectedConfigId, expirationTime, missingReportStatus) =>
+        ComplianceDebugLogger.node(nodeId).trace(s"Using merge/compare strategy between last reports from run at ${lastRunDateTime} and expect reports ${expectedConfigId.toLog}")
         mergeCompareByRule(
-            MergeInfo(nodeId, Some(lastRunDateTime), Some(lastRunConfigId.configId), expirationTime)
+            MergeInfo(nodeId, Some(lastRunDateTime), Some(expectedConfigId.configId), expirationTime)
           , nodeStatusReports
-          , getExpectedReports(lastRunConfigId.configId)
+          , getExpectedReports(expectedConfigId.configId)
           , getExpectedReports(expectedConfigId.configId)
           , missingReportStatus
         )
@@ -604,22 +639,26 @@ object ExecutionBatch extends Loggable {
           , NoAnswerReportType
         )
 
-      case UnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration) =>
+      case UnexpectedVersion(runTime, Some(runVersion), runExpiration, expectedVersion, expectedExpiration) =>
         ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' with configId '${runVersion.configId.value}' but that node should be sending reports for configId ${expectedVersion.configId.value}")
-        buildUnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration, nodeStatusReports)
+        buildUnexpectedVersion(runTime, Some(runVersion), runExpiration, expectedVersion, expectedExpiration, nodeStatusReports)
 
-      case UnexpectedNoVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration) => //same as unextected, different log
+      case UnexpectedNoVersion(runTime, Some(runVersion), runExpiration, expectedVersion, expectedExpiration) => //same as unextected, different log
         ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' without any configId but that node should be sending reports for configId ${expectedVersion.configId.value}")
-        buildUnexpectedVersion(runTime, runVersion, runExpiration, expectedVersion, expectedExpiration, nodeStatusReports)
+        buildUnexpectedVersion(runTime, Some(runVersion), runExpiration, expectedVersion, expectedExpiration, nodeStatusReports)
 
-      case VersionNotFound(runTime, optConfigId) =>
+      case UnexpectedUnknowVersion(runTime, runId, expectedVersion, expectedExpiration) => //same as unextected, different log
+        ComplianceDebugLogger.node(nodeId).warn(s"Received a run at ${runTime} for node '${nodeId.value}' configId '${runId.value}' which is not known by Rudder, and that node should be sending reports for configId ${expectedVersion.configId.value}")
+        buildUnexpectedVersion(runTime, None, runTime, expectedVersion, expectedExpiration, nodeStatusReports)
+
+      case NoExpectedReport(runTime, optConfigId) =>
         // these reports where not expected
         ComplianceDebugLogger.node(nodeId).warn(s"Node '${nodeId.value}' sent reports for run at '${runInfo}' (with ${
           optConfigId.map(x => s" configuration ID: '${x.value}'").getOrElse(" no configuration ID")
         }). No expected configuration matches these reports.")
         buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), optConfigId, END_OF_TIME), nodeStatusReports)
 
-      case NoRunNoInit =>
+      case NoRunNoExpectedReport =>
         /*
          * Really, this node exists ? Shouldn't we just declare Ragnarök at that point ?
          */

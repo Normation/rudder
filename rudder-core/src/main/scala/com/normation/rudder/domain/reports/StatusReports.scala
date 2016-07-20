@@ -265,7 +265,7 @@ object ComponentStatusReport extends Loggable {
  * Values are lost. They are not really used today
  */
 final case class ComponentValueStatusReport(
-    componentValue             : String
+    componentValue          : String
   , unexpandedComponentValue: String
   , messages                : List[MessageStatusReport]
 ) extends StatusReport {
