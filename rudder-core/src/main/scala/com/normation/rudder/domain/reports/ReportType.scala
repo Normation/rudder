@@ -37,6 +37,7 @@
 
 
 package com.normation.rudder.domain.reports
+import scala.language.implicitConversions
 
 /**
  * List of all type of report we are expecting, as a result

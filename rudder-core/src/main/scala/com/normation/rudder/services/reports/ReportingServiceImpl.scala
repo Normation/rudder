@@ -216,7 +216,7 @@ trait CachedFindRuleNodeStatusReports extends ReportingService with CachedReposi
     cache = Map()
     logger.debug("Compliance cache cleared")
     //reload it for future use
-    future {
+    Future {
       for {
         infos <- nodeInfoService.getAll
       } yield {

@@ -58,6 +58,7 @@ import org.springframework.jdbc.core.RowMapper
 import java.sql.ResultSet
 import com.normation.rudder.domain.reports.NodeConfigId
 import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.language.implicitConversions
 
 
 case class RoReportsExecutionJdbcRepository (

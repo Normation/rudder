@@ -137,7 +137,7 @@ class RudderCf3PromisesFileWriterServiceImpl(
       val changePermission: scala.sys.process.ProcessBuilder = s"/bin/chmod -R u-x,u+rwX,go-rwx ${baseFolder}"
 
       // Permissions change is inside tryo, not sure if it throws exceptions, but as it interacts with IO, we cannot be sure
-      tryo { changePermission ! } match {
+      tryo { changePermission.! } match {
         case Full(result) =>
           if (result != 0) {
             Failure(s"Could not change permission for base folder ${baseFolder}")

@@ -185,7 +185,7 @@ class ReportsExecutionService (
     val startHooks = System.currentTimeMillis
 
 
-    future {
+    Future {
       //update changes by rules
       (for {
         changes <- reportsRepository.getChangeReportsOnInterval(lowestId, highestId)
@@ -204,7 +204,7 @@ class ReportsExecutionService (
       }
     }
 
-    future {
+    Future {
       // update compliance cache
       cachedCompliance.invalidate(updatedNodeIds) match {
         case eb: EmptyBox =>

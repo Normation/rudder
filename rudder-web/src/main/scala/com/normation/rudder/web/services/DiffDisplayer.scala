@@ -53,6 +53,7 @@ import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.policies._
 import com.normation.rudder.rule.category.RuleCategory
+import scala.language.implicitConversions
 
 
 
