@@ -229,7 +229,7 @@ class HomePage extends Loggable {
            "pending" ->
              JsObj (
                  "nodes" -> pending
-               , "percent"  -> (pending * 100  / numberOfNodes).round
+               , "percent"  -> (pending * 100.0  / numberOfNodes).round
              )
          , "active"  -> (numberOfNodes - pending)
        )

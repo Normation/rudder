@@ -57,6 +57,7 @@ import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.web.rest.node.CustomDetailLevel
 import com.normation.rudder.web.rest.node.MinimalDetailLevel
 import com.normation.rudder.repository.FullActiveTechnique
+import scala.language.implicitConversions
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest

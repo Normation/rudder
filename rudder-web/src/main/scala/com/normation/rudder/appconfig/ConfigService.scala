@@ -62,6 +62,7 @@ import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
 import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
 import com.normation.rudder.reports._
 import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
+import scala.language.implicitConversions
 
 /**
  * A service that Read mutable (runtime) configuration properties

@@ -104,6 +104,11 @@ object ComplianceDebugLogger extends Logger {
         s" last run: nodeConfigInfo: ${lastRunConfigInfo.toLog} received at ${lastRunDateTime} |"+
         s" expired at ${lastRunExpiration}"
 
+      case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfigInfo, expectedExpiration) =>
+        s"expected NodeConfigId: ${expectedConfigInfo.toLog} |"+
+        s" last run: nodeConfigId: ${lastRunConfigId.value} received at ${lastRunDateTime} |"+
+        s" expired at ${expectedExpiration}"
+
       case UnexpectedNoVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigInfo, expectedExpiration) =>
         s"expected NodeConfigId: ${expectedConfigInfo.toLog} |"+
         s" last run: no configId, received at ${lastRunDateTime} |"+
