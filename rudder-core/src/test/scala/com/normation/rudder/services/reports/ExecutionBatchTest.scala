@@ -57,6 +57,10 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ReportsDisabled
 import org.specs2.specification.core.Fragments
+import com.normation.rudder.reports.ResolvedAgentRunInterval
+import org.joda.time.Duration
+import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.reports.execution.AgentRun
 
 @RunWith(classOf[JUnitRunner])
 class ExecutionBatchTest extends Specification {
@@ -91,9 +95,9 @@ class ExecutionBatchTest extends Specification {
       val runTime = reportsParam.headOption.map( _.executionTimestamp).getOrElse(DateTime.now)
       val info = NodeConfigIdInfo(expected.keySet.head, DateTime.now.minusDays(1), None)
       val runInfo = complianceMode.mode match {
-        case FullCompliance => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), MissingReportType)
-        case ChangesOnly => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), SuccessReportType)
-        case ReportsDisabled => ComputeCompliance(runTime, info, info, runTime.plusMinutes(5), DisabledReportType)
+        case FullCompliance => ComputeCompliance(runTime, info, runTime.plusMinutes(5), MissingReportType)
+        case ChangesOnly => ComputeCompliance(runTime, info, runTime.plusMinutes(5), SuccessReportType)
+        case ReportsDisabled => ComputeCompliance(runTime, info, runTime.plusMinutes(5), DisabledReportType)
       }
 
       ExecutionBatch.getNodeStatusReports(nodeId, runInfo, expected, reportsParam)
@@ -104,6 +108,54 @@ class ExecutionBatchTest extends Specification {
 
   val getNodeStatusByRule = (getNodeStatusReportsByRule _).tupled
   val one = NodeId("one")
+
+
+  /*
+   * Test the general run information (do we have a run, is it an expected version, etc)
+   */
+  "A node, an expected version, and a run" should {
+
+    // general configuration option: node id, run period...
+    val root = NodeId("root")
+
+    val insertionId = 102030
+    val isCompleted = true
+
+    val nodeConfigIdInfos = Map(root -> ResolvedAgentRunInterval(Duration.parse("PT300S"),1))
+    val mode = GlobalComplianceMode(FullCompliance, 5)
+
+    val now = DateTime.now()
+
+    // known configuration in Rudder database
+    val startConfig0 = now.minusMinutes(60)
+    val startConfig1 = now.minusMinutes(37)
+    val startConfig2 = now.minusMinutes(16)
+    val configId0    = NodeConfigId("-1000")
+    val configId1    = NodeConfigId( "2000")
+    val configId2    = NodeConfigId("-4000")
+
+    val config0 = NodeConfigIdInfo( configId0, startConfig0, Some(startConfig1) )
+    val config1 = NodeConfigIdInfo( configId1, startConfig1, Some(startConfig2) )
+    val config2 = NodeConfigIdInfo( configId2, startConfig2, None               )
+
+    val knownConfigs = Map(root -> Some(Vector(config0, config1, config2)))
+
+    "have no report in interval if the run is older than 10 minutes" in {
+      val runs = Map(root -> Some(AgentRun(AgentRunId(root, now.minusMinutes(11)), Some(configId2), isCompleted, insertionId)))
+      ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root -> NoReportInInterval(config2))
+    }
+
+    "raise UnexpectedUnknowVersion when the run version is not know" in {
+      val runTime = now.minusMinutes(3)
+      val epoch = new DateTime(0)
+      val runs = Map(root -> Some(AgentRun(AgentRunId(root, runTime), Some(NodeConfigId("123456")), isCompleted, insertionId)))
+      ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root ->
+        UnexpectedUnknowVersion(runTime, NodeConfigId("123456"), config2, startConfig2.plusMinutes(10))
+      )
+    }
+  }
+
+
 
    //Test the component part
   "A component, with two different keys" should {
