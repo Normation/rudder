@@ -148,7 +148,6 @@ class AsyncComplianceService (
     }
   }
 
-
   // Compute compliance from a defiend kind
   private[this] def compliance[Kind] (kind : ComplianceBy[Kind], tableId: String) : JsCmd = {
     SHtml.ajaxInvoke( () => {
@@ -178,8 +177,7 @@ class AsyncComplianceService (
                       , JE.Num(compliance.pc_missing)
                       , JE.Num(compliance.pc_unexpected)
                     )
-                    s"""
-                    $$("#compliance-bar-${value}").html(buildComplianceBar(${array.toJsCmd}));
+                    s"""$$("#compliance-bar-${value}").html(buildComplianceBar(${array.toJsCmd}));
                     ${kind.jsContainer}['${value}'] = ${array.toJsCmd};
                     """
                 }
