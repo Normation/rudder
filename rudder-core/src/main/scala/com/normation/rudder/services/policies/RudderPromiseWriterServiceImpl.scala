@@ -75,6 +75,13 @@ import com.normation.utils.Control.boxSequence
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.NodeAndConfigId
 import scala.sys.process.Process
+import com.normation.rudder.domain.nodes.NodeProperty
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST
+import net.liftweb.json.Printer
+import scala.util.Try
+import scala.util. {Failure => FailTry }
+import scala.util.Success
 
 class RudderCf3PromisesFileWriterServiceImpl(
   techniqueRepository      : TechniqueRepository,
@@ -94,7 +101,6 @@ class RudderCf3PromisesFileWriterServiceImpl(
 ) extends Cf3PromisesFileWriterServiceImpl(
   techniqueRepository, systemVariableSpecService
 ) with TemplateWriter with Loggable {
-
 
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
@@ -176,8 +182,6 @@ class RudderCf3PromisesFileWriterServiceImpl(
                                folders.synchronized(folders ++= x)
                              case e: EmptyBox => return (e ?~! "Error when preparing rules for agents")
                            }
-
-
 
                          }
 
@@ -267,6 +271,14 @@ class RudderCf3PromisesFileWriterServiceImpl(
         writePromisesFiles(preparedTemplate.templatesToCopy , preparedTemplate.environmentVariables , newNodeRulePath, csv)
       }
 
+      writeNodePropertiesFile(node, newNodeRulePath) match {
+        case Full(_) => // Ok, continue
+        case eb : EmptyBox =>
+          val failure = eb ?~! s"An error occured while writing property file for Node ${node.nodeInfo.hostname} (id: ${node.nodeInfo.id.value}"
+          // Return since it will need much more refactoring to do end correctly with a Failure
+          return failure
+      }
+
       agentType match {
         case NOVA_AGENT => writeLicense(node, newNodeRulePath)
         case _ => ;
@@ -311,6 +323,32 @@ class RudderCf3PromisesFileWriterServiceImpl(
 
     Full(folders.toSet)
 
+  }
+
+  // Write a Json file containing all properties defined on the Node so they are usable in agent code
+  private[this] def writeNodePropertiesFile (node: NodeConfiguration, outPath: String) = {
+
+    def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
+      import net.liftweb.json.JsonDSL._
+      import com.normation.rudder.domain.nodes.JsonSerialisation._
+      ( "properties" -> properties.toDataJson())
+    }
+
+    val fileName = Constants.GENEREATED_PROPERTY_FILE
+    val path = Constants.GENERATED_PROPERTY_DIR
+    val jsonProperties = generateNodePropertiesJson(node.nodeInfo.properties)
+    val propertyContent = Printer.pretty(JsonAST.render(jsonProperties))
+    logger.trace(s"Create node properties file '${outPath}/${path}/${fileName}'")
+    Try {
+      val propertyFile = new File ( new File (outPath, path), fileName)
+      FileUtils.writeStringToFile(propertyFile,propertyContent)
+    } match {
+      case FailTry(e) =>
+        val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
+        Failure(message)
+      case Success(_) =>
+        Full(node)
+    }
   }
 
   private[this] def executeCfPromise(agentType: AgentType, pathOfPromises: String) : (Int, List[String]) = {
