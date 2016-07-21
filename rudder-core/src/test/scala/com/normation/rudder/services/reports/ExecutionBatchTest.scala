@@ -146,12 +146,12 @@ class ExecutionBatchTest extends Specification {
       ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root -> NoReportInInterval(config2))
     }
 
-    "raise UnexpectedVersion when the run version is not know" in {
+    "raise UnexpectedUnknowVersion when the run version is not know" in {
       val runTime = now.minusMinutes(3)
       val epoch = new DateTime(0)
       val runs = Map(root -> Some(AgentRun(AgentRunId(root, runTime), Some(NodeConfigId("123456")), isCompleted, insertionId)))
       ExecutionBatch.computeNodesRunInfo(nodeConfigIdInfos, runs, knownConfigs, mode) === Map(root ->
-        UnexpectedVersion(runTime, Some(NodeConfigIdInfo(NodeConfigId("123456"), epoch, Some(epoch))), epoch, config2, startConfig2.plusMinutes(10))
+        UnexpectedUnknowVersion(runTime, NodeConfigId("123456"), config2, startConfig2.plusMinutes(10))
       )
     }
   }
