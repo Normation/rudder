@@ -37,17 +37,10 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.utils.HashcodeCaching
 import net.liftweb.common.{ Box, Failure, Full }
 import java.security.MessageDigest
 import net.liftweb.common.EmptyBox
-import org.apache.commons.codec.binary.Base64
 import org.apache.commons.codec.binary.Hex
-import java.security.SecureRandom
-import scala.collection.mutable.StringBuilder
-import java.lang.StringBuilder
-import org.apache.commons.codec.binary.BaseNCodec
-import org.eclipse.jgit.errors.NotSupportedException
 import org.apache.commons.codec.digest.Md5Crypt
 import org.apache.commons.codec.digest.Sha2Crypt
 import org.apache.commons.codec.digest.UnixCrypt

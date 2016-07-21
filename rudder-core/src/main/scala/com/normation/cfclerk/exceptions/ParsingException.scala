@@ -37,8 +37,6 @@
 
 package com.normation.cfclerk.exceptions
 
-import scala.util.control.NoStackTrace
-
 /**
  * An exception that may occur when parsing metadata.xml files.
  * That exception is allowed to be displayed to user, who don't need

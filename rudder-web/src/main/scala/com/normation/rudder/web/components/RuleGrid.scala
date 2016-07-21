@@ -334,7 +334,7 @@ class RuleGrid(
   }
 
   private[this] def changesFuture (rules: Seq[Rule]): Future[Box[Map[RuleId, Map[Interval, Int]]]] = {
-    future {
+    Future {
       if(rules.isEmpty) {
         Full(Map())
       } else {

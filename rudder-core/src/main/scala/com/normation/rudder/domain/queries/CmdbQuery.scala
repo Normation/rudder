@@ -311,6 +311,7 @@ case object MemoryComparator extends CriterionType {
     if(MemorySize.parse(v).isDefined) Full(v)
     else Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
   }
+
   override def toLDAP(v:String) = MemorySize.parse(v) match {
     case Some(m) => Full(m.toString)
     case None => Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))

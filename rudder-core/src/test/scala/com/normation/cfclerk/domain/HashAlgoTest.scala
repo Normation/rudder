@@ -41,10 +41,6 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.PBEKeySpec
-import org.apache.commons.codec.digest.Md5Crypt
-import java.security.NoSuchAlgorithmException
 import com.normation.cfclerk.domain.AixPasswordHashAlgo.ShaSpec
 
 

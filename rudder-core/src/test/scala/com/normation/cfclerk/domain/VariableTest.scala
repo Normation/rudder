@@ -37,28 +37,17 @@
 
 package com.normation.cfclerk.domain
 
-import org.springframework.test.context.ContextConfiguration
 import com.normation.cfclerk.xmlparsers._
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.test.context.junit4._
-import org.junit.Test
-import org.junit._
-import org.junit.Assert._
 import org.junit.runner.RunWith
-import org.junit.runners.BlockJUnit4ClassRunner
 import scala.collection.mutable._
 import scala.xml._
-import java.io.FileInputStream
 import org.xml.sax.SAXParseException
 import java.io.FileNotFoundException
 import com.normation.cfclerk.exceptions._
-import org.joda.time.DateTime
 import org.joda.time.format._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import net.liftweb.common._
-import com.normation.exceptions.TechnicalException
 import com.normation.cfclerk.domain.HashAlgoConstraint._
 
 
@@ -110,7 +99,7 @@ class VariableTest extends Specification {
       throw new Exception("Unexpected issue (unvalido xml?) with the testvariable file ")
     }
 
-    var variables = Map[String, Variable]()
+    val variables = Map[String, Variable]()
     for {
       elt <- (doc \\ "VARIABLES")
       specNode <- elt.nonEmptyChildren
@@ -554,13 +543,7 @@ class VariableTest extends Specification {
 
   private[this] def haveValue(value: Any = refValue)(implicit variable: Variable) = {
     "have value '%s'".format(value) in {
-      variable.getTypedValues.get.head mustEqual value
-    }
-  }
-
-  private[this] def haveNotValue(value: Any = refValue)(implicit variable: Variable) = {
-    "have not value '%s'".format(value) in {
-      variable.getTypedValues.get.head mustNotEqual value
+      variable.getTypedValues.openOrThrowException("test").head mustEqual value
     }
   }
 
@@ -594,18 +577,6 @@ class VariableTest extends Specification {
   private[this] def notBeMultivalued(implicit variable: Variable) = {
     "not be multivalued (because it is not a valid tag of variable spec)" in {
       !variable.spec.multivalued
-    }
-  }
-
-  private[this] def beSystemVar(implicit variable: Variable) = {
-    "be systemVar" in {
-      variable.spec.isSystem
-    }
-  }
-
-  private[this] def beBounding(implicit policyVar: TrackerVariable) = {
-    "be a bounding variable" in {
-      policyVar.spec.boundingVariable mustEqual "Bounding"
     }
   }
 
