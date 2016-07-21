@@ -127,23 +127,6 @@ class TemplateTest {
     assertEquals("2010:01:24:09:28:32", vared.toString)
   }
 
-<<<<<<< HEAD:rudder-templates/src/test/scala/com/normation/templates/TemplateTest.scala
-=======
-  @Test
-  def nativeDateRenderingTest() {
-    val vared = new StringTemplate("&date;format=\"cfengine_datetime\"&", classOf[NormationAmpersandTemplateLexer]);
-    val date =ISODateTimeFormat.dateTimeParser.parseDateTime("2010-01-24T21:28:32.309+01:00")
-
-    val variable = InputVariable(InputVariableSpec("date", "this is a native date object", constraint = Constraint(DateTimeVType())), Seq(date.toString))
-
-    vared.setAttribute("date", variable.getTypedValues.openOrThrowException("test").head)
-    val dateRenderer = new DateRenderer()
-    vared.registerRenderer(classOf[DateTime], dateRenderer)
-
-    assert("2010:01:24:09:28:32" == vared.toString)
-  }
->>>>>>> branches/rudder/3.2:rudder-core/src/test/scala/com/normation/cfclerk/stringtemplate/TemplateTest.scala
-
   @Test
   def conditionTest() {
     val hello = new StringTemplate("&if(CLIENTSLIST)&hello&endif&", classOf[NormationAmpersandTemplateLexer]);
