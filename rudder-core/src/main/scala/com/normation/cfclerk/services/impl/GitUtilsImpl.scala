@@ -38,37 +38,16 @@
 package com.normation.cfclerk.services.impl
 
 
-import scala.xml._
-import com.normation.cfclerk.domain._
-import java.io.FileNotFoundException
-import org.xml.sax.SAXParseException
-import com.normation.cfclerk.exceptions._
-import org.slf4j.{ Logger, LoggerFactory }
 import java.io.File
-import org.apache.commons.io.FilenameUtils
 import net.liftweb.common._
-import scala.collection.mutable.{ Map => MutMap }
-import scala.collection.SortedSet
-import com.normation.utils.Utils
-import scala.collection.immutable.SortedMap
-import java.io.InputStream
-import java.io.FileInputStream
 import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.lib.RepositoryBuilder
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.{Constants => JConstants}
-import org.eclipse.jgit.revwalk.RevTree
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.treewalk.filter.TreeFilter
 import org.eclipse.jgit.revwalk.RevWalk
-import scala.collection.mutable.{ Map => MutMap }
-import org.eclipse.jgit.errors.StopWalkException
-import org.eclipse.jgit.events.RefsChangedListener
-import org.eclipse.jgit.events.RefsChangedEvent
-import scala.collection.mutable.Buffer
-import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
 import com.normation.exceptions.TechnicalException
 import org.eclipse.jgit.internal.storage.file.FileRepository

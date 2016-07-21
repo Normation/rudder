@@ -283,7 +283,7 @@ class CachedNodeChangesServiceImpl(
   override def clearCache(): Unit = this.synchronized {
     cache = None
     logger.debug("NodeChange cache cleared")
-    future {
+    Future {
       initCache()
     }
     ()

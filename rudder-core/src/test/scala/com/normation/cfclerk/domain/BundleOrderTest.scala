@@ -37,8 +37,6 @@
 
 package com.normation.cfclerk.domain
 
-import org.junit._
-import org.junit.Assert._
 import org.junit.runner._
 import org.junit.runner.RunWith
 import org.specs2.mutable._

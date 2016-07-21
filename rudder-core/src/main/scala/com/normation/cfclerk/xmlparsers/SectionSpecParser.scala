@@ -43,7 +43,7 @@ import net.liftweb.common._
 import com.normation.utils.XmlUtils._
 import com.normation.cfclerk.exceptions._
 import CfclerkXmlConstants._
-import com.normation.utils.Control.{sequence,bestEffort}
+import com.normation.utils.Control.bestEffort
 
 class SectionSpecParser(variableParser:VariableSpecParser) extends Loggable {
 

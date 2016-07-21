@@ -39,7 +39,6 @@ package com.normation.cfclerk.domain
 
 import com.normation.utils.HashcodeCaching
 import scala.collection.SortedSet
-import net.liftweb.common._
 
 /**
  * A policy category name.

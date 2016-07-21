@@ -37,10 +37,8 @@
 
 package com.normation.cfclerk.domain
 
-import com.normation.utils.Utils
 import org.joda.time.format.ISODateTimeFormat
 import com.normation.utils.HashcodeCaching
-import com.normation.utils.Control
 import net.liftweb.common._
 
 class ConstraintException(val msg: String) extends Exception(msg)

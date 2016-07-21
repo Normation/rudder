@@ -687,6 +687,30 @@ table.noMarginGrid {
   border-right: 1px solid #B4B3A8;
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
+@media screen and (min-width: 993px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:30% !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 992px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:40% !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 768px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:50% !important;
+    white-space:nowrap;
+  }
+}
+#reportsGrid tr>th:first-child,#reportsGrid tr>td:first-child{
+  width:auto !important;
+}
+#reportsGrid td .tw-bs .progress-bar {
+  float: inherit;
+  display: inline-block;
 }
 
 .dataTables_wrapper_bottom {
@@ -2899,23 +2923,23 @@ input[type="number"] {
   min-height: 300px;
 }
 #recentChanges .alert-info{
-	font-size:14px;
+  font-size:14px;
 }
 #recentChanges .alert-info .glyphicon{
-	font-size:16px;
+  font-size:16px;
 }
 #selectedPeriod{
-	font-size:14px;
+  font-size:14px;
 }
 body.cursorPointer{
-	cursor:pointer;
+  cursor:pointer;
 }
 path.c3-bar.c3-shape.c3-bar-highlighted{
   stroke: rgb(63, 185, 243) !important;
   fill: rgb(63, 185, 243) !important;
 }
 button.recentChangeGraph{
-	position: relative;
+  position: relative;
     top: -8px;
     right: -10px;
 }
@@ -2951,6 +2975,6 @@ label span.text-fit{
 }
 
 #generation-status .glyphicon {
-	top 0;
-	font-size : 11px;
+  top 0;
+  font-size : 11px;
 }

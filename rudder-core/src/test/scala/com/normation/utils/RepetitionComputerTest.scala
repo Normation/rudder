@@ -39,15 +39,11 @@ package com.normation.utils
 
 import org.junit.Test;
 import org.junit._
-import org.junit.Assert._
 
-import junit.framework.TestSuite
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
-import org.joda.time.DateTime
 import org.joda.time.format._
 
-import com.normation.cfclerk.domain._
 import org.joda.time.{Days => _, _ }
 import org.joda.time.format._
 

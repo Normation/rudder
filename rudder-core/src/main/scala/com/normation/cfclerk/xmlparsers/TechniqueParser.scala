@@ -42,7 +42,6 @@ import com.normation.cfclerk.domain._
 import com.normation.cfclerk.services.SystemVariableSpecService
 import com.normation.cfclerk.exceptions.ParsingException
 import com.normation.utils.Utils._
-import com.normation.utils.Control.{sequence,bestEffort}
 import scala.xml._
 import net.liftweb.common._
 
@@ -128,14 +127,6 @@ class TechniqueParser(
       }
     } else {
       throw new ParsingException("Not a policy node, bad node name. Was expecting <%s>, got: %s".format(TECHNIQUE_ROOT,node))
-    }
-  }
-
-  private[this] def checkUniqueness(seq:Seq[String])(errorMsg:String) : Unit = {
-    if(seq.distinct.size != seq.size) {
-      throw new ParsingException(errorMsg + seq.groupBy(identity).collect {
-                  case(k, x) if x.size > 1 => k
-      }.mkString("[", "," , "]") )
     }
   }
 

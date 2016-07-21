@@ -39,9 +39,6 @@ package com.normation.cfclerk.domain
 
 import com.normation.cfclerk.exceptions._
 import scala.xml._
-import org.joda.time._
-import org.joda.time.format._
-import com.normation.utils.XmlUtils._
 import net.liftweb.common._
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.HashcodeCaching
@@ -54,7 +51,6 @@ case class Section(val spec: SectionSpec) extends SectionChild with HashcodeCach
 /**
  *
  * Variable class, to describe what must be replaced in the template files
- * @author nicolas
  *
  */
 
