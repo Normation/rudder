@@ -73,14 +73,7 @@ class ClearCache extends DispatchSnippet with Loggable {
   }
 
 
-  def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
-
-    // our process method returns a
-    // JsCmd which will be sent back to the browser
-    // as part of the response
-    def process(): JsCmd = {
-      //clear errors
-      S.clearCurrentNotices
+  def action =  {     S.clearCurrentNotices
 
       val modId = ModificationId(uuidGen.newUuid)
 
@@ -91,7 +84,7 @@ class ClearCache extends DispatchSnippet with Loggable {
       nodeConfigurationService.deleteAllNodeConfigurations match {
         case empty:EmptyBox =>
           val e = empty ?~! "Error while clearing caches"
-          S.error(e.messageChain)
+          e
         case Full(set) =>
           eventLogRepository.saveEventLog(modId,
               ClearCacheEventLog(
@@ -108,9 +101,24 @@ class ClearCache extends DispatchSnippet with Loggable {
           }
           logger.debug("Deleting node configurations on user clear cache request")
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+          Full(set)
+      }
+  }
+  def clearCache : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+
+    // our process method returns a
+    // JsCmd which will be sent back to the browser
+    // as part of the response
+    def process(): JsCmd = {
+      //clear errors
+      S.clearCurrentNotices
+      action match {
+        case empty:EmptyBox =>
+          val e = empty ?~! "Error while clearing caches"
+          S.error(e.messageChain)
+        case Full(result) =>
           S.notice("clearCacheNotice","Caches were successfully cleared")
       }
-
       Replace("clearCacheForm", outerXml.applyAgain)
     }
 
