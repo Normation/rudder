@@ -144,8 +144,16 @@ object JsonSerialisation {
       ~ ( "value" , x.value )
     )
 
+    def dataJson(x: NodeProperty) : JField = {
+      JField(x.name, x.value)
+    }
+
     def toApiJson(): JArray = {
       JArray(props.map(json(_)).toList)
+    }
+
+    def toDataJson(): JObject = {
+      props.map(dataJson(_)).toList.sortBy { _.name }
     }
   }
 
