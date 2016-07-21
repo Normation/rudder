@@ -238,16 +238,18 @@ class HomePage extends Loggable {
         case p : PendingChart => p.value
       } match {
 
-        case None => JsObj (
+        case None =>
+          JsObj (
             "pending" -> JsNull
           , "active"  -> numberOfNodes
         )
+
         case Some(pending) =>
           JsObj (
             "pending" ->
               JsObj (
                   "nodes" -> pending
-                , "percent"  -> (pending * 100  / numberOfNodes).round
+                , "percent"  -> (pending * 100.0  / numberOfNodes).round
               )
           , "active"  -> (numberOfNodes - pending)
         )

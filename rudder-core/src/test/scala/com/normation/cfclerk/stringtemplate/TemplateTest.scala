@@ -42,10 +42,7 @@ import org.junit._
 import org.junit.Assert._
 
 import org.antlr.stringtemplate._;
-import org.antlr.stringtemplate.language._;
 import com.normation.stringtemplate.language._;
-import junit.framework.TestSuite
-import antlr.TokenStreamRecognitionException
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 import org.joda.time.DateTime
@@ -109,14 +106,14 @@ class TemplateTest {
 
     assert("\"cfserved\" string => \"$POLICY_SERVER\";\n\"$(file[$(fileParameters)][1])\"" == templatetest.toString)
 
-    val amptest = group.getInstanceOf("templates1/amptest");
+    group.getInstanceOf("templates1/amptest");
   }
 
 
   @Test ( expected = classOf[ IllegalArgumentException ] )
   def notExistingTemplateTest() {
     val group =  new StringTemplateGroup("myGroup", classOf[NormationAmpersandTemplateLexer]);
-    val templatetest = group.getInstanceOf("templates1/azertyui");
+    group.getInstanceOf("templates1/azertyui");
 
   }
 
@@ -138,7 +135,7 @@ class TemplateTest {
 
     val variable = InputVariable(InputVariableSpec("date", "this is a native date object", constraint = Constraint(DateTimeVType())), Seq(date.toString))
 
-    vared.setAttribute("date", variable.getTypedValues.get.head)
+    vared.setAttribute("date", variable.getTypedValues.openOrThrowException("test").head)
     val dateRenderer = new DateRenderer()
     vared.registerRenderer(classOf[DateTime], dateRenderer)
 

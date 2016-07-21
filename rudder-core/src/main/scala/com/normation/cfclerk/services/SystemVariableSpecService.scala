@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.services
 
-import net.liftweb.common.Box
 import com.normation.cfclerk.domain.SystemVariableSpec
 
 /**

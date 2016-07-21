@@ -37,7 +37,6 @@
 
 package com.normation.cfclerk.domain
 
-import scala.xml._
 import com.normation.utils.Utils._
 import com.normation.utils.HashcodeCaching
 

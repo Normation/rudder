@@ -46,6 +46,7 @@ import scala.util.Random
 import net.liftweb.common.Full
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
+import net.liftweb.common.EmptyBox
 
 
 /*
@@ -197,8 +198,8 @@ object AixPasswordHashAlgo extends Loggable {
 
   /// ssha1 revert to smd5 - but all post-java6 JVM should be ok
   private[this] final lazy val ssha1impl = getSecretKeFactory(ShaSpec.SHA1) match {
-    case Full(skf) => doSsha(ShaSpec.SHA1, skf) _
-    case e:Failure =>
+    case Full(skf)  => doSsha(ShaSpec.SHA1, skf) _
+    case e:EmptyBox =>
       // this should not happen, because PBKDF2WithHmacSHA1 is
       // in standard Java since Java6. But who knows..
       // Fallback to md5 hash.
@@ -212,7 +213,7 @@ object AixPasswordHashAlgo extends Loggable {
   /// ssha256 reverts to ssha1 - not so bad
   private[this] final lazy val ssha256impl = getSecretKeFactory(ShaSpec.SHA256) match {
     case Full(skf) => doSsha(ShaSpec.SHA256, skf) _
-    case e:Failure =>
+    case e:EmptyBox =>
       // this may happen on Java 7 and older version, because PBKDF2WithHmacSHA256
       // was introduced in Java 8.
       // Fallback to ssha1 hash.
@@ -225,7 +226,7 @@ object AixPasswordHashAlgo extends Loggable {
   /// ssha512 reverts to ssha1 - no so bad
   private[this] final lazy val ssha512impl = getSecretKeFactory(ShaSpec.SHA512) match {
     case Full(skf) => doSsha(ShaSpec.SHA512, skf) _
-    case e:Failure =>
+    case e:EmptyBox =>
       // this may happen on Java 7 and older version, because PBKDF2WithHmacSHA512
       // was introduced in Java 8.
       // Fallback to ssha1 hash.

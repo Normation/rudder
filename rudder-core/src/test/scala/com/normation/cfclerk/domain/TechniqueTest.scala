@@ -38,21 +38,13 @@
 package com.normation.cfclerk.domain
 
 import java.io.FileNotFoundException
-import org.junit._
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
 import org.xml.sax.SAXParseException
 import scala.xml._
 import com.normation.cfclerk.xmlparsers._
-import CfclerkXmlConstants._
 import scala.xml._
-import net.liftweb.common._
-import com.normation.utils.XmlUtils._
-import org.joda.time.{ Days => _, _ }
-import org.joda.time.format._
-import org.slf4j.{ Logger, LoggerFactory }
-import com.normation.cfclerk.exceptions.ParsingException
 import com.normation.cfclerk.services.impl.SystemVariableSpecServiceImpl
 
 @RunWith(classOf[JUnitRunner])
