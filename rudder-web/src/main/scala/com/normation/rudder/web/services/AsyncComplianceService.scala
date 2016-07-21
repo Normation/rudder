@@ -149,7 +149,6 @@ class AsyncComplianceService (
     }
   }
 
-
   // Compute compliance from a defined kind
   private[this] def compliance[Kind] (kind : ComplianceBy[Kind], tableId: String) : JsCmd = {
     SHtml.ajaxInvoke( () => {
