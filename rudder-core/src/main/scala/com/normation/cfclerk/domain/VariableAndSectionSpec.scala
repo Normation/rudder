@@ -38,8 +38,6 @@
 package com.normation.cfclerk.domain
 
 import com.normation.cfclerk.exceptions._
-import scala.xml._
-import net.liftweb.common._
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
 import com.normation.utils.HashcodeCaching
 import com.normation.cfclerk.xmlparsers.EmptyReportKeysValue

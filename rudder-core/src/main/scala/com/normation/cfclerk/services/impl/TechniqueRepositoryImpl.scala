@@ -39,13 +39,10 @@ package com.normation.cfclerk.services.impl
 
 import com.normation.cfclerk.services._
 import com.normation.cfclerk.domain._
-import org.slf4j.{ Logger, LoggerFactory }
 import net.liftweb.common._
 import Box._
-import com.normation.cfclerk.exceptions._
 import java.io.{ File, InputStream }
 import scala.collection.SortedSet
-import scala.collection.mutable
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator

@@ -90,7 +90,7 @@ class AsyncComplianceService (
 
     // Compute compliance level for all rules in  a future so it will be displayed asynchronously
     val futureCompliance : Future[Box[Map[Kind, Option[ComplianceLevel]]]] = {
-      future {
+      Future {
         if (empty) {
           Full(Map())
         } else {
@@ -148,7 +148,6 @@ class AsyncComplianceService (
       }
     }
   }
-
 
   // Compute compliance from a defined kind
   private[this] def compliance[Kind] (kind : ComplianceBy[Kind], tableId: String) : JsCmd = {

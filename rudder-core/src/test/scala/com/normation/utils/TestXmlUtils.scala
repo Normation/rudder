@@ -44,7 +44,6 @@ import org.junit.Test
 import org.junit._
 import org.junit.Assert._
 
-import junit.framework.TestSuite
 import org.junit.runner.RunWith
 import org.junit.runners.BlockJUnit4ClassRunner
 

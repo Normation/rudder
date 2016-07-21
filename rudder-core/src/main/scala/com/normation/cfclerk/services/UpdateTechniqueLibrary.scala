@@ -38,7 +38,6 @@
 package com.normation.cfclerk.services
 
 import net.liftweb.common.Box
-import com.normation.cfclerk.domain.TechniqueId
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.cfclerk.domain.TechniqueName

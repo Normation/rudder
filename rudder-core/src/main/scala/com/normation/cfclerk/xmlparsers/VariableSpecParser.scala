@@ -43,7 +43,6 @@ import scala.xml._
 import net.liftweb.common._
 import com.normation.utils.XmlUtils._
 import com.normation.cfclerk.exceptions._
-import com.normation.exceptions.TechnicalException
 import com.normation.utils.Control
 import com.normation.cfclerk.domain.HashAlgoConstraint.DerivedPasswordType
 
@@ -54,13 +53,6 @@ class VariableSpecParser {
 
 
   private[this] val reservedVariableName = DEFAULT_COMPONENT_KEY :: TRACKINGKEY :: Nil
-
-  /*
-     * check if the given value is the text token for
-     * the given variable category.
-     * Used in pattern guard
-     */
-  private def isA(value: String, categoryName: String): Boolean = categoryName.toLowerCase == value.toLowerCase
 
   def parseTrackerVariableSpec(node:Node): Box[TrackerVariableSpec] = {
     if(node.label != TRACKINGVAR) {

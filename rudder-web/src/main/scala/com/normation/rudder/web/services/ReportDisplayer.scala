@@ -356,7 +356,7 @@ class ReportDisplayer(
       "createExpectedReportTable"
     }
 
-    <table id="reportsGrid" class="fixedlayout tablewidth" cellspacing="0"></table> ++
+    <table id="reportsGrid" class="tablewidth" cellspacing="0"></table> ++
     Script(JsRaw(s"""
       ${jsFunctionName}("reportsGrid",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node).toJsCmd});
       createTooltip();

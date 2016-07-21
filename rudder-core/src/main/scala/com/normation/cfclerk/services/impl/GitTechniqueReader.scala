@@ -42,35 +42,17 @@ import com.normation.cfclerk.domain._
 import java.io.FileNotFoundException
 import org.xml.sax.SAXParseException
 import com.normation.cfclerk.exceptions._
-import org.slf4j.{ Logger, LoggerFactory }
 import java.io.File
-import org.apache.commons.io.FilenameUtils
 import net.liftweb.common._
 import scala.collection.mutable.{ Map => MutMap }
-import scala.collection.SortedSet
 import com.normation.utils.Utils
 import scala.collection.immutable.SortedMap
 import java.io.InputStream
-import java.io.FileInputStream
-import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.lib.RepositoryBuilder
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.lib.{Constants => JConstants}
-import org.eclipse.jgit.revwalk.RevTree
 import org.eclipse.jgit.treewalk.TreeWalk
 import org.eclipse.jgit.lib.ObjectId
-import org.eclipse.jgit.treewalk.filter.TreeFilter
 import scala.collection.mutable.{ Map => MutMap }
-import org.eclipse.jgit.errors.StopWalkException
-import org.eclipse.jgit.events.RefsChangedListener
-import org.eclipse.jgit.events.RefsChangedEvent
-import scala.collection.mutable.Buffer
 import com.normation.cfclerk.xmlparsers.TechniqueParser
 import com.normation.cfclerk.services._
-import com.normation.exceptions.TechnicalException
-import org.eclipse.jgit.treewalk.FileTreeIterator
-import org.eclipse.jgit.diff.DiffEntry
 import scala.collection.JavaConversions._
 import org.eclipse.jgit.diff.DiffFormatter
 import org.eclipse.jgit.errors.MissingObjectException
@@ -182,7 +164,7 @@ class GitTechniqueReader(
     } catch {
       case e:MissingObjectException => //ah, that commit is not know on our repos
         logger.error("The stored Git revision for the last version of the known Technique Library was not found in the local Git repository. " +
-        		"That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.")
+            "That may happen if a commit was reverted, the Git repository was deleted and created again, or if LDAP datas where corrupted. Loading the last available Techique library version.")
         val newRevTreeId = revisionProvider.getAvailableRevTreeId
         revisionProvider.setCurrentRevTreeId(newRevTreeId)
         processRevTreeId(newRevTreeId)

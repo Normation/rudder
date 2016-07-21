@@ -39,8 +39,6 @@ package com.normation.cfclerk.services.impl
 
 import com.normation.cfclerk.domain.{SystemVariableSpec,Constraint}
 import com.normation.cfclerk.services.SystemVariableSpecService
-import scala.collection.mutable.ArrayBuffer
-import net.liftweb.common._
 import com.normation.cfclerk.domain.IntegerVType
 import com.normation.cfclerk.domain.BooleanVType
 import com.normation.cfclerk.domain.BasicStringVType
@@ -65,7 +63,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
       )
     , SystemVariableSpec("NODEROLE"       , "List of nodeConfiguration roles")
     , SystemVariableSpec("TOOLS_FOLDER"   , "Tools folder")
-    , SystemVariableSpec("DAVUSER"   	  , "Username for webdav user"
+    , SystemVariableSpec("DAVUSER"       , "Username for webdav user"
                                           , multivalued = false
       )
     , SystemVariableSpec("DAVPASSWORD"    , "Password for webdav user"
@@ -80,7 +78,7 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                           , constraint = Constraint(mayBeEmpty=true)
       )
     , SystemVariableSpec(
-        			"SHARED_FILES_FOLDER"       , "The path to the shared files folder"
+              "SHARED_FILES_FOLDER"       , "The path to the shared files folder"
                                           , constraint = Constraint(mayBeEmpty=true)
       )
     , SystemVariableSpec("SYSLOGPORT"     , "Port to use for rsyslog (used by reports)"
