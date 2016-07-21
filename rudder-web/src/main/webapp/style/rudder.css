@@ -674,16 +674,30 @@ table.noMarginGrid {
 #reportsGrid_wrapper {
   margin: 0;
 }
-
-.dataTables_wrapper_top {
-  padding: 6px;
-  overflow: hidden;
-  display: block;
-  border-top: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
+@media screen and (min-width: 993px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:30% !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 992px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:40% !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 768px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:50% !important;
+    white-space:nowrap;
+  }
+}
+#reportsGrid tr>th:first-child,#reportsGrid tr>td:first-child{
+  width:auto !important;
+}
+#reportsGrid td .tw-bs .progress-bar {
+  float: inherit;
+  display: inline-block;
 }
 
 .dataTables_wrapper_bottom {
