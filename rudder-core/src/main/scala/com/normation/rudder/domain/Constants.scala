@@ -37,7 +37,6 @@
 
 package com.normation.rudder.domain
 
-
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.{DirectiveId, RuleId}
 import com.normation.rudder.domain.nodes.NodeGroupId
@@ -50,7 +49,6 @@ object Constants {
   //non random Directive Id
   def buildHasPolicyServerGroupId(policyServerId:NodeId) =
     NodeGroupId("hasPolicyServer-" + policyServerId.value )
-
 
   val ROOT_POLICY_SERVER_ID = NodeId("root")
 
@@ -80,12 +78,14 @@ object Constants {
   val CFENGINE_COMMUNITY_PROMISES_PATH = "/var/rudder/cfengine-community/inputs"
   val CFENGINE_NOVA_PROMISES_PATH = "/var/cfengine/inputs"
 
+  val GENERATED_PROPERTY_DIR = "properties.d"
+  val GENEREATED_PROPERTY_FILE = "properties.json"
+
   /////////////////////////////////////////////////
 
   val TECHLIB_MINIMUM_UPDATE_INTERVAL = 1 //in minutes
 
   val DYNGROUP_MINIMUM_UPDATE_INTERVAL = 1 //in minutes
-
 
   val XML_FILE_FORMAT_1_0 = "1.0"
   //for 2 and above, we *only* use integer number

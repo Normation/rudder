@@ -71,6 +71,14 @@ import com.normation.rudder.domain.licenses.NovaLicense
 import scala.io.Codec
 import com.normation.templates.FillTemplatesService
 import com.normation.templates.STVariable
+import com.normation.rudder.domain.nodes.NodeProperty
+import net.liftweb.json.JsonAST.JValue
+import scala.util.Try
+import scala.util.Success
+import scala.util.{Failure => FailTry}
+import com.normation.rudder.domain.Constants
+import net.liftweb.json.JsonAST
+import net.liftweb.json.Printer
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -91,8 +99,6 @@ trait Cf3PromisesFileWriterService {
   ) : Box[Seq[NodeConfiguration]]
 }
 
-
-
 class Cf3PromisesFileWriterServiceImpl(
     techniqueRepository      : TechniqueRepository
   , pathComputer             : PathComputer
@@ -110,8 +116,30 @@ class Cf3PromisesFileWriterServiceImpl(
   val newPostfix = ".new"
   val backupPostfix = ".bkp"
 
+  private[this] def writeNodePropertiesFile (agentNodeConfig: AgentNodeConfiguration) = {
 
+    def generateNodePropertiesJson(properties : Seq[NodeProperty]): JValue = {
+      import net.liftweb.json.JsonDSL._
+      import com.normation.rudder.domain.nodes.JsonSerialisation._
+      ( "properties" -> properties.toDataJson())
+    }
 
+    val fileName = Constants.GENEREATED_PROPERTY_FILE
+    val path = Constants.GENERATED_PROPERTY_DIR
+    val jsonProperties = generateNodePropertiesJson(agentNodeConfig.config.nodeInfo.properties)
+    val propertyContent = Printer.pretty(JsonAST.render(jsonProperties))
+    logger.trace(s"Create node properties file '${agentNodeConfig.paths.newFolder}/${path}/${fileName}'")
+    Try {
+      val propertyFile = new File ( new File (agentNodeConfig.paths.newFolder, path), fileName)
+      FileUtils.writeStringToFile(propertyFile,propertyContent)
+    } match {
+      case FailTry(e) =>
+        val message = s"could not write ${fileName} file, cause is: ${e.getMessage}"
+        Failure(message)
+      case Success(_) =>
+        Full(agentNodeConfig)
+    }
+  }
 
   /**
    * Write templates for node configuration that changed since the last write.
@@ -124,8 +152,6 @@ class Cf3PromisesFileWriterServiceImpl(
     , versions      : Map[NodeId, NodeConfigId]
     , allLicenses   : Map[NodeId, NovaLicense]
   ) : Box[Seq[NodeConfiguration]] = {
-
-
 
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
     val interestingNodeConfigs = allNodeConfigs.filterKeys(k => nodeConfigsToWrite.exists{ case(x, _) => x == k }).values.toSeq
@@ -141,7 +167,6 @@ class Cf3PromisesFileWriterServiceImpl(
         }
       case _ => //nothing to do
     }
-
 
     /*
      * Here come the general writing process
@@ -160,7 +185,6 @@ class Cf3PromisesFileWriterServiceImpl(
      * - and finally, move everything to each node rules directory
      */
 
-
     for {
       configAndPaths   <- calculatePathsForNodeConfigurations(interestingNodeConfigs, rootNodeId, allNodeConfigs, newPostfix, backupPostfix)
       pathsInfo        =  configAndPaths.map { _.paths }
@@ -176,6 +200,10 @@ class Cf3PromisesFileWriterServiceImpl(
                             } yield {
                               "OK"
                             }
+                          }
+     propertiesWritten <- sequencePar(configAndPaths) { case  agentNodeConfig =>
+                            writeNodePropertiesFile(agentNodeConfig) ?~!
+                              s"An error occured while writing property file for Node ${agentNodeConfig.config.nodeInfo.hostname} (id: ${agentNodeConfig.config.nodeInfo.id.value}"
                           }
       licensesCopied   <- copyLicenses(configAndPaths, allLicenses)
       checked          <- checkGeneratedPromises(configAndPaths.map { x => (x.agentType, x.paths) })
@@ -239,8 +267,6 @@ class Cf3PromisesFileWriterServiceImpl(
       }
     }
   }
-
-
 
   private[this] def readTemplateFromFileSystem(techniqueIds: Set[TechniqueId]) : Box[Map[TechniqueResourceId, TechniqueTemplateCopyInfo]] = {
 
@@ -347,7 +373,6 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
-
   /**
    * For each path of generated promises, for a given agent type, check if the promises are
    * OK. At least execute cf-promises, but could also check sum and the like.
@@ -413,7 +438,6 @@ class Cf3PromisesFileWriterServiceImpl(
         eb ?~! "cannot change permission on destination folder"
     }
   }
-
 
   /**
    * Move the generated promises from the new folder to their final folder, backuping previous promises in the way
@@ -485,9 +509,7 @@ class Cf3PromisesFileWriterServiceImpl(
     }
   }
 
-
   ///////////// utilities /////////////
-
 
   /**
    * Copy a resource file from a technique to the node promises directory
@@ -509,7 +531,6 @@ class Cf3PromisesFileWriterServiceImpl(
 
     }
   }
-
 
   /**
    * Write the current seq of template file a the path location, replacing the variables found in variableSet
@@ -561,9 +582,6 @@ class Cf3PromisesFileWriterServiceImpl(
 
     (errorCode, out.reverse ++ err.reverse, checkCommand)
   }
-
-
-
 
   /**
    * Move the machine promises folder  to the backup folder
