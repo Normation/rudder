@@ -336,10 +336,9 @@ case class DirectiveAPIService2 (
                             } yield { checkedParameters.toMap }
                           ) ?~ (s"Error with directive Parameters" )
     } yield {
-      DirectiveUpdate(   activeTechnique
-        , DirectiveState(updatedTechnique,updatedDirective.copy(parameters = newParameters))
-        , DirectiveState(oldTechnique,oldDirective)
-      )
+      val beforeState = DirectiveState(oldTechnique,oldDirective)
+      val afterState  =  DirectiveState(updatedTechnique,updatedDirective.copy(parameters = newParameters))
+      DirectiveUpdate(activeTechnique,beforeState, afterState)
     }
   }
 
