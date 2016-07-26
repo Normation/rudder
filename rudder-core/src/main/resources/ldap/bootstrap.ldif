@@ -323,6 +323,8 @@ description: Default inform message put in header of managed files by Rudder
 overridable: TRUE
 parameterValue: ### Managed by Rudder, edit with care ###
 
+## Application properties
+
 dn: ou=Application Properties,cn=rudder-configuration
 objectClass: organizationalUnit
 objectClass: top
@@ -334,3 +336,9 @@ objectClass: property
 objectClass: top
 propertyName: rudder_syslog_protocol
 propertyValue: UDP
+
+dn: propertyName=api_compatibility_mode,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: api_compatibility_mode
+propertyValue: false

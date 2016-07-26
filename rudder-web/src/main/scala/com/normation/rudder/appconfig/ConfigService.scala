@@ -145,6 +145,11 @@ trait ReadConfigService {
    * Should we display recent changes graphs  ?
    */
   def display_changes_graph(): Box[Boolean]
+
+  /**
+   * Should we send backward compatible data from API
+   */
+  def api_compatibility_mode(): Box[Boolean]
 }
 
 /**
@@ -223,6 +228,11 @@ trait UpdateConfigService {
    */
   def set_display_changes_graph(displayGraph : Boolean): Box[Unit]
 
+  /**
+   * Should we send backward compatible data from API
+   */
+  def set_api_compatibility_mode(value: Boolean): Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -253,6 +263,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.compliance.heartbeatPeriod=1
        rudder.syslog.protocol=UDP
        display.changes.graph=true
+       api.compatibility.mode=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -434,4 +445,11 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def display_changes_graph(): Box[Boolean] =  get("display_changes_graph")
 
   def set_display_changes_graph(displayGraphs : Boolean): Box[Unit] = save("display_changes_graph", displayGraphs)
+
+  /**
+   * Should we send backward compatible data from API
+   */
+  def api_compatibility_mode(): Box[Boolean] = get("api_compatibility_mode")
+  def set_api_compatibility_mode(value : Boolean): Box[Unit] = save("api_compatibility_mode", value)
+
 }
