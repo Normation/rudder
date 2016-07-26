@@ -91,6 +91,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "networkProtocolSection" => networkProtocolSection
     case "displayGraphsConfiguration" => displayGraphsConfiguration
+    case "apiMode" => apiComptabilityMode
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -795,4 +796,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         } )
     } ) apply xml
   }
+
+  def apiComptabilityMode = { xml : NodeSeq =>
+
+    //  initial values, updated on successfull submit
+    var initApiMode = configService.api_compatibility_mode()
+
+    // form values
+    var apiMode  = initApiMode.getOrElse(true)
+
+    def submit = {
+      configService.set_api_compatibility_mode(apiMode).foreach(updateOk => initApiMode = Full(apiMode))
+
+      S.notice("apiModeMsg", "Api compatibility mode changed")
+      check()
+    }
+
+    def noModif = (
+         initApiMode.map(_ == apiMode).getOrElse(false)
+    )
+
+    def check() = {
+      if(!noModif){
+        S.notice("apiModeMsg","")
+      }
+      Run(s"""$$("#apiModeSubmit").button( "option", "disabled",${noModif});""")
+    }
+
+    ( "#apiMode" #> {
+      initApiMode match {
+        case Full(value) =>
+          SHtml.ajaxCheckbox(
+              value
+            , (b : Boolean) => { apiMode = b; check() }
+            , ("id","apiMode")
+          )
+          case eb: EmptyBox =>
+            val fail = eb ?~ "there was an error while fetching value of property: 'Api compatibility mode' "
+            <div class="error">{fail.msg}</div>
+        }
+      } &
+      "#apiModeSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+      }
+    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+  }
+
 }
