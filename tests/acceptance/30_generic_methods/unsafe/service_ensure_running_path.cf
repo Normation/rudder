@@ -22,13 +22,17 @@ body common control
 bundle agent init
 {
   vars:
-    "service_name"  string => "cf-serverd";
-    # here we don't use the full path to support multiple version of agent
-    # plus, the check on the path is not anchored, ensuring that it will
-    # find the right process
-    "service_path"  string => "/bin/cf-serverd";
-    "cservice_name" string => canonify("${service_name}");
-    "cservice_path" string => canonify("${service_path}");
+    debian::
+      "service_name"  string => "ssh";
+    redhat::
+      "service_name"  string => "sshd";
+    any::
+      # here we don't use the full path to support multiple version of agent
+      # plus, the check on the path is not anchored, ensuring that it will
+      # find the right process
+      "service_path"  string => "/sbin/sshd";
+      "cservice_name" string => canonify("${service_name}");
+      "cservice_path" string => canonify("${service_path}");
 }
 
 #######################################################
