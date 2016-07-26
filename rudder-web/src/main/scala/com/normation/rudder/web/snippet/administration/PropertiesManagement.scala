@@ -60,6 +60,7 @@ import com.normation.rudder.web.components.ComplianceModeEditForm
 import com.normation.rudder.reports.SyslogUDP
 import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.web.components.popup.ModificationValidationPopup.Enable
 
 /**
  * This class manage the displaying of user configured properties.
@@ -90,6 +91,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "sendMetricsConfiguration" => sendMetricsConfiguration
     case "networkProtocolSection" => networkProtocolSection
     case "displayGraphsConfiguration" => displayGraphsConfiguration
+    case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -785,4 +787,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         } )
     } ) apply xml
   }
-}
+
+  def directiveScriptEngineConfiguration = { xml : NodeSeq =>
+    import com.normation.rudder.domain.appconfig.FeatureSwitch._
+
+    ( configService.rudder_featureSwitch_directiveScriptEngine() match {
+      case Full(initialValue) =>
+
+        var x = initialValue
+        def noModif() = x == initialValue
+        def check() = {
+          S.notice("directiveScriptEngineMsg","")
+          Run(s"""$$("#directiveScriptEngineSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x)
+          S.notice("directiveScriptEngineMsg", save match {
+            case Full(_)  =>
+              "'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'directive script engine' property"
+          } )
+        }
+
+        ( "#directiveScriptEngineCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                x == Enabled
+              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
+              , ("id","directiveScriptEngineCheckbox")
+            )
+          } &
+          "#directiveScriptEngineSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#directiveScriptEngineSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#directiveScriptEngine" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'directive script engine'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml }
+  }

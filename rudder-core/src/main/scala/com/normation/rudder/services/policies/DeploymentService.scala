@@ -78,6 +78,10 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.cfclerk.domain.BundleOrder
+import javax.script.ScriptEngine
+import javax.script.ScriptEngineManager
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.inventory.domain.AixOS
 
 
 
@@ -123,6 +127,7 @@ trait DeploymentService extends Loggable {
       agentRunSplaytime   <- getAgentRunSplaytime() ?~! "Could not get agent run splaytime"
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not get agent run start time (minute)"
       agentRunStartHour   <- getAgentRunStartHour() ?~! "Could not get agent run start time (hour)"
+      scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
       fetch6Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched run infos in ${fetch4Time-fetch3Time}ms")
 
@@ -155,6 +160,7 @@ trait DeploymentService extends Loggable {
                            , globalSystemVariables
                            , globalRunInterval
                            , globalComplianceMode
+                           , scriptEngineEnabled
                          ) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
@@ -230,6 +236,8 @@ trait DeploymentService extends Loggable {
   def getAgentRunSplaytime   : () => Box[Int]
   def getAgentRunStartHour   : () => Box[Int]
   def getAgentRunStartMinute : () => Box[Int]
+  def getScriptEngineEnabled : () => Box[FeatureSwitch]
+
   /**
    * Find all modified rules.
    * For them, find all directives with variables
@@ -270,6 +278,7 @@ trait DeploymentService extends Loggable {
     , globalSystemVariable : Map[String, Variable]
     , globalAgentRun       : AgentRunInterval
     , globalComplianceMode : ComplianceMode
+    , scriptEngineEnabled  : FeatureSwitch
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -383,6 +392,7 @@ class DeploymentServiceImpl (
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
   , override val getAgentRunStartMinute: () => Box[Int]
+  , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -424,6 +434,7 @@ trait DeploymentService_findDependantRules_bruteForce extends DeploymentService 
   override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
   override def getGlobalComplianceMode(): Box[ComplianceMode] = complianceModeService.getComplianceMode
   override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getGlobalAgentRun()
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -559,13 +570,14 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
    * allNodeInfos *must* contains the nodes info of every nodes
    */
   override def buildNodeConfigurations(
-      ruleVals              : Seq[RuleVal]
-    , allNodeInfos          : Map[NodeId, NodeInfo]
-    , groupLib              : FullNodeGroupCategory
-    , parameters            : Seq[GlobalParameter]
-    , globalSystemVariables : Map[String, Variable]
-    , globalAgentRun        : AgentRunInterval
-    , globalComplianceMode  : ComplianceMode
+      ruleVals             : Seq[RuleVal]
+    , allNodeInfos         : Map[NodeId, NodeInfo]
+    , groupLib             : FullNodeGroupCategory
+    , parameters           : Seq[GlobalParameter]
+    , globalSystemVariables: Map[String, Variable]
+    , globalAgentRun       : AgentRunInterval
+    , globalComplianceMode : ComplianceMode
+    , scriptEngineEnabled  : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
 
 
@@ -656,57 +668,71 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     }
 
     //1.3: build node config, binding ${rudder.parameters} parameters
-
-    val nodeConfigs = sequence(interpolationContexts.toSeq) { case (nodeId, context) =>
-
+    // open a scope for the JsEngine, because its init is long.
+    JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
       for {
-        drafts <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
-        /*
-         * Clearly, here, we are evaluating parameters, and we are not using that just after in the
-         * variable expansion, which mean that we are doing the same work again and again and again.
-         * Moreover, we also are evaluating again and again parameters whose context ONLY depends
-         * on other parameter, and not node config at all. Bad bad bad bad.
-         * TODO: two stages parameter evaluation
-         *  - global
-         *  - by node
-         *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
-         */
-        parameters <- sequence(context.parameters.toSeq) { case (name, param) =>
-                        for {
-                          p <- param(context)
-                        } yield {
-                          (name, p)
-                        }
-                      }
-        cf3PolicyDrafts <- sequence(drafts) { draft =>
-                            //bind variables
-                            draft.variableMap(context).map{ expandedVariables =>
+        nodeConfigs <- sequence(interpolationContexts.toSeq) { case (nodeId, context) =>
+          for {
+            drafts          <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
+            /*
+             * Clearly, here, we are evaluating parameters, and we are not using that just after in the
+             * variable expansion, which mean that we are doing the same work again and again and again.
+             * Moreover, we also are evaluating again and again parameters whose context ONLY depends
+             * on other parameter, and not node config at all. Bad bad bad bad.
+             * TODO: two stages parameter evaluation
+             *  - global
+             *  - by node
+             *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
+             */
+            parameters      <- sequence(context.parameters.toSeq) { case (name, param) =>
+                                 for {
+                                   p <- param(context)
+                                 } yield {
+                                   (name, p)
+                                 }
+                               }
+            cf3PolicyDrafts <- sequence(drafts) { draft =>
+                                  for {
+                                    //bind variables with interpolated context
+                                    expandedVariables <- draft.variableMap(context)
+                                    // And now, for each variable, eval - if needed - the result
+                                    evaluatedVars     <- sequence(expandedVariables.toSeq) { case (k, v) =>
+                                                            //js lib is specific to the node os, bind here to not leak eval between vars
+                                                            val jsLib = context.nodeInfo.osDetails.os match {
+                                                             case AixOS => JsRudderLibBinding.Aix
+                                                             case _     => JsRudderLibBinding.Crypt
+                                                           }
+                                                           jsEngine.eval(v, jsLib).map( x => (k, x) )
+                                                         }
+                                  } yield {
 
-                              RuleWithCf3PolicyDraft(
-                                  ruleId = draft.ruleId
-                                , directiveId = draft.directiveId
-                                , technique = draft.technique
-                                , variableMap = expandedVariables
-                                , trackerVariable = draft.trackerVariable
-                                , priority = draft.priority
-                                , serial = draft.serial
-                                , ruleOrder = draft.ruleOrder
-                                , directiveOrder = draft.directiveOrder
-                              )
-                            }
-                          }
+                                    RuleWithCf3PolicyDraft(
+                                        ruleId = draft.ruleId
+                                      , directiveId = draft.directiveId
+                                      , technique = draft.technique
+                                      , variableMap = evaluatedVars.toMap
+                                      , trackerVariable = draft.trackerVariable
+                                      , priority = draft.priority
+                                      , serial = draft.serial
+                                      , ruleOrder = draft.ruleOrder
+                                      , directiveOrder = draft.directiveOrder
+                                    )
+                                  }
+                                }
+          } yield {
+            NodeConfiguration(
+                nodeInfo = context.nodeInfo
+              , policyDrafts = cf3PolicyDrafts.toSet
+              , nodeContext = context.nodeContext
+              , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+              , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
+            )
+          }
+        }
       } yield {
-        NodeConfiguration(
-            nodeInfo = context.nodeInfo
-          , policyDrafts = cf3PolicyDrafts.toSet
-          , nodeContext = context.nodeContext
-          , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
-          , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
-        )
+        nodeConfigs
       }
     }
-
-    nodeConfigs
   }
 
 }
