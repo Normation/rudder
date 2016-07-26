@@ -90,6 +90,7 @@ trait RestDataSerializer {
 case class RestDataSerializerImpl (
     readTechnique : TechniqueRepository
   , diffService   : DiffService
+  , responseCompatibily : () => Box[Boolean]
 ) extends RestDataSerializer with Loggable {
 
   import net.liftweb.json.JsonDSL._
@@ -193,6 +194,10 @@ case class RestDataSerializerImpl (
 
   override def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue = {
     val query = group.query.map(query => query.toJSON)
+    val extension : JObject =
+      ( ("isEnabled" -> group.isEnabled )
+      ~ ("isDynamic" -> group.isDynamic )
+      )
     val withoutClasses = (
         ("changeRequestId" -> crId.map(_.value.toString))
       ~ ("id"              -> group.id.value)
@@ -200,15 +205,15 @@ case class RestDataSerializerImpl (
       ~ ("description"     -> group.description)
       ~ ("query"           -> query)
       ~ ("nodeIds"         -> group.serverList.map(_.value))
-      ~ ("isDynamic"       -> group.isDynamic)
-      ~ ("isEnabled"       -> group.isEnabled )
-      ~ ("isEnabled"       -> group.isEnabled )
-    )
-   if (apiVersion.value < 7) {
-     withoutClasses
-   } else {
-     withoutClasses ~ ("groupClass" ->  List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
-   }
+      ~ ("dynamic"         -> group.isDynamic)
+      ~ ("enabled"         -> group.isEnabled )
+      )
+   val base = if (apiVersion.value < 7) {
+                withoutClasses
+              } else {
+                withoutClasses ~ ("groupClass" ->  List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
+              }
+   extendResponseCompatibility(base, extension)
   }
 
   override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
@@ -254,9 +259,25 @@ case class RestDataSerializerImpl (
       )
     }
 
+  def extendResponseCompatibility (base : JObject, extension : JObject) = {
+    val extendResponse = responseCompatibily().getOrElse{
+      logger.error("Could not fetch 'api backward compatibility' mode, enable it by default")
+      true
+    }
+    if (extendResponse) {
+      base ~ extension
+    } else {
+      base
+    }
+  }
+
   def serializeDirective(technique:Technique, directive : Directive, crId: Option[ChangeRequestId]): JValue = {
     val sectionVal = serializeSectionVal(SectionVal.directiveValToSectionVal(technique.rootSection, directive.parameters))
-    (   ("changeRequestId" -> crId.map(_.value.toString))
+    val extension : JObject =
+      ( ("isEnabled" -> directive.isEnabled )
+      ~ ("isSystem" -> directive.isSystem ) )
+    val base =
+      ( ("changeRequestId"  -> crId.map(_.value.toString))
       ~ ("id"               -> directive.id.value)
       ~ ("displayName"      -> directive.name)
       ~ ("shortDescription" -> directive.shortDescription)
@@ -265,9 +286,10 @@ case class RestDataSerializerImpl (
       ~ ("techniqueVersion" -> directive.techniqueVersion.toString)
       ~ ("parameters"       -> sectionVal )
       ~ ("priority"         -> directive.priority)
-      ~ ("isEnabled"        -> directive.isEnabled )
-      ~ ("isSystem"         -> directive.isSystem )
+      ~ ("enabled"          -> directive.isEnabled )
+      ~ ("system"           -> directive.isSystem )
     )
+    extendResponseCompatibility(base,extension)
   }
 
   def displaySimpleDiff[T](diff: SimpleDiff[T])( implicit convert : T => JValue) : JValue = {
@@ -399,15 +421,19 @@ case class RestDataSerializerImpl (
       val serverList :JValue  = diff.modNodeList.map(displaySimpleDiff(_)(convertNodeList)).getOrElse(initialState.serverList.map(v => (v.value)).toList)
       val dynamic :JValue     = diff.modIsDynamic.map(displaySimpleDiff(_)).getOrElse(initialState.isDynamic)
       val enabled :JValue     = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
-
-      (    ("id"          -> initialState.id.value)
+      val extension : JObject =
+        ( ("isEnabled" -> enabled )
+        ~ ("isDynamic" -> dynamic ) )
+      val base =
+         ( ("id"          -> initialState.id.value)
          ~ ("displayName" -> name)
          ~ ("description" -> description)
          ~ ("query"       -> query)
          ~ ("nodeIds"     -> serverList)
-         ~ ("isDynamic"   -> dynamic)
-         ~ ("isEnabled"   -> enabled )
-       )
+         ~ ("dynamic"   -> dynamic)
+         ~ ("enabled"   -> enabled )
+         )
+       extendResponseCompatibility(base, extension)
     }
 
     for {
@@ -454,8 +480,12 @@ case class RestDataSerializerImpl (
       val enabled :JValue          = diff.modIsActivated.map(displaySimpleDiff(_)).getOrElse(initialState.isEnabled)
       val initialParams :JValue    = serializeSectionVal(SectionVal.directiveValToSectionVal(technique.rootSection, initialState.parameters))
       val parameters :JValue       = diff.modParameters.map(displaySimpleDiff(_)(convertParameters)).getOrElse(initialParams)
-
-      (   ("id"               -> initialState.id.value)
+      val extension : JObject =
+        ( ("isEnabled" -> enabled )
+        ~ ("isSystem" -> initialState.isSystem )
+        )
+      val base =
+        ( ("id"               -> initialState.id.value)
         ~ ("displayName"      -> name )
         ~ ("shortDescription" -> shortDescription)
         ~ ("longDescription"  -> longDescription)
@@ -463,9 +493,10 @@ case class RestDataSerializerImpl (
         ~ ("techniqueVersion" -> techniqueVersion)
         ~ ("parameters"       -> parameters )
         ~ ("priority"         -> priority)
-        ~ ("isEnabled"        -> enabled )
-        ~ ("isSystem"         -> initialState.isSystem )
-      )
+        ~ ("enabled"        -> enabled )
+        ~ ("system"         -> initialState.isSystem )
+        )
+        extendResponseCompatibility(base, extension)
     }
 
     for {
@@ -518,14 +549,17 @@ case class RestDataSerializerImpl (
       )
       case _ => JNothing
     }
-    (   ("id"           -> changeRequest.id.value)
+    val extension : JObject = ( ("isAcceptable" -> isAcceptable ) )
+    val base =
+      ( ("id"           -> changeRequest.id.value)
       ~ ("displayName"  -> changeRequest.info.name)
       ~ ("status"       -> status.value)
       ~ ("created by"   -> changeRequest.owner)
-      ~ ("isAcceptable" -> isAcceptable)
+      ~ ("acceptable" -> isAcceptable)
       ~ ("description"  -> changeRequest.info.description)
       ~ ("changes"      -> changes)
-    )
+      )
+    extendResponseCompatibility(base, extension)
   }
 
   def serializeTechnique(technique:FullActiveTechnique): JValue = {
