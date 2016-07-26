@@ -121,6 +121,14 @@ case class RestExtractorService (
     }
   }
 
+  private[this] def extractJsonInt(json:JValue, key:String ) = {
+    json \\ key match {
+      case JInt(value)   => Full(Some(value.toInt))
+      case JObject(Nil)   => Full(None)
+      case _              => Failure(s"Not a good value for parameter ${key}")
+    }
+  }
+
   private[this] def extractJsonListString[T] (json: JValue, key: String)( convertTo: List[String] => Box[T] ): Box[Option[T]] = {
     json \\ key match {
       case JArray(values) =>
@@ -668,7 +676,7 @@ case class RestExtractorService (
       shortDescription <- extractOneValueJson(json, "shortDescription")()
       longDescription  <- extractOneValueJson(json, "longDescription")()
       enabled          <- extractJsonBoolean(json, "enabled")
-      priority         <- extractOneValueJson(json, "priority")(convertToInt)
+      priority         <- extractJsonInt(json,"priority")
       parameters       <- extractJsonDirectiveParam(json)
       techniqueName    <- extractOneValueJson(json, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValueJson(json, "techniqueVersion")(x => Full(TechniqueVersion(x)))
