@@ -1391,6 +1391,7 @@ function buildComplianceBar(compliance, minPxSize) {
   var unknown         = compliance[8];
 
   var okStatus = success + repaired + notApplicable;
+  var unexpected = missing + unknown;
 
   var widthArr = getWidthProgressBar([
                      /*0*/ notApplicable
