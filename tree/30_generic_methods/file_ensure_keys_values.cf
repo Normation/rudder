@@ -40,7 +40,7 @@ bundle agent file_ensure_keys_values(file, keys, separator)
   files:
       "${file}"
         create        => "true",
-        edit_line     => maintain_key_values("${keys}", "${separator}"),
+        edit_line     => ncf_maintain_keys_values("${keys}", "${separator}"),
         edit_defaults => ncf_empty_select("false"),
         classes       => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
