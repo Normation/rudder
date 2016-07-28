@@ -85,15 +85,16 @@
         </div>
       </div>
       </div>
-      <div class="form-group" ng-hide="isNodePage    &amp;&amp; complianceMode.name === 'full-compliance'">
-        <div class="pull-left control-label">
-          <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
+      <lift:authz role="administration_write">
+        <div class="form-group" ng-hide="isNodePage    &amp;&amp; complianceMode.name === 'full-compliance'">
+          <div class="pull-left control-label">
+            <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
+          </div>
+          <div id="heartBeatMessage" class="pull-left control-label">
+            <lift:Msg id="complianceModeMessage">[messages]</lift:Msg>
+          </div>
         </div>
-        <div id="heartBeatMessage" class="pull-left control-label">
-          <lift:Msg id="complianceModeMessage">[messages]</lift:Msg>
-        </div>
-      </div>
-
+      </lift:authz>
     </form>
   </div>
   </div>
