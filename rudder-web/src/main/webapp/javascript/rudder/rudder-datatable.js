@@ -1394,19 +1394,13 @@ function buildComplianceBar(compliance, minPxSize) {
   var unexpected = missing + unknown;
 
   var widthArr = getWidthProgressBar([
-                     /*0*/ notApplicable
-                   , /*1*/ okStatus
-                   , /*2*/ pending
-                   , /*3*/ noreport
-                   , /*4*/ unexpected
-                   , /*5*/ error
-                   , /*6*/ reportsDisabled
+                     /*0*/ okStatus
+                   , /*1*/ pending
+                   , /*2*/ noreport
+                   , /*3*/ unexpected
+                   , /*4*/ error
+                   , /*5*/ reportsDisabled
                  ], minPxSize);
-
-  if(notApplicable != 0) {
-    var value = compliancePercentValue(notApplicable);
-    content.append('<div class="progress-bar progress-bar-notapplicable" style=" width:'+widthArr[0]+'" title="Not applicable: '+notApplicable+'%">'+value+'%</div>');
-  }
 
   if(okStatus != 0) {
     var text = []
@@ -1416,18 +1410,21 @@ function buildComplianceBar(compliance, minPxSize) {
     if (repaired != 0) {
       text.push("Repaired: "+repaired+"%");
     }
+    if (notApplicable != 0) {
+      text.push("Not applicable: "+notApplicable+"%");
+    }
     var value = compliancePercentValue(okStatus);
-    content.append('<div class="progress-bar progress-bar-success" style="width:'+widthArr[1]+'" title="'+text.join("\n")+'">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-success" style="width:'+widthArr[0]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
 
   if(pending != 0) {
     var value = compliancePercentValue(pending);
-    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+widthArr[2]+'" title="Applying: '+pending+'%">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+widthArr[1]+'" title="Applying: '+pending+'%">'+value+'%</div>');
   }
 
   if(noreport != 0) {
     var value = compliancePercentValue(noreport);
-    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[3]+'" title="No report: '+noreport+'%">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-no-report" style=" width:'+widthArr[2]+'" title="No report: '+noreport+'%">'+value+'%</div>');
   }
 
   if(unexpected != 0) {
@@ -1439,17 +1436,17 @@ function buildComplianceBar(compliance, minPxSize) {
       text.push("Unknown reports: "+unknown+"%");
     }
     var value = compliancePercentValue(unexpected);
-    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+widthArr[4]+'" title="'+text.join("\n")+'">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-unknown" style="width:'+widthArr[3]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
 
   if(error != 0) {
     var value = compliancePercentValue(error);
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[5]+'" title="Error: '+error+'%">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[4]+'" title="Error: '+error+'%">'+value+'%</div>');
   }
 
   if(reportsDisabled != 0) {
     var value = compliancePercentValue(reportsDisabled);
-    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+widthArr[6]+'%" title="Reports Disabled: '+reportsDisabled+'%">'+value+'%</div>')
+    content.append('<div class="progress-bar progress-bar-reportsdisabled" style="width:'+widthArr[5]+'%" title="Reports Disabled: '+reportsDisabled+'%">'+value+'%</div>')
   }
 
   return content
