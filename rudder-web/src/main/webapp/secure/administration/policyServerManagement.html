@@ -74,9 +74,11 @@
 	              </thead>
 	              <tbody id="allowNetworkFields">
 	                <tr>
-	                  <td class="delete"><input
-	                    class="deleteNetwork" type="submit"
-	                    value="delete" /></td>
+	                  <td class="delete">
+	                    <lift:authz role="administration_write">
+                          <input class="deleteNetwork" type="submit" value="delete" />
+	                    </lift:authz>
+	                  </td>
 	                  <td><input name="network"
 	                    class="networkField" /></td>
 	                  <td><lift:Msg errorClass="error">[error]</lift:Msg></td>
@@ -182,7 +184,10 @@
               </div>
               <hr class="spacer"/>
   		      <div class="wbBaseField">
-                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label><input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
+                    <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label>
+                    <lift:authz role="administration_write">
+                      <input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
+                    </lift:authz>
               </div>
               <hr class="spacer"/>
               <lift:authz role="administration_write">
@@ -302,8 +307,10 @@ These files are automatically removed to save on disk space. You can configure t
                     <input id="storeAllLogsOnFile" type="text"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
-              <lift:Msg id="loggingConfiguration">[messages]</lift:Msg>
+              <lift:authz role="administration_write">
+                <input type="submit" value="[save]" id="loggingConfigurationSubmit"/>
+                <lift:Msg id="loggingConfiguration">[messages]</lift:Msg>
+              </lift:authz>
             </form>
           </div>
         </div>
@@ -397,8 +404,10 @@ These files are automatically removed to save on disk space. You can configure t
                     <input id="apiMode" type="text"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="[save]" id="apiModeSubmit"/>
-              <lift:Msg id="apiModeMsg">[messages]</lift:Msg>
+              <lift:authz role="administration_write">
+                <input type="submit" value="[save]" id="apiModeSubmit"/>
+                <lift:Msg id="apiModeMsg">[messages]</lift:Msg>
+              </lift:authz>
             </form>
           </div>
         </div>
@@ -422,11 +431,13 @@ These files are automatically removed to save on disk space. You can configure t
         <div class="deca">
           <div class="lift:administration.ClearCache.render"
             id="clearCacheForm">
-            <form class="lift:form.ajax">
-              <input id="clearCacheButton" type="submit"
-                value="[Clear cache]" />
-              <lift:Msg id="clearCacheNotice">[error]</lift:Msg>
-            </form>
+            <lift:authz role="administration_write">
+              <form class="lift:form.ajax">
+                <input id="clearCacheButton" type="submit"
+                  value="[Clear cache]" />
+                <lift:Msg id="clearCacheNotice">[error]</lift:Msg>
+              </form>
+            </lift:authz>
           </div>
         </div>
       </div>
@@ -451,12 +462,14 @@ Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateI
         <div class="deca">
           <div class="lift:administration.DyngroupReloading.render"
             id="dyngroupReloadingForm">
-            <form class="lift:form.ajax">
-              <input id="dyngroupReloadingButton" type="submit"
-                value="[Reload dyngroups]" />
-              <lift:msg id="dyngroupReloadingNotice"
-                errorClass="error">[error]</lift:msg>
-            </form>
+            <lift:authz role="administration_write">
+              <form class="lift:form.ajax">
+                <input id="dyngroupReloadingButton" type="submit"
+                  value="[Reload dyngroups]" />
+                <lift:msg id="dyngroupReloadingNotice"
+                  errorClass="error">[error]</lift:msg>
+              </form>
+            </lift:authz>
           </div>
         </div>
       </div>
@@ -480,10 +493,12 @@ Currently, Rudder will automatically do this update every <b id="techniqueLibrar
           <div
             class="lift:administration.TechniqueLibraryManagement.reloadTechniqueButton"
             id="reloadTechniqueLibForm">
-            <form class="lift:form.ajax">
-              <input type="submit" value="Reload" />
-              <lift:Msg id="updateLib">[messages]</lift:Msg>
-            </form>
+            <lift:authz role="administration_write">
+              <form class="lift:form.ajax">
+                <input type="submit" value="Reload" />
+                <lift:Msg id="updateLib">[messages]</lift:Msg>
+              </form>
+            </lift:authz>
           </div>
         </div>
       </div>
