@@ -132,7 +132,6 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-
   private[this] def displayIntro(report: NodeStatusReport): NodeSeq = {
 
     def explainCompliance(info: RunAndConfigInfo): NodeSeq = {
@@ -261,7 +260,6 @@ class ReportDisplayer(
         }
     }
 
-
     <div class="tw-bs">
       <div id="node-compliance-intro" class={background}>
         <p>{explainCompliance(report.runInfo)}</p>{
@@ -269,7 +267,6 @@ class ReportDisplayer(
       }</div>
     </div>
   }
-
 
   private[this] def displayReports(node : NodeInfo) : NodeSeq = {
     val boxXml = (
@@ -288,10 +285,9 @@ class ReportDisplayer(
          * And if don't even have expected configuration, don't display anything.
          */
 
-
         report.runInfo match {
           case NoRunNoExpectedReport | _:NoExpectedReport =>
-            bind("lastReportGrid", reportByNodeTemplate
+            bind("lastreportgrid", reportByNodeTemplate
               , "intro"      -> intro
               , "grid"       -> NodeSeq.Empty
               , "missing"    -> NodeSeq.Empty
@@ -316,7 +312,7 @@ class ReportDisplayer(
               )
             } )
 
-            bind("lastReportGrid", reportByNodeTemplate
+            bind("lastreportgrid", reportByNodeTemplate
               , "intro"      -> intro
               , "grid"       -> showReportDetail(filtered, node, withCompliance = false)
               , "missing"    -> NodeSeq.Empty
@@ -328,7 +324,7 @@ class ReportDisplayer(
             val missing    = getComponents(MissingReportType   , report, directiveLib).toSet
             val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
 
-            bind("lastReportGrid", reportByNodeTemplate
+            bind("lastreportgrid", reportByNodeTemplate
               , "intro"      -> intro
               , "grid"       -> showReportDetail(report, node, withCompliance = true)
               , "missing"    -> showMissingReports(missing)
@@ -340,7 +336,6 @@ class ReportDisplayer(
 
     boxXml match {
       case e:EmptyBox =>
-
         logger.error(e)
         <div class="error">Could not fetch reports information</div>
       case Full(xml) => xml
