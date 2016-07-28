@@ -122,7 +122,6 @@ trait DirectiveField extends BaseField with SectionChildField {
   //update list error accordingly
   def parseClient(s: String): Unit
 
-
   //reference to other fields used by that field
   protected var _usedFields = Seq[DirectiveField]()
   def usedFields_=(fields: Seq[DirectiveField]): Unit = {
@@ -166,7 +165,6 @@ trait DirectiveField extends BaseField with SectionChildField {
 
   override def displayHtml = Text(toClient)
 
-
   def tooltipElem = {
     if (tooltip == "") {
       NodeSeq.Empty
@@ -180,7 +178,7 @@ trait DirectiveField extends BaseField with SectionChildField {
   def display(value: NodeSeq) = {
     <tr>
       <td class="directiveVarLabel">
-      { displayName + { if (optional) " (optional)" else "" } }: {tooltipElem}
+      <span>{ if (optional) displayName else <b>{ displayName}</b> } {tooltipElem} {if (optional) <span class="tw-bs"> - <small style="color:#999;">Optional</small></span>}</span>
       </td>
       <td class="directiveVarValue">{ value }</td>
     </tr>
@@ -212,7 +210,6 @@ trait DirectiveField extends BaseField with SectionChildField {
     }
   }
 }
-
 
 object DirectiveField {
   val logger = LoggerFactory.getLogger(classOf[DirectiveField])
@@ -559,7 +556,6 @@ case class DirectiveEditor(
   , val providesExpectedReports: Boolean
   )  extends HashcodeCaching {
 
-
   // We do not remove duplicate in case of meta-technique
   def removeDuplicateSections : Unit = providesExpectedReports match {
     case true => Unit
@@ -606,5 +602,3 @@ case class DirectiveEditor(
     </div>
   }
 }
-
-
