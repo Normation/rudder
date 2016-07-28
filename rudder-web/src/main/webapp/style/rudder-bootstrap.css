@@ -343,10 +343,6 @@
   display: table;
 }
 
-.tw-bs .control-label{
-	font-weight: normal;
-}
-
 #cfagentSchedule .control-label.col-sm-1 {
 	width:150px;
 	text-align:right;
@@ -412,4 +408,71 @@
 
 .modal-dialog {
 	z-index:1050;
+}
+
+.tw-bs .password-section .btn{
+  outline: none !important;
+}
+
+.tw-bs .password-section .reveal-password:hover,.tw-bs .password-section .reveal-password:active,.tw-bs .password-section .reveal-password:focus{
+  background-color: #fff;
+  border-color: #ccc;
+}
+.tw-bs .password-section .btn-default.active:hover{
+}
+.tw-bs .password-section .input-group[class*=col-]{
+  padding:0 15px;
+}
+.tw-bs .password-section .reveal-password>span{
+  font-size: 16px;
+  padding: 2px 0;
+}
+
+.tw-bs .password-section .input-group-btn .btn{
+  margin-left: -3px
+}
+.tw-bs .password-section textarea{
+    resize: vertical;
+    border-radius: 4px !important;
+}
+
+body .tw-bs {
+  color: #333;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 14px;
+  line-height: 1.42857;
+}
+
+.animate-show {
+  line-height: 20px;
+  opacity: 1;
+  padding: 10px;
+  border: 1px solid black;
+  background: white;
+}
+
+.animate-show.ng-hide-add, .animate-show.ng-hide-remove {
+  transition: all linear 0.5s;
+}
+
+.animate-show.ng-hide {
+  line-height: 0;
+  opacity: 0;
+  padding: 0 10px;
+}
+
+#password-actions {
+	padding: 0 15px 15px;
+}
+
+.tw-bs .padding-form {
+	padding-bottom: 15px;
+}
+
+.tw-bs .input-group-btn  .dropdown-toggle {
+	height : 34px;
+} 
+
+.tw-bs .input-group-btn > .btn:hover, .tw-bs .input-group-btn > .btn:focus, .tw-bs .input-group-btn > .btn:active {
+  z-index: 0;
 }
