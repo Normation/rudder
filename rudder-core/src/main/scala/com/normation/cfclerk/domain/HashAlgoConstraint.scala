@@ -72,11 +72,20 @@ object HashAlgoConstraint {
   /*
    * Actually do not hash the result
    */
-  object PLAIN  extends HashAlgoConstraint {
+  object PLAIN extends HashAlgoConstraint {
     override def hash(input:Array[Byte]) : String = new String(input, "UTF-8")
     override val prefix = "plain"
   }
 
+  object PreHashed extends HashAlgoConstraint {
+    override def hash(input:Array[Byte]) : String = new String(input, "UTF-8")
+    override val prefix = "pre-hashed"
+  }
+
+  object SCRIPT extends HashAlgoConstraint {
+    override def hash(input:Array[Byte]) : String = new String(input, "UTF-8")
+    override val prefix = "script"
+  }
   /*
    * Simple standard hash: MD5, SHA-1,256,512
    */
@@ -136,7 +145,6 @@ object HashAlgoConstraint {
     override val prefix = "linux-shadow-sha512"
   }
 
-
   /*
    * AIX /etc/security/user hash, as explained here:
    *
@@ -177,10 +185,9 @@ object HashAlgoConstraint {
     override val prefix = "unix-crypt-des"
   }
 
-
   sealed trait DerivedPasswordType {
     //name, for ex for unserialisation
-    def name: String ;
+    def name: String
     //the total mapping from a hashalgo to another
     def hash(h: HashAlgoConstraint): HashAlgoConstraint
   }
@@ -188,7 +195,7 @@ object HashAlgoConstraint {
   final object DerivedPasswordType {
 
     final case object AIX   extends DerivedPasswordType {
-      final val name = "aix"
+      final val name = "AIX"
 
       def hash(h: HashAlgoConstraint) = h match {
         case LinuxShadowMD5    => AixMD5
@@ -199,7 +206,7 @@ object HashAlgoConstraint {
     }
 
     final case object Linux extends DerivedPasswordType {
-      final val name = "linux"
+      final val name = "Unix"
 
       def hash(h: HashAlgoConstraint) = h match {
         case AixMD5    => LinuxShadowMD5
@@ -211,11 +218,9 @@ object HashAlgoConstraint {
     //solaris, etc: todo
   }
 
-
   /////
   ///// Generic methods on algos
   /////
-
 
   def algorithms = values[HashAlgoConstraint]
 
@@ -228,6 +233,8 @@ object HashAlgoConstraint {
   def sort(algos: Set[HashAlgoConstraint]): Seq[HashAlgoConstraint] = {
     def order(algo: HashAlgoConstraint): Int = algo match {
       case PLAIN             => 1
+      case PreHashed         => 1
+      case SCRIPT            => 1
       case LinuxShadowMD5    => 21
       case LinuxShadowSHA256 => 22
       case LinuxShadowSHA512 => 23
@@ -263,7 +270,7 @@ object HashAlgoConstraint {
   private[this] val format = """([\w-]+):(.*)""".r
   def unserializeIn(algos: Set[HashAlgoConstraint], value:String): Box[(HashAlgoConstraint, String)] = value match {
     case format(algo,h) => HashAlgoConstraint.fromStringIn(algos, algo) match {
-      case None => Failure(s"Unknown algorithm ${algo}. List of know algorithme: ${algoNames(algos)}")
+      case None => Failure(s"Unknown algorithm ${algo}. List of know algorithm: ${algoNames(algos)}")
       case Some(a) => Full((a,h))
     }
     case _ => Failure(s"Bad format of serialized hashed value, expected format is: 'algorithme:hash', with algorithm among: ${algoNames(algos)}")
