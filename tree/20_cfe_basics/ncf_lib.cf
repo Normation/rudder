@@ -285,19 +285,17 @@ bundle edit_line ncf_maintain_keys_values(v, sep) {
          comment   => "Dynamic Class created if patterns matching",
         expression => regline("^${keypat[${index}]}.*", "${edit.filename}");
 
+  insert_lines:
+      "${index}${sep}$i{${v}[${index}]}"
+        comment    => "Insert definition of ${index}",
+        ifvarclass => "!${cindex[${index}]}_key_in_file";
+
   replace_patterns:
       # For convergence need to use negative lookahead on value:
       # "key sep (?!value).*"
       "^(${keypat[${index}]})(?!${ve[${index}]}$).*"
         comment      => "Replace definition of ${index}",
         replace_with => value("${match.1}${${v}[${index}]}");
-
-  insert_lines:
-      "${index}${sep}$i{${v}[${index}]}"
-        comment    => "Insert definition of ${index}",
-        ifvarclass => "!${cindex[${index}]}_key_in_file";
-
-
 
 }
 
