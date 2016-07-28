@@ -1186,7 +1186,7 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
     , "oLanguage": {
         "sSearch": ""
     }
-    , "aaSorting": [[ 0, "asc" ]]
+    , "aaSorting": [[ 0, "desc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
