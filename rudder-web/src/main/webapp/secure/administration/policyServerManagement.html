@@ -76,7 +76,7 @@
 	                <tr>
 	                  <td class="delete">
 	                    <lift:authz role="administration_write">
-                          <input class="deleteNetwork" type="submit" value="delete" />
+	                      <input class="deleteNetwork" type="submit" value="delete" />
 	                    </lift:authz>
 	                  </td>
 	                  <td><input name="network"
@@ -145,8 +145,10 @@
                     <input id="reportProtocol" type="text"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="[save]" id="networkProtocolSubmit"/>
-              <span class="lift:Msg?id=updateNetworkProtocol">[messages]</span>
+              <lift:authz role="administration_write">
+                <input type="submit" value="[save]" id="networkProtocolSubmit"/>
+                <span class="lift:Msg?id=updateNetworkProtocol">[messages]</span>
+              </lift:authz>
             </form>
           </div>
         </div>
@@ -185,8 +187,9 @@
               <hr class="spacer"/>
   		      <div class="wbBaseField">
                     <label class="threeCol textight" style="font-weight:bold;width: 20%;"><span style="float:left">Explanation to display: </span><span id="explanationTooltip" /></label>
+                    <input id="explanation" type="text"/>
                     <lift:authz role="administration_write">
-                      <input id="explanation" type="text"/><input id="restoreExplanation" type="button"/>
+                      <input id="restoreExplanation" type="button"/>
                     </lift:authz>
               </div>
               <hr class="spacer"/>
@@ -343,8 +346,10 @@ These files are automatically removed to save on disk space. You can configure t
                 <label class="threeCol textright" for="sendMetricsCheckbox" style="font-weight:bold;width: 20%;">Send anonymous usage statistics:</label><input id="sendMetricsCheckbox" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="Reload" id="sendMetricsSubmit"/>
-              <span class="lift:Msg?id=sendMetricsMsg">[messages]</span>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Reload" id="sendMetricsSubmit"/>
+                <span class="lift:Msg?id=sendMetricsMsg">[messages]</span>
+              </lift:authz>
             </form>
           </div>
         </div>
@@ -371,8 +376,10 @@ These files are automatically removed to save on disk space. You can configure t
                 <label class="threeCol textright" for="displayGraphsCheckbox" style="font-weight:bold;width: 20%;">Display changes graphs:</label><input id="displayGraphsCheckbox" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
-              <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Save Changes" id="displayGraphsSubmit"/>
+                <lift:Msg id="displayGraphsMsg">[messages]</lift:Msg>
+              </lift:authz>
             </form>
           </div>
         </div>
