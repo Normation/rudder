@@ -358,19 +358,32 @@ sealed trait JsEngine {
  */
 final object JsEngine {
   // Several evals: one default and one JS (in the future, we may have several language)
-  final val DEFAULT_EVAL = "eval"
-  final val EVALJS = "evaljs"
+  final val DEFAULT_EVAL = "$eval:"
+  final val EVALJS       = "$evaljs:"
 
-  final val default_pattern = """(?ms)(.*)\$\{eval\s+(.*)}(.*)""".r
-  final val js_pattern = """(?ms)(.*)\$\{evaljs\s+(.*)}(.*)""".r
-
+  final val PASSWORD_PREFIX       = "plain:"
+  final val DEFAULT_EVAL_PASSWORD = PASSWORD_PREFIX+"$eval:"
+  final val EVALJS_PASSWORD       = PASSWORD_PREFIX+"$evaljs:"
+  
+  // From a variable, returns the two string we should check at the beginning of the variable value
+  // For a password, check if it's a plain text or not, otherwise check simply the eval keywords
+  def getEvaluatorTuple(variable: Variable) : (String, String, Boolean) = {
+    variable.spec.constraint.typeName match {
+        case t: AbstactPassword => (DEFAULT_EVAL_PASSWORD, EVALJS_PASSWORD, true) 
+        case _                  => (DEFAULT_EVAL, EVALJS, false)
+    }
+  }
+  
   final object DisabledEngine extends JsEngine {
     /*
      * Eval does nothing on variable without the EVAL keyword, and
      * fails on variable with the keyword.
      */
     def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
-      sequence(variable.values) { v => v match {
+      val (default, js, _) = getEvaluatorTuple(variable)
+      variable.values.find( x => x.startsWith(default) || x.startsWith(js) ) match {
+        case None    => Full(variable)
+        case Some(v) =>
           /*
            * Here, we need to chose between:
            * - fails when the feature is disabled, but the string starts with $eval,
@@ -384,15 +397,10 @@ final object JsEngine {
            *
            * For now, failing because it seems to be the safe bet.
            */
-        case default_pattern(_, _, _) => 
-                Failure(s"Value '${v}' contains with the ${DEFAULT_EVAL} keyword, but the 'parameter evaluation feature' "
-                  +"is disable. Please, either don't use the keyword or enable the feature")
-        case js_pattern(_,_,_) =>
-                Failure(s"Value '${v}' contains the ${EVALJS} keyword, but the 'parameter evaluation feature' "
-                  +"is disable. Please, either don't use the keyword or enable the feature")
-        case _ => Full(variable)
+           Failure(s"Value '${v}' starts with the ${DEFAULT_EVAL} keyword, but the 'parameter evaluation feature' "
+                  +"is disables. Please, either don't use the keyword or enable the feature")
 
-      } }.map(x => variable) // if we only have Full, return the variable as success
+      }
     }
   }
 
@@ -493,21 +501,30 @@ final object JsEngine {
      */
     def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
 
-      // We only have one engine, so use it for default algo and js type
-      def scriptEvaluation(before: String, script: String, after: String) : Box[String] = {
-        // Evaluate the script, and concatenate back the result
-        singleEval(script, lib.bindings).map ( x => before ++ x ++ after)
-      }
+      val (default, js, isPassword) = getEvaluatorTuple(variable)
+      
       for {
         values <- sequence(variable.values) { value =>
-          (value match {
-            case default_pattern(before, script, after) =>
-              scriptEvaluation(before, script, after)
-            case js_pattern(before, script, after) =>
-              scriptEvaluation(before, script, after)
-            case _ =>
+          (if (value.startsWith(default)) {
+            val script = value.substring(default.length())
+            //do something with script
+            singleEval(script, lib.bindings)
+          } else {
+            if (value.startsWith(js)) {
+              val script = value.substring(js.length())
+              //do something with script
+              singleEval(script, lib.bindings)
+            } else {
               Full(value)
-          }) ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
+            }
+          }).map{ x => 
+            // If it's a password, we need to reconstruct the correct password structure
+            if (isPassword) {
+              (PASSWORD_PREFIX + x) 
+            } else {
+              x
+            }
+          } ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
         }
       } yield {
           variable.copyWithSavedValues(values)
