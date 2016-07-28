@@ -1776,8 +1776,9 @@ object RudderConfig extends Loggable {
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
           case TextareaVType(r) => new TextareaField(id)
-          case PasswordVType(algos) => new PasswordField(id, input.constraint.mayBeEmpty, algos)
-          case MasterPasswordVType(algos) => new MasterPasswordField(id, input.constraint.mayBeEmpty, algos)
+          // Same field type for password and MasterPassword, difference is that master will have slave/used derived passwords, and password will not have any slave/used field
+          case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty)
+          case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty)
           case AixDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.AIX)
           case LinuxDerivedPasswordVType => new DerivedPasswordField(id, HashAlgoConstraint.DerivedPasswordType.Linux)
           case _ => default(id)

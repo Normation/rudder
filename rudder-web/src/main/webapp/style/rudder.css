@@ -240,12 +240,6 @@ form input.radio {
   vertical-align: middle;
 }
 
-form button {
-   width: 130px;
-   padding: 0.2em;
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
-}
 
 button.ui-state-default {
    width: 130px;
