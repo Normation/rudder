@@ -78,13 +78,14 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.domain.logger.ComplianceDebugLogger
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
-import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.licenses.NovaLicense
-import com.normation.rudder.reports.AgentRunInterval
-import com.normation.rudder.reports.AgentRunInterval
+import javax.script.ScriptEngine
+import javax.script.ScriptEngineManager
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.inventory.domain.AixOS
 
 /**
  * The main service which deploy modified rules and
@@ -127,6 +128,7 @@ trait PromiseGenerationService extends Loggable {
       globalAgentRun       <- getGlobalAgentRun
       fetch6Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
+      scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
       globalComplianceMode <- getGlobalComplianceMode
       nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
@@ -161,7 +163,7 @@ trait PromiseGenerationService extends Loggable {
       _             =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos) ?~! "Cannot build target configuration node"
+      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos, scriptEngineEnabled) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
@@ -233,6 +235,7 @@ trait PromiseGenerationService extends Loggable {
   def getAgentRunSplaytime   : () => Box[Int]
   def getAgentRunStartHour   : () => Box[Int]
   def getAgentRunStartMinute : () => Box[Int]
+  def getScriptEngineEnabled : () => Box[FeatureSwitch]
 
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
@@ -279,6 +282,7 @@ trait PromiseGenerationService extends Loggable {
     , nodeContexts : Map[NodeId, InterpolationContext]
     , groupLib     : FullNodeGroupCategory
     , allNodeInfos : Map[NodeId, NodeInfo]
+    , scriptEngineEnabled  : FeatureSwitch
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -388,6 +392,7 @@ class PromiseGenerationServiceImpl (
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
   , override val getAgentRunStartMinute: () => Box[Int]
+  , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
@@ -565,6 +570,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , nodeContexts : Map[NodeId, InterpolationContext]
     , groupLib     : FullNodeGroupCategory
     , allNodeInfos : Map[NodeId, NodeInfo]
+    , scriptEngineEnabled  : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
 
     //step 1: from RuleVals to expanded rules vals
@@ -616,57 +622,69 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     }
 
     //1.3: build node config, binding ${rudder.parameters} parameters
+    JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
 
-    val nodeConfigs = sequence(nodeContexts.toSeq) { case (nodeId, context) =>
+      val nodeConfigs = sequence(nodeContexts.toSeq) { case (nodeId, context) =>
 
-      for {
-        drafts <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
-        /*
-         * Clearly, here, we are evaluating parameters, and we are not using that just after in the
-         * variable expansion, which mean that we are doing the same work again and again and again.
-         * Moreover, we also are evaluating again and again parameters whose context ONLY depends
-         * on other parameter, and not node config at all. Bad bad bad bad.
-         * TODO: two stages parameter evaluation
-         *  - global
-         *  - by node
-         *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
-         */
-        parameters <- sequence(context.parameters.toSeq) { case (name, param) =>
-                        for {
-                          p <- param(context)
-                        } yield {
-                          (name, p)
-                        }
-                      }
-        cf3PolicyDrafts <- sequence(drafts) { draft =>
-                            //bind variables
-                            draft.variableMap(context).map{ expandedVariables =>
-
-                              Cf3PolicyDraft(
-                                  id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
-                                , technique = draft.technique
-                                , variableMap = expandedVariables
-                                , trackerVariable = draft.trackerVariable
-                                , priority = draft.priority
-                                , serial = draft.serial
-                                , ruleOrder = draft.ruleOrder
-                                , directiveOrder = draft.directiveOrder
-                                , overrides = Set()
-                              )
-                            }
+        for {
+          drafts <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
+          /*
+           * Clearly, here, we are evaluating parameters, and we are not using that just after in the
+           * variable expansion, which mean that we are doing the same work again and again and again.
+           * Moreover, we also are evaluating again and again parameters whose context ONLY depends
+           * on other parameter, and not node config at all. Bad bad bad bad.
+           * TODO: two stages parameter evaluation
+           *  - global
+           *  - by node
+           *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
+           */
+          parameters <- sequence(context.parameters.toSeq) { case (name, param) =>
+                          for {
+                            p <- param(context)
+                          } yield {
+                            (name, p)
                           }
-      } yield {
-        NodeConfiguration(
-            nodeInfo = context.nodeInfo
-          , policyDrafts = cf3PolicyDrafts.toSet
-          , nodeContext = context.nodeContext
-          , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
-          , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
-        )
-      }
-    }
+                        }
+          cf3PolicyDrafts <- sequence(drafts) { draft =>
+                               for {
+                                 //bind variables with interpolated context
+                                 expandedVariables <- draft.variableMap(context)
+                                 // And now, for each variable, eval - if needed - the result
+                                 evaluatedVars     <- sequence(expandedVariables.toSeq) { case (k, v) =>
+                                                        //js lib is specific to the node os, bind here to not leak eval between vars
+                                                        val jsLib = context.nodeInfo.osDetails.os match {
+                                                          case AixOS => JsRudderLibBinding.Aix
+                                                          case _     => JsRudderLibBinding.Crypt
+                                                        }
+                                                        jsEngine.eval(v, jsLib).map( x => (k, x) )
+                                                      }
+                               } yield {
 
+                                 Cf3PolicyDraft(
+                                     id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
+                                   , technique = draft.technique
+                                   , variableMap = evaluatedVars.toMap
+                                   , trackerVariable = draft.trackerVariable
+                                   , priority = draft.priority
+                                   , serial = draft.serial
+                                   , ruleOrder = draft.ruleOrder
+                                   , directiveOrder = draft.directiveOrder
+                                   , overrides = Set()
+                                 )
+                               }
+                             }
+        } yield {
+          NodeConfiguration(
+              nodeInfo = context.nodeInfo
+            , policyDrafts = cf3PolicyDrafts.toSet
+            , nodeContext = context.nodeContext
+            , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+            , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
+          )
+        }
+      }
     nodeConfigs
+    }
   }
 
 }
