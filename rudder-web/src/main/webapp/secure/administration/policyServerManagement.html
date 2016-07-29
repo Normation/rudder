@@ -426,9 +426,9 @@ These files are automatically removed to save on disk space. You can configure t
         <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
           <div class="intro">
             <div>
-            If enabled, all Directive variables can use the <span class="tw-bs"><code>${eval ...}</code></span> syntax to evaluate a JavaScript expression.
+            If enabled, all password fields can contain a JavaScript expression.
             These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
-            Read the <a href="/rudder-doc/">script documentation</a>for more information.
+            Read the <a href="/rudder-doc/#_javascript_evaluation_in_directives">script documentation</a>for more information.
             </div>
           </div>
 
@@ -436,11 +436,13 @@ These files are automatically removed to save on disk space. You can configure t
           <div class="deca">
             <form class="lift:form.ajax">
               <div class="wbBaseField">
-                <label class="threeCol textright" for="directiveScriptEngineCheckbox" style="font-weight:bold;width: 30%;">Enable script evaluation in Directives with <span class="tw-bs"><code>${eval ...}</code></span>:</label><input id="directiveScriptEngineCheckbox" type="checkbox"/>
+                <label class="threeCol textright" for="directiveScriptEngineCheckbox" style="font-weight:bold;width: 30%;">Enable script evaluation in Directives:</label><input id="directiveScriptEngineCheckbox" type="checkbox"/>
               </div>
               <hr class="spacer"/>
-              <input type="submit" value="Save Changes" id="directiveScriptEngineSubmit"/>
-              <lift:Msg id="directiveScriptEngineMsg">[messages]</lift:Msg>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Save Changes" id="directiveScriptEngineSubmit"/>
+                <lift:Msg id="directiveScriptEngineMsg">[messages]</lift:Msg>
+              </lift:authz>
             </form>
           </div>
         </div>
