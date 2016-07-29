@@ -82,10 +82,6 @@ object HashAlgoConstraint {
     override val prefix = "pre-hashed"
   }
 
-  object SCRIPT extends HashAlgoConstraint {
-    override def hash(input:Array[Byte]) : String = new String(input, "UTF-8")
-    override val prefix = "script"
-  }
   /*
    * Simple standard hash: MD5, SHA-1,256,512
    */
@@ -234,7 +230,6 @@ object HashAlgoConstraint {
     def order(algo: HashAlgoConstraint): Int = algo match {
       case PLAIN             => 1
       case PreHashed         => 1
-      case SCRIPT            => 1
       case LinuxShadowMD5    => 21
       case LinuxShadowSHA256 => 22
       case LinuxShadowSHA512 => 23
