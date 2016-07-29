@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
@@ -67,23 +66,20 @@ class TestJsEngine extends Specification {
   val hashPrefix   = "test"
   val variableSpec = InputVariableSpec(hashPrefix, "")
 
-
   val noscriptVariable     = variableSpec.toVariable(Seq("simple ${rudder} value"))
-  val get4scriptVariable   = variableSpec.toVariable(Seq("$evaljs: 2+2"))
-  val infiniteloopVariable = variableSpec.toVariable(Seq("$evaljs:while(true){}"))
+  val get4scriptVariable   = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS} 2+2"))
+  val infiniteloopVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}while(true){}"))
 
-  val setFooVariable = variableSpec.toVariable(Seq("$evaljs:var foo = 'some value'; foo"))
-  val getFooVariable = variableSpec.toVariable(Seq("$eval:foo"))
-
+  val setFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}var foo = 'some value'; foo"))
+  val getFooVariable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}foo"))
 
   /*
    * For some tests, we need to know if we are on rhino or nashorn
    */
   val isNashorn = {
-//    val javaVersionElements = System.getProperty("java.version").split(""".""")
-//    val major = Integer.parseInt(javaVersionElements(1))
-//    major >= 8 // else rhino, because we don't support java 1.5 and before in all case
-    true
+    val javaVersionElements = System.getProperty("java.version").split('.')
+    val major = Integer.parseInt(javaVersionElements(1))
+    major >= 8 // else rhino, because we don't support java 1.5 and before in all case
   }
 
   /**
@@ -131,13 +127,11 @@ class TestJsEngine extends Specification {
       }):MatchResult[Any]
     }
 
-
     "let test have direct access to the engine" in {
       val engine = JsEngine.SandboxedJsEngine.getJsEngine().openOrThrowException("Missing jsengine")
       engine.eval("1 + 1") === 2.0
     }
   }
-
 
   "When feature is disabled, one " should {
 
@@ -152,10 +146,9 @@ class TestJsEngine extends Specification {
     }
 
     "failed with a message when the variable is a script" in {
-      context( _.eval(get4scriptVariable, JsRudderLibBinding.Crypt)) must beFailure(".*starts with the $eval.*".r)
+      context( _.eval(get4scriptVariable, JsRudderLibBinding.Crypt)) must beFailure(".*starts with the evaljs:.*".r)
     }
   }
-
 
   "When getting the sandboxed environement, one " should {
 
@@ -250,10 +243,10 @@ class TestJsEngine extends Specification {
 
   "When using the Rudder JS Library, one" should {
 
-    val sha256Variable = variableSpec.toVariable(Seq("$evaljs:rudder.password.sha256('secret')"))
-    val sha512Variable = variableSpec.toVariable(Seq("$eval:rudder.password.sha512('secret', '01234567')"))
+    val sha256Variable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.sha256('secret')"))
+    val sha512Variable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}rudder.password.sha512('secret', '01234567')"))
 
-    val md5VariableAIX = variableSpec.toVariable(Seq("$evaljs:rudder.password.aixMd5('secret')"))
+    val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aixMd5('secret')"))
 
     def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
 
@@ -290,10 +283,10 @@ class TestJsEngine extends Specification {
 
   "When using the Rudder JS Library and advertised method, one" should {
 
-    val sha256Variable = variableSpec.toVariable(Seq("$evaljs:rudder.password.auto('sha256', 'secret')"))
-    val sha512Variable = variableSpec.toVariable(Seq("$eval:rudder.password.auto('SHA-512', 'secret', '01234567')"))
-    val md5VariableAIX = variableSpec.toVariable(Seq("$evaljs:rudder.password.aix('MD5', 'secret')"))
-    val invalidAlgo = variableSpec.toVariable(Seq("$evaljs:rudder.password.auto('foo', 'secret')"))
+    val sha256Variable = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.auto('sha256', 'secret')"))
+    val sha512Variable = variableSpec.toVariable(Seq(s"${JsEngine.DEFAULT_EVAL}rudder.password.auto('SHA-512', 'secret', '01234567')"))
+    val md5VariableAIX = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.aix('MD5', 'secret')"))
+    val invalidAlgo = variableSpec.toVariable(Seq(s"${JsEngine.EVALJS}rudder.password.auto('foo', 'secret')"))
 
     def context[T] = JsEngineProvider.withNewEngine[T](FeatureSwitch.Enabled) _
 
@@ -326,7 +319,7 @@ class TestJsEngine extends Specification {
         engine.eval(md5VariableAIX, JsRudderLibBinding.Aix)
       } must beVariableValue( _.startsWith("{smd5}") )
     }
-    
+
     "fail when we ask for a wrong password" in {
       context { engine =>
         engine.eval(invalidAlgo, JsRudderLibBinding.Aix)
