@@ -35,10 +35,11 @@
 *************************************************************************************
 */
 
-var passwordModule = angular.module("password", [])
+
+var passwordModule = angular.module("password", []);
 passwordModule.controller("passwordController", function($scope) {
   // Declare Variables
-
+  
   // Current password, and 'other passwords' defined if there is a 'slave' field, displayedPass is the pass we currently display
   $scope.current = {password : undefined, hash : "md5", show : false};
   $scope.otherPasswords = undefined;
@@ -52,10 +53,11 @@ passwordModule.controller("passwordController", function($scope) {
   $scope.action = "keep";
   $scope.formType = "withHashes";
   $scope.canBeDeleted = false;
+  $scope.scriptEnabled = false;
 
   // Result (the value that will be sent back to Lift form), initialized as undefined, but will be update directly and on every change of action and the new password (so will be changed on init)
   $scope.result = undefined;
-  updateResult()
+  updateResult();
 
   $scope.$watch('action',updateResult);
   $scope.$watch('newPassword.password',updateResult);
@@ -63,27 +65,55 @@ passwordModule.controller("passwordController", function($scope) {
 
   function updateResult () {
     // Keep and delete, use current password as base
-    var result = $scope.current
+    var result = angular.copy($scope.current);
     if ($scope.action === "change") {
-      result = $scope.newPassword;
+      result = angular.copy($scope.newPassword);
     }
+    
+    if (result.hash === "plain" && result.isScript) {
+      result.password = "evaljs:"+result.password;
+    }
+      
     // Action will allow to differentiate between 'delete' and 'keep' and is used for 'change' too
     result.action = $scope.action
     $scope.result = JSON.stringify(result);
   }
 
   // init function, That will be called from 'outside' angular scope to set with values sent from the webapp
-  $scope.init = function(current, currentHash, hashes, otherPasswords, canBeDeleted) {
-    $scope.current.password=current;
+  $scope.init = function(current, currentHash, isScript, currentAction, hashes, otherPasswords, canBeDeleted, scriptEnabled, previousPass, previousHash, previousIsScript) {
+    if (currentAction === "keep") {
+      $scope.current.password=current;
+      $scope.current.hash = currentHash;
+      $scope.current.isScript = isScript;
+    }
+    if (currentAction === "change") {
+      $scope.newPassword.password=current;
+      $scope.newPassword.hash = currentHash;
+      $scope.newPassword.isScript = isScript;
+      
+      if ($scope.newPassword.isScript) {
+        $scope.formType="script";
+      } else if ($scope.newPassword.hash === "pre-hashed") {
+        $scope.formType="preHashed";
+      } else if ($scope.newPassword.hash === "plain") {
+        $scope.formType="clearText";
+      } else {
+        $scope.formType="withHashes";
+      }
+
+      $scope.current.password=previousPass;
+      $scope.current.hash = previousHash;
+      $scope.current.isScript = previousIsScript;
+    }
     $scope.hashes = hashes;
-    $scope.current.hash = currentHash;
     $scope.displayedPass = $scope.current.password;
-    $scope.newPassword.hash=Object.keys(hashes)[0];
+    $scope.action = currentAction;
     if (current === undefined) {
       $scope.action = "change";
     }
     $scope.otherPasswords = otherPasswords;
     $scope.canBeDeleted = canBeDeleted;
+    $scope.scriptEnabled = scriptEnabled;
   }
 
   $scope.displayCurrentHash = function() {
@@ -101,6 +131,8 @@ passwordModule.controller("passwordController", function($scope) {
   }
 
   $scope.passwordForm = function(formType) {
+
+    $scope.newPassword.isScript=false;
     if(formType === "withHashes") {
       $scope.newPassword.hash=Object.keys($scope.hashes)[0];
     } else if (formType === "clearText") {
@@ -108,7 +140,8 @@ passwordModule.controller("passwordController", function($scope) {
     } else if (formType === "preHashed") {
       $scope.newPassword.hash="pre-hashed";
     } else if (formType === "script") {
-      $scope.newPassword.hash="script";
+      $scope.newPassword.hash="plain";
+      $scope.newPassword.isScript=true;
     }
     $scope.formType=formType;
   }
@@ -116,9 +149,9 @@ passwordModule.controller("passwordController", function($scope) {
   $scope.changeAction = function(action) {
     $scope.action = action;
     if (action === "change") {
-      if ($scope.current.hash === "script") {
+      if ($scope.current.isScript) {
         $scope.formType="script";
-        $scope.newPassword.password=$scope.current.password;
+        $scope.newPassword=$scope.current;
       } else if ($scope.current.hash === "pre-hashed") {
         $scope.formType="preHashed";
       } else if ($scope.current.hash === "plain") {
