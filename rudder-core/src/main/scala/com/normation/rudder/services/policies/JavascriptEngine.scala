@@ -85,8 +85,6 @@ final object HashOsType {
   def all = sealerate.values[HashOsType]
 }
 
-
-
 /*
  * Define implicit bytes from string methods
  */
@@ -307,7 +305,6 @@ object JsRudderLibBinding {
   }
 }
 
-
 /**
  * This class provides the Rhino (java 7) or Longhorn (Java 8 & up)
  * java script engine.
@@ -317,7 +314,6 @@ object JsRudderLibBinding {
  *
  */
 final object JsEngineProvider {
-
 
   /**
    * Initialize a new JsEngine with the correct bindings.
@@ -358,22 +354,22 @@ sealed trait JsEngine {
  */
 final object JsEngine {
   // Several evals: one default and one JS (in the future, we may have several language)
-  final val DEFAULT_EVAL = "$eval:"
-  final val EVALJS       = "$evaljs:"
+  final val DEFAULT_EVAL = "eval:"
+  final val EVALJS       = "evaljs:"
 
   final val PASSWORD_PREFIX       = "plain:"
-  final val DEFAULT_EVAL_PASSWORD = PASSWORD_PREFIX+"$eval:"
-  final val EVALJS_PASSWORD       = PASSWORD_PREFIX+"$evaljs:"
-  
+  final val DEFAULT_EVAL_PASSWORD = PASSWORD_PREFIX+DEFAULT_EVAL
+  final val EVALJS_PASSWORD       = PASSWORD_PREFIX+EVALJS
+
   // From a variable, returns the two string we should check at the beginning of the variable value
   // For a password, check if it's a plain text or not, otherwise check simply the eval keywords
   def getEvaluatorTuple(variable: Variable) : (String, String, Boolean) = {
     variable.spec.constraint.typeName match {
-        case t: AbstactPassword => (DEFAULT_EVAL_PASSWORD, EVALJS_PASSWORD, true) 
+        case t: AbstactPassword => (DEFAULT_EVAL_PASSWORD, EVALJS_PASSWORD, true)
         case _                  => (DEFAULT_EVAL, EVALJS, false)
     }
   }
-  
+
   final object DisabledEngine extends JsEngine {
     /*
      * Eval does nothing on variable without the EVAL keyword, and
@@ -381,25 +377,31 @@ final object JsEngine {
      */
     def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
       val (default, js, _) = getEvaluatorTuple(variable)
-      variable.values.find( x => x.startsWith(default) || x.startsWith(js) ) match {
-        case None    => Full(variable)
+      variable.values.find( x => x.startsWith(default)) match {
+        /*
+         * Here, we need to chose between:
+         * - fails when the feature is disabled, but the string starts with $eval,
+         *   meaning that maybe the user wanted to use it anyway.
+         *   But that means that we are changing GENERATION behavior on existing prod,
+         *   for a feature the user don't know anything.
+         * - not fails, because perhaps the user had that in its parameter. But in
+         *   that case, it will fails when feature is enabled by default.
+         *   And we risk to let the user spread sensitive information  into nodes
+         *   (because he thought the will be hashed, but in fact no).
+         *
+         * For now, failing because it seems to be the safe bet.
+         */
+        case None =>
+          variable.values.find( x => x.startsWith(js)) match {
+            case None =>
+              Full(variable)
+            case Some(v) =>
+              Failure(s"Value '${v}' starts with the ${js} keyword, but the 'parameter evaluation feature' "
+                  +"is disabled. Please, either don't use the keyword or enable the feature")
+           }
         case Some(v) =>
-          /*
-           * Here, we need to chose between:
-           * - fails when the feature is disabled, but the string starts with $eval,
-           *   meaning that maybe the user wanted to use it anyway.
-           *   But that means that we are changing GENERATION behavior on existing prod,
-           *   for a feature the user don't know anything.
-           * - not fails, because perhaps the user had that in its parameter. But in
-           *   that case, it will fails when feature is enabled by default.
-           *   And we risk to let the user spread sensitive information  into nodes
-           *   (because he thought the will be hashed, but in fact no).
-           *
-           * For now, failing because it seems to be the safe bet.
-           */
-           Failure(s"Value '${v}' starts with the ${DEFAULT_EVAL} keyword, but the 'parameter evaluation feature' "
-                  +"is disables. Please, either don't use the keyword or enable the feature")
-
+           Failure(s"Value '${v}' starts with the ${default} keyword, but the 'parameter evaluation feature' "
+                  +"is disabled. Please, either don't use the keyword or enable the feature")
       }
     }
   }
@@ -492,6 +494,15 @@ final object JsEngine {
       }
     }
 
+    // If it's a password, we need to reconstruct the correct password structure
+    def reconstructPassword(value: String, isPassword: Boolean) : String = {
+      if (isPassword) {
+          (PASSWORD_PREFIX + value)
+       } else {
+         value
+       }
+    }
+
     /**
      * This is the user-accessible eval.
      * It is expected to throws, and should always be used in
@@ -502,29 +513,22 @@ final object JsEngine {
     def eval(variable: Variable, lib: JsRudderLibBinding): Box[Variable] = {
 
       val (default, js, isPassword) = getEvaluatorTuple(variable)
-      
+
       for {
         values <- sequence(variable.values) { value =>
           (if (value.startsWith(default)) {
             val script = value.substring(default.length())
             //do something with script
-            singleEval(script, lib.bindings)
+            singleEval(script, lib.bindings).map(reconstructPassword(_, isPassword))
           } else {
             if (value.startsWith(js)) {
               val script = value.substring(js.length())
               //do something with script
-              singleEval(script, lib.bindings)
+              singleEval(script, lib.bindings).map(reconstructPassword(_, isPassword))
             } else {
               Full(value)
             }
-          }).map{ x => 
-            // If it's a password, we need to reconstruct the correct password structure
-            if (isPassword) {
-              (PASSWORD_PREFIX + x) 
-            } else {
-              x
-            }
-          } ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
+          }) ?~! s"Invalid script '${value}' for Variable ${variable.spec.name} - please check method call and/or syntax"
         }
       } yield {
           variable.copyWithSavedValues(values)
@@ -708,7 +712,6 @@ final object JsEngine {
     override def newThread(r: Runnable): Thread = {
       val t = new SandboxedThread(group, r, RUDDER_JSENGINE_THREAD + "-" + threadNumber.getAndIncrement(), 0)
 
-
       if(t.isDaemon) {
         t.setDaemon(false)
       }
@@ -722,4 +725,3 @@ final object JsEngine {
   }
 
 }
-
