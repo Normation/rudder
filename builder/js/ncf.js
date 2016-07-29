@@ -23,7 +23,7 @@ function findIndex(array, elem) {
 };
 
 // define ncf app, using ui-bootstrap and its default templates
-var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages', 'mp.autoFocus'])
+var app = angular.module('ncf', ['ui.bootstrap', 'ui.bootstrap.tpls', 'monospaced.elastic', 'ngToast', 'dndLists', 'ngMessages'])
 
 // A directive to add a filter on the technique name controller
 // It should prevent having techniques with same name (case insensitive)
