@@ -57,6 +57,10 @@ import net.liftweb.util.CssSel
 import net.liftweb.util.Helpers
 import com.normation.utils.Control
 import com.normation.rudder.web.rest.RestUtils
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
+import com.normation.rudder.domain.appconfig.FeatureSwitch.Enabled
+import com.normation.rudder.services.policies.JsEngine
 
 /**
  * This field is a simple input text, without any
@@ -554,7 +558,12 @@ class CheckboxField(val id: String) extends DirectiveField {
  *
  */
 
-class PasswordField(val id: String, algos:Seq[HashAlgoConstraint], canBeDeleted : Boolean)  extends DirectiveField {
+class PasswordField(
+    val id: String
+  , algos:Seq[HashAlgoConstraint]
+  , canBeDeleted : Boolean
+  , scriptSwitch : () => Box[FeatureSwitch]
+) extends DirectiveField {
   self =>
   type ValueType = String
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
@@ -580,8 +589,12 @@ class PasswordField(val id: String, algos:Seq[HashAlgoConstraint], canBeDeleted 
   //the algo to use
   private[this] var currentAlgo: Option[HashAlgoConstraint] = algos.headOption
   private[this] var currentHash: Option[String] = None
+  private[this] var currentAction: String = "keep"
   //to store the result
   private[this] var currentValue: Option[String] = None
+
+  private[this] var previousAlgo: Option[HashAlgoConstraint] = None
+  private[this] var previousHash: Option[String] = None
 
   /*
    * find the new internal value of the hash given:
@@ -595,6 +608,7 @@ class PasswordField(val id: String, algos:Seq[HashAlgoConstraint], canBeDeleted 
     }
 
     currentValue = Some(newInput)
+
     if(keepCurrentPwd) pastValue
     else if(blankPwd) ""
     else if(newInput == "") ""
@@ -634,9 +648,14 @@ class PasswordField(val id: String, algos:Seq[HashAlgoConstraint], canBeDeleted 
                   }
       algo = HashAlgoConstraint.fromString(hash).getOrElse(currentAlgo.getOrElse(PLAIN))
     } yield {
+      currentAction = action
+      if (!keep) {
+        previousAlgo = currentAlgo
+        previousHash = currentHash
+      }
       newInternalValue(keep,blank,toClient, password, algo)
     }) match {
-      case Full(newValue) => _x = newValue
+      case Full(newValue) => set(newValue)
       case eb: EmptyBox =>
         val fail = eb ?~! s"Error while parsing password input, value received is: ${Printer.compact(RestUtils.render(json))}"
         logger.error(fail.messageChain)
@@ -693,7 +712,6 @@ class PasswordField(val id: String, algos:Seq[HashAlgoConstraint], canBeDeleted 
     def name = a match {
       case PLAIN                         => "Verbatim text"
       case PreHashed                     => "Pre hashed"
-      case SCRIPT                        => "Script"
       case MD5                           => "MD5 (Non salted)"
       case SHA1                          => "SHA1 (Non salted)"
       case SHA256                        => "SHA256 (Non salted)"
@@ -708,15 +726,59 @@ class PasswordField(val id: String, algos:Seq[HashAlgoConstraint], canBeDeleted 
   def toForm = {
     val hashes = JsObj(algos.filterNot { x => x == PLAIN || x == PreHashed }.map(a => (a.prefix,  Str(a.name))):_*)
     val formId = Helpers.nextFuncName
-    val valueInput = SHtml.text("", s =>  parseClient(s), ("ng-model","result"), ("ng-hide", "true") )
+    val valueInput = SHtml.text("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
     val otherPasswords = if (slavesValues.size == 0) "undefined" else JsObj(slavesValues().mapValues(Str(_)).toSeq:_*).toJsCmd
+    val (scriptEnabled,isScript, currentValue) = scriptSwitch().getOrElse(Disabled) match {
+      case Disabled => (false,false, currentHash)
+      case Enabled =>
+        val (isAScript,value) = {
+          if (currentHash.getOrElse("").startsWith(JsEngine.DEFAULT_EVAL)) {
+            (true,currentHash.map { _.substring(JsEngine.DEFAULT_EVAL.length()) })
+          } else if(currentHash.getOrElse("").startsWith(JsEngine.EVALJS)) {
+            (true,currentHash.map { _.substring(JsEngine.EVALJS.length()) })
+          } else {
+            (false,currentHash)
+          }
+        }
+        (true,isAScript,value)
+    }
+
+    val (previousScript,prevHash) = {
+      if (previousHash.getOrElse("").startsWith(JsEngine.DEFAULT_EVAL)) {
+        (true,previousHash.map { _.substring(JsEngine.DEFAULT_EVAL.length()) })
+      } else if(previousHash.getOrElse("").startsWith(JsEngine.EVALJS)) {
+        (true,previousHash.map { _.substring(JsEngine.EVALJS.length()) })
+      } else {
+        (false,previousHash)
+      }
+    }
+    val prevAlgo = previousAlgo match {
+      case None => currentAlgo match {
+        case None => algos.headOption
+        case current => current
+      }
+      case previous => previous
+    }
+
     val initScript = {
       Script(OnLoad( JsRaw(s"""
        angular.bootstrap("#${formId}", ['password']);
        var scope = angular.element($$("#${formId}-controller")).scope();
-          scope.$$apply(function(){
-            scope.init(${currentHash.map(Str(_).toJsCmd).getOrElse("undefined")}, ${currentAlgo.map(x =>Str(x.prefix).toJsCmd).getOrElse("undefined")}, ${hashes.toJsCmd}, ${otherPasswords}, ${canBeDeleted});
-          } );""")))
+       scope.$$apply(function(){
+         scope.init(
+             ${currentValue.map(Str(_).toJsCmd).getOrElse("undefined")}
+           , ${currentAlgo.map(x =>Str(x.prefix).toJsCmd).getOrElse("undefined")}
+           , ${isScript}
+           , ${Str(currentAction).toJsCmd}
+           , ${hashes.toJsCmd}
+           , ${otherPasswords}
+           , ${canBeDeleted}
+           , ${scriptEnabled}
+           , ${prevHash.map(Str(_).toJsCmd).getOrElse("undefined")}
+           , ${prevAlgo.map(x =>Str(x.prefix).toJsCmd).getOrElse("undefined")}
+           , ${previousScript}
+         );
+       });""")))
     }
 
     val form = (".password-section *+" #> valueInput).apply(PasswordField.xml(formId)) ++ initScript
