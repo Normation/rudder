@@ -73,6 +73,32 @@ case object QueryMachineDn extends DnType
 case object QueryNodeDn extends DnType
 case object QuerySoftwareDn extends DnType
 
+/*
+ * Mapping datas for LDAP query processor
+ *
+ * Here, we store what are the LDAP URL for each type,
+ * how join are made between them, etc.
+ *
+ */
+
+/**
+ * selectAttribute is the attribute that will be used in the
+ * returned entry to do the Join.
+ * It has two roles:
+ * - added to the filter to request less attributes
+ * - used for the join
+ */
+sealed  abstract class LDAPJoinElement(val selectAttribute:String)
+final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute) with HashcodeCaching
+final case object DNJoin extends LDAPJoinElement("1.1") with HashcodeCaching
+final case object ParentDNJoin extends LDAPJoinElement("1.1") with HashcodeCaching
+//  case class QueryJoin(query:Query) extends LDAPJoinElement
+
+//that class represent the base filter for an object type.
+//it's special because it MUST always be ANDED to any
+//request for that object type.
+final case class LDAPObjectTypeFilter(value: Filter)
+
 class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
   private val peObjectCriterion = ObjectCriterion(OC_PE, Seq(
 // Criterion(A_MACHINE_UUID, StringComparator),
@@ -237,34 +263,6 @@ class DitQueryData(dit:InventoryDit, nodeDit: NodeDit) {
 
   val criteriaMap : SortedMap[String,ObjectCriterion] = SortedMap[String,ObjectCriterion]() ++ (criteriaSet map { crit => (crit.objectType,crit) })
 
-  /*
-   * Mapping datas for LDAP query processor
-   *
-   * Here, we store what are the LDAP URL for each type,
-   * how join are made between them, etc.
-   *
-   */
-
-  val A_DN ="1.1"
-
-  /**
-   * selectAttribute is the attribute that will be used in the
-   * returned entry to do the Join.
-   * It has two roles:
-   * - added to the filter to request less attributes
-   * - used for the join
-   */
-  sealed  abstract class LDAPJoinElement(val selectAttribute:String)
-  final case class AttributeJoin(override val selectAttribute:String) extends LDAPJoinElement(selectAttribute) with HashcodeCaching
-  final case object DNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching
-  final case object ParentDNJoin extends LDAPJoinElement(A_DN) with HashcodeCaching
-//  case class QueryJoin(query:Query) extends LDAPJoinElement
-
-
-  //that class represent the base filter for an object type.
-  //it's special because it MUST always be ANDED to any
-  //request for that object type.
-  final case class LDAPObjectTypeFilter(value: Filter)
 
 /*
  * * "baseDn" of the object type to search for
