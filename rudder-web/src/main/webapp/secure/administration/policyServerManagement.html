@@ -32,27 +32,27 @@
 }
 
 </style>
-
-
-
+<script type="text/javascript" src="/javascript/rudder/angular/auditMode.js"></script>
 </head>
 <div class="portlet">
   <div class="portlet-content">
     <div class="inner-portlet">
       <div class="page-title">Client-server communication</div>
       <div class="portlet-content">
-
-        <div class="intro">
-          <div>
-            <p>Configure the networks from which nodes are allowed
-              to connect to the Rudder policy servers to get their updated
-              configuration policy.</p>
-            <p>
-              You can add as many networks as you want, the expected
-              format is: <b>NetworkIP/mask</b>, for example
-              "42.42.0.0/16".
-            </p>
-          </div>
+        <div class="tw-bs">
+            <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
+              <p>Configure the networks from which nodes are allowed
+                to connect to the Rudder policy servers to get their updated
+                configuration policy.</p>
+              <p>
+                You can add as many networks as you want, the expected
+                format is: <b>NetworkIP/mask</b>, for example
+                "42.42.0.0/16".
+              </p>
+            </div>
         </div>
 
         <hr class="spacer" />
@@ -156,6 +156,7 @@
 
       </div>
     </div>
+    <div id="agentPolicyMode" class="lift:administration.PropertiesManagement.agentPolicyMode"></div>
     <div id="complianceMode" class="lift:administration.PropertiesManagement.complianceMode"></div>
 
     <div id="cfagentSchedule" class="lift:administration.PropertiesManagement.cfagentSchedule"></div>
@@ -165,12 +166,18 @@
       <div class="portlet-content">
 
         <div class="lift:administration.PropertiesManagement.changeMessage" id="changeMessageForm">
-          <div class="intro">
-            <div>
-              <p>If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
-           These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in <span id="configurationRepoPath"></span></p>
-            </div>
-          </div>
+          <div class="tw-bs">
+             <div class="col-lg-12 callout-fade callout-warning">
+               <div class="marker">
+                 <span class="glyphicon glyphicon-info-sign"></span>
+               </div>
+               <p>
+                 If enabled, prompt users to enter a message explaining the reason for each configuration change they make.<br/>
+                 These messages will be stored in each <a href="/secure/utilities/eventLogs">Event log</a> and as the commit message for the underlying git repository in 
+                 <i><strong><span id="configurationRepoPath"></span></strong></i>
+               </p>
+             </div>
+           </div>
 
           <hr class="spacer" />
           <div class="deca">
@@ -207,14 +214,21 @@
       <div class="page-title">Change Requests (validation workflow)</div>
       <div class="portlet-content">
 
-
-        <div class="intro">
-          <div>
-            <p>If enabled, all changes to configuration (Directives, Rules, Groups and Parameters) will be submitted for validation via a Change Request. <br/>
-A new Change Request will enter the "<b>Pending validation</b>" status, then can be moved to "<b>Pending deployment</b>" (approved but not yet deployed) or "<b>Deployed</b>" (approved and deployed) statuses.<br/>
-Only users with the "<b>validator</b>" or "<b>deployer</b>" roles are authorized to perform these steps (see <i>/opt/rudder/etc/rudder-users.xml</i>).<br/>
-<br/>
-If disabled, all changes to configuration will be immediately deployed.</p>
+        <div class="tw-bs">
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <p>
+              If enabled, all changes to configuration (Directives, Rules, Groups and Parameters) will be submitted for validation via a Change Request. <br/>
+              A new Change Request will enter the "<b>Pending validation</b>" status, then can be moved to "<b>Pending deployment</b>" (approved but not yet deployed) or "<b>Deployed</b>" (approved and deployed) statuses.
+            </p>
+            <p>
+              Only users with the "<b>validator</b>" or "<b>deployer</b>" roles are authorized to perform these steps (see <i><strong>/opt/rudder/etc/rudder-users.xml</strong></i>).
+            </p>
+            <p>
+              If disabled, all changes to configuration will be immediately deployed.
+            </p>
           </div>
         </div>
 
@@ -251,11 +265,16 @@ If disabled, all changes to configuration will be immediately deployed.</p>
       <div class="page-title">File retention</div>
       <div class="portlet-content">
 
-        <div class="intro">
-          <div>
-            <p>Every time Rudder modifies a file (by file editing or copying from a remote source), a copy of the overwritten file is kept under <i>/var/rudder/modified-files/</i>.<br/>
-Also, the full output from each agent run is stored in a file under <i>/var/rudder/cfengine-community/outputs/</i>.
-These files are automatically removed to save on disk space. You can configure the retention time (Time To Live) they are kept for here.</p>
+        <div class="tw-bs">
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <p>Every time Rudder modifies a file (by file editing or copying from a remote source), a copy of the overwritten file is kept under <i><strong>/var/rudder/modified-files/</strong></i>.</p>
+            <p>
+              Also, the full output from each agent run is stored in a file under <i><strong>/var/rudder/cfengine-community/outputs/</strong></i>.
+              These files are automatically removed to save on disk space. You can configure the retention time (Time To Live) they are kept for here.
+            </p>
           </div>
         </div>
           <div class="deca">
@@ -292,8 +311,11 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="portlet-content">
 
         <div class="lift:administration.PropertiesManagement.loggingConfiguration" id="storeAllLogsForm">
-          <div class="intro">
-            <div>
+          <div class="tw-bs">
+            <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
               <p>All nodes in Rudder send reports via syslog to this Rudder root server. These logs are stored in an SQL database in order to determine compliance information displayed in this web interface. However, it can be useful to also store this information in a plain text log file, for example for statistics or debugging purposes. The option below enables this.</p>
             </div>
           </div>
@@ -324,16 +346,24 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="portlet-content">
 
         <div class="lift:administration.PropertiesManagement.sendMetricsConfiguration" id="sendMetrics">
-          <div class="intro">
-            <div>
-                  To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.<br/>
-                  These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
+          <div class="tw-bs">
+             <div class="col-lg-12 callout-fade callout-warning">
+                <div class="marker">
+                  <span class="glyphicon glyphicon-info-sign"></span>
+                </div>
+                <p>To help the Rudder team continue to improve this software day after day, we are running a survey to collect usage statistics.</p>
+                <p>These statistics are submitted anonymously, and include overall statistics about your instance of Rudder
                    (number of Rules, Directives, Nodes, etc). No potentially-sensitive data is included
                    (only stock Rudder-provided techniques are examined, no hostnames, etc).
-                   We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics).<br/>
-                  If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.<br/>
+                   We highly value your privacy, as we do our own, so we will never share individual submissions (only globally compiled statistics)
+                </p>
+                <p>
+                  If you want to check the information that is sent, just run "/opt/rudder/bin/rudder-metrics-reporting -v" on your Rudder server. This won't send any information without your consent.
+                </p>
+                <p>
                   This information is very valuable to the development team, as it helps us focus on the features that matter most and better understand what our users care about.
                   Please consider participating in the survey!
+                </p>
             </div>
           </div>
 
@@ -359,11 +389,14 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="portlet-content">
 
         <div class="lift:administration.PropertiesManagement.displayGraphsConfiguration" id="displayGraphs">
-          <div class="intro">
-            <div>
-              In Rules table, we display a graph for each Rule showing it's activity (number of repaired reports).<br/>
-              Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.<br/>
-              If you experience slow loading of Rules pages, you can disable this feature here.
+          <div class="tw-bs">
+            <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
+              <p>In Rules table, we display a graph for each Rule showing it's activity (number of repaired reports).</p>
+              <p>Unfortunately, some browsers (especially Firefox) have trouble displaying them and make Rule pages almost unusable.</p>
+              <p>If you experience slow loading of Rules pages, you can disable this feature here.</p>
             </div>
           </div>
 
@@ -389,8 +422,11 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="portlet-content">
 
         <div class="lift:administration.PropertiesManagement.apiMode" id="storeAllLogsForm">
-          <div class="intro">
-            <div>
+          <div class="tw-bs">
+            <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
               <p> API response used to send data that may not be sent back to the API for modification.
                  Parameter to enable a directive is 'enabled', but API response was using 'isEnabled' for that parameter, so you had to handle this case before sending data.
                  We have harmonized response and parameters (in this <a href="http://www.rudder-project.org/redmine/issues/8687"></a>).
@@ -424,11 +460,14 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="portlet-content">
 
         <div class="lift:administration.PropertiesManagement.directiveScriptEngineConfiguration" id="directiveScriptEngine">
-          <div class="intro">
-            <div>
-            If enabled, all fields can contain a JavaScript expression.
-            These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
-            Read the <a href="/rudder-doc/_javascript_evaluation_in_directives.html">script documentation</a> for more information.
+          <div class="tw-bs">
+            <div class="col-lg-12 callout-fade callout-warning">
+              <div class="marker">
+                <span class="glyphicon glyphicon-info-sign"></span>
+              </div>
+              If enabled, all password fields can contain a JavaScript expression.
+              These expressions are evaluated during promise generation, and can therefore provide unique values for each node.
+              Read the <a href="/rudder-doc/_javascript_evaluation_in_directives.html">script documentation</a> for more information.
             </div>
           </div>
 
@@ -453,8 +492,11 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="page-title">Clear policy caches</div>
       <div class="portlet-content">
 
-        <div class="intro">
-          <div>
+        <div class="tw-bs">
+           <div class="col-lg-12 callout-fade callout-warning">
+             <div class="marker">
+               <span class="glyphicon glyphicon-info-sign"></span>
+             </div>
             <p>Clear cached data. This
               will trigger a full policy update, and regenerate
               all promise files.</p>
@@ -483,12 +525,14 @@ These files are automatically removed to save on disk space. You can configure t
       <div class="page-title">Manage dynamic groups</div>
       <div class="portlet-content">
 
-        <div class="intro">
-          <div>
-            <p>Groups in Rudder can be static (fixed list of nodes) or dynamic (the list of nodes is built from a search query).<br/>
-To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.<br/>
-Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i>/opt/rudder/etc/rudder-web.properties</i>).
-</p>
+        <div class="tw-bs">
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <p>Groups in Rudder can be static (fixed list of nodes) or dynamic (the list of nodes is built from a search query).</p>
+            <p>To take into account new nodes and changes to their inventory, dynamic groups must be reloaded regularly.</p>
+            <p>Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
           </div>
         </div>
 
@@ -512,12 +556,14 @@ Currently, Rudder will automatically do this reload every <b id="dynGroupUpdateI
       <div class="page-title">Manage Technique library</div>
       <div class="portlet-content">
 
-        <div class="intro">
-          <div>
-            <p>Techniques in Rudder are read from the filesystem (in <i>/var/rudder/configuration-repository/techniques</i>).<br/>
-To take into account new Techniques and changes, the Technique library must be updated regularly.<br/>
-Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i>/opt/rudder/etc/rudder-web.properties</i>).
-</p>
+        <div class="tw-bs">
+          <div class="col-lg-12 callout-fade callout-warning">
+            <div class="marker">
+              <span class="glyphicon glyphicon-info-sign"></span>
+            </div>
+            <p>Techniques in Rudder are read from the filesystem (in <i>/var/rudder/configuration-repository/techniques</i>).</p>
+            <p>To take into account new Techniques and changes, the Technique library must be updated regularly.</p>
+            <p>Currently, Rudder will automatically do this update every <b id="techniqueLibraryUpdateInterval">5</b> minutes (see <i><strong>/opt/rudder/etc/rudder-web.properties</strong></i>).</p>
           </div>
         </div>
 

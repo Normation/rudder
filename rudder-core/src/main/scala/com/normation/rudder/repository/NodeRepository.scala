@@ -44,6 +44,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.common._
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.PolicyMode
 
 /**
  * Node Repository

@@ -50,6 +50,7 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import net.liftweb.common._
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.domain.policies.PolicyMode
 
 class WoLDAPNodeRepository(
     nodeDit             : NodeDit

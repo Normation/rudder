@@ -58,8 +58,47 @@ import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.Interval
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyMode.Verify
 
 
+
+object RulePolicyMode {
+  def compute(globalMode : GlobalPolicyMode, directives : Set[Directive]) = {
+   globalMode.overridable match {
+      case PolicyModeOverrides.Unoverridable =>
+        (globalMode.mode.name, s"""Rudder's global agent policy mode is set to <i><b>${globalMode.mode.name}</b></i> and is not overridable on a per-node or per-directive basis. Please check your Settings or contact your Rudder administrator.""")
+      case PolicyModeOverrides.Always =>
+
+        // We have a Set here so we only have 3 elem max (None, Some(audit), some(enforce))
+        val directivePolicyMode = directives.map(_.policyMode)
+        directivePolicyMode.toList match {
+          // We only have one element!!
+          case mode :: Nil => mode match {
+            // global mode was not overriden by any directive, use global mode
+            case None => (globalMode.mode.name, "")
+            // Global mode is overriden by all directives with the same mode
+            case Some(m) => (m.name, "")
+          }
+          // No directives linked to the Rule, fallback to globalMode
+          case Nil => (globalMode.mode.name, "This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
+          case modes =>
+            // Here we now need to check if global mode is the same that all selected mode for directives
+            // So we replace any "None" (use global mode) by global mode and we will decide after what happens
+            val effectiveModes = directivePolicyMode.map(_.getOrElse(globalMode.mode))
+            // Check if there is still more than one mode applied
+            if (effectiveModes.size > 1)  {
+              // More that one mode applied, status is 'mixed', global mode was different than the one enforced on some directives
+              ("mixed", "This rule has at least one directive that will enforce configurations, and at least one that will audit them.")
+            } else {
+              // After all there is only one mode and it's the same than global mode => some modes were using default mode,
+              // some were enforce the same mode as global
+              (globalMode.mode.name, "")
+            }
+        }
+    }
+  }
+}
 
 /*
  * That files contains all the datastructures related to
@@ -79,19 +118,19 @@ import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KE
  *   }
  */
 case class ChangeLine (
-    report : ResultReports
-  , nodeName : Option[String] = None
-  , ruleName : Option[String] = None
+    report        : ResultReports
+  , nodeName      : Option[String] = None
+  , ruleName      : Option[String] = None
   , directiveName : Option[String] = None
 ) extends JsTableLine {
   val json = {
     JsObj (
-        ( "nodeName" -> nodeName.getOrElse(report.nodeId.value) )
-      , ( "message" -> report.message )
+        ( "nodeName"      -> nodeName.getOrElse(report.nodeId.value) )
+      , ( "message"       -> report.message )
       , ( "directiveName" -> directiveName.getOrElse(report.directiveId.value) )
-      , ( "component"         -> report.component )
-      , ( "value"    -> report.keyValue )
-      , ( "executionDate"       -> DateFormaterService.getFormatedDate(report.executionTimestamp ))
+      , ( "component"     -> report.component )
+      , ( "value"         -> report.keyValue )
+      , ( "executionDate" -> DateFormaterService.getFormatedDate(report.executionTimestamp ))
     )
   }
 }
@@ -134,6 +173,8 @@ object ChangeLine {
  *   , "details" : Details of Directives contained in the Rule [Array of Directive values]
  *   , "jsid"    : unique identifier for the line [String]
  *   , "isSystem" : Is it a system Rule? [Boolean]
+ *   , "policyMode" : Directive policy mode [String]
+ *   , "explanation" : Policy mode explanation [String]
  *   }
  */
 case class RuleComplianceLine (
@@ -141,6 +182,8 @@ case class RuleComplianceLine (
   , id          : RuleId
   , compliance  : ComplianceLevel
   , details     : JsTableData[DirectiveComplianceLine]
+  , policyMode       : String
+  , modeExplanation  : String
 ) extends JsTableLine {
   val json = {
     JsObj (
@@ -153,6 +196,8 @@ case class RuleComplianceLine (
       //appear several time in a page
       , ( "jsid"       -> nextFuncName )
       , ( "isSystem"   -> rule.isSystem )
+      , ( "policyMode" -> policyMode )
+      , ( "explanation"-> modeExplanation )
     )
   }
 }
@@ -168,6 +213,8 @@ case class RuleComplianceLine (
  *   , "details" : Details of components contained in the Directive [Array of Component values]
  *   , "jsid"    : unique identifier for the line [String]
  *   , "isSystem" : Is it a system Directive? [Boolean]
+ *   , "policyMode" : Directive policy mode [String]
+ *   , "explanation" : Policy mode explanation [String]
  *   }
  */
 case class DirectiveComplianceLine (
@@ -176,8 +223,9 @@ case class DirectiveComplianceLine (
   , techniqueVersion : TechniqueVersion
   , compliance       : ComplianceLevel
   , details          : JsTableData[ComponentComplianceLine]
+  , policyMode       : String
+  , modeExplanation  : String
 ) extends JsTableLine {
-
   val json =  {
     JsObj (
         ( "directive"        -> directive.name )
@@ -191,6 +239,8 @@ case class DirectiveComplianceLine (
       //appear several time in a page
       , ( "jsid"             -> nextFuncName )
       , ( "isSystem"         -> directive.isSystem )
+      , ( "policyMode"       -> policyMode )
+      , ( "explanation"      -> modeExplanation )
     )
   }
 }
@@ -210,6 +260,8 @@ case class NodeComplianceLine (
     nodeInfo   : NodeInfo
   , compliance : ComplianceLevel
   , details    : JsTableData[DirectiveComplianceLine]
+  , policyMode       : String
+  , modeExplanation  : String
 ) extends JsTableLine {
   val json = {
     JsObj (
@@ -221,6 +273,8 @@ case class NodeComplianceLine (
       //unique id, usable as DOM id - rules, directives, etc can
       //appear several time in a page
       , ( "jsid"       -> nextFuncName )
+      , ( "policyMode" -> policyMode )
+      , ( "explanation"-> modeExplanation )
     )
   }
 }
@@ -302,20 +356,31 @@ object ComplianceData extends Loggable {
       directiveLib: FullActiveTechniqueCategory
     , report      : RuleStatusReport
     , allNodeInfos: Map[NodeId, NodeInfo]
+    , globalMode  : GlobalPolicyMode
   ) : JsTableData[NodeComplianceLine]= {
-
 
     // Compute node compliance detail
     val nodeComplianceLine = for {
       (nodeId, aggregate) <- report.byNodes
       nodeInfo            <- allNodeInfos.get(nodeId)
     } yield {
-
-      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib)
+      val (policyMode,explanation) =
+        globalMode.overridable match {
+        case PolicyModeOverrides.Always =>
+          nodeInfo.policyMode match {
+            case None       => (globalMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i> or override it on node, or for directive only.")
+            case Some(mode) => (mode.name,"This mode was forced by this <i><b>node's settings</b></i>.")
+          }
+        case PolicyModeOverrides.Unoverridable =>
+          (globalMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
+        }
+      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode)
       NodeComplianceLine(
           nodeInfo
         , aggregate.compliance
         , JsTableData(details)
+        , policyMode
+        , explanation
       )
     }
 
@@ -334,19 +399,23 @@ object ComplianceData extends Loggable {
     , allNodeInfos: Map[NodeId, NodeInfo]
     , directiveLib: FullActiveTechniqueCategory
     , rules       : Seq[Rule]
+    , globalMode  : GlobalPolicyMode
   ) : JsTableData[RuleComplianceLine] = {
 
     val ruleComplianceLine = for {
       (ruleId, aggregate) <- report.byRules
       rule                <- rules.find( _.id == ruleId )
     } yield {
-      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib)
+      val details = getDirectivesComplianceDetails(aggregate.directives.values.toSet, directiveLib, globalMode)
 
+      val (policyMode,explanation) = RulePolicyMode.compute(globalMode, rule.directiveIds.map(directiveLib.allDirectives(_)._2).toSet)
       RuleComplianceLine (
           rule
         , rule.id
         , aggregate.compliance
         , JsTableData(details)
+        , policyMode
+        , explanation
       )
 
     }
@@ -363,18 +432,18 @@ object ComplianceData extends Loggable {
     , rule            : Rule
     , allNodeInfos    : Map[NodeId, NodeInfo]
     , directiveLib    : FullActiveTechniqueCategory
+    , globalMode      : GlobalPolicyMode
   ) : JsTableData[DirectiveComplianceLine] = {
 
-    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib)
-
+    val lines = getDirectivesComplianceDetails(report.report.directives.values.toSet, directiveLib, globalMode)
     JsTableData(lines.toList)
-
   }
 
   // From Node Point of view
   private[this] def getDirectivesComplianceDetails (
       directivesReport: Set[DirectiveStatusReport]
     , directiveLib    : FullActiveTechniqueCategory
+    , globalPolicyMode : GlobalPolicyMode
   ) : List[DirectiveComplianceLine] = {
     val directivesComplianceData = for {
       directiveStatus                  <- directivesReport
@@ -382,7 +451,17 @@ object ComplianceData extends Loggable {
     } yield {
       val techniqueName    = fullActiveTechnique.techniques.get(directive.techniqueVersion).map(_.name).getOrElse("Unknown technique")
       val techniqueVersion = directive.techniqueVersion;
-      val components =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
+      val components       =  getComponentsComplianceDetails(directiveStatus.components.values.toSet, true)
+      val (policyMode,explanation) =
+        globalPolicyMode.overridable match {
+        case PolicyModeOverrides.Always =>
+          directive.policyMode match {
+            case None       => (globalPolicyMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i> or override it on node, or for directive only.")
+            case Some(mode) => (mode.name,"This mode was forced by this <i><b>directive's settings</b></i>.")
+          }
+        case PolicyModeOverrides.Unoverridable =>
+          (globalPolicyMode.mode.name,"This mode is the globally defined default. You can change it in the global <i><b>settings</b></i>.")
+      }
 
       DirectiveComplianceLine (
           directive
@@ -390,6 +469,8 @@ object ComplianceData extends Loggable {
         , techniqueVersion
         , directiveStatus.compliance
         , components
+        , policyMode
+        , explanation
       )
     }
 
