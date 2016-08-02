@@ -212,9 +212,9 @@ class ComplianceModeEditForm [T <: ComplianceMode] (
       s"""
        angular.bootstrap("#complianceMode", ['complianceMode']);
        var scope = angular.element($$("#complianceModeController")).scope();
-          scope.$$apply(function(){
-            scope.init(${toJs(complianceMode)}, ${toJs(globalMode)}, ${isNodePage} ,${callback.toJsCmd}, "${S.contextPath}", ${allModes});
-          } );
+       scope.$$apply(function(){
+         scope.init(${toJs(complianceMode)}, ${toJs(globalMode)}, ${isNodePage} ,${callback.toJsCmd}, "${S.contextPath}", ${allModes});
+       });
       """
     }) match {
       case eb:EmptyBox =>

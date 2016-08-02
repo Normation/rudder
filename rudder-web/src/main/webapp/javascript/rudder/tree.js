@@ -201,6 +201,7 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
  * Group tree
  */
 var buildGroupTree = function(id, appContext, initially_select, select_multiple_modifier, select_node, authorized) {
+
   if(select_multiple_modifier !== undefined) {
     select_limit = -1;
   } else {
@@ -225,6 +226,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   
   $(id).bind("loaded.jstree", function (event, data) {
     data.instance.open_all();
+    $(id+' .rudder-label').bsTooltip();
   }).jstree({
     "core" : { 
       "animation" : 300,
@@ -369,7 +371,8 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
   }
   $(id).bind("loaded.jstree", function (event, data) {
       data.instance.open_all();
-    }).jstree({ 
+      $(id+' .rudder-label').bsTooltip();
+    }).jstree({
       "core" : { 
         "animation" : 300,
         "html_titles" : true
@@ -422,7 +425,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
       "plugins" : [ "themes", "html_data", "ui", "types", "search"]
-    })
+    });
 }
 
 

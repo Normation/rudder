@@ -64,6 +64,9 @@ import com.normation.rudder.web.model.JsNodeId
 import com.normation.rudder.services.reports._
 import com.normation.rudder.repository.NodeConfigIdInfo
 import org.joda.time.format.DateTimeFormat
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.appconfig.ConfigRepository
+import com.normation.rudder.appconfig.ReadConfigService
 
 /**
  * Display the last reports of a server
@@ -74,10 +77,10 @@ class ReportDisplayer(
   , directiveRepository : RoDirectiveRepository
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository
+  , configService       : ReadConfigService
 ) extends Loggable {
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
-
   private[this] val templateByNodePath = List("templates-hidden", "reports_server")
   private def templateByNode() =  Templates(templateByNodePath) match {
     case Empty | Failure(_,_,_) =>
@@ -98,13 +101,7 @@ class ReportDisplayer(
   def asyncDisplay(node : NodeInfo) : NodeSeq = {
     val id = JsNodeId(node.id)
     val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
-    Script(OnLoad(JsRaw(
-      s"""
-        $$("#details_${id}").bind( "show", function(event, ui) {
-          if(ui.panel.id== 'node_reports') { ${callback.toJsCmd} }
-        });
-       """
-    )))
+    Script(OnLoad(JsRaw(s"""${callback.toJsCmd}""")))
   }
 
   /**
@@ -344,6 +341,7 @@ class ReportDisplayer(
 
   private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean): NodeSeq = {
     val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
+    val configService = RudderConfig.configService
 
     val jsFunctionName = if(withCompliance) {
       "createRuleComplianceTable"
@@ -363,8 +361,9 @@ class ReportDisplayer(
       directiveLib <- directiveRepository.getFullDirectiveLibrary
       allNodeInfos <- getAllNodeInfos()
       rules        <- ruleRepository.getAll(true)
+      globalMode   <- configService.rudder_global_policy_mode()
     } yield {
-      ComplianceData.getNodeByRuleComplianceDetails(nodeId, reportStatus, allNodeInfos, directiveLib, rules)
+      ComplianceData.getNodeByRuleComplianceDetails(nodeId, reportStatus, allNodeInfos, directiveLib, rules, globalMode)
     }
   }
 

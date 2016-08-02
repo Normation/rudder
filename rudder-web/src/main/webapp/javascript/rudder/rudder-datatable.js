@@ -178,7 +178,7 @@ function recentChangesText(id) {
   // Elem Content
   graphElem.text(count).addClass("center")
   graphElem.append(toolTipContainer);
-  createTooltip();
+  createTooltip();$('.rudder-label').bsTooltip();
 }
 
 /*
@@ -201,7 +201,6 @@ function recentChangesText(id) {
  *   }
  */
 function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance, addRecentChanges, allCheckboxCallback, contextPath, refresh, isPopup) {
-
   //base element for the clickable cells
   function callbackElement(oData, action) {
     var elem = $("<a></a>");
@@ -251,10 +250,9 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sTitle": "Name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
-
-        var action = "showForm"
+        var action = "showForm";
         if (! needActions) {
-          action = "showEditForm"
+          action = "showEditForm";
         }
         // Define the elem and its callback
         var elem = callbackElement(oData, action);
@@ -286,6 +284,9 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         // Append the content to the row
         $(nTd).empty();
         $(nTd).prepend(elem);
+        $(nTd).addClass('tw-bs');
+        var badge = createBadgeAgentPolicyMode('rule',data.policyMode, data.explanation);
+        $(nTd).prepend(badge);
       }
   };
 
@@ -433,7 +434,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
   if(isPopup){
     $('#'+gridId).addClass("table table-hover table-striped table-bordered");   
   }
-  createTooltip();
+  createTooltip();$('.rudder-label').bsTooltip();
 
   // Add callback to checkbox column
   $("#checkAll").prop("checked", false);
@@ -475,14 +476,14 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
  *   }
  */
 function createRuleComplianceTable(gridId, data, contextPath, refresh) {
-
   var columns = [ {
       "sWidth": "75%"
     , "mDataProp": "rule"
     , "sTitle": "Rule"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen");
-
+        $(nTd).addClass("listopen tw-bs");
+        $(nTd).empty();
+        $(nTd).text(oData.rule);
         if (! oData.isSystem) {
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
@@ -491,8 +492,8 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
-
           $(nTd).append(editLink);
+          $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
         }
       }
   } , {
@@ -521,6 +522,7 @@ function createRuleComplianceTable(gridId, data, contextPath, refresh) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, createDirectiveTable(false, true, contextPath), contextPath, "rule");
+        $('.rudder-label').bsTooltip();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
@@ -554,7 +556,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         "mDataProp": "value"
       , "sTitle"   : "Value"
     } ];
-    return function (gridId,data) {createTable(gridId, data, columns, defaultParams, contextPath); createTooltip();}
+    return function (gridId,data) {createTable(gridId, data, columns, defaultParams, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
   };
 
   var localComponentTable = function() {
@@ -569,7 +571,6 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
     var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
       createInnerTable(this, localNodeComponentValueTable());
     }}, defaultParams);
-
     return function (gridId,data) {createTable(gridId,data,columns, params, contextPath);}
   };
 
@@ -578,8 +579,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         "mDataProp": "directive"
       , "sTitle": "Directive"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          $(nTd).addClass("listopen");
-
+          $(nTd).addClass("listopen tw-bs");
           var tooltipIcon = $("<img />");
           tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
           tooltipIcon.addClass("reportIcon");
@@ -593,7 +593,6 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
 
           $(nTd).append(tooltipIcon);
           $(nTd).append(toolTipContainer);
-
           if (! oData.isSystem) {
             var editLink = $("<a />");
             editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
@@ -602,7 +601,8 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
             editLink.click(function(e) {e.stopPropagation();});
             editLink.append(editIcon);
             editLink.addClass("reportIcon");
-
+            var policyMode = oData.policyMode ? oData.policyMode : "";
+            $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
             $(nTd).append(editLink);
           }
         }
@@ -615,7 +615,7 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
 
     return function (gridId, data, refresh) {
       createTable(gridId, data, columns, params, contextPath, refresh);
-      createTooltip();
+      createTooltip();$('.rudder-label').bsTooltip();
     }
   };
 
@@ -623,8 +623,8 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
     "mDataProp": "rule"
   , "sTitle"   : "Rule"
   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      $(nTd).addClass("listopen");
-
+      $(nTd).addClass("listopen tw-bs");
+      $(nTd).text(oData.rule);
       if (! oData.isSystem) {
         var editLink = $("<a />");
         editLink.attr("href",contextPath + '/secure/configurationManager/ruleManagement#{"ruleId":"'+oData.id+'"}');
@@ -633,13 +633,14 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
-
         $(nTd).append(editLink);
+        $(nTd).prepend(createBadgeAgentPolicyMode('rule', oData.policyMode, oData.explanation));
       }
     }
   } ];
   var params = jQuery.extend({"fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, localDirectiveTable(), contextPath, "rule");
+        $('.rudder-label').bsTooltip();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
@@ -668,7 +669,6 @@ function createExpectedReportTable(gridId, data, contextPath, refresh) {
  *   }
  */
 function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
-
   if (isTopLevel) {
     var complianceWidth = "25%";
     var directiveWidth = "75%";
@@ -682,8 +682,9 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "mDataProp": "directive"
     , "sTitle": "Directive"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen");
-
+        $(nTd).empty();
+        $(nTd).append(document.createTextNode(oData.directive));
+        $(nTd).addClass("listopen tw-bs");
         var tooltipIcon = $("<img />");
         tooltipIcon.attr("src",contextPath + "/images/ic_question_14px.png");
         tooltipIcon.addClass("reportIcon");
@@ -694,10 +695,8 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
         var toolTipContainer= $("<div>Directive '<b>"+sData+"</b>' is based on technique '<b>"+oData.techniqueName+"</b>' (version "+oData.techniqueVersion+")</div>");
         toolTipContainer.addClass("tooltipContent");
         toolTipContainer.attr("id",tooltipId);
-
         $(nTd).append(tooltipIcon);
         $(nTd).append(toolTipContainer);
-
         if (! oData.isSystem) {
           var editLink = $("<a />");
           editLink.attr("href",contextPath + '/secure/configurationManager/directiveManagement#{"directiveId":"'+oData.id+'"}');
@@ -706,8 +705,9 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
           editLink.click(function(e) {e.stopPropagation();});
           editLink.append(editIcon);
           editLink.addClass("reportIcon");
-
           $(nTd).append(editLink);
+          var policyMode = oData.policyMode ? oData.policyMode : policyMode ;
+          $(nTd).prepend(createBadgeAgentPolicyMode('directive', policyMode, oData.explanation));
         }
       }
   } , {
@@ -730,6 +730,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this, createComponentTable(isTopLevel, isNodeView, contextPath), contextPath, "directive");
+        $('.rudder-label').bsTooltip();
       }
   };
 
@@ -745,7 +746,7 @@ function createDirectiveTable(isTopLevel, isNodeView, contextPath) {
 
   return function (gridId, data, refresh) {
     createTable(gridId, data, columns, params, contextPath, refresh);
-    createTooltip();
+    createTooltip();$('.rudder-label').bsTooltip();
   }
 }
 
@@ -769,8 +770,7 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "node"
     , "sTitle": "Node"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        $(nTd).addClass("listopen");
-
+        $(nTd).addClass("listopen tw-bs");
         var editLink = $("<a />");
         editLink.attr("href",contextPath +'/secure/nodeManager/searchNodes#{"nodeId":"'+oData.id+'"}');
         var editIcon = $("<img />");
@@ -778,8 +778,8 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
         editLink.click(function(e) {e.stopPropagation();});
         editLink.append(editIcon);
         editLink.addClass("reportIcon");
-
         $(nTd).append(editLink);
+        $(nTd).prepend(createBadgeAgentPolicyMode('node', oData.policyMode, oData.explanation));
       }
   } , {
       "sWidth": "25%"
@@ -807,13 +807,14 @@ function createNodeComplianceTable(gridId, data, contextPath, refresh) {
     , "aaSorting": [[ 0, "asc" ]]
     , "fnDrawCallback" : function( oSettings ) {
         createInnerTable(this,createDirectiveTable(false, true, contextPath),"node");
+        $('.rudder-label').bsTooltip();
       }
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
   createTable(gridId, data, columns, params, contextPath, refresh);
 
-  createTooltip();
+  createTooltip();$('.rudder-label').bsTooltip();
 }
 
 /*
@@ -927,7 +928,7 @@ function createNodeComponentValueTable(contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
   }
 
-  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();}
+  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
 
 }
 
@@ -972,7 +973,7 @@ function createRuleComponentValueTable (contextPath) {
     , "aaSorting": [[ 0, "asc" ]]
   }
 
-  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();}
+  return function (gridId,data) {createTable(gridId, data, columns, params, contextPath); createTooltip();$('.rudder-label').bsTooltip();}
 
 }
 
@@ -997,7 +998,6 @@ function createRuleComponentValueTable (contextPath) {
  *   }
  */
 function createNodeTable(gridId, data, contextPath, refresh) {
-
   //base element for the clickable cells
   function callbackElement(oData, displayCompliance) {
     var elem = $("<a></a>");
@@ -1043,6 +1043,15 @@ function createNodeTable(gridId, data, contextPath, refresh) {
     , "mDataProp": "servicePack"
     , "sTitle": "OS SP"
   } , {
+      "mDataProp": "agentPolicyMode"
+    , "sWidth": "8%"
+    , "sTitle": "Policy Mode"
+    , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).empty();
+        $(nTd).addClass('tw-bs');
+        $(nTd).prepend(createTextAgentPolicyMode(true,oData.agentPolicyMode,oData.explanation));
+      }
+  } , {
       "mDataProp": "name"
     , "sWidth": "25%"
     , "sTitle": "Compliance"
@@ -1056,7 +1065,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         $(nTd).prepend(link);
       }
   } , {
-      "sWidth": "20%"
+      "sWidth": "12%"
     , "mDataProp": "lastReport"
     , "sTitle": "Last seen"
   } ];
@@ -1070,6 +1079,7 @@ function createNodeTable(gridId, data, contextPath, refresh) {
         "sSearch": ""
     }
     , "fnDrawCallback": function( oSettings ) {
+        $('[data-toggle="tooltip"]').bsTooltip();
         var rows = this._('tr', {"page":"current"});
         $.each(rows, function(index,row) {
           // Display compliance progress bar if it has already been computed
@@ -1078,13 +1088,13 @@ function createNodeTable(gridId, data, contextPath, refresh) {
             $("#compliance-bar-"+row.id).html(buildComplianceBar(compliance));
           }
         })
+        $('.rudder-label').bsTooltip();
       }
     , "aaSorting": [[ 0, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   };
 
   createTable(gridId,data, columns, params, contextPath, refresh, "nodes");
-
 }
 
 /*
@@ -1209,13 +1219,13 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventL
  *   { "executionDate" : Date report was executed [DateTime]
  *   , "node": node hostname [String]
  *   , "directiveName": Directive name [String]
+ *   , "directiveId": Directive id [String]
  *   , "component" : Report component [String]
  *   , "value" : Report value [String]
  *   , "message" : Report message [String]
  *   }
  */
 function createChangesTable(gridId, data, contextPath, refresh) {
-
   var columns = [ {
       "sWidth": "8%"
       , "mDataProp": "executionDate"
@@ -1521,6 +1531,7 @@ function changeCursor(clickable){
  * Function to define opening of an inner table
  */
 function createInnerTable(myTable,  createFunction, contextPath, kind) {
+
   var plusTd = $(myTable.fnGetNodes());
   plusTd.each( function () {
     $(this).unbind();

@@ -64,6 +64,7 @@ import net.liftweb.http.Templates
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
 import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.appconfig.ReadConfigService
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -87,6 +88,7 @@ case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCachin
 class NodeGrid(
     getNodeAndMachine: LDAPFullInventoryRepository
   , nodeInfoService  : NodeInfoService
+  , configService    : ReadConfigService
 ) extends Loggable {
 
   private def templatePath = List("templates-hidden", "server_grid")
@@ -257,11 +259,25 @@ class NodeGrid(
       status : InventoryStatus <- Box(InventoryStatus(arg.status))
       nodeId =  NodeId(arg.id)
       sm     <- getNodeAndMachine.get(nodeId, status)
-    } yield (nodeId, sm, arg.jsid, status) ) match {
-      case Full((nodeId, sm, jsid, status)) =>
+      nodeAndGlobalMode <- {
+        nodeInfoService.getNodeInfo(nodeId) match {
+          case Full(Some(node)) =>
+            configService.rudder_global_policy_mode() match {
+              case Full(mode)    => Full(Some(node,mode))
+              case eb : EmptyBox =>
+                val fail = eb ?~! s" Could not get global policy mode when getting node '${nodeId}' details"
+                fail
+            }
+          case eb : EmptyBox =>
+            val fail = eb ?~! s" Error when getting node '${nodeId}' details"
+            fail
+          case Full(None) => Full(None)
+        }
+      }
+    } yield (nodeId, sm, arg.jsid, status, nodeAndGlobalMode) ) match {
+      case Full((nodeId, sm, jsid, status, nodeAndGlobalMode)) =>
         // Node may not be available, so we look for it outside the for comprehension
-        val node = nodeInfoService.getNodeInfo(nodeId).openOr(None)
-        SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
+        SetHtml(jsid, DisplayNode.showPannedContent(nodeAndGlobalMode, sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)

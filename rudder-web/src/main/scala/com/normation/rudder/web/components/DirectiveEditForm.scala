@@ -68,6 +68,10 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.web.rest.node.SettingsAPI8
+import com.normation.rudder.web.rest.node.SettingsApi
+import com.normation.rudder.domain.policies.PolicyMode.Verify
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 
 object DirectiveEditForm {
 
@@ -100,17 +104,18 @@ object DirectiveEditForm {
  * Parameters can not be null.
  */
 class DirectiveEditForm(
-    htmlId_policyConf : String
-  , technique         : Technique
-  , activeTechnique   : ActiveTechnique
-  , fullActiveTechnique : FullActiveTechnique
-  , val directive     : Directive
-  , oldDirective      : Option[Directive]
-  , workflowEnabled   : Boolean
-  , onSuccessCallback : (Either[Directive,ChangeRequestId]) => JsCmd = { (Directive) => Noop }
-  , onMigrationCallback : (Directive, Option[Directive]) => JsCmd
-  , onFailureCallback : () => JsCmd = { () => Noop }
-  , isADirectiveCreation : Boolean = false
+    htmlId_policyConf       : String
+  , technique               : Technique
+  , activeTechnique         : ActiveTechnique
+  , fullActiveTechnique     : FullActiveTechnique
+  , val directive           : Directive
+  , oldDirective            : Option[Directive]
+  , workflowEnabled         : Boolean
+  , globalMode              : GlobalPolicyMode
+  , onSuccessCallback       : (Either[Directive,ChangeRequestId]) => JsCmd = { (Directive) => Noop }
+  , onMigrationCallback     : (Directive, Option[Directive]) => JsCmd
+  , onFailureCallback       : () => JsCmd = { () => Noop }
+  , isADirectiveCreation    : Boolean = false
   , onRemoveSuccessCallBack : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
@@ -122,8 +127,9 @@ class DirectiveEditForm(
   private[this] val woChangeRequestRepo    = RudderConfig.woChangeRequestRepository
   private[this] val roChangeRequestRepo    = RudderConfig.roChangeRequestRepository
   private[this] val techniqueRepo          = RudderConfig.techniqueRepository
-  private[this] val roRuleRepo = RudderConfig.roRuleRepository
-  private[this] val roRuleCategoryRepo = RudderConfig.roRuleCategoryRepository
+  private[this] val roRuleRepo             = RudderConfig.roRuleRepository
+  private[this] val roRuleCategoryRepo     = RudderConfig.roRuleCategoryRepository
+  private[this] val configService          = RudderConfig.configService
 
   private[this] val htmlId_save = htmlId_policyConf + "Save"
   private[this] val parameterEditor = {
@@ -131,12 +137,12 @@ class DirectiveEditForm(
       case Full(pe) => pe
       case Empty => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
-        		"(template %s). No error returned"
+            "(template %s). No error returned"
         throw new IllegalArgumentException(errMsg.format(directive.id, technique.id))
       }
       case Failure(m, _, _) => {
         val errMsg = "Can not initialize the parameter editor for Directive %s " +
-        		"(template %s). Error message: %s"
+            "(template %s). Error message: %s"
         throw new IllegalArgumentException(errMsg.format(directive.id, technique.id, m))
       }
     }
@@ -207,7 +213,7 @@ class DirectiveEditForm(
       val agentCompEmpty : NodeSeq =
         <span>
           Can be used on any agent.
-	      </span>
+        </span>
       technique.compatible match {
         case None =>
           (osCompEmpty,agentCompEmpty)
@@ -226,7 +232,7 @@ class DirectiveEditForm(
             case agent =>
                 <span>
                   {agent.mkString(", ")}
-	              </span>
+                </span>
           }
           (osComp,agentComp)
       }
@@ -272,6 +278,7 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
+      "#policyModes" #> policyModes.toForm_! &
       "#version" #> versionSelect.toForm_! &
       "#migrate" #> migrateButton(directiveVersion.is,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
@@ -396,28 +403,25 @@ class DirectiveEditForm(
 
   private[this] val piPriority =
     new WBSelectObjField(
-        "Priority:"
+        "Priority"
       , (0 to 10).map(i => (i, i.toString))
       , defaultValue = directive.priority
     ) {
       override val displayHtml =
         <div>
-        <b>Priority:</b>
-        <span class="tw-bs">
-					<span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
-          <div class="tooltipContent" id="priorityId">
-          	<h4> Priority </h4>
-						Priority determines which <b> unique </b> Directive will be applied.
-						<br/>
-						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.
-						<br/>
-						Highest Priority is 0
-          </div>
-			  </span>
-      </div>
+          <b>Priority</b>
+          <span class="tw-bs">
+            <span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
+            <div class="tooltipContent" id="priorityId">
+              <h4> Priority </h4>
+              <p>Priority determines which <b> unique </b> Directive will be applied.</p>
+              <p>Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.</p>
+              <p>Highest Priority is 0.</p>
+            </div>
+          </span>
+        </div>
       override def className = "twoCol"
       override def labelClassName = "threeCol directiveInfo"
-
     }
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
@@ -426,6 +430,55 @@ class DirectiveEditForm(
       case None => ""
     }
     s"${version} ${deprecationInfo}"
+  }
+  private[this] val globalOverrideText = configService.rudder_policy_overridable().getOrElse("") match {
+    case true  =>
+      <div>
+        You may override the agent policy mode on this directive.
+        If set to <b>Audit</b> this directive will never be enforced.
+        If set to <b>Enforce</b> this directive will appply necessary changes except on Nodes with a <b>Verify</b> override setting.
+      </div>
+    case false =>
+      <p>
+        Currrent global settings do not allow this mode to be overriden on a per-directive bases. You may change this in <b>Settings</b>,
+        or contact your Rudder administrator about this.
+      </p>
+  }
+    private[this] val policyModes = {
+      val globalPolicyModeName = configService.rudder_policy_mode_name().getOrElse("error").toString
+      val policyName = directive.policyMode match {
+        case None => globalPolicyModeName
+        case _ => directive.policyMode.getOrElse("error").toString
+      }
+      val l = Seq(None -> s"Use global default mode (currently ${globalPolicyModeName})", Some(Enforce) -> "Override to Enforce", Some(Verify) -> "Override to Audit")
+      new WBSelectObjField(
+        "Policy mode"
+      , l
+      , defaultValue = directive.policyMode
+    ) {
+      override val displayHtml =
+        <div>
+          <b>Policy mode</b>
+          <span class="tw-bs">
+            <span tooltipid="policyModeId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
+            <div class="tooltipContent" id="policyModeId">
+              <h4>Policy mode</h4>
+              <p>Configuration rules in Rudder can operate in one of two modes:</p>
+              <ol>
+                <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
+                <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
+              </ol>
+              <p>
+                By default all nodes and all directives operate in the global default mode defined in
+                <b> Settings</b>, which is currently <b>{globalPolicyModeName}</b>.
+              </p>
+              {globalOverrideText}
+            </div>
+          </span>
+        </div>
+      override def className = "twoCol"
+      override def labelClassName = "threeCol directiveInfo"
+    }
   }
 
   val versions = fullActiveTechnique.techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
@@ -487,12 +540,13 @@ class DirectiveEditForm(
         }
 
         val newDirective = directive.copy(
-            parameters = parameterEditor.mapValueSeq
-          , name = piName.is
+            parameters       = parameterEditor.mapValueSeq
+          , name             = piName.is
           , shortDescription = piShortDescription.is
-          , priority = piPriority.is
-          , longDescription = piLongDescription.is
-          , _isEnabled = directive.isEnabled
+          , priority         = piPriority.is
+          , longDescription  = piLongDescription.is
+          , _isEnabled       = directive.isEnabled
+          , policyMode       = policyModes.is
         )
 
         displayConfirmationPopup(
@@ -506,11 +560,13 @@ class DirectiveEditForm(
         val isMigration = oldDirective.map( _.techniqueVersion != directive.techniqueVersion).getOrElse(false)
 
         val updatedDirective = directive.copy(
-          parameters = parameterEditor.mapValueSeq,
-          name = piName.is,
-          shortDescription = piShortDescription.is,
-          priority = piPriority.is,
-          longDescription = piLongDescription.is)
+            parameters       = parameterEditor.mapValueSeq
+          , name             = piName.is
+          , shortDescription = piShortDescription.is
+          , priority         = piPriority.is
+          , longDescription  = piLongDescription.is
+          , policyMode       = policyModes.is
+        )
 
         if ((!isMigration && directive == updatedDirective && updatedRules.isEmpty)) {
           onNothingToDo()

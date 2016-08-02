@@ -89,6 +89,7 @@ class RuleCompliance (
   private[this] val reportingService = RudderConfig.reportingService
   private[this] val recentChangesService = RudderConfig.recentChangesService
   private[this] val categoryService  = RudderConfig.ruleCategoryService
+  private[this] val configService  = RudderConfig.configService
 
   //fresh value when refresh
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
@@ -154,7 +155,7 @@ class RuleCompliance (
       function refresh() {${refresh().toJsCmd}};
       createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",[],refresh);
       createNodeComplianceTable("nodeReportsGrid",[],"${S.contextPath}", refresh);
-      createChangesTable("changesGrid",[],"${S.contextPath}");
+      createChangesTable("changesGrid",[],"${S.contextPath}", refresh);
       correctButtons();
       refresh();
     """)))
@@ -293,10 +294,11 @@ class RuleCompliance (
         updatedRule  <- roRuleRepository.get(rule.id)
         directiveLib <- getFullDirectiveLib()
         allNodeInfos <- getAllNodeInfos()
+        globalMode   <- configService.rudder_global_policy_mode()
       } yield {
 
-        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib).json.toJsCmd
-        val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos).json.toJsCmd
+        val directiveData = ComplianceData.getRuleByDirectivesComplianceDetails(reports, updatedRule, allNodeInfos, directiveLib, globalMode).json.toJsCmd
+        val nodeData = ComplianceData.getRuleByNodeComplianceDetails(directiveLib, reports, allNodeInfos, globalMode).json.toJsCmd
         JsRaw(s"""
           refreshTable("reportsGrid", ${directiveData});
           refreshTable("nodeReportsGrid", ${nodeData});

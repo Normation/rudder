@@ -89,7 +89,6 @@ class NodeAPI8 (
       implicit val prettify = extractor.extractPrettify(req.params)
       implicit val action = "updateNode"
       val actor = RestUtils.getActor(req)
-
       (for {
         restNode <- extractor.extractNode(req.params)
         reason   <- extractor.extractReason(req)

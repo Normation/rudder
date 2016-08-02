@@ -81,6 +81,7 @@ import com.normation.rudder.domain.logger.TimingDebugLogger
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.web.services.RulePolicyMode
 
 object RuleGrid {
   def staticInit =
@@ -132,6 +133,7 @@ class RuleGrid(
   private[this] val techniqueRepository = RudderConfig.techniqueRepository
   private[this] val categoryService     = RudderConfig.ruleCategoryService
   private[this] val asyncComplianceService = RudderConfig.asyncComplianceService
+  private[this] val configService = RudderConfig.configService
 
   //used to error tempering
   private[this] val roRuleRepository    = RudderConfig.roRuleRepository
@@ -191,8 +193,8 @@ class RuleGrid(
           _               =  TimingDebugLogger.debug(s"Rule grid: fetching all Directives took ${afterDirectives - afterGroups}ms" )
 
           rootRuleCat     <- getRootRuleCategory()
-
-          newData         =  getRulesTableData(rules, nodeInfo, groupLib, directiveLib, rootRuleCat)
+          globalMode      <- configService.rudder_global_policy_mode()
+          newData         =  getRulesTableData(rules, nodeInfo, groupLib, directiveLib, rootRuleCat, globalMode)
           afterData       =  System.currentTimeMillis
           _               =  TimingDebugLogger.debug(s"Rule grid: transforming into data took ${afterData - afterDirectives}ms" )
 
@@ -230,8 +232,9 @@ class RuleGrid(
       groupLib     <- getFullNodeGroupLib()
       directiveLib <- getFullDirectiveLib()
       ruleCat      <- getRootRuleCategory()
+      globalMode   <- configService.rudder_global_policy_mode()
     } yield {
-      getRulesTableData(rules.getOrElse(Seq()), allNodeInfos, groupLib, directiveLib, ruleCat)
+      getRulesTableData(rules.getOrElse(Seq()), allNodeInfos, groupLib, directiveLib, ruleCat, globalMode)
     }) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error when trying to get information about rules"
@@ -400,6 +403,7 @@ class RuleGrid(
     , groupLib     : FullNodeGroupCategory
     , directiveLib : FullActiveTechniqueCategory
     , rootRuleCategory   : RuleCategory
+    , globalMode : GlobalPolicyMode
   ) : JsTableData[RuleLine] = {
 
       val t0 = System.currentTimeMillis
@@ -413,7 +417,7 @@ class RuleGrid(
          line <- converted
       } yield {
         val tf0 = System.currentTimeMillis
-        val res = getRuleData(line, groupLib, allNodeInfos, rootRuleCategory)
+        val res = getRuleData(line, groupLib, allNodeInfos, rootRuleCategory, directiveLib, globalMode)
         val tf1 = System.currentTimeMillis
         tData = tData + tf1 - tf0
         res
@@ -529,11 +533,16 @@ class RuleGrid(
   private[this] def getRuleData (
       line:Line
     , groupsLib: FullNodeGroupCategory
-    , nodes: Map[NodeId, NodeInfo]
+    , nodesInfo: Map[NodeId, NodeInfo]
     , rootRuleCategory: RuleCategory
+    , directiveLib: FullActiveTechniqueCategory
+    , globalMode  : GlobalPolicyMode
   ) : RuleLine = {
 
     val t0 = System.currentTimeMillis
+
+    val nodes = groupsLib.getNodeIds(line.rule.targets, nodesInfo)
+    val (policyMode,explanation) = RulePolicyMode.compute(globalMode, line.rule.directiveIds.map(directiveLib.allDirectives(_)).map(_._2))
 
     // Status is the state of the Rule, defined as a string
     // reasons are the the reasons why a Rule is disabled
@@ -547,12 +556,12 @@ class RuleGrid(
               ("Partially applied", Some(why))
             case x:NotAppliedStatus =>
               val isAllTargetsEnabled = line.targets.filter(t => !t.isEnabled).isEmpty
-              val nodeSize = groupsLib.getNodeIds(line.rule.targets, nodes).size
+
               val conditions = {
                 Seq( ( line.rule.isEnabled            , "Rule disabled" )
                    , ( line.trackerVariables.size > 0 , "No policy defined")
                    , ( isAllTargetsEnabled            , "Group disabled")
-                   , ( nodeSize!=0                    , "Empty groups")
+                   , ( nodes.size!=0                    , "Empty groups")
                 ) ++
                 line.trackerVariables.flatMap {
                   case (directive, activeTechnique,_) =>
@@ -642,6 +651,8 @@ class RuleGrid(
       , callback
       , checkboxCallback
       , reasons
+      , policyMode
+      , explanation
    )
   }
 }
@@ -660,6 +671,7 @@ class RuleGrid(
    *   , "callback" : Function to use when clicking on one of the line link, takes a parameter to define which tab to open, not always present[ Function ]
    *   , "checkboxCallback": Function used when clicking on the checkbox to apply/not apply the Rule to the directive, not always present [ Function ]
    *   , "reasons": Reasons why a Rule is a not applied, empty if there is no reason [ String ]
+   *   , "policyMode": Policy mode applied by this Rule [ String ]
    *   }
    */
 case class RuleLine (
@@ -673,6 +685,8 @@ case class RuleLine (
   , callback         : Option[AnonFunc]
   , checkboxCallback : Option[AnonFunc]
   , reasons          : Option[String]
+  , policyMode       : String
+  , explanation      : String
 ) extends JsTableLine {
 
   /* Would love to have a reflexive way to generate that map ...  */
@@ -694,6 +708,8 @@ case class RuleLine (
         , ( "category", category )
         , ( "status", status )
         , ( "trClass", trClass )
+        , ( "policyMode", policyMode )
+        , ( "explanation", explanation )
       )
 
       base +* JsObj(optFields:_*)

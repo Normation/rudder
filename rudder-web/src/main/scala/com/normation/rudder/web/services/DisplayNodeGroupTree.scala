@@ -163,9 +163,9 @@ object DisplayNodeGroupTree extends Loggable {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
               <span class="fa fa-pencil" tooltipid={tooltipId} title=""
-						    onclick={redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
-						  ></span>
-						  <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
+                onclick={redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
+              ></span>
+              <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
             </span>
           } else {
             NodeSeq.Empty
@@ -197,6 +197,7 @@ object DisplayNodeGroupTree extends Loggable {
               NodeSeq.Empty
           }
         }
+
         val xml  = {
           val tooltipId = Helpers.nextFuncName
           <span class="treeGroupName tooltipable" tooltipid={tooltipId} title="">

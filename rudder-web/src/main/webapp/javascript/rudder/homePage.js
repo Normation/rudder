@@ -75,7 +75,7 @@ function homePage (
       colorStart: '#6FADCF',   // Colors
       colorStop: '#8FC0DA',    // just experiment with them
       strokeColor: '#E0E0E0',   // to see which ones work best for you
-      percentColors : [[0.0, "#d9534f" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#5cb85c"]],
+      percentColors : [[0.0, "#d9534f" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#9bc832"]],
       generateGradient: true
     };
     var target = document.getElementById('complianceGauge'); // your canvas element
@@ -110,7 +110,7 @@ function homePage (
 }
 
 function displayInventoryGraph (id,data) {
-  var colorPatternDonutCharts = ['rgb(31, 119, 180)', 'rgb(23, 190, 207)', 'rgb(255, 127, 14)', 'rgb(255, 224, 14)', 'rgb(227, 119, 194)', 'rgb(44, 160, 44)', 'rgb(255, 104, 105)', 'rgb(148, 103, 189)', 'rgb(140, 86, 75)', 'rgb(160, 160, 160)', 'rgb(146, 201, 74)', '#ffd203', 'rgb(132, 63, 152)'];
+  var colorPatternDonutCharts = ['rgb(54, 148, 209)', 'rgb(23, 190, 207)', 'rgb(255,113,37)', 'rgb(255, 224, 14)', 'rgb(227, 119, 194)', 'rgb(44, 160, 44)', 'rgb(255, 104, 105)', 'rgb(148, 103, 189)', 'rgb(140, 86, 75)', 'rgb(160, 160, 160)', 'rgb(155,200,50)', '#ffd203', 'rgb(132, 63, 152)'];
     
   var smallHeight =  $(window).height() / 4 ;
   

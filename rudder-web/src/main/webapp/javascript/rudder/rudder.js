@@ -49,30 +49,13 @@ var bootstrapTab = $.fn.tab.noConflict();
 var bootstrapAffix = $.fn.affix.noConflict();
 var bootstrapModal = $.fn.modal.noConflict();
 $.fn.bsModal = bootstrapModal;
-
-
+$.fn.bsTooltip = bootstrapTooltip;
 /**
  * Instanciate the tooltip
  * For each element having the "tooltipable" class, when hovering it will look for it's
  * tooltipid attribute, and display in the tooltip the content of the div with the id
  * tooltipid
  */
-function createTooltiptr() {
-    $(".tooltipabletr").tooltip({
-        show: {
-            effect: "none",
-            delay: 100
-        },
-        hide: {
-            effect: "none",
-            delay: 0
-        },
-        content: function () {
-            return $("#" + $(this).attr("tooltipid")).html();
-        },
-        track : true
-    });
-}
 
 function createTooltip() {
   $(".tooltipable").tooltip({
@@ -95,7 +78,6 @@ function createTooltip() {
   });
   createTooltiptr();
 }
-
 function createTooltiptr() {
     $(".tooltipabletr").tooltip({
         show: {
@@ -606,4 +588,69 @@ $(document).ready(function() {
   createTooltip();
 });
 
+function policyModeTooltip(kind, policyName, explanation){
+  var tooltip = "" +
+    "<h4>Agent Policy Mode </h4>" +
+    "<div class='tooltip-content'>"+
+    "<p>This "+ kind +" is in <b>"+ policyName +"</b> mode.</p>"+
+    "<p>"+ explanation +"</p>"+
+    "</div>";
+  return tooltip;
+}
 
+function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
+  var policyMode = currentPolicyMode.toLowerCase();
+  var nodeOrDirective = isNode ? "node" : "directive";
+  var labelType = "label-"+policyMode;
+  var policyName = policyMode == "verify" ? "audit" : policyMode
+  var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>"
+  var badge = $(span).get(0);
+  var tooltip = policyModeTooltip(nodeOrDirective, policyName, explanation);
+  badge.setAttribute("title", tooltip);
+  return badge;
+}
+
+function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
+  var policyMode = currentPolicyMode.toLowerCase();
+  var labelType  = "label-"+policyMode;
+  var policyName = policyMode == "verify" ? "audit" : policyMode;
+  var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>";
+  var badge = $(span).get(0);
+  var tooltip = policyModeTooltip(elmnt, policyName, explanation);
+  badge.setAttribute("title", tooltip);
+  return badge;
+}
+
+function getBadgePolicyMode(data){
+  var enforce = audit = false;
+  for (rule in data){
+    if((data[rule].policyMode=="verify")&&(!audit)){
+      audit = true;
+    }else if((data[rule].policyMode=="enforce")&&(!enforce)){
+      enforce = true;
+    }
+  }
+  if(enforce && audit){
+    return "mixed";
+  }else if(enforce){
+    return "enforce";
+  }else if(audit){
+    return "audit";
+  }
+  return "error";
+}
+function createBadgeAgentPolicyModeMixed(data){
+  var rules = data.details;
+  var badgePolicyMode = getBadgePolicyMode(rules);
+  var labelType = "label-";
+  if(badgePolicyMode == "audit"){
+    labelType += "verify";
+  }else{
+    labelType += badgePolicyMode;
+  }
+  var span = "<span class='rudder-label "+ labelType +" label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>"
+  var badge = $(span).get(0);
+  var tooltip = policyModeTooltip('policy', badgePolicyMode, '');
+  badge.setAttribute("title", tooltip);
+  return badge;
+}
