@@ -151,8 +151,8 @@ trait JsLibPassword extends ImplicitGetBytes {
 
   def unix(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
-      case "md5" => cryptMd5(s)
-      case "sha-256" | "sha256" => aixSha256(s, salt)
+      case "md5" => cryptMd5(s, salt)
+      case "sha-256" | "sha256" => cryptSha256(s, salt)
       case "sha-512" | "sha512" => cryptSha512(s, salt)
       case _ => // unknown value, fail
         throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
@@ -162,7 +162,7 @@ trait JsLibPassword extends ImplicitGetBytes {
   def aix(algo: String, s: String): String = {
     algo.toLowerCase match {
       case "md5" => aixMd5(s)
-      case "sha-256" | "sha256" => cryptSha256(s)
+      case "sha-256" | "sha256" => aixSha256(s)
       case "sha-512" | "sha512" => aixSha512(s)
       case _ => // unknown value, fail
         throw new NoSuchAlgorithmException(s"Evaluating script 'aix(${algo}, ${s})' failed, as algorithm ${algo} is not recognized")
@@ -171,8 +171,8 @@ trait JsLibPassword extends ImplicitGetBytes {
 
   def aix(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
-      case "md5" => aixMd5(s)
-      case "sha-256" | "sha256" => cryptSha256(s, salt)
+      case "md5" => aixMd5(s, salt)
+      case "sha-256" | "sha256" => aixSha256(s, salt)
       case "sha-512" | "sha512" => aixSha512(s, salt)
       case _ => // unknown value, fail
         throw new NoSuchAlgorithmException(s"Evaluating script 'unix(${algo}, ${s}, ${salt})' failed, as algorithm ${algo} is not recognized")
@@ -191,7 +191,7 @@ trait JsLibPassword extends ImplicitGetBytes {
 
   def auto(algo: String, s: String, salt: String): String = {
     algo.toLowerCase match {
-      case "md5" => aixMd5(s)
+      case "md5" => md5(s, salt)
       case "sha-256" | "sha256" => sha256(s, salt)
       case "sha-512" | "sha512" => sha512(s, salt)
       case _ => // unknown value, fail
