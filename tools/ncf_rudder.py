@@ -304,6 +304,11 @@ def generate_rudder_reporting(technique):
   content = []
   content.append('bundle agent '+ technique['bundle_name']+'_rudder_reporting')
   content.append('{')
+  content.append('  vars:')
+  content.append('    "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";')
+  content.append('    "class_prefix"      string => canonify(join("_", "promisers"));')
+  content.append('    "args"               slist => { };')
+  content.append('')
   content.append('  methods:')
 
   # Handle method calls
@@ -324,7 +329,7 @@ def generate_rudder_reporting(technique):
     key_value_canonified = regex.sub("_", key_value)
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
-    logger_rudder_call = '"dummy_report" usebundle => log_rudder("' + generic_method['name'] + ' ' + key_value + ' if ' + method_call['class_context'] + '", "' + class_prefix +'")'
+    logger_rudder_call = '"dummy_report" usebundle => log_rudder("' + generic_method['name'] + ' ' + key_value + ' if ' + method_call['class_context'] + '", "' + class_prefix +'", "${class_prefix}", @{args})'
 
     # Always add an empty line for readability
     content.append('')
