@@ -90,8 +90,10 @@ app.directive('constraint', function($http, $q, $timeout) {
     require: 'ngModel',
     link: function(scope, elm, attrs, ctrl) {
     ctrl.$asyncValidators.constraint = function(modelValue, viewValue) {
-      if (modelValue === undefined)
-        return $q.when(modelValue); 
+      scope.parameter.$errors= [];
+      if (modelValue === undefined) {
+        return $q.reject("Value is empty");
+      }
       var data = {"value" : modelValue, "constraints" : scope.parameter.constraints}
 
       var timeoutStatus = false;
