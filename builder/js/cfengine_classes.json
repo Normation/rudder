@@ -185,6 +185,10 @@ var cfengine_OS_classes = [
               , class : "Windows_Server_2012"
               , childs : []
             }
+          , {   name : "Server 2012 R2"
+              , class : "Windows_Server_2012_R2"
+              , childs : []
+            }
         ]
     }
 ]
