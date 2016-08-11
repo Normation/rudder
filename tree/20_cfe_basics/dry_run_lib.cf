@@ -56,8 +56,13 @@ bundle agent set_dry_run_mode(mode)
 #  - ... and all promise types that are not for the agent
 ###############################################################################
 
+body file control
+{
+   namespace => "bodydefault"; 
+}
+
 # Actions that can be dry runned
-body action users_default_action
+body action users_action
 {
   user_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -65,7 +70,7 @@ body action users_default_action
     action_policy => "fix";
 }
 
-body action files_default_action
+body action files_action
 {
   files_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -73,7 +78,7 @@ body action files_default_action
     action_policy => "fix";
 }
 
-body action packages_default_action
+body action packages_action
 {
   packages_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -81,7 +86,7 @@ body action packages_default_action
     action_policy => "fix";
 }
 
-body action guest_environments_default_action
+body action guest_environments_action
 {
   guest_environments_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -89,7 +94,7 @@ body action guest_environments_default_action
     action_policy => "fix";
 }
 
-body action processes_default_action
+body action processes_action
 {
   processes_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -97,7 +102,7 @@ body action processes_default_action
     action_policy => "fix";
 }
 
-body action services_default_action
+body action services_action
 {
   services_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -105,7 +110,7 @@ body action services_default_action
     action_policy => "fix";
 }
 
-body action commands_default_action
+body action commands_action
 {
   commands_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -113,7 +118,7 @@ body action commands_default_action
     action_policy => "fix";
 }
 
-body action storage_default_action
+body action storage_action
 {
   storage_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -121,7 +126,7 @@ body action storage_default_action
     action_policy => "fix";
 }
 
-body action databases_default_action
+body action databases_action
 {
   databases_dry_run|dry_run|global_dry_run::
     action_policy => "warn";
@@ -129,4 +134,8 @@ body action databases_default_action
     action_policy => "fix";
 }
 
+body file control
+{
+    namespace => "default"; 
+}
 
