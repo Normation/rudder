@@ -364,8 +364,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
               "#formError *" #> updateAndDisplayNotifications()
               ) (popupContent)
           )
-      ) ( popup ) ++
-      Script(JsRaw("""updatePopup();"""))
+      ) ( popup )
     }
 
     def updateForm(default:(WorkflowNodeId,stepChangeFunction)) = SetHtml("popupContent",content(default))

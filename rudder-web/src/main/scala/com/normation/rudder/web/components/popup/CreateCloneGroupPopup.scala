@@ -68,7 +68,7 @@ class CreateCloneGroupPopup(
       "notifications" -> updateAndDisplayNotifications(formTracker),
       "cancel" -> SHtml.ajaxButton( "Cancel", { () => closePopup() } ) % ( "tabindex", "6" )% ( "class", "btn btn-default" ),
       "save" -> SHtml.ajaxSubmit( "Clone", onSubmit _ ) % ( "id", "createCOGSaveButton" ) % ( "tabindex", "5" )% ( "class", "btn btn-success" )
-    ) ) ++ Script( OnLoad( initJs & JsRaw("updatePopup();") ) )
+    ) ) ++ Script( OnLoad( initJs ) )
   }
 
   def templatePath = List("templates-hidden", "Popup", "createCloneGroupPopup")
@@ -178,7 +178,6 @@ class CreateCloneGroupPopup(
 
   ///////////// fields for category settings ///////////////////
 
-
   private[this] val piReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -260,7 +259,6 @@ class CreateCloneGroupPopup(
   private[this] val formTracker = {
     new FormTracker(piName, piDescription, piContainer, piStatic)
   }
-
 
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml("createCloneGroupContainer", popupContent())

@@ -22,12 +22,11 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
 
   $scope.getAccounts = function() {
     $http.get(apiPath).
-    success(function(data, status, headers, config) {
-      $scope.accounts = data.data.accounts;
+    then(function (response) {
+      $scope.accounts = response.data.data.accounts;
       return $scope.accounts
-    }).
-    error(function(data, status, headers, config) {
-      $scope.errorTable = data;
+    }, function(response) {
+      $scope.errorTable = response.data;
       return $scope.errorTable
     });
   }
@@ -91,11 +90,11 @@ $scope.addAccount = function() {
 //define what each column of the grid
 //get from the JSON people
 $scope.columnDefs = [
-    { "aTargets":[0], "mDataProp": "name", "sWidth": "20%" }
+    { "aTargets":[0], "mDataProp": "name", "sWidth": "20%", "sTitle" : "Account Name" }
   , {   "aTargets":[1]
       , "mDataProp": "token"
       , 'bSortable': false
-      , "sWidth": "40%"
+      , "sWidth": "40%", "sTitle" : "Token"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
           var content  = $("<button style='margin-right:10px; float:left;' class='smallButton'><img style='width:20px; height:20px;' src='"+contextPath+"/images/refresh_reload.png' alt='Regenerate'  /> </button>")
           content.button()
@@ -112,6 +111,7 @@ $scope.columnDefs = [
       , "mDataProp"     : "enabled"
       , 'bSortable': false
       , "sWidth": "10%"
+        , "sTitle" : "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
       var color = sData ? "#5cb85c" : "#d9534f";
           var content  = $(" <b>"+$scope.accountDisabled(sData)+"</b>")
@@ -124,6 +124,7 @@ $scope.columnDefs = [
       , "mDataProp"     : "enabled"
       , 'bSortable': false
       , "sWidth": "10%"
+      
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData
     var editButton  = $("<button style='width: 80px; margin: 0px 10px;'>Edit</button>")
@@ -271,7 +272,9 @@ $scope.popupDeletion = function(account, index, action, actionName) {
   $scope.getAccounts();
     
   $scope.defineActionName = function(formName){
-      return formName.split(' ')[0];
+      if(formName !== undefined) {
+        return formName.split(' ')[0];
+      }
   }  
 } );
 

@@ -42,7 +42,7 @@ function homePage (
   , nodeComplianceColors
   , nodeCount
 ) {
-  $("#globalCompliance").append(buildComplianceBar(globalCompliance,33));
+  $("#globalCompliance").append(buildComplianceBar(globalCompliance,50));
   createTooltip();
 
 

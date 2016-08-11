@@ -124,7 +124,7 @@ class RuleCategoryPopup(
       case Some(c) => s"Update"
     }
   }
-  
+
   val parentCategory = targetCategory.flatMap(rootCategory.findParent(_)).map(_.id.value)
     def popupContent() : NodeSeq = {
      (
@@ -149,10 +149,9 @@ class RuleCategoryPopup(
       "#saveCategory"          #> SHtml.ajaxSubmit(TextForButton, () => onSubmit(), ("id", "createRuleCategorySaveButton") , ("tabindex","5"), ("style","margin-left:5px;")) andThen
       ".notifications *"       #> updateAndDisplayNotifications()
 
-    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
+    )(html)
   }
-    
-    
+
   def deletePopupContent(canBeDeleted : Boolean) : NodeSeq = {
     val action = () => if (canBeDeleted)  onSubmitDelete else closePopup
     val disabled  = if (canBeDeleted) ("","") else ("disabled","true")
@@ -160,11 +159,11 @@ class RuleCategoryPopup(
       "#dialogTitle *"  #> s"Delete Rule category ${s"'${targetCategory.map(_.name).getOrElse("")}'"}" &
       "#text * "        #> (if(canBeDeleted) "Are you sure you want to delete this Rule category?" else "This Rule category is not empty and therefore cannot be deleted")  &
       "#deleteCategoryButton" #> SHtml.ajaxButton("Delete", action, ("id", "createRuleCategorySaveButton") ,("tabindex","1") , ("class","btn-danger"), disabled )
-    )(deleteHtml ++ Script(OnLoad(JsRaw(s"updatePopup(); "))))
+    )(deleteHtml)
   }
 
   ///////////// fields for category settings ///////////////////
-  
+
     private[this] val categoryName = new WBTextField("Name", targetCategory.map(_.name).getOrElse("")) {
     override def setFilter = notNull _ :: trim _ :: Nil
     override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
@@ -173,8 +172,7 @@ class RuleCategoryPopup(
     override def validations =
       valMinLen(1, "The name must not be empty.") _ :: Nil
   }
-   
-    
+
   private[this] val categoryDescription = new WBTextAreaField("Description", targetCategory.map(_.description).getOrElse("")) {
     override def subContainerClassName = "col-lg-9 col-sm-12 col-xs-12"
     override def setFilter = notNull _ :: trim _ :: Nil

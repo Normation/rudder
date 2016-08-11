@@ -76,13 +76,7 @@ object DirectiveEditForm {
    * Any page which contains (or may contains after an ajax request)
    * that component have to add the result of that method in it.
    */
-  def staticInit: NodeSeq =
-    (for {
-      xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
-    } yield {
-      chooseTemplate("component", "staticInit", xml) ++
-        RuleGrid.staticInit
-    }) openOr Nil
+  def staticInit: NodeSeq = RuleGrid.staticInit
 
   private def body =
     (for {
@@ -156,6 +150,7 @@ class DirectiveEditForm(
   }
 
   def showForm(): NodeSeq = {
+    staticInit ++
     (
       "#container [id]" #> htmlId_policyConf &
       "#editForm" #> showDirectiveForm()
@@ -340,7 +335,6 @@ class DirectiveEditForm(
   private[this] def showErrorNotifications() : JsCmd = {
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
     //restore user to the update parameter tab
-    JsRaw("""$("#editZone").tabs("option", "active", 1)""") &
     JsRaw("""scrollToElement("notifications", "#directiveDetails");""")
   }
 
@@ -415,7 +409,7 @@ class DirectiveEditForm(
           	<h4> Priority </h4>
 						Priority determines which <b> unique </b> Directive will be applied.
 						<br/>
-						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied. 
+						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.
 						<br/>
 						Highest Priority is 0
           </div>

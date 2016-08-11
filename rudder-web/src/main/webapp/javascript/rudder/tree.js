@@ -5,63 +5,49 @@
  */
 var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
   $(id).bind("loaded.jstree", function (event, data) {
-    data.inst.open_all(-1);
+    data.instance.open_all();
   }).jstree({ 
     "core" : { 
-    "animation" : 0,
-    "html_titles" : true
+        "animation" : 300
+      , "html_titles" : true
+      , "multiple" : false
     },
     "ui" : { 
       "initially_select" : [initially_select],
       "select_limit" : 1
     },
     "types" : {
-      // I set both options to -2, as I do not need depth and children count checking
-      // Those two checks may slow jstree a lot, so use only when needed
-      "max_depth" : -2,
-      "max_children" : -2,
-      "valid_children" : [ "category" ],
-        "types" : {
-          "category" : {
-            "icon" : {
-              "image" : appContext+"/images/tree/folder_16x16.png" 
-            },
+      "#" : {
+        "valid_children" : [ "category" ]
+      },
+      "category" : {
+            "icon" : "fa fa-folder",
             "valid_children" : [ "category", "template" ],
             "select_node" : function(e) {
               this.toggle_node(e);
               return false;
-            },
-            "start_drag" : false
+            }
           },
-          "template" : {
-            "icon" : { 
-              "image" : appContext+"/images/tree/technique_16x16.png" 
-            },
+      "template" : {
+            "icon" : "fa fa-cogs",
             "valid_children" : "none"
           },
           "default" : {
             "valid_children" : "none"
           }
-        }
+
       },
       "search" : {
           "case_insensitive" : true,
           "show_only_matches": true
         },
-      "crrm" : {
-        "move" : {
-          "check_move" : function () { return false; }
-        }
-      },
-      "dnd" : {
-        "drop_target" : false,
-        "drag_target" : false
-      },
-      "themes" : { 
-          "theme" : "rudder",
-          "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
-      },
-      "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ]
+      "dnd": {
+          always_copy: true
+        , is_draggable: function(nodes,event) {
+          return nodes.some(function(node) {return node.type !== "category"})
+        } 
+        },
+      "plugins" : [ "types", "dnd", "search" ]
     })
 }
 
@@ -70,99 +56,64 @@ var buildReferenceTechniqueTree = function(id,  initially_select, appContext) {
  */
 var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContext) {
   $(id).bind("loaded.jstree", function (event, data) {
-	  data.inst.open_all(-1);
+	  data.instance.open_all();
   }).jstree({ 
     "core" : { 
-    "animation" : 0,
-    "html_titles" : true
+    "animation" : 300
+    , "multiple" : false
+    , "html_titles" : true,
+    "check_callback" : function (operation, node, node_parent, node_position, more) {
+      if (operation === "copy_node") {
+        if (authorized) {
+          var activetechniqueid = node.li_attr.activetechniqueid;
+          return ! $(id + " [activeTechniqueid=" + activetechniqueid + "]").length;
+        } else {
+          return authorized
+        }
+      }
+      return true;
+      }
     },
     "ui" : { 
       "select_limit" : 1
     },
     "types" : {
-      // I set both options to -2, as I do not need depth and children count checking
-      // Those two checks may slow jstree a lot, so use only when needed
-      "max_depth" : -2,
-      "max_children" : -2,
-      "valid_children" : [ "root-category" ],
-      "types" : {
-        "root-category" : {
-          "icon" : { 
-            "image" : appContext+"/images/tree/folder_16x16.png" 
-          },
+      "#" : {
+        "valid_children" : [ "root-category" ]
+      },
+      "root-category" : {
+          "icon" : "fa fa-folder",
           "valid_children" : [ "category", "template" ],
           "start_drag" : false,
           "select_node" : function(e) {
         	  this.toggle_node(e);
         	  return true;
             },
-        },
-        "category" : {
-          "icon" : { 
-            "image" : appContext+"/images/tree/folder_16x16.png" 
-          },
+      },
+      "category" : {
+
+          "icon" : "fa fa-folder",
           "valid_children" : [ "category", "template" ],
           "select_node" : function(e) {
         	  this.toggle_node(e);
         	  return true;
             },
-        },
-        "template" : {
-          "icon" : { 
-            "image" : appContext+"/images/tree/technique_16x16.png" 
-          },
+      },
+      "template" : {
+          "icon" : "fa fa-cogs",
           "valid_children" : "none"
         },
         "default" : {
           "valid_children" : "none"
         }
-      }
-    },
-    "crrm" : {
-      "move" : {
-        "always_copy" : "multitree",
-        "check_move" : function (m) { 
-          //only accept to move a node from the reference tree if it does not exists in that tree
-           var checkNotAlreadyBound = function() {
-	          var res = true;
-	          var originTree = m.ot.get_container().prop("id");
-	          var activetechniqueid = "";
-	          for(i = 0 ; i < m.o[0].attributes.length; i++) {
-	        	  if(m.o[0].attributes[i].name == "activetechniqueid") {
-	        		  activetechniqueid = m.o[0].attributes[i].nodeValue;
-	        		  break;
-	        	  }
-	          }
-	          var list = $(id + " [activeTechniqueid=" + activetechniqueid + "]");
-	          if(foreignTreeId == originTree) {
-	            //look if there is an li with attr activeTechniqueId == moved object activeTechniqueId
-	            res =  list.size() < 1 ;
-	          }
-	          return res;
-          };
-          //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
-          //and into a new parent node. 
-          var checkInside = (m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
-          if (authorized){
-          return checkNotAlreadyBound() && checkInside;
-          }
-          return authorized
-       }
-      }
+    },    "dnd": {
+      check_while_dragging: true
     },
     "search" : {
         "case_insensitive" : true,
         "show_only_matches": true
       },
-    "dnd" : {
-      "drop_target" : false,
-      "drag_target" : false
-    },
-    "themes" : { 
-  	  "theme" : "rudder",
-  	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
-    },
-    "plugins" : [ "themes", "html_data", "ui", "types", "dnd", "crrm", "search" ] 
+    "plugins" : [ "types", "dnd", "search" ] 
   })   
 }
 
@@ -170,62 +121,51 @@ var buildActiveTechniqueTree = function(id, foreignTreeId, authorized, appContex
  * Rule category tree
  */
 var buildRuleCategoryTree = function(id, initially_select , appContext) {
-  $(id).jstree({
+  $(id).bind("loaded.jstree", function (event, data) {
+    data.instance.open_all();
+  }).jstree({
       "core" : {
       "animation" : 300,
       "html_titles" : true,
-      "initially_open" : [ "jstn_0" ]
+      "check_callback" : true,
       },
      "ui" : {
         "select_limit" : 1,
         "initially_select" : [initially_select]
       },
-      // I set both options to -2, as I do not need depth and children count checking
-      // Those two checks may slow jstree a lot, so use only when needed
-      "max_depth" : -2,
-      "max_children" : -2,
       "types" : {
-        "valid_children" : [ "category" ],
-          "types" : {
-            "category" : {
-              "icon" : {
-                "image" : appContext+"/images/tree/folder_16x16.png"
-              },
+        "#" : {
+        "valid_children" : [ "category" ]
+        },
+        
+        "category" : {
+              "icon" : "fa fa-folder",
               "valid_children" : [ "category" ],
               "select_node" : function(e) {
             	  return true;
               }
             },
-            "default" : {
+        "default" : {
               "valid_children" : "none"
             }
           }
-      },
+      ,
       "search" : {
         "case_insensitive" : true,
         "show_only_matches": true
       },
-      "dnd" : {
-          "drop_target" : false,
-          "drag_target" : false,
-        },
-      "themes" : {
-    	  "theme" : "rudder",
-    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
-      },
-      "plugins" : [ "themes", "html_data", "ui", "types", "search", "dnd" ]
-  }).bind("loaded.jstree", function (event, data) {
-      // you get two params - event & data - check the core docs for a detailed description
-      $(this).jstree("open_all");
+      "plugins" : [  "types", "dnd" ]
   })
   $(id).removeClass('nodisplay');
 }
 
 /*
- * Rule category tree no drag and drom
+ * Rule category tree no drag and drop
  */
 var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
-  $(id).jstree({
+  $(id).bind("loaded.jstree", function (event, data) {
+    data.instance.open_all();
+  }).jstree({
       "core" : {
       "animation" : 300,
       "html_titles" : true,
@@ -240,12 +180,9 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
       "max_depth" : -2,
       "max_children" : -2,
       "types" : {
-        "valid_children" : [ "category" ],
-          "types" : {
+        "#" : {"valid_children" : [ "category" ]},
             "category" : {
-              "icon" : {
-                "image" : appContext+"/images/tree/folder_16x16.png"
-              },
+              "icon" : "fa fa-folder",
               "valid_children" : [ "category" ],
               "select_node" : function(e) {
             	  return true;
@@ -254,20 +191,8 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
             "default" : {
               "valid_children" : "none"
             }
-          }
       },
-      "search" : {
-        "case_insensitive" : true,
-        "show_only_matches": true
-      },
-      "themes" : {
-    	  "theme" : "rudder",
-    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
-      },
-      "plugins" : [ "themes", "html_data", "ui", "types", "search" ]
-  }).bind("loaded.jstree", function (event, data) {
-      // you get two params - event & data - check the core docs for a detailed description
-      $(this).jstree("open_all");
+      "plugins" : [ "types" ]
   })
   $(id).removeClass('nodisplay');
 }
@@ -299,10 +224,10 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
   var select_system_node_allowed = false;
   
   $(id).bind("loaded.jstree", function (event, data) {
-    data.inst.open_all(-1);
+    data.instance.open_all();
   }).jstree({
     "core" : { 
-      "animation" : 0,
+      "animation" : 300,
       "html_titles" : true
     },
     "ui" : {
@@ -313,49 +238,49 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
     "types" : {
       // I set both options to -2, as I do not need depth and children count checking
       // Those two checks may slow jstree a lot, so use only when needed
-      "max_depth" : -2,
-      "max_children" : -2,
-      "valid_children" : [ "root-category" ],
-      "types" : {
-        "root-category" : {
-          "icon" : { "image" : appContext+"/images/tree/folder_16x16.png" },
+      "#" : {
+        "max_depth" : -2,
+        "max_children" : -2,
+        "valid_children" : [ "root-category" ]
+      },
+      "root-category" : {
+          "icon" : "fa fa-folder",
           "valid_children" : [ "category", "group" , "special_target" ],
           "start_drag" : false,
           "select_node" : function(e) {
         	  this.toggle_node(e);
         	  return select_node;
           }
-        },
-        "category" : {
-          "icon" : { "image" : appContext+"/images/tree/folder_16x16.png" },
+      },
+      "category" : {
+          "icon" : "fa fa-folder",
           "valid_children" : [ "category", "group" , "special_target" ],
           "select_node" : function(e) {
         	  this.toggle_node(e);
         	  return select_node;
           }
-        },
-        "system_category" : {
-            "icon" : { "image" : appContext+"/images/tree/folder_16x16.png" },
+      },
+      "system_category" : {
+          "icon" : "fa fa-folder",
             "valid_children" : [ "category", "group" , "special_target" ],
             "select_node" : function(e) {
               this.toggle_node(e);
               return select_node;
             }
-          },
-        "group" : {
-          "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
+      },
+      "group" : {
+          "icon" : "fa fa-sitemap",
           "valid_children" : "none",
           "select_node" : select_node
-        },
-        "system_target" : {
-          "icon" : { "image" : appContext+"/images/tree/server_group_16x16.gif" },
+      },
+      "system_target" : {
+          "icon" : "fa fa-sitemap",
           "select_node" :  select_system_node_allowed,
           "hover_node" : select_system_node_allowed,
           "valid_children" : "none"
-        },
-        "default" : {
+      },
+      "default" : {
           "valid_children" : "none"
-        }
       }
     },
     "crrm" : {
@@ -393,10 +318,10 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
 var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
   jQuery(id).
     bind("loaded.jstree", function (event, data) {
-      data.inst.open_all(-1);
+      data.instance.open_all();
     }).jstree({ 
       "core" : { 
-      "animation" : 0,
+      "animation" : 300,
       "html_titles" : true
       },
      "ui" : { 
@@ -404,41 +329,29 @@ var buildTechniqueDependencyTree = function(id, initially_select, appContext) {
         "select_limit" : 1
       },
       "types" : {
-        // I set both options to -2, as I do not need depth and children count checking
-        // Those two checks may slow jstree a lot, so use only when needed
-        "max_depth" : -2,
-        "max_children" : -2,
-        "valid_children" : [ "category" ],
-          "types" : {
-            "category" : {
-              "icon" : { 
-                "image" : appContext+"/images/tree/folder_16x16.png" 
-              },
-              "valid_children" : [ "category", "template" ]
-            },
-            "template" : {
-              "icon" : { 
-                "image" : appContext+"/images/tree/technique_16x16.png" 
-              },
-              "valid_children" : [ "directive" ]
-            },
-            "directive" : {
-              "icon" : { 
-                "image" : appContext+"/images/tree/directive_16x16.gif" 
-              },
-              "valid_children" : [ "rule" ]
-            },
-            "rule" : {
-                "icon" : { 
-                  "image" : appContext+"/images/tree/configuration_rule_16x16.png" 
-                },
-                "valid_children" : "none"
-             },
-            "default" : {
-              "valid_children" : "none"
-            }
+          "#" :{
+            "valid_children" : [ "category" ]
           }
-        },
+        , "category" : {
+              "icon" : "fa fa-folder" 
+            , "valid_children" : [ "category", "template" ]
+          }
+        , "template" : {
+              "icon" : "fa fa-gear" 
+            , "valid_children" : [ "directive" ]
+          }
+        , "directive" : {
+              "icon" : "fa fa-file-text" 
+            , "valid_children" : [ "rule" ]
+          }
+        , "rule" : {
+              "icon" : "fa fa-book"
+            , "valid_children" : "none"
+          },
+          "default" : {
+            "valid_children" : "none"
+          }
+      },
         "themes" : { 
       	  "theme" : "rudder",
       	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
@@ -454,12 +367,11 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
   if (select_limit > 0) {
     select_multiple_modifier = "ctrl"
   }
-  jQuery(id).
-    bind("loaded.jstree", function (event, data) {
-      data.inst.open_all(-1);
+  $(id).bind("loaded.jstree", function (event, data) {
+      data.instance.open_all();
     }).jstree({ 
       "core" : { 
-        "animation" : 0,
+        "animation" : 300,
         "html_titles" : true
       },
       "ui" : { 
@@ -473,37 +385,31 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
       "max_depth" : -2,
       "max_children" : -2,
       "types" : {
-        "valid_children" : [ "category" ],
-        "types" : {
-          "category" : {
-            "icon" : { 
-              "image" : appContext+"/images/tree/folder_16x16.png" 
-            },
+        "#" : {
+          "valid_children" : [ "category" ]
+          },
+        "category" : {
+            "icon" :  "fa fa-folder",
             "valid_children" : [ "category", "template" ],
 	        "select_node" : function(e) {
          	  this.toggle_node(e);
 	          return false;
 	        }
-          },
-          "template" : {
-            "icon" : { 
-              "image" : appContext+"/images/tree/technique_16x16.png" 
-            },
+        },
+        "template" : {
+            "icon" :  "fa fa-gear",
             "valid_children" : [ "directive" ],
             "select_node" : function(e) {
                this.toggle_node(e);
                return select_limit > 0;
             }
           },
-          "directive" : {
-            "icon" : { 
-              "image" : appContext+"/images/tree/directive_16x16.gif" 
-            },
+        "directive" : {
+            "icon" : "fa fa-file-text",
             "valid_children" : "none"
-          },
-          "default" : {
-            "valid_children" : "none"
-          }
+        },
+        "default" : {
+          "valid_children" : "none"
         }
       },
       "search" : {
@@ -526,7 +432,7 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
 var buildChangesTree = function(id,appContext) {
   $(id).jstree({ 
       "core" : { 
-      "animation" : 400,
+      "animation" : 300,
       "html_titles" : true,
       "initially_open" : [ "changes","directives","rules","groups", "params" ]
       },
@@ -539,25 +445,23 @@ var buildChangesTree = function(id,appContext) {
       "max_depth" : -2,
       "max_children" : -2,
       "types" : {
-        "valid_children" : [ "changeType" ],
-          "types" : {
-            "changeType" : {
-              "valid_children" : [ "changeType", "change" ]
-            },
-            "change" : {
-              "valid_children" : "none",
-            },
-            "default" : {
-              "valid_children" : "none"
-            }
-          }
+        "#" : {
+          "valid_children" : [ "changeType" ]
+        },
+        "changeType" : {
+            "icon" : "fa fa-folder"
+          , "valid_children" : [ "changeType", "change" ]
+        },
+        "change" : {
+            "icon" : "fa fa-file-text"
+          , "valid_children" : "none"
+         },
+        "default" : {
+            "icon" : "fa fa-file-text"
+          , "valid_children" : "none"
+         }
       },
-      "themes" : { 
-    	  "theme" : "rudder",
-    	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css",
-    	  "icons" : false
-      },
-      "plugins" : [ "themes", "html_data", "ui", "types" ]      
+      "plugins" : [ "types" ]      
   })
 
 }

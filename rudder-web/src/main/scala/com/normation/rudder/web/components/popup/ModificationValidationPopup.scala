@@ -140,7 +140,7 @@ final case object CreateAndModRules extends Action { val displayName: String = "
     case CreateSolo => s"Create a ${item}"
     case CreateAndModRules => s"Create a ${item}"
   }
-   
+
   private def explanationMessages(item:String, action: Action) = action match {
     case Enable =>
     <div class="row">
@@ -178,7 +178,7 @@ final case object CreateAndModRules extends Action { val displayName: String = "
                 <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
                     <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
                 </div>
-                
+
             </div>
         </div>
         <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
@@ -330,7 +330,7 @@ class ModificationValidationPopup(
       case (Enable) => ("enable")
       case (Disable) => ("disable")
     }
-    
+
     def workflowMessage(directiveCreation: Boolean) =
         <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
         <hr class="css-fix"/>
@@ -338,9 +338,9 @@ class ModificationValidationPopup(
             <span class="glyphicon glyphicon-info-sign"></span>
             Workflows are enabled in Rudder, your change has to be validated in a Change request
             {
-            if(directiveCreation) 
-                <p>The directive will be directly created, only rule changes have to been validated.</p> 
-             else 
+            if(directiveCreation)
+                <p>The directive will be directly created, only rule changes have to been validated.</p>
+             else
                 NodeSeq.Empty
             }
         </div>
@@ -388,7 +388,7 @@ class ModificationValidationPopup(
       "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmitStartWorkflow(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
 
-    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
+    )(html)
   }
 
   private[this] def showError(field:RudderBaseField) : NodeSeq = {

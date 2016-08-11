@@ -87,7 +87,6 @@ object ChangeRequestChangesForm {
     } ) openOr Nil
 }
 
-
 class ChangeRequestChangesForm(
   changeRequest:ChangeRequest
 ) extends DispatchSnippet with Loggable {
@@ -101,7 +100,6 @@ class ChangeRequestChangesForm(
   private[this] val getGroupLib = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
   private[this] val ruleCategoryService = RudderConfig.ruleCategoryService
   private[this] val ruleCategoryRepository = RudderConfig.roRuleCategoryRepository
-
 
   def dispatch = {
     case "changes" =>
@@ -153,7 +151,6 @@ class ChangeRequestChangesForm(
     val children = Nil
   }
 
-
   val directivesChild = new JsTreeNode{
     val changes = changeRequest.directives.values.map(_.changes).toList
     val body = SHtml.a(
@@ -162,7 +159,7 @@ class ChangeRequestChangesForm(
     )
     val children = changeRequest.directives.keys.map(directiveChild(_)).toList
 
-    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "directives"}))
+    override val attrs = List(("data-jstree" -> """{ "type" : "changeType" }"""),("id" -> { "directives"}))
   }
 
   def ruleChild(ruleId:RuleId) = new JsTreeNode{
@@ -183,7 +180,7 @@ class ChangeRequestChangesForm(
       , <span>Rules</span>
     )
     val children = changeRequest.rules.keys.map(ruleChild(_)).toList
-    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "rules"}))
+    override val attrs = List(("data-jstree" -> """{ "type" : "changeType" }"""),("id" -> { "rules"}))
   }
 
   def groupChild(groupId:NodeGroupId) = new JsTreeNode{
@@ -208,7 +205,7 @@ class ChangeRequestChangesForm(
       , <span>Groups</span>
     )
     val children = changeRequest.nodeGroups.keys.map(groupChild(_)).toList
-    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "groups"}))
+    override val attrs = List(("data-jstree" -> """{ "type" : "changeType" }"""),("id" -> { "groups"}))
   }
 
   def globalParameterChild(paramName:ParameterName) = new JsTreeNode{
@@ -233,9 +230,8 @@ class ChangeRequestChangesForm(
       , <span>Global Parameters</span>
     )
     val children = changeRequest.globalParams.keys.map(globalParameterChild(_)).toList
-    override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "params"}))
+    override val attrs = List(("data-jstree" -> """{ "type" : "changeType" }"""),("id" -> { "params"}))
   }
-
 
   val body = SHtml.a(
      () => SetHtml("history",displayHistory (
@@ -250,7 +246,7 @@ class ChangeRequestChangesForm(
 
   val children = directivesChild :: rulesChild :: groupsChild :: globalParametersChild :: Nil
 
-  override val attrs = List(( "rel" -> { "changeType" } ),("id" -> { "changes"}))
+  override val attrs = List(("data-jstree" -> """{ "type" : "changeType" }"""),("id" -> { "changes"}))
 
 }
 
@@ -271,7 +267,6 @@ class ChangeRequestChangesForm(
       groups.flatMap(displayNodeGroupChange(_)) ++
       rules.flatMap(displayRuleChange(_)) ++
       globalParams.flatMap(displayGlobalParameterChange(_))
-
 
     val initDatatable = JsRaw(s"""
         $$('#changeHistory').dataTable( {
@@ -379,7 +374,6 @@ class ChangeRequestChangesForm(
     ) (RuleXML)
   }
 
-
   private[this] def displayRuleDiff (
       diff            : ModifyRuleDiff
     , rule            : Rule
@@ -408,7 +402,6 @@ class ChangeRequestChangesForm(
       "#longDescription"  #> displaySimpleDiff(diff.modLongDescription, "long", Text(rule.longDescription))
     ) (RuleXML)
   }
-
 
   private[this] val groupXML =
     <div>
@@ -447,7 +440,6 @@ class ChangeRequestChangesForm(
       "#isEnabled" #> group.isEnabled &
       "#isSystem" #> group.isSystem
   )(groupXML)
-
 
   private[this] def displayGroupDiff (
         diff          : ModifyNodeGroupDiff
@@ -731,7 +723,6 @@ class ChangeRequestChangesForm(
          }
    displayEvent(action,groupChange.firstChange.actor,groupChange.firstChange.creationDate, groupChange.firstChange.reason.getOrElse(""))
   }
-
 
   def displayDirectiveChange(directiveChange: DirectiveChange) = {
     val action = directiveChange.firstChange.diff match {

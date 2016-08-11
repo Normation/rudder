@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.components.popup
 
-
 import com.normation.rudder.domain.nodes._
 import com.normation.inventory.domain.NodeId
 import org.slf4j.LoggerFactory
@@ -95,7 +94,6 @@ class CreateCategoryOrGroupPopup(
   }
   def popupTemplate = chooseTemplate("groups", "creategrouppopup", template)
 
-
   private[this] val woNodeGroupRepository      = RudderConfig.woNodeGroupRepository
   private[this] val nodeInfoService            = RudderConfig.nodeInfoService
   private[this] val categoryHierarchyDisplayer = RudderConfig.categoryHierarchyDisplayer
@@ -104,7 +102,6 @@ class CreateCategoryOrGroupPopup(
   private[this] val ditQueryData               = RudderConfig.ditQueryData
 
   var createContainer = false //issue #1190 always create a group by default
-
 
   def dispatch = {
     case "popupContent" => { _ => popupContent }
@@ -134,7 +131,6 @@ class CreateCategoryOrGroupPopup(
             $('#itemTitle').text('Category');
           }
         );
-        updatePopup();    
      """)
   }
 
@@ -234,7 +230,6 @@ class CreateCategoryOrGroupPopup(
 
   private[this] def error(msg:String) = Text(msg)
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $('#createGroupPopup').bsModal('hide');""")
   }
@@ -312,7 +307,6 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-
   private[this] val piReasons = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
@@ -338,7 +332,6 @@ class CreateCategoryOrGroupPopup(
     }
   }
 
-
   private[this] def onCreateSuccess : JsCmd = {
     notifications ::=  <span class="greenscala">The group was successfully created</span>
     updateFormClientSide
@@ -351,7 +344,6 @@ class CreateCategoryOrGroupPopup(
   private[this] def onFailure : JsCmd = {
     updateFormClientSide()
   }
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors

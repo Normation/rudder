@@ -78,10 +78,6 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
     case "popupContent" => popupContent _
   }
 
-  def initJs : JsCmd = {
-    JsRaw("updatePopup();")
-  }
-
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
       "itemname" -> categoryName.toForm_!,
@@ -131,8 +127,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml("createActiveTechniquesCategoryContainer", popupContent(NodeSeq.Empty))&
-    initJs
+    SetHtml("createActiveTechniquesCategoryContainer", popupContent(NodeSeq.Empty))
   }
 
   private[this] def onSubmit() : JsCmd = {

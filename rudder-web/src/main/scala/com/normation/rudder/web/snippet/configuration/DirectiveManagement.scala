@@ -170,7 +170,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
    */
   def displayDirectiveLibrary(workflowEnabled: Boolean): NodeSeq = {
     (
-      <div id={htmlId_activeTechniquesTree}>{
+      <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
           (directiveLibrary,rules) match {
             case (Full(activeTechLib), Full(allRules)) =>
               val usedDirectives = allRules.flatMap { case r =>

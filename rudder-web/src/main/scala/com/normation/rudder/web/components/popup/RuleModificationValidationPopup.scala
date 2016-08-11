@@ -161,7 +161,7 @@ class RuleModificationValidationPopup(
       case (false, _ )=> ("Save", "btn-success")
       case (true, _ )=> ("Open request", "wideButton btn-primary")
     }
-    
+
     val titleWorkflow = workflowEnabled match {
       case true =>
           <h4 class="text-center titleworkflow">Are you sure that you want to {titleworkflow(action)} this rule?</h4>
@@ -190,13 +190,13 @@ class RuleModificationValidationPopup(
               <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
             }}
               {f.toForm_!}
-          </div>           
+          </div>
         }
       } &
       "#saveStartWorkflow" #> (SHtml.ajaxSubmit(buttonName, () => onSubmit(), ("class" -> classForButton)) % ("id", "createDirectiveSaveButton") % ("tabindex","3")) andThen
        ".notifications *" #> updateAndDisplayNotifications()
 
-    )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
+    )(html)
   }
 
   private[this] def showError(field:RudderBaseField) : NodeSeq = {

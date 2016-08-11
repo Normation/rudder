@@ -205,7 +205,6 @@ object DisplayNode extends Loggable {
            """) : JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
-      JsRaw("roundTabs()") &
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
