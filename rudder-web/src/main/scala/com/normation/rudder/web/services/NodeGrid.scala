@@ -171,10 +171,7 @@ class NodeGrid(
    */
   def initJsCallBack(tableId:String) : JsCmd = {
       JsRaw(s"""$$( ${jsVarNameForId(tableId)}.fnGetNodes() ).each( function () {
-
-            console.log(this)
           $$(this).click( function (event) {
-            console.log(this)
             var source = event.target || event.srcElement;
             event.stopPropagation();
             if(!( $$(source).is("button") || $$(source).is("input") )){

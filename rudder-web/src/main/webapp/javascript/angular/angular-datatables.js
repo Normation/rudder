@@ -7,6 +7,7 @@ angular
 
     return function(scope, element, attrs) {
 
+      
         // apply DataTable options, use defaults if none specified by user
         var options = {};
         if (attrs.datatables.length > 0) {
@@ -24,30 +25,19 @@ angular
             };
         }
 
-        // Tell the dataTables plugin what columns to use
-        // We can either derive them from the dom, or use setup from the controller           
-        var explicitColumns = [];
-        element.find('th').each(function(index, elem) {
-            explicitColumns.push($(elem).text());
-        });
-        if (explicitColumns.length > 0) {
-            options["aoColumns"] = explicitColumns;
-        } else if (attrs.aoColumns) {
-            options["aoColumns"] = scope.$eval(attrs.aoColumns);
-        }
-
         // aoColumnDefs is dataTables way of providing fine control over column config
         if (attrs.aoColumnDefs) {
-            options["aoColumnDefs"] = scope.$eval(attrs.aoColumnDefs);
+            columns = scope.$eval(attrs.aoColumnDefs);
         }
-        
+
         if (attrs.fnRowCallback) {
             options["fnRowCallback"] = scope.$eval(attrs.fnRowCallback);
         }
         var refresh = scope.$eval(attrs.refresh)
 
         // apply the plugin
-        var dataTable = createTable(element.attr('id'),[], attrs.aoColumnDefs, options, contextPath, refresh, "api_accounts");
+        var dataTable = createTable(element.attr('id'),[], columns, options, contextPath, refresh, "api_accounts");
+
 
         
         

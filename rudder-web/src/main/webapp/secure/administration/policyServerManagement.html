@@ -523,16 +523,11 @@ Currently, Rudder will automatically do this update every <b id="techniqueLibrar
 
         <hr class="spacer" />
         <div class="deca">
-          <div
-            class="lift:administration.TechniqueLibraryManagement.reloadTechniqueButton"
-            id="reloadTechniqueLibForm">
-            <lift:authz role="administration_write">
-              <form class="lift:form.ajax">
-                <input type="submit" value="Reload" />
-                <span class="lift:Msg?id=updateLib">[messages]</span>
-              </form>
-            </lift:authz>
-          </div>
+          <lift:authz role="administration_write">
+            <div class="lift:administration.TechniqueLibraryManagement.reloadTechniqueButton" id="reloadTechniqueLibForm"></div>
+          </lift:authz>
+          
+          <div id="updateLib" class="greyscala"></div>
         </div>
       </div>
     </div>

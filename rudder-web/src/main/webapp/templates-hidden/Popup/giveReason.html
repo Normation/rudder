@@ -3,22 +3,23 @@
   It get called to be injected within the  ruleManagement
  -->
 <reason:giveReasonPopup>
-    <div class="simplemodal-title">
-      <h1>Reason for this change</h1>
-      <hr/>
-    </div>
-    <div class="simplemodal-content">
-      <hr class="spacer"/>
-      <item:reason></item:reason>
-      <hr class="spacer"/>
-    </div>
-    <div class="simplemodal-bottom">
-      <hr/>
-      <div class="popupButton">
-        <span>
-          <item:cancel></item:cancel>
-          <item:save></item:save>
-        </span>
-     </div>
-   </div>
+    <div class="modal-backdrop fade in" style="height: 100%;"></div>
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="close" data-dismiss="modal">
+                <span aria-hidden="true">&times;</span>
+                <span class="sr-only">Close</span>
+                </div>
+                <h4 class="modal-title">Reason for this change</h4>
+            </div>
+            <div class="modal-body">
+              <item:reason></item:reason>
+            </div>
+            <div class="modal-footer">
+                <item:cancel></item:cancel>
+                <item:save></item:save>
+            </div>  
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
  </reason:giveReasonPopup>

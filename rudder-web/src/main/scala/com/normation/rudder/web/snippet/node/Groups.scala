@@ -102,8 +102,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       case Full(workflowEnabled) =>
         Map(
             "head" -> head _
-          , "detailsPopup" ->  { _:NodeSeq => NodeGroupForm.staticBody }
-          , "initRightPanel" -> { _: NodeSeq => initRightPanel(workflowEnabled) }
+          , "detailsPopup" ->   { _ : NodeSeq =>  NodeGroupForm.staticBody }
+          , "initRightPanel" -> { _ : NodeSeq => initRightPanel(workflowEnabled) }
           , "groupHierarchy" -> groupHierarchy(boxGroupLib, workflowEnabled)
         )
       case eb: EmptyBox =>
@@ -152,9 +152,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   )
 
   def groupNewItem(workflowEnabled: Boolean) : NodeSeq = {
-    <div id="createANewItem">
-      { SHtml.ajaxButton("Create", () => showPopup(workflowEnabled)) }
-    </div>
+      SHtml.ajaxButton("Create", () => showPopup(workflowEnabled), ("class","btn btn-default"))
   }
 
   /**
@@ -289,7 +287,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         <div id={htmlId_groupTree}>Error: {e.msg}</div>
       case Full(lib) =>
       (
-        <div id={htmlId_groupTree}>
+        <div id={htmlId_groupTree} class="col-xs-12">
           <ul>{DisplayNodeGroupTree.displayTree(
                   lib
                 , Some(fullDisplayCategory(workflowEnabled))
@@ -332,12 +330,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
         // %4$s
         selectedNode ,
         S.contextPath
-/*        { nodeGroupId match {
-            case Full(x) => "jsTree-"+x
-            case _ => ""
-          }
-        }
- */
       )))
     )}
   }

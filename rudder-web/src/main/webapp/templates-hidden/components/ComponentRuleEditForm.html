@@ -55,9 +55,6 @@
       margin-right:9px;
     }
 
-    .simplemodal-content {
-      margin-top:5px;
-    }
   </style>
 </head>
 </component:staticInit>
@@ -175,25 +172,36 @@
       <hr class="spacer" />
     </div>
 
-    <div class="groupedEditZone">
+    <div class="groupedEditZone tw-bs">
       <div class="section-title spacing-title">
         Directives
         <lift:authz role="directive_write"><a class="title-link" href= "/secure/configurationManager/directiveManagement">(Create a new Directive)</a></lift:authz>
       </div>
-
-      <div id="directiveTree_actions_zone" style="margin:5px 0;">
-        <img onclick="openAllNodes('#directiveTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
-        <img onclick="closeAllNodes('#directiveTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
-        <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
-        <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
-        <img onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+  <div id="directiveTree_actions_zone"  >
+    <div class="col-xs-12 tree">
+      <div class="filter-tree">
+        <div class="input-group">
+          <div class="input-group-btn">
+            <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#directiveTree', this);">
+              <span class="fa fa-folder fa-folder-open"></span>
+            </button>
+          </div>
+          <input class="form-control" placeholder="Filter" id="treeSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#directiveTree');">
+          <div class="input-group-btn">
+            <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#treeSearch', '#directiveTree');" >
+              <span class="fa fa-times"></span>
+            </button>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
 
-      <div id="selectPiField"  style="float:left;width:55%" >
+      <div id="selectPiField"  class="col-xs-7" >
         Here comes the Directive selection field
       </div>
-      <div ng-app="ruleDirectives" id="ruleDirectives" style="float:left;width:45%" >
-        <div class="deca" id="DirectiveCtrl" ng-controller="DirectiveCtrl">
+      <div ng-app="ruleDirectives" id="ruleDirectives" class="col-xs-5" >
+        <div id="DirectiveCtrl" ng-controller="DirectiveCtrl">
           <div class="spacing-title targetHeader">
             Apply these Directives:
             <img src="/images/ic_question.png" class="targetIcon" tooltip="directiveAddExplanation"/>
@@ -205,7 +213,7 @@
               </li>
               <li ng-repeat="directive in sortDirectives(directives)">
                 <span class="targetDisplay">
-                    <img src="/images/tree/server_group_16x16.gif" class="targetIcon" />
+                    <span class="fa fa-file-text"></span>
                     {{ directive.name }}
                     <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(directive.id)"/>
                 </span>
@@ -219,24 +227,34 @@
 
       <hr class="spacer"/>
 
-      <div class="section-title spacing-title">
+      <div class="section-title spacing-title tw-bs">
         Groups
         <lift:authz role="group_write"><a class="title-link" href= "/secure/nodeManager/groups">(Create a new Group)</a></lift:authz>
       </div>
-
-      <div id="groupTree_actions_zone" style="margin:5px 0;">
-        <img onclick="openAllNodes('#groupTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
-        <img onclick="closeAllNodes('#groupTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
-        <input style="width:100px;" id="groupSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
-        <span class="tooltipContent" id="groupSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
-        <img onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+  <div id="groupeTree_actions_zone"  >
+    <div class="col-xs-12 tree">
+      <div class="filter-tree">
+        <div class="input-group">
+          <div class="input-group-btn">
+            <button type="button" class="btn btn-default" aria-label="Bold" onclick="toggleTree('#groupTree', this);">
+              <span class="fa fa-folder fa-folder-open"></span>
+            </button>
+          </div>
+          <input class="form-control" placeholder="Filter" id="groupSearch" onkeydown="refuseEnter(event);" onkeyup="searchTree('#groupSearch', '#groupTree');">
+          <div class="input-group-btn">
+            <button type="button" class="btn btn-default" aria-label="Bold" onclick="clearSearchFieldTree('#groupSearch', '#groupTree');" >
+              <span class="fa fa-times"></span>
+            </button>
+          </div>
+        </div>
       </div>
-
-      <div id="selectGroupField" style="float:left;width:55%">
+    </div>
+  </div>
+      <div id="selectGroupField" class="col-xs-7">
         Here comes the group selection field
       </div>
-      <div ng-app="groupManagement" id="groupManagement" style="float:left;width:45%" >
-        <div class="deca" id="GroupCtrl" ng-controller="GroupCtrl">
+      <div ng-app="groupManagement" id="groupManagement" class="col-xs-5" >
+        <div id="GroupCtrl" ng-controller="GroupCtrl">
           <div class="spacing-title targetHeader">
             Apply to Nodes in any of these Groups:
             <img src="/images/ic_question.png" class="targetIcon" tooltip="includeExplanation"/>
@@ -248,7 +266,7 @@
 	          </li>
 	          <li ng-repeat="included in target.include.or">
 	            <span class="targetDisplay">
-                  <img src="/images/tree/server_group_16x16.gif" class="targetIcon" />
+                    <span class="fa fa-sitemap"></span>
                   {{ getTargetName(included) }}
                   <img src="/images/ic_delete.png" class="targetRemove" ng-click="removeInclude(included)"/>
 	            </span>
@@ -256,7 +274,6 @@
 	        </ul>
 	        <hr class="spacer"/>
           </div>
-	      <hr class="spacer"/><br/>
           <div class="spacing-title targetHeader">
             Don't apply to Nodes in any of these Groups:
             <img src="/images/ic_question.png" class="targetIcon" tooltip="excludeExplanation"/>
@@ -268,7 +285,7 @@
 	          </li>
               <li ng-repeat="excluded in target.exclude.or"  >
                 <span class="targetDisplay">
-	              <img src="/images/tree/server_group_16x16.gif" class="targetIcon"/>
+                    <span class="fa fa-sitemap"></span>
                   {{ getTargetName(excluded) }}
                   <img class="targetRemove" src="/images/ic_delete.png" ng-click="removeExclude(excluded)"/>
                 </span>
@@ -284,85 +301,5 @@
 </div>
 
 </component:form>
-
-<component:popupRemoveForm>
-    <div id="removeActionDialog" class="nodisplay">
-      <div class="simplemodal-title">
-        <h1>Delete a Rule</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">
-        <div>
-          <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-	        <h2>Are you sure that you want to completely delete this item?</h2>
-        </div>
-        <br />
-<!--         <div id="errorDisplay"> -->
-<!--         	[Replace this div with potential errors] -->
-<!--         </div> -->
-        <div>Deleting this Rule will also delete its history and compliance reports.</div>
-        <hr class="spacer" />
-       	<div class="reasonsFieldsetPopup">
-            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
-		    <div id="explanationMessage">
-		      Here comes the explanation to reasons field
-		    </div>
-		    <div id="reasonsField">
-		      Here comes the reasons field
-		    </div>
-	    </div>
-
-        <br />
-        <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-         <div class="popupButton">
-           <span>
-             <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-             <button id="dialogRemoveButton">Delete</button>
-           </span>
-         </div>
-      </div>
-    </div>
-</component:popupRemoveForm>
-
-<component:popupDisactivateForm>
-    <div id="desactivateActionDialog" class="nodisplay">
-      <div class="simplemodal-title">
-        <h1><span id="dialogDeactivateTitle">Disable</span> a Rule</h1>
-        <hr/>
-      </div>
-      <div class="simplemodal-content">
-        <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-        <h2>Are you sure that you want to <span id="dialogDisactivateLabel">disable</span> this Rule?</h2>
-
-     	<br />
-        <hr class="spacer" />
-<!--         <div id="errorDisplay"> -->
-<!--         	[Replace this div with potential errors] -->
-<!--         </div> -->
-
-       	<div class="reasonsFieldsetPopup">
-		    <div id="explanationMessage">
-		      Here comes the explanation to reasons field
-		    </div>
-		    <div id="reasonsField">
-		      Here comes the reasons field
-		    </div>
-	    </div>
-        <hr class="spacer" />
-      </div>
-      <div class="simplemodal-bottom">
-        <hr/>
-         <div class="popupButton">
-           <span>
-             <button class="simplemodal-close" onClick="$.modal.close();">Cancel</button>
-             <button id="dialogDisactivateButton">Disable</button>
-           </span>
-          </div>
-       </div>
-    </div>
-</component:popupDisactivateForm>
 
 </xml:group>

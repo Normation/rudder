@@ -320,7 +320,6 @@ class AcceptNode extends Loggable {
             , "refuse" ->
                 SHtml.submit("Refuse", {
                   () => refuseNodes(listNode)
-                  JsRaw(s"""console.log('refuse');""")
                   S.redirectTo(S.uri)
                 }, ("class", "btn btn-danger"))
             ,  "close" ->

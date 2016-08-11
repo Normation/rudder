@@ -78,8 +78,8 @@ object NodeGroupForm {
   }
 
   val staticInit = chooseXml("staticinit")
-  val staticBody = chooseXml("staticbody")
   val body = chooseXml("body")
+  val staticBody = chooseXml("staticbody")
 
   private val saveButtonId = "groupSaveButtonId"
 
@@ -149,7 +149,7 @@ class NodeGroupForm(
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-  
+
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
       <div>
@@ -164,10 +164,7 @@ class NodeGroupForm(
   def showForm() : NodeSeq = {
      val html = SHtml.ajaxForm(body) ++
      Script(
-       OnLoad(JsRaw(
-       """$('#GroupTabs').tabs();
-          $( "#GroupTabs" ).tabs('select', 0);"""
-       ))
+       OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });" ))
        & initJs
      )
 
@@ -305,7 +302,7 @@ class NodeGroupForm(
   /*
    * Create the confirmation pop-up
    */
-  
+
   private[this] def displayConfirmationPopup(
       action     : ModificationValidationPopup.Action
     , newGroup   : NodeGroup
@@ -335,7 +332,7 @@ class NodeGroupForm(
         , xml => JsRaw("$('#confirmUpdateActionDialog').bsModal('hide');") & onFailure
         , parentFormTracker = formTracker
       )
-      
+
     }
 
     popup.popupWarningMessages match {

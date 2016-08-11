@@ -37,27 +37,6 @@
 
 /* Event handler function */
 
-/*
-var #table_var#;
-        function fnFormatDetails ( id ) {
-          var sOut = '<span id="'+id+'" "/>';
-          return sOut;
-        }
-
-#table_var# = $('').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": ,
-            "bFilter" :,
-            "bPaginate" :,
-            "bLengthChange": ,
-            "sPaginationType": ,
-            "bJQueryUI": ,
-            // "oLanguage": ,
-            "aaSorting": [[ , "asc" ]],
-            "aoColumns": [             ]
-          })
-
-*/
 
 var bootstrapButton = $.fn.button.noConflict();
 var bootstrapAlert = $.fn.alert.noConflict();
@@ -134,21 +113,6 @@ function createTooltiptr() {
     });
   }
 
-/* popups */
-
-/*
- * That function allow to refresh the display of popup
- * It corrects the buttons (was called anyway on a stand alone)
- * then trigger the event resize.simplemodal on the window element
- * Which adapt the popup to the window (autoResize is on)
- *
- * That function should be called in every popup refresh function
- */
-function updatePopup() {
-  correctButtons();
-  $(window).trigger('resize.simplemodal');
-}
-
 
 function callPopupWithTimeout(timeout, popupName){
   setTimeout("createPopup('"+popupName+"')", timeout);
@@ -193,104 +157,9 @@ function refuseEnter(event)
     }
 }
 
-/* slickboxShowHide */
-
-  $(document).ready(function() {
-
-  var config = {
-    selectors: {
-      navigation: "#navigation",
-      content: "#contenu"
-    },
-
-    text: {
-      navigation: {
-        minimize: "Hide this menu",
-        maximize: ""
-      }
-    },
-
-    image: {
-      prefix: contextPath+"/images/",
-
-      navigation: {
-        minimize: "puceHide.jpg",
-        maximize: "PuceMenuCachee.jpg"
-      }
-    },
-
-    className: {
-      reader: "for-reader",
-
-      minimize: "minimize",
-      minimized: "minimized",
-
-      maximize: "maximize",
-      maximized: "maximized"
-    }
-  },
-
-  tmp = null,
-  cache = {};
-
-
-  cache.$navigation = $(config.selectors.navigation);
-  cache.$content    = $(config.selectors.content);
-
-  // Generating the navigation's minimize link
-  tmp = '<a class="menuHide ' + config.className.minimize + '" title="' + config.text.navigation.minimize + '" href="#"><img src="' + config.image.prefix + config.image.navigation.minimize + '" alt="" /> <span>' + config.text.navigation.minimize + '</span></a>';
-  cache.$navigation.prepend(tmp);
-
-  cache.minimize_navigation = {};
-  cache.minimize_navigation.$link = $(config.selectors.navigation + " a." + config.className.minimize);
-  cache.minimize_navigation.$img  = cache.minimize_navigation.$link.find("img");
-  cache.minimize_navigation.$text = cache.minimize_navigation.$link.find("span");
-
-  /**
-   * Showing/Hidding the #navigation
-   */
-  cache.minimize_navigation.$link.click(function() {
-    var $link = $(this);
-
-    if (cache.$navigation.hasClass(config.className.minimized)) {
-      // The navigation is already minimized, maximize!
-      cache.$navigation.removeClass(config.className.minimized);
-      cache.$content.removeClass(config.className.maximized);
-
-      // Changing the image
-      cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.minimize);
-
-      // Changing the text value
-      cache.minimize_navigation.$text.removeClass(config.className.reader);
-      cache.minimize_navigation.$text.text(config.text.navigation.minimize);
-      cache.minimize_navigation.$link.prop("title", config.text.navigation.minimize);
-    } else {
-      // The navigation is maximized, lets minimize it!
-      cache.$navigation.addClass(config.className.minimized);
-      cache.$content.addClass(config.className.maximized);
-
-      // Changing the image
-      cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.maximize);
-
-      // Changing the text value
-      cache.minimize_navigation.$text.addClass(config.className.reader);
-      cache.minimize_navigation.$text.text(config.text.navigation.maximize);
-      cache.minimize_navigation.$link.prop("title", config.text.navigation.maximize);
-    }
-
-    return false; // Don’t follow the link
-  });
-});
-
 /* portlet */
 
 $(function() {
-  /*
-    $(".column").sortable({
-      connectWith: '.column'
-    });
-    $(".column").disableSelection();
-  */
 
     $(".portlet").addClass("ui-widget ui-widget-content ui-helper-clearfix arrondis")
       .find(".portlet-header")
@@ -335,38 +204,12 @@ function jqCheckAll( id, name )
     });
   });
 
-
-// Details
-
-  $.fx.speeds._default = 1000;
-  $(function() {
-    $('#dialogDetail').dialog({
-    autoOpen: false,
-    position: 'center',
-    width: 300,
-    show: '',
-    hide: ''		
-  });
-  $('.openDetail').click(function() {
-    $('#dialogDetail').dialog('open');
-	  return false;
-    });
-  });
-
-  $(function() {
-    // Bouton rouge
-    $('#openAlert').click(function() {
-    $('#dialogAlert').bsModal('show');
-    $('#simplemodal-container').css('height', 'auto');
-	return false;
-  });
-
   // Logout
-  $('#logout').click(function() {
-    $('#ModalLogOut').bsModal('show');
-    return false;
-  });
-
+  $(function() {
+    $('#logout').click(function() {
+      $('#ModalLogOut').bsModal('show');
+      return false;
+    });
   });
 
 /* button */
@@ -379,9 +222,6 @@ function correctButtons() {
   $("button, input:submit, a", ".whoUser").not(".tw-bs .btn").button();
 
   $("a", ".whoUser").not(".tw-bs .btn").click(function() { return false; });
-
-  //$("button, input:submit", ".detailsUser").button();
-  //$("button, input:submit", ".popupButton").button();
 
   $("#logout").click(function() { return false; });
 }
@@ -396,19 +236,6 @@ function processKey(e , buttonId){
     }
 }
 
-function roundTabs() {
-  $(".tabs").tabs();
-  $(".tabsv").tabs();
-  $(".tabsv").removeClass('arrondishaut').addClass('ui-tabs-vertical ui-helper-clearfix arrondis');
-  $(".tabsv > ul").removeClass('arrondishaut').addClass('arrondisleft');
-  $(".tabsv > ul > li").removeClass('arrondishaut').addClass('arrondisleft');
-
-  // test auto-ready logic - call corner before DOM is ready
-    $('.arrondis').corner("5px");
-  $('.arrondishaut').corner("5px top");
-  $('.arrondisbas').corner("5px bottom");
-  $('.arrondisleft').corner("5px left");
-}
 
 /**
  * Move the filter and paginate zones in the location described by tableId_paginate_area and tableId_filter_area
@@ -638,31 +465,39 @@ function makeDiff(beforeId,afterId,resultId) {
 }
 
 function filterTableInclude(tableId, filter, include) {
-  if (typeof filter === 'undefined') {
-    return;
-  } else {
   var finalFilter = "^"+filter+"$";
-    var includeFilter;
+  var includeFilter;
+  // No filter defined or table is not initialized
+  if (filter === undefined || ! $.fn.dataTable.isDataTable( tableId )) {
+    return;
+  }
+
+  
   if (filter === "") {
     includeFilter = filter;
   } else {
     includeFilter = finalFilter +"|^"+filter+" »";
   }
-    if (typeof include === 'undefined') {
-      $(tableId).dataTable().fnFilter(includeFilter ,column,true,false,true );
-    } else {
-      if (include) {
-        $(tableId).dataTable().fnFilter(includeFilter,column,true,false,true );
-      } else {
-
-        $(tableId).dataTable().fnFilter(finalFilter,column,true,false,true );
-      }
-    }
+   
+  var table = $(tableId).DataTable({"retrieve": true});
+  if (include === undefined || include) {
+    table.column(column).search(includeFilter,true,false,true ).draw();
+  } else {
+    table.column(column).search(finalFilter,true,false,true ).draw();
   }
 }
 
 var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
-var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
+function toggleTree(treeId, toggleButton) {
+  var tree = $(treeId).jstree()
+  var isOpen = $(treeId).find(".jstree-open").length > 0
+  if (isOpen) {
+    tree.close_all()
+  } else {
+    tree.open_all()
+  }
+  $(toggleButton).children().toggleClass('fa-folder-open');
+}
 var searchTree = function(inputId, treeId) {
 
   if($(inputId).val() && $(inputId).val().length >= 3) {
@@ -769,7 +604,6 @@ $(document).ready(function() {
   correctButtons();
   $("a", "form").click(function() { return false; });
   createTooltip();
-  roundTabs();
 });
 
 

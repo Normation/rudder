@@ -44,7 +44,6 @@ import net.liftweb.common._
 import net.liftweb.sitemap._
 import net.liftweb.sitemap.Loc._
 import Helpers._
-import net.liftweb.http.js.jquery.JQuery14Artifacts
 import net.liftmodules.widgets.autocomplete.AutoComplete
 import javax.servlet.UnavailableException
 import LiftSpringApplicationContext.inject
@@ -89,6 +88,8 @@ class Boot extends Loggable {
     LiftRules.redirectAsyncOnSessionLoss = false;
     //we don't want to retry on ajax timeout, as it may have big consequence
     //when it's (for example) a deploy
+
+    logger.info(LiftRules.resourceServerPath)
     LiftRules.ajaxRetryCount = Full(1)
 
     // where to search snippet

@@ -114,6 +114,7 @@ passwordModule.controller("passwordController", function($scope) {
     $scope.otherPasswords = otherPasswords;
     $scope.canBeDeleted = canBeDeleted;
     $scope.scriptEnabled = scriptEnabled;
+    
   }
 
   $scope.displayCurrentHash = function() {

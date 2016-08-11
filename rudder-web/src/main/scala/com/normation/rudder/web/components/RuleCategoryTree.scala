@@ -103,7 +103,7 @@ class RuleCategoryTree(
     val html = newRoot match {
       case Full(newRoot) =>
         root = newRoot
-        tree()
+        <div id={htmlId_RuleCategoryTree}> {tree()}</div>
       case eb : EmptyBox =>
         val fail = eb ?~! "Could not get root category"
         val msg = s"An error occured while refreshing Rule categoriy tree , cause is ${fail.messageChain}"
@@ -112,7 +112,7 @@ class RuleCategoryTree(
           <div class="error">{msg}</div>
         </div>
     }
-    SetHtml(htmlId_RuleCategoryTree, html)&
+    Replace(htmlId_RuleCategoryTree, html)&
     selectCategory() &
     OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
   }
@@ -137,10 +137,10 @@ class RuleCategoryTree(
     }) match {
       case Full((long,short)) =>
         val escaped = Utility.escape(short)
-        JsRaw(s"""
+        OnLoad(JsRaw(s"""
             filter='${escaped}';
             filterTableInclude('#grid_rules_grid_zone',filter,include);
-        """) &
+        """)) &
         SetHtml("categoryDisplay",Text(long)) &
         check()
       case e: EmptyBox => //Display an error, for now, nothing
@@ -193,12 +193,12 @@ class RuleCategoryTree(
       categoryNode(root).toXml}
   </ul> ++
     Script(
-      OnLoad(
+      After(50,
         JsRaw(s"""
           ${treeFun}('#${htmlId_RuleCategoryTree}','${getSelected.value}','${S.contextPath}');
           $$('#${htmlId_RuleCategoryTree}').bind("move_node.jstree", function (e,data) {
-            var sourceCatId = $$(data.rslt.o).attr("id");
-            var destCatId = $$(data.rslt.np).attr("id");
+            var sourceCatId = data.node.id;
+            var destCatId = data.parent;
             if( destCatId ) {
               if( sourceCatId ) {
                 var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
@@ -219,59 +219,9 @@ class RuleCategoryTree(
   private[this] def categoryNode(category : RuleCategory) : JsTreeNode = new JsTreeNode {
     val tooltipId = Helpers.nextFuncName
 
-    override val attrs = ( "rel" -> "category" ) :: ("id", category.id.value) :: Nil
+    override val attrs = ("data-jstree" -> """{ "type" : "category" }""") :: ("id", category.id.value) :: Nil
 
     override def body = {
-      def img(source:String,alt:String) = <img src={"/images/"+source} alt={alt} height="14" width="14" class="iconscala" style=" margin: 0 10px 0 0;float:none;" />
-
-      // To handle correctly overflow with floating hidden elements, we need to compute the size of the container first
-      val manageWidth ={
-        // No need to compute actionWidth if directive is application
-        val actionWidth =
-          if (!isDirectiveApplication) {
-            s"$$('#${"actions"+category.id.value}').width()"
-          } else {
-            " 0"
-          }
-        s"""
-           var widthSpanName = $$('#${category.id.value+"Name"}').width();
-           var widthActions  = ${actionWidth};
-           // Add size of jstree element (icons, ...) static for now, need a way to compute it ...
-           var jstreeElems = 40;
-           $$('#${category.id.value}').width(widthActions + widthSpanName + jstreeElems);"""
-      }
-
-      val jsInitFunction = Script(JsRaw (s"""
-           ${manageWidth}
-           $$('#${"actions"+category.id.value}').hide();
-
-           $$('#${category.id.value}').mouseover( function(e) {
-           e.stopPropagation();
-           $$("#treeParent").focus();
-           $$('#${"actions"+category.id.value}').show();
-           $$('#${category.id.value} a:first').addClass("treeOver jstree-hovered");
-         });
-
-           $$('#${category.id.value}').hover( function(e) {
-           $$('.categoryAction').hide();
-           $$("#treeParent").focus();
-           $$('.treeOver').removeClass("treeOver jstree-hovered");
-           $$('#${"actions"+category.id.value}').show();
-           $$('#${category.id.value} a:first').addClass("treeOver jstree-hovered");
-           }, function(e) {
-           $$('.treeOver').removeClass("treeOver jstree-hovered");
-           $$('#${"actions"+category.id.value}').hide();
-           } );
-
-           $$('#${"edit"+category.id.value}').click( function(e) {
-             e.stopPropagation();
-           });
-           $$('#${"delete"+category.id.value}').click( function(e) {
-             e.stopPropagation();
-           });
-           """
-
-         ))
 
       val applyCheckBox = {
         directive match {
@@ -305,9 +255,9 @@ class RuleCategoryTree(
       val actionButtons = {
         if(!isDirectiveApplication && category.id.value!="rootRuleCategory") {
 
-        <span id={"actions"+category.id.value} class="categoryAction" style="float:left; padding-top:1px;padding-left:10px">{
-          SHtml.span(img("icPen.png","Edit")     ,editPopup(category),("id","edit"+category.id.value)) ++
-          SHtml.span(img("icDelete.png","Delete"),deletePopup(category), ("id","delete"+category.id.value))
+        <span id={"actions"+category.id.value} class="categoryAction" style="padding-top:1px;padding-left:10px">{
+          SHtml.span(NodeSeq.Empty,editPopup(category),("id","edit"+category.id.value),("class","fa fa-pencil"), ("style", "margin-right:10px")) ++
+          SHtml.span(NodeSeq.Empty,deletePopup(category), ("id","delete"+category.id.value),("class","fa fa-trash-o"))
         } </span>
         } else {
           NodeSeq.Empty
@@ -325,17 +275,11 @@ class RuleCategoryTree(
         }
       }
       val xml = {
-        <span id={category.id.value+"Name"} tooltipid={tooltipId} title="" class="treeRuleCategoryName tooltipable" style="float:left">
+        <span id={category.id.value+"Name"} tooltipid={tooltipId} title="" class="treeRuleCategoryName tooltipable" >
           {applyCheckBox}{category.name}
         </span> ++
         {actionButtons} ++
-        {tooltip} ++
-        ( if (category.id.value!="rootRuleCategory") {
-            jsInitFunction
-          } else {
-            NodeSeq.Empty
-          }
-        )
+        {tooltip}
       }
        SHtml.a(() => {
          selectedCategoryId = category.id

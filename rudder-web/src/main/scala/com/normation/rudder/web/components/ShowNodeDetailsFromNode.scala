@@ -226,7 +226,7 @@ class ShowNodeDetailsFromNode(
             bindNode(node, sm, withinPopup,displayCompliance) ++ Script(OnLoad(
               DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
               OnLoad(buildJsTree(groupTreeId) &
-              JsRaw(s"""$$( "#${detailsId}" ).tabs('select', ${tab})"""))
+              JsRaw(s"""$$( "#${detailsId}" ).tabs({ active : ${tab} } )"""))
             ))
           case e:EmptyBox =>
             val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
@@ -245,8 +245,8 @@ class ShowNodeDetailsFromNode(
     val id = JsNodeId(node.id)
     ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
       "#node_groupTree" #>
-        <div id={groupTreeId}>
-          <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node)}</ul>
+        <div id={groupTreeId} class="tw-bs">
+          <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
       "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &

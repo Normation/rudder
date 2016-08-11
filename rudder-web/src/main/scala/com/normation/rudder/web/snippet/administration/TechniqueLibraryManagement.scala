@@ -102,18 +102,15 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
   // Technique Library to Active Technique Library
   private[this] val giveReasonPopup = new LocalSnippet[GiveReasonPopup]
 
-
-
   def dispatch = {
     case "head" => { _ => head }
     case "systemLibrary" => { _ => systemLibrary }
     case "userLibrary" => { _ => userLibrary }
     case "bottomPanel" => { _ => showBottomPanel }
     case "userLibraryAction" => { _ => userLibraryAction }
-    case "reloadTechniqueButton" =>  reloadTechniqueLibrary(false)
-    case "reloadTechniqueLibrary" => reloadTechniqueLibrary(true)
+    case "reloadTechniqueButton" =>  { _ => reloadTechniqueLibrary(false) }
+    case "reloadTechniqueLibrary" => { _ => reloadTechniqueLibrary(true) }
   }
-
 
   //current states for the page - they will be kept only for the duration
   //of one request and its followng Ajax requests
@@ -204,7 +201,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories.
    */
   def systemLibrary() : NodeSeq = {
-    <div id={htmlId_techniqueLibraryTree}>
+    <div id={htmlId_techniqueLibraryTree} class="col-xs-12 row">
       <ul>{jsTreeNodeOf_ptCategory(techniqueRepository.getTechniqueLibrary).toXml}</ul>
       {Script(OnLoad(buildReferenceLibraryJsTree))}
     </div>
@@ -214,7 +211,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Display the actions bar of the user library
    */
   def userLibraryAction() : NodeSeq = {
-    <div>{SHtml.ajaxButton("Create a new category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "autoWidthButton"))}</div>
+    SHtml.ajaxButton("New category", () => showCreateActiveTechniqueCategoryPopup(), ("class", "btn btn-default"))
   }
 
   /**
@@ -225,7 +222,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * Categories are ordered in trees of subcategories.
    */
   def userLibrary() : NodeSeq = {
-    <div id={htmlId_activeTechniquesTree}>{
+    <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
       val xml = {
         roActiveTechniqueRepository.getActiveTechniqueLibrary match {
           case eb:EmptyBox =>
@@ -249,19 +246,33 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               var fromUser = false;
               var fromReference = false;
 
-            $('#%1$s').bind("move_node.jstree", function (e,data) {
-              var interTree = "%1$s" != data.rslt.ot.get_container().attr("id");
-              var sourceCatId = $(data.rslt.o).attr("catId");
-              var sourceactiveTechniqueId = $(data.rslt.o).attr("activeTechniqueId");
-              var destCatId = $(data.rslt.np).attr("catId");
+            $('#%1$s').bind("copy_node.jstree", function (e,data) {
+              var parent = data.new_instance.get_node(data.parent);
+              var sourceactiveTechniqueId = data.node.li_attr.activetechniqueid;
+              var destCatId = parent.li_attr.catid;
               if( destCatId ) {
                 if(sourceactiveTechniqueId) {
                   var arg = JSON.stringify({ 'sourceactiveTechniqueId' : sourceactiveTechniqueId, 'destCatId' : destCatId });
-                  if(interTree) {
                     %2$s;
-                  } else {
-                    %3$s;
-                  }
+                } else {
+                  alert("Trying to add a Technique that has no technique id");
+                  $.jstree.rollback(data.rlbk);
+                }
+              } else {
+                alert("Can not move to something else than a category");
+                $.jstree.rollback(data.rlbk);
+              }
+            });
+
+            $('#%1$s').bind("move_node.jstree", function (e,data) {
+              var parent = data.new_instance.get_node(data.parent);
+              var sourceactiveTechniqueId = data.node.li_attr.activetechniqueid;
+              var sourceCatId = data.node.li_attr.catid;
+              var destCatId = parent.li_attr.catid;
+              if( destCatId ) {
+                if(sourceactiveTechniqueId) {
+                  var arg = JSON.stringify({ 'sourceactiveTechniqueId' : sourceactiveTechniqueId, 'destCatId' : destCatId });
+                  %3$s;
                 } else if( sourceCatId ) {
                   var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
                   %4$s;
@@ -275,29 +286,31 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
               }
             });
             $('#%1$s').bind("select_node.jstree", function (e,data) {
-                var sourceactiveTechniqueId = data.rslt.obj.attr("activeTechniqueId");
+                if (fromReference) {
+                  fromReference = false;
+                  return false;
+                }
+                var sourceactiveTechniqueId = data.node.li_attr.activetechniqueid;
                 var target = $('#%5$s  li[activeTechniqueId|="'+sourceactiveTechniqueId+'"]');
+                var refTree = $('#%5$s').jstree()
+                refTree.deselect_all()
                 if (target.length>0) {
-                  if (fromReference) {
-                    fromReference = false;
-                    return false;
-                  }
                   fromUser = true;
-
-                  $('#%5$s').jstree("select_node", target , true , null );
+                  refTree.select_node(target);
                 }
             });
             $('#%5$s').bind("select_node.jstree", function (e,data) {
-                var sourceactiveTechniqueId = data.rslt.obj.attr("activeTechniqueId");
+                if (fromUser) {
+                  fromUser = false;
+                  return false;
+                }
+                var sourceactiveTechniqueId = data.node.li_attr.activetechniqueid;
                 var target = $('#%1$s  li[activeTechniqueId|="'+sourceactiveTechniqueId+'"]');
+                var userTree = $('#%1$s').jstree()
+                userTree.deselect_all();
                 if (target.length>0) {
-                   if (fromUser) {
-                    fromUser = false;
-                    return false;
-                  }
                   fromReference = true;
-
-                  $('#%1$s').jstree("select_node", target , true , null );
+                  userTree.select_node(target);
                 }
 
             });
@@ -358,7 +371,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       case Full(form) => form.showForm
     }
   }
-
 
   ///////////////////// Callback function for Drag'n'drop in the tree /////////////////////
 
@@ -425,7 +437,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
       case e:Exception => Alert("Error while trying to move category")
     }
   }
-
 
   private[this] def bindTechnique(arg: String) : JsCmd = {
     //parse arg, which have to be json object with sourceactiveTechniqueId, destCatId
@@ -514,7 +525,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
 
-
   //////////////// display trees ////////////////////////
 
   /**
@@ -536,9 +546,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     """buildActiveTechniqueTree('#%s', '%s', %s ,'%s')""".format(htmlId_activeTechniquesTree, htmlId_techniqueLibraryTree, CurrentUser.checkRights(Write("technique")), S.contextPath)
   )
 
-
-
-
   //ajax function that update the bottom of the page when a Technique is clicked
   private[this] def onClickTemplateNode(technique : Option[Technique], activeTechnique: Option[ActiveTechnique]): JsCmd = {
     updateCurrentTechniqueDetails(technique, activeTechnique)
@@ -546,9 +553,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     //update UI
     SetHtml(htmlId_bottomPanel, showTechniqueDetails() )
   }
-
-
-
 
   /**
    * Transform a WBTechniqueCategory into category JsTree node in reference library:
@@ -558,7 +562,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
    * - no action can be done with such node.
    */
   private[this] def jsTreeNodeOf_ptCategory(category:TechniqueCategory) : JsTreeNode = {
-
 
     def jsTreeNodeOf_pt(technique : Technique) : JsTreeNode = new JsTreeNode {
       override def body = {
@@ -570,7 +573,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         )
       }
       override def children = Nil
-      override val attrs = ( "rel" -> "template") :: ( "id" -> ("ref-technique-"+technique.id.name.value) ) :: ( "activeTechniqueId" -> technique.id.name.value ) :: Nil
+      override val attrs =
+        ( "data-jstree" -> """{ "type" : "template" }""") ::
+        ( "id" -> ("ref-technique-"+technique.id.name.value) ) ::
+        ( "activeTechniqueId" -> technique.id.name.value ) ::
+        Nil
     }
 
     new JsTreeNode {
@@ -594,7 +601,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           flatMap(x => treeUtilService.getPt(x,logger)).toList.
           sortWith((x,y) =>  treeUtilService.sortPt(x.id.name, y.id.name ) ).map(jsTreeNodeOf_pt( _ ) )
 
-      override val attrs = ( "rel" -> "category" ) :: Nil
+      override val attrs =
+        ( "data-jstree" -> """{ "type" : "category" }""") ::
+        Nil
     }
   }
 
@@ -641,7 +650,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 )
             }
             override def children = Nil
-            override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> technique.id.name.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+            override val attrs =
+              ( "data-jstree" -> """{ "type" : "template" }""") ::
+              ( "activeTechniqueId" -> technique.id.name.value ) ::
+              Nil :::
+              (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
           }
         case None =>
 
@@ -674,7 +687,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
                 )
              }
             override def children = Nil
-            override val attrs = ( "rel" -> "template") :: ( "activeTechniqueId" -> activeTechnique.techniqueName.value ) :: Nil ::: (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
+            override val attrs =
+              ( "data-jstree" -> """{ "type" : "template" }""") ::
+              ( "activeTechniqueId" -> activeTechnique.techniqueName.value ) ::
+              Nil :::
+              (if(!activeTechnique.isEnabled) ("class" -> "disableTreeNode") :: Nil else Nil )
           }
       }
     }
@@ -699,7 +716,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     //the actual mapping activeTechnique category to jsTree nodes:
     new JsTreeNode {
       override val attrs =
-        ( "rel" -> { if(Full(category.id) == rootCategoryId) "root-category" else "category" } ) ::
+        ( "data-jstree" -> s"""{ "type" : "${ if(Full(category.id) == rootCategoryId) "root-category" else "category" }" }""") ::
         ( "catId" -> category.id.value ) ::
         Nil
       override def body = {
@@ -746,7 +763,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
      """)
   }
 
-  private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : IdMemoizeTransform = SHtml.idMemoize { outerXml =>
+  private[this] def reloadTechniqueLibrary(isTechniqueLibraryPage : Boolean) : NodeSeq = {
 
       def initJs = SetHtml("techniqueLibraryUpdateInterval" , <span>{updateTecLibInterval}</span>)
       def process = {
@@ -759,7 +776,6 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
             S.error("updateLib", error.msg)
         }
 
-        Replace("reloadTechniqueLibForm",outerXml.applyAgain) &
         (if (isTechniqueLibraryPage) {
           refreshTree
         } else {
@@ -767,18 +783,11 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
         } )
       }
 
-
-      //fill the template
-      // Add a style to display correctly the button in both page : policyServer and technique library
-      ":submit" #> ( SHtml.ajaxSubmit("Update Techniques now", process _, ("style","min-width:180px")) ++
-                     Script(OnLoad(JsRaw(""" correctButtons(); """) & initJs))
-                   )
+      Script(OnLoad(initJs)) ++
+      SHtml.ajaxButton("Reload Techniques", process _, ("class","btn btn-default"))
   }
 
 }
-
-
-
 
 object TechniqueLibraryManagement {
 

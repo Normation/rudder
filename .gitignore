@@ -9,3 +9,5 @@ target*
 .cache
 *.ldif.log
 *configuration.properties
+.cache*
+.worksheet

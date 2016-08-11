@@ -66,7 +66,6 @@ import com.normation.rudder.domain.nodes.NodeInfo
  */
 object DisplayNodeGroupTree extends Loggable {
 
-
   /**
    * Display the group tree, optionnaly filtering out
    * some category or group by defining which one to
@@ -82,7 +81,6 @@ object DisplayNodeGroupTree extends Loggable {
     , keepCategory   : FullNodeGroupCategory => Boolean = _ => true
     , keepTargetInfo : FullRuleTargetInfo => Boolean = _ => true
   ) : NodeSeq =  {
-
 
     def displayCategory(
         category: FullNodeGroupCategory
@@ -110,7 +108,6 @@ object DisplayNodeGroupTree extends Loggable {
         ++ category.targetInfos.collect { case x if(keepTargetInfo(x)) => displayFullRuleTargetInfo(x, localOnClickTarget) }
       )
 
-
       val rel = {
         if(category.id == groupLib.id) "root-category"
         else if (category.isSystem)    "system_category"
@@ -118,12 +115,11 @@ object DisplayNodeGroupTree extends Loggable {
       }
 
       override val attrs =
-        ( "rel" -> rel ) ::
+        ("data-jstree" -> s"""{ "type" : "${rel}" }""") ::
         ( "catId" -> category.id.value ) ::
         ( "class" -> "" ) ::
         Nil
     }
-
 
    /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -131,7 +127,6 @@ object DisplayNodeGroupTree extends Loggable {
         targetInfo    : FullRuleTargetInfo
       , onClickNode   : Option[FullRuleTargetInfo => JsCmd]
     ) : JsTreeNode = new JsTreeNode {
-
 
       val groupId = {
         targetInfo.target match {
@@ -145,29 +140,6 @@ object DisplayNodeGroupTree extends Loggable {
       val htmlId = s"jstree-${targetInfo.target.target.target}"
       val jsId = htmlId.replace(":", "\\\\:")
 
-        val jsInitFunction = Script(JsRaw (s"""
-           $$('#${jsId}').mouseover( function(e) {
-             e.stopPropagation();
-             $$('#${jsId} .treeActions').show();
-             $$('#${jsId} a:first').addClass("treeOver jstree-hovered");
-           } );
-
-
-           $$('#${jsId}').hover( function(e) {
-             $$('.treeActions').hide();
-             $$('.treeOver').removeClass("treeOver jstree-hovered");
-             $$('#${jsId} .treeActions').show();
-             $$('#${jsId} a:first').addClass("treeOver jstree-hovered");
-           }, function(e) {
-             $$('.treeOver').removeClass("treeOver jstree-hovered");
-             $$('#${jsId} .treeActions').hide();
-           } );
-
-           $$('#${jsId} .treeActions').click( function(e) {
-             e.stopPropagation();
-           } );
-           """))
-
       override def children = Nil
 
       val classes = {
@@ -177,7 +149,7 @@ object DisplayNodeGroupTree extends Loggable {
       }
 
       override val attrs = {
-        ( "rel"     -> { if (targetInfo.isSystem) "system_target" else "group"} ) ::
+         ("data-jstree" -> s"""{ "type" : "${ if (targetInfo.isSystem) "system_target" else "group"}" }""") ::
         ( "groupId" -> groupId ) ::
         ( "id"      -> htmlId ) ::
         ( "class"   -> classes) ::
@@ -190,9 +162,9 @@ object DisplayNodeGroupTree extends Loggable {
           if (!targetActions.isEmpty && ! targetInfo.isSystem) {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
-              <img src="/images/icPen.png" class="tooltipable treeAction noRight groupDetails" tooltipid={tooltipId} title=""
+              <span class="fa fa-pencil" tooltipid={tooltipId} title=""
 						    onclick={redirectToGroupLink(NodeGroupId(groupId)).toJsCmd}
-						  />
+						  ></span>
 						  <div class="tooltipContent" id={tooltipId}><div>Configure this group.</div></div>
             </span>
           } else {
@@ -202,39 +174,39 @@ object DisplayNodeGroupTree extends Loggable {
 
         val actionButtons = {
           if (!targetActions.isEmpty) {
-            <span class="treeActions">
               { (targetActions get ("include") match {
                 case Some (include) =>
 
                   val tooltipId = Helpers.nextFuncName
-                  <img src="/images/ic_add.png" class="tooltipable treeAction" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}/>
-                  <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div>
+            <span class="treeActions">
+                  <span class="tooltipable fa fa-plus-circle text-success" tooltipid={tooltipId} title="" onclick={include(targetInfo).toJsCmd}></span>
+                  <div class="tooltipContent" id={tooltipId}><div>Include Nodes from this group.</div></div></span>
                 case None => NodeSeq.Empty
                 }) ++
                 (targetActions get ("exclude") match {
                   case Some (exclude) =>
 
                   val tooltipId = Helpers.nextFuncName
-                  <img src="/images/ic_remove.png" class="tooltipable treeAction noRight" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}/>
-                  <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div>
+            <span class="treeActions">
+                  <span class="tooltipable fa fa-minus-circle text-danger" tooltipid={tooltipId} title="" onclick={exclude(targetInfo).toJsCmd}></span>
+                  <div class="tooltipContent" id={tooltipId}><div>Exclude Nodes from this group.</div></div></span>
                   case None => NodeSeq.Empty
                 })
               }
-            </span>
           } else {
               NodeSeq.Empty
           }
         }
         val xml  = {
           val tooltipId = Helpers.nextFuncName
-          <span class="treeGroupName tooltipable" tooltipid={tooltipId} title="" style="float:left">
+          <span class="treeGroupName tooltipable" tooltipid={tooltipId} title="">
             {targetInfo.name}
-            { targetInfo.target match {
-                case g:FullGroupTarget => s": ${g.nodeGroup.isDynamic ? "dynamic" | "static" }"
+            { if (targetInfo.isSystem) <small class="greyscala"> - System</small>}
+            <small class="greyscala">{ targetInfo.target match {
+                case g:FullGroupTarget => s" - ${g.nodeGroup.isDynamic ? "Dynamic" | "Static" }"
                 case _ => ""
-            } }
+            } }</small>
 
-            { if (targetInfo.isSystem) <span class="greyscala">(System)</span>}
           </span>
 
           <div class="tooltipContent" id={tooltipId}>
@@ -242,8 +214,7 @@ object DisplayNodeGroupTree extends Loggable {
             <div>{targetInfo.description}</div>
           </div> ++
         actionButtons ++
-        editButton  ++
-        jsInitFunction
+        editButton
         }
 
         onClickNode match {
@@ -256,7 +227,7 @@ object DisplayNodeGroupTree extends Loggable {
 
     }
 
-    displayCategory(groupLib).toXml ++ Script(JsRaw("$('.treeActions').hide();"))
+    displayCategory(groupLib).toXml
   }
 
   //build the tree category, filtering only category with groups

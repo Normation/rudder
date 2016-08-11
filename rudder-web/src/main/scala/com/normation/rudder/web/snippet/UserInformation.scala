@@ -68,8 +68,6 @@ class UserInformation extends DispatchSnippet with Loggable {
     case "logout" => logout
   }
 
-
-
   def userCredentials = {
     CurrentUser.get match {
       case Some(u) =>  "#openerAccount" #> u.getUsername
@@ -83,7 +81,7 @@ class UserInformation extends DispatchSnippet with Loggable {
   }
 
   def logout = {
-    "*" #> SHtml.ajaxButton(<span class="red userinfowidth">Logout</span>, { () =>
+    "*" #> SHtml.ajaxButton("Log out", { () =>
       S.session match {
         case Full(session) => //we have a session, try to know who is login out
           SecurityContextHolder.getContext.getAuthentication match {
@@ -112,7 +110,7 @@ class UserInformation extends DispatchSnippet with Loggable {
           logger.info("Logout called for a non existing session, nothing more done")
       }
       JsCmds.RedirectTo("/")
-    })
+    }, ("class", "btn btn-danger"))
   }
 
 }

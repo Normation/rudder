@@ -73,7 +73,6 @@ import com.normation.rudder.web.model.JsInitContextLinkUtil._
  */
 object DisplayDirectiveTree extends Loggable {
 
-
   /**
    * Display the directive tree, optionaly filtering out
    * some category or group by defining which one to
@@ -137,10 +136,9 @@ object DisplayDirectiveTree extends Loggable {
           }
       )
 
-
-      override val attrs = ( "rel" -> "category") :: ( "id" -> nodeId) :: Nil
+      override val attrs =
+        ("data-jstree" -> """{ "type" : "category" }""") :: ( "id" -> nodeId) :: Nil
     }
-
 
    /////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -153,11 +151,7 @@ object DisplayDirectiveTree extends Loggable {
       private[this] val localOnClickDirective = onClickDirective.map( f => f(activeTechnique) )
 
       override val attrs = (
-        ( "rel" -> "template") :: Nil :::
-        ( if(!activeTechnique.isEnabled)
-            ("class" -> "disableTreeNode") :: Nil
-          else Nil
-        )
+        ("data-jstree" -> s"""{ "type" : "template" , "state" : { "disabled" : ${ !activeTechnique.isEnabled} } }""") :: Nil
       )
 
       override def children = {
@@ -180,8 +174,7 @@ object DisplayDirectiveTree extends Loggable {
 
         val xml = activeTechnique.newestAvailableTechnique match {
           case Some(technique) =>
-            <span class="treeActiveTechniqueName tooltipable" tooltipid={tooltipId} title="">
-              {technique.name}
+            <span class="treeActiveTechniqueName tooltipable" tooltipid={tooltipId} title="">{technique.name}
             </span>
             <div class="tooltipContent" id={tooltipId}>
               <h3>{technique.name}</h3>
@@ -209,7 +202,6 @@ object DisplayDirectiveTree extends Loggable {
 
       override def children = Nil
 
-
       val classes = {
         val includedClass = if (included.contains(directive.id)) {"included"} else ""
         val disabled = if(directive.isEnabled) "" else "disableTreeNode"
@@ -217,36 +209,12 @@ object DisplayDirectiveTree extends Loggable {
       }
       val htmlId = s"jsTree-${directive.id.value}"
       override val attrs = (
-                  ( "rel" -> "directive") ::
+                  ("data-jstree" -> """{ "type" : "directive" }""") ::
                   ( "id" -> htmlId) ::
                   ("class" -> classes ) ::
                   Nil
 
       )
-
-
-        val jsInitFunction = Script(JsRaw (s"""
-           $$('#${htmlId}').mouseover( function(e) {
-             e.stopPropagation();
-             $$('#${htmlId} .treeActions').show();
-             $$('#${htmlId} a:first').addClass("treeOver jstree-hovered");
-           } );
-
-
-           $$('#${htmlId}').hover( function(e) {
-             $$('.treeActions').hide();
-             $$('.treeOver').removeClass("treeOver jstree-hovered");
-             $$('#${htmlId} .treeActions').show();
-             $$('#${htmlId} a:first').addClass("treeOver jstree-hovered");
-           }, function(e) {
-             $$('.treeOver').removeClass("treeOver jstree-hovered");
-             $$('#${htmlId} .treeActions').hide();
-           } );
-
-           $$('#${htmlId} .treeActions').click( function(e) {
-             e.stopPropagation();
-           } );
-           """))
 
       override def body = {
 
@@ -254,7 +222,7 @@ object DisplayDirectiveTree extends Loggable {
           if (addEditLink && ! directive.isSystem) {
             val tooltipId = Helpers.nextFuncName
             <span class="treeActions">
-              <img src="/images/icPen.png" class="tooltipable treeAction noRight directiveDetails" tooltipid={tooltipId} title="" onclick={redirectToDirectiveLink(directive.id).toJsCmd}/>
+              <span  class="tooltipable treeAction noRight directiveDetails fa fa-pencil" tooltipid={tooltipId} title="" onclick={redirectToDirectiveLink(directive.id).toJsCmd}> </span>
 						  <div class="tooltipContent" id={tooltipId}><div>Configure this Directive.</div></div>
 						</span>
           } else {
@@ -265,7 +233,7 @@ object DisplayDirectiveTree extends Loggable {
         val deprecated = technique.flatMap(_.deprecrationInfo) match {
           case Some(info) =>
             val tooltipId = Helpers.nextFuncName
-            <span class="glyphicon glyphicon-info-sign text-danger deprecatedTechniqueIcon" tooltipid={tooltipId} title=""></span>
+            <span class="fa fa-exclamation text-danger deprecatedTechniqueIcon tooltipable" style="padding-left:5px" tooltipid={tooltipId} title=""></span>
             <div class="tooltipContent" id={tooltipId}>
               <div>Deprecated: {info.message}</div>
             </div>
@@ -274,23 +242,24 @@ object DisplayDirectiveTree extends Loggable {
 
         val xml  = {
           val tooltipId = Helpers.nextFuncName
-          <span class="treeDirective tooltipable tw-bs" tooltipid={tooltipId} title="" style="float:left">
-            {deprecated} [{directive.techniqueVersion.toString}] {directive.name}
-          </span> ++
+          <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" >[{directive.techniqueVersion.toString}] {directive.name}
           {
               if(isAssignedTo <= 0) {
-                <span style="float:left; padding-left:5px"><img style="margin:0;padding:0" src="/images/icWarn.png" witdth="14" height="14" /></span>
+                <span style="padding-left:5px" class="fa fa-warning text-warning-rudder"></span>
               } else {
                 NodeSeq.Empty
               }
-          } ++ editButton ++
+          }
+          </span>  ++
+          deprecated ++
+          editButton ++
           <div class="tooltipContent" id={tooltipId}>
             <h3>{directive.name}</h3>
             <div>{directive.shortDescription}</div>
             <div>Technique version: {directive.techniqueVersion.toString}</div>
             <div>{s"Used in ${isAssignedTo} rules" }</div>
               { if(!directive.isEnabled) <div>Disable</div> }
-            </div>++jsInitFunction
+            </div>
         }
 
         onClickDirective match {
@@ -301,7 +270,7 @@ object DisplayDirectiveTree extends Loggable {
       }
     }
 
-    displayCategory(directiveLib, "jstn_0").toXml ++ Script(JsRaw("$('.treeActions').hide();"))
+    displayCategory(directiveLib, "jstn_0").toXml
 
   }
 

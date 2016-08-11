@@ -89,10 +89,6 @@ class CreateOrCloneRulePopup(
     case "popupContent" => _ => popupContent()
   }
 
-  def initJs : JsCmd = {
-      JsRaw("updatePopup();")
-  }
-
   def popupContent() : NodeSeq = {
 
     SHtml.ajaxForm(bind("item", popupTemplate,
@@ -105,7 +101,7 @@ class CreateOrCloneRulePopup(
             <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4>
             {f.toForm_!}
         </div>
-        
+
       } },
       "clonenotice" -> {
         if(clonedRule.isDefined)
@@ -190,8 +186,7 @@ class CreateOrCloneRulePopup(
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent()) &
-    initJs
+    SetHtml(htmlId_popupContainer, popupContent())
   }
 
   private[this] def onSubmit() : JsCmd = {

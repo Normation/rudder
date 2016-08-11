@@ -89,10 +89,6 @@ class GiveReasonPopup(
     case "popupContent" => popupContent _
   }
 
-  def initJs : JsCmd = {
-    JsRaw("updatePopup();")
-  }
-
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
        "reason" -> crReasons.map {f =>
@@ -101,10 +97,8 @@ class GiveReasonPopup(
             {f.toForm_!}
          </div>
         },
-      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }) %
-        ("tabindex","4"),
-      "save" -> SHtml.ajaxSubmit("Save", onSubmit _) %
-        ("id","createATCSaveButton") % ("tabindex","3")
+      "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() & refreshActiveTreeLibrary() }, ("tabindex","4"), ("class","btn btn-default")),
+      "save" -> SHtml.ajaxSubmit("Save", onSubmit _, ("id","createATCSaveButton") , ("tabindex","3"),("class","btn btn-success"))
     ))
   }
 
@@ -143,15 +137,14 @@ class GiveReasonPopup(
   private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $('#popupContent').bsModal('hide');""")
+    JsRaw(""" $('#createActiveTechniquePopup').bsModal('hide');""")
   }
 
   /**
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml("createActiveTechniquesContainer", popupContent(NodeSeq.Empty))&
-    initJs
+    SetHtml("createActiveTechniquesContainer", popupContent(NodeSeq.Empty))
   }
 
   private[this] def onSubmit() : JsCmd = {
