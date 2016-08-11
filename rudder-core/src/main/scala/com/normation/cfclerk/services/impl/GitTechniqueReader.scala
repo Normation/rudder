@@ -643,7 +643,7 @@ class GitTechniqueReader(
         parentCategoryId match {
           case RootTechniqueCategoryId =>
             val cat = techniquesInfo.rootCategory.getOrElse(
-                throw new RuntimeException("Can not find the parent (root) caterogy %s for package %s".format(descriptorFile.getParent, TechniqueId))
+                throw new RuntimeException("Can not find the parent (root) category %s for package %s".format(descriptorFile.getParent, TechniqueId))
             )
             techniquesInfo.rootCategory = Some(cat.copy(techniqueIds = cat.techniqueIds + techniqueId ))
             true
@@ -654,7 +654,7 @@ class GitTechniqueReader(
                 techniquesInfo.subCategories(sid) = cat.copy(techniqueIds = cat.techniqueIds + techniqueId )
                 true
               case None =>
-                logger.error("Can not find the parent caterogy %s for package %s".format(descriptorFile.getParent, TechniqueId))
+                logger.error("Can not find the parent category %s for package %s".format(descriptorFile.getParent, TechniqueId))
                 false
             }
         }
