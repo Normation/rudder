@@ -24,6 +24,12 @@
 # @parameter origin_class_prefix  The prefix of the class for different states (1.x version)
 # @parameter args                 The arguments used to call the generic method (slist)
 #
+# The args parameter is used:
+# * to be able to make reports when calling the same method with the same class parameter several times
+# * to be able to display detailed reports
+#
+# The origin_class_prefix is used in priority, with a fallback on the old_class_prefix if empty.
+#
 # @class_prefix
 # @class_parameter old_class_prefix
 
