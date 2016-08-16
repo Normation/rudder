@@ -655,6 +655,7 @@ object RudderConfig extends Loggable {
           , nodeInfoService
           , uuidGen
           , restExtractorService
+          , asyncDeploymentAgent
         )
       , restExtractorService
     )
