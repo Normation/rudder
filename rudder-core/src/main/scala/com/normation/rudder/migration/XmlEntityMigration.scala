@@ -150,7 +150,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           _
         , detectedFileFormat
         , migrationStartTime
-        , migrationEndTime @ None
+        , migrationEndTime : None.type
         , _
         , _
       )) if(detectedFileFormat == fromVersion) =>
@@ -206,7 +206,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           _
         , detectedFileFormat
         , migrationStartTime
-        , migrationEndTime @ None
+        , migrationEndTime : None.type
         , _
         , _
       )) if(detectedFileFormat < fromVersion) =>
