@@ -36,39 +36,35 @@
 */
 
 package com.normation.rudder.repository.jdbc
-import java.sql.BatchUpdateException
-import java.sql.Timestamp
-import scala.slick.driver.PostgresDriver.simple._
-import org.joda.time.DateTime
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import org.specs2.mutable._
-import org.springframework.jdbc.datasource.DataSourceTransactionManager
+
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.migration.DBCommon
-import javax.sql.DataSource
-import net.liftweb.common._
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.rudder.services.policies.UniqueOverrides
-import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.services.policies.ExpandedDirectiveVal
 import com.normation.rudder.services.policies.ExpandedRuleVal
+import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
+import com.normation.rudder.services.policies.UniqueOverrides
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
+
+import net.liftweb.common._
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.cfclerk.domain.TechniqueVersion
 
 /**
  * Test on database.
@@ -89,7 +85,6 @@ class ExpectedReportsTest extends DBCommon {
 
   lazy val updateExpectedService = new ExpectedReportsUpdateImpl(expectedReportsRepo, expectedReportsRepo)
 
-  import slick._
 
   sequential
 
@@ -128,6 +123,9 @@ class ExpectedReportsTest extends DBCommon {
 
   }
 
+  import MyPostgresDriver.api._
+  import slick._
+
   "Finding nodes" should {
 
     val strangeVersions = List(" abc" , "def " , "\nghi\t").map(NodeConfigId(_)).reverse //ghi is the most recent
@@ -142,29 +140,27 @@ class ExpectedReportsTest extends DBCommon {
       , SlickExpectedReportsNodes(4, "n1", List("pqr", "mno"))
     )
     step {
-      slickExec { implicit s =>
+      slickExec {
         expectedReportsNodesTable ++= expectedReportsNodes
       }
     }
 
     "get back what was inserted" in {
-      slickExec { implicit s =>
-        expectedReportsNodesTable.list must contain(exactly(expectedReportsNodes:_*))
-      }
+      slickExec {
+        expectedReportsNodesTable.result
+      } must contain(exactly(expectedReportsNodes:_*))
     }
 
     "get in the same way" in {
-      import scala.slick.driver.JdbcDriver.backend.Database
-      import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-      import Q.interpolation
-      slickExec { implicit s =>
-        val i = 1
-        //here, we get the Postgres string representation of ARRAYs
-        val res = sql"select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}".as[(String, String)].list
+//      import scala.slick.driver.JdbcDriver.backend.Database
+//      import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+//      import Q.interpolation
+      val i = 1
+      //here, we get the Postgres string representation of ARRAYs
+      val res = slickExec(sql"""select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}""".as[(String, String)])
 
-        //the most recent must be in head of the array
-        res must contain(exactly( ("n0", "{}"), ("n1", "{ghi,def,abc}")  ))
-      }
+      //the most recent must be in head of the array
+      res must contain(exactly( ("n0", "{}"), ("n1", "{ghi,def,abc}")  ))
     }
 
     "find the last reports for nodejoinkey" in {
@@ -215,18 +211,17 @@ class ExpectedReportsTest extends DBCommon {
       val genTime = DateTime.now
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      slickExec { implicit s =>
-        val reports =  expectedReportsTable.list
-        val nodes = expectedReportsNodesTable.list
-        val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
 
-        compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
-        reports.size === 1 and compareSlickER(reports(0), expected) and
-        nodes.size === 2 and (nodes must contain(exactly(
-            SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
-          , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
-        )))
-      }
+      val reports =  slickExec(expectedReportsTable.result)
+      val nodes = slickExec(expectedReportsNodesTable.result)
+      val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
+
+      compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
+      reports.size === 1 and compareSlickER(reports(0), expected) and
+      nodes.size === 2 and (nodes must contain(exactly(
+          SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
+        , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
+      )))
     }
 
     "saving the same exactly, nothing change" in {
@@ -234,17 +229,15 @@ class ExpectedReportsTest extends DBCommon {
 
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      slickExec { implicit s =>
-        val reports =  expectedReportsTable.list
-        val nodes = expectedReportsNodesTable.list
+      val reports =  slickExec(expectedReportsTable.result)
+      val nodes = slickExec(expectedReportsNodesTable.result)
 
-        inserted.isInstanceOf[Failure] and
-        reports.size === 1 and compareSlickER(reports(0), expected) and
-        nodes.size === 2 and (nodes must contain(exactly(
-            SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
-          , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
-        )))
-      }
+      inserted.isInstanceOf[Failure] and
+      reports.size === 1 and compareSlickER(reports(0), expected) and
+      nodes.size === 2 and (nodes must contain(exactly(
+          SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
+        , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
+      )))
     }
 
   }
@@ -336,17 +329,15 @@ class ExpectedReportsTest extends DBCommon {
         , genTime, Set(n1_overrides)
       )
 
-      slickExec { implicit s =>
-        val reports =  expectedReportsTable.list
-        val nodes = expectedReportsNodesTable.list
+      val reports =  slickExec(expectedReportsTable.result)
+      val nodes = slickExec(expectedReportsNodesTable.result)
 
-        compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
-        reports.size === 2 and compareSlickER(reports(0), expected) and
-        nodes.size === 2 and (nodes must contain(exactly(
-            SlickExpectedReportsNodes(100, "n1", List("n1_v0"))
-          , SlickExpectedReportsNodes(101, "n2", List("n2_v0"))
-        )))
-      }
+      compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
+      reports.size === 2 and compareSlickER(reports(0), expected) and
+      nodes.size === 2 and (nodes must contain(exactly(
+          SlickExpectedReportsNodes(100, "n1", List("n1_v0"))
+        , SlickExpectedReportsNodes(101, "n2", List("n2_v0"))
+      )))
     }
   }
 

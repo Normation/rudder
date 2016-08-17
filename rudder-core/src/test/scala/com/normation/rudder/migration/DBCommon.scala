@@ -69,7 +69,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     case "true" | "1" => true
     case _ => false
   }
-  skipAllIf(!doDatabaseConnection)
+//  skipAllIf(!doDatabaseConnection)
 
   /**
    * By default, init schema with the Rudder schema and tables, safe that

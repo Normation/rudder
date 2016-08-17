@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scala.slick.driver.PostgresDriver.simple._
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
@@ -75,6 +74,7 @@ import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
+import MyPostgresDriver.api._
 
 /**
  *
@@ -240,10 +240,13 @@ class ReportingServiceTest extends DBCommon {
 
   step {
     slick.insertReports(reports.values.toSeq.flatten)
-    slickExec { implicit session =>
-      expectedReportsTable ++= expecteds.keySet
-      expectedReportsNodesTable ++= expecteds.values.toSet.flatten
-    }
+    slickExec(expectedReportsTable ++= expecteds.keySet)
+    slickExec(expectedReportsNodesTable ++= expecteds.values.toSet.flatten)
+
+    println("reports size: " + slickExec(reportsTable.result).size)
+    println("expected reports size: " + slickExec(expectedReportsTable.result).size)
+    println("expected reports size: " + slickExec(expectedReportsNodesTable.result).size)
+
     updateRuns.findAndSaveExecutions(42)
     updateRuns.findAndSaveExecutions(43) //need to be done one time for init, one time for actual work
 

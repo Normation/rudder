@@ -41,12 +41,9 @@ import scala.io.Source
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-import scala.slick.driver.JdbcDriver.backend.Database
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import Q.interpolation
 import com.normation.rudder.migration.DBCommon
 import java.sql.Timestamp
-import MyPostgresDriver.simple._
+import MyPostgresDriver.api._
 
 /**
  *
@@ -74,7 +71,7 @@ class MigrationTo212Test extends DBCommon {
       is.close()
 
       ((SQL_Rudder211.sql + "\n" + sqlMigration)
-         . toLowerCase
+         .toLowerCase
          .replaceAll("create table", "create temp table")
          .replaceAll("create sequence", "create temp sequence")
          .replaceAll("alter database rudder", "alter database test")
@@ -83,21 +80,19 @@ class MigrationTo212Test extends DBCommon {
 
     "no raise error" in {
       jdbcTemplate.execute(sql)
-      withSession { implicit s =>
-        //some select to check existence
-        sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)].firstOption
-        sql"select * from expectedReportsNodes".as[(Int,String)].firstOption
-      }
+
+      //some select to check existence
+      slickExec(sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)]).head
+      slickExec(sql"select * from expectedReportsNodes".as[(Int,String)]).head
+
       success
     }
 
     "allows to add an entry in reportsexecution with nodeConfiguration" in {
-      withSession { implicit s =>
         val t= ("node_1", new Timestamp(System.currentTimeMillis), false, "node_config_1")
 
-        sqlu"""insert into  reportsexecution (nodeid, date, complete, nodeconfigid) values (${t._1}, ${t._2}, ${t._3}, ${t._4});""".first
-
-        sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)].first === t
+        slickExec(sqlu"""insert into  reportsexecution (nodeid, date, complete, nodeconfigid) values (${t._1}, ${t._2}, ${t._3}, ${t._4});""")
+        slickExec(sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)]).head === t
       }
     }
 
@@ -105,15 +100,9 @@ class MigrationTo212Test extends DBCommon {
 
       val t= SlickExpectedReportsNodes(42, "node_1", List("node_config_1","node_config_2","node_config_3"))
 
-      slickExec { implicit s =>
-
-        expectedReportsNodesTable +=  t
-
-        expectedReportsNodesTable.first === t
-      }
+      slickExec(expectedReportsNodesTable +=  t)
+      slickExec(expectedReportsNodesTable.result).head === t
     }
-
-  }
 
 }
 

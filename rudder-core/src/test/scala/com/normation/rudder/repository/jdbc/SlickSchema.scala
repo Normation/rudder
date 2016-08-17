@@ -37,15 +37,18 @@
 
 package com.normation.rudder.repository.jdbc
 
-import java.sql.Timestamp
-import org.joda.time.DateTime
-import net.liftweb.common.Loggable
-import javax.sql.DataSource
-import slick.driver.PostgresDriver
+import java.util.concurrent.TimeUnit
+
+import scala.concurrent.Await
+import scala.concurrent.Future
+import scala.concurrent.duration.Duration
+
 import com.github.tminglei.slickpg._
-import java.sql.BatchUpdateException
 import com.normation.rudder.domain.reports.Reports
 
+import org.joda.time.DateTime
+
+import javax.sql.DataSource
 
 /*
  * That class defines mapping for Slick.
@@ -55,25 +58,29 @@ import com.normation.rudder.domain.reports.Reports
  *
  */
 
-/*
- * Speci
- */
-trait MyPostgresDriver extends PostgresDriver
+trait MyPostgresDriver extends ExPostgresDriver
                           with PgArraySupport
+                          with PgRangeSupport
+                          with PgHStoreSupport
+                          with PgSearchSupport
+                          with PgNetSupport
+                          with PgLTreeSupport
                           with PgDateSupportJoda
-                          with PgRangeSupport {
+{
 
-  override lazy val Implicit = new ImplicitsPlus {}
-  override val simple = new SimpleQLPlus {}
+  override val api = MyAPI
 
-  //////
-  trait ImplicitsPlus extends Implicits
-                        with ArrayImplicits
-                        with DateTimeImplicits
-                        with RangeImplicits
-
-  trait SimpleQLPlus extends SimpleQL
-                        with ImplicitsPlus
+  object MyAPI extends API with ArrayImplicits
+                           with NetImplicits
+                           with LTreeImplicits
+                           with RangeImplicits
+                           with HStoreImplicits
+                           with SearchImplicits
+                           with SearchAssistants
+                           with JodaDateTimeImplicits
+  {
+    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+  }
 }
 
 object MyPostgresDriver extends MyPostgresDriver
@@ -119,31 +126,23 @@ final case class SlickReports(
  * That file contains Slick schema
  *
  */
-class SlickSchema(datasource: DataSource) extends Loggable {
+class SlickSchema(datasource: DataSource) {
 
-  import MyPostgresDriver.simple._
+  import MyPostgresDriver.api._
 
   val slickDB = Database.forDataSource(datasource)
 
-  val expectedReportsTable = TableQuery[ExpectedReportsTable]
+  val expectedReportsTable: TableQuery[ExpectedReportsTable] = TableQuery[ExpectedReportsTable]
   val expectedReportsNodesTable = TableQuery[ExpectedReportsNodesTable]
   val reportsTable = TableQuery[ReportsTable]
 
-
-
-
-  def slickExec[A](body: Session => A): A = {
-    try {
-      slickDB.withSession { s => body(s) }
-    } catch {
-      case e: BatchUpdateException =>
-        logger.error("Error when inserting reports: " + e.getMessage)
-        logger.error(e.getNextException)
-        throw e
-    }
+  /**
+   * A simple exec that is synchronized.
+   */
+  def slickExec[A](body: DBIOAction[A, NoStream, Nothing]): A = {
+    val f: Future[A] = slickDB.run(body)
+    Await.result(f, Duration(5, TimeUnit.SECONDS))
   }
-
-
 
   class ExpectedReportsTable(tag: Tag) extends Table[SlickExpectedReports](tag, "expectedreports") {
     def pkId = column[Int]("pkid", O.PrimaryKey, O.AutoInc) // This is the primary key column
@@ -156,12 +155,12 @@ class SlickSchema(datasource: DataSource) extends Loggable {
     def componentsValues = column[String]("componentsvalues")
     def unexpandedComponentsValues = column[String]("unexpandedcomponentsvalues")
     def beginDate = column[DateTime]("begindate")
-    def endDate = column[DateTime]("enddate", O.Nullable)
+    def endDate = column[Option[DateTime]]("enddate")
 
     // Every table needs a * projection with the same type as the table's type parameter
     def * = (
         pkId.?, nodeJoinKey, ruleId, serial, directiveId, component,
-        cardinality, componentsValues, unexpandedComponentsValues, beginDate, endDate.?
+        cardinality, componentsValues, unexpandedComponentsValues, beginDate, endDate
     ) <> (SlickExpectedReports.tupled, SlickExpectedReports.unapply)
   }
 
@@ -181,8 +180,6 @@ class SlickSchema(datasource: DataSource) extends Loggable {
   /*
    * **************************** Reports table ****************************
    */
-
-
 
   class ReportsTable(tag: Tag) extends Table[SlickReports](tag, "ruddersysevents") {
     def id = column[Long]("id", O.PrimaryKey, O.AutoInc) // This is the primary key column
@@ -214,7 +211,7 @@ class SlickSchema(datasource: DataSource) extends Loggable {
   def insertReports(reports: Seq[Reports]) = {
     val slickReports = reports.map(toSlickReport(_))
 
-    slickExec { implicit s =>
+    slickExec {
       reportsTable ++= slickReports
     }
   }

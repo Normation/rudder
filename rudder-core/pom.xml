@@ -90,6 +90,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${jgit-version}</version>
     </dependency>
 
+<dependency>
+    <groupId>org.postgresql</groupId>
+    <artifactId>postgresql</artifactId>
+    <version>9.4.1209.jre7</version>
+</dependency>
     <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
@@ -106,18 +111,18 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
       <groupId>com.typesafe.slick</groupId>
       <artifactId>slick_${scala-binary-version}</artifactId>
-      <version>2.1.0</version>
+      <version>3.1.1</version>
     </dependency>
     <!-- slick postgresql support:  https://github.com/tminglei/slick-pg -->
     <dependency>
       <groupId>com.github.tminglei</groupId>
       <artifactId>slick-pg_${scala-binary-version}</artifactId>
-      <version>0.6.3</version>
+      <version>0.14.3</version>
     </dependency>
     <dependency>
       <groupId>com.github.tminglei</groupId>
       <artifactId>slick-pg_joda-time_${scala-binary-version}</artifactId>
-      <version>0.6.3</version>
+      <version>0.14.3</version>
     </dependency>
 
     <!-- pool connection: https://github.com/brettwooldridge/HikariCP -->
@@ -125,7 +130,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <dependency>
         <groupId>com.zaxxer</groupId>
         <artifactId>HikariCP</artifactId>
-        <version>2.4.3</version>
+        <version>2.4.7</version>
     </dependency>
 
     <dependency>
