@@ -37,7 +37,6 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scala.slick.driver.PostgresDriver.simple._
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.matcher.MatchResult
@@ -49,14 +48,13 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
-import com.normation.rudder.migration.DBCommon
+import com.normation.rudder.db.DBCommon
 import com.normation.rudder.reports.ChangesOnly
 import com.normation.rudder.reports.execution._
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
-import com.normation.rudder.reports.statusUpdate.StatusUpdateSquerylRepository
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.reports.AgentRunIntervalService
 import org.joda.time.Duration
@@ -75,6 +73,18 @@ import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
+import net.liftweb.common.Failure
+import net.liftweb.common.EmptyBox
+import com.normation.rudder.services.reports.NodeChangesService
+import com.normation.rudder.services.reports.NodeChangesServiceImpl
+import com.normation.rudder.db.DB
+import doobie.util.update.Update
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import com.normation.BoxSpecMatcher
+
 
 /**
  *
@@ -82,10 +92,13 @@ import com.normation.rudder.reports.GlobalComplianceMode
  *
  */
 @RunWith(classOf[JUnitRunner])
-class ReportingServiceTest extends DBCommon {
+class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
+
+  import doobie._
+
   //clean data base
   def cleanTables() = {
-    jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
+    sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).run
   }
 
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
@@ -97,10 +110,9 @@ class ReportingServiceTest extends DBCommon {
   }
 
   lazy val pgIn = new PostgresqlInClause(2)
-  lazy val reportsRepo = new ReportsJdbcRepository(jdbcTemplate)
-  lazy val slick = new SlickSchema(dataSource)
-  lazy val findExpected = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
-  lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findExpected, findExpected)
+  lazy val reportsRepo = new ReportsJdbcRepository(doobie)
+  lazy val findExpected = new FindExpectedReportsJdbcRepository(doobie, pgIn)
+  lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(doobie, findExpected)
   lazy val updateExpectedService = new ExpectedReportsUpdateImpl(updateExpected, updateExpected)
 
   lazy val agentRunService = new AgentRunIntervalService() {
@@ -113,24 +125,25 @@ class ReportingServiceTest extends DBCommon {
 
   }
 
-  lazy val roAgentRun = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
-  lazy val woAgentRun = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roAgentRun)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, pgIn)
+  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie, roAgentRun)
 
-  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(null) {
+
+  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {
     override def update(changes: Seq[ResultRepairedReport]): Box[Unit] = Full(())
     override def countChangesByRuleByInterval() = Empty
   }
 
-  lazy val updateRuns = new ReportsExecutionService(
-      reportsRepo
-    , woAgentRun
-    , new StatusUpdateSquerylRepository(squerylConnectionProvider)
-    , dummyChangesCache
-    , dummyComplianceCache
-    , 1
-  )
-
-  import slick._
+  lazy val updateRuns = {
+    new ReportsExecutionService(
+        reportsRepo
+      , woAgentRun
+      , new LastProcessedReportRepositoryImpl(doobie)
+      , dummyChangesCache
+      , dummyComplianceCache
+      , 1
+    )
+  }
 
   //help differentiate run number with the millis
   //perfect case: generation are followe by runs one minute latter
@@ -165,7 +178,7 @@ class ReportingServiceTest extends DBCommon {
  * TODO: need to test for "overridden" unique directive on a node
  */
 
-  //BE CAREFULL: we don't compare on expiration dates!
+  //BE CAREFUL: we don't compare on expiration dates!
   val EXPIRATION_DATE = new DateTime(0)
 
   val allNodes_t1 = Seq("n0", "n1", "n2", "n3", "n4").map(n => (NodeId(n), NodeConfigIdInfo(NodeConfigId(n+"_t1"), gen1, Some(gen2) ))).toMap
@@ -174,7 +187,7 @@ class ReportingServiceTest extends DBCommon {
   val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupBy( _._1 ).mapValues( _.map( _._2 ) )
 
   val expecteds = (
-    Map[SlickExpectedReports, Seq[SlickExpectedReportsNodes]]()
+    Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]]()
     ++ expect("r0", 1)( //r0 @ t1
         (1, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
       , (1, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v0"]""", gen1, Some(gen2), allNodes_t1 )
@@ -238,18 +251,36 @@ class ReportingServiceTest extends DBCommon {
 
   sequential
 
-  step {
-    slick.insertReports(reports.values.toSeq.flatten)
-    slickExec { implicit session =>
-      expectedReportsTable ++= expecteds.keySet
-      expectedReportsNodesTable ++= expecteds.values.toSet.flatten
-    }
-    updateRuns.findAndSaveExecutions(42)
-    updateRuns.findAndSaveExecutions(43) //need to be done one time for init, one time for actual work
+  "Init data" should {
+    import doobie._
 
-    //add node configuration in repos, testing "add" method
-    updateExpected.addNodeConfigIdInfo(allNodes_t1.mapValues(_.configId), gen1).openOrThrowException("I should be able to add node config id info")
-    updateExpected.addNodeConfigIdInfo(allNodes_t2.mapValues(_.configId), gen2).openOrThrowException("I should be able to add node config id info")
+    "insert reports 1" in {
+
+      val q = for {
+        r <- DB.insertReports(reports.values.toList.flatten)
+        e <- DB.insertExpectedReports(expecteds.keySet.toList)
+        n <- DB.insertExpectedReportsNode(expecteds.values.toSet.flatten.toList)
+      } yield {
+        (r, e, n)
+      }
+
+      val (r, e, n) = q.transact(xa).run
+
+      (r must be_==(30)) and (e must be_==(6)) and (n must be_==(20))
+    }
+
+
+    "insert execution" in {
+      //need to be done one time for init, one time for actual work
+      (updateRuns.findAndSaveExecutions(42) mustFull) and
+      (updateRuns.findAndSaveExecutions(43) mustFull)
+    }
+
+    "insert node config info" in {
+      //add node configuration in repos, testing "add" method
+      (updateExpected.addNodeConfigIdInfo(allNodes_t1.mapValues(_.configId), gen1) mustFull) and
+      (updateExpected.addNodeConfigIdInfo(allNodes_t2.mapValues(_.configId), gen2) mustFull)
+    }
   }
 
   "Testing set-up for expected reports and agent run" should {  //be in ExpectedReportsTest!
@@ -796,7 +827,7 @@ class ReportingServiceTest extends DBCommon {
    * A comparator for NodeStatusReport that allows to more
    * quickly understand what is the problem
    *
-   * BE CAREFULL: NO EXPIRATION DATE COMPARISON
+   * BE CAREFUL: NO EXPIRATION DATE COMPARISON
    *
    */
   def compareNodeStatus(results:Set[RuleNodeStatusReport], expecteds:Seq[RuleNodeStatusReport]) = {
@@ -848,11 +879,11 @@ class ReportingServiceTest extends DBCommon {
   def expect(ruleId: String, serial: Int)
             //           nodeJoinKey, directiveId  component   cardinality   componentValues  beging     end            , (nodeId, version)
             (expecteds: (Int        , String     , String    , Int         , String         , DateTime, Option[DateTime], Map[NodeId,NodeConfigIdInfo])*)
-  : Map[SlickExpectedReports, Seq[SlickExpectedReportsNodes]] = {
+  : Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]] = {
     expecteds.map { exp =>
-      SlickExpectedReports(None, exp._1, ruleId, serial, exp._2, exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
+      DB.ExpectedReports[Unit]((), exp._1, RuleId(ruleId), serial, DirectiveId(exp._2), exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
       exp._8.map{ case (nodeId, version) =>
-        SlickExpectedReportsNodes(exp._1, nodeId.value, version.configId.value :: Nil)
+        DB.ExpectedReportsNodes(exp._1, nodeId.value, version.configId.value :: Nil)
       }.toSeq
     }.toMap
   }

@@ -38,15 +38,21 @@
 package com.normation.rudder.migration
 
 import java.sql.ResultSet
-import java.sql.Timestamp
+import java.util.concurrent.TimeUnit
 
+import com.normation.BoxSpecMatcher
+
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.springframework.jdbc.core.RowCallbackHandler
 
 import net.liftweb.common.Failure
-import net.liftweb.common.Full
-
+import com.normation.rudder.db.DBCommon
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import com.normation.BoxSpecMatcher
 
 /**
  * Test how the migration run with a Database context
@@ -56,11 +62,11 @@ import net.liftweb.common.Full
  * That database should be empty to avoid table name collision.
  */
 @RunWith(classOf[JUnitRunner])
-class TestManageMigration_5_6 extends DBCommon {
+class TestManageMigration_5_6 extends DBCommon with BoxSpecMatcher {
 
   lazy val migrationManagement = new ControlXmlFileFormatMigration_5_6(
-          migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-        , jdbcTemplate
+          migrationEventLogRepository = new MigrationEventLogRepository(doobie)
+        , doobie
         , None
         , 2
       )
@@ -69,10 +75,10 @@ class TestManageMigration_5_6 extends DBCommon {
   //given parameter, and delete it
   def withFileFormatLine[A](
       detectedFileFormat : Long
-    , migrationStartTime : Option[Timestamp] = None
+    , migrationStartTime : Option[DateTime] = None
     , migrationFileFormat: Option[Long] = None
   )(f:() => A) : A = {
-    val id = migrationEventLogRepository.createNewStatusLine(detectedFileFormat).id
+    val id = migrationEventLogRepository.createNewStatusLine(detectedFileFormat).map( _.id).toOption.get //because test
     migrationStartTime.foreach { time =>
       migrationEventLogRepository.setMigrationStartTime(id, time)
     }
@@ -83,9 +89,8 @@ class TestManageMigration_5_6 extends DBCommon {
     val  res = f()
 
     //delete line
-    withConnection { c =>
-      c.createStatement.execute("DELETE FROM MigrationEventLog WHERE id=%s".format(id))
-    }
+    sql"DELETE FROM MigrationEventLog WHERE id=${id}".update.run.transact(doobie.xa).run
+
     res
   }
 
@@ -94,28 +99,28 @@ class TestManageMigration_5_6 extends DBCommon {
   "Migration of event logs from fileformat 5 to 6" should {
 
     "not be launched if no migration line exists in the DataBase" in {
-      migrationManagement.migrate ==== Full(NoMigrationRequested)
+      migrationManagement.migrate mustFullEq(NoMigrationRequested)
     }
 
     "not be launched if fileFormat is already 6" in {
       val res = withFileFormatLine(6) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res mustFullEq(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileFormat is higher than 6" in {
       val res = withFileFormatLine(42) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res mustFullEq(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileformat is negative" in {
       val res = withFileFormatLine(-1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotSupported)
+      res mustFullEq(MigrationVersionNotSupported)
     }
 
     for(i <- 0 to 4) {
@@ -123,7 +128,7 @@ class TestManageMigration_5_6 extends DBCommon {
         val res = withFileFormatLine(i) {
            migrationManagement.migrate
         }
-        res ==== Full(MigrationVersionNotSupported)
+        res mustFullEq(MigrationVersionNotSupported)
       }
     }
 
@@ -131,17 +136,14 @@ class TestManageMigration_5_6 extends DBCommon {
       val res = withFileFormatLine(5, Some(now), Some(5)) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationSuccess(0))
+      res mustFullEq(MigrationSuccess(0))
     }
 
     "be launched if fileformat is 5" in {
       val res = withFileFormatLine(5) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationSuccess(0))
+      res mustFullEq(MigrationSuccess(0))
     }
-
   }
-
-
 }

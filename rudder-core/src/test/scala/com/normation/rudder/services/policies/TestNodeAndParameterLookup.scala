@@ -37,7 +37,6 @@
 
 package com.normation.rudder.services.policies
 
-import org.joda.time.DateTime
 import org.junit.runner._
 import org.specs2.runner._
 import org.specs2.mutable._
@@ -56,6 +55,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+import org.joda.time.DateTime
 
 import net.liftweb.common.Box
 import net.liftweb.common.Empty

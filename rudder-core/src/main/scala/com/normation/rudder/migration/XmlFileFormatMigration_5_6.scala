@@ -47,6 +47,7 @@ import com.normation.rudder.services.marshalling.TestFileFormat
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
+import com.normation.rudder.db.Doobie
 
 /**
  * General information about that migration
@@ -57,6 +58,7 @@ trait Migration_5_6_Definition extends XmlFileFormatMigration {
   override val toVersion   = Constants.XML_FILE_FORMAT_6
 
 }
+
 
 /**
  * That class handle migration of XML eventLog and change request
@@ -97,13 +99,13 @@ object XmlMigration_5_6 extends Migration_5_6_Definition {
 
 class ControlXmlFileFormatMigration_5_6(
     override val migrationEventLogRepository: MigrationEventLogRepository
-  ,          val jdbcTemplate               : JdbcTemplate
+  ,          val doobie                     : Doobie
   , override val previousMigrationController: Option[ControlXmlFileFormatMigration]
   ,          val batchSize                  : Int = 1000
 ) extends ControlXmlFileFormatMigration with Migration_5_6_Definition {
   override val batchMigrators = (
-       new EventLogsMigration_5_6(jdbcTemplate, batchSize)
-    :: new ChangeRequestsMigration_5_6(jdbcTemplate, batchSize)
+       new EventLogsMigration_5_6(doobie, batchSize)
+    :: new ChangeRequestsMigration_5_6(doobie, batchSize)
     :: Nil
   )
 }
@@ -115,7 +117,7 @@ class ControlXmlFileFormatMigration_5_6(
  *
  */
 class EventLogsMigration_5_6(
-    override val jdbcTemplate: JdbcTemplate
+    override val doobie      : Doobie
   , override val batchSize   : Int = 1000
 ) extends EventLogsMigration with Migration_5_6_Definition {
   override val individualMigration = new IndividualElementMigration[MigrationEventLog] with Migration_5_6_Definition {
@@ -153,7 +155,6 @@ class EventLogsMigration_5_6(
 }
 
 
-
 /**
  * The class that handle the processing of the list of all event logs
  * logic.
@@ -161,7 +162,7 @@ class EventLogsMigration_5_6(
  *
  */
 class ChangeRequestsMigration_5_6(
-    override val jdbcTemplate: JdbcTemplate
+    override val doobie      : Doobie
   , override val batchSize   : Int = 1000
 ) extends ChangeRequestsMigration with Migration_5_6_Definition {
   override val individualMigration = new IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {

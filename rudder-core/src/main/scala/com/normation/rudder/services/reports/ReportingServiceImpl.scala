@@ -245,7 +245,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      *
      * - for a (or n) given node (we have a node-bias),
      * - get the expected configuration right now
-     *   - errors may happen if the node does not exists or if
+     *   - errors may happen if the node does not exist or if
      *     it does not have config right now. For example, it
      *     was added just a second ago.
      *     => "no data for that node"
@@ -306,17 +306,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    *
    */
   private[this] def getNodeRunInfos(nodeIds: Set[NodeId], complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
-    def findVersionById(id: NodeConfigId, infos: Seq[NodeConfigIdInfo]): Option[NodeConfigIdInfo] ={
-      infos.find { i => i.configId == id}
-    }
-
-    def findVersionByDate(date: DateTime, infos: Seq[NodeConfigIdInfo]): Option[NodeConfigIdInfo] ={
-      infos.find { i => i.creation.isBefore(date) && (i.endOfLife match {
-        case None => true
-        case Some(t) => t.isAfter(date)
-      }) }
-    }
-
     for {
       runs              <- complianceMode.mode match {
                             //this is an optimisation to avoid querying the db in that case

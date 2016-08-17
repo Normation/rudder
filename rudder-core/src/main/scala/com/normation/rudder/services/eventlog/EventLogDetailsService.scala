@@ -69,7 +69,6 @@ import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import com.normation.rudder.repository.GitPath
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.repository.GitArchiveId
-import com.normation.rudder.repository.jdbc.NodeMapper
 import com.normation.rudder.reports._
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser

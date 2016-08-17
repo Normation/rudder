@@ -35,26 +35,26 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.migration
+package com.normation.rudder.db
 
-import java.sql.Connection
-import java.sql.ResultSet
-import java.sql.Timestamp
 import java.util.Properties
 
 import scala.io.Source
-import scala.xml.XML
 
+import com.normation.rudder.db.Doobie._
+import com.normation.rudder.migration.MigrableEntity
+import com.normation.rudder.migration.MigrationEventLogRepository
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.RowMapper
 
+import doobie.imports. _
 import net.liftweb.common.Loggable
-
+import scalaz._
+import scalaz.Scalaz._
+import com.normation.rudder.migration.MigrationTestLog
+import org.joda.time.DateTime
 
 
 /**
@@ -63,13 +63,15 @@ import net.liftweb.common.Loggable
  */
 trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
+  val now = DateTime.now
+
   logger.info("""Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test""")
 
   val doDatabaseConnection = System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true
     case _ => false
   }
-  skipAllIf(!doDatabaseConnection)
+//  skipAllIf(!doDatabaseConnection)
 
   /**
    * By default, init schema with the Rudder schema and tables, safe that
@@ -77,18 +79,20 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    */
   def sqlInit : String = {
     val is = this.getClass().getClassLoader().getResourceAsStream("reportsSchema.sql")
-    val sqlText = Source.fromInputStream(is).getLines.toSeq.map(s =>
-      s
-      //using toLowerCase is safer, it will always replace create table by a temp one,
-      //but it also mean that we will not know when we won't be strict with ourselves
-         .toLowerCase
-         .replaceAll("create table", "create temp table")
-         .replaceAll("create sequence", "create temp sequence")
-         .replaceAll("alter database rudder", "alter database test")
-    ).mkString("\n")
-    is.close()
+    val sqlText = Source.fromInputStream(is).getLines.toSeq
+      .filterNot{ line => val s = line.trim(); s.isEmpty || s.startsWith("/*") || s.startsWith("*") }
+      .map(s =>
+        s
+        //using toLowerCase is safer, it will always replace create table by a temp one,
+        //but it also mean that we will not know when we won't be strict with ourselves
+           .toLowerCase
+           .replaceAll("create table", "create temp table")
+           .replaceAll("create sequence", "create temp sequence")
+           .replaceAll("alter database rudder", "alter database test")
+      ).mkString("\n")
+      is.close()
 
-    sqlText
+      sqlText
   }
 
 
@@ -105,27 +109,19 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   override def afterAll(): Unit = cleanDb
 
   def initDb() = {
-    if(sqlInit.trim.size > 0) jdbcTemplate.execute(sqlInit)
+    if(sqlInit.trim.size > 0) {
+      // Postgres'JDBC driver just accept multiple statement
+      // in one query. No need to try to split ";" etc.
+      Update0(sqlInit, None).run.transact(doobie.xa).run
+    }
   }
 
   def cleanDb() = {
-    if(sqlClean.trim.size > 0) jdbcTemplate.execute(sqlClean)
+    if(sqlClean.trim.size > 0) Update0(sqlClean, None).run.transact(doobie.xa).run
 
     dataSource.close
   }
 
-  def now = new Timestamp(System.currentTimeMillis)
-
-
-  //execute something on the connection before commiting and closing it
-  def withConnection[A](f:Connection => A) : A = {
-    val c = dataSource.getConnection
-    c.setAutoCommit(false)
-    val res = f(c)
-    c.commit
-    c.close
-    res
-  }
 
   //////////////
   // services //
@@ -146,28 +142,13 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
       , properties.getProperty("jdbc.url")
       , properties.getProperty("jdbc.username")
       , properties.getProperty("jdbc.password")
-        //MUST BE '1', else temp table desapear between the two connections in
+        //MUST BE '1', else temp table disappear between the two connections in
         //really funny ways
       , 1
     )
     config.datasource
   }
 
-  //a row mapper for TestLog
-  lazy val testLogRowMapper = new RowMapper[MigrationTestLog] {
-    override def mapRow(rs:ResultSet, rowNum:Int) : MigrationTestLog = {
-      MigrationTestLog(
-        id        = Some(rs.getLong("id"))
-      , principal = rs.getString("principal")
-      , eventType = rs.getString("eventType")
-      , timestamp = rs.getTimestamp("creationDate")
-      , cause     = if(rs.getInt("causeId")>0) Some(rs.getInt("causeId"))
-                    else None
-      , severity  = rs.getInt("severity")
-      , data      = XML.load(rs.getSQLXML("data").getBinaryStream())
-      )
-    }
-  }
 
   lazy val successLogger : Seq[MigrableEntity] => Unit = { seq =>
     logger.debug("Log correctly migrated (id,type): " + (seq.map { case l =>
@@ -175,13 +156,13 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     }).mkString(", ") )
   }
 
-  lazy val squerylConnectionProvider = new SquerylConnectionProvider(dataSource)
+  lazy val doobie = new Doobie(dataSource)
+  lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
-  lazy val jdbcTemplate = new JdbcTemplate(dataSource)
-
-
-
-  lazy val migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-
-
+  def insertLog(log: MigrationTestLog): Int = {
+  sql"""
+      insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
+      values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
+    """.update.withUniqueGeneratedKeys[Int]("id").transact(doobie.xa).run
+}
 }

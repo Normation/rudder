@@ -81,7 +81,7 @@ final case class EventLogDetails(
  , val cause         : Option[Int] = None
  , val severity      : Int = 100
  , val reason        : Option[String]
- , val details       : NodeSeq
+ , val details       : Elem
 ) extends HashcodeCaching
 
 trait EventLogFilter extends PartialFunction[(EventLogType, EventLogDetails) , EventLog] {
@@ -136,7 +136,7 @@ trait EventLog  {
    * Usually, the rawData will be computed from the fields when serializing,
    * and be used to fill the fields when deserializing
    */
-  def details : NodeSeq = eventDetails.details
+  def details : Elem = eventDetails.details
 
   /**
    * The modification id linked to that event log.

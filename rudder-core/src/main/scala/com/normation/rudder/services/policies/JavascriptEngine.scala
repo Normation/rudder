@@ -621,7 +621,7 @@ final object JsEngine {
    * The RudderJsEngineThreadFactory take care of correctly initializing
    * threads.
    *
-   * BE CAREFULL - this sandbox won't prevent an attacker to get/do things.
+   * BE CAREFUL - this sandbox won't prevent an attacker to get/do things.
    * It's goal is to prevent a user to do obviously bad things on the servers,
    * but more by mistake (because he didn't understood when the script is evaled,
    * for example).

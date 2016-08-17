@@ -87,7 +87,7 @@ class CheckTechniqueLibraryReload(
               } else {
                 // File could not be deleted, seek for reason
                 if(!file.exists()) {
-                  logger.warn(s"Flag file '${forceReloadFlagPath}' could not be removed as it does not exists anymore")
+                  logger.warn(s"Flag file '${forceReloadFlagPath}' could not be removed as it does not exist anymore")
                 } else {
                   logger.error(s"Flag file '${forceReloadFlagPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
                 }
@@ -102,7 +102,7 @@ class CheckTechniqueLibraryReload(
             logger.error(s"Flag file '${forceReloadFlagPath}' but Techniques library reload failed, cause is: ${msg}")
         }
       } else {
-        logger.info(s"Flag file '${forceReloadFlagPath}' does not exists, do not Technique library will not be reloaded")
+        logger.info(s"Flag file '${forceReloadFlagPath}' does not exist, do not Technique library will not be reloaded")
       }
     } catch {
       // Exception while checking the file existence

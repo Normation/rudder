@@ -99,7 +99,7 @@ class LdapConfigRepository(
       (oldProperty,needSave) =
         allProperties.find(_.name == property.name) match {
           case None =>
-            // The property does not exists, should not happen, create and "empty" property (value "")
+            // The property does not exist, should not happen, create and "empty" property (value "")
             (property.copy(value = ""),true)
           case Some(oldProperty) =>
             (oldProperty,oldProperty.value != property.value)

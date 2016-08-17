@@ -86,7 +86,7 @@ case class TechniqueAPIService6 (
        })
      } yield {
       techniques.get(directive.techniqueVersion) match {
-        case None => Failure(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exists, but is used by Directive '${directive.id.value}'")
+        case None => Failure(s"Version ${directive.techniqueVersion} of Technique '${techniqueName.value}' does not exist, but is used by Directive '${directive.id.value}'")
         case Some(technique) => Full(serialize(technique,directive))
       }
      }
@@ -99,7 +99,7 @@ case class TechniqueAPIService6 (
             if  (techniques.keySet.contains(version)) {
               Full("ok")
             } else {
-              Failure(s"Version '${version}' of Technique '${techniqueName.value}' does not exists" )
+              Failure(s"Version '${version}' of Technique '${techniqueName.value}' does not exist" )
             }
           }
         case None => Full("ok")
@@ -108,7 +108,7 @@ case class TechniqueAPIService6 (
 
     for {
       lib        <- readDirective.getFullDirectiveLibrary()
-      activeTech <- Box(lib.allActiveTechniques.values.find { _.techniqueName == techniqueName }) ?~! s"Technique '${techniqueName.value}' does not exists"
+      activeTech <- Box(lib.allActiveTechniques.values.find { _.techniqueName == techniqueName }) ?~! s"Technique '${techniqueName.value}' does not exist"
 
       // Check if version we want exists in technique library, We don't need the result
       _                    <- checkWantedVersions(activeTech.techniques, wantedVersions)

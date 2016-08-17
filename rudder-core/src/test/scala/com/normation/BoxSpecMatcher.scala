@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,24 +35,53 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.statusUpdate
+package com.normation
 
-import org.joda.time.DateTime
+import org.specs2.matcher.MatchResult
+import org.specs2.mutable.Specification
+
 import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
+
+
 
 /**
- * Manage the status of the fetching of execution date per node
+ * Here we manage all the initialisation of services and database
+ * state for the full example (after/before class).
  */
-trait StatusUpdateRepository {
+trait BoxSpecMatcher extends Specification with Loggable {
+
 
   /*
-   * BE CAREFUL : these methods will report false value
-   * if two instance of Rudder are using the same
-   * database.
+   * helpers for Box
    */
+  implicit class BoxMustFails[T](t: Box[T]) {
+    def mustFails(): MatchResult[Any] = t match {
+      case f: Failure => ok(s"Got a Failure as expected: ${f.messageChain}")
+      case x          => ko(s"I was expecting a Failure box and got ${x}")
+    }
+  }
 
-  def getExecutionStatus : Box[Option[(Long,DateTime)]]
+  implicit class BoxMustEquals[T](t: Box[T]) {
+    private[this] def matchRes(f: T => MatchResult[Any]) = t match {
+      case f: Failure =>
+        val msg = s"I wasn't expecting the failure: ${f.messageChain}"
+        f.rootExceptionCause.foreach { ex =>
+          logger.error(msg)
+          ex.printStackTrace()
+        }
+        ko(msg)
+      case Empty      => ko(s"How can I get an Empty!")
+      case Full(x)    => f(x)
+    }
 
-  def setExecutionStatus (newId : Long, reportsDate : DateTime) : Box[UpdateEntry]
+    def mustFullEq(res: T): MatchResult[Any] = matchRes( (x:T) => x === res)
+
+    def mustFull: MatchResult[Any] = matchRes( (x:T) => ok(s"Got a ${x}"))
+
+  }
 
 }

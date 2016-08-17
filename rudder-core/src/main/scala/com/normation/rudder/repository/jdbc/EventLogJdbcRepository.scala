@@ -64,28 +64,29 @@ import com.normation.rudder.domain.workflows.ChangeRequestId
 import scala.util.Try
 import scala.util.Success
 import scala.util.{Failure => Catch}
-import com.normation.rudder.domain.workflows.ChangeRequestId
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import doobie. contrib.postgresql.pgtypes._
+import scalaz.concurrent.Task
+import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.DB
 
 /**
  * The EventLog repository
  * Save in an SQL table the EventLog, and retrieve unspecialized version of the eventlog
  * Usually, the EventLog won't be created with an id nor a cause id (nor a principal), that why they can be passed
  * in parameters
- * @author Nicolas CHARLES
  *
  */
 class EventLogJdbcRepository(
-    jdbcTemplate                : JdbcTemplate
+    doobie                      : Doobie
   , override val eventLogFactory: EventLogFactory
-) extends EventLogRepository {
+) extends EventLogRepository with Loggable {
 
-   val logger = LoggerFactory.getLogger(classOf[EventLogRepository])
+  import doobie._
 
-   //reason: column 7
-   //causeId: column 8
-   val INSERT_SQL = "insert into EventLog (creationDate, modificationId, principal, eventType, severity, data %s %s) values (?, ?, ?, ?, ?, ? %s %s)"
-
-   val SELECT_SQL = "SELECT id, creationDate, modificationId, principal, eventType, severity, data, reason, causeId FROM EventLog where 1=1 "
 
   /**
    * Save an eventLog
@@ -93,115 +94,102 @@ class EventLogJdbcRepository(
    * Return the event log with its serialization number
    */
   def saveEventLog(modId: ModificationId, eventLog : EventLog) : Box[EventLog] = {
-     val keyHolder = new GeneratedKeyHolder()
+    //we only know how to store Elem, not NodeSeq
+    eventLog.details match {
+      case elt: Elem =>
 
-     try {
-         jdbcTemplate.update(
-         new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val sqlXml = connection.createSQLXML()
-             sqlXml.setString(eventLog.details.toString)
-             var i = 6
-             val (reasonCol, reasonVal) = eventLog.eventDetails.reason match {
-               case None => ("", "")
-               case Some(r) =>
-                 i = i + 1
-                 (", reason", ", ?") //#7
-             }
+        val boxId: Box[Int] = sql"""
+          insert into eventlog (creationdate, modificationid, principal, eventtype, severity, data, reason, causeid)
+          values(${eventLog.creationDate}, ${modId.value}, ${eventLog.principal.name}, ${eventLog.eventType.serialize},
+                 ${eventLog.severity}, ${elt}, ${eventLog.eventDetails.reason}, ${eventLog.cause}
+                )
+        """.update.withUniqueGeneratedKeys[Int]("id").attempt.transact(xa).run
 
-             val (causeCol, causeVal) = eventLog.cause match {
-               case None => ("","")
-               case Some(id) =>
-                 i = i + 1
-                 (", causeId", ", ?") //#8
-             }
-
-             val ps = connection.prepareStatement(INSERT_SQL.format(reasonCol, causeCol, reasonVal, causeVal), Seq[String]("id").toArray[String]);
-
-             ps.setTimestamp(1, new Timestamp(eventLog.creationDate.getMillis))
-             ps.setString(2, modId.value)
-             ps.setString(3, eventLog.principal.name)
-             ps.setString(4, eventLog.eventType.serialize)
-             ps.setInt(5, eventLog.severity)
-             ps.setSQLXML(6, sqlXml) // have a look at the SQLXML
-
-             eventLog.eventDetails.reason.foreach( x => ps.setString(7, x) )
-             eventLog.cause foreach( x => ps.setInt(i, x)  )
-
-             ps
-           }
-         },
-         keyHolder)
-
-         getEventLog(keyHolder.getKey().intValue)
-     } catch {
-       case e:Exception => logger.error(e.getMessage)
-       Failure("Exception caught while trying to save an eventlog : %s".format(e.getMessage),Full(e), Empty)
-     }
-  }
-
-
-  def getEventLog(id : Int) : Box[EventLog] = {
-    val list = jdbcTemplate.query(SELECT_SQL + " and id = ?" ,
-        Array[AnyRef](id.asInstanceOf[AnyRef]),
-        EventLogReportsMapper)
-    list.size match {
-      case 0 => Empty
-      case 1 => Full(list.get(0))
-      case _ => Failure("Too many event log for this id")
+        for {
+          id      <- boxId
+          details =  eventLog.eventDetails.copy(id = Some(id), modificationId = Some(modId))
+          saved   <- EventLogReportsMapper.mapEventLog(eventLog.eventType, details)
+        } yield {
+          saved
+        }
+      case _ => Failure(s"Eventlog with type '${eventLog.eventType} has invalid XML for details (it must be a well formed document with only one root): ${eventLog.details}'")
     }
   }
 
+  /*
+   * How we transform data from DB into an eventlog.
+   * We never fail, because we want to let the user be able to
+   * see unreconized event log (even if it means looking to XML,
+   * it's better than missing an important info)
+   */
+  private[this] def toEventLog(pair: (String, EventLogDetails)): EventLog = {
+    val (eventType, eventLogDetails) = pair
+    EventLogReportsMapper.mapEventLog(
+        EventTypeFactory(eventType)
+      , eventLogDetails
+    ) match {
+      case Full(log)   => log
+      case e: EmptyBox =>
+        logger.warn(s"Error when trying to get the event type, recorded type was: '${eventType}'", e)
+        UnspecializedEventLog(eventLogDetails)
+      }
+  }
 
   def getEventLogByChangeRequest(
       changeRequest   : ChangeRequestId
     , xpath           : String
     , optLimit        : Option[Int] = None
     , orderBy         : Option[String] = None
-    , eventTypeFilter : Option[Seq[EventLogFilter]] = None) : Box[Seq[EventLog]]= {
-    Try {
-      jdbcTemplate.query(
-        new PreparedStatementCreator() {
-           def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val order = orderBy.map(o => " order by " + o).getOrElse("")
-             val limit = optLimit.map( l => " limit " + l).getOrElse("")
-             val eventFilter = eventTypeFilter.map( seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")").getOrElse("")
+    , eventTypeFilter : List[EventLogFilter] = Nil
+  ) : Box[Vector[EventLog]]= {
 
-             val query= s"${SELECT_SQL} and cast (xpath('${xpath}', data) as text[]) = ? ${eventFilter} ${order} ${limit}"
-             val ps = connection.prepareStatement(
-                 query, Array[String]());
-             ps.setArray(1, connection.createArrayOf("text", Seq(changeRequest.value.toString).toArray[AnyRef]) )
-
-             // if with have eventtype filter, apply them
-             eventTypeFilter.map { seq => seq.zipWithIndex.map { case (eventType, number) =>
-               // zipwithIndex starts at 0, and we have already 1 used for the array, so we +2 the index
-               ps.setString((number+2), eventType.eventType.serialize )
-               }
-             }
-
-             ps
-           }
-         }, EventLogReportsMapper)
-    } match {
-      case Success(x) => Full(x)
-      case Catch(error) => Failure(error.toString())
+    val order = orderBy.map(o => " order by " + o).getOrElse("")
+    val limit = optLimit.map( l => " limit " + l).getOrElse("")
+    val eventFilter = eventTypeFilter match {
+      case Nil => ""
+      case seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")"
     }
+
+    val q = s"""
+      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      from eventlog
+      where cast (xpath('${xpath}', data) as text[]) = ?
+      ${eventFilter} ${order} ${limit}
+    """
+
+    // here, we have to build the parameters by hand
+    // the first is the array needed by xpath, the following are eventType - if any
+    val eventTypeParam = eventTypeFilter.zipWithIndex
+    val param = ( HPS.set(1, List(changeRequest.value.toString)) /: eventTypeParam ) { case (current, (event,index)) =>
+      // zipwithIndex starts at 0, and we have already 1 used for the array, so we +2 the index
+      current *> HPS.set(index+2, event.eventType.serialize)
+    }
+
+    (for {
+      entries <- HC.process[(String, EventLogDetails)](q, param).vector
+    } yield {
+      entries.map(toEventLog)
+    }).attempt.transact(xa).run
   }
 
   def getLastEventByChangeRequest(
-      xpath: String
-    , eventTypeFilter : Option[Seq[EventLogFilter]] = None
+      xpath          : String
+    , eventTypeFilter: List[EventLogFilter] = Nil
   ) : Box[Map[ChangeRequestId,EventLog]] = {
 
-    val eventFilter = eventTypeFilter.map( seq => " where eventType in (" + seq.map(x => "?").mkString(",") + ")").getOrElse("")
+    val eventFilter = eventTypeFilter match {
+      case Nil => ""
+      case seq => " and eventType in (" + seq.map(x => "?").mkString(",") + ")"
+    }
 
     // Query to get Last event by change request, we need to do something like a groupby and get the one with a higher creationDate
     // We partition our result by id, and order them by creation desc, and get the number of that row
     // then we only keep the first row (rownumber <=1)
-    val query = s"""
-      select * from (
+    val q = s"""
+      select crid, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      from (
         select
-            *
+            eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
           , cast (xpath(?, data) as text[]) as crid
           , row_number() over (
               partition by cast (xpath(?, data) as text[])
@@ -210,66 +198,58 @@ class EventLogJdbcRepository(
         from eventlog
         ${eventFilter}
       ) lastEvents where rownumber <= 1;
-      """
-    Try {
-      jdbcTemplate.query(
-          new PreparedStatementCreator() {
-            def createPreparedStatement(connection : Connection) : PreparedStatement = {
-              val ps = connection.prepareStatement(query, Array[String]());
-              ps.setString(1, xpath )
-              ps.setString(2, xpath )
+    """
 
-              // if with have eventtype filter, apply them
-              eventTypeFilter.map { seq => seq.zipWithIndex.map { case (eventType, index) =>
-                // zipwithIndex starts at 0, and we have already 2 used for the array and start at 1, so we +3 the index
-                ps.setString((index+3), eventType.eventType.serialize )
-              } }
-
-              ps
-            }
-          }
-        , EventLogWithCRIdMapper
-      )
-    } match {
-      case Success(x) => Full(x.toMap)
-      case Catch(error) => Failure(error.toString())
+    // here, we have to build the parameters by hand
+    // the first is the array needed by xpath, the following are eventType - if any
+    val eventTypeParam = eventTypeFilter.zipWithIndex
+    val param = ( (HPS.set(1, xpath) *> HPS.set(2 , xpath))  /: eventTypeParam ) { case (current, (event,index)) =>
+      // zipwithIndex starts at 0, and we have already 2 used for the xpath, so we +3 the index
+      current *> HPS.set(index+3, event.eventType.serialize)
     }
+
+    (for {
+      entries <- HC.process[(String, String, EventLogDetails)](q, param).vector
+    } yield {
+      entries.map { case (crid, tpe, details) =>
+        (ChangeRequestId(crid.substring(1, id.length()-1).toInt), toEventLog((tpe, details)) )
+      }.toMap
+    }).attempt.transact(xa).run
   }
 
-  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Seq[EventLog]] = {
-    val where = criteria.map(c => s"and ${c}").getOrElse("")
+  def getEventLogByCriteria(criteria : Option[String], optLimit:Option[Int] = None, orderBy:Option[String]) : Box[Vector[EventLog]] = {
+
+    val where = criteria.map(c => s"where ${c}").getOrElse("")
     val order = orderBy.map(o => s" order by ${o}").getOrElse("")
     val limit = optLimit.map(l => s" limit ${l}").getOrElse("")
-    val select = s"${SELECT_SQL} ${where} ${order} ${limit}"
-    Try {
-      Full(jdbcTemplate.query(select, EventLogReportsMapper).toSeq)
-    } match {
-      case Success(events) => events
-      case Catch(e) => val msg = s"could not find event log with request ${select} cause: ${e}"
-        logger.error(msg)
-        Failure(msg)
-    }
+
+    val q = s"""
+      select crid, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      ${where} ${order} ${limit}
+    """
+
+    (for {
+      entries <- query[(String, EventLogDetails)](q).vector
+    } yield {
+      entries.map(toEventLog)
+    }).attempt.transact(xa).run ?~! s"could not find event log with request ${q}"
   }
 
   def getEventLogWithChangeRequest(id:Int) : Box[Option[(EventLog,Option[ChangeRequestId])]] = {
 
-    val select = "SELECT E.id, creationDate, E.modificationId, principal, eventType, severity, data, reason, causeId, CR.id as changeRequestId FROM EventLog E  LEFT JOIN changeRequest CR on E.modificationId = CR.modificationId"
-    Try {
-      jdbcTemplate.query(select + " where E.id = ?" ,
-        Array[AnyRef](id.asInstanceOf[AnyRef]),
-        EventLogWithChangeRequestMapper)
-    } match {
-      case Success(list) =>
-        list.size match {
-          case 0 => Full(None)
-          case 1 => Full(Some(list.get(0)))
-          case _ => Failure("Too many event log for this id")
-        }
-      case Catch(e) => val msg = s"could not find event log with request ${select} cause: ${e}"
-        logger.error(msg)
-        Failure(msg)
-    }
+    val select = sql"""
+      SELECT E.eventtype, E.id, E.modificationid, E.principal, E.creationdate, E.causeid, E.severity, E.reason, E.data, CR.id as changeRequestId
+      FROM EventLog E LEFT JOIN changeRequest CR on E.modificationId = CR.modificationId
+      where E.id = ${id}
+    """
 
+    (for {
+      optEntry <- select.query[(String, EventLogDetails, Option[Int])].option
+    } yield {
+      optEntry.map { case (tpe, details, crid) =>
+        (toEventLog((tpe, details)), crid.flatMap(i => if(i > 0) Some(ChangeRequestId(i)) else None))
+      }
+    }).attempt.transact(xa).run ?~! s"could not find event log with request ${select}"
   }
 
 }
@@ -349,7 +329,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         ModifyGlobalPropertyEventLogsFilter.eventList
 
 
-  private[this] def mapEventLog(
+  def mapEventLog(
       eventType     : EventLogType
     , eventLogDetails  : EventLogDetails
   ) : Box[EventLog] = {

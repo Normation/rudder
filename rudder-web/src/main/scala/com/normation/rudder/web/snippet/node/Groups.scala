@@ -419,7 +419,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   }
 
  /********************************************
-  * Utilitary methods for JS
+  * Utility methods for JS
   ********************************************/
 
   private[this] def displayCategory(workflowEnabled: Boolean)(category : NodeGroupCategory) : JsCmd = {

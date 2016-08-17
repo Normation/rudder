@@ -334,7 +334,7 @@ class SelectOneField(val id: String, valueslabels: Seq[ValueLabel]) extends Dire
  * Files are presented in a select drop box with there
  * file name.
  * No verification is done on basePath, so if it is not a directory
- * or does not exists, the select box will be empty.
+ * or does not exist, the select box will be empty.
  *
  * Set does not set the file is
  */

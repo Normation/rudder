@@ -37,21 +37,24 @@
 
 package com.normation.rudder.reports.execution
 
-import org.joda.time.DateTime
-import com.normation.rudder.batch.FindNewReportsExecution
-import com.normation.rudder.reports.statusUpdate.StatusUpdateRepository
-import com.normation.rudder.repository.ReportsRepository
-import net.liftweb.common._
-import com.normation.rudder.domain.logger.ReportLogger
-import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
-import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.util.Success
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import java.util.concurrent.TimeUnit
+
+import scala.concurrent.Future
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import com.normation.inventory.domain.NodeId
-import org.joda.time.Duration
+import com.normation.rudder.batch.FindNewReportsExecution
+import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import com.normation.utils.Control
+
+import org.joda.time.DateTime
 import org.joda.time.format.PeriodFormat
-import org.joda.time.format.DateTimeFormat
+
+import net.liftweb.common._
+import com.normation.rudder.db.DB
 
 /**
  * That service contains most of the logic to merge
@@ -60,7 +63,7 @@ import org.joda.time.format.DateTimeFormat
 class ReportsExecutionService (
     reportsRepository      : ReportsRepository
   , writeExecutions        : WoReportsExecutionRepository
-  , statusUpdateRepository : StatusUpdateRepository
+  , statusUpdateRepository : LastProcessedReportRepository
   , cachedChanges          : CachedNodeChangesServiceImpl
   , cachedCompliance       : CachedFindRuleNodeStatusReports
   , maxDays                : Int // in days
@@ -68,14 +71,15 @@ class ReportsExecutionService (
 
   val logger = ReportLogger
   var idForCheck: Long = 0
+  def findAndSaveExecutions(processId : Long): Box[Option[DB.StatusUpdate]] = {
 
-  def findAndSaveExecutions(processId : Long) = {
     val startTime = DateTime.now().getMillis()
     // Get execution status
+
+
     statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
       case Full(Some((lastReportId,lastReportDate))) =>
-
         //a test to let the user that there is some inconsistencies in the run
         //we are tracking, and that it may have serious problem.
         if(idForCheck != 0 && lastReportId != idForCheck) {
@@ -110,7 +114,7 @@ class ReportsExecutionService (
 
 
               // Save new executions
-              val res = writeExecutions.updateExecutions(reportExec) match {
+              val res = Control.boxSequence(writeExecutions.updateExecutions(reportExec)) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
                   logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
@@ -121,6 +125,7 @@ class ReportsExecutionService (
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
                   logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to " +
                       s"${(lastReportDate plusDays(maxDays)).toString()}, cause is : ${fail.messageChain}")
+                  eb
               }
 
               /*
@@ -139,19 +144,20 @@ class ReportsExecutionService (
               this.hook(lastReportId, maxReportId, completedRuns.map { _.agentRunId.nodeId}.toSet )
               // end of hooks code
 
-              res
+              res.map( Some(_) )
 
             } else {
               val executionTime = DateTime.now().getMillis() - startTime
               logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
                   s"Added or updated 0 agent runs")
               idForCheck = lastReportId
-              statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate)
+              statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate).map( Some(_) )
             }
 
           case eb:EmptyBox =>
             val fail = eb ?~! "could not get Reports"
             logger.error(s"Could not get node execution reports in the RudderSysEvents table, cause is: ${fail.messageChain}")
+            eb
         }
 
       // Executions status not initialized ... initialize it!
@@ -160,21 +166,21 @@ class ReportsExecutionService (
           case Full(Some((id, report))) =>
             logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
             idForCheck = id
-            statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp)
+            statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp).map( Some(_) )
           case Full(None) =>
             logger.debug("There are no node execution in the database, cannot save the execution")
+            Full( None )
           case eb:EmptyBox =>
             val fail = eb ?~! "Could not get Reports with lowest id from the RudderSysEvents table"
             logger.error(s"Could not get reports from the database, cause is: ${fail.messageChain}")
+            fail
         }
       case eb:EmptyBox =>
         val fail = eb ?~! "Could not get node execution status"
         logger.error(s"Could not get node executions reports from the RudderSysEvents table  cause is: ${fail.messageChain}")
-
+        fail
 
     }
-
-
   }
 
   /*
@@ -217,7 +223,7 @@ class ReportsExecutionService (
           logger.trace("Cache for compliance updates after new run received")
       }
     }
-
+    import org.joda.time.Duration
     logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
 
   }

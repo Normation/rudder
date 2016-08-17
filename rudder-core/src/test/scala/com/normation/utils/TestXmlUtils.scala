@@ -107,7 +107,7 @@ class TestXmlUtils {
     emptyRequestRes(a_n, true)
     emptyRequestRes(a_n, false)
 
-    //X does not exists
+    //X does not exist
     emptyRequestRes(x_n, true)
     emptyRequestRes(x_n, false)
 

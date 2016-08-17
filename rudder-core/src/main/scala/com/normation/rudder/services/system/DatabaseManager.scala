@@ -87,37 +87,15 @@ class DatabaseManagerImpl(
   )  extends DatabaseManager with  Loggable {
 
   def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
-    try {
-      for {
-        oldest   <- reportsRepository.getOldestReports()
-        youngest <- reportsRepository.getNewestReports()
-      } yield {
-        (oldest.map(_.executionTimestamp), youngest.map(_.executionTimestamp))
-      }
-    } catch {
-      case e: Exception =>
-        logger.error("Could not fetch the reports interval from the database. Reason is : %s".format(e.getMessage()))
-        Failure(e.getMessage())
-    }
+    reportsRepository.getReportsInterval()
   }
 
   def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
-    try {
-      for {
-        oldest   <- reportsRepository.getOldestArchivedReports()
-        youngest <- reportsRepository.getNewestArchivedReports()
-      } yield {
-        (oldest.map(_.executionTimestamp), youngest.map(_.executionTimestamp))
-      }
-    } catch {
-      case e: Exception =>
-        logger.error("Could not fetch the archived reports interval from the database. Reason is : %s".format(e.getMessage()))
-        Failure(e.getMessage())
-    }
+    reportsRepository.getArchivedReportsInterval()
   }
 
    def getDatabaseSize() : Box[Long] = {
-     reportsRepository.getDatabaseSize(reportsRepository.reportsTable)
+     reportsRepository.getDatabaseSize(reportsRepository.reports)
    }
 
    def getArchiveSize() : Box[Long] = {

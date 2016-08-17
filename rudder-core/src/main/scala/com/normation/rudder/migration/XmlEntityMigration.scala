@@ -1,21 +1,33 @@
 package com.normation.rudder.migration
 
-import scala.xml.Elem
-import net.liftweb.common._
-import com.normation.rudder.domain.logger.MigrationLogger
-import scala.xml.NodeSeq
-import net.liftweb.util.Helpers.tryo
-import org.springframework.jdbc.core.JdbcTemplate
-import scala.collection.JavaConverters.asScalaBufferConverter
-import org.springframework.jdbc.core.BatchPreparedStatementSetter
-import com.normation.utils.Control._
-import org.springframework.jdbc.core.RowMapper
-import java.sql.Timestamp
-import java.util.Calendar
-import com.normation.utils.XmlUtils
-import scala.xml.Node
 import java.sql.PreparedStatement
+import java.sql.ResultSet
+import java.util.concurrent.TimeUnit
+
+import scala.xml.Elem
+import scala.xml.Node
+import scala.xml.NodeSeq
+import scala.xml.XML
+
+import com.normation.rudder.db.DB
 import com.normation.rudder.domain.logger.MigrationLogger
+import com.normation.utils.Control. _
+import com.normation.utils.XmlUtils
+
+import org.joda.time.DateTime
+
+import net.liftweb.common._
+import net.liftweb.util.Helpers.tryo
+import scala.collection.JavaConverters.asScalaBufferConverter
+
+import scalaz.{ Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+
+import scalaz.{\/-, -\/}
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.Doobie._
+
 
 /**
  * specify from/to version
@@ -111,8 +123,34 @@ case class Encapsulate(label:String, logger: Logger) extends Function1[NodeSeq, 
 }
 
 
+sealed trait MigrationStatus
+final case object NoMigrationRequested extends MigrationStatus
+final case object MigrationVersionNotHandledHere extends MigrationStatus
+final case object MigrationVersionNotSupported extends MigrationStatus
+final case class  MigrationSuccess(migrated:Int) extends MigrationStatus
+
+
+trait MigrableEntity {
+  def id: Long
+  def data: Elem
+}
+
+case class MigrationEventLog(
+    id       : Long
+  , eventType: String
+  , data     : Elem
+) extends MigrableEntity
+
+
+case class MigrationChangeRequest(
+    id  : Long
+  , name: String
+  , data: Elem
+) extends MigrableEntity
+
+
 /**
- * This class manage the hight level migration process: read if a
+ * This class manages the high level migration process: read if a
  * migration is required in the MigrationEventLog datatable, launch
  * the migration process, write migration result.
  * The actual migration of event logs is delegated to a lit of
@@ -123,139 +161,143 @@ case class Encapsulate(label:String, logger: Logger) extends Function1[NodeSeq, 
 trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
   def migrationEventLogRepository: MigrationEventLogRepository
-  def batchMigrators             : Seq[BatchElementMigration[_]]
+  def batchMigrators             : List[BatchElementMigration[_]]
   def previousMigrationController: Option[ControlXmlFileFormatMigration]
 
   def migrate() : Box[MigrationStatus] = {
+
     /*
      * test is we have to migrate, and execute migration
      */
     migrationEventLogRepository.getLastDetectionLine match {
-      case None =>
-        logger.info("No migration detected by migration script (table '%s' is empty or does not exists)".
-            format(MigrationEventLogTable.migrationEventLog.name)
-        )
-        Full(NoMigrationRequested)
+        case -\/(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
+        case \/-(None) =>
+          logger.info(s"No migration detected by migration script (table '${migrationEventLogRepository.table}' is empty or does not exist)")
+          Full(NoMigrationRequested)
 
-      /*
-       * we only have to deal with the migration if:
-       * - fileFormat is == fromVersion AND (
-       *   - migrationEndTime is not set OR
-       *   - migrationFileFormat == fromVersion
-       * )
-       */
-
-      //new migration
-      case Some(status@SerializedMigrationEventLog(
-          _
-        , detectedFileFormat
-        , migrationStartTime
-        , migrationEndTime : None.type
-        , _
-        , _
-      )) if(detectedFileFormat == fromVersion) =>
         /*
-         * here, simply start a migration for the first time (if migrationStartTime is None)
-         * or continue a previously started migration (but interrupted ?)
+         * we only have to deal with the migration if:
+         * - fileFormat is == fromVersion AND (
+         *   - migrationEndTime is not set OR
+         *   - migrationFileFormat == fromVersion
+         * )
          */
-        if(migrationStartTime.isEmpty) {
-          migrationEventLogRepository.setMigrationStartTime(status.id, new Timestamp(Calendar.getInstance.getTime.getTime))
-        }
 
-        val migrationResults = batchMigrators.map { migrator =>
-          logger.info(s"Start migration of ${migrator.elementName} from format '${fromVersion}' to '${toVersion}'")
-
-          migrator.process() match {
-            case Full(MigrationProcessResult(i, nbBatches)) =>
-              logger.info(s"Migration of ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}' done, ${i} EventLogs migrated")
-              Full(MigrationSuccess(i))
-
-            case eb:EmptyBox =>
-              val e = (eb ?~! s"Could not correctly finish the migration for ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application.")
-              logger.error(e)
-              e
+        //new migration
+        case \/-(Some(DB.MigrationEventLog(
+            id
+          , _
+          , detectedFileFormat
+          , migrationStartTime
+          , migrationEndTime : None.type
+          , _
+          , _
+        ))) if(detectedFileFormat == fromVersion) =>
+          /*
+           * here, simply start a migration for the first time (if migrationStartTime is None)
+           * or continue a previously started migration (but interrupted ?)
+           */
+          if(migrationStartTime.isEmpty) {
+            migrationEventLogRepository.setMigrationStartTime(id, DateTime.now)
           }
-        }
 
+          val migrationResults = batchMigrators.map { migrator =>
+            logger.info(s"Start migration of ${migrator.elementName} from format '${fromVersion}' to '${toVersion}'")
 
-         boxSequence(migrationResults) match {
-          case Full(seq) =>
-            val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
-            migrationEventLogRepository.setMigrationFileFormat(status.id, toVersion, new Timestamp(Calendar.getInstance.getTime.getTime))
-            logger.info(s"Completed migration to file format '${toVersion}', ${numberMigrated} records migrated")
-            Full(MigrationSuccess(numberMigrated))
-          case eb:EmptyBox => eb
-        }
+            migrator.process() match {
+              case Full(MigrationProcessResult(i, nbBatches)) =>
+                logger.info(s"Migration of ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}' done, ${i} EventLogs migrated")
+                Full(MigrationSuccess(i))
 
-      //a past migration was done, but the final format is not the one we want
-      case Some(x@SerializedMigrationEventLog(
-          _
-        , _
-        , _
-        , Some(endTime)
-        , Some(migrationFileFormat)
-        , _
-      )) if(migrationFileFormat == fromVersion) =>
-        //create a new status line with detected format = migrationFileFormat,
-        //and a description to say why we recurse
-        migrationEventLogRepository.createNewStatusLine(migrationFileFormat, Some(s"Found a post-migration fileFormat='${migrationFileFormat}': update"))
-        this.migrate()
-
-          // lower file format found, send to parent)
-      case Some(status@SerializedMigrationEventLog(
-          _
-        , detectedFileFormat
-        , migrationStartTime
-        , migrationEndTime : None.type
-        , _
-        , _
-      )) if(detectedFileFormat < fromVersion) =>
-
-
-        logger.info("Found and older migration to do")
-        previousMigrationController match {
-          case None =>
-            logger.info(s"The detected format ${detectedFileFormat} is no more supported, you will have to " +
-                "use an installation of Rudder that understand it to do the migration. For information, " +
-                "Rudder 2.6.x is the last major version which is able to import file format 1.0")
-            Full(MigrationVersionNotSupported)
-
-          case Some(migrator) => migrator.migrate() match{
-            case Full(MigrationSuccess(i)) =>
-                logger.info("Older migration completed, relaunch migration")
-                this.migrate()
-            case eb:EmptyBox =>
-                val e = (eb ?~! s"Older migration failed, Could not correctly finish the migration from EventLog fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application")
+              case eb:EmptyBox =>
+                val e = (eb ?~! s"Could not correctly finish the migration for ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application.")
                 logger.error(e)
                 e
-            case _ =>
-                logger.info("Older migration completed, relaunch migration")
-                this.migrate()
             }
-        }
-
-      //a past migration was done, but the final format is not the one we want
-      case Some(x@SerializedMigrationEventLog(
-          _
-        , _
-        , _
-        , Some(endTime)
-        , Some(migrationFileFormat)
-        , _
-      )) if(migrationFileFormat < fromVersion) =>
-        //create a new status line with detected format = migrationFileFormat,
-        //and a description to say why we recurse
-        previousMigrationController.foreach { migrator =>
-          migrator.migrate()
-        }
-        this.migrate()
+          }
 
 
-      //other case: does nothing
-      case Some(x) =>
-        logger.debug(s"Migration of EventLog from format '${fromVersion}' to '${toVersion}': nothing to do")
-        Full(MigrationVersionNotHandledHere)
-    }
+           boxSequence(migrationResults) match {
+            case Full(seq) =>
+              val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
+              migrationEventLogRepository.setMigrationFileFormat(id, toVersion, DateTime.now)
+              logger.info(s"Completed migration to file format '${toVersion}', ${numberMigrated} records migrated")
+              Full(MigrationSuccess(numberMigrated))
+            case eb:EmptyBox => eb
+          }
+
+        //a past migration was done, but the final format is not the one we want
+        case \/-(Some(x@DB.MigrationEventLog(
+            _
+          , _
+          , _
+          , _
+          , Some(endTime)
+          , Some(migrationFileFormat)
+          , _
+        ))) if(migrationFileFormat == fromVersion) =>
+          //create a new status line with detected format = migrationFileFormat,
+          //and a description to say why we recurse
+          migrationEventLogRepository.createNewStatusLine(migrationFileFormat, Some(s"Found a post-migration fileFormat='${migrationFileFormat}': update"))
+          this.migrate()
+
+            // lower file format found, send to parent)
+        case \/-(Some(status@DB.MigrationEventLog(
+            _
+          , _
+          , detectedFileFormat
+          , migrationStartTime
+          , migrationEndTime : None.type
+          , _
+          , _
+        ))) if(detectedFileFormat < fromVersion) =>
+
+
+          logger.info("Found and older migration to do")
+          previousMigrationController match {
+            case None =>
+              logger.info(s"The detected format ${detectedFileFormat} is not supported anymore, you will have to " +
+                  "use an installation of Rudder that understand it to do the migration. For information, " +
+                  "Rudder 2.6.x is the last major version which is able to import file format 1.0")
+              Full(MigrationVersionNotSupported)
+
+            case Some(migrator) => migrator.migrate() match{
+              case Full(MigrationSuccess(i)) =>
+                  logger.info("Older migration completed, relaunch migration")
+                  this.migrate()
+              case eb:EmptyBox =>
+                  val e = (eb ?~! s"Older migration failed, Could not correctly finish the migration from EventLog fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application")
+                  logger.error(e)
+                  e
+              case _ =>
+                  logger.info("Older migration completed, relaunch migration")
+                  this.migrate()
+              }
+          }
+
+        //a past migration was done, but the final format is not the one we want
+        case \/-(Some(x@DB.MigrationEventLog(
+            _
+          , _
+          , _
+          , _
+          , Some(endTime)
+          , Some(migrationFileFormat)
+          , _
+        ))) if(migrationFileFormat < fromVersion) =>
+          //create a new status line with detected format = migrationFileFormat,
+          //and a description to say why we recurse
+          previousMigrationController.foreach { migrator =>
+            migrator.migrate()
+          }
+          this.migrate()
+
+
+        //other case: does nothing
+        case \/-(Some(x)) =>
+          logger.debug(s"Migration of EventLog from format '${fromVersion}' to '${toVersion}': nothing to do")
+          Full(MigrationVersionNotHandledHere)
+      }
   }
 
 }
@@ -278,12 +320,10 @@ final case class MigrationProcessResult(
  */
 trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration {
 
-  def jdbcTemplate: JdbcTemplate
   def individualMigration: IndividualElementMigration[T]
-  def rowMapper: RowMapper[T]
-
-  def selectAllSqlRequest(batchSize: Int): String
+  def selectAllSqlRequest(batchSize: Int): ConnectionIO[Vector[T]]
   def batchSize : Int
+  def doobie: Doobie
 
   //human readable name of elements to migrate, for logs
   def elementName: String
@@ -291,27 +331,23 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
   /**
    * Retrieve eventlog for the migration, limited to max batchSize
    */
-  def findBatch: Box[Seq[T]] = {
-
-    //check if the event must be migrated
-    def needMigration(xml:NodeSeq) : Boolean = (
-    try {
-           (xml \\ "@fileFormat" exists { _.text.toInt == fromVersion })
-         } catch {
-           case e:NumberFormatException => false
-         }
-    )
-
-    tryo(
-        jdbcTemplate.query(selectAllSqlRequest(batchSize), rowMapper).asScala
-       .filter(log => needMigration(log.data))
-    )
+  def findBatch: ConnectionIO[Vector[T]] = {
+    for {
+      results <- selectAllSqlRequest(batchSize)
+    } yield {
+      results.filter( log => try {
+          (log.data \\ "@fileFormat" exists { _.text.toInt == fromVersion })
+        } catch {
+          case e:NumberFormatException => false
+        }
+      )
+    }
   }
 
   /**
    * Save a list of change
    */
-  protected def save(logs:Seq[T]) : Box[Seq[T]]
+  protected def save(logs: Vector[T]) : ConnectionIO[Vector[T]]
 
   /**
    * General algorithm: get all change request to migrate,
@@ -321,27 +357,26 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
    */
   def process() : Box[MigrationProcessResult] = {
     def recProcessOneBatch(mig: MigrationProcessResult): Box[MigrationProcessResult] = {
-      val res = for {
+      val res = (for {
         elts     <- findBatch
-        migrated <- saveResults(
-                        migrate(elts, errorLogger)
-                      , save = save
-                      , successLogger = successLogger
-                    )
+        migrated =  migrate(elts, errorLogger)
+        saved    <- save(migrated)
       } yield {
-        migrated
-      }
+        saved
+      }).attempt.transact(doobie.xa).run
 
       res match {
-        case Full(k) if(k < 1) =>
+        case \/-(k) if(k.size < 1) =>
           logger.debug(s"Migration from file format ${fromVersion} to ${toVersion} ended after ${mig.nbBatches} batches")
           Full(mig)
-        case Full(k) =>
+        case \/-(k) =>
+          successLogger(k)
           logger.debug(s"Migration from file format ${fromVersion} to ${toVersion}: starting batch #${mig.nbBatches+1}")
-          recProcessOneBatch(MigrationProcessResult(mig.totalMigrated+k, mig.nbBatches+1))
-        case eb: EmptyBox =>
-          if(mig.nbBatches > 0) eb ?~! s"(already migrated ${mig.nbBatches} entries"
-          else eb
+          recProcessOneBatch(MigrationProcessResult(mig.totalMigrated+k.size, mig.nbBatches+1))
+        case -\/(ex) =>
+          val f = Failure("Error when migrating eventlog", Full(ex), Empty)
+          if(mig.nbBatches > 0) f ?~! s"(already migrated ${mig.nbBatches} entries"
+          else f
       }
     }
     logger.info(s"Starting batch migration from file format ${fromVersion} to ${toVersion} by batch of ${batchSize} events")
@@ -349,30 +384,24 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
   }
 
   private[this] def migrate(
-      elements     : Seq[T]
+      elements     : Vector[T]
     , errorLogger  : Failure => Unit
-  ) : Seq[T] = {
+  ) : Vector[T] = {
+
     elements.flatMap { elt =>
       individualMigration.migrate(elt) match {
         case eb:EmptyBox =>
           errorLogger(eb ?~! s"Error when trying to migrate change request with id '${elt.id}'")
           None
-        case Full(m)     => Some(m)
+        case Full(m)     =>
+          if(m == elt) { //something goes wrong, not modificatiion ?
+            errorLogger(Failure(s"Error when trying to migrate change request with id '${elt.id}' (no modification)"))
+            None
+          } else {
+            Some(m)
+          }
       }
     }
-  }
-
-  /**
-   * Actually save the crs in DB
-   */
-  private[this] def saveResults(
-      crs           : Seq[T]
-    , save          : Seq[T] => Box[Seq[T]]
-    , successLogger : Seq[MigrableEntity] => Unit
-  ) : Box[Int] = {
-      val res = save(crs) ?~! "Error when saving logs (ids: %s)".format(crs.map( _.id).sorted.mkString(","))
-      res.foreach { seq => successLogger(seq) }
-      res.map( _.size )
   }
 
 
@@ -387,66 +416,43 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
 trait EventLogsMigration extends BatchElementMigration[MigrationEventLog] {
 
   override final val elementName = "EventLog"
-  override final val rowMapper = MigrationEventLogMapper
-  override final def selectAllSqlRequest(batchSize: Int) = {
-    s"select id, eventType, data from (select id, eventType, data, ((xpath('/entry//@fileFormat',data))[1]::text) as version from eventlog) as T where version='${fromVersion}' limit ${batchSize}"
+
+  override final def selectAllSqlRequest(batchSize: Int): ConnectionIO[Vector[MigrationEventLog]] = {
+    sql"""
+      select id, eventType, data from (select id, eventType, data, ((xpath('/entry//@fileFormat',data))[1]::text) as version from eventlog) as T
+      where version=${fromVersion.toString} limit ${batchSize}
+    """.query[MigrationEventLog].vector
   }
 
-  override final protected def save(logs:Seq[MigrationEventLog]) : Box[Seq[MigrationEventLog]] = {
-    val UPDATE_SQL = "UPDATE EventLog set eventType = ?, data = ? where id = ?"
-
-    val ilogs = logs match {
-      case x:IndexedSeq[_] => logs
-      case seq => seq.toIndexedSeq
+  final protected def save(logs: Vector[MigrationEventLog]) : ConnectionIO[Vector[MigrationEventLog]] = {
+    val sql = "update eventlog set eventtype = ?, data = ? where id = ?"
+    for {
+      _ <- Update[(String, Elem, Long)](sql).updateMany(logs.map(l => (l.eventType, l.data, l.id)))
+    } yield {
+      logs
     }
-
-    tryo { jdbcTemplate.batchUpdate(
-               UPDATE_SQL
-             , new BatchPreparedStatementSetter() {
-                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
-                   ps.setString(1, ilogs(i).eventType )
-                   val sqlXml = ps.getConnection.createSQLXML()
-                   sqlXml.setString(ilogs(i).data.toString)
-                   ps.setSQLXML(2, sqlXml)
-                   ps.setLong(3, ilogs(i).id )
-                 }
-
-                 override def getBatchSize() = ilogs.size
-               }
-    ) }.map( _ => ilogs )
   }
 }
 
 trait ChangeRequestsMigration extends BatchElementMigration[MigrationChangeRequest] {
+
   override final val elementName = "ChangeRequest"
-  override final val rowMapper = MigrationChangeRequestMapper
-  override final def selectAllSqlRequest(batchSize:Int) = {
-    s"select id, name, content from (select id, name, content, ((xpath('/changeRequest/@fileFormat', content))[1]::text) as version from changerequest) as T where version='${fromVersion}' limit ${batchSize}"
+
+  override final def selectAllSqlRequest(batchSize:Int): ConnectionIO[Vector[MigrationChangeRequest]] = {
+    sql"""select id, name, content from (select id, name, content, ((xpath('/changeRequest/@fileFormat', content))[1]::text) as version from changerequest) as T
+        where version=${fromVersion.toString} limit ${batchSize}""".query[MigrationChangeRequest].vector
   }
 
 
-  override protected def save(logs:Seq[MigrationChangeRequest]) : Box[Seq[MigrationChangeRequest]] = {
-    val UPDATE_SQL = "UPDATE changerequest set content = ? where id = ?"
-
-    val ilogs = logs match {
-      case x:IndexedSeq[_] => logs
-      case seq => seq.toIndexedSeq
+  override protected def save(logs: Vector[MigrationChangeRequest]) : ConnectionIO[Vector[MigrationChangeRequest]] = {
+    val sql = "update changerequest set content = ? where id = ?"
+    for {
+      _ <- Update[(Elem, Long)](sql).updateMany(logs.map(l => (l.data, l.id)))
+    } yield {
+      logs
     }
-
-    tryo { jdbcTemplate.batchUpdate(
-               UPDATE_SQL
-             , new BatchPreparedStatementSetter() {
-                 override def setValues(ps: PreparedStatement, i: Int): Unit = {
-                   val sqlXml = ps.getConnection.createSQLXML()
-                   sqlXml.setString(ilogs(i).data.toString)
-                   ps.setSQLXML(1, sqlXml)
-                   ps.setLong(2, ilogs(i).id )
-                 }
-
-                 override def getBatchSize() = ilogs.size
-               }
-    ) }.map( _ => ilogs )
   }
+
 }
 
 /**

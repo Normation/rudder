@@ -65,7 +65,7 @@ class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepos
    */
   private def checkPackageDirectory(dir: File): Unit = {
     if (!dir.exists) {
-      throw new RuntimeException("Directory %s does not exists, how do you want that I read policy package in it?".format(dir))
+      throw new RuntimeException("Directory %s does not exist, how do you want that I read policy package in it?".format(dir))
     }
     if (!dir.canRead) {
       throw new RuntimeException("Directory %s is not readable, how do you want that I read policy package in it?".format(dir))
@@ -103,7 +103,7 @@ class GitRepositoryProviderImpl(techniqueDirectoryPath: String) extends GitRepos
  * A Git revision provider that always return the RevTree matching the
  * configured revPath.
  * It checks the path existence, but does not do anything special if
- * the reference does not exists (safe a error message).
+ * the reference does not exist (safe a error message).
  *
  * TODO: reading policy packages should be a Box method,
  * so that it can  fails in a knowable way.
