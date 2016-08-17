@@ -38,39 +38,33 @@
 package com.normation.rudder.repository
 
 import java.io.File
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.RuleId
-import net.liftweb.common.Box
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.ActiveTechniqueCategory
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
-import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+
 import com.normation.cfclerk.domain.SectionSpec
 import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.nodes.NodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.domain.nodes.NodeGroupId
-import org.eclipse.jgit.revwalk.RevTag
-import org.joda.time.DateTime
-import org.eclipse.jgit.lib.PersonIdent
-import com.normation.utils.HashcodeCaching
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.policies.DirectiveId
-import net.liftweb.common.Failure
-import com.normation.rudder.domain.policies.ActiveTechniqueId
-import com.normation.eventlog.ModificationId
 import com.normation.eventlog.EventLog
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.eventlog.ImportParametersArchive
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.rule.category.RuleCategory
-import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.utils.HashcodeCaching
+
+import org.eclipse.jgit.lib.PersonIdent
+import org.joda.time.DateTime
+
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
 
 
 

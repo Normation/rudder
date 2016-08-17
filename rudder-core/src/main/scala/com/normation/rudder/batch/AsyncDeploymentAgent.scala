@@ -181,7 +181,7 @@ final class AsyncDeploymentAgent(
       } else {
         // File could not be deleted, seek for reason
         if(!file.exists()) {
-          logger.warn(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed as it does not exists anymore")
+          logger.warn(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed as it does not exist anymore")
         } else {
           logger.error(s"Flag file '${policyUpdateRunningFlagPath}' could not be removed, you may have to remove it manually, cause is: Permission denied or someone is actually editing the file")
          }

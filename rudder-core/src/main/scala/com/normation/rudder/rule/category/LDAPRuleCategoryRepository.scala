@@ -213,7 +213,7 @@ class WoLDAPRuleCategoryRepository(
   }
   /**
    * Add that category into the given parent category
-   * Fails if the parent category does not exists or
+   * Fails if the parent category does not exist or
    * if it already contains that category.
    *
    * return the new category.

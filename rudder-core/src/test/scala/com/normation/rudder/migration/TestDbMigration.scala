@@ -49,6 +49,14 @@ import net.liftweb.common.Full
 import scala.xml.Elem
 import java.sql.Timestamp
 import java.sql.Connection
+import com.normation.BoxSpecMatcher
+import com.normation.rudder.db.DBCommon
+
+import com.normation.rudder.db.Doobie._
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
 case class MigEx102(msg:String) extends Exception(msg)
 
@@ -112,8 +120,10 @@ case class MigrationTestLog(
 @RunWith(classOf[JUnitRunner])
 class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
 
+  import doobie._
+
   lazy val migration = new EventLogsMigration_5_6(
-      jdbcTemplate = jdbcTemplate
+      doobie = doobie
     , batchSize = 2
   ) {
     override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
@@ -125,24 +135,27 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   override def initDb = {
     super.initDb
 
+    def insertLog(log: MigrationTestLog): Int = {
+      sql"""
+          insert into EventLog (creationDate, principal, eventType, severity, data, causeid)
+          values (${log.timestamp}, ${log.principal}, ${log.eventType}, ${log.severity}, ${log.data}, ${log.cause})
+        """.update.withUniqueGeneratedKeys[Int]("id").transact(xa).run
+    }
+
     // init datas, get the map of ids
-    logs5WithId = withConnection[Map[String,MigrationTestLog]] { c =>
+    logs5WithId = {
       (DATA_5.data_5.map { case (k,log) =>
-        val id = log.insertSql(c)
-        logger.debug("Inserting %s, id: %s".format(k,id))
+        val id = insertLog(log)
+        logger.debug(s"Inserting ${k}, id: ${id}")
 
         (k,log.copy( id = Some(id) ))
       }).toMap
     }
 
     //also add some bad event log that should not be migrated (bad/more recent file format)
-    withConnection[Unit] { c =>
-      NoMigrationEventLogs.e1.insertSql(c)
-      NoMigrationEventLogs.e2.insertSql(c)
-      NoMigrationEventLogs.e3.insertSql(c)
-
-      {}
-    }
+    insertLog(NoMigrationEventLogs.e1)
+    insertLog(NoMigrationEventLogs.e2)
+    insertLog(NoMigrationEventLogs.e3)
 
     logs6WithId = (DATA_6.data_6.map { case (k,log) =>
       log.copy( id = Some(logs5WithId(k).id.get ) ) //actually get so that an exception is throw if there is no ID set
@@ -154,23 +167,23 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
   "Event Logs" should {
 
     "be all found" in {
-      val logs = migration.findBatch.openOrThrowException("For tests")
-
+      val logs = migration.findBatch.transact(doobie.xa).run
       logs.size must beEqualTo(migration.batchSize) and
       forallWhen(logs) {
         case MigrationEventLog(id, eventType, data) =>
           val l = logs5WithId.values.find(x => x.id.get == id).get
 
-          l.data must be_==/(data) and
-          l.eventType === eventType
+          ( l.data must be_==/(data)  ) and
+          ( l.eventType must beEqualTo(eventType) )
       }
     }
 
     "be correctly migrated" in {
-
       val MigrationProcessResult(migrated, nbBataches) = migration.process.openOrThrowException("Bad migration in test")
-
-      val logs = jdbcTemplate.query("select * from eventlog", testLogRowMapper).asScala.filter(log =>
+      val logs = sql"""
+        select id, eventtype, creationdate, principal, causeid, severity, data
+        from eventlog
+      """.query[MigrationTestLog].vector.transact(xa).run.filter(log =>
                    //only actually migrated file format
                    try {
                      log.data \\ "@fileFormat" exists { _.text.toInt == 6 }
@@ -186,10 +199,10 @@ class TestDbMigration_5_6 extends DBCommon with XmlMatchers {
         case MigrationTestLog(Some(id), eventType, timestamp, principal, cause, severity, data) =>
           val l = logs6WithId.find(x => x.id.get == id).get
 
-          (l.eventType === eventType) and
-          (l.timestamp === timestamp) and
-          (l.principal === principal) and
-          (l.cause === cause) and
+          (l.eventType must beEqualTo(eventType)) and
+          (l.timestamp must beEqualTo(timestamp)) and
+          (l.principal must beEqualTo(principal)) and
+          (l.cause must beEqualTo(cause)) and
           (l.severity == severity must beTrue) and
           (l.data must be_==/(data))
 

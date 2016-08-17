@@ -55,24 +55,17 @@ import com.normation.eventlog.EventActor
 trait RoChangeRequestRepository {
 
 
-  def getAll() : Box[Seq[ChangeRequest]]
+  def getAll() : Box[Vector[ChangeRequest]]
 
   def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]]
 
-  /**
-   * Returns all the change request which are within this ids
-   * It is meant to be used with the workflow engine, to fetch all
-   * CRs in a specific state
-   */
-  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]]
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
 
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]]
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
 
-  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]]
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]]
 
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]]
-
-  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]]
+  def getByContributor(actor:EventActor) : Box[Vector[ChangeRequest]]
 }
 
 
@@ -85,19 +78,17 @@ class EitherRoChangeRequestRepository(cond: () => Box[Boolean], whenTrue: RoChan
     cond().flatMap( if(_) method(whenTrue) else method(whenFalse) )
   }
 
-  def getAll() : Box[Seq[ChangeRequest]] = condApply( _.getAll )
+  def getAll() : Box[Vector[ChangeRequest]] = condApply( _.getAll )
 
   def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] = condApply( _.get(changeRequestId) )
 
-  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] = condApply( _.getByIds(changeRequestId) )
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = condApply( _.getByDirective(id, onlyPending) )
 
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = condApply( _.getByDirective(id, onlyPending) )
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = condApply( _.getByNodeGroup(id, onlyPending) )
 
-  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = condApply( _.getByNodeGroup(id, onlyPending) )
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = condApply( _.getByRule(id, onlyPending) )
 
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = condApply( _.getByRule(id, onlyPending) )
-
-  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]] = condApply( _.getByContributor(actor) )
+  def getByContributor(actor:EventActor) : Box[Vector[ChangeRequest]] = condApply( _.getByContributor(actor) )
 }
 
 

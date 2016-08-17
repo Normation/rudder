@@ -714,7 +714,7 @@ class WoLDAPDirectiveRepository(
   /**
    * Add the given category into the given parent category in the
    * user library.
-   * Fails if the parent category does not exists in user lib or
+   * Fails if the parent category does not exist in user lib or
    * if it already contains that category, or a category of the
    * same name (name must be unique for a given level)
    *
@@ -905,7 +905,7 @@ class WoLDAPDirectiveRepository(
   /**
    * Move a technique to a new category.
    * Failure if the given technique or category
-   * does not exists.
+   * does not exist.
    *
    */
   def move(uactiveTechniqueId:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId] = {

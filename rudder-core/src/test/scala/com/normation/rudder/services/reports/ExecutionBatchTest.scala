@@ -138,7 +138,7 @@ class ExecutionBatchTest extends Specification {
     val config1 = NodeConfigIdInfo( configId1, startConfig1, Some(startConfig2) )
     val config2 = NodeConfigIdInfo( configId2, startConfig2, None               )
 
-    val knownConfigs = Map(root -> Some(Vector(config0, config1, config2)))
+    val knownConfigs = Map(root -> Some(List(config0, config1, config2)))
 
     "have no report in interval if the run is older than 10 minutes" in {
       val runs = Map(root -> Some(AgentRun(AgentRunId(root, now.minusMinutes(11)), Some(configId2), isCompleted, insertionId)))

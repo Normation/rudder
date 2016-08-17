@@ -194,7 +194,7 @@ object RestUtils extends Loggable {
 
   def notValidVersionResponse(action:String)(implicit availableVersions : List[ApiVersion]) = {
     val versions = "latest" :: availableVersions.map(_.value.toString)
-    toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} "))(action,false)
+    toJsonError(None, JString(s"Version used does not exist, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} "))(action,false)
    }
 
   def missingResponse(version:Int,action:String) = {

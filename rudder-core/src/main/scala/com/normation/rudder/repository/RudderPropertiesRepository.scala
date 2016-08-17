@@ -49,6 +49,6 @@ trait RudderPropertiesRepository {
   /**
    * Update or create (if needed the last id processed by the non compliant report logger
    */
-  def updateReportLoggerLastId(newId: Long) : Box[Long]
+  def updateReportLoggerLastId(newId: Long): Box[Long]
 
 }

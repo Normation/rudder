@@ -307,7 +307,7 @@ trait WoDirectiveRepository {
    * delete dependent rule (or other items) by
    * hand if you want.
    *
-   * If the given directiveId does not exists, it leads to a
+   * If the given directiveId does not exist, it leads to a
    * failure.
    *
    * System directive can't be deleted.
@@ -323,7 +323,7 @@ trait WoDirectiveRepository {
    *
    * Fails if
    *   - the active technique id refer to no technique,
-   *   - the category id does not exists,
+   *   - the category id does not exist,
    *   - the technique is already in the active technique
    *     library
    */
@@ -340,7 +340,7 @@ trait WoDirectiveRepository {
   /**
    * Move an active technique to a new category.
    * Failure if the given active technique or category
-   * does not exists.
+   * does not exist.
    *
    */
   def move(id:ActiveTechniqueId, newCategoryId:ActiveTechniqueCategoryId, modId: ModificationId, actor: EventActor, reason: Option[String]) : Box[ActiveTechniqueId]
@@ -370,7 +370,7 @@ trait WoDirectiveRepository {
   /**
    * Add the given category into the given parent category in the
    * user library.
-   * Fails if the parent category does not exists in active technique library
+   * Fails if the parent category does not exist in active technique library
    * or if it already contains that category, or a category of the
    * same name (name must be unique for a given level)
    *

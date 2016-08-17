@@ -292,7 +292,7 @@ class GitTechniqueReader(
       } }
     } catch {
       case ex:FileNotFoundException =>
-        logger.debug( () => "Template %s does not exists".format(path),ex)
+        logger.debug( () => "Template %s does not exist".format(path),ex)
         useIt(None)
     } finally {
       if(null != is) {
@@ -331,7 +331,7 @@ class GitTechniqueReader(
       } }
     } catch {
       case ex:FileNotFoundException =>
-        logger.debug( () => "Template %s does not exists".format(path),ex)
+        logger.debug( () => "Template %s does not exist".format(path),ex)
         useIt(None)
     } finally {
       if(null != is) {
@@ -410,7 +410,7 @@ class GitTechniqueReader(
       } }
     } catch {
       case ex:FileNotFoundException =>
-        logger.debug( () => s"Technique Template ${techniqueResourceId.toString} does not exists", ex)
+        logger.debug( () => s"Technique Template ${techniqueResourceId.toString} does not exist", ex)
         useIt(None)
     } finally {
       if(null != is) {

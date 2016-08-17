@@ -102,13 +102,6 @@ class UserSessionLogEvent(
           case x =>
             logger.warn("The application received an Authentication 'bad credential' event with a parameter that is not the principal login. I don't know how to log that event in database. Event parameter was: " +x)
         }
-
-//  these events don't seem to work :/
-//      case sessionCreation:SessionCreationEvent =>
-//        println("Session creation " + sessionCreation.getSource.toString)
-//      case sessionDestruction:SessionDestroyedEvent =>
-//        println("Session destruction " + sessionDestruction.getSecurityContext().getAuthentication)
-//
       case x => //ignore
     }
 

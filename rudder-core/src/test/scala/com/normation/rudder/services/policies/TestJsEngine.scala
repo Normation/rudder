@@ -99,7 +99,7 @@ class TestJsEngine extends Specification {
     (
       b match {
         case Full(v) if( v.values.size == 1 && cond(v.values(0)) ) => true
-        case Full(v) => println("size is " + v.values.size); false
+        case Full(v) => false
         case eb: EmptyBox =>
           val e = eb ?~! "Error with test"
           e.rootExceptionCause.foreach { ex => ex.printStackTrace() }

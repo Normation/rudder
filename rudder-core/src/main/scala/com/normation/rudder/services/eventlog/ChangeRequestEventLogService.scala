@@ -87,7 +87,7 @@ class ChangeRequestEventLogServiceImpl(
   }
 
   def getChangeRequestHistory(id: ChangeRequestId) : Box[Seq[ChangeRequestEventLog]] = {
-    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()", eventTypeFilter=Some(ChangeRequestLogsFilter.eventList.toSeq)).map(_.collect{case c:ChangeRequestEventLog => c})
+    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()", eventTypeFilter= ChangeRequestLogsFilter.eventList).map(_.collect{case c:ChangeRequestEventLog => c})
   }
 
   def getFirstLog(id:ChangeRequestId) : Box[Option[ChangeRequestEventLog]] = {
@@ -99,13 +99,13 @@ class ChangeRequestEventLogServiceImpl(
   }
 
   private[this] def getFirstOrLastLog(id:ChangeRequestId, sortMethod:String) :  Box[Option[ChangeRequestEventLog]] = {
-    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()",Some(1),Some(sortMethod), Some(ChangeRequestLogsFilter.eventList.toSeq)).map(_.collect{case c:ChangeRequestEventLog => c}.headOption)
+    eventLogRepository.getEventLogByChangeRequest(id,"/entry/changeRequest/id/text()",Some(1),Some(sortMethod), ChangeRequestLogsFilter.eventList).map(_.collect{case c:ChangeRequestEventLog => c}.headOption)
   }
 
   /**
    * Get Last Change Request event for all change Request
    */
   def getLastCREvents: Box[Map[ChangeRequestId,EventLog]] = {
-    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()",Some(ChangeRequestLogsFilter.eventList.toSeq))
+    eventLogRepository.getLastEventByChangeRequest("/entry/changeRequest/id/text()", ChangeRequestLogsFilter.eventList)
   }
 }

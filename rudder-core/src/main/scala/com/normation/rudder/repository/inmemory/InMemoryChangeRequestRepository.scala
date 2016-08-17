@@ -75,8 +75,8 @@ class InMemoryChangeRequestRepository
   def get(changeRequestId: ChangeRequestId): Box[Option[ChangeRequest]] = {
     Full(repo.get(changeRequestId))
   }
-  def getAll(): Box[Seq[ChangeRequest]] = {
-    Full(repo.values.toSeq)
+  def getAll(): Box[Vector[ChangeRequest]] = {
+    Full(repo.values.toVector)
   }
 
   def createChangeRequest(changeRequest: ChangeRequest,actor: EventActor,reason: Option[String]): Box[ChangeRequest] = {
@@ -102,7 +102,7 @@ class InMemoryChangeRequestRepository
 
   def updateChangeRequest(changeRequest: ChangeRequest,actor: EventActor,reason: Option[String]): Box[ChangeRequest] = {
       repo.get(changeRequest.id) match {
-        case None => Failure(s"Change request with ID ${changeRequest.id} does not exists")
+        case None => Failure(s"Change request with ID ${changeRequest.id} does not exist")
         case Some(_) =>
           repo += (changeRequest.id-> changeRequest)
           Full(changeRequest)
@@ -110,14 +110,14 @@ class InMemoryChangeRequestRepository
 
   }
 
-  def getByContributor(actor:EventActor) = Full(Seq())
+  def getByContributor(actor:EventActor) = Full(Vector())
 
   def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] =  Full(Seq())
 
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = Full(Seq())
+  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = Full(Vector())
 
-  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = Full(Seq())
+  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = Full(Vector())
 
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = Full(Seq())
+  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = Full(Vector())
 
 }

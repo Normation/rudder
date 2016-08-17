@@ -485,7 +485,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , ruleOrder       = BundleOrder("50. Deploy PLOP STACK")
     , directiveOrder  = BundleOrder("20. Install PLOP STACK main rpm")
     , overrides       = Set()
-    , policyMode      = None
+    , policyMode      = Some(PolicyMode.Verify)
   )
 
 

@@ -384,7 +384,7 @@ class GitActiveTechniqueArchiverImpl(
   private[this] def newActiveTechniqueFile(ptName:TechniqueName, parents: List[ActiveTechniqueCategoryId]) = {
     //parents can not be null: we must have at least the root category
     parents match {
-      case Nil => Failure("UPT '%s' was asked to be saved in a category which does not exists (empty list of parents, not even the root cateogy was given!)".format(ptName.value))
+      case Nil => Failure("UPT '%s' was asked to be saved in a category which does not exist (empty list of parents, not even the root cateogy was given!)".format(ptName.value))
       case h::tail => Full(new File(new File(newCategoryDirectory(h,tail),ptName.value), activeTechniqueFileName))
     }
   }

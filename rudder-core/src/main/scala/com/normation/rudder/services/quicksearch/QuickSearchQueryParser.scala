@@ -93,8 +93,8 @@ object QSRegexQueryParser extends RegexParsers {
         // get all keys, and sort them between objets/attributes/ERRORS
         val names = filters.map( _.keys).flatten.toSet
 
-        val is = filters.collect { case FilterType(set) => set } flatten
-        val in = filters.collect { case FilterAttr(set) => set } flatten
+        val is = filters.collect { case FilterType(set) => set }.flatten
+        val in = filters.collect { case FilterAttr(set) => set }.flatten
 
         (for {
           (objs , oKeys) <- getObjects(is.toSet)    ?~! "Check 'is' filters"

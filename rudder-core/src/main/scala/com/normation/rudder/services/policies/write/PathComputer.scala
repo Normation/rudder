@@ -51,7 +51,7 @@ import org.apache.commons.io.FilenameUtils
 
 
 /**
- * Utilitary tool to compute the path of a server promises (and others information) on the rootMachine
+ * Utility tool to compute the path of a server promises (and others information) on the rootMachine
 
  *
  */
@@ -66,7 +66,7 @@ trait PathComputer {
 
 
 /**
- * Utilitary tool to compute the path of a machine promises (and others information) on the rootMachine
+ * Utility tool to compute the path of a machine promises (and others information) on the rootMachine
  *
  */
 class PathComputerImpl(

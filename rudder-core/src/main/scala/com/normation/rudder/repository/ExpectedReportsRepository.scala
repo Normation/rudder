@@ -132,12 +132,9 @@ case class NodeConfigIdInfo(
 trait RoNodeConfigIdInfoRepository {
 
   def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]]
-  def getAllNodeConfigIdInfos(): Box[Map[NodeId, Seq[NodeConfigIdInfo]]]
 
 }
 
 trait WoNodeConfigIdInfoRepository {
   def addNodeConfigIdInfo(updatedNodeConfigs: Map[NodeId, NodeConfigId], generationTime: DateTime): Box[Set[NodeId]]
-  def createNodeConfigIdInfo(configInfos: Map[NodeId, Seq[NodeConfigIdInfo]]): Box[Set[NodeId]]
-  def updateNodeConfigIdInfo(configInfos: Map[NodeId, Seq[NodeConfigIdInfo]]): Box[Set[NodeId]]
 }

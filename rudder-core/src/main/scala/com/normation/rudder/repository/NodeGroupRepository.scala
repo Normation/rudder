@@ -335,7 +335,7 @@ trait WoNodeGroupRepository {
 
   /**
    * Add a server group into the a parent category
-   * Fails if the parent category does not exists
+   * Fails if the parent category does not exist
    * The id provided by the nodeGroup will  be used to save it inside the repository
    * return the newly created server group
    */
@@ -393,7 +393,7 @@ trait WoNodeGroupRepository {
 
   /**
    * Add that group category into the given parent category
-   * Fails if the parent category does not exists or
+   * Fails if the parent category does not exist or
    * if it already contains that category.
    *
    * return the new category.

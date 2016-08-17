@@ -59,13 +59,22 @@ import net.liftweb.common._
 import net.liftweb.common.Box._
 import org.springframework.dao.DataAccessException
 
-class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import com.normation.rudder.db.Doobie._
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.db.DB
 
-  val reportsTable = "ruddersysevents"
+
+class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
+  import doobie._
+
+  val reports = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
 
   private[this] val reportsExecutionTable = "reportsexecution"
-  private[this] val common_reports_column = "executiondate, nodeid, ruleid, directiveid, serial, component, keyvalue, executiontimestamp, eventtype, policy, msg"
+  private[this] val common_reports_column = "executiondate, ruleid, directiveid, nodeid, serial, component, keyvalue, executiontimestamp, eventtype, msg"
 
   //just an utility to remove multiple spaces in query so that we can vertically align them an see what part are changing - the use
   //of greek p is to discurage use elsewhere
@@ -104,235 +113,139 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
      * ... in (VALUES ('a', 'b'), ('c', 'd') );
      * etc. No more, no less.
      */
-    val query =
+    query[Reports](
       s"""select ${common_reports_column}
           from RudderSysEvents
           where (nodeid, executiontimestamp) in (VALUES ${nodeParam})
-      """ + ruleClause
-
-      boxed(s"get last run reports for ${runs.size} nodes")(jdbcTemplate.query(query, ReportsMapper).asScala.groupBy( _.nodeId))
+      """ + ruleClause).vector.attempt.transact(xa).run.map( _.groupBy( _.nodeId)) ?~!
+      s"Error when trying to get last run reports for ${runs.size} nodes"
     }
   }
 
-  override def findReportsByNode(nodeId   : NodeId) : Seq[Reports] = {
-    jdbcTemplate.query(
-        baseQuery + " and nodeId = ?  ORDER BY id desc LIMIT 1000"
-      , Array[AnyRef](nodeId.value)
-      , ReportsMapper
-    ).asScala
+  override def findReportsByNode(nodeId   : NodeId) : Vector[Reports] = {
+    val q = Query[NodeId, Reports](baseQuery + " and nodeId = ? order by id desc limit 1000", None).toQuery0(nodeId)
+    // not a boxed return for that one?
+    q.vector.transact(xa).run
   }
 
   override def findReportsByNodeOnInterval(
       nodeId: NodeId
     , start : DateTime
     , end   : DateTime
-  ) : Seq[Reports] = {
-    jdbcTemplate.query(
-        baseQuery + " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
-      , Array[AnyRef](nodeId.value, new Timestamp(start.getMillis), new Timestamp(end.getMillis))
-      , ReportsMapper
-    ).asScala
+  ) : Vector[Reports] = {
+    val q = Query[(NodeId, DateTime, DateTime), Reports](baseQuery +
+        " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
+      , None).toQuery0((nodeId, start, end))
+    q.vector.transact(xa).run
   }
 
-  override def findReportsByNode(
-      nodeId   : NodeId
-    , ruleId   : RuleId
-    , serial   : Int
-    , beginDate: DateTime
-    , endDate  : Option[DateTime]
-  ): Seq[Reports] = {
-    import scala.collection.mutable.Buffer
-    var query = baseQuery + " and nodeId = ?  and ruleId = ? and serial = ? and executionTimeStamp >= ?"
-    var array = Buffer[AnyRef](nodeId.value,
-        ruleId.value,
-        new java.lang.Integer(serial),
-        new Timestamp(beginDate.getMillis))
-
-    endDate match {
-      case None =>
-      case Some(date) => query = query + " and executionTimeStamp < ?"; array += new Timestamp(date.getMillis)
-    }
-
-    query = query + " ORDER BY executionTimeStamp asc"
-    jdbcTemplate.query(query,
-          array.toArray[AnyRef],
-          ReportsMapper).asScala
-
+  override def getReportsInterval(): Box[(Option[DateTime], Option[DateTime])] = {
+    (for {
+      oldest <- query[DateTime]("""select executiontimestamp from ruddersysevents
+                                   order by executionTimeStamp asc  limit 1""").option
+      newest <- query[DateTime]("""select executiontimestamp from ruddersysevents
+                                   order by executionTimeStamp desc limit 1""").option
+    } yield {
+      (oldest, newest)
+    }).attempt.transact(xa).run ?~! "Could not fetch the reports interval from the database."
   }
 
-  override def findExecutionTimeByNode(
-      nodeId   : NodeId
-    , beginDate: DateTime
-    , endDate  : Option[DateTime]
-  ) : Seq[DateTime] = {
-
-    val array : List[AnyRef] = nodeId.value :: new Timestamp(beginDate.getMillis) :: endDate.map( endDate => new Timestamp(endDate.getMillis) :: Nil).getOrElse(Nil)
-
-    val endQuery  : String =  endDate.map{_ => "and date < ?" }.getOrElse("")
-
-    val query = s"select distinct date from reportsexecution where nodeId = ? and date >= ? ${endQuery} order by date"
-
-    jdbcTemplate.query(
-        query
-      , array.toArray[AnyRef]
-      , ExecutionTimeMapper
-    ).asScala
-  }
-
-  override def getOldestReports() : Box[Option[Reports]] = {
-    jdbcTemplate.query(baseQuery + " order by executionTimeStamp asc limit 1",
-          ReportsMapper).asScala match {
-      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => Full(seq.headOption)
-
-    }
-  }
-
-  override def getOldestArchivedReports() : Box[Option[Reports]] = {
-    jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp asc limit 1",
-          ReportsMapper).asScala match {
-      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => Full(seq.headOption)
-
-    }
-  }
-
-  override def getNewestReports() : Box[Option[Reports]] = {
-    jdbcTemplate.query(baseQuery + " order by executionTimeStamp desc limit 1",
-          ReportsMapper).asScala match {
-      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => Full(seq.headOption)
-
-    }
-  }
-
-  override def getNewestArchivedReports() : Box[Option[Reports]] = {
-    jdbcTemplate.query(baseArchivedQuery + " order by executionTimeStamp desc limit 1",
-          ReportsMapper).asScala match {
-      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => Full(seq.headOption)
-
-    }
+  override def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
+    (for {
+      oldest <- query[DateTime]("""select executiontimestamp from archivedruddersysevents
+                                   order by executiontimestamp asc limit 1""").option
+      newest <- query[DateTime]("""select executiontimestamp from archivedruddersysevents
+                                   order by executionTimeStamp desc limit 1""").option
+    } yield {
+      (oldest, newest)
+    }).attempt.transact(xa).run ?~! "Could not fetch the reports interval from the database."
   }
 
   override def getDatabaseSize(databaseName:String) : Box[Long] = {
-    try {
-      jdbcTemplate.query(
-          s"""SELECT pg_total_relation_size('${databaseName}') as "size" """
-        , DatabaseSizeMapper
-      ).asScala match {
-        case seq if seq.size > 1 => Failure(s"Too many answer for the latest report in the database '${databaseName}'")
-        case seq  => seq.headOption ?~! s"The query used to find database '${databaseName}' size did not return any tuple"
-
-      }
-    } catch {
-      case e: DataAccessException =>
-        val msg ="Could not compute the size of the database, cause is " + e.getMessage()
-        logger.error(msg)
-        Failure(msg,Full(e),Empty)
-    }
+    val q = sql"""select pg_total_relation_size('${databaseName}') as "size" """.query[Long].unique
+    q.attempt.transact(xa).run ?~! "Could not compute the size of the database"
   }
 
   override def archiveEntries(date : DateTime) : Box[Int] = {
-    try{
-      val migrate = jdbcTemplate.execute(s"""
-          insert into %s
-                (id, ${common_reports_column})
-          (select id, ${common_reports_column} from %s
-        where executionTimeStamp < '%s')
-        """.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd") )
-       )
+    val dateAt_0000 = date.toString("yyyy-MM-dd")
+    val copy = s"""
+      insert into ${archiveTable}
+        (id, ${common_reports_column})
+        (select id, ${common_reports_column}
+           from ${reports}
+           where executionTimeStamp < '${dateAt_0000}'
+        )
+        """
+    val delete = s"""
+      delete from ${reports} where executionTimeStamp < '${dateAt_0000}'
+    """
 
-      logger.debug(s"""Archiving report with SQL query: [[
-                   | insert into %s (id, ${common_reports_column})
-                   | (select id, ${common_reports_column} from %s
-                   | where executionTimeStamp < '%s')
-                   |]]""".stripMargin.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd")))
+    val vacuum = s"vacuum ${reports}"
 
-      val delete = jdbcTemplate.update("""
-        delete from %s  where executionTimeStamp < '%s'
-        """.format(reportsTable,date.toString("yyyy-MM-dd") )
-      )
+    logger.debug(s"""Archiving report with SQL query: [[
+                 | ${copy}
+                 |]]""".stripMargin)
 
-      jdbcTemplate.execute("vacuum %s".format(reportsTable))
-
-      Full(delete)
-    } catch {
-       case e: DataAccessException =>
-         val msg ="Could not archive entries in the database, cause is " + e.getMessage()
-         logger.error(msg)
-         Failure(msg,Full(e),Empty)
+    (copy :: delete :: vacuum :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run match {
+      case -\/(ex) =>
+        val msg ="Could not archive entries in the database, cause is " + ex.getMessage()
+        logger.error(msg)
+        Failure(msg, Full(ex), Empty)
+      case \/-(i)  => Full(i.sum)
      }
-
   }
 
   override def deleteEntries(date : DateTime) : Box[Int] = {
 
-    logger.debug("""Deleting report with SQL query: [[
-                   | delete from %s  where executionTimeStamp < '%s'
+    val dateAt_0000 = date.toString("yyyy-MM-dd")
+    val d1 = s"delete from ${reports} where executionTimeStamp < ${dateAt_0000}"
+    val d2 = s"delete from ${archiveTable} where executionTimeStamp < ${dateAt_0000}"
+    val d3 = s"delete from ${reportsExecutionTable} where date < ${dateAt_0000}"
+
+    val v1 = s"vacuum ${reports}"
+    val v2 = s"vacuum full ${archiveTable}"
+    val v3 = s"vacuum ${reportsExecutionTable}"
+
+    logger.debug(s"""Deleting report with SQL query: [[
+                   | ${d1}
                    |]] and: [[
-                   | delete from %s  where executionTimeStamp < '%s'
+                   | ${d2}
                    |]] and: [[
-                   | delete from %s  where date < '%s'
-                   |]]""".stripMargin.format(reportsTable, date.toString("yyyy-MM-dd")
-                                           , archiveTable, date.toString("yyyy-MM-dd")
-                                           , reportsExecutionTable, date.toString("yyyy-MM-dd")))
-    try{
+                   | ${d3}
+                   |]]""".stripMargin)
 
-      val delete = jdbcTemplate.update("""
-          delete from %s where executionTimeStamp < '%s'
-          """.format(reportsTable,date.toString("yyyy-MM-dd") )
-      ) + jdbcTemplate.update("""
-          delete from %s  where executionTimeStamp < '%s'
-          """.format(archiveTable,date.toString("yyyy-MM-dd") )
-      )+ jdbcTemplate.update("""
-          delete from %s  where date < '%s'
-          """.format(reportsExecutionTable,date.toString("yyyy-MM-dd") )
-      )
-
-      jdbcTemplate.execute("vacuum %s".format(reportsTable))
-      jdbcTemplate.execute("vacuum full %s".format(archiveTable))
-      jdbcTemplate.execute("vacuum %s".format(reportsExecutionTable))
-
-      Full(delete)
-    } catch {
-       case e: DataAccessException =>
-         val msg ="Could not delete entries in the database, cause is " + e.getMessage()
-         logger.error(msg)
-         Failure(msg,Full(e),Empty)
-     }
-  }
-
-  override def getHighestId() : Box[Long] = {
-    val query = s"select id from RudderSysEvents order by id desc limit 1"
-    try {
-      jdbcTemplate.query(query, IdMapper).asScala match {
-        case seq if seq.size > 1 => Failure("Too many answer for the highest id in the database")
-        case seq                 => seq.headOption ?~! "No report where found in database (and so, we can not get highest id)"
-      }
-    } catch {
-      case e:DataAccessException =>
-        logger.error("Could not fetch highest id in the database. Reason is : %s".format(e.getMessage()))
-        Failure(e.getMessage())
+    (d1 :: d2 :: d3 :: v1 :: v2 :: v3 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run match  {
+      case -\/(ex) =>
+        val msg ="Could not delete entries in the database, cause is " + ex.getMessage()
+        logger.error(msg)
+        Failure(msg, Full(ex), Empty)
+      case \/-(i)  => Full(i.sum)
     }
   }
 
+  override def getHighestId() : Box[Long] = {
+    query[Long](s"select id from RudderSysEvents order by id desc limit 1").unique.attempt.transact(xa).run
+  }
+
   override def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Long, Reports)]] = {
-    val query = "%s and (%s) order by executiondate desc limit 100".format(idQuery,kinds.map("eventtype='%s'".format(_)).mkString(" or "))
-      try {
-        Full(jdbcTemplate.query(query,ReportsWithIdMapper).asScala)
-      } catch {
-        case e:DataAccessException =>
-        logger.error("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
-        Failure("Could not fetch last hundred reports in the database. Reason is : %s".format(e.getMessage()))
-      }
+    val events = kinds.map(k => s"eventtype='${k}'").mkString(" or ")
+    val q = query[(Long, Reports)](s"${idQuery} and (${events}) order by executiondate desc limit 100")
+
+    q.vector.attempt.transact(xa).run match {
+      case -\/(e)    =>
+          val msg = s"Could not fetch last hundred reports in the database. Reason is : ${e.getMessage}"
+          logger.error(msg)
+          Failure(msg, Full(e), Empty)
+      case \/-(list) => Full(list)
+    }
   }
 
   override def getReportsWithLowestId : Box[Option[(Long, Reports)]] = {
-    jdbcTemplate.query(s"${idQuery} order by id asc limit 1",
-          ReportsWithIdMapper).asScala match {
-      case seq if seq.size > 1 => Failure("Too many answer for the latest report in the database")
-      case seq => Full(seq.headOption)
+    val q = query[(Long, Reports)](s"${idQuery} order by id asc limit 1")
+    q.option.attempt.transact(xa).run match {
+      case -\/(e)    =>
+          Failure(e.getMessage, Full(e), Empty)
+      case \/-(option) => Full(option)
 
     }
   }
@@ -342,54 +255,58 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
    */
   override def getReportsfromId(lastProcessedId: Long, endDate: DateTime): Box[(Seq[AgentRun], Long)] = {
 
-    def getMaxId(fromId: Long, before: DateTime): Box[Long] = {
+    def getMaxId(fromId: Long, before: DateTime): ConnectionIO[Long] = {
+      val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
 
-        val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
-        val params = Array[AnyRef](new java.lang.Long(fromId), new Timestamp(endDate.getMillis))
-
-        try {
-           jdbcTemplate.query(queryForMaxId, params, IdMapper).asScala match {
-             case seq if seq.size > 1 => Failure("Too many answer for the highest id in the database")
-             case seq =>
-               //sometimes, max on postgres return 0
-               val newId = scala.math.max(fromId, seq.headOption.getOrElse(0L))
-               Full(newId)
-           }
-         } catch {
-           case e:DataAccessException =>
-             val msg = s"Could not fetch max id for execution in the database. Reason is : ${e.getMessage}"
-             logger.error(msg)
-             Failure(msg, Full(e), Empty)
-         }
+      (for {
+        res <- Query[(Long, DateTime), Long](queryForMaxId, None).toQuery0((fromId, endDate)).option
+      } yield {
+        //sometimes, max on postgres return 0
+        scala.math.max(fromId, res.getOrElse(0L))
+      })
     }
 
-    def getRuns(fromId: Long, toId: Long): Box[Seq[AgentRun]] = {
-      import java.lang.{ Long => jLong }
-      val getRunsQuery = """select distinct
-                          |  T.nodeid, T.executiontimestamp, coalesce(C.iscomplete, false) as complete, coalesce(C.msg, '') as nodeconfigid, T.insertionid
-                          |from
-                          |  (select nodeid, executiontimestamp, min(id) as insertionid from ruddersysevents where id > ? and id <= ? group by nodeid, executiontimestamp) as T
-                          |left join
-                          |  (select
-                          |    true as isComplete, nodeid, executiontimestamp, msg
-                          |  from
-                          |    ruddersysevents where id > ? and id <= ? and
-                          |    ruleId like 'hasPolicyServer%' and
-                          |    component = 'common' and keyValue = 'EndRun'
-                          |  ) as C
-                          |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
+    def getRuns(fromId: Long, toId: Long): ConnectionIO[Vector[AgentRun]] = {
       if(fromId >= toId) {
-        Full(Seq())
+        Vector.empty[AgentRun].point[ConnectionIO]
       } else {
-        val params = Array[AnyRef](new jLong(fromId), new jLong(toId), new jLong(fromId), new jLong(toId))
-        try {
-          Full(jdbcTemplate.query(getRunsQuery, params, ReportsExecutionMapper).asScala)
-        } catch {
-          case e:DataAccessException =>
-            val msg = s"Could not fetch agent executions in the database. Reason is : ${e.getMessage}"
-            logger.error(msg)
-            Failure(msg, Full(e), Empty)
-        }
+        /*
+         * Here, we use a special mapping for configurationid, because there is a bunch
+         * of case where they are not correct in the reports, we need to sort the correct
+         * one from the others.
+         */
+        type T = (String, DateTime, Option[String], Boolean, Long)
+        val nodeConfigVersionRegex = """(?s).+\[([^\]]+)\].*""".r
+        //we want to match: """End execution with config [75rz605art18a05]"""
+        // the (?s) allows . to match any characters, even non displayable ones
+        implicit val ReportComposite: Composite[AgentRun] = {
+           Composite[T].xmap(
+               (t: T       ) => {
+                 val optNodeConfigId = t._3.flatMap(version => version match {
+                   case nodeConfigVersionRegex(v) => Some(NodeConfigId(v))
+                   case _                         => None
+                 })
+                 AgentRun(AgentRunId(NodeId(t._1), t._2), optNodeConfigId, t._4, t._5)
+               }
+            ,  (x: AgentRun) => ( x.agentRunId.nodeId.value, x.agentRunId.date
+                                , x.nodeConfigVersion.map(_.value), x.isCompleted, x.insertionId)
+           )
+         }
+        val getRunsQuery = """select distinct
+                            |  T.nodeid, T.executiontimestamp, coalesce(C.msg, '') as nodeconfigid, coalesce(C.iscomplete, false) as complete, T.insertionid
+                            |from
+                            |  (select nodeid, executiontimestamp, min(id) as insertionid from ruddersysevents where id > ? and id <= ? group by nodeid, executiontimestamp) as T
+                            |left join
+                            |  (select
+                            |    true as iscomplete, nodeid, executiontimestamp, msg
+                            |  from
+                            |    ruddersysevents where id > ? and id <= ? and
+                            |    ruleId like 'hasPolicyServer%' and
+                            |    component = 'common' and keyValue = 'EndRun'
+                            |  ) as C
+                            |on T.nodeid = C.nodeid and T.executiontimestamp = C.executiontimestamp""".stripMargin
+
+        Query[(Long, Long, Long, Long), AgentRun](getRunsQuery, None).toQuery0(fromId, toId, fromId, toId).vector
       }
     }
 
@@ -435,43 +352,45 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     }
 
     //actual logic for getReportsfromId
-    for {
+    (for {
       toId    <- getMaxId(lastProcessedId, endDate)
       reports <- getRuns(lastProcessedId, toId)
     } yield {
       (distinctRuns(reports), toId)
-    }
+    }).attempt.transact(xa).run ?~! s"Could not fetch the last completed runs from database."
   }
 
   override def countChangeReports(startTime: DateTime, intervalInHour: Int): Box[Map[RuleId, Map[Interval, Int]]] = {
+    //special mapper to retrieve correct interval. It is dependante of starttime / intervalInHour
+    implicit val intervalMeta: Meta[Interval] = Meta[Int].xmap(
+        //the query will return interval number in the "interval" column. So interval=0 mean
+        //interval from startTime to startTime + intervalInHour hours, etc.
+        //here is the mapping to build an interval from its number
+        num => new Interval(startTime.plusHours(num*intervalInHour), startTime.plusHours((num+1)*intervalInHour))
+      , itv => 0 //that should never be used, as it doesn't really map anything
+    )
+
     //be careful, extract from 'epoch' gives seconds, not millis
     val mod = intervalInHour * 3600
     val start = startTime.getMillis / 1000
-    val query = s"select ruleid, count(*) as number, ( extract('epoch' from executiontimestamp)::bigint - ${start})/${mod} as interval from ruddersysevents " +
-                s"where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(startTime.getMillis)}'::timestamp group by ruleid, interval;"
-
-    //that query will return interval number in the "interval" column. So interval=0 mean
-    //interval from startTime to startTime + intervalInHour hours, etc.
-    //=> little function to build an interval from its number
-    def interval(t:DateTime, int: Int)(num: Int) = new Interval(t.plusHours(num*int), t.plusHours((num+1)*int))
-
-    try {
-      val res = jdbcTemplate.query(query, CountChangesMapper(interval(startTime, intervalInHour))).asScala
-      //group by ruleId, and then interval
+    (query[(RuleId, Int, Interval)](
+      s"""select ruleid, count(*) as number, ( extract('epoch' from executiontimestamp)::bigint - ${start})/${mod} as interval
+          from ruddersysevents
+          where eventtype = 'result_repaired' and executionTimeStamp > '${new Timestamp(startTime.getMillis)}'::timestamp
+          group by ruleid, interval;
+      """
+    ).vector.attempt.transact(xa).run ?~! "Error when trying to retrieve change reports").map { res =>
       val groups = res.groupBy(_._1).mapValues( _.groupBy(_._3).mapValues(_.map( _._2).head)) //head non empty due to groupBy, and seq == 1 by query
-      Full(groups)
-    } catch {
-      case ex: Exception =>
-        val error = Failure("Error when trying to retrieve change reports", Some(ex), Empty)
-        logger.error(error)
-        error
+      groups
     }
   }
 
 
   override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
-    val query = s"${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId} order by executionTimeStamp asc"
-    transformJavaList(jdbcTemplate.query(query, ReportsMapper))
+    query[ResultRepairedReport](s"""
+      ${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
+      order by executionTimeStamp asc
+    """).vector.attempt.transact(xa).run
   }
 
   override def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]] = {
@@ -479,118 +398,20 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
       case Some(i) if(i > 0) => s"limit ${i}"
       case _                 => ""
     }
-    val query = s"${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}' " +
-                s" and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp " +
-                s" and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}"
-
-    transformJavaList(jdbcTemplate.query(query, ReportsMapper))
+    query[ResultRepairedReport](s"""
+      ${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}'
+      and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp
+      and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}
+    """).vector.attempt.transact(xa).run
   }
-
-  private[this] def transformJavaList(l: java.util.List[Reports]) = {
-      try {
-        Full(l.asScala.collect{case r:ResultRepairedReport => r})
-      } catch {
-        case ex: Exception =>
-          val error = Failure("Error when trying to retrieve change reports", Some(ex), Empty)
-          logger.error(error)
-          error
-      }
-    }
 
 
   override def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
     if (lower>=upper)
       Full(Nil)
     else{
-      val query = s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
-      try {
-        Full(jdbcTemplate.query(query, ReportsWithIdMapper).asScala)
-      } catch {
-        case e:DataAccessException =>
-        logger.error("Could not fetch reports between ids %d and %d in the database. Reason is : %s".format(lower,upper,e.getMessage()))
-        Failure("Could not fetch reports between ids %d and %d in the database. Reason is : %s".format(lower,upper,e.getMessage()))
-      }
+      val q = s"${idQuery} and id between '${lower}' and '${upper}' and (${kinds.map(k => s"eventtype='${k}'").mkString(" or ")}) order by id asc limit ${limit}"
+      query[(Long, Reports)](q).vector.attempt.transact(xa).run ?~! s"Could not fetch reports between ids ${lower} and ${upper} in the database."
     }
   }
-}
-
-final case class CountChangesMapper(intMapper: Int => Interval) extends RowMapper[(RuleId, Int, Interval)] {
-   def mapRow(rs : ResultSet, rowNum: Int) : (RuleId, Int, Interval) = {
-        (
-          RuleId(rs.getString("ruleId"))
-        , rs.getInt("number")
-        , intMapper(rs.getInt("interval"))
-      )
-    }
-}
-
-object ReportsMapper extends RowMapper[Reports] {
-   def mapRow(rs : ResultSet, rowNum: Int) : Reports = {
-        Reports(
-            new DateTime(rs.getTimestamp("executionDate"))
-          , RuleId(rs.getString("ruleId"))
-          , DirectiveId(rs.getString("directiveId"))
-          , NodeId(rs.getString("nodeId"))
-          , rs.getInt("serial")
-          , rs.getString("component")
-          , rs.getString("keyValue")
-          , new DateTime(rs.getTimestamp("executionTimeStamp"))
-          , rs.getString("eventType")
-          , rs.getString("msg")
-          //what about policy ? => contains the technique name, not used directly by Rudder
-        )
-    }
-}
-
-object ExecutionTimeMapper extends RowMapper[DateTime] {
-   def mapRow(rs : ResultSet, rowNum: Int) : DateTime = {
-        new DateTime(rs.getTimestamp("date"))
-    }
-}
-
-object DatabaseSizeMapper extends RowMapper[Long] {
-   def mapRow(rs : ResultSet, rowNum: Int) : Long = {
-        rs.getLong("size")
-    }
-}
-
-object IdMapper extends RowMapper[Long] {
-   def mapRow(rs : ResultSet, rowNum: Int) : Long = {
-        rs.getLong("id")
-    }
-}
-
-object ReportsWithIdMapper extends RowMapper[(Long, Reports)] {
-  def mapRow(rs : ResultSet, rowNum: Int) : (Long, Reports) = {
-    (IdMapper.mapRow(rs, rowNum), ReportsMapper.mapRow(rs, rowNum))
-    }
-}
-
-object ReportsExecutionMapper extends RowMapper[AgentRun] {
-
-  //we want to match: """End execution with config [75rz605art18a05]"""
-  // the (?s) allows . to match any characters, even non displayable ones
-  val nodeConfigVersionRegex = """(?s).+\[([^\]]+)\].*""".r
-
-   def mapRow(rs : ResultSet, rowNum: Int) : AgentRun = {
-     AgentRun(
-         AgentRunId(NodeId(rs.getString("nodeid")), new DateTime(rs.getTimestamp("executiontimestamp")))
-       , {
-           val s = rs.getString("nodeconfigid")
-           if(s == null) {
-             None
-           } else {
-             s match {
-                //check if we have the version and modify the report accordingly
-                case nodeConfigVersionRegex(v) =>
-                  Some(NodeConfigId(v))
-                case _ =>
-                  None
-             }
-           }
-         }
-       , rs.getBoolean("complete")
-       , rs.getLong("insertionid")
-     )
-    }
 }

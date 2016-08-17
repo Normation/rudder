@@ -68,6 +68,11 @@ import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.workflows.DirectiveChanges
 import com.normation.rudder.domain.logger.ApplicationLogger
 import com.normation.eventlog.ModificationId
+import scala.xml.Elem
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
 class RoChangeRequestJdbcRepository(
     jdbcTemplate         : JdbcTemplate
@@ -77,12 +82,13 @@ class RoChangeRequestJdbcRepository(
   val SELECT_SQL = "SELECT id, name, description, creationTime, content, modificationId FROM ChangeRequest"
 
   val SELECT_SQL_JOIN_WORKFLOW = "SELECT CR.id, name, description, creationTime, content, modificationId FROM  changeRequest CR LEFT JOIN workflow W on CR.id = W.id"
-  def getAll() : Box[Seq[ChangeRequest]] = {
+
+  override def getAll() : Box[Vector[ChangeRequest]] = {
     Try {
       jdbcTemplate.query(SELECT_SQL, Array[AnyRef](), changeRequestsMapper).toSeq
     } match {
       case Success(x) =>
-        Full(x.:\(Seq[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
+        Full(x.:\(Vector[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
         case Full(cr) =>  seq :+ cr
         case eb:EmptyBox =>
           seq
@@ -94,7 +100,7 @@ class RoChangeRequestJdbcRepository(
     }
   }
 
-  def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] = {
+  override def get(changeRequestId:ChangeRequestId) : Box[Option[ChangeRequest]] = {
     Try {
       jdbcTemplate.query(
           SELECT_SQL + " where id = ?"
@@ -111,7 +117,7 @@ class RoChangeRequestJdbcRepository(
   }
 
   // Get every change request where a user add a change
-  def getByContributor(actor:EventActor) : Box[Seq[ChangeRequest]] = {
+  override def getByContributor(actor:EventActor) : Box[Vector[ChangeRequest]] = {
     Try {
 
       jdbcTemplate.query(
@@ -129,7 +135,7 @@ class RoChangeRequestJdbcRepository(
          }, changeRequestsMapper)
     } match {
       case Success(x) =>
-        Full(x.:\(Seq[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
+        Full(x.:\(Vector[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
         case Full(cr) =>  seq :+ cr
         case eb:EmptyBox =>
           seq
@@ -139,27 +145,8 @@ class RoChangeRequestJdbcRepository(
       Failure(s"could not fetch change request for user ${actor}")
     }
   }
-  def getByIds(changeRequestId:Seq[ChangeRequestId]) : Box[Seq[ChangeRequest]] = {
-    val parameters = new MapSqlParameterSource();
-    parameters.addValue("ids", changeRequestId.map(x => x.value))
 
-    Try {
-      jdbcTemplate.query(
-          SELECT_SQL + " where id in (:ids)"
-        , changeRequestsMapper
-        , parameters).toSeq
-    } match {
-      case Success(x) => Full(x.:\(Seq[ChangeRequest]()){(changeRequest,seq) => changeRequest match {
-        case Full(cr) =>  seq :+ cr
-        case eb:EmptyBox =>
-          seq
-        }
-      })
-      case Catch(error) => Failure(error.toString())
-    }
-  }
-
-  def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = {
+  override def getByDirective(id : DirectiveId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = {
     getChangeRequestsByXpathContent(
         "/changeRequest/directives/directive/@id"
       , id.value
@@ -168,7 +155,7 @@ class RoChangeRequestJdbcRepository(
     )
   }
 
-  def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = {
+  override def getByNodeGroup(id : NodeGroupId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = {
     getChangeRequestsByXpathContent(
         "/changeRequest/groups/group/@id"
       , id.value
@@ -177,7 +164,7 @@ class RoChangeRequestJdbcRepository(
     )
   }
 
-  def getByRule(id : RuleId, onlyPending:Boolean) : Box[Seq[ChangeRequest]] = {
+  override def getByRule(id : RuleId, onlyPending:Boolean) : Box[Vector[ChangeRequest]] = {
     getChangeRequestsByXpathContent(
         "/changeRequest/rules/rule/@id"
       , id.value
@@ -198,7 +185,7 @@ class RoChangeRequestJdbcRepository(
       Full(jdbcTemplate.query(
         new PreparedStatementCreator() {
            def createPreparedStatement(connection : Connection) : PreparedStatement = {
-             val query =
+             val query  =
                if (onlyPending) {
                  s"${SELECT_SQL_JOIN_WORKFLOW} where cast( xpath('${xpath}', content) as text[]) = ? and state like 'Pending%'"
                }
@@ -211,7 +198,7 @@ class RoChangeRequestJdbcRepository(
              ps
            }
          }, changeRequestsMapper
-      ).flatten)
+      ).flatten.toVector)
     } catch {
       case ex: Exception =>
         val f = Failure(errorMessage, Full(ex), Empty)
@@ -346,43 +333,48 @@ class WoChangeRequestJdbcRepository(
 class ChangeRequestsMapper(
     changeRequestChangesUnserialisation : ChangeRequestChangesUnserialisation
 ) extends RowMapper[Box[ChangeRequest]] with Loggable {
-  def mapRow(rs : ResultSet, rowNum: Int) : Box[ChangeRequest] = {
+
 
     // unserialize the XML.
     // If it fails, produce a failure
     // directives map is boxed because some Exception could be launched
-    changeRequestChangesUnserialisation.unserialise(XML.load(rs.getSQLXML("content").getBinaryStream() )) match {
+  def unserialize(id: Int, content: Elem, modId: Option[String], name: Option[String], description: Option[String]) = {
+    changeRequestChangesUnserialisation.unserialise(content) match {
       case Full((directivesMaps, nodesMaps, ruleMaps, paramMaps)) =>
-        val id = ChangeRequestId(rs.getInt("id"))
-        val modId = {
-          val modId = rs.getString("modificationId")
-          if (modId != null && modId.size > 0)
-            Some(ModificationId(modId))
-          else
-            None
-        }
         directivesMaps match {
           case Full(map) => Full(ConfigurationChangeRequest(
-            id
-          , modId
+            ChangeRequestId(id)
+          , modId.map(ModificationId.apply)
           , ChangeRequestInfo(
-                rs.getString("name")
-              , rs.getString("description")
+                name.getOrElse("")
+              , description.getOrElse("")
             )
           , map
           , nodesMaps
           , ruleMaps
           , paramMaps
         ) )
-          case eb:EmptyBox => val fail = eb ?~! s"could not deserialize directive change of change request #${id} cause is: ${eb}"
+          case eb:EmptyBox =>
+            val fail = eb ?~! s"could not deserialize directive change of change request #${id} cause is: ${eb}"
           ApplicationLogger.error(fail)
           fail
         }
 
-      case eb:EmptyBox => val fail = eb ?~! s"Error when trying to get the content of the change request ${rs.getInt("id")} : ${eb}"
+      case eb:EmptyBox =>
+        val fail = eb ?~! s"Error when trying to get the content of the change request ${id} : ${eb}"
         logger.error(fail.msg)
         fail
     }
+  }
+
+  def mapRow(rs : ResultSet, rowNum: Int) : Box[ChangeRequest] = {
+    unserialize(
+        rs.getInt("id")
+      , XML.load(rs.getSQLXML("content").getBinaryStream())
+      , Some(rs.getString("modificationId"))
+      , Some(rs.getString("name"))
+      , Some(rs.getString("description"))
+    )
   }
 
 }

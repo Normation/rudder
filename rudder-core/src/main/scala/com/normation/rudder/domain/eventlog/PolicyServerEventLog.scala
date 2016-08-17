@@ -1,15 +1,13 @@
 package com.normation.rudder.domain.eventlog
 
+import scala.xml.Elem
 
-import org.joda.time.DateTime
-import com.normation.eventlog.EventActor
 import com.normation.eventlog.EventLog
-import com.normation.utils.HashcodeCaching
-import scala.xml.NodeSeq
 import com.normation.eventlog.EventLogDetails
 import com.normation.eventlog.EventLogFilter
 import com.normation.eventlog.EventLogType
 import com.normation.rudder.domain.Constants
+import com.normation.utils.HashcodeCaching
 
 
 /**
@@ -37,7 +35,7 @@ object UpdatePolicyServer extends EventLogFilter {
 
   override def apply(x : (EventLogType, EventLogDetails)) : UpdatePolicyServer = UpdatePolicyServer(x._2)
 
-  def buildDetails(modification: AuthorizedNetworkModification) : NodeSeq = {
+  def buildDetails(modification: AuthorizedNetworkModification) : Elem = {
     EventLog.withContent {
       <changeAuthorizedNetworks fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <oldAuthorizedNetworks>{

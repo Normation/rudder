@@ -256,7 +256,7 @@ class NodeConfigurationServiceImpl(
      *
      * That method check that:
      * - the directive added is not already in the NodeConfiguration (why ? perhaps a note to dev is better ?)
-     * - a technique does not exists with two versions
+     * - a technique does not exist with two versions
      * - there is at most one directive for each "unique" technique
      */
     def sanitizeOne(nodeConfig: NodeConfiguration) : Box[NodeConfiguration] = {

@@ -75,7 +75,6 @@ trait ReportsRepository {
   def getExecutionReports(runs: Set[AgentRunId], filterByRules: Set[RuleId]): Box[Map[NodeId, Seq[Reports]]]
 
 
-
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
    * for a rule (optionnal) and for a specific serial of this rule (optionnal)
@@ -92,33 +91,12 @@ trait ReportsRepository {
     , end   : DateTime
   ) : Seq[Reports]
 
-  /**
-   * All reports for a node and rule/serial, between two date, ordered by date
-   */
-  def findReportsByNode(
-      nodeId   : NodeId
-    , ruleId   : RuleId
-    , serial   : Int
-    , beginDate: DateTime
-    , endDate  : Option[DateTime]
-  ) : Seq[Reports]
-
-
-  //advanced reporting only
-  def findExecutionTimeByNode(
-      nodeId   : NodeId
-    , beginDate: DateTime
-    , endDate  : Option[DateTime]
-  ) : Seq[DateTime]
-
-  def getOldestReports() : Box[Option[Reports]]
-
   //databaseManager only
-  def getOldestArchivedReports() : Box[Option[Reports]]
-  def getNewestReports() : Box[Option[Reports]]
-  def getNewestArchivedReports() : Box[Option[Reports]]
+  def getReportsInterval()         : Box[(Option[DateTime], Option[DateTime])]
+  def getArchivedReportsInterval() : Box[(Option[DateTime], Option[DateTime])]
+
   def getDatabaseSize(databaseName : String) : Box[Long]
-  def reportsTable : String
+  def reports : String
   def archiveTable : String
   def archiveEntries(date : DateTime) : Box[Int]
   def deleteEntries(date : DateTime) : Box[Int]

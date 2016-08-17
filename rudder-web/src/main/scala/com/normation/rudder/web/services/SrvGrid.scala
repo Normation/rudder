@@ -63,6 +63,8 @@ import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information

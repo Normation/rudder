@@ -104,7 +104,7 @@ class ExpectedReportsUpdateImpl(
 ) extends ExpectedReportsUpdate with Loggable {
 
   /**
-   * Utilitary method that filters overriden directive by node
+   * Utility method that filters overriden directive by node
    * in expandedruleval
    */
   private[this] def filterOverridenDirectives(
@@ -282,7 +282,7 @@ class ExpectedReportsUpdateImpl(
 }
 
   /*
-   * Utilitary object to calculate cardinality of components
+   * Utility object to calculate cardinality of components
    * Component, ComponentValues(expanded), ComponentValues (unexpanded))
    */
 object ComputeCardinalityOfDirectiveVal extends Loggable {
