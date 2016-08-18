@@ -200,7 +200,7 @@ var buildRuleCategoryTreeNoDnD = function(id, initially_select , appContext) {
 /*
  * Group tree
  */
-var buildGroupTree = function(id, appContext, initially_select, select_multiple_modifier, select_node) {
+var buildGroupTree = function(id, appContext, initially_select, select_multiple_modifier, select_node, authorized) {
   if(select_multiple_modifier !== undefined) {
     select_limit = -1;
   } else {
@@ -288,7 +288,7 @@ var buildGroupTree = function(id, appContext, initially_select, select_multiple_
         "check_move" : function (m) {
           //only accept "inside" node move (yes, comparing m.p == "inside" does not work)
           //and into a new parent node. refuse move to system category
-          return (m.np.attr("rel") != "system_category" && m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
+          return authorized && (m.np.attr("rel") != "system_category" && m.p != "before" && m.p != "after" && this._get_parent(m.o)[0] !== m.np[0]);
         }
       }
     },

@@ -265,7 +265,7 @@ class ShowNodeDetailsFromNode(
    * htmlId is the id of the div enclosing tree datas
    */
   private def buildJsTree(htmlId:String) : JsExp = JsRaw(
-    """buildGroupTree('#%s', '%s')""".format(htmlId,S.contextPath)
+    """buildGroupTree('#%s', '%s', [], 'on', undefined, false)""".format(htmlId,S.contextPath)
   )
 
 }
