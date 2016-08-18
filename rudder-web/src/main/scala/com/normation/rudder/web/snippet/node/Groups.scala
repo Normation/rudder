@@ -75,6 +75,7 @@ import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.domain.workflows.ChangeRequest
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.rudder.authorization.Edit
 
 object Groups {
   val htmlId_groupTree = "groupTree"
@@ -298,39 +299,29 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
       ) ++ Script(OnLoad(
       //build jstree and
       //init bind callback to move
-      JsRaw("""
-        buildGroupTree('#%1$s','%5$s', '%4$s', 'off', true);
-        $('#%1$s').bind("move_node.jstree", function (e,data) {
-          var sourceCatId = $(data.rslt.o).attr("catId");
-          var sourceGroupId = $(data.rslt.o).attr("groupId");
-          var destCatId = $(data.rslt.np).attr("catId");
+      JsRaw(s"""
+        buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', '${selectedNode}', 'off', true, ${CurrentUser.checkRights(Edit("group"))});
+        $$('#${htmlId_groupTree}').bind("move_node.jstree", function (e,data) {
+          var sourceCatId = $$(data.rslt.o).attr("catId");
+          var sourceGroupId = $$(data.rslt.o).attr("groupId");
+          var destCatId = $$(data.rslt.np).attr("catId");
           if( destCatId ) {
             if(sourceGroupId) {
               var arg = JSON.stringify({ 'sourceGroupId' : sourceGroupId, 'destCatId' : destCatId });
-              %2$s;
+              ${SHtml.ajaxCall(JsVar("arg"), moveGroup(lib, workflowEnabled) _)._2.toJsCmd};
             } else if(  sourceCatId ) {
               var arg = JSON.stringify({ 'sourceCatId' : sourceCatId, 'destCatId' : destCatId });
-              %3$s;
+              ${SHtml.ajaxCall(JsVar("arg"), moveCategory(lib, workflowEnabled) _ )._2.toJsCmd};
             } else {
               alert("Can not move that kind of object");
-              $.jstree.rollback(data.rlbk);
+              $$.jstree.rollback(data.rlbk);
             }
           } else {
             alert("Can not move to something else than a category");
-            $.jstree.rollback(data.rlbk);
+            $$.jstree.rollback(data.rlbk);
           }
         });
-      """.format(
-        // %1$s
-        htmlId_groupTree ,
-        // %2$s
-        SHtml.ajaxCall(JsVar("arg"), moveGroup(lib, workflowEnabled) _)._2.toJsCmd,
-        // %3$s
-        SHtml.ajaxCall(JsVar("arg"), moveCategory(lib, workflowEnabled) _ )._2.toJsCmd,
-        // %4$s
-        selectedNode ,
-        S.contextPath
-      )))
+      """))
     )}
   }
 

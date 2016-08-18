@@ -334,7 +334,7 @@ class RuleEditForm(
           scope.$$apply(function(){
             scope.init(${ruleTarget.toString()},${maptarget});
           } );
-          buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on');"""
+          buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on', undefined, false);"""
         ) &
         //function to update list of PIs before submiting form
         JsRaw(s"""
