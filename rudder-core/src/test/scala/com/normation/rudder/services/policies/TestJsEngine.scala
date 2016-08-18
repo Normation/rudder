@@ -180,7 +180,7 @@ class TestJsEngine extends Specification {
       val failMsg = if(isNashorn) {
         ".*access denied to.*".r
       } else {
-        ".*forced interrupted.*".r
+        ".*(forced interrupted|access denied to).*".r
       }
 
       JsEngine.SandboxedJsEngine.sandboxed { box =>
@@ -192,7 +192,7 @@ class TestJsEngine extends Specification {
       val failMsg = if(isNashorn) {
         ".*access denied to.*".r
       } else {
-        ".*forced interrupted.*".r
+        ".*(forced interrupted|access denied to).*".r
       }
 
       JsEngine.SandboxedJsEngine.sandboxed { box =>
