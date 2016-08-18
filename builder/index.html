@@ -238,7 +238,7 @@
                               <br style="clear:both"/>
                               <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
                                 <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" ></input>
-                                <ng-messages for="arg_method.param.$error" multiple />
+                                <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple />
                                   <div class="text-danger" ng-message="constraint">
                                     Invalid constraint for parameter: '{{parameter.name}}'
                                   </div>
