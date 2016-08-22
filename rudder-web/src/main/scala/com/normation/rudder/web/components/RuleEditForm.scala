@@ -117,7 +117,6 @@ object RuleEditForm {
       chooseTemplate("component", "form", xml)
     }) openOr Nil
 
-
   val htmlId_groupTree = "groupTree"
   val htmlId_activeTechniquesTree = "userPiTree"
 }
@@ -190,7 +189,7 @@ class RuleEditForm(
 
         val form = {
           if(CurrentUser.checkRights(Read("rule"))) {
-            val formContent = if (CurrentUser.checkRights(Edit("rule"))) {
+            val formContent = if (CurrentUser.checkRights(Read("rule"))) {
               showCrForm(groupLib, directiveLib)
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>
@@ -521,7 +520,6 @@ class RuleEditForm(
       , rule
     )
   }
-
 
   // Create the popup for workflow
   private[this] def displayConfirmationPopup(
