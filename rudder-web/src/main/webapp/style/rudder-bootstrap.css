@@ -229,6 +229,8 @@
   margin-left:-15px;
   padding-left:15px;
   padding-right:15px;
+  // augment index of footer so it always on top of other elements (ie, password fields over footer #8800
+  z-index : 3;
 }
 
 .directive-footer{
@@ -475,4 +477,8 @@ body .tw-bs {
 
 .tw-bs .input-group-btn > .btn:hover, .tw-bs .input-group-btn > .btn:focus, .tw-bs .input-group-btn > .btn:active {
   z-index: 0;
+}
+
+.tw-bs .btn.btn-default.reveal-password {
+	padding : 5px 12px;
 }
