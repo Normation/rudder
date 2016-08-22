@@ -76,14 +76,16 @@
 		  <div id="removeActionDialog"></div>
 		  <div id="disactivateActionDialog"></div>
 		</div>
-    <div class="fixed-footer rule-footer">
-      <div id="removeAction" style="float:left"></div>
-      <div id="desactivateAction" style="float:left; margin-left:20px;"></div>
-      <button id="clone" style="float:left">[Clone]</button>
-      <div class="cpiefsave">
-        <button id="save">Save</button>
+    <lift:authz role="rule_edit">
+      <div class="fixed-footer rule-footer">
+        <div id="removeAction" style="float:left"></div>
+        <div id="desactivateAction" style="float:left; margin-left:20px;"></div>
+        <button id="clone" style="float:left">[Clone]</button>
+        <div class="cpiefsave">
+          <button id="save">Save</button>
+        </div>
       </div>
-    </div>
+    </lift:authz>
 	</div>
   <div id="confirmUpdateActionDialog" class="nodisplay"></div>
 </component:body>
@@ -142,17 +144,12 @@
   </div>
   <hr class="spacer"/>
 
-  <div class="topLevelAction">
-    <div class="disableNotice">
-        Note: the Rule will be applied only if its status is enabled and its Directives are all enabled.
-    </div>
-    </div>
+  <div class="disableNotice">
+    Note: the Rule will be applied only if its status is Enabled and
+    its Directive, Technique and target node group are all Enabled.
+  </div>
+  <div id="notifications"></div>
 
-    <div id="notifications">
-<!--       <ul> -->
-<!--         <li>Here comes notifications</li> -->
-<!--       </ul> -->
-    </div>
     <hr class="spacer" />
 
     <div class="section-title spacing-title">General information</div>
@@ -281,7 +278,6 @@
       </div>
       <div class="hierarchySpacer"/>
     </div>
-    <hr class="spacer" />
 </div>
 
 </component:form>
