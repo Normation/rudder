@@ -108,7 +108,6 @@ class ReadOnlyTextField(val id:String) extends DirectiveField {
   def getDefaultValue = ""
 }
 
-
 /**
  * A textarea field, with a css class
  * "textareaField"
@@ -176,10 +175,10 @@ class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField
     val valuesByLabel = items.map(_.reverse.tuple).toMap
     val labelsByValue = items.map(_.tuple).toMap
 
-    val defaultLabels = values.map(labelsByValue(_))
+    val defaultLabels = values.map(labelsByValue.getOrElse(_,""))
     val labels = items.map(_.label)
     Full(SHtml.checkbox[String](labels, defaultLabels,
-      labelsSelected => set(labelsSelected.map(valuesByLabel(_)))).toForm)
+      labelsSelected => set(labelsSelected.map(valuesByLabel.getOrElse(_,"")))).toForm)
   }
 
   def manifest = manifestOf[ValueType]
@@ -591,7 +590,6 @@ class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstra
     else chosenAlgo.serialize(newInput.getBytes())
   }
 
-
   def parseClient(s: String): Unit = {
     if (null == s) _x = "" else _x = s
   }
@@ -673,7 +671,6 @@ class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstra
                            NodeSeq.Empty
                          })
       }
-
 
     Full(form.apply(PasswordField.xml))
 
