@@ -58,8 +58,8 @@ import com.normation.rudder.domain.reports.ResultRepairedReport
  * The intervals of time are always the 4 following, for each days:
  * - [0h-6h[ , [6h-12h[ , [12h-18h[, [18h-24[.
  */
-trait NodeChangesService {
 
+trait NodeChangesService {
   type ChangesByRule  = Map[RuleId, Map[Interval, Int]]
 
   /*
@@ -173,7 +173,6 @@ class CachedNodeChangesServiceImpl(
 ) extends NodeChangesService with CachedRepository with Loggable {
 
   override val changesMaxAge = changeService.changesMaxAge
-
   private[this] var cache = Option.empty[ChangesByRule]
 
   private[this] def cacheToLog(changes: ChangesByRule): String = {

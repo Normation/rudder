@@ -75,6 +75,10 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import MyPostgresDriver.api._
+import net.liftweb.common.Failure
+import net.liftweb.common.EmptyBox
+import com.normation.rudder.services.reports.NodeChangesService
+import com.normation.rudder.services.reports.NodeChangesServiceImpl
 
 /**
  *
@@ -116,20 +120,22 @@ class ReportingServiceTest extends DBCommon {
   lazy val roAgentRun = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
   lazy val woAgentRun = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roAgentRun)
 
-  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(null) {
+
+  lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {
     override def update(changes: Seq[ResultRepairedReport]): Box[Unit] = Full(())
     override def countChangesByRuleByInterval() = Empty
   }
 
-  lazy val updateRuns = new ReportsExecutionService(
-      reportsRepo
-    , woAgentRun
-    , new StatusUpdateSquerylRepository(squerylConnectionProvider)
-    , dummyChangesCache
-    , dummyComplianceCache
-    , 1
-  )
-
+  lazy val updateRuns = {
+    new ReportsExecutionService(
+        reportsRepo
+      , woAgentRun
+      , new StatusUpdateSquerylRepository(squerylConnectionProvider)
+      , dummyChangesCache
+      , dummyComplianceCache
+      , 1
+    )
+  }
   import slick._
 
   //help differentiate run number with the millis
@@ -239,16 +245,14 @@ class ReportingServiceTest extends DBCommon {
   sequential
 
   step {
+
     slick.insertReports(reports.values.toSeq.flatten)
     slickExec(expectedReportsTable ++= expecteds.keySet)
     slickExec(expectedReportsNodesTable ++= expecteds.values.toSet.flatten)
 
-    println("reports size: " + slickExec(reportsTable.result).size)
-    println("expected reports size: " + slickExec(expectedReportsTable.result).size)
-    println("expected reports size: " + slickExec(expectedReportsNodesTable.result).size)
-
-    updateRuns.findAndSaveExecutions(42)
-    updateRuns.findAndSaveExecutions(43) //need to be done one time for init, one time for actual work
+    //need to be done one time for init, one time for actual work
+    updateRuns.findAndSaveExecutions(42).openOrThrowException("I should be able to init the 'find and save execution'")
+    updateRuns.findAndSaveExecutions(43).openOrThrowException("I should be able to init the 'find and save execution'")
 
     //add node configuration in repos, testing "add" method
     updateExpected.addNodeConfigIdInfo(allNodes_t1.mapValues(_.configId), gen1).openOrThrowException("I should be able to add node config id info")
