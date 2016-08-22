@@ -230,7 +230,7 @@
   margin-left:-15px;
   padding-left:15px;
   padding-right:15px;
-  // augment index of footer so it always on top of other elements (ie, password fields over footer #8800
+  /* augment index of footer so it always on top of other elements (ie, password fields over footer #8800 */
   z-index : 3;
 }
 

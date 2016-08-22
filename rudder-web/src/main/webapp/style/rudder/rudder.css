@@ -620,6 +620,16 @@ table.dataTable td img, table.dataTable th img {
   margin-top: 10px;
 }
 
+.dataTables_wrapper_top {
+  padding: 6px;
+  overflow: hidden;
+  display: block;
+  border-top: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
 
 table.noMarginGrid {
   border-left : 0 ;
