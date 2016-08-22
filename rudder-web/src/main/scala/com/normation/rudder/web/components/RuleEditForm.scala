@@ -190,7 +190,7 @@ class RuleEditForm(
 
         val form = {
           if(CurrentUser.checkRights(Read("rule"))) {
-            val formContent = if (CurrentUser.checkRights(Edit("rule"))) {
+            val formContent = if (CurrentUser.checkRights(Read("rule"))) {
               showCrForm(groupLib, directiveLib)
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>
