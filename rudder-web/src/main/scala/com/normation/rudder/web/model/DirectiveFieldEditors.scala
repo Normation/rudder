@@ -185,10 +185,10 @@ class SelectField(val id: String, items: Seq[ValueLabel]) extends DirectiveField
     val valuesByLabel = items.map(_.reverse.tuple).toMap
     val labelsByValue = items.map(_.tuple).toMap
 
-    val defaultLabels = values.map(labelsByValue(_))
+    val defaultLabels = values.map(labelsByValue.getOrElse(_,""))
     val labels = items.map(_.label)
     Full(SHtml.checkbox[String](labels, defaultLabels,
-      labelsSelected => set(labelsSelected.map(valuesByLabel(_)))).toForm)
+      labelsSelected => set(labelsSelected.map(valuesByLabel.getOrElse(_,"")))).toForm)
   }
 
   def manifest = manifestOf[ValueType]
@@ -783,7 +783,6 @@ class PasswordField(
 
     val form = (".password-section *+" #> valueInput).apply(PasswordField.xml(formId)) ++ initScript
     Full(form)
-
   }
 }
 
