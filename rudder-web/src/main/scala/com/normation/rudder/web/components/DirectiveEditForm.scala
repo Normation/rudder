@@ -80,7 +80,7 @@ object DirectiveEditForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "staticInit", xml) ++
+      chooseTemplate("component", "staticinit", xml) ++
         RuleGrid.staticInit
     }) openOr Nil
 
@@ -415,7 +415,7 @@ class DirectiveEditForm(
           	<h4> Priority </h4>
 						Priority determines which <b> unique </b> Directive will be applied.
 						<br/>
-						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied. 
+						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.
 						<br/>
 						Highest Priority is 0
           </div>
