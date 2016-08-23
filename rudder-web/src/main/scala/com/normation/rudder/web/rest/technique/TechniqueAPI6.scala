@@ -78,7 +78,7 @@ class TechniqueAPI6 (
           apiV6.listDirectives(techniqueName, None)
         , req
         , s"Could not find list of directives based on '${techniqueName}' Technique"
-       ) ("listDirectives")
+       ) ("listTechniquesDirectives")
 
     case Get(name :: version :: "directives" :: Nil, req) =>
       val techniqueName = TechniqueName(name)
@@ -94,7 +94,7 @@ class TechniqueAPI6 (
       ) ( directives
         , req
         , s"Could not find list of directives based on version '${version}' of '${techniqueName}' Technique"
-      ) ("listDirectives")
+      ) ("listTechniqueDirectives")
 
   }
 
