@@ -344,7 +344,7 @@ case class DirectiveAPIService2 (
 
   def checkDirective(directiveId: DirectiveId, req: Req, restValues : Box[RestDirective]) = {
 
-    implicit val action = "updateDirective"
+    implicit val action = "checkDirective"
     implicit val prettify = restExtractor.extractPrettify(req.params)
     val modId = ModificationId(uuidGen.newUuid)
     val actor = getActor(req)
