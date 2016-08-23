@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.snippet.index
 
-
 //lift std import
 import scala.xml._
 import net.liftweb.common._
@@ -61,13 +60,17 @@ class Utilities {
     if ( CurrentUser.checkRights(Read("administration")) ) {
       S.redirectTo("eventLogs")
     } else {
-      //if we are not able to read workflow, redirect to index
-      val workflow = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
-
-      if (workflow) {
-        S.redirectTo("/secure/utilities/changeRequests")
+      if ( CurrentUser.checkRights(Read("technique")) ) {
+        S.redirectTo("techniqueEditor")
       } else {
-        S.redirectTo("/secure/index")
+        //if we are not able to read workflow, redirect to index
+        val workflow = RudderConfig.configService.rudder_workflow_enabled.getOrElse(false)
+
+        if (workflow) {
+          S.redirectTo("/secure/utilities/changeRequests")
+        } else {
+          S.redirectTo("/secure/index")
+        }
       }
     }
   }
