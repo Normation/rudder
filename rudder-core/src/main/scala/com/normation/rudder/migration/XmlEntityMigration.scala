@@ -16,6 +16,9 @@ import com.normation.utils.XmlUtils
 import scala.xml.Node
 import java.sql.PreparedStatement
 import com.normation.rudder.domain.logger.MigrationLogger
+import scala.xml.XML
+import java.sql.ResultSet
+import com.normation.rudder.db.DB
 
 /**
  * specify from/to version
@@ -111,6 +114,32 @@ case class Encapsulate(label:String, logger: Logger) extends Function1[NodeSeq, 
 }
 
 
+sealed trait MigrationStatus
+final case object NoMigrationRequested extends MigrationStatus
+final case object MigrationVersionNotHandledHere extends MigrationStatus
+final case object MigrationVersionNotSupported extends MigrationStatus
+final case class  MigrationSuccess(migrated:Int) extends MigrationStatus
+
+
+trait MigrableEntity {
+  def id: Long
+  def data: Elem
+}
+
+case class MigrationEventLog(
+    id       : Long
+  , eventType: String
+  , data     : Elem
+) extends MigrableEntity
+
+
+case class MigrationChangeRequest(
+    id  : Long
+  , name: String
+  , data: Elem
+) extends MigrableEntity
+
+
 /**
  * This class manage the hight level migration process: read if a
  * migration is required in the MigrationEventLog datatable, launch
@@ -146,8 +175,9 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
        */
 
       //new migration
-      case Some(status@SerializedMigrationEventLog(
+      case Some(status@DB.MigrationEventLog(
           _
+        , _
         , detectedFileFormat
         , migrationStartTime
         , migrationEndTime : None.type
@@ -387,7 +417,16 @@ trait BatchElementMigration[T <: MigrableEntity] extends XmlFileFormatMigration 
 trait EventLogsMigration extends BatchElementMigration[MigrationEventLog] {
 
   override final val elementName = "EventLog"
-  override final val rowMapper = MigrationEventLogMapper
+  override final val rowMapper = new RowMapper[MigrationEventLog]() {
+  override def mapRow(rs : ResultSet, rowNum: Int) : MigrationEventLog = {
+    MigrationEventLog(
+        id          = rs.getLong("id")
+      , eventType   = rs.getString("eventType")
+      , data        = XML.load(rs.getSQLXML("data").getBinaryStream)
+    )
+  }
+}
+
   override final def selectAllSqlRequest(batchSize: Int) = {
     s"select id, eventType, data from (select id, eventType, data, ((xpath('/entry//@fileFormat',data))[1]::text) as version from eventlog) as T where version='${fromVersion}' limit ${batchSize}"
   }
@@ -419,7 +458,15 @@ trait EventLogsMigration extends BatchElementMigration[MigrationEventLog] {
 
 trait ChangeRequestsMigration extends BatchElementMigration[MigrationChangeRequest] {
   override final val elementName = "ChangeRequest"
-  override final val rowMapper = MigrationChangeRequestMapper
+  override final val rowMapper = new RowMapper[MigrationChangeRequest]() {
+  override def mapRow(rs : ResultSet, rowNum: Int) : MigrationChangeRequest = {
+    MigrationChangeRequest(
+        id   = rs.getLong("id")
+      , name = rs.getString("name")
+      , data = XML.load(rs.getSQLXML("content").getBinaryStream)
+    )
+  }
+}
   override final def selectAllSqlRequest(batchSize:Int) = {
     s"select id, name, content from (select id, name, content, ((xpath('/changeRequest/@fileFormat', content))[1]::text) as version from changerequest) as T where version='${fromVersion}' limit ${batchSize}"
   }

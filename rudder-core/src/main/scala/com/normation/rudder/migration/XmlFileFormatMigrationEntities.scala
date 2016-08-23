@@ -38,60 +38,22 @@
 
 package com.normation.rudder.migration
 
-import java.sql.ResultSet
 import java.sql.Timestamp
 import java.util.Calendar
 
 import scala.xml.Elem
-import scala.xml.XML
-
-import org.springframework.jdbc.core.RowMapper
-import org.squeryl.KeyedEntity
-import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.Schema
-import org.squeryl.annotations.Column
-
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
+import com.normation.rudder.db.SlickSchema
+import com.normation.rudder.db.DB
 
 
-/**
- * ////////////////////////////////////////
- * DataBase
- * ////////////////////////////////////////
- */
-object MigrationEventLogTable extends Schema {
-
-  val migrationEventLog = table[SerializedMigrationEventLog]("migrationeventlog")
-
-  on(migrationEventLog)(t => declare(
-      t.id.is(autoIncremented("migrationeventlogid"), primaryKey))
-  )
-}
-
-case class SerializedMigrationEventLog(
-    @Column("detectiontime")       detectionTime      : Timestamp
-  , @Column("detectedfileformat")  detectedFileFormat : Long
-  , @Column("migrationstarttime")  migrationStartTime : Option[Timestamp]
-  , @Column("migrationendtime")    migrationEndTime   : Option[Timestamp]
-  , @Column("migrationfileformat") migrationFileFormat: Option[Long]
-  , @Column("description")         description        : Option[String]
-) extends KeyedEntity[Long] {
-
-  @Column("id")
-  val id = 0L
-
-  //for squery to know about option type
-  def this() = this(new Timestamp(System.currentTimeMillis), 0, Some(new Timestamp(System.currentTimeMillis)), Some(new Timestamp(System.currentTimeMillis)), Some(0L), Some(""))
-}
-
-class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionProvider) {
+class MigrationEventLogRepository(db: SlickSchema) {
 
   /**
    * Retrieve the last version of the EventLog fileFormat as seen by the
    * the SQL script.
-   * If the database does not exist or no line are present, retrun none.
+   * If the database does not exist or no line are present, return none.
    */
-  def getLastDetectionLine: Option[SerializedMigrationEventLog] = {
+  def getLastDetectionLine: Option[DB.MigrationEventLog] = {
     squerylConnectionProvider.ourSession {
       val q = from(MigrationEventLogTable.migrationEventLog)(line =>
         select(line)
@@ -144,48 +106,5 @@ class MigrationEventLogRepository(squerylConnectionProvider : SquerylConnectionP
   }
 }
 
-sealed trait MigrationStatus
-final case object NoMigrationRequested extends MigrationStatus
-final case object MigrationVersionNotHandledHere extends MigrationStatus
-final case object MigrationVersionNotSupported extends MigrationStatus
-final case class  MigrationSuccess(migrated:Int) extends MigrationStatus
 
-
-trait MigrableEntity {
-  def id: Long
-  def data: Elem
-}
-
-case class MigrationEventLog(
-    id       : Long
-  , eventType: String
-  , data     : Elem
-) extends MigrableEntity
-
-object MigrationEventLogMapper extends RowMapper[MigrationEventLog] {
-  override def mapRow(rs : ResultSet, rowNum: Int) : MigrationEventLog = {
-    MigrationEventLog(
-        id          = rs.getLong("id")
-      , eventType   = rs.getString("eventType")
-      , data        = XML.load(rs.getSQLXML("data").getBinaryStream)
-    )
-  }
-}
-
-
-case class MigrationChangeRequest(
-    id  : Long
-  , name: String
-  , data: Elem
-) extends MigrableEntity
-
-object MigrationChangeRequestMapper extends RowMapper[MigrationChangeRequest] {
-  override def mapRow(rs : ResultSet, rowNum: Int) : MigrationChangeRequest = {
-    MigrationChangeRequest(
-        id   = rs.getLong("id")
-      , name = rs.getString("name")
-      , data = XML.load(rs.getSQLXML("content").getBinaryStream)
-    )
-  }
-}
 
