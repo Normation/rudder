@@ -85,6 +85,8 @@ class SystemVariableServiceImpl(
   , sharedFilesFolder        : String
   , webdavUser               : String
   , webdavPassword           : String
+  , reportsDbUri             : String
+  , reportsDbUser            : String
   , syslogPort               : Int
   , configurationRepository  : String
   , rudderServerRoleLdap     : String
@@ -107,6 +109,14 @@ class SystemVariableServiceImpl(
   , getSendMetrics                  : () => Box[Option[Boolean]]
   , getSyslogProtocol               : () => Box[SyslogProtocol]
 ) extends SystemVariableService with Loggable {
+
+  //get the Rudder reports DB (postgres) database name from URI
+  val reportsDbName = {
+    reportsDbUri.split("""/""").toSeq.lastOption.getOrElse(throw new IllegalArgumentException(
+        s"The JDBC URI configure for property 'rudder.jdbc.url' is malformed and should ends by /BASENAME: ${reportsDbUri}")
+    )
+  }
+
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
   val varCmdbEndpoint = systemVariableSpecService.get("CMDBENDPOINT").toVariable().copyWithSavedValue(cmdbEndPoint)
@@ -363,15 +373,21 @@ class SystemVariableServiceImpl(
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(children.flatMap(_.ips).distinct.sorted)
 
+      //Reports DB (postgres) DB name and DB user
+      val varReportsDBname = systemVariableSpecService.get("RUDDER_REPORTS_DB_NAME").toVariable(Seq(reportsDbName))
+      val varReportsDBuser = systemVariableSpecService.get("RUDDER_REPORTS_DB_USER").toVariable(Seq(reportsDbUser))
+
       // the schedule must be the default one for policy server
 
 
-      Map(
-          varManagedNodes.spec.name -> varManagedNodes
-        , varManagedNodesId.spec.name -> varManagedNodesId
-        , varManagedNodesAdmin.spec.name -> varManagedNodesAdmin
-        , varManagedNodesIp.spec.name -> varManagedNodesIp
-      )
+      Seq(
+          varManagedNodes
+        , varManagedNodesId
+        , varManagedNodesAdmin
+        , varManagedNodesIp
+        , varReportsDBname
+        , varReportsDBuser
+      ) map (x => (x.spec.name, x))
     } else {
       Map()
     }
