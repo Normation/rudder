@@ -248,7 +248,7 @@ class Boot extends Loggable {
       Menu("UtilitiesHome", <i class="fa fa-wrench"></i> ++ <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
-          if (workflowEnabled || CurrentUser.checkRights(Read("administration")))
+          if (workflowEnabled || CurrentUser.checkRights(Read("administration")) || CurrentUser.checkRights(Read("technique")))
             Empty
           else
              Full(RedirectWithState("/secure/index", redirection))
