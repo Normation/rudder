@@ -1,87 +1,229 @@
 <VARIABLES>
-    <VARIABLE>
-      <VARIABLEDEF>
-        <NAME>$SIMPLEVARIABLE</NAME>
-        <DESCRIPTION>Simple variable</DESCRIPTION>
-      </VARIABLEDEF>
-    </VARIABLE>
 
-    <VARIABLE>
-      <VARIABLEDEF>
-        <NAME>$CONSTRAINEDVARIABLE</NAME>
-        <DESCRIPTION>Constrained variable</DESCRIPTION>
-        <CONSTRAINT>
-             <ENTRY>
-              <VALUE>value</VALUE>
-              <LABEL>label</LABEL>
-          </ENTRY>
-             <ENTRY>
-              <VALUE>value2</VALUE>
-              <LABEL>label2</LABEL>
-             </ENTRY>
-        </CONSTRAINT>
-      </VARIABLEDEF>
-    </VARIABLE>
+  <INPUT>
+    <NAME>$SIMPLEVARIABLE</NAME>
+    <DESCRIPTION>Simple variable</DESCRIPTION>
+  </INPUT>
 
-    <VARIABLE>
-      <VARIABLEDEF>
-        <NAME>$VARMACHINE</NAME>
-        <DESCRIPTION>Variable Machine</DESCRIPTION>
-        <FIELD>name</FIELD>
-      </VARIABLEDEF>
-    </VARIABLE>
+  <INPUT>
+    <NAME>WITH_DEFAULT</NAME>
+    <DESCRIPTION>Simple variable with default</DESCRIPTION>
+    <CONSTRAINT>
+      <DEFAULT>default_value</DEFAULT>
+    </CONSTRAINT>
+  </INPUT>
 
-    <VARIABLE>
-      <VARIABLEDEF>
-        <NAME>$VARDATE</NAME>
-        <DESCRIPTION>Variable Date</DESCRIPTION>
-        <TYPE>datetime</TYPE>
-      </VARIABLEDEF>
-    </VARIABLE>
+  <SELECT1>
+    <NAME>SELECT1_TEST</NAME>
+    <DESCRIPTION>Constrained variable</DESCRIPTION>
+    <ITEM>
+      <VALUE>value</VALUE>
+      <LABEL>label</LABEL>
+    </ITEM>
+    <ITEM>
+      <VALUE>value2</VALUE>
+      <LABEL>label2</LABEL>
+    </ITEM>
+    <MULTIVALUED>true</MULTIVALUED>
+  </SELECT1>
 
-    <VARIABLE>
-      <VARIABLEDEF>
-        <NAME>varlist</NAME>
-        <DESCRIPTION>Variable list</DESCRIPTION>
-        <TYPE>string</TYPE>
-        <MULTIVALUED>true</MULTIVALUED>
-        <MAYBEEMPTY>true</MAYBEEMPTY>
-      </VARIABLEDEF>
-    </VARIABLE>
+  <SELECT>
+    <NAME>$VARIABLEITEM</NAME>
+    <DESCRIPTION>Constrained variable</DESCRIPTION>
+    <ITEM>
+      <VALUE>value</VALUE>
+      <LABEL>label</LABEL>
+    </ITEM>
+    <ITEM>
+      <VALUE>value2</VALUE>
+      <LABEL>label2</LABEL>
+    </ITEM>
+    <MULTIVALUED>true</MULTIVALUED>
+  </SELECT>
 
-    <VARIABLE>
-      <VARIABLEDEF CATEGORY="policyinstance">
-        <NAME>varpolicyinstance</NAME>
-        <DESCRIPTION>Variable directive</DESCRIPTION>
-        <TYPE>string</TYPE>
-        <SAMESIZEAS>Bounding</SAMESIZEAS>
-      </VARIABLEDEF>
-    </VARIABLE>
-    
-    <VARIABLE>
-      <VARIABLEDEF>
-          <NAME>gui_only</NAME>
-          <DESCRIPTION>a gui only variable</DESCRIPTION>
-          <TYPE>integer</TYPE>
-          <MULTIVALUED>FileCopy</MULTIVALUED>
-          <RUDDER-GUI GUI_ONLY="true">
-            <FROM>UploadedFile</FROM>
-            <PROPERTY>Size</PROPERTY>
-            <HIDDEN>true</HIDDEN>
-          </RUDDER-GUI>
-          <CHECKED>false</CHECKED>
-        </VARIABLEDEF>
-     </VARIABLE>
+  <INPUT>
+    <NAME>$CARDNUMBER</NAME>
+    <DESCRIPTION>Card Number</DESCRIPTION>
+    <CONSTRAINT>
+      <REGEX error="must resemble 1234-1234-1234-1234">
+        \d\d\d\d-\d\d\d\d-\d\d\d\d-\d\d\d\d
+      </REGEX>
+    </CONSTRAINT>
+  </INPUT>
 
-    <VARIABLE>
-      <VARIABLEDEF PRECEDENCE="42" SECTION="BOB">
-        <NAME>full</NAME>
-        <DESCRIPTION>Variable with a lot of things</DESCRIPTION>
-        <LONGDESCRIPTION>LONGDESCRIPTION</LONGDESCRIPTION>
-        <DEFAULT>DEFAULT</DEFAULT>
-        <TYPE>string</TYPE>
-        <SAMESIZEAS>Bounding</SAMESIZEAS>
-      </VARIABLEDEF>
-    </VARIABLE>
-    
+  <INPUT>
+    <NAME>$SIZE</NAME>
+    <DESCRIPTION>Constrained variable</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>size-kb</TYPE>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>$MAIL</NAME>
+    <DESCRIPTION>mail variable</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>mail</TYPE>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>$IP</NAME>
+    <DESCRIPTION>ip variable</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>ip</TYPE>
+    </CONSTRAINT>
+  </INPUT>
+
+  <SELECT>
+    <NAME>$VARMACHINE</NAME>
+    <DESCRIPTION>Variable Machine</DESCRIPTION>
+    <FIELD>name</FIELD>
+  </SELECT>
+  
+  <!-- No value is forbiden -->  
+
+  <!-- name => predef_1  -->
+  <REPORTKEYS>
+    <VALUE>val1</VALUE>
+  </REPORTKEYS>
+  
+  <!-- name => predef_2  -->
+  <REPORTKEYS>
+    <VALUE>val1 </VALUE>
+    <VALUE> val2</VALUE>
+  </REPORTKEYS>
+
+  <INPUT>
+    <NAME>$VARDATE</NAME>
+    <DESCRIPTION>Variable Date</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>datetime</TYPE>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>varlist</NAME>
+    <DESCRIPTION>Variable list</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>string</TYPE>
+      <MAYBEEMPTY>true</MAYBEEMPTY>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>gui_only</NAME>
+    <DESCRIPTION>a gui only variable</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>integer</TYPE>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+  <NAME>raw_type</NAME>
+  <DESCRIPTION>a variable that isn't automatically escaped</DESCRIPTION>
+  <CONSTRAINT>
+    <TYPE>raw</TYPE>
+  </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>password1</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password2</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>PLAIN</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password3</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>MD5</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password4</NAME>
+    <DESCRIPTION>Some password, case irrelavant</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>md5</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password5</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>SHA1</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password6</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>SHA256</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password7</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>md5,sha256,plain</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password8</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>sha512</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password9</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>linux-shadow-md5</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+  <INPUT>
+    <NAME>password10</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>linux-shadow-sha256</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>password11</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>password</TYPE>
+      <PASSWORDHASH>linux-shadow-sha512</PASSWORDHASH>
+    </CONSTRAINT>
+  </INPUT>
+
+  <INPUT>
+    <NAME>password_master</NAME>
+    <DESCRIPTION>Some password</DESCRIPTION>
+    <CONSTRAINT>
+      <TYPE>masterPassword</TYPE>
+      <PASSWORDHASH>linux-shadow-sha512</PASSWORDHASH>
+      <AUTOSUBVARIABLES>AIX</AUTOSUBVARIABLES>
+    </CONSTRAINT>
+  </INPUT>
+
 </VARIABLES>

@@ -86,7 +86,7 @@ trait GitRuleCategoryArchiver {
     , reason:Option[String]
   ) : Box[GitArchiveId]
 
-  def getTags : Box[Map[DateTime,GitArchiveId]]
+  def getTags() : Box[Map[DateTime,GitArchiveId]]
 
   /**
    * Delete an archived Rule category.

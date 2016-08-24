@@ -56,16 +56,43 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.Constants
 import com.normation.rudder.services.servers.PolicyServerManagementService
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ChangesOnly
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.domain.licenses.NovaLicense
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.RuleTarget
 
 trait SystemVariableService {
-  def getGlobalSystemVariables():  Box[Map[String, Variable]]
+  def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]]
 
-  def getSystemVariables(nodeInfo: NodeInfo, allNodeInfos: Map[NodeId, NodeInfo], globalSystemVariables: Map[String, Variable]): Box[Map[String, Variable]]
+  def getSystemVariables(
+      nodeInfo              : NodeInfo
+    , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allGroups             : FullNodeGroupCategory
+    , allLicences           : Map[NodeId, NovaLicense]
+    , globalSystemVariables : Map[String, Variable]
+    , globalAgentRun        : AgentRunInterval
+    , globalComplianceMode  : ComplianceMode  ) : Box[Map[String, Variable]]
 }
 
+final case class RudderServerRole(
+    val name       : String
+  , val configValue: String
+)
+
+final case class ResolvedRudderServerRole(
+    val name       : String
+  , val configValue: Option[Iterable[String]]
+)
+
 class SystemVariableServiceImpl(
-    licenseRepository: LicenseRepository
-  , systemVariableSpecService: SystemVariableSpecService
+    systemVariableSpecService    : SystemVariableSpecService
   , policyServerManagementService: PolicyServerManagementService
   // Variables definitions
   , toolsFolder              : String
@@ -76,23 +103,16 @@ class SystemVariableServiceImpl(
   , webdavPassword           : String
   , syslogPort               : Int
   , configurationRepository  : String
-  , rudderServerRoleLdap     : String
-  , rudderServerRoleInventoryEndpoint: String
-  , rudderServerRoleDb       : String
-  , rudderServerRoleRelayTop : String
-  , rudderServerRoleWeb      : String
+  , serverRoles              : Seq[RudderServerRole]
   //denybadclocks and skipIdentify are runtime properties
   , getDenyBadClocks: () => Box[Boolean]
   , getSkipIdentify : () => Box[Boolean]
-  // schedules are runtime dependencies also
-  , getAgentRunInterval   : () => Int
-  , getAgentRunSplaytime  : () => Box[Int]
-  , getAgentRunStartHour  : () => Box[Int]
-  , getAgentRunStartMinute: () => Box[Int]
   // TTLs are runtime properties too
   , getModifiedFilesTtl             : () => Box[Int]
   , getCfengineOutputsTtl           : () => Box[Int]
   , getStoreAllCentralizedLogsInFile: () => Box[Boolean]
+  , getSendMetrics                  : () => Box[Option[Boolean]]
+  , getSyslogProtocol               : () => Box[SyslogProtocol]
 ) extends SystemVariableService with Loggable {
 
   val varToolsFolder = systemVariableSpecService.get("TOOLS_FOLDER").toVariable().copyWithSavedValue(toolsFolder)
@@ -114,55 +134,55 @@ class SystemVariableServiceImpl(
     }
   }
 
-  lazy val definedRudderServerRoleLdap     = parseRoleContent(rudderServerRoleLdap)
-  lazy val definedRudderServerRoleDb       = parseRoleContent(rudderServerRoleDb)
-  lazy val definedRudderServerRoleRelayTop = parseRoleContent(rudderServerRoleRelayTop)
-  lazy val definedRudderServerRoleWeb      = parseRoleContent(rudderServerRoleWeb)
-  lazy val definedRudderServerRoleInventoryEnpoint = parseRoleContent(rudderServerRoleInventoryEndpoint)
+  lazy val defaultServerRoles = serverRoles.map( x => ResolvedRudderServerRole(x.name, parseRoleContent(x.configValue)))
 
   // compute all the global system variable (so that need to be computed only once in a deployment)
 
-  def getGlobalSystemVariables():  Box[Map[String, Variable]] = {
+  def getGlobalSystemVariables(globalAgentRun: AgentRunInterval):  Box[Map[String, Variable]] = {
     logger.trace("Preparing the global system variables")
     val denyBadClocks = getProp("DENYBADCLOCKS", getDenyBadClocks)
     val skipIdentify = getProp("SKIPIDENTIFY", getSkipIdentify)
     val modifiedFilesTtl = getProp("MODIFIED_FILES_TTL", getModifiedFilesTtl)
     val cfengineOutputsTtl = getProp("CFENGINE_OUTPUTS_TTL", getCfengineOutputsTtl)
+    val reportProtocol = getProp("RUDDER_SYSLOG_PROTOCOL", () => getSyslogProtocol().map(_.value))
 
-    val interval = getAgentRunInterval()
-    val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(interval.toString)
-
-    val varAgentRunSplayTime = getProp("AGENT_RUN_SPLAYTIME", getAgentRunSplaytime)
+    val sendMetricsValue = if (getSendMetrics().getOrElse(None).getOrElse(false)) {
+      "yes"
+    } else {
+      "no"
+    }
+    val varSendMetrics = systemVariableSpecService.get("SEND_METRICS").toVariable(Seq(sendMetricsValue))
 
     val storeAllCentralizedLogsInFile = getProp("STORE_ALL_CENTRALIZED_LOGS_IN_FILE", getStoreAllCentralizedLogsInFile)
 
     for {
-      agentRunStartHour <- getAgentRunStartHour() ?~! "Could not retrieve the configure value for the run start hour"
-      agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not retrieve the configure value for the run start minute"
-      agentRunSplaytime <- getAgentRunSplaytime() ?~! "Could not retrieve the configure value for the run splay time"
-      schedule <- ComputeSchedule.computeSchedule(agentRunStartHour, agentRunStartMinute, interval) ?~! "Could not compute the run schedule"
+      schedule       <- ComputeSchedule.computeSchedule(globalAgentRun.startHour, globalAgentRun.startMinute, globalAgentRun.interval) ?~! "Could not compute the run schedule"
     } yield {
-
-      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule)
+      val varAgentRunInterval  = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable(Seq(globalAgentRun.interval.toString))
+      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable(Seq(globalAgentRun.splaytime.toString))
+      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable(Seq(schedule))
       logger.trace("Global system variables done")
-      Map(
-        (varToolsFolder.spec.name, varToolsFolder)
-      , (varCmdbEndpoint.spec.name, varCmdbEndpoint)
-      , (varSharedFilesFolder.spec.name, varSharedFilesFolder)
-      , (varCommunityPort.spec.name, varCommunityPort)
-      , (varWebdavUser.spec.name, varWebdavUser)
-      , (varWebdavPassword.spec.name, varWebdavPassword)
-      , (syslogPortConfig.spec.name, syslogPortConfig)
-      , (configurationRepositoryFolder.spec.name, configurationRepositoryFolder)
-      , (denyBadClocks.spec.name, denyBadClocks)
-      , (skipIdentify.spec.name, skipIdentify)
-      , (varAgentRunInterval.spec.name, varAgentRunInterval)
-      , (varAgentRunSchedule.spec.name, varAgentRunSchedule)
-      , (varAgentRunSplayTime.spec.name, varAgentRunSplayTime)
-      , (modifiedFilesTtl.spec.name, modifiedFilesTtl)
-      , (cfengineOutputsTtl.spec.name, cfengineOutputsTtl)
-      , (storeAllCentralizedLogsInFile.spec.name, storeAllCentralizedLogsInFile)
-      )
+      val vars =
+        varToolsFolder ::
+        varCmdbEndpoint ::
+        varSharedFilesFolder ::
+        varCommunityPort ::
+        varWebdavUser  ::
+        varWebdavPassword ::
+        syslogPortConfig ::
+        configurationRepositoryFolder ::
+        denyBadClocks ::
+        skipIdentify ::
+        varAgentRunInterval ::
+        varAgentRunSchedule ::
+        varAgentRunSplayTime  ::
+        modifiedFilesTtl ::
+        cfengineOutputsTtl ::
+        storeAllCentralizedLogsInFile ::
+        varSendMetrics ::
+        reportProtocol ::
+        Nil
+      vars.map(v => (v.spec.name,v)).toMap
     }
   }
 
@@ -173,9 +193,13 @@ class SystemVariableServiceImpl(
   // can be overriden by some node specific parameters (especially, the schedule for
   // policy servers)
   def getSystemVariables(
-        nodeInfo             : NodeInfo
-      , allNodeInfos         : Map[NodeId, NodeInfo]
-      , globalSystemVariables: Map[String, Variable]
+        nodeInfo              : NodeInfo
+      , allNodeInfos          : Map[NodeId, NodeInfo]
+      , allGroups             : FullNodeGroupCategory
+      , allLicenses           : Map[NodeId, NovaLicense]
+      , globalSystemVariables : Map[String, Variable]
+      , globalAgentRun        : AgentRunInterval
+      , globalComplianceMode  : ComplianceMode
   ): Box[Map[String, Variable]] = {
 
     logger.trace("Preparing the system variables for node %s".format(nodeInfo.id.value))
@@ -183,41 +207,20 @@ class SystemVariableServiceImpl(
     // Set the roles of the nodes
     val nodeConfigurationRoles = collection.mutable.Set[ServerRole]() ++ nodeInfo.serverRoles
 
-
     // Define the mapping of roles/hostnames, only if the node has a role
     val varRoleMappingValue = if (nodeConfigurationRoles.size > 0) {
       val allNodeInfosSet = allNodeInfos.values.toSet
 
-      val nodesWithRoleLdap = definedRudderServerRoleLdap match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-ldap"))
+      val roles = defaultServerRoles.map { case ResolvedRudderServerRole(name, optValue) =>
+        val nodeValue = optValue match {
+          case Some(seq) => seq
+          case None      => getNodesWithRole(allNodeInfosSet, ServerRole(name))
+        }
+        writeNodesWithRole(nodeValue, name)
       }
 
-      val nodesWithRoleInventoryEndpoint = definedRudderServerRoleInventoryEnpoint match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-inventory-endpoint"))
-      }
-
-      val nodesWithRoleDb = definedRudderServerRoleDb match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-db"))
-      }
-
-      val nodesWithRoleRelayTop = definedRudderServerRoleRelayTop match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-relay-top"))
-      }
-
-      val nodesWithRoleWeb = definedRudderServerRoleWeb match {
-        case Some(seq) => seq
-        case None => getNodesWithRole(allNodeInfosSet, ServerRole("rudder-web"))
-      }
-
-      writeNodesWithRole(nodesWithRoleLdap, "rudder-ldap") +
-      writeNodesWithRole(nodesWithRoleInventoryEndpoint, "rudder-inventory-endpoint") +
-      writeNodesWithRole(nodesWithRoleDb, "rudder-db") +
-      writeNodesWithRole(nodesWithRoleRelayTop, "rudder-relay-top") +
-      writeNodesWithRole(nodesWithRoleWeb, "rudder-web")
+      //build the final string
+      (""/:roles) { (x,y) => x + y }
     } else {
       ""
     }
@@ -241,7 +244,7 @@ class SystemVariableServiceImpl(
 
     // Set the licences for the Nova
     val varLicensesPaidValue = if (nodeInfo.agentsName.contains(NOVA_AGENT)) {
-      licenseRepository.findLicense(nodeInfo.policyServerId) match {
+      allLicenses.get(nodeInfo.policyServerId) match {
         case None =>
           logger.info(s"Caution, the policy server '${nodeInfo.policyServerId.value}' does not have a registered Nova license. You will have to get one if you run more than 25 nodes")
           //that's the default value
@@ -261,6 +264,63 @@ class SystemVariableServiceImpl(
 
     val varAllowedNetworks = systemVariableSpecService.get("AUTHORIZED_NETWORKS").toVariable(authorizedNetworks)
 
+    val agentRunParams =
+      if (nodeInfo.isPolicyServer) {
+        val policyServerSchedule = """ "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55" """
+        Full((AgentRunInterval(Some(false), 5, 0, 0, 0), policyServerSchedule))
+      } else {
+        val runInterval = nodeInfo.nodeReportingConfiguration.agentRunInterval match {
+          case Some(nodeRunInterval)  if nodeRunInterval.overrides.getOrElse(false) =>
+            nodeRunInterval
+          case _ =>
+            globalAgentRun
+        }
+        for {
+          schedule <- ComputeSchedule.computeSchedule(
+                              runInterval.startHour
+                            , runInterval.startMinute
+                            , runInterval.interval
+                          ) ?~! s"Could not compute the run schedule for node ${nodeInfo.id.value}"
+            } yield {
+              ( runInterval, schedule )
+        }
+      }
+
+    val heartBeatFrequency = {
+      if (nodeInfo.isPolicyServer) {
+        // A policy server is always sending heartbeat
+        1
+      } else {
+        globalComplianceMode.mode match {
+          case ChangesOnly =>
+            nodeInfo.nodeReportingConfiguration.heartbeatConfiguration match {
+              // It overrides! use it to compute the new heartbeatInterval
+              case Some(heartbeatConf) if heartbeatConf.overrides =>
+                heartbeatConf.heartbeatPeriod
+              case _ =>
+                globalComplianceMode.heartbeatPeriod
+            }
+          case _ =>
+            1
+        }
+      }
+    }
+
+    val AgentRunVariables = ( agentRunParams.map {
+      case (runInterval,schedule) =>
+
+        // The heartbeat should be strictly shorter than the run execution, otherwise they may be skipped
+        val heartbeat = runInterval.interval * heartBeatFrequency - 1
+        val vars = {
+          systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue(runInterval.interval.toString) ::
+          systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue(runInterval.splaytime.toString)  ::
+          systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(schedule) ::
+          systemVariableSpecService.get("RUDDER_HEARTBEAT_INTERVAL").toVariable(Seq(heartbeat.toString)) ::
+          systemVariableSpecService.get("RUDDER_REPORT_MODE").toVariable(Seq(globalComplianceMode.name)) ::
+          Nil
+        }
+        vars.map(v => v.spec.name -> v ).toMap
+    } )
 
     // If we are facing a policy server, we have to allow each child to connect, plus the policy parent,
     // else it's only the policy server
@@ -276,24 +336,16 @@ class SystemVariableServiceImpl(
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 
+      //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
+      val varManagedNodesIp = systemVariableSpecService.get("MANAGED_NODES_IP").toVariable(children.flatMap(_.ips).distinct.sorted)
 
       // the schedule must be the default one for policy server
-      val DEFAULT_SCHEDULE =
-      """
-        "Min00", "Min05", "Min10", "Min15", "Min20", "Min25", "Min30", "Min35", "Min40", "Min45", "Min50", "Min55"
-      """
-
-      val varAgentRunInterval = systemVariableSpecService.get("AGENT_RUN_INTERVAL").toVariable().copyWithSavedValue("5")
-      val varAgentRunSplayTime = systemVariableSpecService.get("AGENT_RUN_SPLAYTIME").toVariable().copyWithSavedValue("0")
-      val varAgentRunSchedule = systemVariableSpecService.get("AGENT_RUN_SCHEDULE").toVariable().copyWithSavedValue(DEFAULT_SCHEDULE)
 
       Map(
           varManagedNodes.spec.name -> varManagedNodes
         , varManagedNodesId.spec.name -> varManagedNodesId
         , varManagedNodesAdmin.spec.name -> varManagedNodesAdmin
-        , varAgentRunInterval.spec.name -> varAgentRunInterval
-        , varAgentRunSchedule.spec.name -> varAgentRunSchedule
-        , varAgentRunSplayTime.spec.name -> varAgentRunSplayTime
+        , varManagedNodesIp.spec.name -> varManagedNodesIp
       )
     } else {
       Map()
@@ -301,15 +353,81 @@ class SystemVariableServiceImpl(
 
     logger.trace("System variables for node %s done".format(nodeInfo.id.value))
 
-    Full(
-         globalSystemVariables
-      ++ Map(
-             (varNodeRole.spec.name, varNodeRole)
-           , (varAllowedNetworks.spec.name, varAllowedNetworks)
-           , (varRudderServerRole.spec.name -> varRudderServerRole)
-         )
-      ++ policyServerVars
-    )
+    /*
+     * RUDDER_NODE_CONFIG_ID is a very special system variable:
+     * it must not be used to assess node config stability from
+     * run to run.
+     * So we set it to a default value and handle it specialy in
+     * Cf3PromisesFileWriterServiceImpl#prepareRulesForAgents
+     */
+    val varNodeConfigVersion = systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq("DUMMY NODE CONFIG VERSION"))
+
+
+    /*
+     * RUDDER_NODE_GROUPS_VAR is an array of group_uuid -> group_name for the node
+     * RUDDER_NODE_GROUPS_CLASSE are pairs of group_UUID, group_NORMALIZED_NAME,
+     * for ex if node belongs to group:
+     * (id: 64f85ba8-39c7-418a-a099-24c2c2909dfd ; name: "Serveurs pre-prod")
+     * we will have the following classes:
+     *   - group_64f85ba8_39c7_418a_a099_24c2c2909dfd
+     *   - group_serveurs_pre_prod
+     * and vars:
+     *   - "by_uuid[64f85ba8-39c7-418a-a099-24c2c2909dfd]" string => "Serveurs pre-prod"
+     *     with a meta: { "inventory", "attribute_name=rudder_groups" }
+     */
+    //build the list of nodeId -> names, taking care of special nodeIds for special target
+    val nodeGroups = allGroups.getTarget(nodeInfo).map { case(target, info) =>
+      val id = info.target.target match {
+        case GroupTarget(id) => id.value
+        case t => t.target
+      }
+      (id, info.name)
+    }
+    val nodeMaxString = if(nodeGroups.isEmpty) 0 else nodeGroups.flatMap { case (a,b) => a.size :: b.size :: Nil }.max
+    val stringNodeGroupsVars = if(nodeGroups.isEmpty) {
+      ""
+    } else {
+      nodeGroups.map { case (id, name) =>
+        s""""by_uuid[${id}]" ${" "*(nodeMaxString-id.size)} string => "${name}",\n""" +
+        s"""            ${" "*(nodeMaxString)        }   meta => { "inventory", "attribute_name=rudder_groups" };"""
+      }.mkString("\n")
+    }
+    val stringNodeGroupsClasses = if(nodeGroups.isEmpty) {
+      ""
+    } else {
+      nodeGroups.flatMap { case (id, name) =>
+        (  s""""${RuleTarget.toCFEngineClassName(id  )}" ${" "*(nodeMaxString-  id.size)} expression => "any",\n""" +
+           s"""             ${" "*(nodeMaxString)}   meta => { "inventory", "attribute_name=rudder_groups" };"""
+        :: s""""${RuleTarget.toCFEngineClassName(name)}" ${" "*(nodeMaxString-name.size)} expression => "any",\n""" +
+           s"""             ${" "*(nodeMaxString)}   meta => { "inventory", "attribute_name=rudder_groups" };"""
+        :: Nil
+        )
+      }.mkString("\n")
+    }
+    val varNodeGroups = systemVariableSpecService.get("RUDDER_NODE_GROUPS_VARS").toVariable(Seq(stringNodeGroupsVars))
+    val varNodeGroupsClasses = systemVariableSpecService.get("RUDDER_NODE_GROUPS_CLASSES").toVariable(Seq(stringNodeGroupsClasses))
+
+    val baseVariables = {
+      Seq(
+          varNodeRole
+        , varAllowedNetworks
+        , varRudderServerRole
+        , varNodeConfigVersion
+        , varNodeGroups
+        , varNodeGroupsClasses
+      ) map (x => (x.spec.name, x))
+    }
+
+    val variables = globalSystemVariables ++ baseVariables ++ policyServerVars
+
+    AgentRunVariables match {
+      case Full(runValues)  =>
+        Full(variables ++ runValues)
+      case Empty =>
+        Full(variables)
+      case fail: Failure =>
+        fail
+    }
 
   }
 

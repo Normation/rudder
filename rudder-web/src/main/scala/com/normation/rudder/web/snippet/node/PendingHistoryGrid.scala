@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.snippet.node
 
-
 import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
 import com.normation.rudder.services.eventlog.{
   InventoryEventLogService, EventLogDetailsService
@@ -71,8 +70,8 @@ import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.eventlog.DeleteNodeEventLog
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.RemovedInventory
-
-
+import com.normation.rudder.domain.nodes.{Node => RudderNode}
+import com.normation.rudder.reports.ReportingConfiguration
 
 object PendingHistoryGrid extends Loggable {
 
@@ -129,61 +128,61 @@ object PendingHistoryGrid extends Loggable {
             "sPaginationType": "full_numbers",
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $('.dataTables_filter input').attr("placeholder", "Search");
+          $('.dataTables_filter input').attr("placeholder", "Filter");
           """.replaceAll("#table_var#",jsVarNameForId)
         ) & initJsCallBack(entries)
        )
   }
   def display(entries : Seq[EventLog]) : NodeSeq = {
-    bind("pending_history", template,
-       "lines" -> entries.flatMap{ x =>
+
+      val historyLine = {
+        <tr class= "curspoint">
+          <td><span class="listopen date"></span></td>
+          <td class="name"></td>
+          <td class="os"></td>
+          <td class="state"></td>
+          <td class="performer"></td>
+        </tr>
+      }
+
+      def displayInventoryLogDetails (event : EventLog, details : InventoryLogDetails, status : String) = {
          val jsuuid = Helpers.nextFuncName
-         x match {
-         case  x : RefuseNodeEventLog =>
-           logDetailsService.getRefuseNodeLogDetails(x.details) match {
-             case Full(details) =>
-               <tr class= "curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} kind="refused"
-                     inventory={details.inventoryVersion.toString()}>
-                 <td><span class="listopen">{DateFormaterService.getFormatedDate(x.creationDate)}</span></td>
-                 <td name="serverName">
-                   {
-                       details.hostname
-                     }
-                 </td>
-                 <td>{details.fullOsName}</td>
-                 <td>Refused</td>
-                 <td>{x.principal.name}</td>
-               </tr>
-             case e:EmptyBox =>
-               val error = (e ?~! "Error when getting refuse node details")
-               logger.debug(error.messageChain, e)
-               NodeSeq.Empty
-           }
-           case x : AcceptNodeEventLog =>
-           logDetailsService.getAcceptNodeLogDetails(x.details) match {
-             case Full(details) =>
-               <tr class="curspoint" jsuuid={jsuuid} serveruuid={details.nodeId.value} kind="accepted"
-                     inventory={details.inventoryVersion.toString()}>
-                 <td><span class="listopen">{DateFormaterService.getFormatedDate(x.creationDate)}</span></td>
-                 <td name="serverName">
-                   {
-                       details.hostname
-                     }
-                 </td>
-                 <td>{details.fullOsName}</td>
-                 <td>Accepted</td>
-                 <td>{x.principal.name}</td>
-               </tr>
-             case e:EmptyBox =>
-               val error = (e ?~! "Error when getting refuse node details")
-               logger.debug(error.messageChain, e)
-               NodeSeq.Empty
-           }
-         case x =>
-           logger.error("I wanted a refuse node or accept node event, and got: " + x)
-           NodeSeq.Empty
-       }  }
-    )
+        ( "tr [jsuuid]"     #> jsuuid &
+          "tr [serveruuid]" #> details.nodeId.value &
+          "tr [kind]"       #> status.toLowerCase &
+          "tr [inventory]"  #> details.inventoryVersion.toString() &
+          ".date *"      #> DateFormaterService.getFormatedDate(event.creationDate)&
+          ".name *"      #>  details.hostname&
+          ".os *"        #> details.fullOsName&
+          ".state *"     #> status.capitalize &
+          ".performer *" #> event.principal.name
+        ) (historyLine)
+
+      }
+
+    val lines : NodeSeq = entries.flatMap{
+      case ev: RefuseNodeEventLog =>
+        logDetailsService.getRefuseNodeLogDetails(ev.details) match {
+          case Full(details) => displayInventoryLogDetails(ev,details,"refused")
+          case eb: EmptyBox =>
+            val error = (eb ?~! "Error when getting refuse node details")
+            logger.debug(error.messageChain, eb)
+            NodeSeq.Empty
+        }
+      case ev: AcceptNodeEventLog =>
+        logDetailsService.getAcceptNodeLogDetails(ev.details) match {
+          case Full(details) => displayInventoryLogDetails(ev,details,"accepted")
+          case eb: EmptyBox =>
+            val error = (eb ?~! "Error when getting refuse node details")
+            logger.debug(error.messageChain, eb)
+            NodeSeq.Empty
+        }
+      case ev =>
+        logger.error("I wanted a refuse node or accept node event, and got: " + ev)
+        NodeSeq.Empty
+    }
+    ("#history_lines" #> lines) apply (template)
+
   }
 
    /**
@@ -223,8 +222,7 @@ object PendingHistoryGrid extends Loggable {
               jsVarNameForId))
   }
 
-
-  def displayPastInventory(deletedNodes : Map[NodeId,Seq[EventLog]])(s : String) : JsCmd = {
+  def displayPastInventory(deletedNodes : Map[NodeId, Seq[EventLog]])(s : String) : JsCmd = {
 
     val arr = s.split("\\|")
     if (arr.length != 4) {
@@ -245,7 +243,7 @@ object PendingHistoryGrid extends Loggable {
               else
                 NodeSeq.Empty
             ) ++
-            DisplayNode.showPannedContent(sm.data, RemovedInventory, "hist")) &
+            DisplayNode.showPannedContent(None, sm.data, RemovedInventory, "hist")) &
             DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist")
       }
     }

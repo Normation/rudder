@@ -64,6 +64,10 @@ import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.nodes.{Node => RudderNode}
+import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
+import com.normation.rudder.domain.nodes.NodeInfo
 
 /**
  * A service used to display details about a server
@@ -85,21 +89,11 @@ object DisplayNode extends Loggable {
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
 
-  private[this] val templatePath = List("templates-hidden", "server_details_tabs")
-  private[this] def template() =  Templates(templatePath) match {
-    case Empty | Failure(_,_,_) =>
-      throw new TechnicalException("Template for server details not found. I was looking for %s.html".format(templatePath.mkString("/")))
-    case Full(n) => n
-  }
-
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
 
-  private[this] def content() = chooseTemplate("serverdetails","content",template)
-
   private def loadSoftware(jsId:JsNodeId, softIds:Seq[SoftwareUuid])(nodeId:String):JsCmd = {
-    //id is not used anymore ?
     (for {
       seq <- getSoftwareService.getSoftware(softIds)
       gridDataId = htmlId(jsId,"soft_grid_data_")
@@ -131,7 +125,7 @@ object DisplayNode extends Loggable {
             "aoColumns": [ {"sWidth": "200px"},{"sWidth": "150px"},{"sWidth": "350px"}],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
         });
-        $$('.dataTables_filter input').attr("placeholder", "Search");
+        $$('.dataTables_filter input').attr("placeholder", "Filter");
             """)
     ) match {
       case Empty => Alert("No software found for that server")
@@ -140,9 +134,7 @@ object DisplayNode extends Loggable {
     }
   }
 
-  def head() = chooseTemplate("serverdetails","head",template)
-
-def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
+  def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
     val jsId = JsNodeId(nodeId,salt)
     val detailsId = htmlId(jsId,"details_")
     val softGridDataId = htmlId(jsId,"soft_grid_data_")
@@ -179,7 +171,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
 
-              $$('.dataTables_filter input').attr("placeholder", "Search");
+              $$('.dataTables_filter input').attr("placeholder", "Filter");
           | """.stripMargin('|')):JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
@@ -209,7 +201,7 @@ def jsInit(nodeId:NodeId, softIds:Seq[SoftwareUuid], salt:String=""):JsCmd = {
                 "bInfo":true,
                 "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
               });
-              $$('.dataTables_filter input').attr("placeholder", "Search");
+              $$('.dataTables_filter input').attr("placeholder", "Filter");
            """) : JsCmd
         }.reduceLeft( (i,acc) => acc & i )
       } &
@@ -225,7 +217,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   }
 
   /**
-   * Show details about the server in a tabed fashion if
+   * Show details about the server in a tabbed fashion if
    * the server exists, display an error message if the
    * server is not found or if a problem occurred when fetching it
    *
@@ -238,26 +230,21 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   def show(sm:FullInventory, showExtraFields : Boolean = true, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val mainTabDeclaration : List[NodeSeq] =
- /*     { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>  else NodeSeq.Empty } ::
-      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>  else NodeSeq.Empty } ::
-      { if (showExtraFields) <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>  else NodeSeq.Empty } ::
-      */
-      <li><a href={htmlId_#(jsId,"sd_bios_")}>Bios</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_bios_")}>BIOS</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_controllers_")}>Controllers</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memories</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_memories_")}>Memory</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_ports_")}>Ports</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_processors_")}>Processors</a></li> ::
       <li><a href={htmlId_#(jsId,"sd_slots_")}>Slots</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sounds</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storages</a></li> ::
-      <li><a href={htmlId_#(jsId,"sd_videos_")}>Videos</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_sounds_")}>Sound</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_storages_")}>Storage</a></li> ::
+      <li><a href={htmlId_#(jsId,"sd_videos_")}>Video</a></li> ::
       Nil
 
     val tabContent =
       { if (showExtraFields) displayTabFilesystems(jsId, sm) else Nil } ::
       { if (showExtraFields) displayTabNetworks(jsId, sm) else Nil } ::
       { if (showExtraFields) displayTabSoftware(jsId) else Nil } ::
-    //  displayTabSoftware(jsId) ::
       displayTabBios(jsId, sm) ::
       displayTabControllers(jsId, sm) ::
       displayTabMemories(jsId, sm) ::
@@ -269,10 +256,10 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       displayTabVideos(jsId, sm) ::
       Nil
 
-      <div id={htmlId(jsId,"details_")} class="sInventory">{bind("server", content,
-        "tabsDefinition" -> <ul>{mainTabDeclaration}</ul>,
-        "grid_tabs" -> tabContent.flatten
-    )}</div>
+      <div id={htmlId(jsId,"details_")} class="sInventory tabsv">
+        <ul>{mainTabDeclaration}</ul>
+        {tabContent.flatten}
+      </div>
   }
 
   /**
@@ -284,22 +271,25 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     <li><a href={htmlId_#(jsId,"sd_fs_")}>File systems</a></li>
     <li><a href={htmlId_#(jsId,"sd_net_")}>Network interfaces</a></li>
     <li><a href={htmlId_#(jsId,"sd_soft_")}>Software</a></li>
-    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment variables</a></li>
+    <li><a href={htmlId_#(jsId,"sd_var_")}>Environment</a></li>
     <li><a href={htmlId_#(jsId,"sd_process_")}>Processes</a></li>
     <li><a href={htmlId_#(jsId,"sd_vm_")}>Virtual machines</a></li>
+    <li><a href={htmlId_#(jsId,"sd_props_")}>Properties</a></li>
     </xml:group>
   }
 
   /**
   * show the extra part
+  * If there is no node available (pending inventory), there is nothing to show
   */
-  def showExtraContent(sm:FullInventory, salt:String = "") : NodeSeq = {
+  def showExtraContent(node: Option[NodeInfo], sm: FullInventory, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     displayTabFilesystems(jsId, sm) ++
     displayTabNetworks(jsId, sm) ++
     displayTabVariable(jsId, sm) ++
     displayTabProcess(jsId, sm) ++
     displayTabVM(jsId, sm) ++
+    node.map(displayTabProperties(jsId, _)).getOrElse(Nil) ++
     displayTabSoftware(jsId)
 
   }
@@ -308,12 +298,12 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="")
    */
-  def showPannedContent(sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
+  def showPannedContent(node: Option[NodeInfo], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val detailsId = htmlId(jsId,"details_")
     <div id={detailsId} class="tabs">
       <ul>
-        <li><a href={htmlId_#(jsId,"node_summary_")}>Node summary</a></li>
+        <li><a href={htmlId_#(jsId,"node_summary_")}>Summary</a></li>
         <li><a href={htmlId_#(jsId,"node_inventory_")}>Hardware</a></li>
         {showExtraHeader(sm, salt)}
        </ul>
@@ -322,7 +312,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
            {show(sm, false, "")}
          </div>
        </div>
-       {showExtraContent(sm, salt)}
+       {showExtraContent(node, sm, salt)}
 
        <div id={htmlId(jsId,"node_summary_")}>
          {showNodeDetails(sm, None, inventoryStatus, salt)}
@@ -333,7 +323,8 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   // mimic the content of server_details/ShowNodeDetailsFromNode
   def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], inventoryStatus : InventoryStatus, salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
 
-    { sm.node.main.status match {
+    val deleteButton : NodeSeq= {
+       sm.node.main.status match {
           case AcceptedInventory =>
             <div id={deleteNodePopupHtmlId}  class="nodisplay" />
             <div id={errorPopupHtmlId}  class="nodisplay" />
@@ -341,21 +332,17 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
             <lift:authz role="node_write">
               {
                 if(!isRootNode(sm.node.main.id)) {
-                  <fieldset class="nodeIndernal"><legend>Action</legend>
-                    {SHtml.ajaxButton("Delete this node",
-                      { () => {showConfirmationDialog(sm.node.main.id); } }, ("id", "boutonTest"), ("class", "dangerButton"))
-                    }
-                    <div id="test"></div>
-                  </fieldset>
-                }
+                    showDeleteButton(sm.node.main.id)
+                } else {NodeSeq.Empty}
               }
               </lift:authz> ++ {Script(OnLoad(JsRaw("""correctButtons();""") ) ) }
           case _ => NodeSeq.Empty
-        }
-    } ++
-    <fieldset class="nodeIndernal"><legend>Node characteristics</legend>
+        } }
 
+     <div  id="nodeDetails" >
+     <h3> Node characteristics</h3>
       <h4 class="tablemargin">General</h4>
+
         <div class="tablepadding">
           <b>Hostname:</b> {sm.node.main.hostname}<br/>
           <b>Machine type:</b> {displayMachineType(sm.machine)}<br/>
@@ -386,16 +373,42 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
           }.getOrElse(NodeSeq.Empty) }
           <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
-          { displayPolicyServerInfos(sm) }
+          { displayPolicyServerInfos(sm) }<br/>
+          {
+            sm.node.publicKeys.headOption match {
+              case Some(key) =>
+                val checked = (sm.node.main.status, sm.node.main.keyStatus) match {
+                  case (AcceptedInventory, CertifiedKey) => <span class="tw-bs">
+                                                              <span class="glyphicon glyphicon-ok text-success tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
+                                                              <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
+                                                                Inventories for this Node must be signed with this key
+                                                              </span>
+                                                            </span>
+                  case (AcceptedInventory, UndefinedKey) => <span class="tw-bs">
+                                                              <span class="glyphicon glyphicon-ok tooltipable" title="" tooltipid={s"tooltip-key-${sm.node.main.id.value}"}></span>
+                                                              <span class="tooltipContent" id={s"tooltip-key-${sm.node.main.id.value}"}>
+                                                                Inventories for this Node are not signed
+                                                              </span>
+                                                            </span>
+                  case _ => NodeSeq.Empty
+                }
+                val publicKeyId = s"publicKey-${sm.node.main.id.value}"
+                <b><a href="#" onclick={s"$$('#publicKey-${sm.node.main.id.value}').toggle(300); return false;"}>Display Node key {checked}</a></b>
+                <div style="width=100%; overflow:auto;"><pre id={s"publicKey-${sm.node.main.id.value}"} style="display:none;">{key.key}</pre></div> ++
+                Script(OnLoad(JsRaw("""createTooltip();""")))
+              case None => NodeSeq.Empty
+            }
+          }
         </div>
 
       <h4 class="tablemargin">Accounts</h4>
         <div class="tablepadding">
           <b>Administrator account:</b> {sm.node.main.rootUser}<br/>
           <b>Local account(s):</b> {displayAccounts(sm.node)}<br/>
-        </div>
-    </fieldset>
+        </div> <br/>
+        {deleteButton}
 
+      </div>
   }
 
   private def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
@@ -410,7 +423,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       case AcceptedInventory =>
         val nodeInfoBox = nodeInfoService.getNodeInfo(nodeId)
         nodeInfoBox match {
-          case Full(nodeInfo) =>
+          case Full(Some(nodeInfo)) =>
 
             val kind = {
               if(nodeInfo.isPolicyServer) {
@@ -435,8 +448,11 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
             }
 
             <span><b>Role: </b>Rudder {kind} {roles}</span><br/>
+          case Full(None) =>
+            logger.error(s"Could not fetch node details for node with id ${sm.node.main.id}")
+            <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
           case eb:EmptyBox =>
-            val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}, no cause given"
+            val e = eb ?~! s"Could not fetch node details for node with id ${sm.node.main.id}"
             logger.error(e.messageChain)
             <span class="error"><b>Role: </b>Could not fetch Role for this node</span><br/>
         }
@@ -453,8 +469,11 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         val e = eb ?~! s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}"
         logger.error(e.messageChain)
         <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
-      case Full(policyServerDetails) =>
-        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.nodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+      case Full(Some(policyServerDetails)) =>
+        <span><b>Rudder Policy Server: </b><a href={JsInitContextLinkUtil.baseNodeLink(policyServerDetails.id)}>{policyServerDetails.hostname}</a></span>
+      case Full(None) =>
+        logger.error(s"Could not fetch policy server details (id ${sm.node.main.policyServerId}) for node with id ${sm.node.main.id}")
+        <span class="error"><b>Rudder Policy Server: </b>Could not fetch details about the policy server</span>
     }
   }
 
@@ -471,7 +490,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   }
 
   private def displayPublicKeys(node:NodeInventory) : NodeSeq = <b>Public Key(s): </b> ++ {if(node.publicKeys.isEmpty) {
-          Text("None")
+          Text(DEFAULT_COMPONENT_KEY)
         } else <ul>{node.publicKeys.zipWithIndex.flatMap{ case (x,i) => (<b>{"[" + i + "] "}</b> ++ {Text(x.key.grouped(65).toList.mkString("\n"))})}}</ul> }
 
   private def displayNodeInventoryInfo(node:NodeInventory) : NodeSeq = {
@@ -538,7 +557,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
   private def displayTabSoftware(jsId:JsNodeId) : NodeSeq =
     displayTabGrid(jsId)("soft",
         //do not retrieve software here
-        //getNodeInventoryService.getSoftware(id)
         Full(Seq())
     ){
       ("Name", {x:Software => ?(x.name)} ) ::
@@ -554,10 +572,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         ("Mask", {x:Network => Text(x.ifMask.map{ _.getHostAddress }.mkString(", "))}) ::
         ("DHCP server", {x:Network => Text(x.ifDhcp.map{ _.getHostAddress }.mkString(", "))}) ::
         ("MAC address", {x:Network => ?(x.macAddress)}) ::
-        //("Gateway", {x:Network => Text(x.ifGateway.map{ _.getHostAddress }.mkString(", "))}) ::
-        //("Network", {x:Network => Text(x.ifSubnet.map{ _.getHostAddress }.mkString(", "))}) ::
         ("Type", {x:Network => ?(x.ifType)}) ::
-        //("Type-MIB", {x:Network => ?(x.typeMib)}) ::
         ("Speed", {x:Network => ?(x.speed)}) ::
         ("Status", {x:Network => ?(x.status)}) ::
         Nil
@@ -578,6 +593,14 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     displayTabGrid(jsId)("var", Full(sm.node.environmentVariables),title){
         ("Name", {x:EnvironmentVariable => Text(x.name)}) ::
         ("Value", {x:EnvironmentVariable => Text(x.value.getOrElse("Unspecified"))}) ::
+        Nil
+    }
+    }
+
+    private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
+    displayTabGrid(jsId)("props", Full(node.properties)){
+        ("Name", {x:NodeProperty => Text(x.name)}) ::
+        ("Value", {x:NodeProperty => Text(x.value)}) ::
         Nil
     }
     }
@@ -605,7 +628,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
         ("Uuid", {x:VirtualMachine => Text(x.uuid.value)}) ::
         ("Status", {x:VirtualMachine => ?(x.status)}) ::
         ("Owner", {x:VirtualMachine => ?(x.owner)}) ::
-        ("# Cpu", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
+        ("# Cpu", {x:VirtualMachine => ?(x.vcpu.map(_.toString()))}) ::
         ("Memory", { x:VirtualMachine => ?(x.memory) }) ::
         Nil
     }
@@ -739,13 +762,16 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
   }
 
-  private[this] def showConfirmationDialog(nodeId : NodeId) : JsCmd = {
-    def cancelDelete() : JsCmd = {
-      SetHtml("test", NodeSeq.Empty) &
-      JsRaw(""" $('#boutonTest').show(); """)
+  private[this] def showDeleteButton(nodeId : NodeId) = {
+    def toggleDeletion() : JsCmd = {
+      JsRaw(""" $('#deleteButton').toggle(300); $('#confirmDeletion').toggle(300) """)
     }
-
-    val dialog =
+    SHtml.ajaxButton(
+        "Delete"
+      , { () => {toggleDeletion() } }
+      , ("id", "deleteButton")
+      , ("class", "dangerButton")
+    ) ++ <div style="display:none" id="confirmDeletion">
     <div style="margin:5px;">
      <div>
       <div>
@@ -761,22 +787,16 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       <div style="margin-top:7px">
         <span >
           {
-            SHtml.ajaxButton("Cancel", { () => { cancelDelete } })
+            SHtml.ajaxButton("Cancel", { () => { toggleDeletion } })
           }
           {
-            SHtml.ajaxButton("Delete this node", { () => {removeNode(nodeId) } })
+            SHtml.ajaxButton("Confirm", { () => {removeNode(nodeId) }}, ("class", "dangerButton") )
           }
         </span>
       </div>
     </div>
     </div>
-
-    def showDialog() : JsCmd = {
-      SetHtml("test", dialog) &
-      JsRaw(""" $('#boutonTest').hide(); correctButtons(); $('#test').stop(true, true).slideDown(1000); """)
-    }
-
-    showDialog
+</div>
   }
 
   private[this] def removeNode(nodeId: NodeId) : JsCmd = {
@@ -802,7 +822,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     <div class="simplemodal-content">
       <div>
           <img src="/images/icfail.png" alt="Error!" height="32" width="32" class="erroricon"/>
-          <h2>There was an error while deleting the Node with id {nodeId.value}. Please contact your administrator.</h2>
+          <h2>There was an error while deleting the Node with ID {nodeId.value}. Please contact your administrator.</h2>
       </div>
       <hr class="spacer" />
       <br />
@@ -830,7 +850,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       <br />
       <div>
         <img src="/images/icOK.png" alt="Success" height="32" width="32" class="icon" />
-        <h2>The node has been properly removed from Rudder.</h2>
+        <h2>The node has been successfully removed from Rudder.</h2>
       </div>
       <hr class="spacer" />
       <br />

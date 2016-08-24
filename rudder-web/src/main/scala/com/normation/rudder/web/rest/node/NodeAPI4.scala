@@ -47,7 +47,7 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
-
+import com.normation.rudder.web.rest.ApiVersion
 
 class NodeAPI4 (
     apiV2         : NodeAPI2
@@ -55,13 +55,12 @@ class NodeAPI4 (
   , restExtractor : RestExtractorService
 ) extends RestHelper with NodeAPI with Loggable{
 
-
-  val v4Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  def v4Dispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
    case Get(id :: Nil, req) if id != "pending" => {
       restExtractor.extractNodeDetailLevel(req.params) match {
         case Full(level) =>
-          apiV4.nodeDetailsGeneric(NodeId(id),level,req)
+          apiV4.nodeDetailsGeneric(NodeId(id), level, apiVersion, req)
         case eb:EmptyBox =>
           val failMsg = eb ?~ "node detail level not correctly sent"
           toJsonError(None, failMsg.msg)("nodeDetail",restExtractor.extractPrettify(req.params))
@@ -69,7 +68,7 @@ class NodeAPI4 (
     }
   }
 
-  // Node API Version 4 fallback to Node api2 if request is not handled in V4
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = v4Dispatch orElse apiV2.requestDispatch
-
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
+     v4Dispatch(apiVersion) orElse apiV2.requestDispatch(apiVersion)
+  }
 }

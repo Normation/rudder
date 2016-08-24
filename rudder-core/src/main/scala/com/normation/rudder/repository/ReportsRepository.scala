@@ -37,50 +37,44 @@
 
 package com.normation.rudder.repository
 
+import org.joda.time._
+
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.bean._
-import org.joda.time._
-import com.normation.cfclerk.domain.{Cf3PolicyDraftId}
+import com.normation.rudder.domain.reports._
+import com.normation.rudder.reports.execution.AgentRun
+import com.normation.rudder.reports.execution.AgentRunId
+
 import net.liftweb.common.Box
-import com.normation.rudder.reports.execution.ReportExecution
 
 /**
  * An overly simple repository for searching through the cfengine reports
  * Can search by CR, by Node, by both, and or by date
- * @author Nicolas CHARLES
  *
  */
 trait ReportsRepository {
 
-  /**
-   * Returns all reports for the ruleId, between the two differents date (optionnally)
+  /*
+   * now, for each node, three cases:
+   * - no last run => no exec report for node, only get LAST expected reports for it
+   * - a last run, no config version => get the execution reports of that run and the LAST expected reports (no other info)
+   * - a last run and a config => get the execution reports for that run and the expected reports for the config
+   *
+   * So: get reports for available execution, sort the result by nodes with a default of "no reports"
+   *
+   * Optimize the expected reports part because several nodes can have the same reports
    */
-  def findReportsByRule(
-      ruleId   : RuleId
-    , serial   : Option[Int]
-    , beginDate: Option[DateTime]
-    , endDate  : Option[DateTime]
-  ) : Seq[Reports]
-
-
-  /**
-   * Return the last (really the last, serial wise, with full execution) reports for a rule
-   */
-  def findLastReportByRule(
-      ruleId     : RuleId
-    , serial     : Int
-    , node       : Option[NodeId]
-    , runInterval: Int
-  ) : Seq[Reports]
 
   /**
-   * Return the last (really the last, serial wise, with full execution) reports for a rule
+   * Find the reports corresponding to the given agent executions,
+   * so the reports for a set of (node, execution starting timestamp).
+   *
+   * That method doesn't check if there is missing execution in
+   * the result compared to inputs.
    */
-  def findLastReportsByRules(
-      rulesAndSerials: Set[(RuleId, Int)]
-    , runInterval    : Int
-  ) : Seq[Reports]
+  def getExecutionReports(runs: Set[AgentRunId], filterByRules: Set[RuleId]): Box[Map[NodeId, Seq[Reports]]]
+
+
 
   /**
    * Returns all reports for the node, between the two differents date (optionnal)
@@ -90,10 +84,6 @@ trait ReportsRepository {
    */
   def findReportsByNode(
       nodeId   : NodeId
-    , ruleId   : Option[RuleId]
-    , serial   : Option[Int]
-    , beginDate: Option[DateTime]
-    , endDate  : Option[DateTime]
   ) : Seq[Reports]
 
   /**
@@ -107,43 +97,50 @@ trait ReportsRepository {
     , endDate  : Option[DateTime]
   ) : Seq[Reports]
 
+
+  //advanced reporting only
   def findExecutionTimeByNode(
       nodeId   : NodeId
     , beginDate: DateTime
     , endDate  : Option[DateTime]
   ) : Seq[DateTime]
 
-
   def getOldestReports() : Box[Option[Reports]]
 
+  //databaseManager only
   def getOldestArchivedReports() : Box[Option[Reports]]
-
-  def getNewestReportOnNode(nodeid:NodeId) : Box[Option[Reports]]
-
   def getNewestReports() : Box[Option[Reports]]
-
   def getNewestArchivedReports() : Box[Option[Reports]]
-
   def getDatabaseSize(databaseName : String) : Box[Long]
-
   def reportsTable : String
-
   def archiveTable : String
-
   def archiveEntries(date : DateTime) : Box[Int]
-
   def deleteEntries(date : DateTime) : Box[Int]
 
-  def getHighestId : Box[Long]
-
-  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Reports,Long)]]
-
-  def getErrorReportsBeetween(lower : Long, upper:Long,kinds:List[String]) : Box[Seq[Reports]]
-
+  //automaticReportLogger only
   /**
-   * From an id and an end date, return a list of ReportExecution, and the max ID that has been considered
+   * Get the highest id of any kind of reports.
    */
-  def getReportsfromId(id : Long, endDate : DateTime) : Box[(Seq[ReportExecution], Long)]
+  def getHighestId() : Box[Long]
+  def getLastHundredErrorReports(kinds:List[String]) : Box[Seq[(Long, Reports)]]
+  //return the reports between the two ids, limited to limit number of reports, in asc order of id.
+  def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long, Reports)]]
 
-  def getReportsWithLowestId : Box[Option[(Reports,Long)]]
+
+  //nodechangesServices
+  /*
+   *  Count change reports by rules on interval of intervalSizeHour hour, starting at startTime
+   *  StartTime should be a 00:00:00 time.
+   */
+  def countChangeReports(startTime: DateTime, intervalSizeHour: Int): Box[Map[RuleId, Map[Interval, Int]]]
+  def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]]
+  def getChangeReportsByRuleOnInterval(ruleId: RuleId, interval: Interval, limit: Option[Int]): Box[Seq[ResultRepairedReport]]
+
+  //reportExecution only
+  /**
+   * From an id and an end date, return a list of AgentRun, and the max ID that has been considered
+   */
+  def getReportsfromId(id : Long, endDate : DateTime) : Box[(Seq[AgentRun], Long)]
+
+  def getReportsWithLowestId : Box[Option[(Long, Reports)]]
 }

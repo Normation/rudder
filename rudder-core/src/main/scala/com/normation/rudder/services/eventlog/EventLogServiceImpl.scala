@@ -46,6 +46,7 @@ import scala.collection._
 import com.normation.utils.Control.sequence
 import com.normation.rudder.services.marshalling.DeploymentStatusUnserialisation
 import com.normation.rudder.batch.CurrentDeploymentStatus
+import com.normation.rudder.repository.EventLogRepository
 
 
 class EventLogDeploymentService(

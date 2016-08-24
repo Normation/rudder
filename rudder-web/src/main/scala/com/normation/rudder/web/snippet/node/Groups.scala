@@ -96,6 +96,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] val woNodeGroupRepository = RudderConfig.woNodeGroupRepository
   private[this] val uuidGen               = RudderConfig.stringUuidGenerator
 
+  private[this] var boxGroupLib = getFullGroupLibrary()
+
   val mainDispatch = {
     RudderConfig.configService.rudder_workflow_enabled match {
       case Full(workflowEnabled) =>
@@ -129,8 +131,6 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   //the popup component
   private[this] val creationPopup = new LocalSnippet[CreateCategoryOrGroupPopup]
 
-  private[this] var boxGroupLib = getFullGroupLibrary()
-
   private[this] var selectedCategoryId = boxGroupLib.map(_.id)
 
   /**
@@ -154,7 +154,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
 
   def groupNewItem(workflowEnabled: Boolean) : NodeSeq = {
     <div id="createANewItem">
-      { SHtml.ajaxButton("Create a new item", () => showPopup(workflowEnabled)) }
+      { SHtml.ajaxButton("Create", () => showPopup(workflowEnabled)) }
     </div>
   }
 
@@ -220,12 +220,15 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           , parentCatId
           , rootCategory
           , workflowEnabled
-          , { (redirect: Either[NodeGroup,ChangeRequestId]) =>
+          , { (redirect: Either[(NodeGroup,NodeGroupCategoryId),ChangeRequestId]) =>
               redirect match {
-                case Left(group) =>
+                case Left((newGroup,newParentId)) =>
                   refreshGroupLib()
-                  refreshTree(htmlTreeNodeId(group.id.value), workflowEnabled)
-                case Right(crId) => RedirectTo(s"""/secure/utilities/changeRequest/${crId.value}""")
+                  val newPanel = GroupForm(newGroup, newParentId)
+                  refreshTree(htmlTreeNodeId(newGroup.id.value), workflowEnabled) &
+                  refreshRightPanel(newPanel , workflowEnabled)
+                case Right(crId) =>
+                  JsInitContextLinkUtil.redirectToChangeRequestLink(crId)
               }
             }
         )

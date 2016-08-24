@@ -126,13 +126,14 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     val currentNets = psService.getAuthorizedNetworks(policyServerId)
 
     val policyServerName = nodeInfoService.getNodeInfo(policyServerId) match {
-      case Full(nodeInfo) =>
+      case Full(Some(nodeInfo)) =>
         <span>{nodeInfo.hostname}</span>
-      case Failure(m,_,_) =>
-        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, reason is: ${m}")
+      case eb: EmptyBox =>
+        val e = eb ?~! s"Could not get details for Policy Server ID ${policyServerId.value}"
+        logger.error(e.messageChain)
         <span class="error">Unknown hostname</span>
-      case Empty =>
-        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, no reasons given")
+      case Full(None) =>
+        logger.error(s"Could not get details for Policy Server ID ${policyServerId.value}, the details were not found for that ID")
         <span class="error">Unknown hostname</span>
     }
 
@@ -207,7 +208,7 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
 
         (
           ".deleteNetwork" #> SHtml.ajaxSubmit("-", () => delete(i)) &
-          "errorClass=error [id]" #> ("error" + id) &
+          "#errorNetworkField" #> <td id="errorNetworkField"><span class={"lift:Msg?errorClass=bs-text-danger;id=errornetwork_"+i}>[error]</span></td> &
           ".networkField [name]" #> id andThen
           ".networkField" #> SHtml.text(net,  {x =>
             allowedNetworks.find { case VH(y,_) => y==i }.foreach{ v => v.net = x }

@@ -45,6 +45,7 @@ import com.normation.rudder.domain.policies._
 import com.normation.rudder.domain.queries.Query
 import com.normation.rudder.repository._
 import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.rudder.services.queries.CmdbQueryParser._
 import com.normation.rudder.web.rest.directive.RestDirective
 import com.normation.rudder.web.rest.group.RestGroup
 import com.normation.rudder.web.rest.node._
@@ -56,6 +57,7 @@ import com.normation.rudder.web.services.UserPropertyService
 import com.normation.utils.Control._
 import net.liftweb.common._
 import net.liftweb.json._
+import net.liftweb.json.JsonDSL._
 import com.normation.rudder.api.ApiAccountId
 import com.normation.rudder.web.rest.parameter.RestParameter
 import com.normation.rudder.domain.parameters.ParameterName
@@ -65,7 +67,12 @@ import com.normation.rudder.web.rest.changeRequest.APIChangeRequestInfo
 import com.normation.rudder.services.workflows.WorkflowService
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.JsonQueryLexer
+import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.services.queries.StringCriterionLine
+import com.normation.rudder.domain.queries.QueryReturnType
+import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.services.queries.StringQuery
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -88,7 +95,7 @@ case class RestExtractorService (
     }
   }
 
-  private[this] def extractList[T] (params : Map[String,List[String]],key : String)( convertTo : (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
+  private[this] def extractList[T] (params : Map[String,List[String]], key: String)(convertTo: (List[String]) => Box[T] = ( (values:List[String]) => Full(values))) : Box[Option[T]] = {
     params.get(key) match {
       case None       => Full(None)
       case Some(list) => convertTo(list).map(Some(_))
@@ -170,6 +177,34 @@ case class RestExtractorService (
     queryParser(value)
   }
 
+  private[this] def convertToCriterionLine (value:String) : Box[List[StringCriterionLine]] = {
+    JsonParser.parseOpt(value) match {
+      case None => Failure("Could not parse 'select' cause in api query ")
+      case Some(value) =>
+        // Need to encapsulate this in a json Object, so it parse correctly
+        val json  = ("where" -> value)
+        queryParser.parseCriterionLine(json)
+    }
+  }
+
+  private[this] def convertToQueryCriterion (value:String) : Box[List[StringCriterionLine]] = {
+    JsonParser.parseOpt(value) match {
+      case None => Failure("Could not parse 'select' cause in api query ")
+      case Some(value) =>
+        // Need to encapsulate this in a json Object, so it parse correctly
+        val json  = (CRITERIA -> value)
+        queryParser.parseCriterionLine(json)
+    }
+  }
+
+  private[this] def convertToQueryReturnType (value:String) : Box[QueryReturnType] = {
+    QueryReturnType(value)
+  }
+
+  private[this] def convertToQueryComposition (value:String) : Box[Option[String]] = {
+    Full(Some(value))
+  }
+
   private[this] def convertToMinimalSizeString (minimalSize : Int) (value:String) : Box[String] = {
     if (value.size >= minimalSize){
       Full(value)
@@ -203,7 +238,7 @@ case class RestExtractorService (
   }
 
   private[this] def convertToNodeGroupCategoryId (value:String) : Box[NodeGroupCategoryId] = {
-    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Directive '$value' not found"
+    readGroup.getGroupCategory(NodeGroupCategoryId(value)).map(_.id) ?~ s"Node group '$value' not found"
   }
   private[this] def convertToRuleCategoryId (value:String) : Box[RuleCategoryId] = {
   Full(RuleCategoryId(value))
@@ -503,6 +538,7 @@ case class RestExtractorService (
       case eb:EmptyBox => eb ?~ "error when deserializing node group category"
     }
   }
+
   def extractRule (params : Map[String,List[String]]) : Box[RestRule] = {
 
     for {
@@ -515,6 +551,17 @@ case class RestExtractorService (
       target           <- convertToRuleTarget(params,"targets")
     } yield {
       RestRule(name, category, shortDescription, longDescription, directives, target.map(Set(_)), enabled)
+    }
+  }
+
+  def extractRuleCategory (params : Map[String,List[String]]) : Box[RestRuleCategory] = {
+
+    for {
+      name        <- extractOneValue(params,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValue(params, "description")()
+      parent      <- extractOneValue(params,"parent")(convertToRuleCategoryId)
+    } yield {
+      RestRuleCategory(name, description, parent)
     }
   }
 
@@ -531,6 +578,18 @@ case class RestExtractorService (
     }
   }
 
+  def extractGroupCategory (params : Map[String,List[String]]) : Box[RestGroupCategory] = {
+
+    for {
+      name        <- extractOneValue(params,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValue(params, "description")()
+      parent      <- extractOneValue(params,"parent")(convertToNodeGroupCategoryId)
+    } yield {
+      RestGroupCategory(name, description, parent)
+    }
+  }
+
+
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
       description <- extractOneValue(params, "description")()
@@ -538,6 +597,50 @@ case class RestExtractorService (
       value       <- extractOneValue(params, "value")()
     } yield {
       RestParameter(value,description,overridable)
+    }
+  }
+
+  /*
+   * Looking for parameter: "properties=foo=bar"
+   * ==> set foo to bar; delete baz, set plop to plop.
+   */
+  def extractNodeProperties (params : Map[String, List[String]]) : Box[Option[Seq[NodeProperty]]] = {
+    extractList(params, "properties") { props =>
+      val splitted = props.map { prop =>
+        val parts = prop.split('=')
+        if(parts.size == 1) NodeProperty(parts(0), "")
+        else NodeProperty(parts(0), parts(1))
+      }
+      Full(splitted)
+    }
+  }
+
+  /*
+   * expecting json:
+   * { "properties": [
+   *    {"name":"foo" , "value":"bar"  }
+   * ,  {"name":"baz" , "value": ""    }
+   * ,  {"name":"plop", "value":"plop" }
+   * ] }
+   */
+  def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNode] = {
+    import net.liftweb.json.JsonParser._
+    implicit val formats = DefaultFormats
+
+    Box(json.extractOpt[RestNode]) ?~! "Error when extracting node information"
+  }
+
+  /*
+   * Looking for parameter: "level=2"
+   */
+  def extractComplianceLevel(params : Map[String, List[String]]) : Box[Option[Int]] = {
+    params.get("level") match {
+      case None | Some(Nil) => Full(None)
+      case Some(h :: tail) => //only take into account the first level param is several are passed
+        try { Full(Some(h.toInt)) }
+        catch {
+          case ex:NumberFormatException => Failure(s"level (displayed level of compliance details) must be an integer, was: '${h}'")
+        }
     }
   }
 
@@ -570,6 +673,16 @@ case class RestExtractorService (
     }
   }
 
+  def extractRuleCategory ( json : JValue ) : Box[RestRuleCategory] = {
+    for {
+      name        <- extractOneValueJson(json,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValueJson(json, "description")()
+      parent      <- extractOneValueJson(json,"parent")(convertToRuleCategoryId)
+    } yield {
+      RestRuleCategory(name, description, parent)
+    }
+  }
+
   def extractDirectiveFromJSON (json : JValue) : Box[RestDirective] = {
     for {
       name             <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
@@ -596,6 +709,16 @@ case class RestExtractorService (
       category    <- extractOneValueJson(json, "category")(convertToGroupCategoryId)
     } yield {
       RestGroup(name,description,Some(query),dynamic,enabled,category)
+    }
+  }
+
+  def extractGroupCategory ( json : JValue ) : Box[RestGroupCategory] = {
+    for {
+      name        <- extractOneValueJson(json,"name")(convertToMinimalSizeString(3))
+      description <- extractOneValueJson(json, "description")()
+      parent      <- extractOneValueJson(json,"parent")(convertToNodeGroupCategoryId)
+    } yield {
+      RestGroupCategory(name, description, parent)
     }
   }
 
@@ -648,5 +771,35 @@ case class RestExtractorService (
       case eb:EmptyBox => eb ?~ "error with node level detail"
     }
   }
+
+  def extractQuery (params : Map[String,List[String]]) : Box[Option[Query]] = {
+    extractOneValue(params,"query")(convertToQuery) match {
+      case Full(None) =>
+        extractOneValue(params,CRITERIA)(convertToQueryCriterion) match {
+          case Full(None) => Full(None)
+          case Full(Some(criterion)) =>
+            for {
+              // Target defaults to NodeReturnType
+              optType <- extractOneValue(params,TARGET)(convertToQueryReturnType)
+              returnType = optType.getOrElse(NodeReturnType)
+
+              // Composition defaults to None/And
+              optComposition <-extractOneValue(params,COMPOSITION)(convertToQueryComposition)
+              composition = optComposition.getOrElse(None)
+
+              // Query may fail when parsing
+              stringQuery = StringQuery(returnType,composition,criterion.toSeq)
+              query <- queryParser.parse(stringQuery)
+            } yield {
+               Some(query)
+            }
+          case eb:EmptyBox => eb ?~! "error with query"
+        }
+      case Full(query) =>
+        Full(query)
+      case eb:EmptyBox => eb ?~! "error with query"
+    }
+  }
+
 
 }

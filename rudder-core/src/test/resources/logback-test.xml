@@ -18,7 +18,7 @@
        trace < debug < info < warn < error < off 
        "off" completely shut down logging for the given logger
   -->
-  <root level="warn"> <!-- pour le devel -->
+  <root level="warn"> 
     <appender-ref ref="STDOUT" />
   </root>
   
@@ -45,6 +45,13 @@
   
   <logger name="com.normation.rudder.services.queries" level="info" /> 
   
+  
+<!--   
+       This is a logger that will trace the computation of compliance, 
+       what node configuration id changed to how last run/expected 
+       reports is understood compared to interval and compliance mode constraints 
+-->
+<!--   <logger name="explain_compliance" level="trace" /> -->
   
   <!-- 
       if you don't want appender to be cumulative, add additivity

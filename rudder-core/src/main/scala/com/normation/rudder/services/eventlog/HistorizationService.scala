@@ -92,7 +92,7 @@ trait HistorizationService {
 
 class HistorizationServiceImpl(
     historizationRepository: HistorizationRepository
-) extends HistorizationService {
+) extends HistorizationService with Loggable {
 
 
   override def updateNodes(allNodeInfo: Set[NodeInfo]) : Box[Unit] = {
@@ -114,6 +114,7 @@ class HistorizationServiceImpl(
       val closable = registered.keySet.filter(x => !(nodeInfos.map(node => node.id.value)).contains(x))
 
       historizationRepository.updateNodes(changed, closable.toSeq)
+
       Full(())
     } catch {
       case e:Exception => HistorizationLogger.error("Could not update the nodes. Reason : "+e.getMessage())
@@ -195,8 +196,8 @@ class HistorizationServiceImpl(
 
   override def updatesRuleNames(rules:Seq[Rule]) : Box[Unit] = {
     try {
-      val registered = historizationRepository.getAllOpenedRules().map(x => x.id -> x).toMap
 
+      val registered = historizationRepository.getAllOpenedRules().map(x => x.id -> x).toMap
 
       val changed = rules.filter(rule => registered.get(rule.id) match {
           case None => true
@@ -243,7 +244,7 @@ class HistorizationServiceImpl(
                schedule.interval == interval
             && schedule.splaytime == splaytime
             && schedule.start_hour == start_hour
-            && schedule.start_minute == start_minute) => Full()
+            && schedule.start_minute == start_minute) => Full(())
         case _ => Full(historizationRepository.updateGlobalSchedule(interval, splaytime, start_hour, start_minute))
       }
     } catch {

@@ -37,27 +37,26 @@
 
 package com.normation.rudder.services.policies
 
-import org.joda.time.DateTime
-import org.junit.runner._
-import org.specs2.runner._
-import org.specs2.mutable._
-import org.specs2.specification._
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
-import com.normation.inventory.domain.COMMUNITY_AGENT
-import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain._
+import com.normation.inventory.domain.Version
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.ParameterName
-import com.normation.rudder.domain.policies.InterpolationContext
+import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
-import net.liftweb.common._
-import com.normation.utils.Control.sequence
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.rudder.domain.policies.InterpolationContext
-import scala.collection.immutable.TreeMap
-//for treemap ordering
-import InterpolationContext._
+import com.normation.utils.Control._
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable.Specification
+import org.specs2.runner.JUnitRunner
+
+import net.liftweb.common.Box
+import net.liftweb.common.Empty
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 /**
  * Test how parametrized variables are replaced for
@@ -68,6 +67,7 @@ import InterpolationContext._
 @RunWith(classOf[JUnitRunner])
 class TestNodeAndParameterLookup extends Specification {
   import NodeConfigData._
+
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
   val compiler = new InterpolatedValueCompilerImpl()
@@ -84,7 +84,7 @@ class TestNodeAndParameterLookup extends Specification {
   def lookup(
       variables: Seq[Variable]
     , context: InterpolationContext
-  )(test:Seq[Seq[String]] => Example) : Example  = {
+  )(test:Seq[Seq[String]] => org.specs2.execute.Result) : org.specs2.execute.Result  = {
     lookupService.lookupNodeParameterization(variables)(context) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error in test"
@@ -199,13 +199,13 @@ class TestNodeAndParameterLookup extends Specification {
     }
   }
 
+  def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
+
   /**
    * Test that the interpretation of an AST is
    * correctly done (with forged interpretation contexts)
    */
   "Interpretation of a parsed interpolated string" should {
-
-    def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
 
     val nodeId = compileAndGet("${rudder.node.uuid}")
     val policyServerId = compileAndGet("${rudder.node.id}")
@@ -255,26 +255,6 @@ class TestNodeAndParameterLookup extends Specification {
           (ParameterName("p1"), (i:InterpolationContext) => Full(res))
       ))
       i(c) must beEqualTo(Full(res))
-    }
-
-    "no care of case in nodes names" in {
-      val i = compileAndGet("${rudder.node.HoStNaMe}")
-      i(context) must beEqualTo(Full("node1.localhost"))
-    }
-
-    "DO care of case in param names" in {
-      val i = compileAndGet("${rudder.param.xX}")
-      val c = context.copy(parameters = Map(
-          //test all combination
-          (ParameterName("XX"), (i:InterpolationContext) => Full("bad"))
-        , (ParameterName("Xx"), (i:InterpolationContext) => Full("bad"))
-        , (ParameterName("xx"), (i:InterpolationContext) => Full("bad"))
-      ))
-      i(c) match {
-        case Full(_) => ko("No, case must matter!")
-        case Empty => ko("No, we should have a failure")
-        case Failure(m,_,_) => m must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
-      }
     }
 
     "fails on missing param in context" in {
@@ -451,6 +431,27 @@ class TestNodeAndParameterLookup extends Specification {
         )
       )
     }
+
+    "not matter in nodes path accessor" in {
+      val i = compileAndGet("${rudder.node.HoStNaMe}")
+      i(context) must beEqualTo(Full("node1.localhost"))
+    }
+
+    "matter in param names" in {
+      val i = compileAndGet("${rudder.param.xX}")
+      val c = context.copy(parameters = Map(
+          //test all combination
+          (ParameterName("XX"), (i:InterpolationContext) => Full("bad"))
+        , (ParameterName("Xx"), (i:InterpolationContext) => Full("bad"))
+        , (ParameterName("xx"), (i:InterpolationContext) => Full("bad"))
+      ))
+      i(c) match {
+        case Full(_) => ko("No, case must matter!")
+        case Empty => ko("No, we should have a failure")
+        case Failure(m,_,_) => m must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
+      }
+    }
+
   }
 
 }

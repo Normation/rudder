@@ -1,0 +1,484 @@
+/*
+*************************************************************************************
+* Copyright 2014 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+* 
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+* 
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+
+.tw-bs .modal-header {
+  background-color: #ee7f00;
+  background-image : linear-gradient(#ffa033, #ee7f00 50%, #b86200);
+  font-family: sans-serif;
+  font-weight:bold;
+}
+
+.tw-bs .modal-body {
+  font-size : 14px;
+}
+
+.tw-bs .navbar-rudder  {
+  background-color: #ee7f00;
+  background-image: linear-gradient(#ffa033, #ee7f00 50%, #b86200);
+  border: none;
+  font-family: sans-serif;
+  font-size: 13px;
+  font-weight:bold;
+}
+
+.tw-bs .navbar-rudder .navbar-nav > li > a, .tw-bs .navbar-rudder .navbar-nav li.dropdown > a {
+  color : #2e2d2d;
+}
+
+.tw-bs  .navbar-form {
+  padding:0;
+  font-size:13px; 
+}
+
+.tw-bs .navbar-rudder .navbar-nav > .active > a, .tw-bs .navbar-rudder .navbar-nav > .active > a:hover, .tw-bs .navbar-rudder .navbar-nav > .active > a:focus,
+.tw-bs .navbar-rudder .navbar-nav .dropdown.active > a, .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a:hover, .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a:focus {
+  background-color: #2e2d2d;
+  color: #e78f08;
+}
+
+.tw-bs .nav > li > a:hover, .tw-bs .nav > li > a:focus,
+.tw-bs .nav li.dropdown > a:hover, .tw-bs .nav li.dropdown > a:focus {
+  background-color: #2e2d2d;
+  color: #e78f08;
+  text-decoration:none;
+}
+
+.tw-bs .navbar-rudder.navbar-fixed-top {
+  border: none;
+}
+
+.tw-bs .navbar-nav li.dropdown {
+  float: left;
+}
+
+.tw-bs .navbar-nav li.dropdown > a {
+  padding: 15px 8px;
+  line-height: 20px;
+  display:block;
+  position:relative;
+}
+
+.tw-bs .navbar-nav > li > a {
+  padding: 15px 8px;
+}
+
+.tw-bs .nav > li > a:hover .glyphicon, .tw-bs .nav > li > a:focus .glyphicon,
+.tw-bs .nav li.dropdown > a:hover .glyphicon, .tw-bs .nav li.dropdown > a:focus .glyphicon {
+  color: #e78f08; 
+}
+
+.tw-bs .nav > li > a:hover .badge, .tw-bs .nav > li > a:focus .badge,
+.tw-bs .nav li.dropdown > a:hover .badge, .tw-bs .nav li.dropdown > a:focus .badge {
+  background-color: #2e2d2d; 
+}
+
+
+.tw-bs .badge {
+  background-color: #2e2d2d;
+}
+
+.tw-bs .badge a {
+  color: #e78f08;
+  font-weight:bold;
+}
+
+
+.tw-bs a .badge .glyphicon{
+  color: #eee;
+  font-size:12px;
+}
+
+.tw-bs a .badge .glyphicon.glyphicon-ok{
+	color:#4f8a10;
+}
+
+.tw-bs a .badge .glyphicon.glyphicon-remove{
+  color:#d8000c;
+}
+
+
+.tw-bs .nav li.dropdown > a:hover .badge .glyphicon, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon {
+  color: #eee; 
+}
+
+.tw-bs .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-ok, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-ok {
+  color: #4f8a10; 
+}
+
+.tw-bs .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-remove, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-remove {
+  color: #d8000c; 
+}
+
+.tw-bs .navbar-nav .glyphicon {
+  color: #2e2d2d;
+}
+
+.tw-bs .form-control {
+	font-size:12px;
+}
+
+.tw-bs .navbar-form .form-control {
+	width:120px;
+	padding: 6px;
+    margin-left: 8px;
+}
+.tw-bs .navbar-form .form-control:focus {
+    border-color: #FE9F32;
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(219, 219, 219, 0.71);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(219, 219, 219, 0.71);
+}
+.rudder_col{
+  float: left;
+  overflow: auto;
+  position: static;
+  height:100%;
+  background-color:#2e2d2d;
+  width:100%;
+  padding: 15px 25px 0;
+}
+
+
+
+* {
+  box-sizing: border-box;
+}
+
+
+.simplemodal-container {
+  box-sizing: unset;
+}
+
+.container {
+   height:100%;
+   padding:80px 0 30px;
+   margin: -90px 0 0;
+}
+
+.container:before {
+  content: '';
+  display: block;
+  float: left;
+  height: 100%;
+}
+
+.col {
+	background-color:#fff;
+  float: left;
+  overflow: auto;
+  position: static;
+  height:100%;
+  padding-left:15px;
+  padding-right:15px;
+}
+
+.col-sm {
+	width:30%;
+}
+
+
+.col-xl {
+  width:70%;
+}
+
+.fixed-footer {
+  text-align: center;
+  background-color: white;
+  position: fixed;
+  bottom: 50px;
+  padding-top: 10px;
+  border-left-width: 0px;
+  margin-left: 0px;
+  padding-bottom: 10px;
+  border-top:5px #DDDDDD solid;
+  border-right:5px #DDDDDD solid;
+  margin-left:-15px;
+  padding-left:15px;
+  padding-right:15px;
+  /* augment index of footer so it always on top of other elements (ie, password fields over footer #8800 */
+  z-index : 3;
+}
+
+.directive-footer{
+  width:65.8%
+}
+
+.rule-footer{
+  width:96%;
+  left:25px;
+  margin-left:0px;
+  bottom: 50px;
+  border-right:0;
+}
+
+#editRuleZone form {
+	padding-bottom:40px;
+}
+
+@media (max-width:1280px) {
+  .container {
+    padding:120px 0 30px;
+    margin: -130px 0 0;
+  }
+
+  .fixed-footer {
+    bottom: 40px;
+  }
+}
+
+#generation-status{
+	padding-top:2px;
+	padding-bottom:2px;
+}
+
+.bs-callout {
+    -moz-border-bottom-colors: none;
+    -moz-border-left-colors: none;
+    -moz-border-right-colors: none;
+    -moz-border-top-colors: none;
+    border-color: #eee;
+    border-image: none;
+    border-radius: 3px;
+    border-style: solid;
+    border-width: 1px 1px 1px 5px;
+    padding: 10px;
+}
+.bs-callout h4 {
+    margin-bottom: 5px;
+    margin-top: 0;
+}
+.bs-callout p:last-child {
+    margin-bottom: 0;
+}
+.bs-callout code {
+    border-radius: 3px;
+}
+.bs-callout + .bs-callout {
+    margin-top: -5px;
+}
+.bs-callout-danger {
+    border-left-color: #d9534f;
+}
+.bs-callout-danger h4 {
+    color: #d9534f;
+}
+.bs-callout-warning {
+    border-left-color: #f0ad4e;
+}
+.bs-callout-warning h4 {
+    color: #f0ad4e;
+}
+.bs-callout-info {
+    border-left-color: #5bc0de;
+}
+.bs-callout-info h4 {
+    color: #5bc0de;
+}
+
+.tw-bs .bs-callout h4 {
+	font-size:14px;
+}
+
+.tw-bs .ruddericon {
+  color:#999;
+}
+
+.tw-bs .tooltipable.ruddericon:hover {
+  color:#666;
+}
+
+.tw-bs .form-group, .form-group {
+  margin-bottom:5px;
+}
+
+
+.pull-left {
+	float:left !important
+}
+
+.col-sm-1 {
+    width: 8.333333%;
+    float: left;
+    min-height: 1px;
+    padding-left: 15px;
+    padding-right: 15px;
+    position: relative;
+}
+
+.form-horizontal .form-group:after,.form-horizontal .form-group:before {
+	clear:both;
+	content: " ";
+  display: table;
+}
+
+#cfagentSchedule .control-label.col-sm-1 {
+	width:150px;
+	text-align:right;
+}
+
+.control-label {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+.tw-bs input[type="number"]{
+	padding-right:0;
+}
+
+.form-control {
+  width:100%
+}
+
+.deca .form-control {
+  width:100%
+}
+
+#globalCompliance .progress {
+  height:130px;
+  padding: 30px 20px
+}
+#globalCompliance .progress .progress-bar {
+  line-height:70px;
+  font-size:18px
+}
+
+.tw-bs .nav-pills  > li > a {
+	border-radius : 0px;
+  color : #2e2d2d;
+  font-size: 15px;
+} 
+
+#complianceGauge {
+	height:180px;
+	max-width: 360px;
+	width:100%
+}
+
+#gauge-value {
+	  color: black;
+    font-weight: bold;
+    left: 20px;
+    position: absolute;
+    right: 0;
+    text-align: center;
+    top: 45px;
+    font-size:30px;
+}
+.tw-bs .nav-pills.navbar-rudder {
+	padding-right : 0px;
+  background-color: #fff;
+  background-image:none;
+}
+
+.tw-bs .panel-heading {
+	font-size:18px;
+}
+
+.modal-dialog {
+	z-index:1050;
+}
+
+.tw-bs .password-section .btn{
+  outline: none !important;
+}
+
+.tw-bs .password-section .reveal-password:hover,.tw-bs .password-section .reveal-password:active,.tw-bs .password-section .reveal-password:focus{
+  background-color: #fff;
+  border-color: #ccc;
+}
+.tw-bs .password-section .btn-default.active:hover{
+}
+.tw-bs .password-section .input-group[class*=col-]{
+  padding:0 15px;
+}
+.tw-bs .password-section .reveal-password>span{
+  font-size: 16px;
+  padding: 2px 0;
+}
+
+.tw-bs .password-section .input-group-btn .btn{
+  margin-left: -3px
+}
+.tw-bs .password-section textarea{
+    resize: vertical;
+    border-radius: 4px !important;
+}
+
+body .tw-bs {
+  color: #333;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 14px;
+  line-height: 1.42857;
+}
+
+.animate-show {
+  line-height: 20px;
+  opacity: 1;
+  padding: 10px;
+  border: 1px solid black;
+  background: white;
+}
+
+.animate-show.ng-hide-add, .animate-show.ng-hide-remove {
+  transition: all linear 0.5s;
+}
+
+.animate-show.ng-hide {
+  line-height: 0;
+  opacity: 0;
+  padding: 0 10px;
+}
+
+#password-actions {
+	padding: 0 15px 15px;
+}
+
+.tw-bs .padding-form {
+	padding-bottom: 15px;
+}
+
+.tw-bs .input-group-btn  .dropdown-toggle {
+	height : 34px;
+} 
+
+.tw-bs .input-group-btn > .btn:hover, .tw-bs .input-group-btn > .btn:focus, .tw-bs .input-group-btn > .btn:active {
+  z-index: 0;
+}
+
+.tw-bs .btn.btn-default.reveal-password {
+	padding : 5px 12px;
+}

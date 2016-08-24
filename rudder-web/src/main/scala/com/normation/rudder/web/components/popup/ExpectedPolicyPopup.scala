@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.components.popup
 
-
 import bootstrap.liftweb.RudderConfig
 import com.normation.exceptions.TechnicalException
 import com.normation.rudder.domain.policies.RuleTarget
@@ -61,7 +60,7 @@ object ExpectedPolicyPopup {
     case Full(n) => n
   }
 
-  def expectedTechnique = chooseTemplate("expectedPolicyPopup","template",template)
+  def expectedTechnique = chooseTemplate("expectedpolicypopup","template",template)
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
@@ -81,11 +80,10 @@ class ExpectedPolicyPopup(
   }
 
   def display : NodeSeq = {
-
     //find the list of dyn groups on which that server would be and from that, the Rules
     val rulesGrid : NodeSeq = getDependantRulesForNode match {
       case Full(seq) =>
-        (new RuleGrid("dependentRulesGrid", seq, None, false)).rulesGridWithUpdatedInfo(popup = true,false)
+        (new RuleGrid("dependentRulesGrid", None, () => Full(false), false )).rulesGridWithUpdatedInfo(Some(seq), false, false)
       case e:EmptyBox =>
         val msg = "Error when trying to find dependencies for that group"
         logger.error(msg, e)
@@ -95,7 +93,7 @@ class ExpectedPolicyPopup(
     (
         ClearClearable &
         "#dependentRulesGrid" #> rulesGrid
-    )(bind("expectedPolicyPopup",expectedTechnique,
+    )(bind("expectedpolicypopup",expectedTechnique,
       "node" -> displayNode(nodeSrv),
       "close" -> <button onClick="$.modal.close(); return false;">Close</button>
     ) )

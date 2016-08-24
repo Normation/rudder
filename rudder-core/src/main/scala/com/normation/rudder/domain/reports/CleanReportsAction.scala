@@ -10,9 +10,11 @@ import com.normation.rudder.batch._
 
 
 /*
- * Clean action definition, this can be used for more usage in the future
+ * This file defines data structures to store action
+ * about archiving and cleaning reports.
  */
-abstract class CleanReportAction {
+
+sealed trait CleanReportAction {
   def name     : String
   def past     : String
   def continue : String
@@ -32,7 +34,7 @@ abstract class CleanReportAction {
   val logger = ReportLogger
 }
 
-case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
+final case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
   val name = "archive"
   val past = "archived"
   val continue = "archiving"
@@ -40,7 +42,7 @@ case class ArchiveAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsC
   val actor = dbCleaner.archiver
 }
 
-case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
+final case class DeleteAction(dbManager:DatabaseManager,dbCleaner : AutomaticReportsCleaning) extends CleanReportAction {
   val name = "delete"
   val past = "deleted"
   val continue = "deleting"

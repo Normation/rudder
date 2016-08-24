@@ -54,7 +54,6 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.services.reports.ComputeCardinalityOfDirectiveVal
 import com.normation.rudder.rule.category.RuleCategoryId
 
 /**
@@ -68,7 +67,7 @@ class RuleValServiceTest extends Specification {
    * Instanciate the services
    */
   val ruleValService = new RuleValServiceImpl(new InterpolatedValueCompilerImpl())
-  val computeCardinality = new ComputeCardinalityOfDirectiveVal
+  val computeCardinality = ComputeCardinalityOfDirectiveVal
 
   /**
    * Create the objects for tests
@@ -119,8 +118,10 @@ class RuleValServiceTest extends Specification {
       , ""
       , Seq()
       , Seq()
+      , Seq()
       , TrackerVariableSpec(None)
       , makeRootSectionSpec
+      , None
       , Set()
       , None
       , false
@@ -187,7 +188,7 @@ class RuleValServiceTest extends Specification {
         ruleVal.isDefined == true
       }
 
-      val directivesVals = ruleVal.open_!.directiveVals
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
 
       "the ruleval should have only one directiveVal" in {
         directivesVals.size == 1
@@ -221,7 +222,7 @@ class RuleValServiceTest extends Specification {
 
     "The cardinality computed " should {
       val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
-      val directivesVals = ruleVal.open_!.directiveVals
+      val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
 
       val cardinality = directivesVals.head.toExpandedDirectiveVal(null).map { x =>
         computeCardinality.getCardinality(x)

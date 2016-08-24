@@ -69,8 +69,9 @@ class CheckInitUserTemplateLibrary(
   , woDirectiveRepos   : WoDirectiveRepository
   , uuidGen            : StringUuidGenerator
   , asyncDeploymentAgent: AsyncDeploymentAgent
-) extends BootstrapChecks with Loggable {
+) extends BootstrapChecks {
 
+  override val description = "Check initialization of User Technique Library"
 
   override def checks() : Unit = {
     ldap.foreach { con =>
@@ -128,7 +129,7 @@ class CheckInitUserTemplateLibrary(
             for {
               updatedParentCat <- woDirectiveRepos.addActiveTechniqueCategory(
                                       newUserPTCat
-                                    , toParentCat
+                                    , toParentCat.id
                                     , ModificationId(uuidGen.newUuid)
                                     , RudderEventActor
                                     , reason = Some("Initialize active templates library")) ?~!
@@ -136,7 +137,7 @@ class CheckInitUserTemplateLibrary(
                 //now, add items and subcategories, in a "try to do the max you can" way
                 fullRes <- boxSequence(
                   //Techniques
-                  bestEffort(fromCat.packageIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
+                  bestEffort(fromCat.techniqueIds.groupBy(id => id.name).toSeq) { case (name, ids) =>
                     for {
                       activeTechnique <- woDirectiveRepos.addTechniqueInUserLibrary(
                           newUserPTCat.id

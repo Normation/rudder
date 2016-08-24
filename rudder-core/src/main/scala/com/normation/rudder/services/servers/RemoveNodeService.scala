@@ -28,6 +28,7 @@ import com.normation.inventory.ldap.core.InventoryDit
 import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.utils.Control.sequence
 import net.liftweb.util.Helpers.tryo
+import com.normation.rudder.repository.CachedRepository
 
 
 trait RemoveNodeService {
@@ -54,6 +55,7 @@ class RemoveNodeServiceImpl(
     , fullNodeRepo              : LDAPFullInventoryRepository
     , actionLogger              : EventLogRepository
     , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
+    , nodeInfoServiceCache      : NodeInfoService with CachedRepository
 ) extends RemoveNodeService with Loggable {
 
 
@@ -75,7 +77,11 @@ class RemoveNodeServiceImpl(
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
         for {
-          nodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+          optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+          nodeInfo    <- optNodeInfo match {
+                           case None    => Failure(s"The node with id ${nodeId.value} was not found and can not be deleted")
+                           case Some(x) => Full(x)
+                         }
 
           moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~!
                    "Error when archiving a node"
@@ -85,7 +91,7 @@ class RemoveNodeServiceImpl(
                             nodeId           = nodeInfo.id
                           , inventoryVersion = nodeInfo.inventoryDate
                           , hostname         = nodeInfo.hostname
-                          , fullOsName       = nodeInfo.osName
+                          , fullOsName       = nodeInfo.osDetails.fullName
                           , actorIp          = actor.name
                         )
             val eventlog = DeleteNodeEventLog.fromInventoryLogDetails(
@@ -94,6 +100,9 @@ class RemoveNodeServiceImpl(
             actionLogger.saveEventLog(modId, eventlog)
           }
         } yield {
+          //clear node info cached
+          nodeInfoServiceCache.clearCache
+
           moved
         }
       }

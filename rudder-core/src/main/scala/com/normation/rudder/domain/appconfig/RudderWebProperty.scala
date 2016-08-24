@@ -39,6 +39,10 @@ package com.normation.rudder.domain.appconfig
 
 import com.normation.utils.HashcodeCaching
 import java.util.regex.Pattern
+import net.liftweb.common.Full
+import net.liftweb.common.Failure
+import net.liftweb.common.Box
+import ca.mrvisser.sealerate
 
 case class RudderWebPropertyName(value:String) extends HashcodeCaching
 
@@ -54,3 +58,28 @@ case class RudderWebProperty(
   , value      : String
   , description: String
 )
+
+
+/**
+ * A little domain language for feature switches
+ * (just enabled/disabled with the parsing)
+ */
+sealed trait FeatureSwitch { def name: String }
+object FeatureSwitch {
+
+  final case object Enabled  extends FeatureSwitch { override val name = "enabled"  }
+  final case object Disabled extends FeatureSwitch { override val name = "disabled" }
+
+  final val all: Set[FeatureSwitch] = sealerate.values[FeatureSwitch]
+
+  def parse(value: String): Box[FeatureSwitch] = {
+    value match {
+            case null|"" => Failure("An empty or null string can not be parsed as a feature switch status")
+            case s => s.trim.toLowerCase match {
+              case Enabled.name  => Full(Enabled)
+              case Disabled.name => Full(Disabled)
+              case _             => Failure(s"Cannot parse the given value as a valid feature switch status: '${value}'. Authorised values are: '${all.map( _.name).mkString(", ")}'")
+            }
+          }
+  }
+}

@@ -1,24 +1,20 @@
-<lift:surround with="menu/menu-utilities" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - View logs</title>
 </head>
 
 <div class="portlet">
-  <div class="portlet-header">Event Logs</div>
+      <div class="inner-portlet">
+        <div class="page-title">Event Logs</div>
   <div class="portlet-content">
-
-    <div class="intro">
-      <div>
-        All events that occur within this web application are logged here with details.
-      </div>
-    </div>
     <hr class="spacer"/>
 
-    <lift:lazy-load>
     <div class="lift:administration.EventLogsViewer.display">
     </div>
-    </lift:lazy-load>
+    <span id="eventLogsError"></span>
+    <table id="eventLogsGrid" class="display" cellspacing="0">
+    </table>
 
     <div id="eventDetailPopup" class="nodisplay">
       <lift:ignore>
@@ -28,7 +24,7 @@
 
 
  </div>
- <br/>
+ </div>
 </div>
 </lift:surround>
 

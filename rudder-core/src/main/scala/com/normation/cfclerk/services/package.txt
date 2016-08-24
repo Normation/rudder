@@ -1,0 +1,2 @@
+Core of all the system
+Offers solution for writing templates, fetching policies, variables, computing dependancies between templates

@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -71,7 +71,7 @@
 }
 
 div.innerDetails {
-	display: none; 
+  display: none;
     background : #DEDEDE;
     padding-left:5%;
 }
@@ -80,20 +80,21 @@ div.innerDetails {
  * Node details
  **********************************/
 
-fieldset.crTree {
-  margin: 2px;
-  padding: 5px;
-  vertical-align: top;
+
+#nodeDetails {
+ padding:10px;
 }
 
-fieldset.nodeIndernal {
-  margin: 2px;
-  padding: 5px;
-  vertical-align: top;
+#node_summary #nodeDetails {
+ float:left;
+ width:50%;
+ border-right : 2px #b2b2b2 solid;
 }
 
-.nodeSummary {
-
+#node_summary #nodeGroups {
+ float:left;
+ width:50%;
+ padding:10px;
 }
 
 table.nomargin {
@@ -115,6 +116,7 @@ td.nodeIndernal {
 .showParameters {
   margin-top:5px;
   margin-bottom:3px;
+  text-decoration:underline;
 }
 
 /**********************************
@@ -122,8 +124,8 @@ td.nodeIndernal {
  **********************************/
 
 .directiveTechnicalInfo{
-	padding-top: 12px;
-	margin-left:10px;
+  padding-top: 12px;
+  margin-left:10px;
 }
 
 .portlet-header .ui-icon {
@@ -155,7 +157,7 @@ div.intro div ul {
 }
 
 form a {
-   color: #f79d10;
+   color: #333333;
 }
 
 form table a {
@@ -237,24 +239,18 @@ form input.radio {
   vertical-align: middle;
 }
 
-form button {
-   width: 130px;
-   padding: 0.2em;
-   background-color: #f8f8f8;
-   border: 1px solid #b4b3a8;
-}
 
 button.ui-state-default {
    width: 130px;
-   
+
 }
 
 .dangerButton {
-	color: #990000 !important;
+  color: #990000 !important;
 }
 
 .dangerButton:hover {
-	background-color: #B33630 !important;
+  background-color: #B33630 !important;
     background-image: linear-gradient(#DC5F59, #B33630) !important;
     background-repeat: repeat-x !important;
     border-color: #CD504A !important;
@@ -297,7 +293,7 @@ form span.inputDetail {
 }
 form input.button {
    margin: 10px 0;
-   padding: 10px; 
+   padding: 10px;
    color: #fff;
    font-weight: bold;
    border: none;
@@ -323,8 +319,8 @@ form input.btnSearch {
 }
 
 
-#searchControl { 
-  margin-top:10px; 
+#searchControl {
+  margin-top:10px;
 }
 #searchControl span {
   margin-left: 10px;
@@ -336,14 +332,14 @@ form select.selectComparator {
 }
 
 form select.selectField {
-   width: 180px;
+   width: 220px;
 }
 
 input.queryInputValue, select.queryInputValue {
-  width:160px !important;
+  width:280px !important;
   margin: 0px !important;
   padding: 0px !important;
-  
+
 }
 
 .cursor{
@@ -399,7 +395,7 @@ Tableau
 }
 
 .sgridbph{
-  border:0; 
+  border:0;
   padding:0;
   height:200px;
 }
@@ -433,22 +429,20 @@ Tableau
   margin-top:5px;
 }
 
-table {
-   width: 98%;
-}
+
 
 .dataTables_wrapper table {
-  width:100%;	
+  width:100%;
   border-right: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
 }
 
 #grid_rules_grid_zone {
-  width:100%; 
+  width:100%;
 }
 
 #acceptNodeGrid_wrapper {
-  margin: 10px; 
+  margin: 10px;
 }
 
 caption {
@@ -497,20 +491,8 @@ tr.color2 {
    background-color: #fff;
 }
 
-tr.eventLogDescription {
-  border-bottom: 1px solid #ABABAB;
-}
 
-.dataTables_wrapper td {
-  border-top: none;
-  border-bottom: 1px solid #ababab;
-}
-
-td {
-  border-top: 1px solid #ababab;
-}
-
-td.center {
+td.center, .center {
  text-align : center;
 }
 
@@ -526,11 +508,13 @@ a.warning {
    color: #c00;
    padding-left: 30px;
 }
-#contenu table td img, #contenu table th img {
+
+table.dataTable td img, table.dataTable th img {
    float: none;
    margin: 0;
    padding: 4px 0 0 0;
 }
+
 .openDetail {
    border: none;
    background: none;
@@ -546,7 +530,7 @@ div#Detail {
    min-height: 100%;
    background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
    display: block;
-   min-height: 107px; 
+   min-height: 107px;
 }
 #Detail div {
    padding: 10px;
@@ -559,15 +543,15 @@ div#Detail {
 }
 
 .field_errors, .error, .errors {
-  color: red;  
+  color: red;
 }
 
 .field_errors {
-  margin-top:4px;   
+  margin-top:4px;
 }
 
 .field_errors li {
-  list-style-position:inside;   
+  list-style-position:inside;
 }
 
 
@@ -613,21 +597,26 @@ div#Detail {
   width:50%;
   text-align:right
 }
-
-.dataTables_refresh .refreshButton img{
+.recentChange_refresh {
+    float: right;
+    width: 10%;
+    text-align: right;
+}
+.dataTables_refresh .refreshButton img,.recentChange_refresh .refreshButton img{
   margin: 0;
   float:none;
 }
 
-.dataTables_refresh .refreshButton {
+.dataTables_refresh .refreshButton,.recentChange_refresh .refreshButton {
   height: auto;
   width: auto;
   margin: 0;
   padding: 0;
 }
 
-.dataTables_refresh .refreshButton span {
+.dataTables_refresh .refreshButton .ui-button-text, .recentChange_refresh .refreshButton span {
   padding: 8px;
+  line-height: 0;
 }
 
 .paginate {
@@ -635,40 +624,24 @@ div#Detail {
   align:left;
   height:20px;
 }
-
-.paginateBold {
-  width : 50%;
-  align:left;
-  height:20px;
-  font-weight:bold;
-}
-
 .sorting span,.sorting_asc span,.sorting_desc span   {
-  float:right;  
+  float:right;
   width:14px;
 }
 .sorting {
-  cursor: pointer; 
+  cursor: pointer;
 }
-.sorting_asc { 
-  cursor: pointer; 
+.sorting_asc {
+  cursor: pointer;
 }
-.sorting_desc { 
-  cursor: pointer; 
-}
-
-.sorting_asc span:after {
-  content:url("../images/tableau/flecheHaut.png");
-}
-
-.sorting_desc span:after {
-  content:url("../images/tableau/flecheBas.png");
+.sorting_desc {
+  cursor: pointer;
 }
 
 /**********************************
- * Pagination nested 
+ * Pagination nested
  **********************************/
- 
+
 .dataTables_paginate {
   float: right;
   text-align: right;
@@ -681,12 +654,22 @@ div#Detail {
 }
 
 .dataTables_wrapper {
-  margin: 10px 10px 0px 5px;
+  margin-top: 10px;
 }
 
+.dataTables_wrapper_top {
+  padding: 6px;
+  overflow: hidden;
+  display: block;
+  border-top: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: 1px solid #B4B3A8;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+}
 
 table.noMarginGrid {
-	border-left : 0 ;
+  border-left : 0 ;
     border-right : 0 ;
 }
 .noMarginGrid {
@@ -695,22 +678,36 @@ table.noMarginGrid {
 #reportsGrid_wrapper {
   margin: 0;
 }
-
-.dataTables_wrapper_top {
-  padding: 6px;
-  overflow: hidden;
-  display: block; 
-  border-top: 1px solid #B4B3A8;
-  border-left: 1px solid #B4B3A8;
-  border-right: 1px solid #B4B3A8;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
+@media screen and (min-width: 993px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:30% !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 992px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:40% !important;
+    white-space:nowrap;
+  }
+}
+@media screen and (max-width: 768px) {
+  #reportsGrid tr>th:last-child,#reportsGrid tr>td:last-child{
+    width:50% !important;
+    white-space:nowrap;
+  }
+}
+#reportsGrid tr>th:first-child,#reportsGrid tr>td:first-child{
+  width:auto !important;
+}
+#reportsGrid td .tw-bs .progress-bar {
+  float: inherit;
+  display: inline-block;
 }
 
 .dataTables_wrapper_bottom {
   padding: 6px;
   overflow: hidden;
-  display: inline-block; 
+  display: inline-block;
   display: block;
   border-bottom: 1px solid #B4B3A8;
   border-left: 1px solid #B4B3A8;
@@ -723,7 +720,7 @@ table.noMarginGrid {
   border-right: 1px solid #B4B3A8;
   width: 100%;
 }
- 
+
 .paginate_disabled_previous, .paginate_enabled_previous, .paginate_disabled_next, .paginate_enabled_next {
   height: 19px;
   width: 19px;
@@ -800,14 +797,9 @@ table.noMarginGrid {
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
-.variableDefinition span {
-  display: table-cell;
-  padding-right: 10px;
-}
-
 .variableDefinition td {
   border-bottom:dotted 1 px lightgrey;
-  
+
 }
 
 .variableDefinition span,
@@ -847,26 +839,6 @@ table.noMarginGrid {
 /**********************************
  *define the group/section table
  **********************************/
- 
-table.directiveSectionDef {
-  border-bottom: dotted 1px grey;
-}
-
-table.directiveSectionDisplay {
-
-}
-
-table.directiveGroupDef {
-
-}
-
-table.directiveGroupDisplay {
-
-}
-
-div.directiveGroup {
-
-}
 
 fieldset.sectionFieldset {
   padding: 1px 10px 1px 10px;
@@ -881,16 +853,16 @@ fieldset.techniqueDetailsFieldset {
   padding: 1px 10px 1px 10px;
 }
 
-div.foldableSection div.inner-portlet-header-lower {
+div.foldableSection div.section-title {
   cursor: pointer;
 }
 
-div.unfoldedSection div.inner-portlet-header-lower:before {
+div.unfoldedSection div.section-title:before {
   content: url("../images/tableau/flecheBasGris.png");
   padding-right: 3px;
 }
 
-div.foldedSection div.inner-portlet-header-lower:before {
+div.foldedSection div.section-title:before {
   content: url("../images/tableau/flecheDroiteGris.png");
   padding-right: 3px;
 }
@@ -909,12 +881,12 @@ div.foldedSection div.inner-portlet-header-lower:before {
   display:none;
 }
 
-.foldedSection div.inner-portlet-header-lower {
+.foldedSection div.section-title {
   display:block;
 }
 
 /**********************************
- *add / remove group 
+ *add / remove group
  **********************************/
 
 .lopaddscala{
@@ -925,20 +897,16 @@ div.foldedSection div.inner-portlet-header-lower:before {
 }
 
 div.directiveDeleteGroup {
-  float:right;
-  margin-right: 5px;
-  margin-top: -10px;
+  float:left;
 }
 
 div.directiveAddGroup {
   float:right;
-  margin-right: 5px;
-  margin-top: -10px;
 }
 
 
 td.directiveVarLabel {
-  width:30%;
+  width:25%;
   margin-right:2px;
   text-align: left;
   font-size: 12px;
@@ -951,7 +919,7 @@ td.directiveVarLabel span {
 }
 
 td.directiveVarValue  {
-  width:50%;
+  width:70%;
   margin-right:2px;
 }
 
@@ -1015,7 +983,7 @@ padding:0 20px;
   padding: 0px 0px 0px 15px;
 }
 .catdelete{
-  font-size:0.9em; 
+  font-size:0.9em;
   margin-left: 5px;
 }
 .margins{
@@ -1040,22 +1008,8 @@ padding:0 20px;
   float:right
 }
 
-table.searchNodes {
-  width: 750px;
-  margin: 0;
-}
-
-table.searchNodes tbody td.first {
-  border-left: solid 1px #ABABAB;
-}
-
-table.searchNodes tbody td.last {
-  border-right: solid 1px #ABABAB;
-}
-
 fieldset.searchNodes {
   padding:5px;
-  width: 545px;
   clear: both;
 }
 
@@ -1066,24 +1020,17 @@ fieldset.searchNodes {
   clear: both;
 }
 
-fieldset.searchNodesAction {
-  padding:5px;
-  margin:5px;
-  width: 530px;
-  clear: both;
-}
-
 
 fieldset.groupCategoryUpdateComponent {
   padding:5px;
   margin:5px;
   width: 580px;
-  
+
 }
 fieldset.groupUpdateComponent {
   padding:8px;
   margin:5px;
-  width: 580px; 
+  width: 580px;
 }
 
 tr.query_line, .query_line td {
@@ -1094,11 +1041,6 @@ tr.query_line, .query_line td {
 .composition {
   padding: 5px 0px 0px 5px;
   margin: 0px 0px 0px 0px;
-  width: 743px;
-  vertical-align: middle;
-  border-left: solid 1px #ABABAB;
-  border-top: 1px solid #ABABAB;
-  border-right: 1px solid #ABABAB;
 }
 
 .composition span {
@@ -1110,20 +1052,10 @@ tr.query_line, .query_line td {
   text-align:left;
 }
 
-table#serverGrid {
-  width: 750px;
-  
-}
-
 table#serverGrid tbody td {
   border-left: solid 1px #ABABAB;
   border-bottom: solid 1px #ABABAB;
   border-top: 0px;
-}
-
-#serverGrid_wrapper {
-  width: 750px;
-  margin: 0;
 }
 
 #serverGrid_wrapper table {
@@ -1151,7 +1083,7 @@ table#serverGrid tbody td {
   float:left;
 }
 div.dataTables_scroll {
-  clear: both; 
+  clear: both;
 }
 
 #serverGrid_info_area {
@@ -1203,7 +1135,7 @@ fieldset.hierarchy {
   margin:5px;
   padding:5px;
   /*float: left;*/
-  display: inline-block; 
+  display: inline-block;
   vertical-align: top;
 }
 
@@ -1212,13 +1144,10 @@ fieldset.groupCategory {
   margin:5px;
   padding:5px;
   float: left;
-  
+
 }
 
 .nodeGroupSubmitSearch {
-   width:748px;
-   border-left: 1px solid #ABABAB;
-   border-right: 1px solid #ABABAB;
    margin: 0 ;
    padding: 5px 0 5px 0;
 }
@@ -1232,7 +1161,7 @@ fieldset.crEditHierarchy {
   vertical-align: top;
 }
 /* Firefox specific behavior cause bug https://bugzilla.mozilla.org/show_bug.cgi?id=504622 https://bugzilla.mozilla.org/show_bug.cgi?id=261037 */
-@-moz-document url-prefix() { 
+@-moz-document url-prefix() {
   fieldset.crEditHierarchy {
     display: table-column;
   }
@@ -1251,14 +1180,13 @@ div.hierarchySpacer {
    list-style: none;
 }
 body {
-   font-size: 11px;
+   font-size: 12px;
    font-family: Tahoma, Geneva, Arial, Helvetica, sans-serif;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background-color: #2e2d2d;
+   height:100%;
 }
 
-html, body {
-   margin:0;
-   padding:0;
+html {
    height:100%;
 }
 
@@ -1274,52 +1202,27 @@ a:focus {
 structure
 **************************************/
 .subContainerReasonField {
-    padding: 0 4px 0 4px;    
+    padding: 0 4px 0 4px;
 }
 
 div#prelude {
    display: none;
 }
-div#container {
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
-/*       padding:10px; */
-   padding-bottom:40px;   /* Height of the footer */
-}
 
-#bodyContainer {
-  min-height:100%;
-  position:relative;
-}
-
-div#contenuInfos {
-   overflow: hidden;
-   Background-color: #2E2D2D;
-}
 div#navigation {
    float: left;
    background-color: #1e1e1e;
    border-top-right-radius: 10px;
    border-bottom-right-radius: 10px;
 }
-div#logo {
-   padding: 5px 50px 2px 0;
-   height: 113px;
-   display: inline;
-}
-
-#deploymentStatus {
-  float:right;
-  width:200px;
-  padding:10px;
-  padding-right:25px;
-  font-size:0.9em;
-  color:white;
-}
 
 #deploymentLastStatus  {
-  margin-bottom:10px;
+  float:left
 }
 
+#deploymentProcessing {
+  float:left
+}
 div.pendingModificationStatus {
   float:right;
   width:200px;
@@ -1377,18 +1280,19 @@ div#infosUser {
 #documentation {
   float: right;
   font-size: 14px;
-  font-weight: bold;  
+  font-weight: bold;
   padding-right: 20px;
 }
 
 #documentation a {
-    color: #999; 
+    color: #999;
 }
 
 
 .automaticCleanDetail {
-	padding : 5px 5px 0;
+  padding : 5px 5px 0;
 } 
+
 #create-user {
    border: none;
    font-size: 1em;
@@ -1524,6 +1428,10 @@ menu secondaire
    border-radius: 0 0 0 0;
 }
 }
+
+.portlet {
+  border-radius: 0 !important;
+}
 *html #navigation.minimized #slickbox {
    width: 10px;
 }
@@ -1562,7 +1470,7 @@ div#slickbox {
 }
 #slickbox ul {
    width: 186px;
-   background-color: #1f1e1e;
+   background-color: #2e2d2d;
    border-bottom: 1px solid #2d2d2d;
 }
 #slickbox .niv1 a {
@@ -1591,7 +1499,7 @@ div#slickbox {
    color: #f79d10;
    font-size: 1.2em;
    border-top: 1px solid #2d2d2d;
-   background: url(../images/puceNiv2.jpg) no-repeat left top;   
+   background: url(../images/puceNiv2.jpg) no-repeat left top;
 }
 #slickbox .niv2 a:hover {
    height: 20px;
@@ -1626,8 +1534,8 @@ div#contenu {
    margin: 0 auto;
    position: relative;
    float: left;
-   width: 77%;
-   padding-left: 30px;
+   width: 94%;
+   padding-left: 3%;
    background-color: #2e2d2d;
 }
 #contenu h1 {
@@ -1651,28 +1559,6 @@ Home portlet
 .column {
    width: 50%;
    float: left;
-}
-.portlet {
-   margin: 0 1em 1em 0;
-   background-color: #fff;
-   background:  url(../images/fondPortlet.jpg) repeat-x\9;
-}
-*html .portlet {
-   background: url(../images/fondPortlet.jpg) repeat-x;
-}
-*html .portlet-content {
-   background: #fff url(../images/fondPortlet.jpg) repeat-x;
-}
-.portlet a {
-   color: #f79d10;
-}
-.portlet a:hover {
-   color: #000;
-   text-decoration: none;
-}
-.portlet img {
-   float: left;
-   margin: 0px 20px 20px 10px;
 }
 
 p img {
@@ -1699,17 +1585,18 @@ p img {
    background: none;
 }
 
-.inner-portlet-header {
-  font-size: 1.3em;
+.page-title {
+  font-size: 17px;
   font-weight: bold;
   cursor: default;
   background: none;
   border-bottom: 1px solid #F79D10;
   padding: 5px 0 2px 5px;
+  text-transform:uppercase;
 }
 
-.inner-portlet-header-lower {
-  font-size: 1.3em;
+.section-title {
+  font-size: 15px;
   cursor: default;
   background: none;
   border-bottom: 1px solid #F79D10;
@@ -1729,7 +1616,7 @@ p img {
 }
 
 .inner-portlet {
-   margin: 7px 10px 18px 10px;
+   margin: 7px 10px 10px 10px;
    background-color: #fff;
    background:  url(../images/fondPortlet.jpg) repeat-x\9;
 }
@@ -1755,13 +1642,13 @@ p img {
 popin
 **************************************/
 
-div#login, 
-div#account, 
+div#login,
+div#account,
 #addPopupContent {
    height: auto;
    background: url(../images/popin/fdLoginFootG.png) no-repeat left bottom;
    display: block;
-   min-height: 107px; 
+   min-height: 107px;
 }
 
 div#refusePopup {
@@ -1786,7 +1673,7 @@ div#refusePopup {
   overflow-y: scroll;
 }
 .newservercell{
-  overflow:scroll; 
+  overflow:scroll;
   max-height: 100px;
 }
 
@@ -1814,8 +1701,8 @@ div#refusePopup {
 popin Login
 **************************************/
 
-#dialogLogOut { 
-  display:none; 
+#dialogLogOut {
+  display:none;
 }
 
 #dialogLogOut a:hover {
@@ -1878,7 +1765,7 @@ popin Account
 }
 #account input#acSubmit {
    margin: 10px 0;
-   padding: 10px; 
+   padding: 10px;
    color: #fff;
    font-weight: bold;
    border: none;
@@ -1914,9 +1801,9 @@ popin Alert
   display:none;
   }
 #simplemodal-container {
-  color:#000000; 
-  background-color:#FFFFFF; 
-  border:4px solid #F79D10; 
+  color:#000000;
+  background-color:#FFFFFF;
+  border:4px solid #F79D10;
   padding:0px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
     }
@@ -1963,23 +1850,23 @@ popin Alert
   padding:6px;
 }
 #simplemodal-container code {
-  background:#141414; 
-  border-left:3px solid #65B43D; 
-  color:#bbb; 
-  display:block; 
-  font-size:12px; 
-  margin-bottom:12px; 
+  background:#141414;
+  border-left:3px solid #65B43D;
+  color:#bbb;
+  display:block;
+  font-size:12px;
+  margin-bottom:12px;
   padding:4px 6px 6px;
 }
 #simplemodal-container a.modalCloseImg {
-  background:url("../images/popin/croix.png") no-repeat; 
-  width:31px; 
-  height:30px; 
-  display:inline; 
-  z-index:3200; 
-  position:absolute; 
-  top:-15px; 
-  right:-16px; 
+  background:url("../images/popin/croix.png") no-repeat;
+  width:31px;
+  height:30px;
+  display:inline;
+  z-index:3200;
+  position:absolute;
+  top:-15px;
+  right:-16px;
   cursor:pointer;
 }
 #simplemodal-overlay {
@@ -2051,13 +1938,6 @@ popin Alert
   margin-top:5px;
 }
 
-.tooltipable > .directiveVarValue {
-  background-image: url("../images/icInfo.png");
-  background-repeat: no-repeat;
-  background-position: center right;
-  padding-right: 18px;
-}
-
 #tooltip {
   position: absolute;
   z-index: 3000;
@@ -2067,15 +1947,15 @@ popin Alert
   opacity: 0.85;
   padding: 4px;
 }
-#tooltip h3, #tooltip div { 
-  margin: 0; 
+#tooltip h3, #tooltip div {
+  margin: 0;
 }
 
 /* tooltip styling.  */
 
 .tooltipContent {
   display:none;
-  
+
 }
 
 .red {
@@ -2093,18 +1973,18 @@ color: #FF0000 !important;
 }
 
 .smallButton span {
-  padding-top: 0px !important;	
-  padding-bottom: 2px !important;	
-  padding-left: 0px !important;	
-  padding-right: 0px !important;	
+  padding-top: 0px !important;
+  padding-bottom: 2px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
 }
 
 td.complianceTd, td.parametersTd {
-	text-align: center !important;
+  text-align: center !important;
 }
 
 .smallButton img {
-  height: 15px;	
+  height: 15px;
 }
 
 .mediumButton {
@@ -2113,14 +1993,14 @@ td.complianceTd, td.parametersTd {
 }
 
 .mediumButton span {
-  padding-top: 0px !important;	
-  padding-bottom: 0px !important;	
-  padding-left: 0px !important;	
-  padding-right: 0px !important;	
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 0px !important;
+  padding-right: 0px !important;
 }
 
 .mediumButton img {
-  height: 15px;	
+  height: 15px;
 }
 .autoWidthButton {
   width: auto !important;
@@ -2132,8 +2012,8 @@ td.complianceTd, td.parametersTd {
   border-bottom:1px solid red;
   cursor:pointer;
 }
-.tree li.filteredNode { 
-  display:none; 
+.tree li.filteredNode {
+  display:none;
 }
 .deca{
   padding: 10px;
@@ -2153,8 +2033,8 @@ td.complianceTd, td.parametersTd {
 }
 .green{
   color:green;
-  margin:5px; 
-  font-style:italic; 
+  margin:5px;
+  font-style:italic;
   font-size: 0.9em;
 }
 .warnicon{
@@ -2162,11 +2042,11 @@ td.complianceTd, td.parametersTd {
   margin-right:9px;
 }
 .erroricon{
-  float:left; 
+  float:left;
   margin-right:10px;
 }
 .icon{
-  float:left; 
+  float:left;
   margin-right:20px;
 }
 .greenscala{
@@ -2176,7 +2056,7 @@ td.complianceTd, td.parametersTd {
   text-align:center;
 }
 .greyscala{
-  color:grey; 
+  color:grey;
   border-bottom:1px dotted grey;
 }
 .checkbox{
@@ -2196,7 +2076,7 @@ td.complianceTd, td.parametersTd {
     margin-left: -50px;
     margin-top: -50px;
     z-index:9999;
-    overflow: auto; 
+    overflow: auto;
     display:none;
 }
 
@@ -2209,7 +2089,7 @@ div#footer {
    height: 40px;
    color: #999;
    font-size: 1.3em;
-   background: #1f1e1e url(../images/fondBody.jpg) repeat-x top left; 
+   background: #2e2d2d url(../images/fondBody.jpg) repeat-x top left;
    position:absolute;
    bottom:0;
    width:100%;
@@ -2263,13 +2143,13 @@ hr.spacer {
 
 .threeCol {
     float:left;
-    width:30%; 
+    width:30%;
     margin-right: 4px;
 }
 
 .threeColReason {
     float:left;
-    width:30%; 
+    width:30%;
     margin-right: 2px;
     margin-bottom: 5px;
 }
@@ -2287,7 +2167,7 @@ hr.spacer {
 .largeCol {
    float:left;
    margin-right: 2px;
-   width:60%; 
+   width:60%;
 }
 
 .align-radio span {
@@ -2306,7 +2186,7 @@ hr.spacer {
 
 .groupDiv {
    margin-top: 5px;
-   margin-bottom: 10px;  
+   margin-bottom: 10px;
 }
 
 legend {
@@ -2324,7 +2204,7 @@ legend {
 
 /************************************
 Portlet content for object details
-(for example, details about a Directive 
+(for example, details about a Directive
 template, a Directive, etc)
 ************************************/
 
@@ -2382,7 +2262,7 @@ div.tabInform {
 }
 
 .errorInput {
-  border-color: red;    
+  border-color: red;
 }
 
 .reportLine {
@@ -2394,8 +2274,8 @@ div.tabInform {
 }
 
 .filter {
-	float : right;
-	margin-right : 14px;
+  float : right;
+  margin-right : 14px;
 }
 /***********************************
  *Directive display
@@ -2447,8 +2327,8 @@ tr.parametersDescription {
 }
 
 .emptyTd {
-	border: 0pt none !important;
-	background : #DEDEDE !important;
+  border: 0pt none !important;
+  background : #DEDEDE !important;
 }
 
 .reportTable {
@@ -2460,17 +2340,17 @@ border-bottom : 2pt ridge;
 }
 .firstTd {
 
-	border-left: 1px ridge #ABABAB !important;
+  border-left: 1px ridge #ABABAB !important;
 }
 
 td.nestedImg{
-	padding: 0px 3px !important;
+  padding: 0px 3px !important;
 }
 .evlogviewpad li{
   list-style-type: disc;
 }
 .evloglmargin{
-  margin: 7px;  
+  margin: 7px;
 }
 .reportsList {
   margin : 10px;
@@ -2506,62 +2386,65 @@ td.nestedImg{
 }
 
 tr.Success {
-  background-color:#CCFFCC;
+  background-color:#5cb85c;
 }
 tr.Applying {
-  background-color:#CCCCCC;
+  background-color:#5bc0de;
 }
 tr.Repaired {
-  background-color:#FFFA66;
+  background-color:#FFFF66;
 }
 tr.Warn {
-  background-color:#FF9922;
+  background-color:#FF9147;
 }
 tr.Unknown {
-    background-color: #FFBB66;
+    background-color: #FF6600;
 }
 tr.Error {
-  background-color:#FF6655;
+  background-color:#d9534f;
 }
 tr.NoAnswer {
-  background-color:#BBAAAA;
+  background-color:#b4b4b4;
 }
 tr.NotApplicable {
-  background-color:#CFCFFF;
+  background-color:#8dcd8d;
 }
 
 td.Success {
-  background-color:#CCFFCC;
+  background-color:#5cb85c;
 }
 td.Applying {
-  background-color:#CCCCCC;
+  background-color:#5bc0de;
 }
 td.Repaired {
-  background-color:#FFFA66;
+  background-color:#FFFF66;
 }
 td.Warn {
-  background-color:#FF9922;
+  background-color:#FF9147;
 }
 td.Unknown {
-    background-color: #FFBB66;
+    background-color: #ff6600;
 }
 td.Error {
-  background-color:#FF6655;
+  background-color:#d9534f;
 }
 td.NoAnswer {
-  background-color:#BBAAAA;
+  background-color:#b4b4b4;
 }
 td.NotApplicable {
-  background-color:#CFCFFF;
+  background-color:#8dcd8d;
+}
+td.Missing {
+  background-color:#FF9147;
 }
 
 td.details{
-	border:none;
+  border:none;
 }
 
 li.eventLogUpdatePolicy {
-  list-style-position: inside;  
-  list-style-type: none;    
+  list-style-position: inside;
+  list-style-type: none;
 }
 
 table.eventLogUpdatePolicy {
@@ -2611,7 +2494,7 @@ tr.unfoldable {
 
 .quickSearch {
   text-align: center;
-  margin-top: 5px;	
+  margin-top: 5px;
 }
 
 .topQuickSearch {
@@ -2621,23 +2504,21 @@ tr.unfoldable {
 }
 
 .topQuickSearch .ac_input {
-  width:200px;
+  width:250px;
   font-size:10px;
   background: url("../images/icMagnify.png") no-repeat scroll left center white;
   padding: 5px 3px 5px 30px;
 }
 
-.topQuickSearch .ac_input:focus {
-  width:400px;
-}
-  
+
+
 
 .topQuickSearchResults ul li {
   font-size: 10px;
 }
 
 div.topQuickSearchResults.ac_results {
-  width: 404px !important;  
+  width: 200px !important;
 }
 
 /***********************************
@@ -2651,10 +2532,6 @@ div.topQuickSearchResults.ac_results {
 .treefilternodecursor{
   cursor:pointer;
   cursor:hand;
-}
-
-.treeGroupName , .treeDirective, .treeTechniqueName, .treeRuleName { 
-  font-size:0.95em; 
 }
 
 .treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
@@ -2691,7 +2568,7 @@ a>.jstree-icon
 }
 
 .homePageBlock {
-  margin: 10px; 
+  margin: 10px;
 }
 
 .homePageBlock li {
@@ -2703,7 +2580,7 @@ del {
   text-decoration: none;
   background: #FFD6D6;
 }
- 
+
 ins {
   text-decoration: none;
   background: #D6FFD6;
@@ -2713,7 +2590,7 @@ table thead th div.DataTables_sort_wrapper {
   position: relative;
   padding-right: 20px;
 }
- 
+
 table thead th div.DataTables_sort_wrapper span {
   position: absolute;
   top: 50%;
@@ -2722,30 +2599,30 @@ table thead th div.DataTables_sort_wrapper span {
 }
 
 table thead th {
-  border-top: none !important; 
-  border-right: none !important; 
+  border-top: none !important;
+  border-right: none !important;
 }
 
 .fg-button {
-  border-top: 1px solid #B4B3A8; 
-  border-right: none !important; 
+  border-top: 1px solid #B4B3A8;
+  border-right: none !important;
   font-weight: normal !important;
 }
 
 .paginate_button_disabled, .paginate_button, .paginate_active {
-  border-top: 1px solid #B4B3A8; 
-  border-bottom: 1px solid #B4B3A8; 
-  border-left: 1px solid #B4B3A8; 
-  border-right: none; 
+  border-top: 1px solid #B4B3A8;
+  border-bottom: 1px solid #B4B3A8;
+  border-left: 1px solid #B4B3A8;
+  border-right: none;
   display:inline-block;
 }
 
-.dataTables_paginate .ui-state-default {
+.dataTables_paginate .ui-state-default {
   text-decoration: none !important;
 }
 
 .dataTables_wrapper table {
-	border-collapse: collapse;
+  border-collapse: collapse;
 }
 
 #serverGrid_wrapper .dataTables_wrapper_top {
@@ -2763,7 +2640,7 @@ table thead th {
 }
 
 #allowedNetworksForm {
-  margin-top: -7px;	
+  margin-top: -7px;
 }
 
 .database-info-table {
@@ -2771,15 +2648,15 @@ table thead th {
 }
 
 .database-info-table td {
-  border: none !important;	
+  border: none !important;
 }
 
 #reportFromDate, #archiveReports {
-  margin-left: 7px;	
+  margin-left: 7px;
 }
 
 div.ac_results {
-  width: 304px !important;	
+  width: 304px !important;
 }
 
 .ac_over {
@@ -2792,16 +2669,17 @@ fieldset {
 }
 
 .note {
-  color: #555555;	
-  margin: 5px 0px 0px 0px; 
+  color: #555555;
+  margin: 5px 0px 0px 0px;
 }
 
 .groupCategoryUpdateComponent {
-  width: 450px;	
+  width: 450px;
 }
 
 #ajaxItemContainer {
   float:left;
+  width: 66%
 }
 
 /**
@@ -2879,13 +2757,13 @@ img.treeAction.noRight {
   padding-left : 5px
 }
 
-li.targetIncluded a {
+li.included a {
   background: none repeat scroll 0 0 #DDFFDD !important;
   border: 1px dotted #48A648 !important;
   padding: 0 2px 0 1px;
 }
 
-li.targetExcluded a{
+li.excluded a{
   background: none repeat scroll 0 0 #FFDDDD !important;
   border: 1px dotted #A64848 !important;
   padding: 0 2px 0 1px;
@@ -2896,31 +2774,191 @@ li.targetExcluded a{
 }
 
 .ui-tooltip {
-	max-width: 600px !important;
+  max-width: 600px !important;
     border: 1px solid #DDDDDD !important;
     color: #333333 !important;
 }
 
 .techniqueEditorLink {
-	float:right;
-	text-decoration:none;
-	font-weight:bold;
-	font-size:13px;
-	margin-top:-5px;
+  float:right;
+  text-decoration:none;
+  font-weight:bold;
+  font-size:13px;
+  margin-top:-5px;
 }
 
 .simplemodal-bottom {
-	height:45px;
+  height:45px;
+}
+
+.searchNodes tr td {
+  padding: 0 5px;
+}
+
+.deprecatedTechniqueIcon {
+  margin-left : 3px;
+}
+
+#displayDeprecation {
+  margin-right:5px;
+  margin-top : 2px;
+}
+
+table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
+  width:100%;
 }
 
 form .tw-bs input {
   width: auto;
 }
 
-#createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
-	width : 500px;
+#cfagentSchedule h4 {
+  margin-bottom: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.1;
 }
 
+#cfagentSchedule #scheduleMessage {
+  margin:10px 0 0 15px;
+}
+
+.form-group select {
+  width: auto;
+}
+
+.animate-hide {
+  -webkit-transition: all linear 0.5s;
+  transition: all linear 0.5s;
+  opacity: 1;
+}
+
+.animate-hide.ng-hide {
+  opacity: 0;
+}
+
+.animate-hide.ng-hide-add, .animate-hide.ng-hide-remove {
+  /* this needs to be here to make it visible during the animation
+     since the .ng-hide class is already on the element rendering
+     it as hidden. */
+  display:block!important;
+}
+
+input[type="number"] {
+    padding: 5px 0 5px 5px;
+    margin-top:-5px;
+}
+
+#clone {
+  margin-left:20px;
+  padding-right: 40px;
+  padding-left: 40px;
+}
+
+* {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
+.c3-tooltip td.name {
+    padding-right: 3px;
+}
+
+.filterIcon {
+  margin-bottom:-3px;
+}
+
+
+.ui-button-disabled  {
+    opacity: 0.5;
+}
+
+#backButton {
+  float: left;
+  margin: 10px 40px;
+  font-style:bold;
+}
+
+#CRStatus {
+  background-color:#2E2D2D;
+  color:#F79D10;
+  float: right;
+  font-size: 15px;
+  font-weight: bold;
+  padding: 7px;
+  margin-right: 40px;
+  cursor:default;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+#nameTitle {
+  margin-left: 40px;
+  font-weight: bold;
+  font-size: 25px;
+}
+
+#CRLastAction {
+  margin-left: 40px;
+  font-size: 15px;
+  margin-bottom:5px;
+  font-style:italic;
+}
+
+
+#createRulePopup, #createDirectivePopup, #createRuleCategoryPopup, #createGroupPopup, #createGlobalParameterPopup {
+  width : 500px;
+}
+
+#recentChanges {
+  /** If we want to scroll correctly to recent changes we need to set a minimum height,
+      or else when the graph appear (just after the scroll) we will only the the recent change section title
+  */
+  min-height: 300px;
+}
+#recentChanges .alert-info{
+	font-size:14px;
+}
+#recentChanges .alert-info .glyphicon{
+	font-size:16px;
+}
+#selectedPeriod{
+	font-size:14px;
+}
+body.cursorPointer{
+	cursor:pointer;
+}
+path.c3-bar.c3-shape.c3-bar-highlighted{
+  stroke: rgb(63, 185, 243) !important;
+  fill: rgb(63, 185, 243) !important;
+}
+button.recentChangeGraph{
+	position: relative;
+    top: -8px;
+    right: -10px;
+}
 button.buttonMargin {
  margin: 0 10px;
+}
+
+.c3-legend-item-hidden {
+  opacity : 1;
+}
+
+#generation-status .glyphicon {
+  top 0;
+  font-size : 11px;
+}
+
+[ng\:cloak], [ng-cloak], [data-ng-cloak], [x-ng-cloak], .ng-cloak, .x-ng-cloak {
+  display: none !important;
+}
+
+.bs-text-danger{
+  color:#a94442;
+}
+
+#node-compliance-intro{
+  padding: 10px 15px;
+  margin: 10px;
 }

@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -59,49 +59,63 @@ var #table_var#;
 
 */
 
+var bootstrapButton = $.fn.button.noConflict();
+var bootstrapAlert = $.fn.alert.noConflict();
+var bootstrapCarousel = $.fn.carousel.noConflict();
+var bootstrapCollapse = $.fn.collapse.noConflict();
+var bootstrapTooltip = $.fn.tooltip.noConflict();
+var bootstrapPopover = $.fn.popover.noConflict();
+var bootstrapScrollspy = $.fn.scrollspy.noConflict();
+var bootstrapTab = $.fn.tab.noConflict();
+var bootstrapAffix = $.fn.affix.noConflict();
+var bootstrapModal = $.fn.modal.noConflict();
+$.fn.bsModal = bootstrapModal
+
+
 /**
  * Instanciate the tooltip
- * For each element having the "tooltipable" class, when hovering it will look for it's 
- * tooltipid attribute, and display in the tooltip the content of the div with the id 
- * tooltipid 
+ * For each element having the "tooltipable" class, when hovering it will look for it's
+ * tooltipid attribute, and display in the tooltip the content of the div with the id
+ * tooltipid
  */
 function createTooltip() {
   $(".tooltipable").tooltip({
-		show: {
-			effect: "none",
+    show: {
+      effect: "none",
             delay: 0
         },
         hide: {
-			effect: "none",
+      effect: "none",
             delay: 0
         },
-			content: function() {
-		      return $("#"+$(this).attr("tooltipid")).html();
-		    },
-		    position: { 
-		      my: "left top+15",
-		      at: "right top",
-		      collision: "flipfit" 
-		    }
+      content: function() {
+          return $("#"+$(this).attr("tooltipid")).html();
+        },
+        position: {
+          my: "left top+15",
+          at: "right top",
+          collision: "flipfit"
+        }
   });
+  createTooltiptr();
 }
 
 function createTooltiptr() {
-	  $(".tooltipabletr").tooltip({
-				show: {
-					effect: "none",
-	                delay: 100
-	            },
-	            hide: {
+    $(".tooltipabletr").tooltip({
+        show: {
+          effect: "none",
+                  delay: 100
+              },
+              hide: {
                     effect: "none",
-	                delay: 0
-	            },
-				content: function() {
-			      return $("#"+$(this).attr("tooltipid")).html();
-			    },
-			    track : true
-	  });
-	}
+                  delay: 0
+              },
+        content: function() {
+            return $("#"+$(this).attr("tooltipid")).html();
+          },
+          track : true
+    });
+  }
 
 /* popups */
 
@@ -110,26 +124,26 @@ function createTooltiptr() {
  * It corrects the buttons (was called anyway on a stand alone)
  * then trigger the event resize.simplemodal on the window element
  * Which adapt the popup to the window (autoResize is on)
- * 
+ *
  * That function should be called in every popup refresh function
  */
 function updatePopup() {
-	correctButtons();
-	$(window).trigger('resize.simplemodal');
+  correctButtons();
+  $(window).trigger('resize.simplemodal');
 }
 
 
 function callPopupWithTimeout(timeout, popupName){
-	setTimeout("createPopup('"+popupName+"')", timeout);
+  setTimeout("createPopup('"+popupName+"')", timeout);
 }
 
 function createPopup(popupName){
     $("#"+popupName).addClass("simplemodal-data");
-		$("#"+popupName).modal({
+    $("#"+popupName).modal({
             autoResize: true
-		});
-		// call Update popup to force resize of the popup and correct buttons
-		updatePopup();
+    });
+    // call Update popup to force resize of the popup and correct buttons
+    updatePopup();
 }
 
 /* ignore event propagation (IE compliant) */
@@ -163,115 +177,115 @@ function refuseEnter(event)
 
 /* slickboxShowHide */
 
-	$(document).ready(function() {
+  $(document).ready(function() {
 
-	var config = {
-		selectors: {
-			navigation: "#navigation",
-			content: "#contenu"
-		},
+  var config = {
+    selectors: {
+      navigation: "#navigation",
+      content: "#contenu"
+    },
 
-		text: {
-			navigation: {
-				minimize: "Hide this menu",
-				maximize: ""
-			}
-		},
+    text: {
+      navigation: {
+        minimize: "Hide this menu",
+        maximize: ""
+      }
+    },
 
-		image: {
-			prefix: contextPath+"/images/",
+    image: {
+      prefix: contextPath+"/images/",
 
-			navigation: {
-				minimize: "puceHide.jpg",
-				maximize: "PuceMenuCachee.jpg"
-			}
-		},
+      navigation: {
+        minimize: "puceHide.jpg",
+        maximize: "PuceMenuCachee.jpg"
+      }
+    },
 
-		className: {
-			reader: "for-reader",
+    className: {
+      reader: "for-reader",
 
-			minimize: "minimize",
-			minimized: "minimized",
+      minimize: "minimize",
+      minimized: "minimized",
 
-			maximize: "maximize",
-			maximized: "maximized"
-		}
-	},
+      maximize: "maximize",
+      maximized: "maximized"
+    }
+  },
 
-	tmp = null,
-	cache = {};
+  tmp = null,
+  cache = {};
 
 
-	cache.$navigation = $(config.selectors.navigation);
-	cache.$content    = $(config.selectors.content);
+  cache.$navigation = $(config.selectors.navigation);
+  cache.$content    = $(config.selectors.content);
 
-	// Generating the navigation's minimize link
-	tmp = '<a class="menuHide ' + config.className.minimize + '" title="' + config.text.navigation.minimize + '" href="#"><img src="' + config.image.prefix + config.image.navigation.minimize + '" alt="" /> <span>' + config.text.navigation.minimize + '</span></a>';
-	cache.$navigation.prepend(tmp);
+  // Generating the navigation's minimize link
+  tmp = '<a class="menuHide ' + config.className.minimize + '" title="' + config.text.navigation.minimize + '" href="#"><img src="' + config.image.prefix + config.image.navigation.minimize + '" alt="" /> <span>' + config.text.navigation.minimize + '</span></a>';
+  cache.$navigation.prepend(tmp);
 
-	cache.minimize_navigation = {};
-	cache.minimize_navigation.$link = $(config.selectors.navigation + " a." + config.className.minimize);
-	cache.minimize_navigation.$img  = cache.minimize_navigation.$link.find("img");
-	cache.minimize_navigation.$text = cache.minimize_navigation.$link.find("span");
+  cache.minimize_navigation = {};
+  cache.minimize_navigation.$link = $(config.selectors.navigation + " a." + config.className.minimize);
+  cache.minimize_navigation.$img  = cache.minimize_navigation.$link.find("img");
+  cache.minimize_navigation.$text = cache.minimize_navigation.$link.find("span");
 
-	/**
-	 * Showing/Hidding the #navigation
-	 */
-	cache.minimize_navigation.$link.click(function() {
-		var $link = $(this);
+  /**
+   * Showing/Hidding the #navigation
+   */
+  cache.minimize_navigation.$link.click(function() {
+    var $link = $(this);
 
-		if (cache.$navigation.hasClass(config.className.minimized)) {
-			// The navigation is already minimized, maximize!
-			cache.$navigation.removeClass(config.className.minimized);
-			cache.$content.removeClass(config.className.maximized);
+    if (cache.$navigation.hasClass(config.className.minimized)) {
+      // The navigation is already minimized, maximize!
+      cache.$navigation.removeClass(config.className.minimized);
+      cache.$content.removeClass(config.className.maximized);
 
-			// Changing the image
-			cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.minimize);
+      // Changing the image
+      cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.minimize);
 
-			// Changing the text value
-			cache.minimize_navigation.$text.removeClass(config.className.reader);
-			cache.minimize_navigation.$text.text(config.text.navigation.minimize);
-			cache.minimize_navigation.$link.prop("title", config.text.navigation.minimize);
-		} else {
-			// The navigation is maximized, lets minimize it!
-			cache.$navigation.addClass(config.className.minimized);
-			cache.$content.addClass(config.className.maximized);
+      // Changing the text value
+      cache.minimize_navigation.$text.removeClass(config.className.reader);
+      cache.minimize_navigation.$text.text(config.text.navigation.minimize);
+      cache.minimize_navigation.$link.prop("title", config.text.navigation.minimize);
+    } else {
+      // The navigation is maximized, lets minimize it!
+      cache.$navigation.addClass(config.className.minimized);
+      cache.$content.addClass(config.className.maximized);
 
-			// Changing the image
-			cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.maximize);
+      // Changing the image
+      cache.minimize_navigation.$img.prop("src", config.image.prefix + config.image.navigation.maximize);
 
-			// Changing the text value
-			cache.minimize_navigation.$text.addClass(config.className.reader);
-			cache.minimize_navigation.$text.text(config.text.navigation.maximize);
-			cache.minimize_navigation.$link.prop("title", config.text.navigation.maximize);
-		}
+      // Changing the text value
+      cache.minimize_navigation.$text.addClass(config.className.reader);
+      cache.minimize_navigation.$text.text(config.text.navigation.maximize);
+      cache.minimize_navigation.$link.prop("title", config.text.navigation.maximize);
+    }
 
-		return false; // Don’t follow the link
-	});
+    return false; // Don’t follow the link
+  });
 });
 
 /* portlet */
 
 $(function() {
-	/*
-		$(".column").sortable({
-			connectWith: '.column'
-		});
-		$(".column").disableSelection();
-	*/
+  /*
+    $(".column").sortable({
+      connectWith: '.column'
+    });
+    $(".column").disableSelection();
+  */
 
-		$(".portlet").addClass("ui-widget ui-widget-content ui-helper-clearfix arrondis")
-			.find(".portlet-header")
-				.addClass("ui-widget-header arrondishaut")
-				.end()
-			.find(".portlet-content");
+    $(".portlet").addClass("ui-widget ui-widget-content ui-helper-clearfix arrondis")
+      .find(".portlet-header")
+        .addClass("ui-widget-header arrondishaut")
+        .end()
+      .find(".portlet-content");
 
-		$(".portlet-header .ui-icon").click(function() {
-			$(this).toggleClass("ui-icon-minusthick").toggleClass("ui-icon-plusthick");
-			$(this).parents(".portlet:first").find(".portlet-content").toggle();
-		});
+    $(".portlet-header .ui-icon").click(function() {
+      $(this).toggleClass("ui-icon-minusthick").toggleClass("ui-icon-plusthick");
+      $(this).parents(".portlet:first").find(".portlet-content").toggle();
+    });
 
-	});
+  });
 
 
 /**
@@ -288,82 +302,82 @@ function jqCheckAll( id, name )
 /* popin */
 
 // increase the default animation speed to exaggerate the effect
-	$.fx.speeds._default = 1000;
-	$(function() {
-		$('#dialog').dialog({
-			autoOpen: false,
-			position: [250,100],
-			width: 535,
-			show: '',
-			hide: ''		
-		});
-		$('#openerAccount').click(function() {
-			$('#dialog').dialog('open');
-			return false;
-		});
-	});
+  $.fx.speeds._default = 1000;
+  $(function() {
+    $('#dialog').dialog({
+      autoOpen: false,
+      position: [250,100],
+      width: 535,
+      show: '',
+      hide: ''
+    });
+    $('#openerAccount').click(function() {
+      $('#dialog').dialog('open');
+      return false;
+    });
+  });
 
 
 
 
 // Details
-	
-		$.fx.speeds._default = 1000;
-	$(function() {
-		$('#dialogDetail').dialog({
-			autoOpen: false,
-			position: 'center',
-			width: 300,
-			show: '',
-			hide: ''		
-		});
-		$('.openDetail').click(function() {
-			$('#dialogDetail').dialog('open');
-			return false;
-		});
-	});
-	
+
+    $.fx.speeds._default = 1000;
+  $(function() {
+    $('#dialogDetail').dialog({
+      autoOpen: false,
+      position: 'center',
+      width: 300,
+      show: '',
+      hide: ''
+    });
+    $('.openDetail').click(function() {
+      $('#dialogDetail').dialog('open');
+      return false;
+    });
+  });
 
 
-	$(function() {
-	    // Bouton rouge
-		$('#openAlert').click(function() {
-			$('#dialogAlert').modal({
+
+  $(function() {
+      // Bouton rouge
+    $('#openAlert').click(function() {
+      $('#dialogAlert').modal({
                 minHeight:200,
                 minWidth: 450
             });
-			$('#simplemodal-container').css('height', 'auto');
-			return false;
-		});
+      $('#simplemodal-container').css('height', 'auto');
+      return false;
+    });
 
         // Logout
         $('#logout').click(function() {
-			$('#dialogLogOut').modal({
+      $('#dialogLogOut').modal({
                 minHeight:100,
                 minWidth: 430
             });
-			$('#simplemodal-container').css('height', 'auto');
-			return false;
-		});
+      $('#simplemodal-container').css('height', 'auto');
+      return false;
+    });
 
-	});
+  });
 
 /* button */
 
 function correctButtons() {
-	$("button, input:submit", "form").button();
-	    
-	$(":button").button();
-	    
-	$("button, input:submit, a", ".whoUser").button();
-		
-	$("a", ".whoUser").click(function() { return false; });
-	
-	//$("button, input:submit", ".detailsUser").button();
-	//$("button, input:submit", ".popupButton").button();
-		
-	$("a", ".detailsUser").click(function() { return false; });
-	}
+  $("button, input:submit", "form").not(".tw-bs .btn").button();
+
+  $(":button").not(".tw-bs .btn").button();
+
+  $("button, input:submit, a", ".whoUser").not(".tw-bs .btn").button();
+
+  $("a", ".whoUser").not(".tw-bs .btn").click(function() { return false; });
+
+  //$("button, input:submit", ".detailsUser").button();
+  //$("button, input:submit", ".popupButton").button();
+
+  $("#logout").click(function() { return false; });
+  }
 
 function processKey(e , buttonId){
     if (null == e)
@@ -376,17 +390,17 @@ function processKey(e , buttonId){
 }
 
 function roundTabs() {
-	$(".tabs").tabs();	
-	$(".tabsv").tabs();
-	$(".tabsv").removeClass('arrondishaut').addClass('ui-tabs-vertical ui-helper-clearfix arrondis');
-	$(".tabsv > ul").removeClass('arrondishaut').addClass('arrondisleft');
-	$(".tabsv > ul > li").removeClass('arrondishaut').addClass('arrondisleft');
-		
-	// test auto-ready logic - call corner before DOM is ready
+  $(".tabs").tabs();
+  $(".tabsv").tabs();
+  $(".tabsv").removeClass('arrondishaut').addClass('ui-tabs-vertical ui-helper-clearfix arrondis');
+  $(".tabsv > ul").removeClass('arrondishaut').addClass('arrondisleft');
+  $(".tabsv > ul > li").removeClass('arrondishaut').addClass('arrondisleft');
+
+  // test auto-ready logic - call corner before DOM is ready
     $('.arrondis').corner("5px");
-	$('.arrondishaut').corner("5px top");
-	$('.arrondisbas').corner("5px bottom");
-	$('.arrondisleft').corner("5px left");
+  $('.arrondishaut').corner("5px top");
+  $('.arrondisbas').corner("5px bottom");
+  $('.arrondisleft').corner("5px left");
 }
 
 /**
@@ -395,11 +409,11 @@ function roundTabs() {
  * @return
  */
 function moveFilterAndPaginateArea(tableId) {
-	$(tableId+"_paginate_area").append($(tableId+"_next")).append($(tableId+"_info")).append($(tableId+"_previous"));
+  $(tableId+"_paginate_area").append($(tableId+"_next")).append($(tableId+"_info")).append($(tableId+"_previous"));
 
-	if ($(tableId+"_filter_area")) {
-		$(tableId+"_filter_area").append($(tableId+"_filter"));
-	}
+  if ($(tableId+"_filter_area")) {
+    $(tableId+"_filter_area").append($(tableId+"_filter"));
+  }
 
 }
 
@@ -412,98 +426,87 @@ function moveFilterAndPaginateArea(tableId) {
  * @return
  */
 function moveFilterAndFullPaginateArea(tableId) {
-	$(tableId+"_paginate_area").append($(tableId+"_paginate"));
-	$(tableId+"_info_area").append($(tableId+"_info"));
-	if ($(tableId+"_filter_area")) {
-		$(tableId+"_filter_area").append($(tableId+"_filter"));
-	}
-	if ($(tableId+"_length")) {
-		$(tableId+"_info_area").append($(tableId+"_length"));
+  $(tableId+"_paginate_area").append($(tableId+"_paginate"));
+  $(tableId+"_info_area").append($(tableId+"_info"));
+  if ($(tableId+"_filter_area")) {
+    $(tableId+"_filter_area").append($(tableId+"_filter"));
+  }
+  if ($(tableId+"_length")) {
+    $(tableId+"_info_area").append($(tableId+"_length"));
   }
 
 }
 
 
 function dropFilterArea(tableId) {
-	$(tableId+"_info").remove();
-	$(tableId+"_filter").remove();
-	$(tableId+"_length");
+  $(tableId+"_info").remove();
+  $(tableId+"_filter").remove();
+  $(tableId+"_length");
 }
 
 function activateButtonOnFormChange(containerDivId, buttonId, status) {
   $("#"+buttonId).button();
-  
-	if ("false"==status) {
-		$('#'+buttonId).button( "option", "disabled", true );
-	} else {
-		$('#'+buttonId).button( "option", "disabled", false );
-	}
-	
-	// all change on the form
-	$('#'+containerDivId+' > form').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
-	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
-	// this one is for the checkbox when using IE
-	//if ($.browser.msie) 
-	//	$('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
 
-	// all change on not the form
-	$('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
-	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  if ("false"==status) {
+    $('#'+buttonId).button( "option", "disabled", true );
+  } else {
+    $('#'+buttonId).button( "option", "disabled", false );
+  }
 
-	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).button( "option", "disabled", false );}});
+  // all change on the form
+  $('#'+containerDivId+' > form').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  // This one is for all input (text, textarea, password... and yes, button)
+  $('#'+containerDivId+' :input').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  // this one is for the checkbox when using IE
+  //if ($.browser.msie)
+  //  $('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
+
+  // all change on not the form
+  $('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  // This one is for all input (text, textarea, password... and yes, button)
+  $('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).button( "option", "disabled", false );});
+
+  $('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).button( "option", "disabled", false );}});
 
 }
 
 /**
  *
  */
-function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, status, optionnalButton) {
+function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, saveButton) {
   $("#"+buttonId).button();
 
-	if ("false"==status) {
-		$('#'+buttonId).button( "option", "disabled", true );
-        $('#'+gridId).removeClass("desactivatedGrid");
-	} else {
-		activateButtonDeactivateGrid(buttonId, gridId);
-  }
+  // all change on the form
+  $('#'+containerDivId+' > form').change(function() { disableButton(saveButton);});
+  // This one is for all input (text, textarea, password... and yes, button)
+  $('#'+containerDivId+' :input').change(function() { disableButton(saveButton);});
 
-	// all change on the form
-	$('#'+containerDivId+' > form').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-	// this one is for the checkbox when using IE
-	//if ($.browser.msie)
-	//	$('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);}});
+  // all change on not the form
+  $('#'+containerDivId+' :radio').change(function() { disableButton(saveButton);});
+  // This one is for all input (text, textarea, password... and yes, button)
+  $('#'+containerDivId+' :input').keyup(function() { disableButton(saveButton);});
 
-	// all change on not the form
-	$('#'+containerDivId+' :radio').change(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-	// This one is for all input (text, textarea, password... and yes, button)
-	$('#'+containerDivId+' :input').keyup(function() { activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);});
-
-	$('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {
-	  if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  
-	    activateButtonDeactivateGrid(buttonId, gridId, optionnalButton);
-	  }
-	});
-
+  $('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {
+    if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {
+      disableButton(saveButton);
+    }
+  });
 }
 
-function activateButtonDeactivateGrid(buttonId, gridId, optionnalButton) {
-  $("#"+buttonId).button();
-  
-  $('#'+buttonId).button( "option", "disabled", false );
-  $('#'+gridId).addClass("desactivatedGrid");
-
-  if ((optionnalButton)&&("" != optionnalButton)) {
-    $('#'+optionnalButton).button( "option", "disabled", true );
-  }
+/**
+ * Disable button with id buttonId
+ * @param buttonId
+*/
+function disableButton(buttonId) {
+  $('#'+buttonId).button( "option", "disabled", true );
 }
 
-function scrollToElement(elementId) {
-	$('html, body').animate({ scrollTop: $("#"+ elementId).offset().top }, 500);
-	
+function scrollToElement(elementId, containerSelector) {
+  var container = $(containerSelector);
+  // We need to remove the container offset from the elem offset so we scroll the correct amount in scroll function
+  var offset = $("#"+ elementId).offset().top - container.offset().top
+  container.animate({ scrollTop: offset }, 500);
+
 }
 
 /*
@@ -526,9 +529,9 @@ var version = parseFloat(arVersion[1])
  */
 var filters= true ;
 if (document.body != null)
-	{
-	  filters = document.body.filters;
-	}
+  {
+    filters = document.body.filters;
+  }
 
 if ((version >= 5.5) && (filters))
 {
@@ -541,14 +544,14 @@ if ((version >= 5.5) && (filters))
          var imgID = (img.id) ? "id='" + img.id + "' " : ""
          var imgClass = (img.className) ? "class='" + img.className + "' " : ""
          var imgTitle = (img.title) ? "title='" + img.title + "' " : "title='" + img.alt + "' "
-         var imgStyle = "display:inline-block;" + img.style.cssText 
+         var imgStyle = "display:inline-block;" + img.style.cssText
          if (img.align == "left") imgStyle = "float:left;" + imgStyle
          if (img.align == "right") imgStyle = "float:right;" + imgStyle
          if (img.parentElement.href) imgStyle = "cursor:hand;" + imgStyle
          var strNewHTML = "<span " + imgID + imgClass + imgTitle
          + " style=\"" + "width:" + img.width + "px; height:" + img.height + "px;" + imgStyle + ";"
          + "filter:progid:DXImageTransform.Microsoft.AlphaImageLoader"
-         + "(src=\'" + img.src + "\', sizingMethod='scale');\"></span>" 
+         + "(src=\'" + img.src + "\', sizingMethod='scale');\"></span>"
          img.outerHTML = strNewHTML
          i = i-1
       }
@@ -605,7 +608,7 @@ function makeDiff(beforeId,afterId,resultId) {
     if (diff[i].removed) {
       node = document.createElement('del');
       node.appendChild(document.createTextNode(appendLines('-', diff[i].value)));
-    } 
+    }
     else
       if (diff[i].added) {
         node = document.createElement('ins');
@@ -613,7 +616,7 @@ function makeDiff(beforeId,afterId,resultId) {
       }
       else
         node = document.createTextNode(appendLines(" ", diff[i].value));
-  
+
     fragment.appendChild(node);
   }
 
@@ -625,24 +628,49 @@ function filterTableInclude(tableId, filter, include) {
   if (typeof filter === 'undefined') {
     return;
   } else {
-	var finalFilter = "^"+filter+"$";
+  var finalFilter = "^"+filter+"$";
     var includeFilter;
-	if (filter === "") { 
-	  includeFilter = filter;
-	} else {
-	  includeFilter = finalFilter +"|^"+filter+" »";
-	}
+  if (filter === "") {
+    includeFilter = filter;
+  } else {
+    includeFilter = finalFilter +"|^"+filter+" »";
+  }
     if (typeof include === 'undefined') {
       $(tableId).dataTable().fnFilter(includeFilter ,column,true,false,true );
     } else {
       if (include) {
         $(tableId).dataTable().fnFilter(includeFilter,column,true,false,true );
       } else {
-        
+
         $(tableId).dataTable().fnFilter(finalFilter,column,true,false,true );
       }
     }
   }
+}
+
+var openAllNodes = function(treeId)  { $(treeId).jstree('open_all' ); return false; }
+var closeAllNodes = function(treeId) { $(treeId).jstree('close_all'); return false; }
+var searchTree = function(inputId, treeId) {
+
+  if($(inputId).val() && $(inputId).val().length >= 3) {
+      $(treeId).jstree('search', $(inputId).val());
+  } else {
+      $(treeId).jstree('clear_search');
+  }
+  enableSubtree($(".jstree-search"));
+  return false;
+}
+var clearSearchFieldTree = function(inputId, treeId) {
+  $(inputId).val('');
+  $(treeId).jstree('clear_search');
+  return false;
+}
+
+var twoDigitsFormator = d3.format("02d");
+
+/* Facility to format a number on two digits */
+function formatOn2Digits(number) {
+  return twoDigitsFormator(number);
 }
 
 $(document).ready(function() {
@@ -657,5 +685,78 @@ $(document).ready(function() {
   , "percent-desc": function ( a, b ) {
       return ((a < b) ? 1 : ((a > b) ? -1 : 0));
     }
-  });
+  , "num-html-pre": function ( a ) {
+      var x = String(a).replace( /<[\s\S]*?>/g, "" );
+      return parseFloat( x );
+    }
+  , "num-html-asc": function ( a, b ) {
+      return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+    }
+  , "num-html-desc": function ( a, b ) {
+      return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+    }
+  } );
 });
+
+function checkMigrationButton(currentVersion,selectId) {
+  var selectedVersion = $("#"+selectId+" option:selected" ).text()
+  if (currentVersion === selectedVersion) {
+    $('#migrationButton').button( "option", "disabled", true );
+  } else {
+    $('#migrationButton').button( "option", "disabled", false );
+  }
+}
+
+
+/*
+ * a function that allows to set the height of a div to roughtly
+ * the height of the content of a Rudder page (i.e: without
+ * the header/footer and the place for a title).
+ */
+function correctContentHeight(selector) {
+  $(selector).height(Math.max(400, $(document).height() - 200));
+}
+
+
+
+/**
+ * A pair of function that allows to parse and set the # part of
+ * the url to some value for node/query
+ */
+function parseURLHash() {
+  try {
+    return JSON.parse(decodeURI(window.location.hash.substring(1)));
+  } catch(e) {
+    return {};
+  }
+}
+
+function parseSearchHash(nodeIdCallback, queryCallback) {
+  var hash = parseURLHash();
+  if( hash.nodeId != null && hash.nodeId.length > 0) {
+    nodeIdCallback(JSON.stringify(hash));
+    $('#query-search-content').hide();
+    $('#querySearchSection').removeClass('unfoldedSectionQuery');
+  } else {
+    $('#query-search-content').toggle();
+    $('#querySearchSection').toggleClass('unfoldedSectionQuery');
+  }
+  if( hash.query != null && JSON.stringify(hash.query).length > 0) {
+    queryCallback(JSON.stringify(hash.query));
+  }
+}
+
+function updateHashString(key, value) {
+  var hash = parseURLHash();
+  hash[key] = value;
+  window.location.hash = "#" + JSON.stringify(hash);
+}
+
+$(document).ready(function() {
+  correctButtons();
+  $("a", "form").click(function() { return false; });
+  createTooltip();
+  roundTabs();
+});
+
+

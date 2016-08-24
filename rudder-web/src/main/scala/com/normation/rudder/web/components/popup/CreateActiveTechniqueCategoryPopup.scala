@@ -55,7 +55,6 @@ import com.normation.rudder.repository._
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
 
-
 class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () => Noop },
   onFailureCallback : () => JsCmd = { () => Noop }
        ) extends DispatchSnippet with Loggable {
@@ -67,8 +66,7 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
        error("Template for creation popup not found. I was looking for %s.html".format(templatePath.mkString("/")))
      case Full(n) => n
   }
-  def popupTemplate = chooseTemplate("technique", "createCategoryPopup", template)
-
+  def popupTemplate = chooseTemplate("technique", "createcategorypopup", template)
 
   private[this] val activeTechniqueCategoryRepository   = RudderConfig.roDirectiveRepository
   private[this] val rwActiveTechniqueCategoryRepository = RudderConfig.woDirectiveRepository
@@ -86,9 +84,9 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
   def popupContent(html : NodeSeq) : NodeSeq = {
     SHtml.ajaxForm(bind("item", popupTemplate,
-      "itemName" -> categoryName.toForm_!,
-      "itemContainer" -> categoryContainer.toForm_!,
-      "itemDescription" -> categoryDescription.toForm_!,
+      "itemname" -> categoryName.toForm_!,
+      "itemcontainer" -> categoryContainer.toForm_!,
+      "itemdescription" -> categoryDescription.toForm_!,
       "notifications" -> updateAndDisplayNotifications(),
       "cancel" -> SHtml.ajaxButton("Cancel", { () => closePopup() }) % ("tabindex","4"),
       "save" -> SHtml.ajaxSubmit("Save", onSubmit _) % ("id","createATCSaveButton") % ("tabindex","3")
@@ -124,7 +122,6 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
   }
@@ -136,55 +133,42 @@ class CreateActiveTechniqueCategoryPopup(onSuccessCallback : () => JsCmd = { () 
     initJs
   }
 
-
   private[this] def onSubmit() : JsCmd = {
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      // First retrieve the parent category
-      activeTechniqueCategoryRepository.getActiveTechniqueCategory(new ActiveTechniqueCategoryId(categoryContainer.is)) match {
-        case Empty =>
-            logger.error("An error occurred while fetching the parent category")
-            formTracker.addFormError(error("An error occurred while fetching the parent category"))
-            onFailure & onFailureCallback()
-        case Failure(m,_,_) =>
-            logger.error("An error occurred while fetching the parent category:" + m)
-            formTracker.addFormError(error("An error occurred while fetching the parent category: " + m))
-            onFailure & onFailureCallback()
-        case Full(parent) =>
-          rwActiveTechniqueCategoryRepository.addActiveTechniqueCategory(
-              new ActiveTechniqueCategory(
-                 ActiveTechniqueCategoryId(uuidGen.newUuid),
-                 name = categoryName.is,
-                 description = categoryDescription.is,
-                 children = Nil,
-                 items = Nil
-               ),
-               parent, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("user created a new category")
-             ) match {
-               case Failure(m,_,_) =>
-                  logger.error("An error occurred while saving the category:" + m)
-                  formTracker.addFormError(error("An error occurred while saving the category:" + m))
-                  onFailure & onFailureCallback()
-               case Empty =>
-                  logger.error("An error occurred while saving the category")
-                  formTracker.addFormError(error("An error occurred while saving the category"))
-                  onFailure & onFailureCallback()
-               case Full(updatedParent) =>
-                 formTracker.clean
-                 closePopup() & onSuccessCallback()
-             }
-           }
+      rwActiveTechniqueCategoryRepository.addActiveTechniqueCategory(
+          new ActiveTechniqueCategory(
+            ActiveTechniqueCategoryId(uuidGen.newUuid),
+            name = categoryName.is,
+            description = categoryDescription.is,
+            children = Nil,
+            items = Nil
+          )
+         , ActiveTechniqueCategoryId(categoryContainer.is)
+         , ModificationId(uuidGen.newUuid)
+         , CurrentUser.getActor
+         , Some("user created a new category")
+      ) match {
+          case Failure(m,_,_) =>
+              logger.error("An error occurred while saving the category:" + m)
+              formTracker.addFormError(error("An error occurred while saving the category:" + m))
+              onFailure & onFailureCallback()
+          case Empty =>
+              logger.error("An error occurred while saving the category")
+              formTracker.addFormError(error("An error occurred while saving the category"))
+              onFailure & onFailureCallback()
+          case Full(updatedParent) =>
+             formTracker.clean
+             closePopup() & onSuccessCallback()
       }
+    }
   }
-
-
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them"))
     updateFormClientSide()
   }
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors

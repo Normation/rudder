@@ -54,10 +54,10 @@ final case object ChangeRequestLogCategory extends EventLogCategory
 final case object WorkflowLogCategory extends EventLogCategory
 final case object PolicyServerLogCategory extends EventLogCategory
 final case object ImportExportItemsLogCategory extends EventLogCategory
-
 final case object ParameterLogCategory extends EventLogCategory
-
-
+final case object GlobalPropertyEventLogCategory extends EventLogCategory
+final case object SettingsLogCategory extends EventLogCategory
+final case object NodeLogCategory extends EventLogCategory
 
 
 // the promises related event type
@@ -228,6 +228,65 @@ final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
 }
 
+
+
+// node properties: properties, heartbeat, agent run.
+final case object ModifyHeartbeatNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeHeartbeatModified"
+}
+
+final case object ModifyAgentRunIntervalNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeAgentRunPeriodModified"
+}
+
+final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
+  def serialize = "NodePropertiesModified"
+}
+
+sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType {
+  def propertyName : String
+}
+
+final case object ModifySendServerMetricsEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "SendServerMetricsModified"
+  val propertyName = "Send metrics"
+}
+
+final case object ModifyComplianceModeEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "ComplianceModeModified"
+  val propertyName = "Compliance mode"
+}
+
+final case object ModifyHeartbeatPeriodEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "HeartbeatPeriodModified"
+  val propertyName = "Heartbeat period"
+}
+
+final case object ModifyAgentRunIntervalEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunIntervalModified"
+  val propertyName = "Agent run interval"
+}
+
+final case object ModifyAgentRunSplaytimeEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunSplaytimeModified"
+  val propertyName = "Agent run splaytime"
+}
+
+final case object ModifyAgentRunStartHourEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunStartHourModified"
+  val propertyName = "Agent run start hour"
+}
+
+final case object ModifyAgentRunStartMinuteEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "AgentRunStartMinuteModified"
+  val propertyName = "Agent run start minute"
+}
+
+final case object ModifyRudderSyslogProtocolEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "RudderSyslogProtocolModified"
+  val propertyName = "Rudder syslog protocol"
+}
+
 /**
  * List of event generating a modification of promises
  */
@@ -259,7 +318,12 @@ object ModificationWatchList {
     , AddGlobalParameterEventType
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
-  )
+
+    , ModifyHeartbeatNodeEventType
+    , ModifyAgentRunIntervalNodeEventType
+    , ModifyPropertiesNodeEventType
+
+  ) ++ ModifyGlobalPropertyEventLogsFilter.eventTypes
 
 }
 
@@ -324,7 +388,12 @@ object EventTypeFactory {
     , AddGlobalParameterEventType
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
-  )
+
+    , ModifyHeartbeatNodeEventType
+    , ModifyAgentRunIntervalNodeEventType
+    , ModifyPropertiesNodeEventType
+
+  ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 
   def apply(s:String) : EventLogType = {
     eventTypes.find {

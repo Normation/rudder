@@ -38,7 +38,9 @@
 package com.normation.rudder.services.policies
 
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.services.TechniquesLibraryUpdateNotification
+import com.normation.cfclerk.services.TechniquesLibraryUpdateType
 import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.RoDirectiveRepository
@@ -62,29 +64,33 @@ import net.liftweb.common.Failure
  * update, but things happen.
  */
 class SaveDirectivesOnTechniqueCallback(
-    override val name: String
+    override val name     : String
+  , override val order    : Int
   , directiveEditorService: DirectiveEditorService
   , roDirectiveRepo       : RoDirectiveRepository
   , woDirectiveRepo       : WoDirectiveRepository
 ) extends TechniquesLibraryUpdateNotification with Loggable {
 
-  override def updatedTechniques(techniqueIds:Seq[TechniqueId], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
-    val updatedTechniques = techniqueIds.map(x => (x.name, x.version)).toMap
+  override def updatedTechniques(techniqueIds: Map[TechniqueName, TechniquesLibraryUpdateType], modId:ModificationId, actor:EventActor, reason: Option[String]) : Box[Unit] = {
 
     for {
       techLib  <- roDirectiveRepo.getFullDirectiveLibrary()
-      toUpdate = techLib.allDirectives.values.filter { case (activeTechnique, directive) => updatedTechniques.get(activeTechnique.techniqueName) == Some(directive.techniqueVersion) }
-      updated  <- bestEffort(toUpdate.toSeq) { case(inActiveTechnique, directive) =>
-                    for {
-                      paramEditor  <- directiveEditorService.get(TechniqueId(inActiveTechnique.techniqueName, directive.techniqueVersion), directive.id, directive.parameters)
-                      newDirective =  directive.copy(parameters = paramEditor.mapValueSeq)
-                      saved        <- if(directive.isSystem) {
-                                        woDirectiveRepo.saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
-                                      } else {
-                                        woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
-                                      }
-                    } yield {
-                      logger.debug(s"Technique ${inActiveTechnique.techniqueName.value} changed => saving directive '${directive.name}' [${directive.id.value}]")
+      updated  <- bestEffort(techLib.allDirectives.values.toSeq) { case(inActiveTechnique, directive) =>
+                    techniqueIds.get(inActiveTechnique.techniqueName) match {
+                      case Some(mods) =>
+                        for {
+                          paramEditor  <- directiveEditorService.get(TechniqueId(inActiveTechnique.techniqueName, directive.techniqueVersion), directive.id, directive.parameters)
+                          newDirective =  directive.copy(parameters = paramEditor.mapValueSeq)
+                          saved        <- if(directive.isSystem) {
+                                            woDirectiveRepo.saveSystemDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                          } else {
+                                            woDirectiveRepo.saveDirective(inActiveTechnique.id, newDirective, modId, actor, reason)
+                                          }
+                        } yield {
+                          logger.debug(s"Technique ${inActiveTechnique.techniqueName.value} changed => saving directive '${directive.name}' [${directive.id.value}]")
+                        }
+                      case None =>
+                        Full("Nothing to do")
                     }
                   }
     } yield {

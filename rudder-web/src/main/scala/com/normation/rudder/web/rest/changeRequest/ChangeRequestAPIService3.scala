@@ -92,14 +92,14 @@ case class ChangeRequestAPIService3 (
       Failure("workflow disabled")
   }
 
-  def serialize(cr : ChangeRequest, status: WorkflowNodeId) = {
+  def serialize(cr : ChangeRequest, status: WorkflowNodeId, apiVersion: ApiVersion) = {
     val isAcceptable = commitRepository.isMergeable(cr.id)
-    restDataSerializer.serializeCR(cr,status,isAcceptable)
+    restDataSerializer.serializeCR(cr,status,isAcceptable,apiVersion)
   }
   // While there is no authorisation on API, they got all rights.
   private[this] def apiUserRights = Seq("deployer","validator")
 
-  def listChangeRequests(req : Req, statuses: Seq[WorkflowNodeId]) : LiftResponse = {
+  def listChangeRequests(req : Req, statuses: Seq[WorkflowNodeId], apiVersion: ApiVersion) : LiftResponse = {
     implicit val action = "listChangeRequests"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
@@ -109,7 +109,7 @@ case class ChangeRequestAPIService3 (
         crIds <- readWorkflow.getAllByState(status) ?~ ("Could not fetch ChangeRequests")
         crs   <- boxSequence(crIds.map(readChangeRequest.get)).map(_.flatten) ?~ ("Could not fetch ChangeRequests")
       } yield {
-    	val result = JArray(crs.map(serialize(_,status)).toList)
+    	val result = JArray(crs.map(serialize(_,status,apiVersion)).toList)
     	Full(result)
       }
     }
@@ -139,7 +139,7 @@ case class ChangeRequestAPIService3 (
 
   }
 
-  def changeRequestDetails(id:ChangeRequestId, req:Req) = {
+  def changeRequestDetails(id:ChangeRequestId, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "changeRequestDetails"
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
@@ -151,7 +151,7 @@ case class ChangeRequestAPIService3 (
           changeRequest <-optCr.map(Full(_)).getOrElse(Failure(s"Could not get ChangeRequest ${id} details cause is: change request with id ${id} does not exist."))
           status <- readWorkflow.getStateOfChangeRequest(id) ?~!(s"Could not find ChangeRequest ${id} status" )
         } yield {
-        	val jsonChangeRequest = List(serialize(changeRequest,status))
+        	val jsonChangeRequest = List(serialize(changeRequest,status,apiVersion))
     	    toJsonResponse(Some(id.value.toString),("changeRequests" -> JArray(jsonChangeRequest)))
         }
         unboxAnswer("find", id, answer)
@@ -160,7 +160,7 @@ case class ChangeRequestAPIService3 (
     }
   }
 
-  def declineChangeRequest(id:ChangeRequestId, req:Req) = {
+  def declineChangeRequest(id:ChangeRequestId, req:Req, apiVersion: ApiVersion) = {
 
     val actor = RestUtils.getActor(req)
     implicit val action = "declineChangeRequest"
@@ -175,7 +175,7 @@ case class ChangeRequestAPIService3 (
         reason   <- restExtractor.extractReason(req.params)  ?~ "There was an error while extracting reason message"
         result   <- func(id,actor,reason) ?~!(s"Could not decline ChangeRequest ${id}" )
       } yield {
-    	  val jsonChangeRequest = List(serialize(changeRequest,result))
+    	  val jsonChangeRequest = List(serialize(changeRequest,result,apiVersion))
           toJsonResponse(Some(id.value.toString),("changeRequests" -> JArray(jsonChangeRequest)))
       }
       unboxAnswer("decline", id, answer)
@@ -200,7 +200,7 @@ case class ChangeRequestAPIService3 (
 
 
 
-  def acceptChangeRequest(id: ChangeRequestId, targetStep : WorkflowNodeId, req: Req) = {
+  def acceptChangeRequest(id: ChangeRequestId, targetStep : WorkflowNodeId, req: Req, apiVersion: ApiVersion) = {
 
     val actor = RestUtils.getActor(req)
     implicit val action = "acceptChangeRequest"
@@ -215,7 +215,7 @@ case class ChangeRequestAPIService3 (
         reason   <- restExtractor.extractReason(req.params)  ?~ "There was an error while extracting reason message"
         result   <- func(id,actor,reason) ?~!(s"Could not accept ChangeRequest ${id}" )
       } yield {
-    	  val jsonChangeRequest = List(serialize(changeRequest,result))
+    	  val jsonChangeRequest = List(serialize(changeRequest,result,apiVersion))
           toJsonResponse(Some(id.value.toString),("changeRequests" -> JArray(jsonChangeRequest)))
       }
       unboxAnswer("accept", id, answer)
@@ -248,7 +248,7 @@ case class ChangeRequestAPIService3 (
     }
   }
 
-  def updateChangeRequest(id : ChangeRequestId, apiInfo : APIChangeRequestInfo, req:Req) = {
+  def updateChangeRequest(id : ChangeRequestId, apiInfo : APIChangeRequestInfo, req:Req, apiVersion: ApiVersion) = {
     implicit val action = "updateChangeRequest"
     val actor = RestUtils.getActor(req)
     implicit val prettify = restExtractor.extractPrettify(req.params)
@@ -262,7 +262,7 @@ case class ChangeRequestAPIService3 (
         val newCR = ChangeRequest.updateInfo(changeRequest, newInfo)
         writeChangeRequest.updateChangeRequest(newCR, actor, None) match {
           case Full(cr) =>
-            val jsonChangeRequest = List(serialize(cr,status))
+            val jsonChangeRequest = List(serialize(cr,status,apiVersion))
             toJsonResponse(Some(id.value.toString),("changeRequests" -> JArray(jsonChangeRequest)))
           case eb : EmptyBox =>
           	val fail = eb ?~!(s"Could not update ChangeRequest ${id}" )

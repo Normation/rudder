@@ -65,6 +65,8 @@ import LDAPConstants._
 import com.normation.rudder.domain.queries.OstypeComparator
 import net.liftweb.util.ToJsCmd
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.RudderLDAPConstants.A_NODE_PROPERTY
+import scala.collection.mutable.{Map => MutMap}
 
 /**
  * The Search Nodes component
@@ -79,21 +81,19 @@ class SearchNodeComponent(
   , _query           : Option[Query]
   , _srvList         : Box[Seq[NodeInfo]]
   , onUpdateCallback : () => JsCmd = { () => Noop } // this one is not used yet
-  , onClickCallback  : Option[(String) => JsCmd] = None // this callback is used when we click on an element in the grid
-  , onSearchCallback : (Boolean) => JsCmd = { (x:Boolean) => Noop } // this callback is used when a research is done and the state of the Search button changes
+  , onClickCallback  : Option[(String, Boolean) => JsCmd] = None // this callback is used when we click on an element in the grid
+  , onSearchCallback : (Boolean, Option[Query]) => JsCmd = {(_, _) => Noop } // this callback is used when a research is done and the state of the Search button changes
   , saveButtonId     : String = "" // the id of the save button, that gets disabled when one change the form
   , groupPage        : Boolean
-)extends DispatchSnippet with Loggable {
+) extends DispatchSnippet with Loggable {
   import SearchNodeComponent._
 
   //our local copy of things we work on
   private[this] var query = _query.map(x => x.copy())
   private[this] var srvList = _srvList.map(x => Seq() ++ x)
 
-
   private[this] val nodeInfoService = RudderConfig.nodeInfoService
   private[this] val queryProcessor  = RudderConfig.acceptedNodeQueryProcessor
-
 
   // The portlet for the server detail
   private[this] def serverPortletPath = List("templates-hidden", "server", "server_details")
@@ -103,10 +103,19 @@ class SearchNodeComponent(
     case Full(n) => n
   }
 
-  private[this] def searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
+  private[this] def searchNodes = chooseTemplate("query","searchnodes",serverPortletTemplateFile)
+  private[this] def queryline = {
+  <tr class="error"></tr>
+  <tr class="query_line querylinecolor">
+    <td class="first objectType"></td>
+    <td class="attributeName"></td>
+    <td class="comparator"></td>
+    <td class="inputValue"></td>
+    <td class="removeLine"></td>
+    <td class="last addLine"></td>
+  </tr>
+  }
   private[this] def content = chooseTemplate("content","query",searchNodes)
-
-
 
   /**
    * External exposition of the current state of server list.
@@ -114,7 +123,6 @@ class SearchNodeComponent(
    * @return
    */
   def getSrvList() : Box[Seq[NodeInfo]] = srvList
-
 
   /**
    * External exposition of the current state of query.
@@ -125,33 +133,22 @@ class SearchNodeComponent(
 
   var dispatch : DispatchIt = {
     case "showQuery" => { _ => buildQuery }
-    case "head" => { _ => head() }
   }
 
-  var activateSubmitButton = true
   var initUpdate = true // this is true when we arrive on the page, or when we've done an search
 
   //used in callback to know if we have to
   //activate the global save button
   var searchFormHasError = false
 
-  val errors = Buffer[Box[String]]()
+  val errors = MutMap[CriterionLine,String]()
 
-  def head() : NodeSeq = {
-    <head>
-      {
-        srvGrid.head
-      }
-    </head>
-  }
+  def buildQuery : NodeSeq = {
 
-
-  def buildQuery() : NodeSeq = {
     if(None == query) query = Some(Query(NodeReturnType,And,Seq(defaultLine)))
     val lines = ArrayBuffer[CriterionLine]()
     var composition = query.get.composition
     var rType = query.get.returnType //for now, don't move
-
 
     def addLine(i:Int) : JsCmd = {
       if(i >= 0) {
@@ -159,20 +156,26 @@ class SearchNodeComponent(
         lines.insert(i+1, lines(i).copy(value = ""))
       } else {
         //defaults values
-        lines.insert(i+1, CriterionLine(ditQueryData.criteriaMap(OC_NODE),ditQueryData.criteriaMap(OC_NODE).criteria(0),ditQueryData.criteriaMap(OC_NODE).criteria(0).cType.comparators(0)))
+        lines.insert(i+1, defaultLine)
       }
-      query = Some(Query(rType, composition, lines.toSeq))
-      activateSubmitButton = true
+      query = Some(Query(rType, composition, lines.to[Seq]))
       initUpdate = false
       ajaxCriteriaRefresh
     }
 
     def removeLine(i:Int) : JsCmd ={
       if(lines.size > i) {
+
+        val line = lines(i)
         lines.remove(i)
-        query = Some(Query(rType, composition, lines.toSeq))
+        // Remove error notifications if there is no more occurrences of the line
+        // Or new lines with that will always have th error message (ie An empty hostname)
+        if ( ! lines.contains(line)) {
+          errors remove line
+        }
+
+        query = Some(Query(rType, composition, lines.to[Seq]))
       }
-      activateSubmitButton = true
       initUpdate = false
       ajaxCriteriaRefresh
     }
@@ -180,25 +183,22 @@ class SearchNodeComponent(
     def processForm() : JsCmd = {
       //filter on non validate values
       errors.clear()
-      lines.zipWithIndex.foreach { case (CriterionLine(ot,a,c,v),i) =>
-        if(errors.size < i+1) errors.append(Empty)
+      lines.zipWithIndex.foreach { case (cl@CriterionLine(_,a,c,v),i) =>
         a.cType.validate(v,c.id) match {
-          case Failure(m,_,_) => errors(i) = Full(m)
-          case _ => errors(i) = Empty
+          case Failure(m,_,_) => errors put (cl,m)
+          case _ =>
         }
       }
-      val newQuery = Query(rType, composition, lines.toSeq)
+      val newQuery = Query(rType, composition, lines.to[Seq])
       query = Some(newQuery)
-      if(errors.filter(_.isDefined).size == 0) {
+      if(errors.size == 0) {
         // ********* EXECUTE QUERY ***********
         srvList = queryProcessor.process(newQuery)
-        activateSubmitButton = false
         initUpdate = true
         searchFormHasError = false
       } else {
         // ********* ERRORS FOUND ***********"
         srvList = Empty
-        activateSubmitButton = true
         searchFormHasError = true
       }
       ajaxCriteriaRefresh & ajaxGridRefresh
@@ -208,7 +208,35 @@ class SearchNodeComponent(
      * Refresh the query parameter part
      */
     def ajaxCriteriaRefresh : JsCmd = {
-          SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
+      lines.clear()
+      SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
+    }
+
+    def displayQueryLine(cl : CriterionLine, index:Int, addRemove:Boolean) : NodeSeq = {
+
+     lines.append(cl)
+
+     val initJs = cl.attribute.cType.initForm("v_"+index)
+     val inputAttributes = ("id","v_"+index) :: ("class", "queryInputValue") :: {if (cl.comparator.hasValue) Nil else ("disabled", "disabled") :: Nil }
+     val input = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value=x)), inputAttributes:_*)
+     ( ".removeLine *" #> {
+          if(addRemove)
+            SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "removeLineButton"))
+          else
+            NodeSeq.Empty
+        } &
+       ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton")) &
+       ".objectType *" #> objectTypeSelect(cl.objectType,lines,index) &
+       ".attributeName *" #> attributeNameSelect(cl.objectType,cl.attribute,lines,index) &
+       ".comparator *" #> comparatorSelect(cl.objectType,cl.attribute,cl.comparator,lines,index) &
+       ".inputValue *" #> input &
+       ".error" #> { errors.get(cl) match {
+              case Some(m) => <tr><td class="error" colspan="6">{m}</td></tr>
+              case _ => NodeSeq.Empty
+            }}
+
+     ).apply { queryline } ++  Script(OnLoad(initJs))
+
     }
 
     /**
@@ -216,75 +244,54 @@ class SearchNodeComponent(
      * Caution, we pass an html different at the init part (whole content:query) or at update (update:query)
      *
      */
-    def displayQuery(html: NodeSeq ) : NodeSeq = {
+    def displayQuery(html: NodeSeq) = {
       val Query(otName,comp, criteria) = query.get
-      SHtml.ajaxForm(bind("query", html,
-        "typeQuery" ->  <label>Include policy servers: <span class="compositionCheckbox">{SHtml.checkbox(rType==NodeAndPolicyServerReturnType, { value:Boolean =>
-                if (value)
-                  rType = NodeAndPolicyServerReturnType
-                else
-                  rType = NodeReturnType}
-              )}</span></label>,
-        "composition" -> SHtml.radio(Seq("AND", "OR"), Full(if(comp == Or) "OR" else "AND"), {value:String =>
-          composition = CriterionComposition.parse(value).getOrElse(And) //default to AND on unknown composition string
-          }, ("class", "radio")).flatMap(e => <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>),
-        "lines" -> {(ns: NodeSeq) =>
-          /*
-           * General remark :
-         * - bind parameter of closure to lines (so that they actually get the current value of the line when evaluated)
-         * - bind parameter out of closure to ot/a/c/v so that they have the current value (and not a past one)
-         */
-
-        {
-          criteria.zipWithIndex.flatMap { case (CriterionLine(ot,a,c,v),i) =>
-
-          for(j <- lines.size to i) {
-            lines.append(defaultLine)
-          }
-          for(j <- errors.size to i) {
-            errors.append(Empty)
-          }
-          bind("line",ns,
-            "removeLine" -> {
-              if(criteria.size <= 1)
-                NodeSeq.Empty
+      val checkBox = {
+        SHtml.checkbox(
+            rType==NodeAndPolicyServerReturnType
+          , { value:Boolean =>
+              if (value)
+                rType = NodeAndPolicyServerReturnType
               else
-                SHtml.ajaxSubmit("-", () => removeLine(i), ("class", "removeLineButton"))
-            },
-            "addline" ->
-               SHtml.ajaxSubmit("+", () => addLine(i), ("class", "removeLineButton")),
-            "objectType" -> objectTypeSelect(ot,lines,i),
-            "attributeName" -> attributeNameSelect(ot,a,lines,i),
-            "comparator" -> comparatorSelect(ot,a,c,lines,i),
-            "inputValue" -> {
-              var form = a.cType.toForm(v, (x => lines(i) = lines(i).copy(value=x)), ("id","v_"+i), ("class", "queryInputValue"))
-              if(!c.hasValue) form = form % Attribute("disabled",Seq(Text("disabled")),Null)
-              form
-            } ,
-            "error" -> { errors(i) match {
-              case Full(m) => <tr><td class="error" colspan="6">{m}</td></tr>
-              case _ => NodeSeq.Empty
-            }}
-          )
-        }:NodeSeq} ++ { if(criteria.size > 0) {
+                rType = NodeReturnType
+            }
+          , ("id", "typeQuery")
+          , ( "class", "compositionCheckbox")
+        )
+      }
+
+      val radio = {
+        SHtml.radio(
+            Seq("AND", "OR")
+          , Full(if(comp == Or) "OR" else "AND")
+          , {value:String => composition = CriterionComposition.parse(value).getOrElse(And)} //default to AND on unknown composition string
+          , ("class", "radio")
+        ).flatMap(radio =>
+          <label>
+            {radio.xhtml}
+            <span class="radioTextLabel">{radio.key.toString}</span>
+          </label>
+        )
+      }
+
+      ( "#typeQuery"   #> checkBox &
+        "#composition" #> radio    &
+        "#submitSearch * " #> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))    &
+        "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl,i) => displayQueryLine(cl,i, criteria.size > 1)}
+      ).apply(html
+        /*}:NodeSeq} ++ { if(criteria.size > 0) {
           //add a <script> tag to init all specific Js form renderer, like Jquery datepicker for date
           val initJs = criteria.zipWithIndex.map { case (criteria,index) => criteria.attribute.cType.initForm("v_"+index)}
           Script(OnLoad(initJs))
         } else NodeSeq.Empty}
-      },
-      "submit" -> {
-        if (activateSubmitButton)
-          SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
-        else
-          SHtml.ajaxSubmit("Search", processForm, ("disabled" -> "true"), ("id" -> "SubmitSearch"), ("class" -> "submitButton"))
-        }
-      )) ++  Script(OnLoad(JsVar("""
+      },*/
+      ) ++  Script(OnLoad(JsVar("""
           $(".queryInputValue").keydown( function(event) {
             processKey(event , 'SubmitSearch')
           } );
           """)))
-    }
 
+    }
 
     /**
      * Show the search engine and the grid
@@ -292,9 +299,10 @@ class SearchNodeComponent(
     def showQueryAndGridContent() : NodeSeq = {
       bind("content",searchNodes,
         "query" -> {x:NodeSeq => displayQuery(x)},
-        "gridResult" -> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
+        "gridresult" -> srvGrid.displayAndInit(Seq(),"serverGrid") // we need to set something, or IE moans
       )
     }
+
     showQueryAndGridContent()  ++ Script(OnLoad(ajaxGridRefresh))
   }
 
@@ -309,15 +317,13 @@ class SearchNodeComponent(
     gridResult
   }
 
-
-
   /**
    * When we change the form, we can update the query
    * @return
    */
   def activateButtonOnChange() : JsCmd = {
-    onSearchCallback(searchFormHasError) &
-    JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s", "%s");  """.format(activateSubmitButton, saveButtonId))
+    onSearchCallback(searchFormHasError, query) &
+    JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s");  """.format(saveButtonId))
   }
 
   /**
@@ -340,7 +346,6 @@ class SearchNodeComponent(
   }
 
 }
-
 
 /*
  * Structure of the Query:
@@ -467,7 +472,6 @@ object SearchNodeComponent {
     }
   }
 
-
   //expected "newObjectTypeValue,attributeSelectEltId,oldAttrValue,comparatorSelectEltId,oldCompValue,valueSelectEltId,oldValue
   def ajaxAttr(lines: Buffer[CriterionLine], i:Int) = { SHtml.ajaxCall( //we we change the attribute, we want to reset the value, see issue #1199
       JE.JsRaw("this.value+',at_%s,'+%s+',ct_%s,'+ %s +',v_%s,'+%s".format(i, ValById("at_"+i).toJsCmd,i,ValById("ct_"+i).toJsCmd,i,Str("").toJsCmd)),
@@ -491,11 +495,12 @@ object SearchNodeComponent {
     def add(s:String, pre:String="") = opts += ((s,pre + S.?("ldap.object."+s)))
 
     add(OC_NODE)
-    add(OC_NET_IF, " ├─ ")
-    add(OC_FS,     " ├─ ")
-    add(A_PROCESS, " ├─ ")
-    add(OC_VM_INFO," ├─ ")
-    add(A_EV,      " └─ ")
+    add(OC_NET_IF,       " ├─ ")
+    add(OC_FS,           " ├─ ")
+    add(A_PROCESS,       " ├─ ")
+    add(OC_VM_INFO,      " ├─ ")
+    add(A_NODE_PROPERTY, " ├─ ")
+    add(A_EV,            " └─ ")
     add(OC_MACHINE)
     add(OC_BIOS,       " ├─ ")
     add(OC_CONTROLLER, " ├─ ")

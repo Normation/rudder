@@ -1,97 +1,64 @@
-<lift:surround with="menu/menu-node" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
 <title>Rudder - Node Groups Management</title>
 <style>
-.composition {
-  width: 538px;
-}
-
-table#serverGrid {
-  width: 545px;
-}
-
-#serverGrid_tooManyResult {
-  width: 543px;
-}
-
-table.searchNodes {
-  width: 545px;
-}
-
-#serverGrid_wrapper {
-    width: 545px;
-}
-
 form select.selectComparator {
-   width: 100px;
+  width: 100px;
 }
-
 form select.selectField {
-   width: 130px;
+  width: 130px;
 }
-
 input.queryInputValue, select.queryInputValue {
   width:115px !important;
-}
-
-.nodeGroupSubmitSearch {
-   width:543px;
 }
 </style>
 </head>
 
-<lift:node.Groups.head />
+<span data-list="node.Groups.head" ></span>
 
-<div class="portlet">
- <div class="portlet-header">Groups</div>
- <div class="portlet-content">
-  <div class="intro">
-    <div><p>Manage Groups of Nodes. Each group can be a static list of nodes or the result of a dynamic search based on criteria from the Node's inventory.</p>
-    <p>Node Groups are used to target Rules.</p>
-    </div>
-  </div>
-
-  <hr class="spacer"/>
-  <div class="groupDisplay">
-
-    <lift:node.Groups.groupHierarchy>
+  <div class="col col-sm">
+    <div data-lift="node.Groups.groupHierarchy">
       <div class="inner-portlet" style="float:left; margin-right:15px;">
-        <div class="inner-portlet-header">Group hierarchy</div>
+        <div class="page-title">Group hierarchy</div>
         <div class="inner-portlet-content">
           <div>
             <lift:Authz role="group_write">
               <div id="newItem">Here comes the New item Button</div>
             </lift:Authz>
           </div>
-          <fieldset style="display:inline-block;">
-            <div id="groupTree">Here comes the Groups Tree</div>
-          </fieldset>
+
+  <div id="groupTree_actions_zone" style="margin:5px 0;">
+    <img onclick="openAllNodes('#groupTree');" src="/images/open-plus.png" alt="+" width="16" height="16" class="filterIcon"/>
+
+    <img onclick="closeAllNodes('#groupTree');" src="/images/close-minus.png" alt="-" width="16" height="16" class="filterIcon"/>
+
+    <input style="width:100px;" id="treeSearch" type="text" placeholder="Filter" onkeydown="refuseEnter(event);" onkeyup="searchTree('#treeSearch', '#groupTree');" class="tooltipable" title="" tooltipid="treeSearchTooltip"/>
+
+    <span class="tooltipContent" id="treeSearchTooltip">Type at least three character to search element (name or description) in the tree.</span>
+
+    <img onclick="clearSearchFieldTree('#treeSearch', '#groupTree');" src="/images/close-cross.png" alt="x" width="16" height="16" class="filterIcon"/>
+
+ </div>
+
+
+          <div id="groupTree">Here comes the Groups Tree</div>
           <p class="note"><b>Note:</b> Drag'n'drop items to change the hierarchy.</p>
         </div>
       </div>
-    </lift:node.Groups.groupHierarchy>
-
-    <div id="ajaxItemContainer">
-      <lift:node.Groups.initRightPanel/>
-      <lift:ignore>
-        This div gets the content of the item selected in the js tree
-      </lift:ignore>
     </div>
-
+  </div>
+  <div class="col col-xl" id="groupDetails">
+    <div id="ajaxItemContainer" style="width: 100%">
+      <span data-lift="node.Groups.initRightPanel"></span>
+    </div>
   </div>
 
-  </div>
-
+  <div class="spacer"></div>
   <div id="createGroupPopup" class="nodisplay">
-    <lift:ignore>
-      This div gets the content of the createCategoryOrGroup injected within
-    </lift:ignore>
-    <div id="createGroupContainer"/></div>
+    <div id="createGroupContainer"></div>
   </div>
 
-
-
-  <lift:node.Groups.detailsPopup/>
+  <div data-lift="node.Groups.detailsPopup"></div>
 </lift:surround>
 

@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.status
+package com.normation.rudder.reports.statusUpdate
 
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.Schema
@@ -61,14 +61,15 @@ class StatusUpdateSquerylRepository (
     try {
       sessionProvider.ourSession {
         val q = from(statusTable)(entry =>
-	        where(entry.key === key)
-	        select(entry)
+          where(entry.key === key)
+          select(entry)
         )
         val result = q.toList
 
         result match {
           case Nil => Full(None)
-          case head :: Nil => Full(Some((head.lastId,new DateTime(head.date))))
+          case head :: Nil =>
+            Full(Some((head.lastId,new DateTime(head.date))))
           case _ =>
             val msg = s"Too many entry matching ${key} in table StatusUpdate "
             logger.error(msg)
@@ -86,13 +87,13 @@ class StatusUpdateSquerylRepository (
     setValue(executionStatus, newId, reportsDate)
   }
 
-  private def setValue(key : String, reportId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
+  private[this] def setValue(key : String, reportId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
     try {
       sessionProvider.ourTransaction {
         val timeStamp = new Timestamp(reportsDate.getMillis)
-      	val q = update(statusTable)(entry =>
-        	where(entry.key === key)
-        	set(entry.lastId := reportId, entry.date := timeStamp))
+        val q = update(statusTable)(entry =>
+          where(entry.key === key)
+          set(entry.lastId := reportId, entry.date := timeStamp))
         val entry = new UpdateEntry(key, reportId, timeStamp)
         if (q ==0) // could not update
           Full(statusTable.insert(entry))
@@ -115,7 +116,7 @@ case class UpdateEntry(
     @Column("lastid") lastId : Long,
     @Column("date")   date   : Timestamp
 ) extends KeyedEntity[String]  {
-	def id = key
+  def id = key
 }
 
 object StatusUpdate extends Schema {

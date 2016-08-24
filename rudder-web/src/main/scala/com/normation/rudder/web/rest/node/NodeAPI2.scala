@@ -47,6 +47,7 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.common._
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest.ApiVersion
 
 
 case class NodeAPI2 (
@@ -55,7 +56,7 @@ case class NodeAPI2 (
 ) extends NodeAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => apiV2.listAcceptedNodes(req)
 

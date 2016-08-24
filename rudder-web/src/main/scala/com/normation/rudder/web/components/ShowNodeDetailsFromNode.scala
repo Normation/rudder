@@ -37,45 +37,43 @@
 
 package com.normation.rudder.web.components
 
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.domain._
-import com.normation.inventory.services.core.FullInventoryRepository
-import com.normation.rudder.services.nodes._
-import com.normation.rudder.domain.nodes.{NodeGroupCategory, NodeInfo, NodeGroup}
-import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.policies.{RuleTargetInfo, GroupTarget, RuleTarget}
-import com.normation.rudder.web.model.JsTreeNode
-import com.normation.utils.Control.sequence
-import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import com.normation.rudder.domain.nodes.{NodeGroupId, NodeGroup,  NodeInfo}
-import com.normation.rudder.web.services.{LogDisplayer, ReportDisplayer, DisplayNode}
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import scala.xml.NodeSeq
 import com.normation.exceptions.TechnicalException
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftmodules.widgets.autocomplete._
-import com.normation.rudder.repository.RoNodeGroupRepository
-import bootstrap.liftweb.RudderConfig
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.policies.FullGroupTarget
-import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.web.services.DisplayNode
 import com.normation.rudder.web.services.DisplayNodeGroupTree
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.batch.AutomaticStartDeployment
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.S
+import net.liftweb.http.Templates
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.js.JsExp
+import net.liftweb.util.Helpers._
+import com.normation.rudder.domain.nodes.Node
 import com.normation.plugins.ExtendableSnippet
 import com.normation.plugins.SnippetExtensionKey
 import com.normation.plugins.SpringExtendableSnippet
+import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.NodeComplianceMode
+import com.normation.rudder.reports.GlobalComplianceMode
 
 object ShowNodeDetailsFromNode {
 
-  private val htmlId_crTree = "crTree"
+  private val groupTreeId = "node_groupTree"
 
   private def serverPortletPath = List("templates-hidden", "server", "server_details")
   private def serverPortletTemplateFile() =  Templates(serverPortletPath) match {
@@ -96,38 +94,142 @@ class ShowNodeDetailsFromNode(
   private[this] val serverAndMachineRepo = RudderConfig.fullInventoryRepository
   private[this] val reportDisplayer      = RudderConfig.reportDisplayer
   private[this] val logDisplayer         = RudderConfig.logDisplayer
+  private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val nodeRepo             = RudderConfig.woNodeRepository
+  private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
+  private[this] val configService = RudderConfig.configService
 
   def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
-  def mainDispatch = Map(
-    "displayInPopup"    -> { _:NodeSeq => privateDisplay(true)  }
-  , "displayMainWindow" -> { _:NodeSeq => privateDisplay(false) }
-  )
+   def complianceModeEditForm = {
+    val (globalMode, nodeMode) = {
+      val modes = getHeartBeat
+      (modes.map(_._1),modes.map(_._2))
+    }
 
-  def display(withinPopup : Boolean = false) : NodeSeq = {
-    if(withinPopup) dispatch("displayInPopup")(NodeSeq.Empty)
-    else dispatch("displayMainWindow")(NodeSeq.Empty)
+    new ComplianceModeEditForm(
+        nodeMode
+      , saveHeart
+      , () => Unit
+      , globalMode
+    )
+  }
+  def getHeartBeat : Box[(GlobalComplianceMode,NodeComplianceMode)] = {
+    for {
+      globalMode  <- configService.rudder_compliance_mode()
+      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
+                       case Some(x) => Full(x)
+                     }
+    } yield {
+      // If heartbeat is not overriden, we revert to the default one
+      val defaultHeartBeat = HeartbeatConfiguration(false, globalMode.heartbeatPeriod)
+      val hbConf = nodeInfo.nodeReportingConfiguration.heartbeatConfiguration.getOrElse(defaultHeartBeat)
+      val nodeMode =  NodeComplianceMode(globalMode.mode,hbConf.heartbeatPeriod,hbConf.overrides)
+      (globalMode,nodeMode)
+    }
   }
 
-  private[this] def privateDisplay(withinPopup : Boolean = false) : NodeSeq = {
+  def saveHeart(complianceMode : NodeComplianceMode) : Box[Unit] = {
+    val heartbeatConfiguration = HeartbeatConfiguration(complianceMode.overrideGlobal, complianceMode.heartbeatPeriod)
+    val modId = ModificationId(uuidGen.newUuid)
+    for {
+      result <- nodeRepo.updateNodeHeartbeat(nodeId, heartbeatConfiguration, modId, CurrentUser.getActor, None)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+    }
+  }
+
+   def agentScheduleEditForm = new AgentScheduleEditForm(
+        () => getSchedule
+      , saveSchedule
+      , () => Unit
+      , () => Some(getGlobalSchedule)
+    )
+
+  def getGlobalSchedule() : Box[AgentRunInterval] = {
+    for {
+      starthour <- configService.agent_run_start_hour
+      startmin  <- configService.agent_run_start_minute
+      splaytime <- configService.agent_run_splaytime
+      interval  = configService.agent_run_interval
+    } yield {
+      AgentRunInterval(
+            None
+          , interval
+          , startmin
+          , starthour
+          , splaytime
+        )
+    }
+  }
+
+  val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
+  def getSchedule : Box[AgentRunInterval] = {
+    for {
+      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
+                       case Some(x) => Full(x)
+                     }
+    } yield {
+      nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval))
+    }
+  }
+
+  def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+    val modId =  ModificationId(uuidGen.newUuid)
+    val user  =  CurrentUser.getActor
+    for {
+      result  <- nodeRepo.updateAgentRunPeriod(nodeId, schedule, modId, user, None)
+    } yield {
+      asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
+    }
+  }
+
+  def mainDispatch = Map(
+    "popupDetails"    -> { _:NodeSeq => privateDisplay(true, false)  }
+  , "popupCompliance" -> { _:NodeSeq => privateDisplay(true, true)   }
+  , "mainDetails"     -> { _:NodeSeq => privateDisplay(false, false) }
+  , "mainCompliance"  -> { _:NodeSeq => privateDisplay(false, true)  }
+  )
+
+  def display(popupDisplay : Boolean, complianceDisplay : Boolean) : NodeSeq = {
+    val dispatchName = (popupDisplay, complianceDisplay) match {
+      case (true, true)  => "popupCompliance"
+      case (true, _)     => "popupDetails"
+      case (false, true) => "mainCompliance"
+      case (false, _)    => "mainDetails"
+    }
+    dispatch (dispatchName) (NodeSeq.Empty)
+  }
+
+  private[this] def privateDisplay(withinPopup : Boolean = false, displayCompliance : Boolean = false) : NodeSeq = {
     nodeInfoService.getNodeInfo(nodeId) match {
-      case Empty =>
+      case Full(None) =>
         <div class="error">Node with id {nodeId.value} was not found</div>
-      case f@Failure(_,_,_) =>
-        logger.debug("Root exception:", f)
+      case eb:EmptyBox =>
+        val e = eb ?~! s"Error when getting node with id '${nodeId.value}'"
+        logger.debug("Root exception:", e)
         <div class="error">
           <p>Node with id {nodeId.value} was not found</p>
-          <p>Error message was: {f.messageChain}</p>
+          <p>Error message was: {e.messageChain}</p>
         </div>
-      case Full(server) => // currentSelectedNode = Some(server)
-        serverAndMachineRepo.get(server.id,AcceptedInventory) match {
+      case Full(Some(node)) => // currentSelectedNode = Some(server)
+        serverAndMachineRepo.get(node.id, AcceptedInventory) match {
           case Full(sm) =>
-            bindNode(server, sm, withinPopup) ++ Script(OnLoad(
-              DisplayNode.jsInit(server.id, sm.node.softwareIds, "") &
-              OnLoad(buildJsTree(htmlId_crTree))
+            val tab = if (displayCompliance) 1 else 0
+            val jsId = JsNodeId(nodeId,"")
+            def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
+            val detailsId = htmlId(jsId,"details_")
+            bindNode(node, sm, withinPopup,displayCompliance) ++ Script(OnLoad(
+              DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
+              OnLoad(buildJsTree(groupTreeId) &
+              JsRaw(s"""$$( "#${detailsId}" ).tabs('select', ${tab})"""))
             ))
           case e:EmptyBox =>
-            val msg = "Can not find inventory details for node with ID %s".format(server.id.value)
+            val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
             logger.error(msg, e)
             <div class="error">{msg}</div>
         }
@@ -139,32 +241,23 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean = false) : NodeSeq = {
-
-    val template =
-      bind(
-          "server"
-        , serverDetailsTemplate
-        , "header" ->
-              <div id="node_header" class="nodeheader">
-                <div class="nodeheadercontent ui-corner-top"> Node Details - {inventory.node.main.hostname}
-                 (last updated { inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}) </div>
-              </div>
-        , "jsTree" ->
-              <div id={htmlId_crTree}>
-                <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node)}</ul>
-              </div>
-        , "nodeDetails" -> DisplayNode.showNodeDetails(inventory,Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup)
-        , "inventory" -> DisplayNode.show(inventory, false)
-        , "extraHeader" -> DisplayNode.showExtraHeader(inventory)
-        , "extraContent" -> DisplayNode.showExtraContent(inventory)
-        , "reports" -> reportDisplayer.asyncDisplay(node)
-        , "logs" -> logDisplayer.asyncDisplay(node.id, withinPopup)
-      )
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean) : NodeSeq = {
     val id = JsNodeId(node.id)
-    // replace node_tabs with a specific id for the node so we are consistent on all Node Details page
-    val selector : CssSel = ("#node_tabs [id]" #> s"details_${id}")
-    selector(template)
+    ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
+      "#node_groupTree" #>
+        <div id={groupTreeId}>
+          <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node)}</ul>
+        </div> &
+      "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
+      "#nodeInventory *" #> DisplayNode.show(inventory, false) &
+      "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
+      "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
+      "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
+      "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
+      "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
+      "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
+      "#node_tabs [id]" #> s"details_${id}"
+    ).apply(serverDetailsTemplate)
   }
 
   /**

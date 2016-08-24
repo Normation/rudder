@@ -37,36 +37,29 @@
 
 package com.normation.rudder.web.snippet.node
 
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.queries.Query
-import com.normation.rudder.domain.policies.{RuleTarget, Rule}
-import com.normation.rudder.domain.nodes.{NodeInfo, NodeGroup}
-import com.normation.rudder.services.nodes._
-import com.normation.rudder.web.services.ReportDisplayer
-import com.normation.rudder.web.services.DisplayNode
-import com.normation.rudder.web.model.JsTreeNode
-import com.normation.rudder.web.components._
-import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
-import com.normation.rudder.web.components.ShowNodeDetailsFromNode
-import com.normation.rudder.web.components.SearchNodeComponent
-import com.normation.utils.Control.sequence
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftmodules.widgets.autocomplete._
+import scala.xml.NodeSeq
+import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.exceptions.TechnicalException
-import com.normation.inventory.ldap.core.LDAPConstants.OC_NODE
-import com.normation.rudder.domain.queries.Or
-import com.normation.rudder.services.queries.CmdbQueryParser
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.web.components.SearchNodeComponent
+import com.normation.rudder.web.components.ShowNodeDetailsFromNode
+import com.normation.rudder.web.components.popup.CreateCategoryOrGroupPopup
 import bootstrap.liftweb.RudderConfig
-
+import net.liftweb.common._
+import net.liftweb.http.LocalSnippet
+import net.liftweb.http.SHtml
+import net.liftweb.http.SHtml.ElemAttr.pairToBasic
+import net.liftweb.http.StatefulSnippet
+import net.liftweb.http.Templates
+import net.liftweb.http.js.JE.JsRaw
+import net.liftweb.http.js.JE.JsVar
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers.chooseTemplate
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 /**
  *
@@ -83,7 +76,6 @@ import bootstrap.liftweb.RudderConfig
  *
  */
 
-
 object SearchNodes {
   private val serverPortletPath = List("templates-hidden", "server", "server_details")
   private val serverPortletTemplateFile =  Templates(serverPortletPath) match {
@@ -91,7 +83,6 @@ object SearchNodes {
       throw new TechnicalException("Template for node details not found. I was looking for %s.html".format(serverPortletPath.mkString("/")))
     case Full(n) => n
   }
-  private val serverDetailsTemplate = chooseTemplate("detail","server",serverPortletTemplateFile)
   private val searchNodes = chooseTemplate("query","SearchNodes",serverPortletTemplateFile)
 }
 
@@ -115,14 +106,13 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   val searchNodeComponent = new LocalSnippet[SearchNodeComponent]
 
-
   var srvList : Box[Seq[NodeInfo]] = Empty
 
-  setSearcNodeComponent(None)
+  setSearchComponent(None)
 
   var dispatch : DispatchIt = {
     case "showQuery" => searchNodeComponent.is match {
-      case Full(component) => { _ => component.buildQuery }
+      case Full(component) => { _ => queryForm(component) }
       case _ => { _ => <div>The component is not set</div><div></div> }
     }
     case "head" => head _
@@ -131,15 +121,17 @@ class SearchNodes extends StatefulSnippet with Loggable {
 
   var activateSubmitButton = true
 
-
   def head(html:NodeSeq) : NodeSeq = {
     import net.liftweb.json._
     import net.liftweb.json.JsonDSL._
 
+    //add a function name to force reparse hashtag for other js elt of the page
+
     { <head>
-      {Script(parseHashtag()) ++ Script(OnLoad(JsRaw("""parseHashtag();
-          $(window).on('hashchange',function(){ parseHashtag() });
-      """)))}
+      {Script(
+         JsRaw(s"function forceParseHashtag() { ${parseHashtag().toJsCmd } }") &
+         OnLoad(JsRaw("forceParseHashtag()"))
+     )}
     </head> }
   }
 
@@ -160,14 +152,14 @@ class SearchNodes extends StatefulSnippet with Loggable {
         , rootCategory     = groupLibrary
         , selectedCategory = None
         , onSuccessCategory= { _ => Noop }
-        , onSuccessGroup   = { (node:NodeGroup, _) => RedirectTo("""/secure/nodeManager/groups#{"groupId":"%s"}""".format(node.id.value)) }
+        , onSuccessGroup   = { (group:NodeGroup, _) => JsInitContextLinkUtil.redirectToGroupLink(group.id) }
       )))
   }
 
-  private[this] def setSearcNodeComponent (query:Option[Query]) : SearchNodeComponent = {
-    def showNodeDetails(nodeId:String) : JsCmd = {
-      updateLocationHash(nodeId) &
-      JsRaw("""scrollToElement("serverDetails");""".format(nodeId))
+  private[this] def setSearchComponent(query:Option[Query]) : SearchNodeComponent = {
+    def showNodeDetails(nodeId:String, displayCompliance : Boolean) : JsCmd = {
+      updateLocationHash(nodeId, displayCompliance) &
+      JsRaw("""scrollToElement("serverDetails", ".rudder_col");""".format(nodeId))
     }
 
     val sc = new SearchNodeComponent(
@@ -176,6 +168,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
       , srvList
       , () => Noop
       , Some(showNodeDetails)
+      , onSearchCallback = updateQueryHash
       , groupPage = false
     )
     searchNodeComponent.set(Full(sc))
@@ -188,6 +181,10 @@ class SearchNodes extends StatefulSnippet with Loggable {
        ("class", "largeButton"))
   }
 
+  def queryForm(sc : SearchNodeComponent) = {
+    SHtml.ajaxForm(sc.buildQuery)
+  }
+
   /**
    * If a query is passed as argument, try to dejsoniffy-it, in a best effort
    * way - just don't take of errors.
@@ -195,49 +192,41 @@ class SearchNodes extends StatefulSnippet with Loggable {
    * We want to look for #{ "nodeId":"XXXXXXXXXXXX" }
    */
   private[this] def parseHashtag(): JsCmd = {
-    def displayDetails(nodeId:String) = {
-      SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display())
+    def displayDetails(jsonData: String) = {
+      import net.liftweb.json._
+      val json = parse(jsonData)
+      json \ "nodeId" match {
+        case JString(nodeId) =>
+          val displayCompliance = json \ "displayCompliance" match {
+            case JBool(displayCompliance) => displayCompliance
+            case _ => false
+          }
+          val nodeDetails = new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayCompliance)
+          SetHtml("serverDetails", nodeDetails)
+        case _ => Noop
+      }
     }
 
     def executeQuery(query:String) : JsCmd = {
       val q = queryParser(query)
-      val sc = setSearcNodeComponent(q)
+      val sc = setSearchComponent(q)
 
       q match {
-        case f:Failure =>
-          logger.debug(f.messageChain)
+        case e:EmptyBox =>
+          val fail = e ?~! s"Could not parse ${query} as a valid query"
+          logger.error(fail.messageChain)
           Noop
-        case e:EmptyBox => Noop
         case Full(q)    =>
-          Replace("SearchNodes", sc.buildQuery()) &
+          Replace("SearchNodes", queryForm(sc)) &
           JsRaw("correctButtons(); $('#SubmitSearch').click();")
       }
     }
 
-    JsRaw(s"""
-        var parseHashtag = function() {
-          var hash = null;
-          try {
-            hash = JSON.parse(decodeURI(window.location.hash.substring(1)));
-          } catch(e) {
-            hash = {}
-          }
-          if( hash.nodeId != null && hash.nodeId.length > 0) {
-            ${SHtml.ajaxCall(JsVar("hash","nodeId"), displayDetails _ )._2.toJsCmd}
-            $$('#query-search-content').hide();
-            $$('#querySearchSection').removeClass('unfoldedSectionQuery');
-          }else{
-            $$('#query-search-content').toggle();
-            $$('#querySearchSection').toggleClass('unfoldedSectionQuery');
-          }
-          if( hash.query != null && JSON.stringify(hash.query).length > 0) {
-            ${SHtml.ajaxCall(JsRaw("JSON.stringify(hash.query)"), executeQuery _ )._2.toJsCmd}
-          }
-        }
-    """
-    )
+    JsRaw(s"""parseSearchHash(
+        function(x) { ${SHtml.ajaxCall(JsVar("x"), displayDetails _ )._2.toJsCmd} }
+      , function(x) { ${SHtml.ajaxCall(JsVar("x") , executeQuery   _ )._2.toJsCmd} }
+    )""")
   }
-
 
   /**
    * Create the popup
@@ -260,8 +249,19 @@ class SearchNodes extends StatefulSnippet with Loggable {
       case eb:EmptyBox => Alert("Error when trying to retrieve the resquest, please try again")
     }
   }
+  private def updateQueryHash(button: Boolean, query: Option[Query]): JsCmd = {
+    query match {
+      case Some(q) =>
+        JsRaw(s"updateHashString('query', ${q.toJSONString})")
+      case None => Noop
+    }
 
-  private def updateLocationHash(nodeId:String) =
-    JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
+  }
+
+  private def updateLocationHash(nodeId:String, displayCompliance : Boolean) = {
+    //JsRaw("""this.window.location.hash = "#" + JSON.stringify({'nodeId':'%s'})""".format(nodeId))
+    JsRaw(s"updateHashString('nodeId', '${nodeId}')") &
+    JsRaw(s"updateHashString('displayCompliance', ${displayCompliance})") &
+    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary)).display(false,displayCompliance))
+  }
 }
-

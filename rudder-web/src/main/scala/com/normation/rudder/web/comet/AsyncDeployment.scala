@@ -65,27 +65,10 @@ import bootstrap.liftweb.RudderConfig
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
-  private[this] val periodFormatter = new PeriodFormatterBuilder().
-    appendDays().
-    appendSuffix(" day ", " days ").
-    appendSeparator(", ").
-    appendMinutes().
-    appendSuffix(" min ", " min ").
-    appendSeparator(" ").
-    appendSeconds().
-    appendSuffix("s", "s")
-    .toFormatter()
-
-  private[this] def formatPeriod(duration:Duration) : String = {
-    if(duration.getMillis < 1000) "less than 1s"
-    else periodFormatter.print(duration.toPeriod)
-  }
-
   private[this] val asyncDeploymentAgent      = RudderConfig.asyncDeploymentAgent
   private[this] val eventLogDeploymentService = RudderConfig.eventLogDeploymentService
   private[this] val eventList                 = RudderConfig.eventListDisplayer
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
-
 
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
@@ -100,35 +83,61 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     case d:DeploymentStatus => deploymentStatus = d ; reRender()
   }
 
-  override def render = {
-    new RenderOut((
-      ClearClearable &
-      "#deploymentLastStatus *" #> lastStatus &
-      "#deploymentProcessing *" #> currentStatus
-    )(layout) , JsRaw("""$("button.deploymentButton").button(); """))
+  private[this] def updateDuration = {
+    val content =
+      deploymentStatus.current match {
+        case SuccessStatus(_,_,end,_) =>Text(DateFormaterService.getFormatedPeriod(end, DateTime.now))
+        case ErrorStatus(_,_,end,_) =>Text(DateFormaterService.getFormatedPeriod(end, DateTime.now))
+        case _ =>
+          NodeSeq.Empty
+    }
+    SetHtml("deployment-end",content)
+
   }
 
+  override def render = {
+    partialUpdate(updateDuration)
+    new RenderOut(layout)
+  }
 
   val deployementErrorMessage = """(.*)!errormessage!(.*)""".r
 
-  private[this] def lastStatus : NodeSeq = {
+  private[this] def statusIcon : NodeSeq = {
 
+    deploymentStatus.processing match {
+      case IdleDeployer =>
+        deploymentStatus.current match {
+          case NoStatus =>
+            <span class="glyphicon glyphicon-question-sign"></span>
+          case _:SuccessStatus =>
+            <span class="glyphicon glyphicon-ok"></span>
+          case _:ErrorStatus =>
+            <span class="glyphicon glyphicon-remove"></span>
+        }
+      case _ =>
+          <img src="/images/ajax-loader-small.gif" />
+    }
+
+  }
+
+  private[this] def lastStatus  = {
+    def commonStatement(start : DateTime, end : DateTime, durationText : String, headText : String) = {
+      <li class="dropdown-header">{headText}</li>
+      <li class="dropdown-header">Started at {DateFormaterService.getFormatedDate(start)}</li>
+      <li class="dropdown-header" >Finished <span id="deployment-end">{DateFormaterService.getFormatedPeriod(end, DateTime.now)}</span> ago</li>
+      <li class="dropdown-header">{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</li>
+    }
     deploymentStatus.current match {
-      case NoStatus => <span>Policy update status unavailable</span>
+      case NoStatus => <li class="dropdown-header">Policy update status unavailable</li>
       case SuccessStatus(id,start,end,configurationNodes) =>
-        <span class="deploymentSuccess">
-          <img src="/images/icOK.png" alt="Error" height="16" width="16" class="iconscala" />
-          Success: Policies updated at {DateFormaterService.getFormatedDate(start)} (took {formatPeriod(new Duration(start,end))})
-        </span>
+        commonStatement(start, end, "Update took", "Policies updated")
       case ErrorStatus(id,start,end,failure) =>
-        {<span class="error deploymentError"><img src="/images/icfail.png" alt="Error" height="16" width="16" class="iconscala" />
-          Error during policy update at {DateFormaterService.getFormatedDate(start)} <br/>(took {formatPeriod(new Duration(start,end))} -
-          <span class="errorscala" id="errorDetailsLink" onClick={
+        commonStatement(start, end, "Error occured in", "Error during policy update") ++
+        <li><a href="#" onClick={
             """$('#errorDetailsDialog').modal({ minHeight:140, minWidth: 300 });
                $('#simplemodal-container').css('height', 'auto');
                correctButtons();
-               return false;"""}>details</span>)
-        </span>} ++ {
+               return false;"""}>Details</a></li> ++ {
           ("#errorDetailsMessage" #> { failure.messageChain match {
             case  deployementErrorMessage(chain, error) =>
               <span>{chain.split("<-").map(x => Text("⇨ " + x) ++ {<br/>})}</span>
@@ -145,51 +154,32 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def currentStatus : NodeSeq = {
-    deploymentStatus.processing match {
-      case IdleDeployer =>
-        <lift:authz role="deployment_write"> {
-          SHtml.ajaxButton("Update", { () =>
+
+    <lift:authz role="deployment_write"> {
+      SHtml.a( {
+          () =>
             asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual policy update") //TODO: let the user fill the cause
             Noop
-          }, ( "class" , "deploymentButton")) }
-        </lift:authz>
-      case Processing(id, start) =>
-        <span>
-          <img src="/images/deploying.gif" alt="Updating..." height="16" width="16" class="iconscala" />
-          Updating policies (started at {DateFormaterService.getFormatedDate(start)})
-        </span>
-      case ProcessingAndPendingAuto(asked, Processing(id, start), actor, logId) =>
-        <span>
-          <img src="/images/deploying.gif" alt="Updating..." height="16" width="16" class="iconscala" />
-          Updating policies (started at {DateFormaterService.getFormatedDate(start)}). Another update is pending since {DateFormaterService.getFormatedDate(asked)}
-        </span>
-      case ProcessingAndPendingManual(asked, Processing(id, start), actor, logId, cause) =>
-        <span>
-          <img src="/images/deploying.gif" alt="Updating..." height="16" width="16" class="iconscala" />
-          Updating policies (started at {DateFormaterService.getFormatedDate(start)}). Another update is pending since {DateFormaterService.getFormatedDate(asked)}
-        </span>
+        }
+        , Text("Update")
+      )
     }
+    </lift:authz>
+
   }
 
   private[this] def layout = {
-    <div id="deploymentStatus">
-      <div style="font-size: 14px; font-weight: bold; margin-bottom:7px;">Rudder status</div>
-      <lift:ignore>
-        Here come the status of the last finised policy update.
-        Status can be: no previous policy update, correctly updated, warning, error.
-      </lift:ignore>
-      <div id="deploymentLastStatus">
-        [Here comes the status of the last finished deployement]
-      </div>
 
-      <lift:ignore>
-        Here comes an indication of the current deployement.
-        May be : not updating (a button is shown to start a policy update), updating (give an idea of the time remaining ?), updating + one pending
-      </lift:ignore>
-      <div id="deploymentProcessing">
-        [Here comes the current deployment processing]
-      </div>
-    </div>
+    <lift:authz role="deployment_read">
+    <li class="dropdown">
+      <a href="#" class="dropdown-toggle"  data-toggle="dropdown">
+        <span>Status</span> <span class="badge" id="generation-status"> {statusIcon}</span><span class="caret" style="margin-left:5px"></span></a>
+      <ul class="dropdown-menu" role="menu">
+        {lastStatus}
+        <li>{currentStatus}</li>
+      </ul>
+    </li>
+    </lift:authz>
   }
 
   private[this] def errorPopup = {

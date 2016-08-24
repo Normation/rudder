@@ -44,6 +44,8 @@ import net.liftweb.http.rest.RestHelper
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import net.liftweb.json.JString
+import net.liftweb.json.JValue
+import scala.language.implicitConversions
 
 
 
@@ -57,7 +59,7 @@ trait RestAPI  extends RestHelper{
 
   def kind : String
 
-  def requestDispatch : PartialFunction[Req, () => Box[LiftResponse]]
+  def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]]
 
 }
 
@@ -69,24 +71,26 @@ trait RestAPI  extends RestHelper{
  * Then define the header API from the map
  */
 case class APIDispatcher (
-    apisByVersion : Map[ApiVersion,List[RestAPI]]
+    apisByVersion : Map[ApiVersion, List[RestAPI]]
+  , restExtractor : RestExtractorService
 ) extends RestHelper {
 
-  // For each api version
-  apisByVersion.foreach{
-      case (ApiVersion(version),apis) =>
+    // For each api version
+    apisByVersion.foreach{
+      case (v@ApiVersion(version,_),apis) =>
         // Dispatch all api
         apis.foreach{
           api =>
-            serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch)
+            serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch(v)  )
         }
     }
 
     // Get the max version ...
-    apisByVersion(apisByVersion.keySet.maxBy(_.value)).foreach{
+    val latest = apisByVersion.keySet.maxBy(_.value)
+    apisByVersion(latest).foreach{
       api =>
         // ... and Dispatch it
-        serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch)
+        serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch(latest))
     }
 
     // regroup api by kind, to be able to dispatch header api version
@@ -96,7 +100,7 @@ case class APIDispatcher (
     apiByKindByVersion.foreach{
       case (kind,apis) =>
 
-        implicit val availableVersions = apis.keySet.toList.map(_.value)
+        implicit val availableVersions = apis.keySet.toList
         // Build request dispatch
         val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
         // on all requests
@@ -107,7 +111,7 @@ case class APIDispatcher (
                 // If the api exists
                 case Some(api) =>
                   // Use the api of that version
-                  api.requestDispatch(req)
+                  api.requestDispatch(apiVersion)(req)
                 case None =>
                   // Not a valid version
                   RestUtils.notValidVersionResponse(kind)
@@ -122,4 +126,26 @@ case class APIDispatcher (
     }
 
 
+    serve {
+      case Get("api" :: "info" :: Nil,req) =>
+        implicit val action = "ApiGeneralInformations"
+        implicit val prettify = restExtractor.extractPrettify(req.params)
+
+        import net.liftweb.json.JsonDSL._
+        implicit def apiVersionToJValue (version : ApiVersion) : JValue ={
+          ("version" -> version.value) ~
+          ("status" -> {if (version.deprecated) "deprecated" else "maintained"})
+        }
+        val availableVersions = apisByVersion.keySet.toList.sortBy(_.value)
+        val max = availableVersions.maxBy(_.value)
+        val versions: JValue =
+          ( "availableVersions" ->
+            ( "latest" -> max.value) ~
+            ( "all" -> availableVersions)
+          )
+
+
+        RestUtils.toJsonResponse(None, versions)
+
+    }
 }

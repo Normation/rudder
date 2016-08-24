@@ -41,7 +41,6 @@ import com.normation.rudder.batch.UpdateDynamicGroups
 import com.normation.rudder.domain._
 import com.normation.rudder.domain.nodes._
 import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.policies.RuleVal
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.repository._
 import com.normation.rudder.repository.ldap.LDAPEntityMapper
@@ -59,7 +58,7 @@ import scala.collection.mutable.Buffer
 import net.liftweb.common._
 import Box._
 import net.liftweb.util.Helpers._
-import com.normation.cfclerk.domain.{Cf3PolicyDraftId,TechniqueId}
+import com.normation.cfclerk.domain.TechniqueId
 import org.joda.time.DateTime
 import org.slf4j.LoggerFactory
 import com.normation.eventlog.EventActor
@@ -71,6 +70,8 @@ import com.normation.eventlog.ModificationId
 import java.net.InetAddress
 import org.apache.commons.net.util.SubnetUtils
 import com.normation.rudder.domain.eventlog._
+import com.normation.rudder.reports._
+import com.normation.rudder.repository.EventLogRepository
 
 /**
  * A trait to manage the acceptation of new node in Rudder
@@ -129,6 +130,7 @@ class NewNodeManagerImpl(
   , val inventoryHistoryLogRepository : InventoryHistoryLogRepository
   , val eventLogRepository : EventLogRepository
   , override val updateDynamicGroups : UpdateDynamicGroups
+  , val cacheToClear: List[CachedRepository]
 ) extends NewNodeManager with ListNewNode with ComposedNewNodeManager
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,6 +227,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def eventLogRepository : EventLogRepository
 
   def updateDynamicGroups : UpdateDynamicGroups
+
+  def cacheToClear: List[CachedRepository]
 
   ////////////////////////////////////////////////////////////////////////////////////
   ////////////////////////////////////// Refuse //////////////////////////////////////
@@ -452,7 +456,8 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       }
     }) match {
       case Full(seq) => //ok, cool
-        logger.debug("Accepted inventories: %s".format(sm.node.main.id.value))
+        logger.info(s"New node accepted and managed by Rudder: ${id.value}")
+        cacheToClear.foreach { _.clearCache }
         updateDynamicGroups.startManualUpdate
         acceptationResults
       case e:EmptyBox => //on an error here, rollback all accpeted
@@ -669,7 +674,18 @@ class AcceptFullInventoryInNodeOu(
     //TODO: that can not handle relay server
     val isPolicyServer = sm.node.main.id == sm.node.main.policyServerId
 
-    val node = Node(sm.node.main.id, name, description, false, false, isPolicyServer)
+    val node = Node(
+        sm.node.main.id
+      , name
+      , description
+      , false
+      , false
+      , isPolicyServer
+      , DateTime.now // won't be used on save - dummy value
+      , ReportingConfiguration(None,None) // use global schedule
+      , Seq() //no user properties for now
+    )
+
     val entry = ldapEntityMapper.nodeToEntry(node)
     for {
       con <- ldap

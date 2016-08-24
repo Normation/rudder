@@ -307,10 +307,11 @@ case object LongComparator extends CriterionType {
 
 case object MemoryComparator extends CriterionType {
   override val comparators = OrderedComparators.comparators
-  override protected def validateSubCase(v:String,comparator:CriterionComparator) =  try {
+  override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(MemorySize.parse(v).isDefined) Full(v)
     else Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
   }
+
   override def toLDAP(v:String) = MemorySize.parse(v) match {
     case Some(m) => Full(m.toString)
     case None => Failure("Invalid memory size : '%s', expecting '300 Mo', '16KB', etc".format(v))
@@ -318,7 +319,7 @@ case object MemoryComparator extends CriterionType {
 }
 
 case object OstypeComparator extends CriterionType {
-  val osTypes = List("Linux","Windows","Solaris", "AIX")
+  val osTypes = List("AIX", "BSD", "Linux", "Solaris", "Windows")
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
@@ -331,6 +332,7 @@ case object OstypeComparator extends CriterionType {
       case "Linux"   => OC_LINUX_NODE
       case "Solaris" => OC_SOLARIS_NODE
       case "AIX"     => OC_AIX_NODE
+      case "BSD"     => OC_BSD_NODE
       case _         => OC_UNIX_NODE
     }
     comparator match {
@@ -353,7 +355,12 @@ case object OstypeComparator extends CriterionType {
 case object OsNameComparator extends CriterionType {
   import net.liftweb.http.S
 
-  val osNames = SolarisOS :: AixOS :: LinuxType.allKnownTypes ::: WindowsType.allKnownTypes
+  val osNames = AixOS ::
+                BsdType.allKnownTypes.sortBy { _.name } :::
+                LinuxType.allKnownTypes.sortBy { _.name } :::
+                (SolarisOS :: Nil) :::
+                WindowsType.allKnownTypes
+
   override def comparators = Seq(Equals, NotEquals)
   override protected def validateSubCase(v:String,comparator:CriterionComparator) = {
     if(null == v || v.length == 0) Failure("Empty string not allowed") else Full(v)
@@ -369,9 +376,19 @@ case object OsNameComparator extends CriterionType {
     AND(EQ(A_OC,OC_NODE),osName)
   }
 
+  private[this] def distribName(x: OsType): String = {
+    x match {
+      //add linux: for linux
+      case _: LinuxType   => "Linux - " + S.?("os.name."+x.name)
+      case _: BsdType     => "BSD - " + S.?("os.name."+x.name)
+      //nothing special for windows, Aix and Solaris
+      case _              => S.?("os.name."+x.name)
+    }
+  }
+
   override def toForm(value: String, func: String => Any, attrs: (String, String)*) : Elem =
     SHtml.select(
-      (osNames map (e => (e.name,S.?("os.name."+e.name)))).toSeq,
+      osNames.map(e => (e.name,distribName(e))).toSeq,
       {osNames.find(x => x.name == value).map( _.name)},
       func,
       attrs:_*
@@ -532,6 +549,16 @@ object CriterionComposition {
 
 sealed trait QueryReturnType {
   def value : String
+}
+
+case object QueryReturnType {
+  def apply(value : String) = {
+    value match {
+      case NodeReturnType.value => Full(NodeReturnType)
+      case NodeAndPolicyServerReturnType.value => Full(NodeAndPolicyServerReturnType)
+      case _ => Failure(s"Query return type '${value}' is not valid")
+    }
+  }
 }
 case object NodeReturnType extends QueryReturnType{
   override val value = "node"

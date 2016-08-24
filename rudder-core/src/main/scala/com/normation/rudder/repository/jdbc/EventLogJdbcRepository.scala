@@ -42,7 +42,6 @@ import org.joda.time.DateTime
 import org.slf4j.{Logger,LoggerFactory}
 import com.normation.eventlog._
 import com.normation.rudder.domain.eventlog._
-import com.normation.cfclerk.domain.Cf3PolicyDraftId
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core._
 import java.sql.ResultSet
@@ -333,6 +332,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
 
   private[this] val logFilters =
         WorkflowStepChanged ::
+        NodeEventLogsFilter.eventList :::
         AssetsEventLogsFilter.eventList :::
         RuleEventLogsFilter.eventList :::
         GenericEventLogsFilter.eventList :::
@@ -345,7 +345,8 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         APIAccountEventLogsFilter.eventList :::
         ChangeRequestLogsFilter.eventList :::
         TechniqueEventLogsFilter.eventList :::
-        ParameterEventsLogsFilter.eventList
+        ParameterEventsLogsFilter.eventList :::
+        ModifyGlobalPropertyEventLogsFilter.eventList
 
 
   private[this] def mapEventLog(

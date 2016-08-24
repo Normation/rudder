@@ -1,4 +1,4 @@
-<lift:surround with="menu/menu-administration" at="content">
+<lift:surround with="common-layout" at="content">
 
 <head>
   <title>Rudder - Reports database</title>
@@ -21,25 +21,10 @@
 </head>
 
   <div class="portlet">
-    <div class="portlet-header">Reports database</div>
-    <div class="portlet-content">
-
-      <div class="intro">
-        <div>
-          Rudder stores all reports received from nodes in a database.
-          These reports are used to calculate compliance for Rules applied
-          to Nodes. The database can grow quite large, and keeping older
-          reports is usually useless if you don't need to examine compliance
-          data in the past. This page enables you to archive or delete them to
-          limit disk space usage.
-        </div>
-      </div>
-      <hr class="spacer" />
-
       <div class="lift:administration.DatabaseManagement.display">
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Active reports
+          <div class="page-title">Active reports
           </div>
           <div class="intro">
             <div>
@@ -77,7 +62,7 @@
         </div>
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Archived reports</div>
+          <div class="page-title">Archived reports</div>
             <div class="intro">
               <div>
                 Archived reports are stored in an SQL table without any indexes,
@@ -112,7 +97,7 @@
         </div>
 
     <div class="inner-portlet">
-          <div class="inner-portlet-header">Automatic report cleaning</div>
+          <div class="page-title">Automatic report cleaning</div>
           <div class="inner-portlet-content">
             <div class="intro">
               <div>
@@ -154,7 +139,7 @@
         </div>
 
         <div class="inner-portlet">
-          <div class="inner-portlet-header">Manual report cleaning</div>
+          <div class="page-title">Manual report cleaning</div>
           <div class="inner-portlet-content">
             <div class="intro">
               <div>
@@ -177,7 +162,7 @@
                   <form class="lift:form.ajax">
                     <div>
                     <span id="cleanParam">
-                      <span id="modeSelector"/> all reports older than: <input
+                      <span id="modeSelector"></span> all reports older than: <input
                         id="reportFromDate" value="" />
 
                        <lift:authz role="administration_write">
@@ -187,7 +172,7 @@
                         <span id="confirm"> </span>
                     </div>
                     <lift:Msgs>
-                      <lift:error_msg class="error" />
+                      <lift:error_msg class="error" ></lift:error_msg>
                     </lift:Msgs>
                   </form>
                   <br/>
@@ -203,7 +188,5 @@
         </div>
       </div>
     </div>
-    <br />
-  </div>
 </lift:surround>
 

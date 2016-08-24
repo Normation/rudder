@@ -93,6 +93,7 @@ import com.normation.ldap.ldif.LDIFNoopChangeRecord
 import com.normation.rudder.services.user.PersonIdentService
 import com.normation.eventlog._
 import scala.collection.immutable.SortedMap
+import com.normation.rudder.repository.EventLogRepository
 
 class RoLDAPNodeGroupRepository(
     val rudderDit     : RudderDit

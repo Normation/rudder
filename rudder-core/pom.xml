@@ -37,7 +37,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <parent>
     <groupId>com.normation.rudder</groupId>
     <artifactId>rudder-parent</artifactId>
-    <version>2.11.24-SNAPSHOT</version>
+    <version>3.2.6-SNAPSHOT</version>
   </parent>
 
   <artifactId>rudder-core</artifactId>
@@ -62,20 +62,38 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <dependency>
       <groupId>com.normation</groupId>
-      <artifactId>cfclerk</artifactId>
+      <artifactId>utils</artifactId>
       <version>${rudder-version}</version>
     </dependency>
 
     <dependency>
-      <groupId>com.normation</groupId>
-      <artifactId>eventlog-api</artifactId>
-      <version>${rudder-version}</version>
+      <groupId>org.antlr</groupId>
+      <artifactId>stringtemplate</artifactId>
+      <version>3.2.1</version>
     </dependency>
 
     <dependency>
-      <groupId>postgresql</groupId>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>${commons-io-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>${commons-codec-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.eclipse.jgit</groupId>
+      <artifactId>org.eclipse.jgit</artifactId>
+      <version>${jgit-version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
-      <version>9.1-901.jdbc4</version>
+      <version>9.3-1101-jdbc4</version>
       <scope>runtime</scope>
     </dependency>
 
@@ -86,9 +104,29 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
-      <groupId>commons-dbcp</groupId>
-      <artifactId>commons-dbcp</artifactId>
-      <version>1.4</version>
+      <groupId>com.typesafe.slick</groupId>
+      <artifactId>slick_${scala-binary-version}</artifactId>
+      <version>2.1.0</version>
+    </dependency>
+    <!-- slick postgresql support:  https://github.com/tminglei/slick-pg -->
+    <dependency>
+      <groupId>com.github.tminglei</groupId>
+      <artifactId>slick-pg_${scala-binary-version}</artifactId>
+      <version>0.6.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tminglei</groupId>
+      <artifactId>slick-pg_joda-time_${scala-binary-version}</artifactId>
+      <version>0.6.3</version>
+    </dependency>
+
+    <!-- pool connection: https://github.com/wwadge/bonecp/blob/master/bonecp/src/main/javadoc/overview.html -->
+    <!-- We can't use HikariCP as it has different binaries for java6/7 and java8 -->
+    <!-- http://blog.trustiv.co.uk/2014/06/battle-connection-pools -->
+    <dependency>
+      <groupId>com.jolbox</groupId>
+      <artifactId>bonecp</artifactId>
+      <version>0.8.0.RELEASE</version>
     </dependency>
 
     <dependency>
@@ -113,6 +151,5 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>lift-json-ext_${scala-binary-version}</artifactId>
       <version>${lift-version}</version>
     </dependency>
-
   </dependencies>
 </project>

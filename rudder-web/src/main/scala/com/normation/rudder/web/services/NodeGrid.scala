@@ -63,6 +63,7 @@ import com.normation.exceptions.TechnicalException
 import net.liftweb.http.Templates
 import com.normation.rudder.domain.servers.Srv
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.services.nodes.NodeInfoService
 
 object NodeGrid {
   val logger = LoggerFactory.getLogger(classOf[NodeGrid])
@@ -83,7 +84,10 @@ case class JsonArg(jsid:String, id:String, status:String) extends HashcodeCachin
  *   of head() in the calling template head
  * - call the display(servers) method
  */
-class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
+class NodeGrid(
+    getNodeAndMachine: LDAPFullInventoryRepository
+  , nodeInfoService  : NodeInfoService
+) extends Loggable {
 
   private def templatePath = List("templates-hidden", "server_grid")
   private def template() =  Templates(templatePath) match {
@@ -93,12 +97,6 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
   }
 
   private def tableTemplate = chooseTemplate("servergrid","table",template)
-
-  /*
-   * All JS/CSS needed to have datatable working
-   */
-  def head() : NodeSeq = DisplayNode.head
-
 
   def displayAndInit(
       servers:Seq[Srv],
@@ -120,14 +118,14 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    */
   def initJs(tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="", searchable : Boolean, paginate : Boolean) : JsCmd = {
 
-    JsRaw("""
-        var #table_var#;
+    JsRaw(s"""
+        var ${jsVarNameForId(tableId)};
         /* Formating function for row details */
         function fnFormatDetails ( id ) {
           var sOut = '<span id="'+id+'" class="sgridbph"/>';
           return sOut;
         }
-      """.replaceAll("#table_var#",jsVarNameForId(tableId))
+      """
     ) & OnLoad(
 
         JsRaw(s"""
@@ -172,31 +170,32 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
    * initialization.
    */
   def initJsCallBack(tableId:String) : JsCmd = {
-      JsRaw("""$( #table_var#.fnGetNodes() ).each( function () {
-          $(this).click( function (event) {
+      JsRaw(s"""$$( ${jsVarNameForId(tableId)}.fnGetNodes() ).each( function () {
+
+            console.log(this)
+          $$(this).click( function (event) {
+            console.log(this)
             var source = event.target || event.srcElement;
             event.stopPropagation();
-            if(!( $(source).is("button") || $(source).is("input") )){
-              var opened = $(this).prop("open");
+            if(!( $$(source).is("button") || $$(source).is("input") )){
+              var opened = $$(this).prop("open");
               if (opened && opened.match("opened")) {
-                $(this).prop("open", "closed");
-                $(this).find("span.listclose").removeClass("listclose").addClass("listopen");
-                #table_var#.fnClose(this);
+                $$(this).prop("open", "closed");
+                $$(this).find("span.listclose").removeClass("listclose").addClass("listopen");
+                ${jsVarNameForId(tableId)}.fnClose(this);
               } else {
-                $(this).prop("open", "opened");
-                $(this).find("span.listopen").removeClass("listopen").addClass("listclose");
-                var jsid = $(this).attr("jsuuid");
-                var node = $(this).attr("nodeid");
-                var ajaxParam = JSON.stringify({"jsid":jsid , "id":$(this).attr("nodeid") , "status":$(this).attr("nodeStatus")});
-                #table_var#.fnOpen( this, fnFormatDetails(jsid), 'details' );
-                %s;
+                $$(this).prop("open", "opened");
+                $$(this).find("span.listopen").removeClass("listopen").addClass("listclose");
+                var jsid = $$(this).attr("jsuuid");
+                var node = $$(this).attr("nodeid");
+                var ajaxParam = JSON.stringify({"jsid":jsid , "id":$$(this).attr("nodeid") , "status":$$(this).attr("nodeStatus")});
+                ${jsVarNameForId(tableId)}.fnOpen( this, fnFormatDetails(jsid), 'details' );
+                ${SHtml.ajaxCall(JsVar("ajaxParam"), details _)._2.toJsCmd}
               }
             }
           } );
         } )
-      """.format(
-          SHtml.ajaxCall(JsVar("ajaxParam"), details _)._2.toJsCmd).replaceAll("#table_var#",
-              jsVarNameForId(tableId))
+      """
      )
   }
 
@@ -217,21 +216,25 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
 
   def display(servers:Seq[Srv], tableId:String, columns:Seq[(Node,Srv => NodeSeq)]=Seq(), aoColumns:String ="") : NodeSeq = {
     //bind the table
-    <table id={tableId} class="fixedlayout" cellspacing="0">{
-    bind("servergrid",tableTemplate,
-      "header" -> (columns flatMap { c => <th>{c._1}<span/></th> }),
-      "lines" -> ( servers.flatMap { case s@Srv(id,status, hostname,ostype,osname,osFullName,ips,creationDate, _, _) =>
-        //build all table lines
-        (".hostname *" #> {(if(isEmpty(hostname)) "(Missing host name) " + id.value else hostname)} &
-         ".fullos *" #> osFullName &
-         ".ips *" #> ( (ips.flatMap{ ip => <div class="ip">{ip}</div> }):NodeSeq ) & // TODO : enhance this
-         ".other" #> ( (columns flatMap { c => <td style="overflow:hidden">{c._2(s)}</td> }):NodeSeq ) &
-         ".nodetr [jsuuid]" #> {id.value.replaceAll("-","")} &
-         ".nodetr [nodeid]" #> {id.value} &
-         ".nodetr [nodestatus]" #> {status.name}
+    val headers : NodeSeq = columns flatMap { c => <th>{c._1}</th> }
+
+    def serverLine (server: Srv) : NodeSeq = {
+        (".hostname *" #> {(if(isEmpty(server.hostname)) "(Missing host name) " + server.id.value else server.hostname)} &
+         ".fullos *" #> server.osFullName &
+         ".ips *" #> ( (server.ips.flatMap{ ip => <div class="ip">{ip}</div> }):NodeSeq ) & // TODO : enhance this
+         ".other" #> ( (columns flatMap { c => <td style="overflow:hidden">{c._2(server)}</td> }):NodeSeq ) &
+         ".nodetr [jsuuid]" #> {server.id.value.replaceAll("-","")} &
+         ".nodetr [nodeid]" #> {server.id.value} &
+         ".nodetr [nodestatus]" #> {server.status.name}
          )(datatableXml)
-      })
-    )}</table>
+    }
+
+    val lines : NodeSeq = servers.flatMap{serverLine _}
+
+    ( "table [id]" #> tableId &
+      "#header *+" #> headers &
+      "#lines *" #> lines
+    ).apply(tableTemplate)
   }
   private[this] val datatableXml = {
     <tr class="nodetr curspoint" jsuuid="id" nodeid="nodeid" nodestatus="status">
@@ -252,13 +255,16 @@ class NodeGrid(getNodeAndMachine:LDAPFullInventoryRepository) extends Loggable {
     implicit val formats = DefaultFormats
 
     ( for {
-      json <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
-      arg <- tryo(json.extract[JsonArg])
+      json   <- tryo(parse(jsonArg)) ?~! "Error when trying to parse argument for node"
+      arg    <- tryo(json.extract[JsonArg])
       status : InventoryStatus <- Box(InventoryStatus(arg.status))
-      sm <- getNodeAndMachine.get(NodeId(arg.id),status)
-    } yield (sm,arg.jsid, status) ) match {
-      case Full((sm,jsid,status)) =>
-        SetHtml(jsid, DisplayNode.showPannedContent(sm, status)) &
+      nodeId =  NodeId(arg.id)
+      sm     <- getNodeAndMachine.get(nodeId, status)
+    } yield (nodeId, sm, arg.jsid, status) ) match {
+      case Full((nodeId, sm, jsid, status)) =>
+        // Node may not be available, so we look for it outside the for comprehension
+        val node = nodeInfoService.getNodeInfo(nodeId).openOr(None)
+        SetHtml(jsid, DisplayNode.showPannedContent(node, sm, status)) &
         DisplayNode.jsInit(sm.node.main.id, sm.node.softwareIds, "")
       case e:EmptyBox =>
         logger.debug((e ?~! "error").messageChain)

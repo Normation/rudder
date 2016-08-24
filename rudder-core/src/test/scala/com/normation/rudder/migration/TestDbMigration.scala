@@ -37,32 +37,15 @@
 
 package com.normation.rudder.migration
 
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
-import java.sql.Driver
-import java.sql.DriverManager
-import java.io.FileInputStream
-import java.util.Properties
-import java.sql.Connection
-import java.sql.ResultSet
-import Migration_2_DATA_Other._
-import Migration_2_DATA_Group._
-import Migration_2_DATA_Directive._
-import Migration_2_DATA_Rule._
-import net.liftweb.common._
-import net.liftweb.util.Helpers
+import scala.collection.JavaConverters.asScalaBufferConverter
+
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
-import org.apache.commons.dbcp.BasicDataSource
-import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.jdbc.core.RowMapper
-import scala.xml.XML
-import scala.collection.JavaConverters._
-import scala.xml.Elem
-import org.specs2.specification.Fragments
-import org.specs2.specification.Step
-import java.sql.Timestamp
 import org.specs2.matcher.XmlMatchers
+import org.specs2.runner.JUnitRunner
+
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 case class MigEx102(msg:String) extends Exception(msg)
 
@@ -92,9 +75,8 @@ class TestDbMigration_2_3 extends DBCommon with XmlMatchers {
     override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
   }
 
-  val sqlClean = "" //no need to clean temp data table.
 
-  val sqlInit = """
+  override val sqlInit = """
 CREATE TEMP SEQUENCE eventLogIdSeq START 1;
 
 CREATE TEMP TABLE EventLog (
@@ -217,9 +199,7 @@ class TestDbMigration_2_3b extends DBCommon with XmlMatchers {
         , Seq(migration)
   )
 
-  val sqlClean = "" //no need to clean temp data table.
-
-  val sqlInit = """
+  override val sqlInit = """
 CREATE TEMP SEQUENCE eventLogIdSeq START 1;
 
 CREATE TEMP TABLE EventLog (

@@ -43,7 +43,8 @@ import org.joda.time.DateTime
 import org.springframework.jdbc.core.JdbcTemplate
 import net.liftweb.common.Loggable
 import com.normation.rudder.repository.ReportsRepository
-import com.normation.rudder.repository.RuleExpectedReportsRepository
+import com.normation.rudder.repository.UpdateExpectedReportsRepository
+import com.normation.utils.Control
 
 trait DatabaseManager {
 
@@ -81,8 +82,8 @@ trait DatabaseManager {
 }
 
 class DatabaseManagerImpl(
-    reportsRepository             : ReportsRepository
-  , ruleExpectedReportsRepository : RuleExpectedReportsRepository
+    reportsRepository   : ReportsRepository
+  , expectedReportsRepo : UpdateExpectedReportsRepository
   )  extends DatabaseManager with  Loggable {
 
   def getReportsInterval() : Box[(Option[DateTime], Option[DateTime])] = {
@@ -127,14 +128,14 @@ class DatabaseManagerImpl(
      reportsRepository.archiveEntries(date)
    }
 
-   def deleteEntries(date : DateTime) = {
-     // If the deletion of expected report fails, don't fail
-     // but log it and complain loudly
-     ruleExpectedReportsRepository.deleteExpectedReports(date) match {
-       case Full(_) => // nothing
-       case Empty => logger.error("Failed to delete expected reports, no reason given")
-       case f: Failure => logger.error(s"Failed to delete expected reports, cause is ${f.messageChain}")
-     }
-     reportsRepository.deleteEntries(date)
+
+   def deleteEntries(date : DateTime) : Box[Int] = {
+     val reports = reportsRepository.deleteEntries(date) ?~! "An error occured while deleting reports"
+     val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date) ?~! "An error occured while deleting reports"
+     val expectedReports = expectedReportsRepo.deleteExpectedReports(date) ?~! "An error occured while old expected reports"
+
+     // Accumulate errors, them sum values
+     (Control.bestEffort(Seq(reports, nodeConfigs, expectedReports)) (identity)).map(_.sum)
+
    }
 }

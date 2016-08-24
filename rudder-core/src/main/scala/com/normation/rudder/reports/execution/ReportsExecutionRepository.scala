@@ -40,7 +40,8 @@ package com.normation.rudder.reports.execution
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import org.joda.time.DateTime
-
+import com.normation.rudder.repository.CachedRepository
+import com.normation.rudder.domain.logger.ReportLogger
 
 /**
  * Service for reading or storing execution of Nodes
@@ -48,33 +49,90 @@ import org.joda.time.DateTime
 trait RoReportsExecutionRepository {
 
   /**
-   * Returns all executions (complete or not) for a specific Node, over all the time
-   * Caution, it can get large !
+   * Find the last execution of nodes, whatever is its state.
+   * Last execution is defined as "the last executions that have been inserted in the database",
+   * and do not rely on date (which can change too often)
+   * The goal is to have reporting that does not depend on time, as node may have time in the future, or
+   * past, or even change during their lifetime
+   * So the last run are the last run inserted in the reports database
+   * See ticket http://www.rudder-project.org/redmine/issues/6005
    */
-  def getExecutionByNode (nodeId : NodeId) : Box[Seq[ReportExecution]]
-
-  /**
-   * Returns all execution for a specific node, at a specific time
-   */
-  def getExecutionByNodeAndDate (nodeId : NodeId, date: DateTime) : Box[Option[ReportExecution]]
-
-  def getNodeLastExecution (nodeId : NodeId) : Box[Option[ReportExecution]]
-
-  /**
-   * From a seq of found executions in RudderSysEvents, find in the existing executions matching
-   */
-  def getExecutionsByNodeAndDate (executions: Seq[ReportExecution]) : Box[Seq[ReportExecution]]
-
+  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]]
 }
 
 
 trait WoReportsExecutionRepository {
 
   /**
-   * From a list of nodes execution fetch from the ruddersysevent table, create or update
-   * the list of execution in the execution tables
+   * Create or update the list of execution in the execution tables
+   * Only return execution which where actually changed in backend
+   *
+   * The logic is:
+   * - a new execution (not present in backend) is inserted as provided
+   * - a existing execution can only change the completion status from
+   *   "not completed" to "completed" (i.e: a completed execution can
+   *   not be un-completed).
    */
-  def updateExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
+  def updateExecutions(executions : Seq[AgentRun]) : Box[Seq[AgentRun]]
 
-  def closeExecutions (executions : Seq[ReportExecution]) : Box[Seq[ReportExecution]]
+}
+
+/**
+ * A cached version of the service that only look in the underlying data (expected to
+ * be slow) when no cache available.
+ */
+class CachedReportsExecutionRepository(
+    readBackend : RoReportsExecutionRepository
+  , writeBackend: WoReportsExecutionRepository
+) extends RoReportsExecutionRepository with WoReportsExecutionRepository with CachedRepository {
+
+  val logger = ReportLogger
+
+  /*
+   * We need to synchronise on cache to avoid the case:
+   * - initial state: RUNS_0 in backend
+   * - write RUNS_1 (cache => None) : ok, only write in backend
+   * [interrupt before actual write]
+   * - read: cache = None => update cache with RUNS_0
+   * - cache = RUNS_0
+   * [resume write]
+   * - write in backend RUNS_1
+   *
+   * => cache will never ses RUNS_1 before a clear.
+   */
+
+  /*
+   * The cache is managed node by node, i.e it can be initialized
+   * for certain and not for other.
+   * The initialization criteria (and so, the fact that the cache
+   * can be used for a given node) is given by the presence of the
+   * nodeid in map's keys.
+   */
+  private[this] var cache = Map[NodeId, Option[AgentRun]]()
+
+
+  override def clearCache(): Unit = this.synchronized {
+    cache = Map()
+  }
+
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]] = this.synchronized {
+    for {
+      runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+    } yield {
+      cache = cache ++ runs
+      cache.filterKeys { x => nodeIds.contains(x) }
+    }
+  }
+
+  override def updateExecutions(executions : Seq[AgentRun]) : Box[Seq[AgentRun]] = this.synchronized {
+    logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
+    for {
+      runs <- writeBackend.updateExecutions(executions)
+    } yield {
+      val complete = runs.filter( _.isCompleted )
+      logger.debug(s"Updating agent runs cache: [${complete.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
+      cache = cache ++ complete.map(x => (x.agentRunId.nodeId, Some(x))).toMap
+      runs
+    }
+  }
 }

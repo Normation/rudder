@@ -37,15 +37,14 @@
 
 package com.normation.rudder.services.policies
 
-import org.junit.runner._
-import org.specs2.runner._
-import org.specs2.mutable._
-import net.liftweb.common._
-import org.specs2.specification.Example
-import org.specs2.execute.Pending
-import org.specs2.matcher.Matchers._
+import org.junit.runner.RunWith
+import net.liftweb.common.Full
+import org.specs2.mutable.Specification
+import net.liftweb.common.Failure
+import org.specs2.runner.JUnitRunner
+
 /**
- * Test Node scheudle computation
+ * Test Node schedule computation
  */
 
 

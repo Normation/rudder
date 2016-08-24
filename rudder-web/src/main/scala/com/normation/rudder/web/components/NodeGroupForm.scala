@@ -55,7 +55,6 @@ import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.rudder.web.model.CurrentUser
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import com.normation.utils.HashcodeCaching
-
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.js._
 import JsCmds._
@@ -65,8 +64,8 @@ import net.liftweb.http._
 import scala.xml._
 import net.liftweb.util.Helpers
 import net.liftweb.util.Helpers._
-
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.domain.policies.RuleTarget
 
 object NodeGroupForm {
   private[this] val templatePathList = "templates-hidden" :: "components" :: "NodeGroupForm" :: Nil
@@ -78,8 +77,8 @@ object NodeGroupForm {
     xml
   }
 
-  val staticInit = chooseXml("staticInit")
-  val staticBody = chooseXml("staticBody")
+  val staticInit = chooseXml("staticinit")
+  val staticBody = chooseXml("staticbody")
   val body = chooseXml("body")
 
   private val saveButtonId = "groupSaveButtonId"
@@ -94,7 +93,6 @@ object NodeGroupForm {
   val htmlId_updateContainerForm = "updateContainerForm"
 }
 
-
 /**
  * The form that deals with updating the server group
  */
@@ -104,7 +102,7 @@ class NodeGroupForm(
   , parentCategoryId  : NodeGroupCategoryId
   , rootCategory      : FullNodeGroupCategory
   , workflowEnabled   : Boolean
-  , onSuccessCallback : (Either[NodeGroup, ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
+  , onSuccessCallback : (Either[(NodeGroup, NodeGroupCategoryId), ChangeRequestId]) => JsCmd = { (NodeGroup) => Noop }
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with SpringExtendableSnippet[NodeGroupForm] with Loggable {
   import NodeGroupForm._
@@ -119,29 +117,24 @@ class NodeGroupForm(
   private[this] var query : Option[Query] = nodeGroup.query
   private[this] var srvList : Box[Seq[NodeInfo]] = nodeInfoService.getAll.map( _.values.filter( (x:NodeInfo) => nodeGroup.serverList.contains( x.id ) ).toSeq )
 
-  private def setNodeGroupCategoryForm : Unit = {
+  private def setSearchNodeComponent : Unit = {
     searchNodeComponent.set(Full(new SearchNodeComponent(
         htmlIdCategory
       , query
       , srvList
       , onSearchCallback = saveButtonCallBack
-      , onClickCallback  = Some({ id => onClickCallBack(id) })
+      , onClickCallback  = None
       , saveButtonId     = saveButtonId
       , groupPage        = false
     )))
   }
 
-  private[this] def saveButtonCallBack(searchStatus : Boolean) : JsCmd = {
+  private[this] def saveButtonCallBack(searchStatus : Boolean, query: Option[Query]) : JsCmd = {
     JsRaw(s"""$$('#${saveButtonId}').button();
         $$('#${saveButtonId}').button("option", "disabled", ${searchStatus});""")
   }
 
-  private[this] def onClickCallBack(nodeId:String) : JsCmd = {
-    SetHtml("serverDetails", (new ShowNodeDetailsFromNode(new NodeId(nodeId), rootCategory)).display(true)) &
-    createPopup("nodeDetailsPopup")
-  }
-
-  setNodeGroupCategoryForm
+  setSearchNodeComponent
 
   def extendsAt = SnippetExtensionKey(classOf[NodeGroupForm].getSimpleName)
 
@@ -156,7 +149,6 @@ class NodeGroupForm(
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-
 
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
@@ -180,13 +172,21 @@ class NodeGroupForm(
      )
 
      bind("group", html,
-      "pendingChangeRequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
+      "pendingchangerequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
       "name" -> groupName.toForm_!,
-      "rudderID" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
+      "rudderid" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
+      "cfeclasses" -> <div>
+											  <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300); return false;"}>
+												<b class="threeCol">Display CFEngine classes</b>
+												</a>
+											  <span class="twoCol" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
+											    {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
+											    {RuleTarget.toCFEngineClassName(nodeGroup.name)}
+											  </span></div>,
       "description" -> groupDescription.toForm_!,
       "container" -> groupContainer.toForm_!,
       "static" -> groupStatic.toForm_!,
-      "showGroup" -> (searchNodeComponent.is match {
+      "showgroup" -> (searchNodeComponent.is match {
                        case Full(req) => req.buildQuery
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       }),
@@ -195,15 +195,15 @@ class NodeGroupForm(
                    else NodeSeq.Empty
                  },
       "save" -> { if (CurrentUser.checkRights(Edit("group")))
-                    SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+                    <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
+                      SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+                    } </div>
                    else NodeSeq.Empty
                 },
-      "delete" -> SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"dangerButton")),
+      "delete" -> SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class" ,"dangerButton")),
       "notifications" -> updateAndDisplayNotifications()
     )
    }
-
-
 
   ///////////// fields for category settings ///////////////////
   private[this] val groupName = {
@@ -257,7 +257,7 @@ class NodeGroupForm(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
-    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification");""")
+    updateFormClientSide() & JsRaw("""scrollToElement("errorNotification","#groupDetails");""")
   }
 
   private[this] def onSubmit() : JsCmd = {
@@ -318,7 +318,8 @@ class NodeGroupForm(
       def successCallback(crId:ChangeRequestId) = if (workflowEnabled) {
         onSuccessCallback(Right(crId))
       } else {
-        successPopup & onSuccessCallback(Left(newGroup)) &
+        val updateCategory = newCategory.getOrElse(parentCategoryId)
+        successPopup & onSuccessCallback(Left((newGroup,updateCategory))) &
         (if (action==ModificationValidationPopup.Delete)
            SetHtml(htmlId_item,NodeSeq.Empty)
         else
@@ -344,7 +345,6 @@ class NodeGroupForm(
     }
   }
 
-
   def createPopup(name:String) :JsCmd = {
     JsRaw(s"""createPopup("${name}");""")
   }
@@ -354,7 +354,6 @@ class NodeGroupForm(
                 Some(nodeGroup)
               , onSuccessCategory = displayACategory
               , onSuccessGroup = showGroupSection
-              , onSuccessCallback = (String) => onSuccessCallback(Left(nodeGroup))
             )))
     val nodeSeqPopup = popupSnippet.is match {
       case Failure(m, _, _) =>  <span class="error">Error: {m}</span>
@@ -392,7 +391,7 @@ class NodeGroupForm(
 
   private[this] def showGroupSection(group: NodeGroup, parentCategoryId: NodeGroupCategoryId) : JsCmd = {
     //update UI
-    refreshRightPanel(GroupForm(group, parentCategoryId))&
+    onSuccessCallback(Left(group, parentCategoryId))&
     JsRaw("""this.window.location.hash = "#" + JSON.stringify({'groupId':'%s'})""".format(group.id.value))
   }
 

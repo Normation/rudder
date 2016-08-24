@@ -91,14 +91,14 @@ object TechniqueEditForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "popupRemoveForm", xml)
+      chooseTemplate("component", "popupremoveform", xml)
     }) openOr Nil
 
   private def popupDisactivateForm =
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentTechniqueEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "popupDisactivateForm", xml)
+      chooseTemplate("component", "popupdisableform", xml)
     }) openOr Nil
 
   private def crForm =
@@ -131,7 +131,6 @@ class TechniqueEditForm(
 ) extends DispatchSnippet with Loggable {
   import TechniqueEditForm._
 
-
   //find Technique
   private[this] val techniqueRepository         = RudderConfig.techniqueRepository
   private[this] val roActiveTechniqueRepository = RudderConfig.roDirectiveRepository
@@ -143,16 +142,15 @@ class TechniqueEditForm(
   private[this] val asyncDeploymentAgent        = RudderConfig.asyncDeploymentAgent
   private[this] val userPropertyService         = RudderConfig.userPropertyService
 
-
-
-//  private[this] val directives = directiveRepository.getAll() match {
-//    case Full(seq) => seq
-//    case Empty => throw new ComponentInitializationException(Failure("Error while getting the list of available Directives"))
-//    case f:Failure => throw new ComponentInitializationException(f)
-//  }
-
-
-  private[this] var currentActiveTechnique: Box[ActiveTechnique] =  Box(activeTechnique).or(Box(technique).flatMap(t => roActiveTechniqueRepository.getActiveTechnique(t.id.name)))
+  private[this] var currentActiveTechnique: Box[ActiveTechnique] =  Box(activeTechnique).or {
+    for {
+      tech <- Box(technique)
+      optActiveTech <- roActiveTechniqueRepository.getActiveTechnique(tech.id.name)
+      activeTech <- optActiveTech
+    } yield {
+      activeTech
+    }
+  }
   private[this] var uptCurrentStatusIsActivated = currentActiveTechnique.map( _.isEnabled)
 
   currentActiveTechnique match {
@@ -163,7 +161,6 @@ class TechniqueEditForm(
       }
     case _ => //
   }
-
 
   //////////////////////////// public methods ////////////////////////////
 
@@ -304,14 +301,13 @@ class TechniqueEditForm(
     }
   }
 
-
   def buildReasonField(mandatory:Boolean, containerClass:String = "twoCol") = {
     new WBTextAreaField("Message", "") {
       override def setFilter = notNull _ :: trim _ :: Nil
       override def inputField = super.inputField  %
         ("style" -> "height:8em;")
       override def subContainerClassName = containerClass
-      override def validations() = {
+      override def validations = {
         if(mandatory){
           valMinLen(5, "The reason must have at least 5 characters.") _ :: Nil
         } else {
@@ -450,7 +446,6 @@ class TechniqueEditForm(
     }
   }
 
-
   private[this] def dialogDisableWarning(activeTechnique:ActiveTechnique) : NodeSeq = {
     if(activeTechnique.isEnabled) {
       <h2>Disabling this Technique will also affect the following Directives and Rules.</h2>
@@ -464,9 +459,7 @@ class TechniqueEditForm(
     (new TechniqueTree(htmlId,activeTechnique.id,switchFilterStatus)).tree
   }
 
-
   /////////////////////////////////////////////////////////////////////////
-
 
   def showReferenceLibBreadcrump(technique:Technique) : NodeSeq = {
     <ul class="inlinenotop">{findBreadCrump(technique).map { cat =>
@@ -548,50 +541,6 @@ class TechniqueEditForm(
   }
 
   /**
-   * Display details about a Technique.
-   * A Technique is in the context of a reference library (it's an error if the Directive
-   * template is not in it) and an user Library (it may not be in it)
-   */
-//  private def showTechnique(
-//      technique : Technique,
-//      referenceLib:TechniqueCategory,
-//      userLib:ActiveTechniqueCategory
-//  ) : NodeSeq = {
-//    <div id={htmlId_techniqueConf} class="object-details">
-//    <h3>{technique.name}</h3>
-//    <h4>{technique.description}</h4>
-//    <p>{technique.longDescription}</p>
-//
-//    <fieldset><legend>Category</legend>
-//      <div>Reference category: <a href="#" onclick="alert('TODO:goto node in tree');return false">
-//        <ul class="inline">{findBreadCrump(technique).map { cat =>
-//          <li class="inlineml">&#187; {cat.name}</li> } }
-//        </ul>
-//      </a></div>
-//      <lift:configuration.TechniqueLibraryManagement.showTechniqueUserCategory />
-//    </fieldset>
-//
-//    <fieldset><legend>Parameters</legend>
-//    {
-//      directiveEditorService.get(technique.id, DirectiveId("just-for-read-only")) match {
-//        case Full(pe) => pe.toHtml
-//        case _ => <span class="error">TODO</span>
-//      }
-//
-//    }
-//    </fieldset>
-//
-//    <span>{<input type="checkbox" name="Single" disabled="disabled" /> % {if(technique.isMultiInstance) Null else ("checked" -> "checked") } }
-//      Single</span>
-//
-//    <fieldset><legend>Actions</legend>
-//      <input type="submit" value="Delete from user library"/>
-//    </fieldset>
-//    </div>
-//  }
-
-
-  /**
    * Build the breadcrump of categories that leads to given target Technique in the context
    * of given root Technique library.
    * The template must be in the library.
@@ -616,7 +565,7 @@ class TechniqueEditForm(
   private def findUserBreadCrump(target:Technique) : Option[List[ActiveTechniqueCategory]] = {
     //find the potential WBUsreTechnique for given WBTechnique
     ( for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(target.id.name).flatMap(Box(_))
       crump <- roActiveTechniqueRepository.activeTechniqueBreadCrump(activeTechnique.id)
     } yield {
       crump.reverse
@@ -628,18 +577,15 @@ class TechniqueEditForm(
     }
   }
 
-
   /////////////////////////////////////////////////////////////////////////
   /////////////////////////////// Edit form ///////////////////////////////
   /////////////////////////////////////////////////////////////////////////
-
 
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlId_technique, this.showCrForm )
   }
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
-
 
   private[this] def statusAndDeployTechnique(uactiveTechniqueId:ActiveTechniqueId, status:Boolean) : JsCmd = {
     val modId = ModificationId(uuidGen.newUuid)
@@ -676,15 +622,10 @@ class TechniqueEditForm(
     }
   }
 
-
   ///////////// success pop-up ///////////////
     private[this] def successPopup : JsCmd = {
     JsRaw(""" callPopupWithTimeout(200, "successConfirmationDialog")
     """)
   }
 
-
 }
-
-
-

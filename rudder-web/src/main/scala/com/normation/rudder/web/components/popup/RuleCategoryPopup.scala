@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.components.popup
 
-
 import org.slf4j.LoggerFactory
 import net.liftweb.http.LocalSnippet
 import net.liftweb.http.Templates
@@ -85,7 +84,7 @@ class RuleCategoryPopup(
     (for {
       xml <- Templates(path)
     } yield {
-      chooseTemplate("component", "creationPopup", xml)
+      chooseTemplate("component", "creationpopup", xml)
     }) openOr {
       logger.error("Missing template <component:creationPopup> at path: %s.html".format(path.mkString("/")))
       <div/>
@@ -97,7 +96,7 @@ class RuleCategoryPopup(
     (for {
       xml <- Templates(path)
     } yield {
-      chooseTemplate("component", "deletePopup", xml)
+      chooseTemplate("component", "deletepopup", xml)
     }) openOr {
       logger.error("Missing template <component:creationPopup> at path: %s.html".format(path.mkString("/")))
       <div/>
@@ -142,7 +141,6 @@ class RuleCategoryPopup(
 
     )(html ++ Script(OnLoad(JsRaw("updatePopup();"))))
   }
-
 
   def deletePopupContent(canBeDeleted : Boolean) : NodeSeq = {
     val action = () => if (canBeDeleted)  onSubmitDelete else closePopup
@@ -191,7 +189,6 @@ class RuleCategoryPopup(
   private[this] var notifications = List.empty[NodeSeq]
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
-
 
   private[this] def closePopup() : JsCmd = {
     JsRaw(""" $.modal.close();""")
@@ -273,8 +270,6 @@ class RuleCategoryPopup(
   private[this] def onFailure : JsCmd = {
     updateFormClientSide()
   }
-
-
 
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     notifications :::= formTracker.formErrors

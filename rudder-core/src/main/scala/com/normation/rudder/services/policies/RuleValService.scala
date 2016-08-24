@@ -37,19 +37,20 @@
 
 package com.normation.rudder.services.policies
 
+import com.normation.cfclerk.domain.Variable
+import com.normation.cfclerk.domain.VariableSpec
+import com.normation.cfclerk.exceptions.VariableException
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.Rule
-import net.liftweb.common._
-import com.normation.rudder.domain.policies.DirectiveVal
-import com.normation.cfclerk.domain._
-import com.normation.cfclerk.exceptions._
-import com.normation.utils.Control.sequence
-import com.normation.utils.Control.sequenceEmptyable
+import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.rudder.domain.policies.InterpolationContext
+import com.normation.utils.Control._
+
+import net.liftweb.common.Box
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
+import net.liftweb.common.Loggable
 
 trait RuleValService {
   def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
@@ -147,6 +148,7 @@ class RuleValServiceImpl(
               , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
               , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
+              , BundleOrder(directive.name)
             ))
         }
     }
@@ -163,7 +165,8 @@ class RuleValServiceImpl(
         rule.id,
         targets,
         containers.flatten,
-        rule.serial
+        rule.serial,
+        BundleOrder(rule.name)
       )
     }
   }

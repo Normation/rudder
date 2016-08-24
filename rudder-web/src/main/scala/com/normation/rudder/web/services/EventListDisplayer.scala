@@ -76,6 +76,11 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
+import net.liftweb.json.JString
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 
@@ -95,168 +100,65 @@ class EventListDisplayer(
 ) extends Loggable {
 
   private[this] val xmlPretty = new scala.xml.PrettyPrinter(80, 2)
- // private[this] val gridName = "eventLogsGrid"
- // private[this] val jsGridName = "oTable" + gridName
 
-  def display(events:Seq[EventLog], gridName:String) : NodeSeq  = {
+  private[this] val gridName = "eventLogsGrid"
 
-    (
-      "tbody *" #> ("tr" #> events.map { event =>
-        ".eventLine [jsuuid]" #> Text(gridName + "-" + event.id.getOrElse(0).toString) &
-        ".eventLine [id]" #> event.id.getOrElse(0).toString &
-        ".eventLine [class]" #> {
-          if (event.details != <entry></entry> )
-            Text("curspoint")
-          else
-            NodeSeq.Empty
-        } &
-        ".logId [class]" #> {
-          if (event.details != <entry></entry> )
-            Text("listopen")
-          else
-            Text("listEmpty")
-        } &
-        ".logId *" #> event.id.getOrElse(0).toString &
-        ".logDatetime *" #> DateFormaterService.getFormatedDate(event.creationDate) &
-        ".logActor *" #> event.principal.name &
-        ".logType *" #> S.?("rudder.log.eventType.names." + event.eventType.serialize) &
-        ".logDescription *" #> displayDescription(event)
-      })
-     ).apply(dataTableXml(gridName))
-  }
+  def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {
 
-  def initJs(gridName : String) : JsCmd = {
-    val jsGridName = "oTable" + gridName
-    JsRaw("var %s;".format(jsGridName)) &
-    OnLoad(
-        JsRaw(s"""
-            $$('.restore').button();
-            correctButtons();
-          /* Event handler function */
-          ${jsGridName} = $$('#${gridName}').dataTable({
-            "asStripeClasses": [ 'color1', 'color2' ],
-            "bAutoWidth": false,
-            "bFilter" :true,
-            "bPaginate" :true,
-            "bStateSave": true,
-                    "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_${gridName}', JSON.stringify(oData) );
-                    },
-                    "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_${gridName}') );
-                    },
-            "bLengthChange": true,
-            "sPaginationType": "full_numbers",
-            "bJQueryUI": true,
-            "oLanguage": {
-              "sSearch": ""
-            },
-            "aaSorting":[],
-            "aoColumns": [
-                { "sWidth": "35px" }
-              , { "sWidth": "95px" }
-              , { "sWidth": "35px" }
-              , { "sWidth": "195px" }
-              , { "sWidth": "220px" }
-            ],
-            "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
-          })
-          $$('.dataTables_filter input').attr("placeholder", "Search");
-          """
-        )  &
-        JsRaw("""
-        /* Formating function for row details */
-          function fnFormatDetails(id) {
-            var sOut = '<span id="'+id+'" class="sgridbph"/>';
-            return sOut;
-          };
-
-          $(#table_var#.fnGetNodes() ).each( function () {
-            $(this).click( function () {
-              var jTr = $(this);
-              if (jTr.hasClass('curspoint')) {
-                var opened = jTr.prop("open");
-                if (opened && opened.match("opened")) {
-                  jTr.prop("open", "closed");
-                  $(this).find("td.listclose").removeClass("listclose").addClass("listopen");
-                  #table_var#.fnClose(this);
-                } else {
-                  jTr.prop("open", "opened");
-                  $(this).find("td.listopen").removeClass("listopen").addClass("listclose");
-                  var jsid = jTr.attr("jsuuid");
-                  var color = 'color1';
-                  if(jTr.hasClass('color2'))
-                    color = 'color2';
-                  var row = $(#table_var#.fnOpen(this, fnFormatDetails(jsid), 'details'));
-                  $(row).addClass(color + ' eventLogDescription')
-                  %s;
-                }
-              }
-            } );
-          })
-
-          function showParameters(){
-            document.getElementById("show_parameters_info").style.display = "block";
-          }
-
-      """.format(
-          SHtml.ajaxCall(JsVar("jsid"), details(gridName) _)._2.toJsCmd).replaceAll("#table_var#",
-             jsGridName)
-     )
-    )
+    def getLastEvents : JsCmd = {
+      refreshEvents() match {
+        case Full(events) =>
+          val lines = JsTableData(events.map(EventLogLine(_)).toList)
+            JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})")
+        case eb : EmptyBox =>
+          val fail = eb ?~! "Could not get latest event logs"
+          logger.error(fail.messageChain)
+          val xml = <div class="error">Error when trying to get last event logs. Error message was: {fail.messageChain}</div>
+          SetHtml("eventLogsError",xml)
+      }
+    }
+    val refresh = AnonFunc(SHtml.ajaxInvoke( () => getLastEvents))
+    Script(OnLoad(JsRaw(s"""
+     var refreshEventLogs = ${refresh.toJsCmd};
+     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
+     refreshEventLogs();
+    """)))
   }
 
   /*
-   * Expect something like gridName-eventId
+   *   Javascript object containing all data to create a line in event logs table
+   *   { "id" : Event log id [Int]
+   *   , "date": date the event log was produced [Date/String]
+   *   , "actor": Name of the actor making the event [String]
+   *   , "type" : Type of the event log [String]
+   *   , "description" : Description of the event [String]
+   *   , "details" : function/ajax call, setting the details content, takes the id of the element to set [Function(String)]
+   *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
+   *   }
    */
-  private def details(gridname: String)(jsid:String) : JsCmd = {
-    val arr = jsid.split("-")
-    if (arr.length != 2) {
-      Alert("Called ID is not valid: %s".format(jsid))
-    } else {
-      val eventId = arr(1).toInt
-      repos.getEventLogWithChangeRequest(eventId) match {
-        case Full(Some((event,crId))) =>
-          SetHtml(jsid,displayDetails(event,crId, gridname))
-        case Full(None) =>
-          val msg = s"could not find event for id ${eventId}"
-          logger.debug(msg)
-          Alert(s"Called id is not valid: ${jsid}, cause : ${msg}")
-        case e:EmptyBox =>
-          logger.debug((e ?~! "error").messageChain)
-          Alert("Called id is not valid: %s".format(jsid))
+  case class EventLogLine(event : EventLog) extends JsTableLine {
+    val detailsCallback = {
+      AnonFunc("details",SHtml.ajaxCall(JsVar("details"), {(abc) =>
+        val crId = event.id.flatMap(repos.getEventLogWithChangeRequest(_) match {
+          case Full(Some((_,crId))) => crId
+          case _ => None
+        })
+        SetHtml(abc,displayDetails(event,crId))
       }
+      )
+      )
     }
-  }
-
-  private[this] def dataTableXml(gridName:String) = {
-    <div>
-      <table id={gridName} class="display" cellspacing="0">
-        <thead>
-          <tr class="head">
-            <th class="titleId">ID</th>
-            <th>Date</th>
-            <th>Actor</th>
-            <th>Event Type</th>
-            <th>Description</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr class="eventLine" jsuuid="id">
-            <td class="logId">[ID of event]</td>
-            <td class="logDatetime">[Date and time of event]</td>
-            <td class="logActor">[actor of the event]</td>
-            <td class="logType">[type of event]</td>
-            <td class="logDescription">[some user readable info]</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div id="logsGrid_paginate_area" class="paginate"></div>
-
-    </div>
-
+    val json = {
+      JsObj(
+          "id" -> event.id.map(_.toString).getOrElse("Unknown")
+        , "date" -> DateFormaterService.getFormatedDate(event.creationDate)
+        , "actor" -> event.principal.name
+        , "type" -> S.?("rudder.log.eventType.names." + event.eventType.serialize)
+        , "description" -> displayDescription(event).toString
+        , "details" -> detailsCallback
+        , "hasDetails" -> boolToJsExp(event.details != <entry></entry>)
+      )
+    }
   }
 
     //////////////////// Display description/details of ////////////////////
@@ -394,12 +296,16 @@ class EventListDisplayer(
       case x:CreateAPIAccountEventLog      => apiAccountDesc(x, Text(" added"))
       case x:ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
       case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
+      case x:ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
+      case x:ModifyNodeAgentRun            => nodeDesc(x, Text(" modified"))
+      case x:ModifyNodeHeartbeat           => nodeDesc(x, Text(" modified"))
+      case x:ModifyNodeProperties          => nodeDesc(x, Text(" modified"))
       case _ => Text("Unknow event type")
 
     }
   }
 
-  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId], gridname: String): NodeSeq = {
+  def displayDetails(event:EventLog,changeRequestId:Option[ChangeRequestId]): NodeSeq = {
 
     val groupLib = nodeGroupRepository.getFullGroupLibrary().openOr(return <div class="error">System error when trying to get the group library</div>)
     val rootRuleCategory = ruleCatRepository.getRootCategory.openOr(return <div class="error">System error when trying to get the rule categories</div>)
@@ -407,7 +313,7 @@ class EventListDisplayer(
     val generatedByChangeRequest =
       changeRequestId match {
       case None => NodeSeq.Empty
-      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request #<a href={changeRequestLink(id)}>{id}</a></h4>
+      case Some(id) => <h4 style="padding:5px"> This change was introduced by change request {SHtml.a(() => S.redirectTo(changeRequestLink(id)),Text(s"#${id}"))}</h4>
     }
     def xmlParameters(eventId: Option[Int]) = {
       eventId match {
@@ -532,11 +438,11 @@ class EventListDisplayer(
         <div class="evloglmargin">
           <h4>Details for that node were not in a recognized format.
             Raw data are displayed next:</h4>
-          <pre style="display:none;width:200px;">{ event.details.map { n => xmlPretty.format(n) + "\n"} }</pre>
+          { xmlParameters(event.id) }
         </div>
       </xml:group>
     }
-
+    <td colspan="5"> {
     (event match {
     /*
      * bug in scalac : https://issues.scala-lang.org/browse/SI-6897
@@ -946,7 +852,7 @@ class EventListDisplayer(
         "*" #> { val xml : NodeSeq = logDetailsService.getRollbackDetails(x.details) match {
           case Full(eventLogs) =>
                addRestoreAction ++
-               displayRollbackDetails(eventLogs,event.id.get, gridname)
+               displayRollbackDetails(eventLogs,event.id.get)
           case e:EmptyBox => logger.warn(e)
           errorMessage(e)
         }
@@ -1113,10 +1019,145 @@ class EventListDisplayer(
           }
         }
 
+      case mod:ModifyGlobalProperty =>
+        "*" #> { logDetailsService.getModifyGlobalPropertyDetails(mod.details) match {
+          case Full((oldProp,newProp)) =>
+              <div class="evloglmargin">
+              <h4>Global property overview:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Name:</b> { mod.propertyName }</li>
+                <li><b>Value:</b>
+              { val diff = Some(SimpleDiff(oldProp.value,newProp.value))
+         displaySimpleDiff(diff,"value",newProp.value) } </li>
+             </ul>
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+            errorMessage(e)
+          }
+        }
+
+      // Node modifiction
+      case mod:ModifyNodeAgentRun =>
+        "*" #> { logDetailsService.getModifyNodeAgentRunDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node agent run modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modAgentRun){ (optAr:Option[AgentRunInterval]) =>
+                  optAr match {
+                    case None => <span>No value</span>
+                    case Some(ar) => agentRunDetails(ar)
+                  }
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
+      case mod:ModifyNodeHeartbeat =>
+        "*" #> { logDetailsService.getModifyNodeHeartbeatDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node heartbeat modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modHeartbeat){ (optHb:Option[HeartbeatConfiguration]) =>
+                  optHb match {
+                    case None => <span>No value</span>
+                    case Some(hb) => heartbeatDetails(hb)
+                  }
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
+      case mod:ModifyNodeProperties =>
+        "*" #> { logDetailsService.getModifyNodePropertiesDetails(mod.details) match {
+        case Full(modDiff) =>
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node properties modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b> { modDiff.id.value }</li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
+                  nodePropertiesDetails(props)
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
       // other case: do not display details at all
       case _ => "*" #> ""
 
-    })(event.details)++Script(JsRaw("correctButtons();"))
+    })(event.details)++Script(JsRaw("correctButtons();"))} </td>
+  }
+
+  private[this] def agentRunDetails(ar: AgentRunInterval): NodeSeq = {
+    (
+      "#override" #> ar.overrides.map(_.toString()).getOrElse("false")
+    & "#interval"  #> ar.interval
+    & "#startMinute"  #> ar.startMinute
+    & "#startHour"  #> ar.startHour
+    & "#splaytime"  #> ar.splaytime
+    ).apply(
+      <ul class="evlogviewpad">
+        <li><b>Override global value: </b><value id="override"/></li>
+        <li><b>Period: </b><value id="interval"/></li>
+        <li><b>Start at minute: </b><value id="startMinute"/></li>
+        <li><b>Start at hour: </b><value id="startHour"/></li>
+        <li><b>Splay time: </b><value id="splaytime"/></li>
+			</ul>
+    )
+  }
+
+  private[this] def heartbeatDetails(hb: HeartbeatConfiguration): NodeSeq = {
+    (
+      "#override" #> hb.overrides
+    & "#interval"  #> hb.heartbeatPeriod
+    ).apply(
+      <ul class="evlogviewpad">
+        <li><b>Override global value: </b><value id="override"/></li>
+        <li><b>Period: </b><value id="interval"/></li>
+      </ul>
+    )
+  }
+
+  private[this] def nodePropertiesDetails(props: Seq[NodeProperty]): NodeSeq = {
+    (
+        "#kv *"  #> props.map { p => s"${p.name}: ${p.value}" }
+    ).apply(
+      <ul class="evlogviewpad">
+        <li id="kv"></li>
+      </ul>
+    )
   }
 
   private[this] def displaySimpleDiff[T] (
@@ -1182,34 +1223,19 @@ class EventListDisplayer(
       {rawData}
     </div>
 
-  private[this] def displayDiff(tag:String)(xml:NodeSeq) =
-      "From value '%s' to value '%s'".format(
-          ("from ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
-        , ("to ^*" #> "X" & "* *" #> ( (x:NodeSeq) => x))(xml)
-      )
-
-  private[this] def nodeNodeSeqLink(id: NodeId): NodeSeq = {
-    nodeInfoService.getNodeInfo(id) match {
-      case t: EmptyBox =>
-        <span>Node (Rudder ID: {id.value})</span>
-      case Full(node) =>
-        <span>Node "<a href={nodeLink(id)}>{node.hostname}</a>" (Rudder ID: {id.value})</span>
-    }
-  }
-
   private[this] def nodeGroupDetails(nodes: Set[NodeId]): NodeSeq = {
     val res = nodes.toSeq match {
       case Seq() => NodeSeq.Empty
       case t =>
         nodes
         .toSeq
-        .map { id => nodeNodeSeqLink(id: NodeId)
-        }
+        .map { id => createNodeLink(id) }
         .reduceLeft[NodeSeq]((a,b) => a ++ <span class="groupSeparator" /> ++ b)
     }
     (
       ".groupSeparator" #> ", "
     ).apply(res)
+
   }
 
   private[this] def directiveTargetDetails(set: Set[DirectiveId]): NodeSeq = {
@@ -1329,6 +1355,22 @@ class EventListDisplayer(
    "#directiveID" #> id.value
   }
 
+ private[this] def mapComplexDiff[T](opt:Option[SimpleDiff[T]])(display: T => NodeSeq) = {
+   opt match {
+     case None => NodeSeq.Empty
+     case Some(diff) =>
+       (
+         ".diffOldValue *" #> display(diff.oldValue) &
+         ".diffNewValue *" #> display(diff.newValue)
+       ).apply(
+        <ul class="evlogviewpad">
+          <li><b>Old value:&nbsp;</b><span class="diffOldValue">old value</span></li>
+          <li><b>New value:&nbsp;</b><span class="diffNewValue">new value</span></li>
+        </ul>
+    )
+  }
+ }
+
   private[this] def nodeDetails(details:InventoryLogDetails) = (
      "#nodeID" #> details.nodeId.value &
      "#nodeName" #> details.hostname &
@@ -1342,24 +1384,6 @@ class EventListDisplayer(
       <li><b>Date inventory last received: </b><value id="version"/></li>
     </ul>
   )
-
-  private[this] def nodeDetails(details:NodeLogDetails) = (
-     "#id" #> details.node.id.value &
-     "#name" #> details.node.name &
-     "#hostname" #> details.node.hostname &
-     "#description" #> details.node.description &
-     "#os" #> details.node.osName &
-     "#ips" #> details.node.ips.mkString("\n") &
-     "#inventoryDate" #> DateFormaterService.getFormatedDate(details.node.inventoryDate) &
-     "#publicKey" #> details.node.publicKey &
-     "#agentsName" #> details.node.agentsName.mkString("\n") &
-     "#policyServerId" #> details.node.policyServerId.value &
-     "#localAdministratorAccountName" #> details.node.localAdministratorAccountName &
-     "#isBroken" #> details.node.isBroken &
-     "#isSystem" #> details.node.isSystem &
-     "#creationDate" #> DateFormaterService.getFormatedDate(details.node.creationDate)
-  )(nodeDetailsXML)
-
   private[this] val crDetailsXML =
     <div>
       <h4>Rule overview:</h4>
@@ -1404,25 +1428,6 @@ class EventListDisplayer(
         <li><b>System: </b><value id="isSystem"/></li>
         <li><b>Query: </b><value id="query"/></li>
         <li><b>Node list: </b><value id="nodes"/></li>
-      </ul>
-    </div>
-
-  private[this] val nodeDetailsXML =
-    <div>
-      <h4>Node overview:</h4>
-      <ul class="evlogviewpad">
-        <li><b>Rudder ID: </b><value id="id"/></li>
-        <li><b>Name: </b><value id="name"/></li>
-        <li><b>Hostname: </b><value id="hostname"/></li>
-        <li><b>Description: </b><value id="description"/></li>
-        <li><b>Operating System: </b><value id="os"/></li>
-        <li><b>IPs addresses: </b><value id="ips"/></li>
-        <li><b>Date inventory last received: </b><value id="inventoryDate"/></li>
-        <li><b>Agent name: </b><value id="agentsName"/></li>
-        <li><b>Administrator account :</b><value id="localAdministratorAccountName"/></li>
-        <li><b>Date first accepted in Rudder :</b><value id="creationDate"/></li>
-        <li><b>Broken: </b><value id="isBroken"/></li>
-        <li><b>System: </b><value id="isSystem"/></li>
       </ul>
     </div>
 
@@ -1544,7 +1549,9 @@ class EventListDisplayer(
       {liModDetailsXML("isEnabled", "Enabled")}
     </xml:group>
 
-  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int, gridname: String) = {
+  private[this] val globalPropertyModDetailsXML = {liModDirectiveDetailsXML("value", "Value")}
+
+  private[this] def displayRollbackDetails(rollbackInfo:RollbackInfo,id:Int) = {
     val rollbackedEvents = rollbackInfo.rollbacked
     <div class="evloglmargin">
       <div style="width:50%; float:left;">
@@ -1556,9 +1563,9 @@ class EventListDisplayer(
                 SetHtml("currentId%s".format(id),Text(rollbackInfo.target.id.toString)) &
               JsRaw("""$('#%1$s').dataTable().fnFilter("%2$s|%3$s",0,true,false);
                 $("#cancel%3$s").show();
-                scrollToElement('%2$s');
+                scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format(gridname,rollbackInfo.target.id,id))
+                $('#%2$s').click();""".format(gridName,rollbackInfo.target.id,id))
               , Text(rollbackInfo.target.id.toString)
             )
           } has been completed.
@@ -1586,9 +1593,9 @@ class EventListDisplayer(
                 SetHtml("currentId%s".format(id),Text(ev.id.toString)) &
                 JsRaw("""$('#%1$s').dataTable().fnFilter("%2$s|%3$s",0,true,false);
                 $("#cancel%3$s").show();
-                scrollToElement('%2$s');
+                scrollToElement('%2$s', ".rudder_col");
                 if($('#%2$s').prop('open') != "opened")
-                $('#%2$s').click();""".format(gridname,ev.id,id))
+                $('#%2$s').click();""".format(gridName,ev.id,id))
                   , Text(ev.id.toString)
                 )
               }
@@ -1605,7 +1612,7 @@ class EventListDisplayer(
           <div id={"cancel%s".format(id)} style="display:none"> the event <span id={"currentId%s".format(id)}/>  is displayed in the table below
       {SHtml.ajaxButton("Clear display", () =>
         Run("""$('#%s').dataTable().fnFilter("",0,true,false);
-            $("#cancel%s").hide();""".format(gridname,id) )
+            $("#cancel%s").hide();""".format(gridName,id) )
       ) }
       </div>
       <br/>

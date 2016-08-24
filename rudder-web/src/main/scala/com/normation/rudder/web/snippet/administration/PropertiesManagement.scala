@@ -51,14 +51,32 @@ import net.liftweb.http.SHtml._
 import com.normation.rudder.appconfig._
 import com.normation.rudder.batch.AutomaticStartDeployment
 import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ChangesOnly
+import com.normation.rudder.web.components.AgentScheduleEditForm
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.web.components.ComplianceModeEditForm
+import com.normation.rudder.reports.SyslogUDP
+import com.normation.rudder.reports.SyslogTCP
+import com.normation.rudder.reports.SyslogProtocol
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.web.components.popup.ModificationValidationPopup.Enable
 
+/**
+ * This class manage the displaying of user configured properties.
+ *
+ * Methods on that classes are used in the template ""
+ */
 class PropertiesManagement extends DispatchSnippet with Loggable {
 
   private[this] val configService : ReadConfigService with UpdateConfigService = RudderConfig.configService
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen = RudderConfig.stringUuidGenerator
 
-  def startNewPolicyGeneration = {
+  private[this] val genericReasonMessage = Some("Property modified from Rudder preference page")
+
+  def startNewPolicyGeneration() = {
     val modId = ModificationId(uuidGen.newUuid)
     asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
   }
@@ -67,10 +85,15 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "changeMessage" => changeMessageConfiguration
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
-    case "cfagentSchedule" => cfagentScheduleConfiguration
+    case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
+    case "complianceMode" => (xml) => complianceModeConfiguration
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
+    case "sendMetricsConfiguration" => sendMetricsConfiguration
+    case "networkProtocolSection" => networkProtocolSection
+    case "displayGraphsConfiguration" => displayGraphsConfiguration
     case "apiMode" => apiComptabilityMode
+    case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -95,7 +118,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       configService.set_rudder_ui_changeMessage_mandatory(mandatory).foreach(updateOk => initMandatory = Full(mandatory))
 
       configService.set_rudder_ui_changeMessage_explanation(explanation).foreach(updateOk => initExplanation = Full(explanation))
-
+      S.clearCurrentNotices
       S.notice("updateChangeMsg","Change audit logs configuration correctly updated")
       check()
     }
@@ -107,13 +130,17 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       && initMandatory.map(_ == mandatory).getOrElse(false)
       && initExplanation.map(_ == explanation).getOrElse(false)
     )
-
+    def emptyString = explanation.trim().length==0
     // Check that there is some modification to enabled/disable save
     def check() = {
       if(!noModif){
-        S.notice("updateChangeMsg","")
+        if(emptyString){
+          S.error("updateChangeMsg","The message field cannot be empty.")
+        }else{
+          S.notice("updateChangeMsg","")
+        }    
       }
-      Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif||emptyString});""")
     }
 
     // Initialisation of form
@@ -455,103 +482,113 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
-  def cfagentScheduleConfiguration = { xml : NodeSeq =>
-
-    var jsonSchedule = "{}"
-
-    //return a box of (interval, start hour, start min, splay)
-    def parseJsonSchedule(s: String) : Box[(Int, Int, Int, Int)] = {
-      import net.liftweb.json._
-
-      val json = parse(s)
-
-      val x = for {
-        JField("interval", JInt(i)) <- json
-        JField("starthour", JInt(h)) <- json
-        JField("startminute", JInt(m)) <- json
-        JField("splayHour", JInt(sh)) <- json
-        JField("splayMinute", JInt(sm)) <- json
-      } yield {
-        val splayTime = (sh.toInt * 60) + sm.toInt
-        (i.toInt, h.toInt, m.toInt, splayTime)
+  def networkProtocolSection = { xml : NodeSeq =>
+    //  initial values, updated on successfull submit
+    def networkForm(initValue : SyslogProtocol) = {
+      var initReportsProtocol = initValue
+      var reportProtocol = initValue
+      def check = {
+        val noChange = initReportsProtocol == reportProtocol
+        S.notice("updateNetworkProtocol","")
+        Run(s"""$$("#networkProtocolSubmit").button( "option", "disabled",${noChange});""")
       }
 
-      Full(x.head)
+      def submit = {
+        val actor = CurrentUser.getActor
+        configService.set_rudder_syslog_protocol(reportProtocol,actor,None) match {
+          case Full(_) =>
+            // Update the initial value of the form
+            initReportsProtocol = reportProtocol
+            startNewPolicyGeneration
+            S.notice("updateNetworkProtocol","Network protocol options correctly updated")
+            check
+          case eb:EmptyBox =>
+            S.error("updateNetworkProtocol","Error when saving network protocol options")
+            Noop
+        }
+      }
+
+      val checkboxInitValue = initReportsProtocol == SyslogUDP
+
+     ( "#reportProtocol" #> {
+          SHtml.ajaxCheckbox(
+              checkboxInitValue
+            , (newValue : Boolean) => {
+                reportProtocol = if (newValue) SyslogUDP else SyslogTCP
+                check
+              }
+            , ("id","reportProtocol")
+          )
+       } &
+       "#networkProtocolSubmit " #> {
+         SHtml.ajaxSubmit("Save changes", submit _)
+       }
+      )(xml ++ Script(Run("correctButtons();") & check))
 
     }
 
-    def submit() = {
-
-      parseJsonSchedule(jsonSchedule) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Error when trying to parse user data: '${jsonSchedule}'"
-          S.error("cfagentScheduleMessage", e.messageChain)
-
-        case Full((i,h,m,s)) =>
-          ( if (i <= s) {
-            Failure("Cannot save a agent schedule with a splaytime higher than or equal to agent run interval")
-          } else {
-            for {
-              _ <- configService.set_agent_run_interval(i)
-              _ <- configService.set_agent_run_start_hour(h)
-              _ <- configService.set_agent_run_start_minute(m)
-              _ <- configService.set_agent_run_splaytime(s)
-            } yield {
-              logger.info(s"Agent schedule updated to run interval: ${i} min, start time: ${h }h ${m} min, splaytime: ${s} min")
-              "ok"
-            }
-          } ) match {
-            case eb:EmptyBox =>
-              logger.error(eb)
-              val e = eb ?~! s"Error when trying to store in base new agent schedule: '${jsonSchedule}'"
-              S.error("cfagentScheduleMessage", e.messageChain)
-
-            case Full(success) =>
-
-              // start a promise generation, Since we check if there is change to save, if we got there it mean that we need to redeploy
-              startNewPolicyGeneration
-              S.notice("cfagentScheduleMessage", "Agent schedule saved")
-          }
-      }
-
-      Noop
+    configService.rudder_syslog_protocol match {
+      case Full(value) =>
+        networkForm(value)
+      case eb: EmptyBox =>
+        // We could not read current protocol, try repairing by setting protocol to UDP and warn user
+        val actor = CurrentUser.getActor
+        configService.set_rudder_syslog_protocol(SyslogUDP,actor,Some("Property automatically reset to 'UDP' due to an error"))
+        S.error("updateNetworkProtocol","Error when fetching 'Syslog protocol' property, Setting it to UDP")
+        networkForm(SyslogUDP)
     }
+  }
 
-    val transform = (for {
+  val agentScheduleEditForm = new AgentScheduleEditForm(
+      getSchedule
+    , saveSchedule
+    , () => startNewPolicyGeneration
+  )
+
+  val complianceModeEditForm = {
+    val globalMode = configService.rudder_compliance_mode()
+    new ComplianceModeEditForm[GlobalComplianceMode](
+        globalMode
+      , (complianceMode) => {
+          configService.set_rudder_compliance_mode(complianceMode,CurrentUser.getActor,genericReasonMessage)
+        }
+      , () => startNewPolicyGeneration
+      , globalMode
+    )
+  }
+
+  def getSchedule() : Box[AgentRunInterval] = {
+    for {
       starthour <- configService.agent_run_start_hour
       startmin  <- configService.agent_run_start_minute
       splaytime <- configService.agent_run_splaytime
+      interval  = configService.agent_run_interval
     } yield {
-      val splayHour = splaytime / 60
-      val splayMinute = splaytime % 60
-      ("ng-init",s"""agentRun={ 'interval'    : ${configService.agent_run_interval}
-                              , 'starthour'   : ${starthour}
-                              , 'startminute' : ${startmin}
-                              , 'splayHour'   : ${splayHour}
-                              , 'splayMinute' : ${splayMinute}
-                              }""")
-    }) match {
-      case eb:EmptyBox =>
-        val e = eb ?~! "Error when retrieving agent schedule from the database"
-        logger.error(e.messageChain)
-        e.rootExceptionCause.foreach { ex =>
-          logger.error("Root exception was:", ex)
-        }
-
-        (
-          "#cfagentScheduleForm" #> "Error when retrieving agent schedule from the database. Please, contact an admin or try again later"
-        )
-      case Full(initScheduleParam) =>
-        (
-            "#cfagentScheduleHidden" #> SHtml.hidden((x:String) => { jsonSchedule = x ; x}, "{{agentRun}}", initScheduleParam)
-          & "#cfagentScheduleSubmit" #> SHtml.ajaxSubmit("Save changes", submit _)
-
+      AgentRunInterval(
+            None
+          , interval
+          , startmin
+          , starthour
+          , splaytime
         )
     }
-
-    transform.apply(xml)
-
   }
+
+  def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+
+    val actor = CurrentUser.getActor
+    for {
+      _ <- configService.set_agent_run_interval(schedule.interval,actor,genericReasonMessage)
+      _ <- configService.set_agent_run_start_hour(schedule.startHour,actor,genericReasonMessage)
+      _ <- configService.set_agent_run_start_minute(schedule.startMinute,actor,genericReasonMessage)
+      _ <- configService.set_agent_run_splaytime(schedule.splaytime,actor,genericReasonMessage)
+    } yield {
+      logger.info(s"Agent schedule updated to run interval: ${schedule.interval} min, start time: ${schedule.startHour} h ${schedule.startMinute} min, splaytime: ${schedule.splaytime} min")
+    }
+  }
+
+  def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
+  def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
   def cfengineGlobalProps = { xml : NodeSeq =>
 
@@ -579,7 +616,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } catch {
         case ex:NumberFormatException =>
 
-          S.error("updateCfengineGlobalProps", ex.getMessage())
+          S.error("updateCfengineGlobalProps", "Invalid value "+ex.getMessage().replaceFirst("F", "f"))
           Noop
       }
 
@@ -681,6 +718,88 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
+  def sendMetricsConfiguration = { xml : NodeSeq =>
+    ( configService.send_server_metrics match {
+      case Full(value) =>
+        var sendMetrics = value
+        def submit() = {
+          val save = configService.set_send_server_metrics(sendMetrics,CurrentUser.getActor,genericReasonMessage)
+
+          S.notice("sendMetricsMsg", save match {
+            case Full(_)  =>
+              // start a promise generation, Since we may have change the mode, if we got there it mean that we need to redeploy
+              startNewPolicyGeneration
+              "'send server metrics' property updated"
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'send server metrics' property"
+          } )
+        }
+
+        ( "#sendMetricsCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                value.getOrElse(false)
+              , (b : Boolean) => { sendMetrics = Some(b) }
+              , ("id","sendMetricsCheckbox")
+            )
+          } &
+          "#sendMetricsSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          }
+        )
+      case eb: EmptyBox =>
+        ( "#sendMetrics" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'Send server metrics"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply (xml ++ Script(Run("correctButtons();")))
+  }
+
+  def displayGraphsConfiguration = { xml : NodeSeq =>
+
+    ( configService.display_changes_graph() match {
+      case Full(value) =>
+        var displayGraphs = value
+        def noModif() = displayGraphs == value
+        def check() = {
+          S.notice("displayGraphsMsg","")
+          Run(s"""$$("#displayGraphsSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_display_changes_graph(displayGraphs)
+          S.notice("displayGraphsMsg", save match {
+            case Full(_)  =>
+              "'display change graphs' property updated"
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'display change graphs' property"
+          } )
+        }
+
+        ( "#displayGraphsCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                value
+              , (b : Boolean) => { displayGraphs = b; check}
+              , ("id","displayGraphsCheckbox")
+            )
+          } &
+          "#displayGraphsSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#displayGraphsSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+      case eb: EmptyBox =>
+        ( "#displayGraphs" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'display change graphs'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
+
+
   def apiComptabilityMode = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
@@ -726,4 +845,50 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ) apply (xml ++ Script(Run("correctButtons();") & check()))
   }
 
+  def directiveScriptEngineConfiguration = { xml : NodeSeq =>
+    import com.normation.rudder.domain.appconfig.FeatureSwitch._
+
+    ( configService.rudder_featureSwitch_directiveScriptEngine() match {
+      case Full(initialValue) =>
+
+        var x = initialValue
+        def noModif() = x == initialValue
+        def check() = {
+          S.notice("directiveScriptEngineMsg","")
+          Run(s"""$$("#directiveScriptEngineSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x)
+          S.notice("directiveScriptEngineMsg", save match {
+            case Full(_)  =>
+              "'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'directive script engine' property"
+          } )
+        }
+
+        ( "#directiveScriptEngineCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                x == Enabled
+              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
+              , ("id","directiveScriptEngineCheckbox")
+            )
+          } &
+          "#directiveScriptEngineSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#directiveScriptEngineSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#directiveScriptEngine" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'directive script engine'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
 }

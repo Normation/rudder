@@ -59,6 +59,7 @@ import net.liftweb.http.js.JE.JsRaw
 import com.normation.rudder.web.components.popup.CreateOrUpdateGlobalParameterPopup
 import net.liftweb.http.js.JE.JsVar
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 
 class ParameterManagement extends DispatchSnippet with Loggable {
 
@@ -104,7 +105,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".parameterLine [class]" #> Text("curspoint") &
         ".name *" #> <b>{param.name.value}</b> &
         ".value *" #> <pre>{param.value}</pre> &
-        ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b>{Text(param.description)}</li></ul></span> &
+        ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
         ".change *" #> <div >{
@@ -181,7 +182,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
             ],
             "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>'
           });
-          $$('.dataTables_filter input').attr("placeholder", "Search");
+          $$('.dataTables_filter input').attr("placeholder", "Filter");
           """
         ) &
         JsRaw("""
@@ -251,8 +252,8 @@ class ParameterManagement extends DispatchSnippet with Loggable {
       returns match {
         case Left(param) => // ok, we've received a parameter, do as before
           JsRaw("$.modal.close();") &  updateGrid(workflowEnabled) & successPopup
-        case Right(changeRequest) => // oh, we have a change request, go to it
-          RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
+        case Right(changeRequestId) => // oh, we have a change request, go to it
+          JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
       }
     }
   }

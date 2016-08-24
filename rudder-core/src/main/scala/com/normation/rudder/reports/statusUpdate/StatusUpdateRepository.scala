@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.status
+package com.normation.rudder.reports.statusUpdate
 
 import org.joda.time.DateTime
 import net.liftweb.common.Box
@@ -44,6 +44,12 @@ import net.liftweb.common.Box
  * Manage the status of the fetching of execution date per node
  */
 trait StatusUpdateRepository {
+
+  /*
+   * BE CAREFUL : these methods will report false value
+   * if two instance of Rudder are using the same
+   * database.
+   */
 
   def getExecutionStatus : Box[Option[(Long,DateTime)]]
 

@@ -50,7 +50,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     web site: http://logback.qos.ch/manual/configuration.html#syntax
    -->
 
-
    <!--
     NOTE FOR USER: most of the interesting information are at the
     bottom of the file, but that crappy xml file does not allow to
@@ -397,5 +396,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
   <logger name="net.liftweb.util.TimeHelpers" level="warn" />
   <logger name="net.liftweb.http.CometActor" level="warn" />
   <logger name="net.liftweb.http.SessionMaster" level="warn" />
+  
+  <!-- Uncomment to have precise log about LDAP queries done by the node search engine -->
+<!--   <logger name="com.normation.rudder.services.queries.InternalLDAPQueryProcessor" level="debug" /> -->
 
+   
 </configuration>

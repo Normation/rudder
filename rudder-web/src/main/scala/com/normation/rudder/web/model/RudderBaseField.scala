@@ -50,32 +50,6 @@ import net.liftweb.http.js._
 import JsCmds._
 
 
-
-//ignore for now
-//class ErrorHolder extends Bindable with FieldContainer {
-//  type GlobalError = NodeSeq
-//
-//  private val errorHtml =
-//   <div class="errors">
-//      <errors:header/>
-//      <errors:globalErrors>
-//        <div class="globalErrors">
-//          <ul>
-//            <globalErrors:item><li class="globalErrorItem"><globalErrorItem:content/></li></globalErrors:item>
-//          </ul>
-//        </div>
-//      </errors:globalErrors>
-//    </div>
-//
-//  private[this] val fields = Buffer[BaseField]()
-//  private[this] val _validations = Buffer[Seq[BaseField] => List[GlobalError]]
-//
-//  def registerField(field:BaseField) : Unit = fields += field
-//
-//  def registerValidation(validation:Seq[BaseField] => List[GlobalError]) : Unit = _validations += validation
-//}
-
-
 /**
  * A simple class that allows to register error information
  * about a form and its fields

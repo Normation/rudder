@@ -41,11 +41,12 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.queries.Query
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.domain.policies.TriggerDeploymentDiff
 
 /**
  * That file defines "diff" objects for NodeGroups (groups, etc).
  */
-sealed trait NodeGroupDiff
+sealed trait NodeGroupDiff extends TriggerDeploymentDiff
 
 //for change request, with add type tag to DirectiveDiff
 sealed trait ChangeRequestNodeGroupDiff {
@@ -53,11 +54,18 @@ sealed trait ChangeRequestNodeGroupDiff {
 }
 
 final case class DeleteNodeGroupDiff(group:NodeGroup) extends
-  NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff
+  NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff {
+  def needDeployment : Boolean = true
+}
 
-final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff
+final case class AddNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff {
+  def needDeployment : Boolean = false
+}
 
-final case class ModifyToNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff
+final case class ModifyToNodeGroupDiff(group:NodeGroup) extends NodeGroupDiff with HashcodeCaching with ChangeRequestNodeGroupDiff {
+  // This case is undecidable, so it is always true
+  def needDeployment : Boolean = true
+}
 
 final case class ModifyNodeGroupDiff(
     id            : NodeGroupId
@@ -69,5 +77,9 @@ final case class ModifyNodeGroupDiff(
   , modNodeList   : Option[SimpleDiff[Set[NodeId]]]   = None
   , modIsActivated: Option[SimpleDiff[Boolean]]       = None
   , modIsSystem   : Option[SimpleDiff[Boolean]]       = None
-) extends NodeGroupDiff with HashcodeCaching
+) extends NodeGroupDiff with HashcodeCaching {
 
+  def needDeployment : Boolean = {
+    modQuery.isDefined || modIsDynamic.isDefined || modNodeList.isDefined || modIsActivated.isDefined || modName.isDefined
+  }
+}

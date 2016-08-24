@@ -37,19 +37,35 @@
 
 package com.normation.rudder.domain.reports
 
-import com.normation.inventory.domain.NodeId
+import org.joda.time.DateTime
+import org.joda.time.Interval
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
-import scala.collection._
-import org.joda.time._
-import org.joda.time.format._
+import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.utils.HashcodeCaching
+import com.normation.inventory.domain.NodeId
 
 
 /**
- * The representation of the database object for the expected reports for a rule
+ * The main class helping maps expected
+ * reports for a node
+ */
+case class RuleNodeExpectedReports(
+    ruleId    : RuleId
+  , serial    : Int // the serial of the rule
+  , directives: Seq[DirectiveExpectedReports]
+  // the period where the configuration is applied to the servers
+  , beginDate : DateTime = DateTime.now()
+  , endDate   : Option[DateTime] = None
+) extends HashcodeCaching {
+  val interval = new Interval(beginDate, endDate.getOrElse(DateTime.now))
+}
+
+/**
+ * The representation of the database object for the expected reports for
+ * a rule and a list of nodes.
  *
- * @author Nicolas CHARLES
+ * Its use is discouraged in favor of RuleNodeExpectedReports
  *
  */
 case class RuleExpectedReports(
@@ -64,51 +80,72 @@ case class RuleExpectedReports(
 }
 
 /**
- * This class allow to have for differents nodes differents directives
+ * This class allow to have different directives for different nodes.
  * Actually, it is used in a constrainted way : same directiveId for all nodes,
- * but directives can have differents component/componentValues per Nodes
+ * but directives can have different components/componentValues per Nodes
  */
 case class DirectivesOnNodes(
-    nodeJoinKey             : Int// the version id of the rule, follows a sequence, used to join with the node table
-  , nodeIds                 : Seq[NodeId]
+    nodeJoinKey             : Int// id following a sequence used to join to the list of nodes
+  , nodeConfigurationIds    : Map[NodeId, Option[NodeConfigId]]
   , directiveExpectedReports: Seq[DirectiveExpectedReports]
 ) extends HashcodeCaching
 
-/**
- * The Cardinality is per Component
- */
-case class ReportComponent(
-    componentName             : String
-  , cardinality               : Int
-  , componentsValues          : Seq[String]
-  , unexpandedComponentsValues: Seq[String]
-) extends HashcodeCaching {
-  // Utilitary method to returns componentValues along with unexpanded values
-  // The unexpanded may be none, for older version of Rudder didn't have this
-  def groupedComponentValues : Set[(String, Option[String])] = {
-    (if (componentsValues.size != unexpandedComponentsValues.size) {
-      componentsValues.map((_, None))
-    } else {
-      componentsValues.zip(unexpandedComponentsValues.map(Some(_)))
-    }).toSet
-  }
-}
+
 
 /**
  * A Directive may have several components
  */
-case class DirectiveExpectedReports (
+final case class DirectiveExpectedReports (
     directiveId: DirectiveId
-  , components : Seq[ReportComponent]
+  , components : Seq[ComponentExpectedReport]
 ) extends HashcodeCaching
 
+final case class NodeAndConfigId(
+    nodeId : NodeId
+  , version: NodeConfigId
+)
 
 /**
- * This utilitary class is used only to compare what is already saved in the
- * DB and compare it with what is to be saved
+ * The Cardinality is per Component
  */
-case class Comparator(
-    nodeId       : NodeId
-  , directiveId  : DirectiveId
-  , componentName: String
-)
+case class ComponentExpectedReport(
+    componentName             : String
+  , cardinality               : Int
+
+  //TODO: change that to have a Seq[(String, String).
+  //or even better, un Seq[ExpectedValue] where expectedValue is the pair
+  , componentsValues          : Seq[String]
+  , unexpandedComponentsValues: Seq[String]
+) extends HashcodeCaching {
+  /**
+   * Get a normalized list of pair of (value, unexpandedvalue).
+   * We have three case to consider:
+   * - both source list have the same size => easy, just zip them
+   * - the unexpandedvalues is empty: it may happen due to old version of
+   *   rudder not having recorded them => too bad, use the expanded value
+   *   in both case
+   * - different size: why on hell do we have a data model authorizing that
+   *   and the TODO is not addressed ?
+   *   In that case, there is no good solution. We choose to:
+   *   - remove unexpanded values if it's the longer list
+   *   - complete unexpanded values with matching values in the other case.
+   */
+  def groupedComponentValues : Seq[(String, String)] = {
+    if (componentsValues.size <= unexpandedComponentsValues.size) {
+      componentsValues.zip(unexpandedComponentsValues)
+    } else { // strictly more values than unexpanded
+      val n = unexpandedComponentsValues.size
+      val unmatchedValues = componentsValues.drop(n)
+      componentsValues.take(n).zip(unexpandedComponentsValues) ++ unmatchedValues.zip(unmatchedValues)
+    }
+  }
+}
+
+final case class NodeConfigId(value: String)
+
+final case class NodeConfigVersions(
+     nodeId  : NodeId
+     //the most recent version is the head
+     //and the list can be empty
+   , versions: List[NodeConfigId]
+ )

@@ -49,6 +49,7 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
 import com.normation.rudder.domain.workflows.ChangeRequestId
+import com.normation.rudder.web.rest.ApiVersion
 
 class ChangeRequestAPI3 (
     restExtractor : RestExtractorService
@@ -56,19 +57,19 @@ class ChangeRequestAPI3 (
 ) extends ChangeRequestAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil | List(""),req) =>
       restExtractor.extractWorkflowStatus(req.params) match {
         case Full(status) =>
-          apiV3.listChangeRequests(req,status)
+          apiV3.listChangeRequests(req,status,apiVersion)
         case eb : EmptyBox =>
           toJsonError(None, JString("No parameter 'status' sent"))("listChangeRequests",restExtractor.extractPrettify(req.params))
       }
 
     case Get(List(id), req) =>
       try {
-        apiV3.changeRequestDetails(ChangeRequestId(id.toInt), req)
+        apiV3.changeRequestDetails(ChangeRequestId(id.toInt), req,apiVersion)
       } catch {
         case e : Exception =>
           toJsonError(None, JString(s"${id} is not a valid change request id (need to be an integer)"))("changeRequestDetails",restExtractor.extractPrettify(req.params))
@@ -77,7 +78,7 @@ class ChangeRequestAPI3 (
 
     case Delete(id :: Nil, req) =>
       try {
-        apiV3.declineChangeRequest(ChangeRequestId(id.toInt), req)
+        apiV3.declineChangeRequest(ChangeRequestId(id.toInt), req,apiVersion)
       } catch {
         case e : Exception =>
           toJsonError(None, JString(s"${id} is not a valid change request id (need to be an integer)"))("declineChangeRequest",restExtractor.extractPrettify(req.params))
@@ -88,7 +89,7 @@ class ChangeRequestAPI3 (
       restExtractor.extractWorkflowTargetStatus(req.params) match {
         case Full(target) =>
           try {
-            apiV3.acceptChangeRequest(ChangeRequestId(id.toInt), target, req)
+            apiV3.acceptChangeRequest(ChangeRequestId(id.toInt), target, req,apiVersion)
           } catch {
             case e : Exception =>
               toJsonError(None, JString(s"${id} is not a valid change request id (need to be an integer)"))("acceptChangeRequest",restExtractor.extractPrettify(req.params))
@@ -103,7 +104,7 @@ class ChangeRequestAPI3 (
     case Post(id :: Nil, req) => {
       restExtractor.extractChangeRequestInfo(req.params) match {
         case Full(info) =>
-          apiV3.updateChangeRequest(ChangeRequestId(id.toInt), info, req)
+          apiV3.updateChangeRequest(ChangeRequestId(id.toInt), info, req,apiVersion)
         case eb : EmptyBox =>
           val fail = eb ?~!(s"No parameters sent to update change request" )
           val message=  s"Could not update ChangeRequest ${id} details cause is: ${fail.messageChain}."

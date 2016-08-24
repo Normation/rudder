@@ -83,7 +83,6 @@ import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.rudder.domain.nodes.ModifyToNodeGroupDiff
 import com.normation.utils.Control.boxSequence
 
-
 /**
  * Validation pop-up for modification on group and directive.
  *
@@ -108,13 +107,12 @@ object ModificationValidationPopup extends Loggable {
     (for {
       xml <- Templates(path)
     } yield {
-      chooseTemplate("component", "validationPopup", xml)
+      chooseTemplate("component", "validationpopup", xml)
     }) openOr {
       logger.error("Missing template <component:validationPopup> at path: %s.html".format(path.mkString("/")))
       <div/>
     }
   }
-
 
 sealed trait Action { def displayName: String }
 final case object Save extends Action { val displayName: String = "Save" }
@@ -127,7 +125,6 @@ final case object CreateSolo extends Action { val displayName: String = "Create"
 
 //create the directive and assign it to rules (creation of directive without wf, rules modification with wf)
 final case object CreateAndModRules extends Action { val displayName: String = "Create" }
-
 
   /* Text variation for
    * - Directive and groups,
@@ -203,9 +200,6 @@ final case object CreateAndModRules extends Action { val displayName: String = "
   }
 }
 
-
-
-
 /*
  * Pop-up logic:
  * - popupContent allow the pop-up to process a lot of thing and choose
@@ -243,6 +237,7 @@ class ModificationValidationPopup(
   private[this] val woDirectiveRepository    = RudderConfig.woDirectiveRepository
   private[this] val woRuleRepository         = RudderConfig.woRuleRepository
   private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
+  private[this] val recentChangesService    = RudderConfig.recentChangesService
 
   //fonction to read state of things
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -258,11 +253,7 @@ class ModificationValidationPopup(
   private[this] val explanation = explanationMessages(name, action)
   // When there is no rules, we need to remove the warning message
   private[this] val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
-  private[this] val allNodeInfos = getAllNodeInfos()
   private[this] val groupLib = getGroupLib()
-  private[this] val directiveLib = getDirectiveLib()
-  private[this] val rootRuleCategory = getRootRuleCategory()
-
 
   private[this] val rules = {
     action match {
@@ -340,7 +331,6 @@ class ModificationValidationPopup(
       case (true, _) => ("Submit for Validation", "wideButton", workflowMessage(false))
     }
 
-
     (
       "#validationForm" #> { (xml:NodeSeq) => SHtml.ajaxForm(xml) } andThen
       "#dialogTitle *" #> titles(name, action) &
@@ -381,8 +371,8 @@ class ModificationValidationPopup(
       case CreateSolo => NodeSeq.Empty
       case x if(rules.size <= 0) => NodeSeq.Empty
       case x =>
-        val cmp = new RuleGrid("remove_popup_grid", rules.toSeq, None, false)
-        cmp.rulesGrid(allNodeInfos, groupLib, directiveLib, rootRuleCategory, popup = true,linkCompliancePopup = false)
+        val cmp = new RuleGrid("remove_popup_grid", None, () => Full(false), false)
+        cmp.rulesGridWithUpdatedInfo(Some(rules.toSeq), false, false)
     }
   }
 
@@ -443,7 +433,6 @@ class ModificationValidationPopup(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def closePopup() : JsCmd = {
     JsRaw("""$.modal.close();""")
   }
@@ -454,7 +443,6 @@ class ModificationValidationPopup(
   private[this] def updateFormClientSide() : JsCmd = {
     SetHtml(htmlId_popupContainer, popupContent())
   }
-
 
   private[this] def onSubmitStartWorkflow() : JsCmd = {
     onSubmit()
@@ -491,7 +479,6 @@ class ModificationValidationPopup(
     }
   }
 
-
   private[this] def groupDiffFromAction(
       group        : NodeGroup
     , initialState : Option[NodeGroup]
@@ -513,7 +500,6 @@ class ModificationValidationPopup(
     }
   }
 
-
   private[this] def saveChangeRequest() : JsCmd = {
     // we only have quick change request now
     val cr = item match {
@@ -529,7 +515,6 @@ class ModificationValidationPopup(
               , updatedRules
            )
         }
-
 
         DirectiveDiffFromAction(techniqueName, directive, optOriginal).flatMap{
           case None => ruleCr()
@@ -553,7 +538,6 @@ class ModificationValidationPopup(
       case Right((nodeGroup, optParentCategory, optOriginal)) =>
         //if we have a optParentCategory, that means that we
         //have to start to move the group, and then create/save the cr.
-
 
         optParentCategory.foreach { parentCategoryId =>
           woNodeGroupRepository.move(
@@ -620,7 +604,7 @@ class ModificationValidationPopup(
 
             case _ =>
               //no change request for group creation/clone
-              logger.error("This feature is not implemented. Yell at developper for change request with groupe creation")
+              logger.error("This feature is not implemented. Please ask developers for change requests with group creation")
               formTracker.addFormError(Text("System error: feature missing"))
               onFailure
           }
@@ -639,9 +623,10 @@ class ModificationValidationPopup(
     woDirectiveRepository.saveDirective(activeTechniqueId, directive, modId, CurrentUser.getActor, why) match {
       case Full(optChanges) =>
         optChanges match {
-          case Some(_) => // There is a modification diff, launch a deployment.
+          case Some(diff) if diff.needDeployment =>
+            // There is a modification diff that required deployment, launch a deployment.
             asyncDeploymentAgent ! AutomaticStartDeployment(modId, RudderEventActor)
-          case None => // No change, don't launch a deployment
+          case _ => // No change worthy of deployment, don't launch a deployment
         }
 
         //now, if rules were modified, also create a CR
@@ -664,7 +649,6 @@ class ModificationValidationPopup(
     updateFormClientSide()
   }
 
-
   private[this] def updateAndDisplayNotifications() : NodeSeq = {
     val notifications = formTracker.formErrors
     formTracker.cleanErrors
@@ -675,5 +659,3 @@ class ModificationValidationPopup(
     }
   }
 }
-
-

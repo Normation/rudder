@@ -59,8 +59,6 @@ import com.normation.rudder.domain.eventlog._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.web.services.UserPropertyService
 import com.normation.rudder.web.components.popup.CreateCloneDirectivePopup
-import com.normation.rudder.web.components.popup.CreateDirectivePopup
-import com.normation.rudder.web.snippet.configuration.DirectiveManagement
 import com.normation.eventlog.ModificationId
 import com.normation.utils.StringUuidGenerator
 import bootstrap.liftweb.RudderConfig
@@ -69,6 +67,7 @@ import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TechniqueVersion
 
 object DirectiveEditForm {
 
@@ -81,7 +80,7 @@ object DirectiveEditForm {
     (for {
       xml <- Templates("templates-hidden" :: "components" :: "ComponentDirectiveEditForm" :: Nil)
     } yield {
-      chooseTemplate("component", "staticInit", xml) ++
+      chooseTemplate("component", "staticinit", xml) ++
         RuleGrid.staticInit
     }) openOr Nil
 
@@ -110,10 +109,12 @@ class DirectiveEditForm(
     htmlId_policyConf : String
   , technique         : Technique
   , activeTechnique   : ActiveTechnique
+  , fullActiveTechnique : FullActiveTechnique
   , val directive     : Directive
   , oldDirective      : Option[Directive]
   , workflowEnabled   : Boolean
   , onSuccessCallback : (Either[Directive,ChangeRequestId]) => JsCmd = { (Directive) => Noop }
+  , onMigrationCallback : (Directive, Option[Directive]) => JsCmd
   , onFailureCallback : () => JsCmd = { () => Noop }
   , isADirectiveCreation : Boolean = false
   , onRemoveSuccessCallBack : () => JsCmd = { () => Noop }
@@ -161,18 +162,80 @@ class DirectiveEditForm(
     )(body)
   }
 
+  def migrateButton(version : => TechniqueVersion, text: String, id:String = "migrationButton") = {
+    SHtml.ajaxSubmit(
+        text
+      , () => {
+          val newDirective = directive.copy(techniqueVersion = version)
+          onMigrationCallback(newDirective,Some(directive))
+        }
+      , ("id" -> id)
+    )
+  }
+
+  val displayDeprecationWarning = technique.deprecrationInfo match {
+    case Some(info) =>
+      ( "#deprecation-message *" #> info.message &
+        "#migrate-button *" #> migrateButton(fullActiveTechnique.techniques.keys.max,"Migrate now!","deprecation-migration")
+      )
+    case None =>
+      ("#deprecation-warning [class+]" #> "hidden" )
+  }
+
   def showDirectiveForm(): NodeSeq = {
 
     val ruleDisplayer = {
       new RuleDisplayer(
           Some(directiveApp)
         , "view"
-        , (r:Rule,s:String)  => Noop
-        , (r : Rule)         => Noop
-        , (r : Option[Rule]) => Noop
+        , (_ :Rule,_ : String)  => Noop
+        , (_ : Rule)         => Noop
+        , (_ : Option[Rule]) => Noop
         ).display
     }
 
+    val versionSelect = directiveVersion
+    val currentVersion = showDeprecatedVersion(directive.techniqueVersion)
+    // It is always a Full, but in case add a warning
+    val versionSelectId = versionSelect.uniqueFieldId match {
+      case Full(id) => id
+      case _ =>
+        logger.warn("could not find id for migration select version")
+        "id_not_found"
+    }
+    val (osCompatibility,agentCompatibility) : (NodeSeq,NodeSeq) = {
+      val osCompEmpty : NodeSeq =
+        <span>
+          Can be used on any system.
+        </span>
+
+      val agentCompEmpty : NodeSeq =
+        <span>
+          Can be used on any agent.
+	      </span>
+      technique.compatible match {
+        case None =>
+          (osCompEmpty,agentCompEmpty)
+        case Some(comp) =>
+          val osComp =  comp.os match {
+            case Seq() =>
+              osCompEmpty
+            case oses =>
+                <span>
+                  {oses.mkString(", ")}
+                </span>
+          }
+          val agentComp = comp.agents match {
+            case Seq() =>
+              agentCompEmpty
+            case agent =>
+                <span>
+                  {agent.mkString(", ")}
+	              </span>
+          }
+          (osComp,agentComp)
+      }
+    }
     (
       "#editForm *" #> { (n: NodeSeq) => SHtml.ajaxForm(n) } andThen
       // don't show the action button when we are creating a popup
@@ -214,12 +277,17 @@ class DirectiveEditForm(
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
+      "#version" #> versionSelect.toForm_! &
+      "#migrate" #> migrateButton(directiveVersion.is,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
       "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
-      "#isSingle *" #> showIsSingle// &
+      "#isSingle *" #> showIsSingle &
+      "#compatibilityOs" #> osCompatibility &
+      "#compatibilityAgent" #> agentCompatibility &
+      displayDeprecationWarning
     )(crForm) ++
     Script(OnLoad(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
@@ -228,23 +296,20 @@ class DirectiveEditForm(
         correctButtons();
        $('#technicalDetails').hide();
       """) &
-      JsVar("""
-          $("input").not("#treeSearch").keydown( function(event) {
-            processKey(event , '%s');
+      JsRaw(s"""
+          $$("input").not("#treeSearch").keydown( function(event) {
+            processKey(event , '${htmlId_save}');
           } );
-          """.format(htmlId_save)) &
-      //adapt the height of tabs to the screen, so that the parameter edition takes all the available
-      //space (leting the possibility to see tabs and save button)
-      //Use a 450px as the minimum height.
-      JsRaw("""$('.tabContent').css('max-height', Math.max($(window).height()-100, 450) +'px') """)
+          checkMigrationButton("${currentVersion}","${versionSelectId}");
 
-    )&
-          JsRaw(
-            s"""$$( "#editZone" ).tabs({
-   select: function(event, ui) {
-       scrollToElement("editZone");
-   }});"""
-          )
+          $$('#${versionSelect.uniqueFieldId.getOrElse("id_not_found")}').change(
+            function () {
+              checkMigrationButton("${currentVersion}","${versionSelectId}")
+            }
+          );
+          """)
+
+    )
     )
   }
 
@@ -276,13 +341,12 @@ class DirectiveEditForm(
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
     //restore user to the update parameter tab
     JsRaw("""$("#editZone").tabs("option", "active", 1)""") &
-    JsRaw("""scrollToElement("notifications");""")
+    JsRaw("""scrollToElement("notifications", "#directiveDetails");""")
   }
 
   def initJs : JsCmd = {
     JsRaw("correctButtons();")
   }
-
 
   private[this] def showIsSingle(): NodeSeq = {
     <span>
@@ -343,22 +407,45 @@ class DirectiveEditForm(
       , defaultValue = directive.priority
     ) {
       override val displayHtml =
-        <span class="tooltipable greytooltip" title="" tooltipid="priorityId">
-          <b>Priority:</b>
+        <div>
+        <b>Priority:</b>
+        <span class="tw-bs">
+					<span tooltipid="priorityId" class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span>
           <div class="tooltipContent" id="priorityId">
-          If a node is configured with several Directive derived from that template,
-          the one with the higher priority will be applied first. If several Directives
-          have the same priority, the application order between these two will be random.
-          If the template is unique, only one Directive derived from it may be used at
-          a given time onone given node. The one with the highest priority is chosen.
-          If several Directives have the same priority, one of them will be applied at
-          random. You should always try to avoid that last case.<br/>
-          The highest priority is 0.
+          	<h4> Priority </h4>
+						Priority determines which <b> unique </b> Directive will be applied.
+						<br/>
+						Unique Directives can be applied only once (ie. Time Settings), so only the highest priority will be appllied.
+						<br/>
+						Highest Priority is 0
           </div>
-        </span>
+			  </span>
+      </div>
       override def className = "twoCol"
       override def labelClassName = "threeCol directiveInfo"
 
+    }
+
+  def showDeprecatedVersion (version : TechniqueVersion) = {
+    val deprecationInfo = fullActiveTechnique.techniques(version).deprecrationInfo match {
+      case Some(_) => "(deprecated)"
+      case None => ""
+    }
+    s"${version} ${deprecationInfo}"
+  }
+
+  val versions = fullActiveTechnique.techniques.keys.map(v => (v,showDeprecatedVersion(v))).toSeq.sortBy(_._1)
+
+  private[this] val directiveVersion =
+    new WBSelectObjField(
+        "Technique version"
+      , versions
+      , directive.techniqueVersion
+      , Seq(("id" -> "selectVersion"))
+    ) {
+
+      override def className = "twoCol"
+      override def labelClassName = "threeCol directiveInfo"
     }
 
   private[this] val formTracker = {
@@ -565,4 +652,3 @@ class DirectiveEditForm(
     JsRaw(s""" $$("#successDialogContent").html('${message}') """)
   }
 }
-

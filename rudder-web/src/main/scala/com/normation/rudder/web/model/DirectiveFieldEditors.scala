@@ -51,6 +51,16 @@ import org.joda.time.format.DateTimeFormatter
 import net.liftweb.util.FieldError
 import com.normation.cfclerk.domain._
 import net.liftweb.http.SHtml.ChoiceHolder
+import com.normation.cfclerk.domain.HashAlgoConstraint.PLAIN
+import com.normation.cfclerk.domain.HashAlgoConstraint.PreHashed
+import net.liftweb.util.CssSel
+import net.liftweb.util.Helpers
+import com.normation.utils.Control
+import com.normation.rudder.web.rest.RestUtils
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
+import com.normation.rudder.domain.appconfig.FeatureSwitch.Enabled
+import com.normation.rudder.services.policies.JsEngine
 
 /**
  * This field is a simple input text, without any
@@ -541,15 +551,261 @@ class CheckboxField(val id: String) extends DirectiveField {
 }
 
 /**
- * A password field has three parts:
- * - a zone displaying the current "algo:hash" stored (plain text, not editable)
- * - an input field to let the user enter a new password to hash
- * - a checkbox "blanck password" setting the value to "" and making the other
- *   editing part read-only if the field may be empty.
- * - a zone displaying the algo used, either fixed, or a select list
- *   if the algo is user defined
+ * A password field has two parts:
+ *
+ * One part display the current field, with possible action. If there is no current field, this part is not displayed
+ * One part display how to change the passsword with the possible action (hash, cleartext, prehashed, script ...)
+ *
  */
-class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstraint]) extends DirectiveField {
+
+class PasswordField(
+    val id: String
+  , algos:Seq[HashAlgoConstraint]
+  , canBeDeleted : Boolean
+  , scriptSwitch : () => Box[FeatureSwitch]
+) extends DirectiveField {
+  self =>
+  type ValueType = String
+  def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+  def getDefaultValue = ""
+  def manifest = manifestOf[String]
+  override val uniqueFieldId = Full(id)
+  def name = id
+  def validate = Nil
+  def validations = Nil
+  def setFilter = Nil
+  private var errors : List[FieldError] = Nil
+
+  override def usedFields_=(fields: Seq[DirectiveField]): Unit = {
+    _usedFields = fields
+    slaves = fields.collect { case f: DerivedPasswordField => f }.toList
+  }
+
+  protected var slaves = List[DerivedPasswordField]() // will be init on usedField update - I hate mutable state
+
+  //the actual backend value like: sha1:XXXXXX
+  protected var _x: String = getDefaultValue
+
+  //the algo to use
+  private[this] var currentAlgo: Option[HashAlgoConstraint] = algos.headOption
+  private[this] var currentHash: Option[String] = None
+  private[this] var currentAction: String = "keep"
+  //to store the result
+  private[this] var currentValue: Option[String] = None
+
+  private[this] var previousAlgo: Option[HashAlgoConstraint] = None
+  private[this] var previousHash: Option[String] = None
+
+  /*
+   * find the new internal value of the hash given:
+   * - past value
+   * - blank required
+   * - new value
+   */
+  private[this] def newInternalValue(keepCurrentPwd: Boolean, blankPwd:Boolean, pastValue:String, newInput:String, chosenAlgo:HashAlgoConstraint) : String = {
+    slaves.foreach { s =>
+      s.updateValue(keepCurrentPwd, blankPwd, pastValue, newInput, chosenAlgo)
+    }
+
+    currentValue = Some(newInput)
+
+    if(keepCurrentPwd) pastValue
+    else if(blankPwd) ""
+    else if(newInput == "") ""
+    else chosenAlgo.serialize(newInput.getBytes())
+  }
+
+  /* This will parse the json received from the form
+   * format is:
+   * { "action"  : delete/keep/change
+   *   "hash"    : hash type used
+   *   "password : new password, or undefined/missing field if deleting
+   * }
+   *
+   */
+  def parseClient(s: String) = {
+    import net.liftweb.json._
+    errors = Nil
+    val json = parse(s)
+    (for {
+      action <- json \ "action" match {
+                  case JString(action) => Full(action)
+                  case _ => Failure("Could not parse 'action' field in password input")
+                }
+      (keep,blank) = action match {
+        case "delete" => (false,true)
+        case "keep"   => (true,false)
+        case _        => (false,false)
+      }
+      password <- json \"password" match {
+                    case JString(password) => Full(password)
+                    case JNothing if canBeDeleted => Full("")
+                    case _ => Failure("Could not parse 'password' field in password input")
+                  }
+      hash     <- json \ "hash" match {
+                    case JString(hash) => Full(hash)
+                    case _ => Failure("Could not parse 'hash' field in password input")
+                  }
+      algo = HashAlgoConstraint.fromString(hash).getOrElse(currentAlgo.getOrElse(PLAIN))
+    } yield {
+      currentAction = action
+      if (!keep) {
+        previousAlgo = currentAlgo
+        previousHash = currentHash
+      }
+      newInternalValue(keep,blank,toClient, password, algo)
+    }) match {
+      case Full(newValue) => set(newValue)
+      case eb: EmptyBox =>
+        val fail = eb ?~! s"Error while parsing password input, value received is: ${Printer.compact(RestUtils.render(json))}"
+        logger.error(fail.messageChain)
+        errors = errors ::: List(FieldError(this, fail.messageChain))
+    }
+  }
+  def toClient: String = if (null == _x) "" else _x
+
+  def get = {
+    _x
+  }
+
+  //initialize the field
+  def set(x: String) = {
+    if (null == x || "" == x) _x = ""
+    else {
+      _x = x
+      val r = {
+          HashAlgoConstraint.unserialize( x) match {
+            case Full((a,hash)) =>
+              //update the hash algo to use only if not specified.
+              //we don't check if previous hash and current algo matches: we only enforce
+              //that new passwords use the new specified algo
+              (Some(a),hash)
+            case eb:EmptyBox =>
+              //we don't have a password with the correct format.
+              //report an error, assume the default (first) algo
+              logger.error((eb ?~! "Error when reading stored password hash").messageChain)
+              (None, x)
+          }
+      }
+      currentAlgo = r._1
+      currentHash = Some(r._2)
+    }
+
+    //initialise what to display for "current value" the first time
+    _x
+  }
+
+  def slavesValues () : Map[String,String]= {
+    (for {
+      (derivedType,value) <- slaves.map(slave => (slave.derivedType,slave.toClient))
+      password  = HashAlgoConstraint.unserialize(value).map(_._2).getOrElse(value)
+    } yield {
+      (derivedType.name,password)
+    }).toMap
+  }
+
+  //add a mapping between algo names and what is displayed, because having
+  //linux-... or aix-... does not make sense in that context
+  implicit class AlgoToDisplayName(a: HashAlgoConstraint) {
+    import com.normation.cfclerk.domain.HashAlgoConstraint._
+
+    def name = a match {
+      case PLAIN                         => "Verbatim text"
+      case PreHashed                     => "Pre hashed"
+      case MD5                           => "MD5 (Non salted)"
+      case SHA1                          => "SHA1 (Non salted)"
+      case SHA256                        => "SHA256 (Non salted)"
+      case SHA512                        => "SHA512 (Non salted)"
+      case LinuxShadowMD5    | AixMD5    => "MD5"
+      case LinuxShadowSHA256 | AixSHA256 => "SHA256"
+      case LinuxShadowSHA512 | AixSHA512 => "SHA512"
+      case UnixCryptDES                  => "DES"
+    }
+  }
+
+  def toForm = {
+    val hashes = JsObj(algos.filterNot { x => x == PLAIN || x == PreHashed }.map(a => (a.prefix,  Str(a.name))):_*)
+    val formId = Helpers.nextFuncName
+    val valueInput = SHtml.text("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
+    val otherPasswords = if (slavesValues.size == 0) "undefined" else JsObj(slavesValues().mapValues(Str(_)).toSeq:_*).toJsCmd
+    val (scriptEnabled,isScript, currentValue) = scriptSwitch().getOrElse(Disabled) match {
+      case Disabled => (false,false, currentHash)
+      case Enabled =>
+        val (isAScript,value) = {
+          if (currentHash.getOrElse("").startsWith(JsEngine.DEFAULT_EVAL)) {
+            (true,currentHash.map { _.substring(JsEngine.DEFAULT_EVAL.length()) })
+          } else if(currentHash.getOrElse("").startsWith(JsEngine.EVALJS)) {
+            (true,currentHash.map { _.substring(JsEngine.EVALJS.length()) })
+          } else {
+            (false,currentHash)
+          }
+        }
+        (true,isAScript,value)
+    }
+
+    val (previousScript,prevHash) = {
+      if (previousHash.getOrElse("").startsWith(JsEngine.DEFAULT_EVAL)) {
+        (true,previousHash.map { _.substring(JsEngine.DEFAULT_EVAL.length()) })
+      } else if(previousHash.getOrElse("").startsWith(JsEngine.EVALJS)) {
+        (true,previousHash.map { _.substring(JsEngine.EVALJS.length()) })
+      } else {
+        (false,previousHash)
+      }
+    }
+    val prevAlgo = previousAlgo match {
+      case None => currentAlgo match {
+        case None => algos.headOption
+        case current => current
+      }
+      case previous => previous
+    }
+
+    val initScript = {
+      Script(OnLoad( JsRaw(s"""
+       angular.bootstrap("#${formId}", ['password']);
+       var scope = angular.element($$("#${formId}-controller")).scope();
+       scope.$$apply(function(){
+         scope.init(
+             ${currentValue.map(Str(_).toJsCmd).getOrElse("undefined")}
+           , ${currentAlgo.map(x =>Str(x.prefix).toJsCmd).getOrElse("undefined")}
+           , ${isScript}
+           , ${Str(currentAction).toJsCmd}
+           , ${hashes.toJsCmd}
+           , ${otherPasswords}
+           , ${canBeDeleted}
+           , ${scriptEnabled}
+           , ${prevHash.map(Str(_).toJsCmd).getOrElse("undefined")}
+           , ${prevAlgo.map(x =>Str(x.prefix).toJsCmd).getOrElse("undefined")}
+           , ${previousScript}
+         );
+       });""")))
+    }
+
+    val form = (".password-section *+" #> valueInput).apply(PasswordField.xml(formId)) ++ initScript
+    Full(form)
+  }
+}
+
+object PasswordField {
+
+  def xml(id : String) = {
+      // Html template
+    def templatePath = List("templates-hidden", "components", "passwordInput")
+    def template() =  Templates(templatePath) match {
+       case Empty | Failure(_,_,_) =>
+         sys.error(s"Template for password input configuration not found. I was looking for ${templatePath.mkString("/")}.html")
+       case Full(n) => n
+    }
+    def agentScheduleTemplate = chooseTemplate("password", "input", template)
+
+    val css: CssSel =  ".tw-bs [id]" #> id &
+    ".password-section [id]" #>  (id+"-controller")
+
+    css(agentScheduleTemplate)
+
+  }
+}
+class DerivedPasswordField(val id: String, val derivedType : HashAlgoConstraint.DerivedPasswordType) extends DirectiveField {
   self =>
   type ValueType = String
   def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
@@ -564,146 +820,40 @@ class PasswordField(val id: String, blankable:Boolean, algos:Seq[HashAlgoConstra
   //the actual backend value like: sha1:XXXXXX
   private[this] var _x: String = getDefaultValue
 
-  //the algo to use
-  private[this] var currentAlgo: Option[HashAlgoConstraint] = Some(algos.head)
-  private[this] var currentHash: String = ""
-
-  //to store the result
-  private[this] var currentValue: String = ""
-  private[this] var currentRadio: String = "keep"
-
-  private[this] var blank = false
-  private[this] var keepCurrent = true
+  //the mapping between source algo and corresponding algo
 
   /*
-   * find the new internal value of the hash given:
-   * - past value
-   * - blank required
-   * - new value
+   * Update internal value thanks to a new value from the
+   * master passwords field
    */
-  private[this] def newInternalValue(keepCurrentPwd: Boolean, blankPwd:Boolean, pastValue:String, newInput:String, chosenAlgo:HashAlgoConstraint) : String = {
-    currentValue = newInput
-
-    if(keepCurrentPwd) pastValue
-    else if(blankPwd) ""
-    else if(newInput == "") ""
-    else chosenAlgo.serialize(newInput.getBytes())
+  def updateValue(keepCurrentPwd: Boolean, blankPwd:Boolean, pastValue:String, newInput:String, chosenAlgo:HashAlgoConstraint) : String = {
+    if(keepCurrentPwd) {
+      /*nothing*/
+    } else if(blankPwd || newInput == "") {
+      _x = ""
+    } else {
+      _x = derivedType.hash(chosenAlgo).serialize(newInput.getBytes())
+    }
+    _x
   }
 
   def parseClient(s: String): Unit = {
     if (null == s) _x = "" else _x = s
   }
   def toClient: String = if (null == _x) "" else _x
-
   def get = _x
 
   //initialize the field
   def set(x: String) = {
     if (null == x || "" == x) _x = ""
-    else {
-      _x = x
-      val r = {
-          HashAlgoConstraint.unserializeIn(algos, x) match {
-            case Full((a,hash)) =>
-              //update the hash algo to use only if not specified.
-              //we don't check if previous hash and current algo matches: we only enforce
-              //that new passwords use the new specified algo
-              (Some(a),hash)
-            case eb:EmptyBox =>
-              //we don't have a password with the correct format.
-              //report an error, assume the default (first) algo
-              logger.error((eb ?~! "Error when reading stored password hash").messageChain)
-              (None, x)
-          }
-      }
-      currentAlgo = r._1
-      currentHash = r._2
-    }
-
-    //initialise what to display for "current value" the first time
-    if(null == initialPass) {
-      initialPass = (if(toClient == "") ": No password defined" else s" (${ currentAlgo match { case Some(a) => a.prefix.toUpperCase; case None => "Unknown"} } hash): ${currentHash}")
-    }
+    else _x = x
     _x
   }
 
-  var initialPass: String = null
-
-  def toForm() = {
-    //the radio - the default value is keep
-    val (radioKeep, radioChange, radioBlank) = {
-      val radios : ChoiceHolder[String] = SHtml.radio(Seq("keep","change", "blank"), Full(currentRadio), { s =>
-        currentRadio = s
-        s match {
-          case "keep" => blank = false ; keepCurrent = true;
-          case "blank" => blank = true ; keepCurrent = false;
-          case _ => blank = false; keepCurrent = false;
-      } }, ("style" -> "margin-right:10px") )
-
-      (radios(0),radios(1),radios(2))
-    }
-
-    val form =
-      "zone=value *" #> initialPass &
-      "zonechooseHash" #> ( (xml:NodeSeq) => if(algos.size < 1) Text(s"hash with) ${algos.head.prefix.toUpperCase}") else xml ) &
-      "name=hash" #> (if(algos.size == 1) {
-                       Text(algos.head.prefix.toUpperCase)
-                     } else {
-                       SHtml.selectObj(algos.map(a => (a, a.prefix.toUpperCase))
-                                      , Box(currentAlgo)
-                                      , { (a:HashAlgoConstraint) => currentAlgo = Some(a) }
-                       )
-                     } ) &
-      ".radioKeep" #> radioKeep &
-      ".radioChange" #> radioChange &
-      "name=password" #> S.formGroup(10) { //use formGroup because must be the last evaluated method
-                           //always "" for default value
-                           SHtml.password(
-                               currentValue
-                                // ".get" should be licit at that point, because is only when reading from LDAP
-                             , {s => parseClient(newInternalValue(keepCurrent, blank, toClient, s, currentAlgo.get)) }
-                           )
-                         } &
-      "zone=blank" #>  { (nodes:NodeSeq) =>
-                         (if(blankable) {
-                           (".radioBlank" #> { (nodes:NodeSeq) => radioBlank }).apply(nodes)
-                         } else {
-                           NodeSeq.Empty
-                         })
-      }
-
-    Full(form.apply(PasswordField.xml))
-
-  }
-}
-
-object PasswordField {
-  val xml =
-    <table>
-      <tr><td colspan="2"><div zone="currentValue">Current password<span zone="value">(SHA256 hash): ce94806f8020be351fe3e492808a23a5b929c28a</span></div></td></tr>
-      <tr>
-        <td>New password:</td><td><input class="radioKeep" type="radio" name="[choice]" value="[true]" checked="checked"/>Keep current value</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>
-          <input class="radioChange" type="radio" name="[choice]" value="[true]"/>
-          <input type="text" name="password"/>
-          <span zone="chooseHash">hash with:
-            <select name="hash">
-              <option>MD5</option>
-            </select>
-          </span>
-        </td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>
-          <div zone="blank">
-            <input class="radioBlank" type="radio" name="[choice]" value="[true]"/>None
-          </div>
-        </td>
-      </tr>
-    </table>
-
+  //we don't want to display ANYTHING for that field
+           def toForm        = Full(NodeSeq.Empty)
+  override def toFormNodeSeq = NodeSeq.Empty
+  override def toHtmlNodeSeq = <span></span>
+  override def displayValue  = <span></span>
+  override def displayHtml   = Text("")
 }

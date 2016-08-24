@@ -52,7 +52,8 @@ import net.liftweb.common.Loggable
 import net.liftweb.common.Box
 import net.liftweb.common.Failure
 import net.liftweb.util.Helpers.tryo
-
+import com.normation.eventlog.ModificationId
+import com.normation.utils.StringUuidGenerator
 
 /**
  */
@@ -84,7 +85,6 @@ object RestUtils extends Loggable {
     case _ => Failure("Prettify should only have one value, and should be set to true or false")
   }
 
-
   /**
    * Our own JSON render function to extends net.liftweb.json.JsonAst.render function
    * All code is taken from JsonAst object from lift-json_2.10-2.5.1.jar (dépendency used in rudder 2.10 at least)
@@ -98,9 +98,6 @@ object RestUtils extends Loggable {
 
     import scala.text.{Document, DocText}
     import scala.text.Document._
-
-
-
 
     // Helper functions, needed but private in JSONAst,
     // That one modified, add a bref after the punctuate
@@ -178,17 +175,16 @@ object RestUtils extends Loggable {
 
   }
 
-
   def toJsonResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) : LiftResponse = {
     effectiveResponse (id, message, RestOk, action, prettify)
   }
 
   def toJsonError(id:Option[String], message:JValue)( implicit action : String = "rest", prettify : Boolean) : LiftResponse = {
-    effectiveResponse (id, message, RestError, action, prettify)
+    effectiveResponse (id, message, InternalError, action, prettify)
   }
 
-  def notValidVersionResponse(action:String)(implicit availableVersions : List[Int]) = {
-    val versions = "latest" :: availableVersions.map(_.toString)
+  def notValidVersionResponse(action:String)(implicit availableVersions : List[ApiVersion]) = {
+    val versions = "latest" :: availableVersions.map(_.value.toString)
     toJsonError(None, JString(s"Version used does not exists, please use one of the following: ${versions.mkString("[ ", ", ", " ]")} "))(action,false)
    }
 
@@ -196,27 +192,61 @@ object RestUtils extends Loggable {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(action,false)
    }
 
+  def response (restExtractor : RestExtractorService, dataName: String) (function : Box[JValue], req : Req, errorMessage : String) (implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+    function match {
+      case Full(category : JValue) =>
+        toJsonResponse(None, ( dataName -> category))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(None, message)
+    }
+  }
+
+  def actionResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator) (function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+
+    ( for {
+      reason <- restExtractor.extractReason(req.params)
+      modId = ModificationId(uuidGen.newUuid)
+      actor = RestUtils.getActor(req)
+      categories <- function(actor,modId,reason)
+    } yield {
+      categories
+    } ) match {
+      case Full(categories : JValue) =>
+        toJsonResponse(None, ( "groupCategories" -> categories))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(None, message)
+    }
+  }
+
+  def notFoundResponse(id:Option[String], message:JValue) ( implicit action : String, prettify : Boolean) = {
+    effectiveResponse (id, message, NotFoundError, action, prettify)
+ }
+
 }
 
 sealed case class ApiVersion (
-  value : Int
+    value : Int
+  , deprecated : Boolean
 )
 
 object ApiVersion {
 
-  def fromRequest(req:Req)( implicit availableVersions : List[Int]) : Box[ApiVersion] = {
+  def fromRequest(req:Req)( implicit availableVersions : List[ApiVersion]) : Box[ApiVersion] = {
 
-    val latest = availableVersions.max
+    val latest = availableVersions.maxBy(_.value)
     def fromString (version : String) : Box[ApiVersion] = {
       version match {
-        case "latest"  => Full(ApiVersion(latest))
+        case "latest"  => Full(latest)
         case value =>
            tryo { value.toInt } match {
              case Full(version) =>
-               if (availableVersions.contains(version)) {
-                 Full(ApiVersion(version))
-               } else {
-                 Failure(s" ${version} is not a valid api version")
+               availableVersions.find(_.value == version) match {
+                 case Some(apiVersion) => Full(apiVersion)
+                 case None => Failure(s" ${version} is not a valid api version")
                }
              // Never empty due to tryo
              case eb:EmptyBox => eb
@@ -229,7 +259,6 @@ object ApiVersion {
       case eb: EmptyBox => eb ?~ ("Error when getting header X-API-VERSION")
     }
   }
-
 
 }
 
@@ -245,8 +274,18 @@ object RestOk extends HttpStatus{
   val container = "data"
 }
 
-object RestError extends HttpStatus{
-  val code = 500
+trait RestError extends HttpStatus{
   val status = "error"
   val container = "errorDetails"
+}
+
+object InternalError extends RestError {
+  val code = 500
+}
+
+object NotFoundError extends RestError {
+  val code = 404
+}
+object ForbiddenError extends RestError {
+  val code = 403
 }

@@ -37,387 +37,352 @@
 
 package com.normation.rudder.services.reports
 
-import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
-import scala.collection.mutable.{Set => MutSet}
-import scala.collection.mutable.{Map => MutMap}
 import org.joda.time._
-import org.slf4j.{Logger,LoggerFactory}
-import com.normation.cfclerk.domain.{
-  TrackerVariable,Variable,
-  Cf3PolicyDraft,Cf3PolicyDraftId
-}
-import com.normation.rudder.domain._
-import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.reports.bean._
-import com.normation.rudder.services.reports._
+import com.normation.rudder.domain.reports._
 import com.normation.rudder.repository._
-import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.domain.reports.DirectiveExpectedReports
-import com.normation.rudder.domain.reports.ReportComponent
-import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants._
-import com.normation.cfclerk.services.TechniqueRepository
-import com.normation.rudder.domain.policies.ExpandedRuleVal
-import com.normation.utils.Control._
-import scala.collection.mutable.Buffer
-import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
-import com.normation.cfclerk.domain.PredefinedValuesVariableSpec
-import com.normation.rudder.domain.policies.ExpandedDirectiveVal
+import com.normation.rudder.reports.execution.RoReportsExecutionRepository
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.rudder.domain.reports.RuleStatusReport
+import com.normation.rudder.domain.reports.NodeStatusReport
+import com.normation.rudder.reports.execution.AgentRun
+import com.normation.rudder.reports.ResolvedAgentRunInterval
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.domain.policies.SerialedRuleId
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.services.nodes.NodeInfoService
+import scala.concurrent._
+import scala.concurrent.ExecutionContext.Implicits.global
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.ReportsDisabled
 
+/**
+ * Defaults non-cached version of the reporting service.
+ * Just the composition of the two defaults implementation.
+ */
 class ReportingServiceImpl(
-    confExpectedRepo         : RuleExpectedReportsRepository
-  , reportsRepository        : ReportsRepository
-  , techniqueRepository      : TechniqueRepository
-  , computeCardinality       : ComputeCardinalityOfDirectiveVal
-  , getAgentRunInterval      : () => Int
-) extends ReportingService {
+    val confExpectedRepo    : FindExpectedReportRepository
+  , val reportsRepository   : ReportsRepository
+  , val agentRunRepository  : RoReportsExecutionRepository
+  , val nodeConfigInfoRepo  : RoNodeConfigIdInfoRepository
+  , val runIntervalService  : AgentRunIntervalService
+  , val getGlobalComplianceMode   : () => Box[GlobalComplianceMode]
+) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
-  val logger = LoggerFactory.getLogger(classOf[ReportingServiceImpl])
-
-  /**
-   * Update the list of expected reports when we do a deployment
-   * For each RuleVal, we check if it was present or it serial changed
-   *
-   * Note : deleteRules is not really used (maybe it will in the future)
-   * @param ruleVal
-   * @return
-   */
-  def updateExpectedReports(expandedRuleVals : Seq[ExpandedRuleVal], deleteRules : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
-    // All the rule and serial. Used to know which one are to be removed
-    val currentConfigurationsToRemove =  MutMap[RuleId, (Int, Set[NodeId])]() ++
-      confExpectedRepo.findAllCurrentExpectedReportsWithNodesAndSerial()
-
-    val confToClose = MutSet[RuleId]()
-    val confToCreate = Buffer[ExpandedRuleVal]()
-
-    // Then we need to compare each of them with the one stored
-    for (conf@ExpandedRuleVal(ruleId, configs, newSerial) <- expandedRuleVals) {
-      currentConfigurationsToRemove.get(ruleId) match {
-        // non existant, add it
-        case None =>
-          logger.debug("New rule %s".format(ruleId))
-          confToCreate += conf
-
-        case Some((serial, nodeSet)) if ((serial == newSerial)&&(configs.size > 0)) =>
-            // no change if same serial and some config appliable, that's ok, trace level
-            logger.trace(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed and cache up-to-date: nothing to do")
-            // must check that their are no differents nodes in the DB than in the new reports
-            // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
-            if (configs.keySet != nodeSet) {
-              logger.debug(s"Same serial number (${serial}) for rule '${ruleId.value}', but not same node set: it needs to be closed and created")
-              confToCreate += conf
-              confToClose += ruleId
-            }
-            currentConfigurationsToRemove.remove(ruleId)
-
-        case Some((serial, nodeSet)) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
-            // if there is not target, then it need to be closed
-          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
-
-        case Some((serial, nodeSet)) => // not the same serial
-          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
-            confToCreate += conf
-            confToClose += ruleId
-
-            currentConfigurationsToRemove.remove(ruleId)
-      }
-    }
-
-    //all closable = expected reports that don't exist anymore + expected reports that need to be changed
-    val allClosable = currentConfigurationsToRemove.keys ++ confToClose
-
-    logger.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
-
-    for (closable <- allClosable) {
-      confExpectedRepo.closeExpectedReport(closable)
-    }
-
-    // Now I need to unfold the configuration to create, so that I get for a given
-    // set of ruleId, serial, DirectiveExpectedReports we have the list of  corresponding nodes
-
-    val expanded = confToCreate.map { case ExpandedRuleVal(ruleId, configs, serial) =>
-      configs.toSeq.map { case (nodeId, directives) =>
-        // each directive is converted into Seq[DirectiveExpectedReports]
-        val directiveExpected = directives.map { directive =>
-	          val seq = computeCardinality.getCardinality(directive)
-
-	          seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
-	                     DirectiveExpectedReports(
-	                         directive.directiveId
-	                       , Seq(
-	                           ReportComponent(
-	                               componentName
-	                             , componentsValues.size
-	                             , componentsValues
-	                             , unexpandedCompValues
-	                           )
-	                         )
-	                     )
-	          }
-        }
-
-        (ruleId, serial, nodeId, directiveExpected.flatten)
-      }
-    }
-
-    // we need to group by DirectiveExpectedReports, RuleId, Serial
-    val flatten = expanded.flatten.flatMap { case (ruleId, serial, nodeId, directives) =>
-      directives.map (x => (ruleId, serial, nodeId, x))
-    }
-
-    val preparedValues = flatten.groupBy[(RuleId, Int, DirectiveExpectedReports)]{ case (ruleId, serial, nodeId, directive) =>
-      (ruleId, serial, directive) }.map { case (key, value) => (key -> value.map(x=> x._3))}.toSeq
-
-    // here we group them by rule/serial/seq of node, so that we have the list of all DirectiveExpectedReports that apply to them
-    val groupedContent = preparedValues.toSeq.map { case ((ruleId, serial, directive), nodes) => (ruleId, serial, directive, nodes) }.
-       groupBy[(RuleId, Int, Seq[NodeId])]{ case (ruleId, serial, directive, nodes) => (ruleId, serial, nodes.toSeq)}.map {
-         case (key, value) => (key -> value.map(x => x._3))
-       }.toSeq
-
-    // now we save them
-
-    logger.debug(s"Updating expected reports for rules: ${if(groupedContent.isEmpty) "none" else s"[${groupedContent.map {case ((RuleId(v), _, _), _) => v}.mkString(", ")}]" }")
-
-    sequence(groupedContent) { case ((ruleId, serial, nodes), directives) =>
-      confExpectedRepo.saveExpectedReports(
-                           ruleId
-                         , serial
-                         , directives
-                         , nodes
-                       )
-    }
-  }
-
-
-  /**
-   * Find the latest reports for a given rule (for all servers)
-   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
-   */
-  def findImmediateReportsByRule(ruleId : RuleId) : Box[Option[ExecutionBatch]] = {
-     // look in the configuration
-    confExpectedRepo.findCurrentExpectedReports(ruleId) match {
-      case Empty => Empty
-      case e:Failure => logger.error("Error when fetching reports for Rule %s : %s".format(ruleId.value, e.messageChain)); e
-      case Full(expected) => Full(expected.map(createLastBatchFromConfigurationReports(_)))
-    }
-  }
-
-  /**
-   * Find the latest reports for a seq of rules (for all node)
-   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
-   * The returned Map should have the same elements than the Seq in argument, so that we
-   * can reconcile in the RuleGrid the values, and display properly the success or failure, or applying
-   */
-  def findImmediateReportsByRules(rulesIds : Set[RuleId]) : Map[RuleId, Box[Option[ExecutionBatch]]] = {
-    val agentRunInterval = getAgentRunInterval()
-
-    val expectedReports = rulesIds.map { ruleId =>
-      (ruleId, confExpectedRepo.findCurrentExpectedReports(ruleId))
-    }
-    // For optimization purpose, we want to do only one query to the database
-    // so we handle all the expected reports at once
-    // We need to go through each full non none element, and put back the elements in the map
-    val nonEmptyExpected = expectedReports.map(_._2).flatten.flatten
-
-    val rulesAndSerials = nonEmptyExpected.map(x => (x.ruleId, x.serial))
-    val allReports = reportsRepository.findLastReportsByRules(rulesAndSerials, agentRunInterval)
-
-    // Here we go over each elements of the map [ruleId, Box[ExpectedReports], and reconcile the
-    // entries with the batches
-    expectedReports.map { case (ruleId, status) =>
-      val executionBatch = status match {
-        case Full(Some(expected)) =>
-          val reports = allReports.filter( report => report.ruleId == expected.ruleId)
-          Full(
-              Some(
-                  ConfigurationExecutionBatch(
-                      expected.ruleId
-                    , expected.serial
-                    , expected.directivesOnNodes.map(dir => DirectivesOnNodeExpectedReport(dir.nodeIds, dir.directiveExpectedReports))
-                    , reports.headOption.map(_.executionTimestamp).getOrElse(DateTime.now())
-                    , reports
-                    , expected.beginDate
-                    , expected.endDate
-                    , agentRunInterval
-                  )
-              )
-          )
-        case Full(None) => Full(None)
-        case e : EmptyBox => e
-      }
-      (ruleId, executionBatch)
-    }.toMap
-  }
-
-
-  /**
-   * Find the latest (15 minutes) reports for a given node (all CR)
-   * Note : if there is an expected report, and that we don't have it, we should say that it is empty
-   */
-  def findImmediateReportsByNode(nodeId : NodeId) :  Box[Seq[ExecutionBatch]] = {
-    // look in the configuration
-    confExpectedRepo.findCurrentExpectedReportsByNode(nodeId) match {
-      case e:EmptyBox => e
-      case Full(seq) =>
-        Full(seq.map(expected => createLastBatchFromConfigurationReports(expected, Some(nodeId))))
-    }
-  }
-
-  /************************ Helpers functions **************************************/
-
-  /**
-   * From a RuleExpectedReports, create batch synthetizing the last run
-   * @param expectedOperationReports
-   * @param reports
-   * @return
-   */
-  private def createLastBatchFromConfigurationReports(
-      expectedConfigurationReports : RuleExpectedReports
-    , nodeId                       : Option[NodeId] = None
-  ) : ExecutionBatch = {
-    val agentRunInterval = getAgentRunInterval()
-
-    // Fetch the reports corresponding to this rule, and filter them by nodes
-    val reports = reportsRepository.findLastReportByRule(
-            expectedConfigurationReports.ruleId
-          , expectedConfigurationReports.serial
-          , nodeId
-          , agentRunInterval)
-
-    // If we are only searching on a node, then we restrict the directivesonnode to this node
-    val directivesOnNodes = nodeId match {
-      case None => expectedConfigurationReports.directivesOnNodes.map(x => DirectivesOnNodeExpectedReport(x.nodeIds, x.directiveExpectedReports))
-      case Some(node) =>
-        expectedConfigurationReports.directivesOnNodes.filter(x => x.nodeIds.contains(node)).map(x => DirectivesOnNodeExpectedReport(Seq(node), x.directiveExpectedReports))
-    }
-    new ConfigurationExecutionBatch(
-          expectedConfigurationReports.ruleId
-        , expectedConfigurationReports.serial
-        , directivesOnNodes
-        , reports.headOption.map(x => x.executionTimestamp).getOrElse(DateTime.now()) // this is a dummy date !
-        , reports
-        , expectedConfigurationReports.beginDate
-        , expectedConfigurationReports.endDate
-        , agentRunInterval
-      )
-  }
-
-
+class CachedReportingServiceImpl(
+    val defaultFindRuleNodeStatusReports: ReportingServiceImpl
+  , val nodeInfoService                 : NodeInfoService
+) extends ReportingService with RuleOrNodeReportingServiceImpl with CachedFindRuleNodeStatusReports {
+  val confExpectedRepo = defaultFindRuleNodeStatusReports.confExpectedRepo
 }
 
 /**
- * From a directiveVal, compute all the necessary data to insert within database
- * the correct expected reports
+ * Two of the reporting services methods are just utilities above
+ * "findRuleNodeStatusReports": factor them out of the actual
+ * implementation of that one
  */
-class ComputeCardinalityOfDirectiveVal {
-  val logger = LoggerFactory.getLogger(classOf[ComputeCardinalityOfDirectiveVal])
-  /**
-   * Returns a seq of
-   * Component, ComponentValues(expanded), ComponentValues (unexpanded))
-   *
-   */
-  def getCardinality(container : ExpandedDirectiveVal) : Seq[(String, Seq[String], Seq[String])] = {
-    // Computes the components values, and the unexpanded component values
-    val getTrackingVariableCardinality : (Seq[String], Seq[String]) = {
-      val boundingVar = container.trackerVariable.spec.boundingVariable.getOrElse(container.trackerVariable.spec.name)
-      // now the cardinality is the length of the boundingVariable
-      (container.variables.get(boundingVar), container.originalVariables.get(boundingVar)) match {
-        case (None, None) =>
-          logger.debug("Could not find the bounded variable %s for %s in DirectiveVal %s".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
-          (Seq(DEFAULT_COMPONENT_KEY),Seq()) // this is an autobounding policy
-        case (Some(variable), Some(originalVariables)) if (variable.values.size==originalVariables.values.size) =>
-          (variable.values, originalVariables.values)
-        case (Some(variable), Some(originalVariables)) =>
-          logger.warn("Expanded and unexpanded values for bounded variable %s for %s in DirectiveVal %s have not the same size : %s and %s".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value,variable.values, originalVariables.values ))
-          (variable.values, originalVariables.values)
-        case (None, Some(originalVariables)) =>
-          (Seq(DEFAULT_COMPONENT_KEY),originalVariables.values) // this is an autobounding policy
-        case (Some(variable), None) =>
-          logger.warn("Somewhere in the expansion of variables, the bounded variable %s for %s in DirectiveVal %s appeared, but was not originally there".format(
-              boundingVar, container.trackerVariable.spec.name, container.directiveId.value))
-          (variable.values,Seq()) // this is an autobounding policy
+trait RuleOrNodeReportingServiceImpl extends ReportingService {
 
-      }
+  def confExpectedRepo: FindExpectedReportRepository
+
+  override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
+    //here, the logic is ONLY to get the node for which that rule applies and then step back
+    //on the other method
+    for {
+      nodeIds <- confExpectedRepo.findCurrentNodeIds(ruleId)
+      reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
+    } yield {
+      val toKeep = reports.values.flatMap( _._2 )
+      RuleStatusReport(ruleId, toKeep)
     }
+  }
 
-    /**
-     * We have two separate paths:
-     * - if the technique is standart, we keep the complex old path
-     * - if it is a meta technique, we take the easy paths
-     */
-    container.technique.providesExpectedReports match {
-      case false =>
-        // this is the old path
-            /*
-             * We can have several components, one by section.
-             * If there is no component for that policy, the policy is autobounded to DEFAULT_COMPONENT_KEY
-             */
-            val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
-              if(section.isComponent) {
-                section.componentKey match {
-                  case None =>
-                    //a section that is a component without componentKey variable: card=1, value="None"
-                    Some((section.name, Seq(DEFAULT_COMPONENT_KEY), Seq(DEFAULT_COMPONENT_KEY)))
-                  case Some(varName) =>
-                    //a section with a componentKey variable: card=variable card
-                    val values = container.variables.get(varName).map( _.values).getOrElse(Seq())
-                    val unexpandedValues = container.originalVariables.get(varName).map( _.values).getOrElse(Seq())
-                    if (values.size != unexpandedValues.size)
-                      logger.warn("Caution, the size of unexpanded and expanded variables for autobounding variable in section %s for directive %s are not the same : %s and %s".format(
-                          section.componentKey, container.directiveId.value, values, unexpandedValues ))
-                    Some((section.name, values, unexpandedValues))
-                }
-              } else {
-                None
-              }
-            }
-
-            if(allComponents.size < 1) {
-              //that log is outputed one time for each directive for each node using a technique, it's far too
-              //verbose on debug.
-              logger.trace("Technique '%s' does not define any components, assigning default component with expected report = 1 for Directive %s".format(
-                container.technique.id, container.directiveId))
-
-              val trackingVarCard = getTrackingVariableCardinality
-              Seq((container.technique.id.name.value, trackingVarCard._1, trackingVarCard._2))
-            } else {
-              allComponents
-            }
-      case true =>
-        // this is easy, everything is in the DirectiveVal; the components contains only one value, the
-        // one that we want
-        val allComponents = container.technique.rootSection.getAllSections.flatMap { section =>
-          if (section.isComponent) {
-            section.componentKey match {
-              case None =>
-                logger.error(s"We don't have defined reports keys for section ${section.name} that should provide predefined values")
-                None
-              case Some(name) =>
-                (container.variables.get(name), container.originalVariables.get(name)) match {
-                  case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size == originalValues.values.size =>
-                    Some(section.name, expandedValues.values, originalValues.values)
-
-                  case (Some(expandedValues), Some(originalValues)) if expandedValues.values.size != originalValues.values.size =>
-                    logger.error(s"In section ${section.name}, the original values and the expanded values don't have the same size. Orignal values are ${originalValues.values}, expanded are ${expandedValues.values}")
-                    None
-
-                  case _ =>
-                    logger.error(s"The reports keys for section ${section.name} do not exist")
-                    None
-                }
-            }
-          } else {
-            None
-          }
-        }
-        allComponents
+   override def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = {
+    for {
+      reports    <- findRuleNodeStatusReports(Set(nodeId), Set())
+      (run, set) <- Box(reports.get(nodeId)) ?~! s"Can not find report for node with ID ${nodeId.value}"
+    } yield {
+      NodeStatusReport(nodeId, run, set)
     }
-
   }
 
 }
 
+trait CachedFindRuleNodeStatusReports extends ReportingService with CachedRepository with Loggable {
+
+  /**
+   * underlying service that will provide the computation logic
+   */
+  def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports
+  def nodeInfoService                 : NodeInfoService
+
+  /**
+   * The cache is managed node by node.
+   * A missing nodeId mean that the cache wasn't initialized for
+   * that node.
+   */
+  private[this] var cache = Map.empty[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]
+
+  private[this] def cacheToLog(c: Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]): String = {
+    import com.normation.rudder.domain.logger.ComplianceDebugLogger.RunAndConfigInfoToLog
+
+    //display compliance value and expiration date.
+    c.map { case (nodeId, (run, reports)) =>
+
+      val reportsString = reports.map { r =>
+        s"${r.ruleId.value}/${r.serial}[exp:${r.expirationDate}]${r.compliance.toString}"
+      }.mkString("\n  ", "\n  ", "")
+
+      s"node: ${nodeId.value}${run.toLog}${reportsString}"
+    }.mkString("\n", "\n", "")
+  }
+
+  /**
+   * Invalidate some keys in the cache. That won't charge them again
+   * immediately
+   */
+  def invalidate(nodeIds: Set[NodeId]): Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = this.synchronized {
+    logger.debug(s"Compliance cache: invalidate cache for nodes: [${nodeIds.map { _.value }.mkString(",")}]")
+    cache = cache -- nodeIds
+    //preload new results
+    checkAndUpdateCache(nodeIds)
+  }
+
+  /**
+   * For the nodeIds in parameter, check that the cache is:
+   * - initialized, else go find missing rule node status reports (one time for all)
+   * - none reports is expired, else switch its status to "missing" for all components
+   */
+  private[this] def checkAndUpdateCache(nodeIdsToCheck: Set[NodeId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = this.synchronized {
+    if(nodeIdsToCheck.isEmpty) {
+      Full(Map())
+    } else {
+      val now = DateTime.now
+
+      for {
+        allNodeIds        <- nodeInfoService.getAll.map( _.keySet)
+        //only try to update nodes that are accepted in Rudder
+        nodeIds            =  nodeIdsToCheck.intersect(allNodeIds)
+        /*
+         * Three cases: 1/ cache does exist and up to date, 2/ cache exists but expiration date expired,
+         * 3/ cache does note exists.
+         * For simplicity (and keeping computation logic elsewhere than in a cache that already has its cache logic
+         * to manage), we will group 2 and 3, but it is well noted that it seems that a RuleNodeStatusReports that
+         * expired could be computed without any more logic than "every thing is missing".
+         *
+         */
+        (expired, upToDate) =  nodeIds.partition { id =>  //two group: expired id, and up to date info
+                                 cache.get(id) match {
+                                   case None      => true
+                                   case Some((run,set)) => set.exists { _.expirationDate.isBefore(now) }
+                                 }
+                               }
+        newStatus           <- defaultFindRuleNodeStatusReports.findRuleNodeStatusReports(expired, Set())
+      } yield {
+        //here, newStatus.keySet == expired.keySet, so we have processed all nodeIds that should be modified.
+        logger.debug(s"Compliance cache miss (updated):[${newStatus.keySet.map(_.value).mkString(" , ")}], "+
+                               s" hit:[${upToDate.map(_.value).mkString(" , ")}]")
+        cache = cache ++ newStatus
+        val toReturn = cache.filterKeys { id => nodeIds.contains(id) }
+        logger.trace("Compliance cache content: " + cacheToLog(toReturn))
+        toReturn
+      }
+    }
+  }
+
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
+    for {
+      reports <- checkAndUpdateCache(nodeIds)
+    } yield {
+      if(ruleIds.isEmpty) {
+        reports
+      } else {
+        reports.mapValues { case(run, set) => (run, set.filter(r => ruleIds.contains(r.ruleId) ))}.filter( _._2._2.nonEmpty )
+      }
+    }
+  }
+
+  /**
+   * Clear cache. Try a reload asynchronously, disregarding
+   * the result
+   */
+  override def clearCache(): Unit = this.synchronized {
+    cache = Map()
+    logger.debug("Compliance cache cleared")
+    //reload it for future use
+    Future {
+      for {
+        infos <- nodeInfoService.getAll
+      } yield {
+        checkAndUpdateCache(infos.keySet)
+      }
+    }
+    ()
+  }
+
+}
+
+trait DefaultFindRuleNodeStatusReports extends ReportingService {
+
+  def confExpectedRepo  : FindExpectedReportRepository
+  def reportsRepository : ReportsRepository
+  def agentRunRepository: RoReportsExecutionRepository
+  def nodeConfigInfoRepo: RoNodeConfigIdInfoRepository
+  def runIntervalService: AgentRunIntervalService
+  def getGlobalComplianceMode : () => Box[GlobalComplianceMode]
+
+  override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
+    /*
+     * This is the main logic point to get reports.
+     *
+     * Compliance for a given node is a function of ONLY(expectedNodeConfigId, lastReceivedAgentRun).
+     *
+     * The logic is:
+     *
+     * - for a (or n) given node (we have a node-bias),
+     * - get the expected configuration right now
+     *   - errors may happen if the node does not exists or if
+     *     it does not have config right now. For example, it
+     *     was added just a second ago.
+     *     => "no data for that node"
+     * - get the last run for the node.
+     *
+     * If nodeConfigId(last run) == nodeConfigId(expected config)
+     *  => simple compare & merge
+     * else {
+     *   - expected reports INTERSECTION received report ==> compute the compliance on
+     *      received reports (with an expiration date)
+     *   - expected reports - received report ==> pending reports (with an expiration date)
+     *
+     * }
+     *
+     * All nodeIds get a value in the returnedMap, because:
+     * - getNodeRunInfos(nodeIds).keySet == nodeIds AND
+     * - runInfos.keySet == buildNodeStatusReports(runInfos,...).keySet
+     * So nodeIds === returnedMap.keySet holds
+     */
+    val t0 = System.currentTimeMillis
+    for {
+      complianceMode      <- getGlobalComplianceMode()
+      // we want compliance on these nodes
+      runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
+
+      // that gives us configId for runs, and expected configId (some may be in both set)
+      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigInfo.configId) }
+      lastrunConfigId     =  runInfos.collect {
+                               case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
+                               case (nodeId, Pending(_, Some(run), _, _)) => NodeAndConfigId(nodeId, run._2.configId)
+                             }
+
+      t1                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t1-t0}ms")
+
+      // so now, get all expected reports for these config id
+      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigIds.toSet++lastrunConfigId, ruleIds)
+
+      t2                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: get expected reports: ${t2-t1}ms")
+
+      // compute the status
+      nodeStatusReports   <- buildNodeStatusReports(runInfos, allExpectedReports, ruleIds, complianceMode.mode)
+
+      t3                  =  System.currentTimeMillis
+      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
+    } yield {
+      nodeStatusReports
+    }
+  }
+
+  /*
+   * For each node, get the config it has.
+   * This method bases its result on THE LAST RUN
+   * of each node, and try to discover the run linked information (datetime, config id).
+   *
+   * A value is return for ALL nodeIds, so the assertion nodeIds == returnedMap.keySet holds.
+   *
+   */
+  private[this] def getNodeRunInfos(nodeIds: Set[NodeId], complianceMode: GlobalComplianceMode): Box[Map[NodeId, RunAndConfigInfo]] = {
+    def findVersionById(id: NodeConfigId, infos: Seq[NodeConfigIdInfo]): Option[NodeConfigIdInfo] ={
+      infos.find { i => i.configId == id}
+    }
+
+    def findVersionByDate(date: DateTime, infos: Seq[NodeConfigIdInfo]): Option[NodeConfigIdInfo] ={
+      infos.find { i => i.creation.isBefore(date) && (i.endOfLife match {
+        case None => true
+        case Some(t) => t.isAfter(date)
+      }) }
+    }
+
+    for {
+      runs              <- complianceMode.mode match {
+                            //this is an optimisation to avoid querying the db in that case
+                             case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
+                             case _ => agentRunRepository.getNodesLastRun(nodeIds)
+                           }
+      nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
+      runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)
+      //just a validation that we have all nodes interval
+      _                 <- if(runIntervals.keySet == nodeIds) Full("OK") else {
+                             Failure(s"We weren't able to get agent run interval configuration (even using default values) for some node: ${(nodeIds -- runIntervals.keySet).map(_.value).mkString(", ")}")
+                           }
+    } yield {
+      ExecutionBatch.computeNodesRunInfo(runIntervals, runs, nodeConfigIdInfos, complianceMode)
+    }
+  }
+
+  /*
+   * Given a set of agent runs and expected reports, retrieve the corresponding
+   * execution reports and then nodestatusreports, being smart about what to
+   * query for
+   * When a node is in pending state, we drop the olderExpectedReports from it
+   *
+   * Each runInfo get a result, even if we don't have information about it.
+   * So runInfos.keySet == returnedMap.keySet holds.
+   */
+  private[this] def buildNodeStatusReports(
+      runInfos          : Map[NodeId, RunAndConfigInfo]
+    , allExpectedReports: Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
+    , ruleIds           : Set[RuleId]
+    , complianceModeName: ComplianceModeName
+  ): Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
+
+    val now = DateTime.now
+
+    /*
+     * We want to optimize and only query reports for nodes that we
+     * actually want to merge/compare or report as unexpected reports
+     */
+    val agentRunIds = (runInfos.collect { case(nodeId, run:LastRunAvailable) =>
+       AgentRunId(nodeId, run.lastRunDateTime)
+    }).toSet ++ (runInfos.collect { case(nodeId, Pending(_, Some(run), _, _)) =>
+       AgentRunId(nodeId, run._1)
+    }).toSet
+
+    for {
+      /*
+       * now get reports for agent rules.
+       * We want to do a batch query for all nodes to be able to minimize number of requests.
+       *
+       * We don't want to do the query if we are in "reports-disabled" mode, since in that mode,
+       * either we don't have reports (expected) or we have reports that will be out of date
+       * (for ex. just after a change in the option).
+       */
+      reports <- complianceModeName match {
+                                      case ReportsDisabled => Full(Map[NodeId,Seq[Reports]]())
+                                      case _               => reportsRepository.getExecutionReports(agentRunIds, ruleIds)
+                                    }
+    } yield {
+      //we want to have nodeStatus for all asked node, not only the ones with reports
+      runInfos.map { case(nodeId, runInfo) =>
+        ExecutionBatch.getNodeStatusReports(nodeId, runInfo
+            , allExpectedReports.getOrElse(nodeId, Map())
+            , reports.getOrElse(nodeId, Seq())
+        )
+      }
+    }
+  }
+}

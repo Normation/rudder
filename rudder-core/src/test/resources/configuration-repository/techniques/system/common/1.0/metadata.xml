@@ -1,0 +1,153 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<TECHNIQUE  name="Common policies">
+  <DESCRIPTION>Has a policy server</DESCRIPTION>
+  <SYSTEM>true</SYSTEM>
+
+  <TMLS>
+    <TML name="cf-served"/>
+    <TML name="rudder_lib" />
+    <TML name="rudder_stdlib" />
+    <TML name="rudder_stdlib_core" />
+    <TML name="internal_security" />
+    <TML name="nxlog_activation"/>
+    <TML name="cron_setup" />
+    <TML name="site"/>
+    <TML name="update"/>
+    <TML name="failsafe">
+      <OUTPATH>failsafe.cf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="promises">
+      <OUTPATH>promises.cf</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder_directives">
+      <OUTPATH>rudder_directives.cf</OUTPATH>
+    </TML>
+    <TML name="rudder_system_directives">
+      <OUTPATH>rudder_system_directives.cf</OUTPATH>
+    </TML>
+    <TML name="rudder_agent_community_cron">
+      <OUTPATH>common/cron/rudder_agent_community_cron</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder_agent_nova_cron">
+      <OUTPATH>common/cron/rudder_agent_nova_cron</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder_promises_generated">
+      <OUTPATH>rudder_promises_generated</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="rudder_parameters"/>
+    <TML name="check_zypper"/>
+    <TML name="run_interval">
+      <OUTPATH>run_interval</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="minicurl">
+      <OUTPATH>common/utilities/minicurl</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="environment-variables"/>
+    <TML name="restart-services"/>
+    <TML name="rudder-groups"/>
+  </TMLS>
+
+  <SYSTEMVARS>
+    <NAME>AUTHORIZED_NETWORKS</NAME>
+    <NAME>INPUTLIST</NAME>
+    <NAME>BUNDLELIST</NAME>
+    <NAME>RUDDER_DIRECTIVES_SEQUENCE</NAME>
+    <NAME>RUDDER_DIRECTIVES_INPUTS</NAME>
+    <NAME>RUDDER_SYSTEM_DIRECTIVES_SEQUENCE</NAME>
+    <NAME>RUDDER_SYSTEM_DIRECTIVES_INPUTS</NAME>
+    <NAME>NOVA</NAME>
+    <NAME>COMMUNITY</NAME>
+    <NAME>COMMUNITYPORT</NAME>
+    <NAME>NODEROLE</NAME>
+    <NAME>SHARED_FILES_FOLDER</NAME>
+    <NAME>DAVUSER</NAME>
+    <NAME>DAVPASSWORD</NAME>
+    <NAME>SYSLOGPORT</NAME>
+    <NAME>MANAGED_NODES_NAME</NAME>
+    <NAME>MANAGED_NODES_ID</NAME>
+    <NAME>MANAGED_NODES_ADMIN</NAME> 
+    <NAME>DENYBADCLOCKS</NAME>
+    <NAME>SKIPIDENTIFY</NAME>
+    <NAME>AGENT_RUN_INTERVAL</NAME>
+    <NAME>AGENT_RUN_SPLAYTIME</NAME>
+    <NAME>AGENT_RUN_SCHEDULE</NAME>
+    <NAME>MODIFIED_FILES_TTL</NAME>
+    <NAME>CFENGINE_OUTPUTS_TTL</NAME>
+    <NAME>RUDDER_NODE_CONFIG_ID</NAME>
+    <NAME>RUDDER_REPORT_MODE</NAME>
+    <NAME>RUDDER_HEARTBEAT_INTERVAL</NAME>
+    <NAME>CONFIGURATION_REPOSITORY_FOLDER</NAME>
+    <NAME>RUDDER_SYSLOG_PROTOCOL</NAME>
+    <NAME>RUDDER_NODE_GROUPS_VARS</NAME>
+    <NAME>RUDDER_NODE_GROUPS_CLASSES</NAME>
+  </SYSTEMVARS>
+
+  <SECTIONS>
+
+    <!-- The following sections are for reporting only, variable are defined in the main section below -->
+    <SECTION name="Red Button" component="true" />
+    <SECTION name="Update" component="true" />
+    <SECTION name="Security parameters" component="true" />
+    <SECTION name="Log system for reports" component="true" />
+    <SECTION name="CRON Daemon" component="true" />
+    <SECTION name="Binaries update" component="true" />
+    <SECTION name="Process checking" component="true" />
+
+    <SECTION name="common">
+      <INPUT>
+        <NAME>POLICYSERVER_ADMIN</NAME>
+        <DESCRIPTION>The policy server admin allowed to connect to this node via cf-runagent (see also distributePolicy.ADMIN)</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>OWNER</NAME>
+        <DESCRIPTION>User launching cfe (usually root)</DESCRIPTION>
+        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
+      </INPUT>
+      <INPUT>
+        <NAME>UUID</NAME>
+        <DESCRIPTION>UUID of the machine</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>POLICYSERVER</NAME>
+        <DESCRIPTION>Promises server hostname</DESCRIPTION>
+      </INPUT>
+      <INPUT>
+        <NAME>POLICYSERVER_ID</NAME>
+        <DESCRIPTION>UUID of the policy server</DESCRIPTION>
+      </INPUT>
+      <SECTION name="authorizedNetworkSection" multivalued="true">
+      <INPUT>
+        <NAME>ALLOWEDNETWORK</NAME>
+        <DESCRIPTION>The network(s) allowed to connect to the server (can use the / parameter)</DESCRIPTION>
+        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
+        <CONSTRAINT>
+          <MAYBEEMPTY>true</MAYBEEMPTY>
+        </CONSTRAINT>
+      </INPUT>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+
+</TECHNIQUE>

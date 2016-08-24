@@ -42,30 +42,45 @@ import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.ServerRole
+import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.inventory.domain.MachineType
+import com.normation.inventory.domain.Manufacturer
+import com.normation.inventory.domain.MemorySize
+import com.normation.inventory.domain.OsDetails
+import com.normation.inventory.domain.MachineUuid
+import com.normation.inventory.domain.KeyStatus
+
+
+final case class MachineInfo(
+    id          : MachineUuid
+  , machineType : MachineType
+  , systemSerial: Option[String]
+  , manufacturer: Option[Manufacturer]
+)
 
 /**
  * A NodeInfo is a read only object containing the information that will be
  * always useful about a node
  */
-case class NodeInfo(
-    node          : Node
-  , hostname      : String
-  , machineType   : String
-  , osName        : String
-  , osVersion     : String
-  , servicePack   : Option[String]
-  , ips           : List[String]
-  , inventoryDate : DateTime
-  , publicKey     : String
-  , agentsName    : Seq[AgentType]
-  , policyServerId: NodeId
+final case class NodeInfo(
+    node           : Node
+  , hostname       : String
+  , machine        : Option[MachineInfo]
+  , osDetails      : OsDetails
+  , ips            : List[String]
+  , inventoryDate  : DateTime
+  , publicKey      : String
+  , keyStatus      : KeyStatus
+  , agentsName     : Seq[AgentType]
+  , policyServerId : NodeId
   , localAdministratorAccountName: String
-  , creationDate  : DateTime
   //for now, isPolicyServer and server role ARE NOT
   //dependant. So EXPECTS inconsistencies.
   //TODO: remove isPolicyServer, and pattern match on
   //      on role everywhere.
-  , serverRoles   : Set[ServerRole]
+  , serverRoles    : Set[ServerRole]
+  , archDescription: Option[String]
+  , ram            : Option[MemorySize]
 ) extends HashcodeCaching {
 
   val id                         = node.id
@@ -74,5 +89,8 @@ case class NodeInfo(
   val isBroken                   = node.isBroken
   val isSystem                   = node.isSystem
   val isPolicyServer             = node.isPolicyServer
+  val creationDate               = node.creationDate
+  val nodeReportingConfiguration = node.nodeReportingConfiguration
+  val properties                 = node.properties
 
 }

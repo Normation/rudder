@@ -47,6 +47,26 @@ import com.normation.rudder.domain.appconfig.RudderWebPropertyName
 import net.liftweb.common.Failure
 import net.liftweb.common.Loggable
 import net.liftweb.common.EmptyBox
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.domain.appconfig.RudderWebProperty
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ChangesOnly
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.eventlog.ModifySendServerMetricsEventType
+import com.normation.rudder.domain.eventlog.ModifyComplianceModeEventType
+import com.normation.rudder.domain.eventlog.ModifyHeartbeatPeriodEventType
+import net.liftweb.common.EmptyBox
+import com.normation.rudder.domain.eventlog.ModifyAgentRunIntervalEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartHourEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunStartMinuteEventType
+import com.normation.rudder.domain.eventlog.ModifyAgentRunSplaytimeEventType
+import com.normation.rudder.reports._
+import com.normation.rudder.domain.eventlog.ModifyRudderSyslogProtocolEventType
+import scala.language.implicitConversions
+import ca.mrvisser.sealerate
+import com.normation.rudder.web.components.popup.ModificationValidationPopup.Disable
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -99,9 +119,46 @@ trait ReadConfigService {
   def rudder_store_all_centralized_logs_in_file(): Box[Boolean]
 
   /**
+   * Compliance mode: See ComplianceMode class for more details
+   */
+  def rudder_compliance_mode(): Box[GlobalComplianceMode] = {
+    for {
+        name <- rudder_compliance_mode_name
+        modeName <- ComplianceModeName.parse(name)
+        period <- rudder_compliance_heartbeatPeriod
+    } yield {
+      GlobalComplianceMode(modeName,period)
+    }
+  }
+
+  def rudder_compliance_mode_name(): Box[String]
+
+  def rudder_compliance_heartbeatPeriod(): Box[Int]
+
+  /**
+   * Send Metrics
+   */
+  def send_server_metrics(): Box[Option[Boolean]]
+
+  /**
+   * Report protocol
+   */
+  def rudder_syslog_protocol(): Box[SyslogProtocol]
+
+  /**
+   * Should we display recent changes graphs  ?
+   */
+  def display_changes_graph(): Box[Boolean]
+
+  /**
    * Should we send backward compatible data from API
    */
   def api_compatibility_mode(): Box[Boolean]
+
+  /**
+   * Should we activate the script engine bar ?
+   */
+  def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
 }
 
 /**
@@ -129,10 +186,10 @@ trait UpdateConfigService {
   /**
    * Agent frequency and start run
    */
-  def set_agent_run_interval(value: Int): Box[Unit]
-  def set_agent_run_splaytime(value: Int): Box[Unit]
-  def set_agent_run_start_hour(value: Int): Box[Unit]
-  def set_agent_run_start_minute(value: Int): Box[Unit]
+  def set_agent_run_interval(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_splaytime(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_start_hour(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
+  def set_agent_run_start_minute(value: Int, actor : EventActor, reason: Option[String]): Box[Unit]
 
   /**
    * Set CFEngine global properties
@@ -146,10 +203,49 @@ trait UpdateConfigService {
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean): Box[Unit]
 
   /**
+   * Send Metrics
+   */
+  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): Box[Unit]
+
+  /**
+   * Set the compliance mode
+   */
+  def set_rudder_compliance_mode(mode : ComplianceMode, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    for {
+      _ <- set_rudder_compliance_mode_name(mode.name,actor, reason)
+      u <- mode.name match {
+             case ChangesOnly.name =>  set_rudder_compliance_heartbeatPeriod(mode.heartbeatPeriod, actor, reason)
+             case _ => Full(())
+           }
+    } yield {
+      u
+    }
+
+  }
+
+  def set_rudder_compliance_mode_name(name : String, actor : EventActor, reason: Option[String]) : Box[Unit]
+
+  def set_rudder_compliance_heartbeatPeriod(frequency : Int, actor: EventActor, reason: Option[String]) : Box[Unit]
+
+  /**
+   * Report protocol
+   */
+  def set_rudder_syslog_protocol(value : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit]
+
+  /**
+   * Should we display recent changes graphs  ?
+   */
+  def set_display_changes_graph(displayGraph : Boolean): Box[Unit]
+
+  /**
    * Should we send backward compatible data from API
    */
   def set_api_compatibility_mode(value: Boolean): Box[Unit]
 
+  /**
+   * Should we evaluate scripts in variable values?
+   */
+  def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -160,7 +256,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   var cacheExecutionInterval: Option[Int] = None
 
   val defaultConfig =
-    """rudder.ui.changeMessage.enabled=true
+    s"""rudder.ui.changeMessage.enabled=true
        rudder.ui.changeMessage.mandatory=false
        rudder.ui.changeMessage.explanation=Please enter a reason explaining this change.
        rudder.workflow.enabled=false
@@ -175,7 +271,13 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        cfengine.modified.files.ttl=30
        cfengine.outputs.ttl=7
        rudder.store.all.centralized.logs.in.file=true
+       send.server.metrics=none
+       rudder.compliance.mode=${FullCompliance.name}
+       rudder.compliance.heartbeatPeriod=1
+       rudder.syslog.protocol=UDP
+       display.changes.graph=true
        api.compatibility.mode=false
+       rudder.featureSwitch.directiveScriptEngine=disabled
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -201,9 +303,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     }
   }
 
-  private[this] def save[T](name: String, value: T): Box[RudderWebProperty] = {
+  private[this] def save[T](name: String, value: T, modifyGlobalPropertyInfo : Option[ModifyGlobalPropertyInfo] = None): Box[RudderWebProperty] = {
     val p = RudderWebProperty(RudderWebPropertyName(name), value.toString, "")
-    repos.saveConfigParameter(p)
+    repos.saveConfigParameter(p,modifyGlobalPropertyInfo)
   }
 
   private[this] implicit def toBoolean(p: RudderWebProperty): Boolean = p.value.toLowerCase match {
@@ -211,6 +313,17 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     case _ => false
   }
 
+  private[this] implicit def toOptionBoolean(p: RudderWebProperty): Option[Boolean] = p.value.toLowerCase match {
+    case "true" | "1" => Some(true)
+    case "none" => None
+    case _ => Some(false)
+  }
+
+  private[this] implicit def toSyslogProtocol(p: RudderWebProperty): SyslogProtocol = p.value match {
+    case SyslogTCP.value => // value is TCP
+      SyslogTCP
+    case _ => SyslogUDP
+  }
   private[this] implicit def toString(p: RudderWebProperty): String = p.value
 
   private[this] implicit def toUnit(p: Box[RudderWebProperty]) : Box[Unit] = p.map( _ => ())
@@ -221,6 +334,17 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     } catch {
       case ex:NumberFormatException => Failure(ex.getMessage)
     }
+  }
+
+  /**
+   * A feature switch is defaulted to Disabled is parsing fails.
+   */
+  private[this] implicit def toFeatureSwitch(p: RudderWebProperty): FeatureSwitch = FeatureSwitch.parse(p.value) match {
+    case Full(status) => status
+    case eb: EmptyBox =>
+      val e = eb ?~! s"Error when trying to parse property '${p.name}' with value '${p.value}' into a feature switch status"
+      logger.warn(e.messageChain)
+      FeatureSwitch.Disabled
   }
 
   def rudder_ui_changeMessage_enabled() = get("rudder_ui_changeMessage_enabled")
@@ -266,19 +390,29 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     }
 
   }
-  def set_agent_run_interval(value: Int): Box[Unit] = {
+  def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
     cacheExecutionInterval = Some(value)
-    save("agent_run_interval", value)
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunIntervalEventType,actor,reason)
+    save("agent_run_interval", value, Some(info))
   }
 
   def agent_run_splaytime(): Box[Int] = get("agent_run_splaytime")
-  def set_agent_run_splaytime(value: Int): Box[Unit] = save("agent_run_splaytime", value)
+  def set_agent_run_splaytime(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunSplaytimeEventType,actor,reason)
+    save("agent_run_splaytime", value, Some(info))
+  }
 
   def agent_run_start_hour(): Box[Int] = get("agent_run_start_hour")
-  def set_agent_run_start_hour(value: Int): Box[Unit] = save("agent_run_start_hour", value)
+  def set_agent_run_start_hour(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartHourEventType,actor,reason)
+    save("agent_run_start_hour", value, Some(info))
+  }
 
   def agent_run_start_minute(): Box[Int] = get("agent_run_start_minute")
-  def set_agent_run_start_minute(value: Int): Box[Unit] = save("agent_run_start_minute", value)
+  def set_agent_run_start_minute(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyAgentRunStartMinuteEventType,actor,reason)
+    save("agent_run_start_minute", value, Some(info))
+  }
 
   ///// CFEngine server /////
   def cfengine_modified_files_ttl(): Box[Int] = get("cfengine_modified_files_ttl")
@@ -293,9 +427,65 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def set_rudder_store_all_centralized_logs_in_file(value: Boolean) = save("rudder_store_all_centralized_logs_in_file", value)
 
   /**
+   * Compliance mode
+   */
+  def rudder_compliance_mode_name(): Box[String] = get("rudder_compliance_mode")
+  def set_rudder_compliance_mode_name(value: String, actor : EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
+    save("rudder_compliance_mode", value, Some(info))
+  }
+
+  /**
+   * Heartbeat frequency mode
+   */
+  def rudder_compliance_heartbeatPeriod(): Box[Int] = get("rudder_compliance_heartbeatPeriod")
+  def set_rudder_compliance_heartbeatPeriod(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyHeartbeatPeriodEventType,actor,reason)
+    save("rudder_compliance_heartbeatPeriod", value, Some(info))
+  }
+
+  /**
+   * Send Metrics
+   */
+  def send_server_metrics(): Box[Option[Boolean]] = get("send_server_metrics")
+
+  def set_send_server_metrics(value : Option[Boolean], actor : EventActor, reason: Option[String]): Box[Unit] = {
+    val newVal = value.map(_.toString).getOrElse("none")
+    val info = ModifyGlobalPropertyInfo(ModifySendServerMetricsEventType,actor,reason)
+    save("send_server_metrics",newVal,Some(info))
+  }
+
+  /**
+   * Report protocol
+   */
+  def rudder_syslog_protocol(): Box[SyslogProtocol] = get("rudder_syslog_protocol")
+  def set_rudder_syslog_protocol(protocol : SyslogProtocol, actor : EventActor, reason: Option[String]): Box[Unit] =  {
+    val info = ModifyGlobalPropertyInfo(ModifyRudderSyslogProtocolEventType,actor,reason)
+    save("rudder_syslog_protocol", protocol.value, Some(info))
+  }
+
+  /**
+   * Should we display recent changes graphs  ?
+   */
+  def display_changes_graph(): Box[Boolean] =  get("display_changes_graph")
+
+  def set_display_changes_graph(displayGraphs : Boolean): Box[Unit] = save("display_changes_graph", displayGraphs)
+
+  /**
    * Should we send backward compatible data from API
    */
   def api_compatibility_mode(): Box[Boolean] = get("api_compatibility_mode")
   def set_api_compatibility_mode(value : Boolean): Box[Unit] = save("api_compatibility_mode", value)
+
+  /////
+  ///// Feature switches /////
+  /////
+
+
+  /**
+   * Should we evaluate scripts in the variables?
+   */
+  def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
+  def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
 
 }

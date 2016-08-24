@@ -37,7 +37,7 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     xmlns:beans="http://www.springframework.org/schema/beans"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
-                        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd">
+                        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd">
 
 <!--    <global-method-security pre-post-annotations="enabled">-->
 <!--         AspectJ pointcut expression that locates our "post" method and applies security that way-->
@@ -55,7 +55,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </http>
 
     <http use-expressions="true">
-        
         <session-management session-authentication-strategy-ref="sas"/>
         
         <!-- 
@@ -85,14 +84,11 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
     <!-- Disallow any session check, for demo only. A real application should enable concurrent/fixation session check  -->
     <beans:bean id="sas" class="org.springframework.security.web.authentication.session.NullAuthenticatedSessionStrategy" />
-  
-    <!-- 
-      The goal of that config file is only to provide an indirection so that we are able:
-      - to use a static string in the ImportResource of AppConfigAuth (because we can't have a property here)
-      - and be able to use a dynamic resource name for the authentication. 
-     -->
-  
-    <beans:import resource="${spring.config.security}" />
-  
 
+    <!-- 
+      Other authentication beans, especially <authentication-manager>, 
+      are defined or imported in class bootstrap.liftweb.AppConfigAuth 
+    -->
+  
+    
 </beans:beans>

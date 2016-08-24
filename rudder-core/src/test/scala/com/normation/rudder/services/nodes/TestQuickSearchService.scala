@@ -37,23 +37,23 @@
 
 package com.normation.rudder.services.nodes
 
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.LDAPConstants
+import com.normation.ldap.ldif.DefaultLDIFFileLogger
+import com.normation.ldap.listener.InMemoryDsConnectionProvider
+import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.unboundid.ldap.sdk.DN
 
 import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.matcher._
+import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
+
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 import net.liftweb.common.Loggable
-import com.normation.rudder.domain.queries.DitQueryData
-import com.normation.rudder.domain.NodeDit
-import com.normation.ldap.ldif.DefaultLDIFFileLogger
-import com.normation.inventory.ldap.core.{InventoryDit,LDAPConstants}
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.ldap.listener.InMemoryDsConnectionProvider
-import com.unboundid.ldap.sdk.DN
-import org.specs2.specification.Fragments
-import org.specs2.specification.Step
-import net.liftweb.common._
-import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.inventory.ldap.core.InventoryMapper
 
 @RunWith(classOf[JUnitRunner])
 class TestQuickSearchService extends QuickSearchServiceSpec {
@@ -123,6 +123,7 @@ trait QuickSearchServiceSpec extends Specification with Loggable {
     , nodeDit         = nodeDit
     , inventoryDit    = inventoryDit
     , cmdbQueryParser = null
+    , inventoryMapper = new InventoryMapper(null, null, inventoryDit, null)
   )
 
 

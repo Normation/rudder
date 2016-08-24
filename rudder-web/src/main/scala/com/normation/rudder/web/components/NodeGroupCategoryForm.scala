@@ -70,7 +70,6 @@ class NodeGroupCategoryForm(
   , onFailureCallback : () => JsCmd = { () => Noop }
 ) extends DispatchSnippet with Loggable {
 
-
   var _nodeGroupCategory = nodeGroupCategory.copy()
 
   private[this] val roGroupCategoryRepository = RudderConfig.roNodeGroupRepository
@@ -108,7 +107,7 @@ class NodeGroupCategoryForm(
     val html = SHtml.ajaxForm(
       <div class="inner-portlet groupCategoryUpdateComponent">
         <div>
-          <div class="inner-portlet-header">Category details</div>
+          <div class="page-title">Category details</div>
         </div>
         <directive:notifications />
         <hr class="spacer"/>
@@ -160,7 +159,6 @@ class NodeGroupCategoryForm(
       )
     }
    }
-
 
   ///////////// delete management /////////////
 
@@ -222,7 +220,6 @@ class NodeGroupCategoryForm(
     }
   }
 
-
   ///////////// fields for category settings ///////////////////
   private[this] val name = new WBTextField("Category name", _nodeGroupCategory.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -259,7 +256,6 @@ class NodeGroupCategoryForm(
       }
   }
 
-
   private[this] val formTracker = new FormTracker(name, description, container)
 
   private[this] var notifications = List.empty[NodeSeq]
@@ -271,7 +267,6 @@ class NodeGroupCategoryForm(
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>
 
-
   private[this] def onSuccess : JsCmd = {
 
     notifications ::=  <span class="greenscala">Category was correctly updated</span>
@@ -280,7 +275,7 @@ class NodeGroupCategoryForm(
 
   private[this] def onFailure : JsCmd = {
     formTracker.addFormError(error("The form contains some errors, please correct them."))
-    updateFormClientSide & JsRaw("""scrollToElement("notifications");""")
+    updateFormClientSide & JsRaw("""scrollToElement("notifications","#groupDetails");""")
   }
 
   private[this] def onSubmit() : JsCmd = {

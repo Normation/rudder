@@ -48,7 +48,6 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import net.liftweb.common._
 
-
 /**
  * A target is either
  * - a Group of Node (static or dynamic),
@@ -105,7 +104,6 @@ final case object AllNodesWithoutRole extends NonGroupRuleTarget {
 sealed trait CompositeRuleTarget extends RuleTarget {
   final def target = compact(render(toJson))
 
-
   /**
    * Removing a target is the action of erasing that target in each place where
    * it appears.
@@ -133,7 +131,6 @@ sealed trait CompositeRuleTarget extends RuleTarget {
   }
 }
 
-
 /**
  * Target Composition allow you to compose multiple targets in one target
  */
@@ -142,7 +139,6 @@ sealed trait TargetComposition extends CompositeRuleTarget {
    * Targets contained in that composition
    */
   def targets : Set[RuleTarget]
-
 
   /**
    * Add a target:
@@ -153,7 +149,6 @@ sealed trait TargetComposition extends CompositeRuleTarget {
 
 }
 
-
 /**
  * Union of all Targets, Should take all Nodes from these targets
  */
@@ -163,7 +158,6 @@ final case class TargetUnion(targets:Set[RuleTarget] = Set()) extends TargetComp
   }
   def addTarget(target : RuleTarget) : TargetComposition = TargetUnion(targets + target)
 }
-
 
 /**
  * Intersection of all Targets, Should take Nodes belongings to all targets
@@ -206,7 +200,6 @@ final case class TargetExclusion(
     val newIncluded = includedTarget addTarget target
     copy(newIncluded)
   }
-
 
   /**
    * Add a target to the excluded target
@@ -387,6 +380,25 @@ object RuleTarget extends Loggable {
     }
   }
 
+  /**
+   * Transform a rule target string "id" to
+   * a cfengine class compatible string,
+   * prefixed by "group_"
+   */
+  def toCFEngineClassName(target: String) = {
+    //normalisation process:
+    // 1) to asccii
+    // 2) cfengine normalisation, replacing all non [alphanum-]
+    ///   char by _
+
+    // from http://stackoverflow.com/a/2413228/436331 and the precision
+    // in http://stackoverflow.com/a/5697575/436331
+    def toAscii(s: String) = java.text.Normalizer.normalize(s, java.text.Normalizer.Form.NFD).replaceAll("""[\p{Mn}\p{Me}]+""", "")
+
+    "group_" + toAscii(target).toLowerCase.replaceAll("""[^\p{Alnum}]""", "_")
+
+  }
+
 }
 
 /** common information on a target */
@@ -418,7 +430,6 @@ final case class FullOtherTarget(
     target: NonGroupRuleTarget
 ) extends FullRuleTarget
 
-
 final case class FullRuleTargetInfo(
     target     : FullRuleTarget
   , name       : String
@@ -435,4 +446,3 @@ final case class FullRuleTargetInfo(
     , isSystem = isSystem
   )
 }
-

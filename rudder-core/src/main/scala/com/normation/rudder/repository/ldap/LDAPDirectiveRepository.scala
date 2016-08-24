@@ -70,6 +70,7 @@ import net.liftweb.json.JsonAST
 import org.joda.time.DateTime
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueName
+import com.normation.rudder.repository.EventLogRepository
 
 
 class RoLDAPDirectiveRepository(
@@ -322,7 +323,7 @@ class RoLDAPDirectiveRepository(
                         for {
                           category <- getActiveTechniqueCategory(ligthCat.id)
                           parents  <- getParentsForActiveTechniqueCategory(category.id)
-                          upts     <- sequence(category.items) { uactiveTechniqueId => getActiveTechnique(uactiveTechniqueId) }
+                          upts     <- sequence(category.items) { uactiveTechniqueId => getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) } }
                         } yield {
                           ( (category.id :: parents.map(_.id)).reverse, CategoryWithActiveTechniques(category, upts.toSet))
                         }
@@ -333,13 +334,13 @@ class RoLDAPDirectiveRepository(
     }
   }
 
-  def getActiveTechnique(id: ActiveTechniqueId): Box[ActiveTechnique] = {
+  def getActiveTechnique(id: ActiveTechniqueId): Box[Option[ActiveTechnique]] = {
     userLibMutex.readLock {
       getActiveTechnique[ActiveTechniqueId](id, { id => EQ(A_ACTIVE_TECHNIQUE_UUID, id.value) } )
     }
   }
 
-  def getActiveTechnique(name: TechniqueName): Box[ActiveTechnique] = {
+  def getActiveTechnique(name: TechniqueName): Box[Option[ActiveTechnique]] = {
     userLibMutex.readLock {
       this.getActiveTechnique[TechniqueName](name, { name => EQ(A_TECHNIQUE_UUID, name.value) } )
     }
@@ -356,13 +357,22 @@ class RoLDAPDirectiveRepository(
     )
   }
 
-  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): Box[ActiveTechnique] = {
+  private[this] def getActiveTechnique[ID](id: ID, filter: ID => Filter): Box[Option[ActiveTechnique]] = {
     for {
-      con <- ldap
-      uptEntry <- getUPTEntry(con, id, filter) ?~! "Can not find user policy entry in LDAP based on filter %s".format(filter(id))
-      activeTechnique <- mapper.entry2ActiveTechnique(uptEntry) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntry)
+      con        <- ldap
+      uptEntries =  con.searchSub(rudderDit.ACTIVE_TECHNIQUES_LIB.dn, filter(id))
+      res        <- uptEntries.size match {
+                      case 0 => Full(None)
+                      case 1 =>
+                        for {
+                          activeTechnique <- mapper.entry2ActiveTechnique(uptEntries(0)) ?~! "Error when mapping active technique entry to its entity. Entry: %s".format(uptEntries(0))
+                        } yield {
+                          Some(addDirectives(activeTechnique,uptEntries(0).dn,con))
+                        }
+                      case _ => Failure("Error, the directory contains multiple occurrence of active technique with ID %s. DNs involved: %s".format(id, uptEntries.map( _.dn).mkString("; ")))
+                    }
     } yield {
-      addDirectives(activeTechnique,uptEntry.dn,con)
+      res
     }
   }
 
@@ -592,7 +602,7 @@ class WoLDAPDirectiveRepository(
       piEntry            =  mapper.userDirective2Entry(directive, uptEntry.dn)
       result             <- userLibMutex.writeLock { con.save(piEntry, true) }
       //for log event - perhaps put that elsewhere ?
-      activeTechnique    <- getActiveTechnique(inActiveTechniqueId) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
+      activeTechnique    <- getActiveTechnique(inActiveTechniqueId).flatMap(Box(_)) ?~! "Can not find the User Policy Entry with id %s to add directive %s".format(inActiveTechniqueId, directive.id)
       activeTechniqueId  =  TechniqueId(activeTechnique.techniqueName,directive.techniqueVersion)
       technique          <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "Can not find the technique with ID '%s'".format(activeTechniqueId.toString)
       optDiff            <- diffMapper.modChangeRecords2DirectiveSaveDiff(
@@ -712,14 +722,14 @@ class WoLDAPDirectiveRepository(
    */
   def addActiveTechniqueCategory(
       that:ActiveTechniqueCategory
-    , into:ActiveTechniqueCategory //parent category
+    , into:ActiveTechniqueCategoryId //parent category
     , modId : ModificationId
     , actor: EventActor
     , reason: Option[String]
   ) : Box[ActiveTechniqueCategory] = {
     for {
       con                 <- ldap
-      parentCategoryEntry <- getCategoryEntry(con, into.id, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into.id)
+      parentCategoryEntry <- getCategoryEntry(con, into, "1.1") ?~! "The parent category '%s' was not found, can not add".format(into)
       categoryEntry       =  mapper.activeTechniqueCategory2ldap(that,parentCategoryEntry.dn)
       canAddByName        <- if(existsByName(con,parentCategoryEntry.dn, that.name, that.id.value)) {
                                Failure("A category with that name already exists in that category: category names must be unique for a given level")
@@ -734,8 +744,10 @@ class WoLDAPDirectiveRepository(
                                  archive  <- gitCatArchiver.archiveActiveTechniqueCategory(that,parents.map( _.id), Some(modId,commiter, reason))
                                } yield archive
                              } else Full("ok")
+      parentEntry         <- getCategoryEntry(con, into) ?~! "Entry with ID '%s' was not found".format(into)
+      updatedParent       <- mapper.entry2ActiveTechniqueCategory(categoryEntry) ?~! "Error when transforming LDAP entry %s into an active technique category".format(categoryEntry)
     } yield {
-      addSubEntries(into, parentCategoryEntry.dn, con)
+      updatedParent
     }
   }
 
@@ -905,7 +917,7 @@ class WoLDAPDirectiveRepository(
       activeTechnique      <- getUPTEntry(con, uactiveTechniqueId, "1.1") ?~! "Can not move non existing template in use library with ID %s".format(uactiveTechniqueId)
       newCategory          <- getCategoryEntry(con, newCategoryId, "1.1") ?~! "Can not move template with ID %s into non existing category of user library %s".format(uactiveTechniqueId, newCategoryId)
       moved                <- userLibMutex.writeLock { con.move(activeTechnique.dn, newCategory.dn) ?~! "Error when moving technique %s to category %s".format(uactiveTechniqueId, newCategoryId) }
-      movedActiveTechnique <- getActiveTechnique(uactiveTechniqueId)
+      movedActiveTechnique <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_)  }
       autoArchive          <- ( if(autoExportOnModify && !moved.isInstanceOf[LDIFNoopChangeRecord] && !movedActiveTechnique.isSystem) {
                                 for {
                                   parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
@@ -939,7 +951,7 @@ class WoLDAPDirectiveRepository(
                            case None => Full("OK")
                            case Some(diff) => actionLogger.saveModifyTechnique(modId, principal = actor, modifyDiff = diff, reason = reason)
                          }
-      newactiveTechnique <- getActiveTechnique(uactiveTechniqueId)
+      newactiveTechnique <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
       autoArchive     <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && ! newactiveTechnique.isSystem) {
                            for {
                              parents  <- activeTechniqueBreadCrump(uactiveTechniqueId)
@@ -962,7 +974,7 @@ class WoLDAPDirectiveRepository(
                            activeTechnique.+=!(A_ACCEPTATION_DATETIME, json)
                            userLibMutex.writeLock { con.save(activeTechnique) }
                          }
-      newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId)
+      newActiveTechnique  <- getActiveTechnique(uactiveTechniqueId).flatMap { Box(_) }
       autoArchive         <- if(autoExportOnModify && !saved.isInstanceOf[LDIFNoopChangeRecord] && !newActiveTechnique.isSystem) {
                                for {
                                  parents <- activeTechniqueBreadCrump(uactiveTechniqueId)

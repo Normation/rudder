@@ -15,22 +15,16 @@
   <div class="simplemodal-content">
     <h3>Please confirm that you wish to ACCEPT the following nodes in Rudder</h3>
 
-    <div id="pendingNodeConfirm_paginate_area" class="nodisplay"/>
+    <div id="pendingNodeConfirm_paginate_area" class="nodisplay"></div>
     <div class="newservertable">
     <table cellspacing="0" id="pendingNodeConfirm" width="600" class="newservercell">
       <thead>
         <tr class="head">
-          <th>Node name<span/></th>
-          <th>Operating system<span/></th>
+          <th>Node name</th>
+          <th>Operating system</th>
         </tr>
       </thead>
-      <tbody>
-        <servergrid:lines>
-          <tr>
-            <td><line:hostname /></td>
-            <td><line:os /></td>
-          </tr>
-        </servergrid:lines>
+      <tbody id="server_lines">
       </tbody>
     </table>
     </div>
@@ -45,8 +39,8 @@
     <form method="POST">
       <div class="popupButton">
         <span>
-          <servergrid:close/>
-           <servergrid:accept/>
+          <servergrid:close></servergrid:close>
+           <servergrid:accept></servergrid:accept>
          </span>
       </div>
     </form>

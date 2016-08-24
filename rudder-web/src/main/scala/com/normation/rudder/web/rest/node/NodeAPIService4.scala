@@ -42,17 +42,20 @@ import com.normation.rudder.web.rest.RestExtractorService
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.inventory.domain.NodeId
 import com.normation.inventory.domain._
+import com.normation.rudder.domain.nodes._
 import net.liftweb.http.Req
 import net.liftweb.common._
 import com.normation.rudder.web.rest.RestUtils._
 import net.liftweb.json.JArray
 import net.liftweb.json.JsonDSL._
-
-
-
+import com.normation.rudder.services.nodes.NodeInfoService
+import com.normation.rudder.web.rest.ApiVersion
+import com.normation.inventory.services.core.ReadOnlySoftwareDAO
 
 class NodeApiService4 (
     inventoryRepository : LDAPFullInventoryRepository
+  , nodeInfoService     : NodeInfoService
+  , softwareRepository  : ReadOnlySoftwareDAO
   , uuidGen             : StringUuidGenerator
   , restExtractor       : RestExtractorService
   , restSerializer      : RestDataSerializer
@@ -60,14 +63,43 @@ class NodeApiService4 (
 
   import restSerializer._
 
-  def getNodeDetails(nodeId : NodeId, detailLevel : NodeDetailLevel, state: InventoryStatus) = {
-    inventoryRepository.get(nodeId,state).map(serializeInventory(_, detailLevel))
+  def getNodeDetails(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion) = {
+    for {
+      optNodeInfo <- state match {
+                    case AcceptedInventory => nodeInfoService.getNodeInfo(nodeId)
+                    case PendingInventory  => nodeInfoService.getPendingNodeInfo(nodeId)
+                    case RemovedInventory  => nodeInfoService.getDeletedNodeInfo(nodeId)
+                  }
+      nodeInfo    <- optNodeInfo match {
+                       case None    => Failure(s"The node with id ${nodeId.value} was not found in ${state.name} nodes")
+                       case Some(x) => Full(x)
+                     }
+      inventory <- if(detailLevel.needFullInventory()) {
+                     inventoryRepository.get(nodeId, state).map(Some(_))
+                   } else {
+                     Full(None)
+                   }
+      software  <- if(detailLevel.needSoftware()) {
+                     for {
+                       software <- inventory match {
+                                      case Some(i) => softwareRepository.getSoftware(i.node.softwareIds)
+                                      case None    => softwareRepository.getSoftwareByNode(Set(nodeId), state).flatMap( _.get(nodeId))
+                                    }
+                     } yield {
+                       software
+                     }
+                   } else {
+                     Full(Seq())
+                   }
+    } yield {
+      serializeInventory(nodeInfo, state, inventory, software, detailLevel, version)
+    }
   }
 
-  def nodeDetailsWithStatus(nodeId : NodeId, detailLevel : NodeDetailLevel, state: InventoryStatus, req:Req) = {
+  def nodeDetailsWithStatus(nodeId: NodeId, detailLevel: NodeDetailLevel, state: InventoryStatus, version : ApiVersion, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = s"${state.name}NodeDetails"
-    getNodeDetails(nodeId,detailLevel,state) match {
+    getNodeDetails(nodeId, detailLevel, state, version) match {
         case Full(inventory) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
         case eb: EmptyBox =>
@@ -76,19 +108,18 @@ class NodeApiService4 (
       }
   }
 
-
-  def nodeDetailsGeneric(nodeId : NodeId, detailLevel : NodeDetailLevel, req:Req) = {
+  def nodeDetailsGeneric(nodeId: NodeId, detailLevel: NodeDetailLevel, version : ApiVersion, req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "nodeDetails"
-    getNodeDetails(nodeId,detailLevel,AcceptedInventory) match {
+    getNodeDetails(nodeId, detailLevel, AcceptedInventory, version) match {
         case Full(inventory) =>
           toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
         case eb: EmptyBox =>
-          getNodeDetails(nodeId,detailLevel,PendingInventory) match {
+          getNodeDetails(nodeId, detailLevel, PendingInventory, version) match {
             case Full(inventory) =>
               toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
             case eb: EmptyBox =>
-              getNodeDetails(nodeId,detailLevel,RemovedInventory) match {
+              getNodeDetails(nodeId, detailLevel, RemovedInventory, version) match {
                 case Full(inventory) =>
                   toJsonResponse(Some(nodeId.value), ( "nodes" -> JArray(List(inventory))))
                 case eb: EmptyBox =>
@@ -99,5 +130,3 @@ class NodeApiService4 (
     }
   }
 }
-
-

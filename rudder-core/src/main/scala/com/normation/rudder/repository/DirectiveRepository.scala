@@ -209,7 +209,7 @@ trait RoDirectiveRepository {
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechnique]
+  def getActiveTechnique(id:ActiveTechniqueId) : Box[Option[ActiveTechnique]]
 
 
   /**
@@ -218,7 +218,7 @@ trait RoDirectiveRepository {
    * Return Empty if the active technique is not found,
    * Fails on error.
    */
-  def getActiveTechnique(techniqueName:TechniqueName) : Box[ActiveTechnique]
+  def getActiveTechnique(techniqueName: TechniqueName) : Box[Option[ActiveTechnique]]
 
   /**
    * Retrieve the list of parents for the given active technique,
@@ -378,7 +378,7 @@ trait WoDirectiveRepository {
    */
   def addActiveTechniqueCategory(
       that : ActiveTechniqueCategory
-    , into : ActiveTechniqueCategory //parent category
+    , into : ActiveTechniqueCategoryId //parent category
     , modificationId: ModificationId
     , actor: EventActor
     , reason: Option[String]

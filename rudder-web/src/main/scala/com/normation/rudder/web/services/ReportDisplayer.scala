@@ -37,47 +37,44 @@
 
 package com.normation.rudder.web.services
 
-import com.normation.rudder.services.reports.ReportingService
-import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.repository.RoRuleRepository
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.RuleVal
-import com.normation.rudder.services.servers.NodeSummaryService
-import com.normation.rudder.web.components.DateFormaterService
-import com.normation.rudder.web.model._
-import com.normation.rudder.domain.reports.bean._
-import com.normation.rudder.domain.reports.bean.{Reports => TWReports}
-import com.normation.inventory.ldap.core.InventoryDit
-import com.normation.exceptions.TechnicalException
-import scala.xml._
-import net.liftweb.common._
-import net.liftweb.http._
-import net.liftweb.util._
-import Helpers._
-import net.liftweb.http.js._
-import JsCmds._
-import JE._
-import net.liftweb.http.SHtml._
-import bootstrap.liftweb.LiftSpringApplicationContext.inject
-import net.liftweb.http.Templates
-import com.normation.rudder.repository.RoDirectiveRepository
+import scala.xml.NodeSeq
+import scala.xml.NodeSeq.seqToNodeSeq
 import com.normation.cfclerk.services.TechniqueRepository
+import com.normation.exceptions.TechnicalException
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.reports._
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.repository.RoRuleRepository
+import com.normation.rudder.services.reports.ReportingService
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http.S
+import net.liftweb.http.SHtml
+import net.liftweb.http.Templates
+import net.liftweb.http.js.JE._
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.util.Helpers._
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.web.model.JsNodeId
+import com.normation.rudder.services.reports._
+import com.normation.rudder.repository.NodeConfigIdInfo
+import org.joda.time.format.DateTimeFormat
 
 /**
  * Display the last reports of a server
  * Based on template : templates-hidden/reports_server
- *
- *
- * @author Nicolas CHARLES
- *
  */
 class ReportDisplayer(
     ruleRepository      : RoRuleRepository
   , directiveRepository : RoDirectiveRepository
   , reportingService    : ReportingService
   , techniqueRepository : TechniqueRepository
-) {
+) extends Loggable {
 
   private[this] val getAllNodeInfos = RudderConfig.nodeInfoService.getAll _
 
@@ -91,64 +88,37 @@ class ReportDisplayer(
   def reportByNodeTemplate = chooseTemplate("batches", "list", templateByNode)
   def directiveDetails = chooseTemplate("directive", "foreach", templateByNode)
 
-  var staticReportsSeq : Seq[ExecutionBatch] = Seq[ExecutionBatch]()
-
-  def display(reportsSeq : Seq[ExecutionBatch], tableId:String, node : NodeInfo): NodeSeq = {
-
-    staticReportsSeq = reportsSeq.filter( x => ruleRepository.get(x.ruleId).isDefined  )
-    bind("lastReportGrid",reportByNodeTemplate,
-           "intro" ->  (staticReportsSeq.filter(x => (
-                               (x.getNodeStatus().exists(x => x.reportType == ErrorReportType)) ||
-                               (x.getNodeStatus().exists(x => x.reportType == RepairedReportType)) ||
-                               (x.getNodeStatus().exists(x => x.reportType == NoAnswerReportType))
-                        )
-                                ).toList match {
-             case x if (x.size > 0) => <div>There are {x.size} out of {staticReportsSeq.size} reports that require our attention</div>
-             case _ => if (staticReportsSeq.filter(x => (x.getNodeStatus().exists(x => x.reportType == PendingReportType))).size>0) {
-                     <div>Policy update in progress</div>
-                   } else {
-                     <div>All the last execution reports for this server are ok</div>
-                   }
-           } ),
-           "grid" -> showReportDetail(staticReportsSeq, node),
-           "missing" -> showMissingReports(staticReportsSeq),
-           "unexpected" -> showUnexpectedReports(staticReportsSeq)
-           )
+  /**
+   * Main entry point to display the tab with reports of a node.
+   * It build up to 3 tables:
+   * - general compliance table (displayed by rules)
+   * - missing reports table if such reports exists
+   * - unknown reports table if such reports exists
+   */
+  def asyncDisplay(node : NodeInfo) : NodeSeq = {
+    val id = JsNodeId(node.id)
+    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
+    Script(OnLoad(JsRaw(
+      s"""
+        $$("#details_${id}").bind( "show", function(event, ui) {
+          if(ui.panel.id== 'node_reports') { ${callback.toJsCmd} }
+        });
+       """
+    )))
   }
 
-  def getComplianceData(executionsBatches : Seq[ExecutionBatch]) = {
-    for {
-      directiveLib <-directiveRepository.getFullDirectiveLibrary
-      allNodeInfos <- getAllNodeInfos()
-      reportStatus = executionsBatches.flatMap(x => x.getNodeStatus())
-    } yield {
-      val complianceData = ComplianceData(directiveLib,allNodeInfos)
-
-      complianceData.getRuleComplianceDetails(reportStatus)
-    }
-  }
-
-  def showReportDetail(executionsBatches : Seq[ExecutionBatch], node : NodeInfo) : NodeSeq = {
-
-    val data = getComplianceData(executionsBatches).map(_.json).getOrElse(JsArray())
-
-
-    reportsGridXml++
-        Script(JsRaw(s"""
-          createRuleComplianceTable("reportsGrid",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node).toJsCmd});
-          createTooltip();
-        """))
-
-  }
-
-  def refreshReportDetail (node : NodeInfo) = {
-
+  /**
+   * Refresh the main compliance table
+   */
+  def refreshReportDetail(node : NodeInfo) = {
     def refreshData : Box[JsCmd] = {
       for {
-        reports <- reportingService.findImmediateReportsByNode(node.id)
-        data <- getComplianceData(reports)
+        report  <- reportingService.findNodeStatusReport(node.id)
+        data    <- getComplianceData(node.id, report)
       } yield {
-        JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd});""")
+        import net.liftweb.util.Helpers.encJs
+        val intro = encJs(displayIntro(report).toString)
+        JsRaw(s"""refreshTable("reportsGrid",${data.json.toJsCmd}); $$("#node-compliance-intro").replaceWith(${intro})""")
       }
     }
 
@@ -162,34 +132,267 @@ class ReportDisplayer(
     AnonFunc(ajaxCall)
   }
 
-  def asyncDisplay(node : NodeInfo) : NodeSeq = {
+  private[this] def displayIntro(report: NodeStatusReport): NodeSeq = {
 
-    val id = JsNodeId(node.id)
-    val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
-    Script(OnLoad(JsRaw(
-      s"""
-        $$("#details_${id}").bind( "show", function(event, ui) {
-          if(ui.panel.id== 'node_reports') { ${callback.toJsCmd} }
-        });
-       """
-    )))
+    def explainCompliance(info: RunAndConfigInfo): NodeSeq = {
+      val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
+
+      def currentConfigId(expectedConfigInfo: NodeConfigIdInfo) = {
+        s"Current configuration ID for this node is '${expectedConfigInfo.configId.value}' (generated on ${expectedConfigInfo.creation.toString(dateFormat)})."
+      }
+
+      info match {
+        case ComputeCompliance(lastRunDateTime, expectedConfigInfo, expirationDateTime, missingReportStatus) =>
+          (
+            <p>This node has up to date policy and the agent is running. Reports below are from the latest run, which started on the node at {lastRunDateTime.toString(dateFormat)}.</p>
+            <p>{currentConfigId(expectedConfigInfo)}.</p>
+          )
+
+        case Pending(expectedConfigInfo, optLastRun, expirationDateTime, missingReportStatus) =>
+          val runInfo = optLastRun match {
+            case None => "No recent reports have been received for this node. Check that the agent is running (run 'rudder agent check' on the node)."
+            case Some((date, id)) =>
+              (id.endOfLife match {
+                case None =>
+                  s"This is expected, the node is reporting on the previous configuration policy and should report on the new one at latest" +
+                  " ${expirationDateTime.toString(dateFormat)}. Previous known states are displayed below."
+                case Some(exp) =>
+                  s"This is unexpected, since the node is reporting on a configuration policy that expired at ${exp.toString(dateFormat)}."
+              }) +
+              s" The latest reports received for this node are from a run started at ${date.toString(dateFormat)} with configuration ID ${id.configId.value}."
+          }
+          (
+            <p>This node has recently been assigned a new policy but no reports have been received for the new policy yet.</p>
+            <p>{runInfo}</p>
+            <p>{currentConfigId(expectedConfigInfo)}.</p>
+          )
+
+        case NoReportInInterval(expectedConfigInfo) =>
+          (
+            <p>No recent reports have been received for this node in the grace period since the last configuration policy change.
+               This is unexpected. Please check the status of the agent by running 'rudder agent health' on the node.</p>
+            <p>For information, expected node policies are displayed below.</p>
+            <p>{currentConfigId(expectedConfigInfo)}.</p>
+          )
+
+        case NoRunNoExpectedReport =>
+          <p>This is a new node that does not yet have a configured policy. If a policy generation is in progress, this will apply to this node when it is done.</p>
+
+        case NoExpectedReport(lastRunDateTime, lastRunConfigId) =>
+          val configIdmsg = lastRunConfigId match {
+            case None     =>  "without a configuration ID, although one is required"
+            case Some(id) => s"with configuration ID '${id.value}' that is unknown to Rudder"
+          }
+
+          <p>This node has no configuration policy assigned to it, but reports have been received for it {configIdmsg} (run started at {lastRunDateTime.toString(dateFormat)}).
+             Either this node was deleted from Rudder but still has a running agent or the node is sending a corrupted configuration ID.
+             Please run "rudder agent update -f" on the node to force a policy update and, if the problem persists,
+             force a policy regeneration with the "Clear caches" button in Administration > Settings.</p>
+
+        case UnexpectedVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigInfo, expectedExpiration) =>
+          (
+            <p>This node is sending reports from an out-of-date configuration policy ({expectedConfigInfo.configId.value}, run started at {lastRunDateTime.toString(dateFormat)}).
+               Please check that the node is able to update it's policy by running 'rudder agent update' on the node.</p>
+            <p>For information, expected node policies are displayed below.</p>
+            <p>{currentConfigId(expectedConfigInfo)}</p>
+          )
+
+        case UnexpectedNoVersion(lastRunDateTime, Some(lastRunConfigInfo), lastRunExpiration, expectedConfigInfo, expectedExpiration) =>
+          (
+            <p>This node is sending reports without a configuration ID (run started on the node at {lastRunDateTime.toString(dateFormat)}), although one is required.</p>
+            <p>Please run "rudder agent update -f" on the node to force a policy update.</p>
+            <p>For information, expected node policies are displayed below.</p>
+            <p>{currentConfigId(expectedConfigInfo)}</p>
+          )
+
+        case ReportsDisabledInInterval(expectedConfigId) =>
+          (
+            <p>{currentConfigId(expectedConfigId)} and reports are disabled for that node.</p>
+          )
+
+        case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfigInfo, expectedExpiration) =>
+          (
+            <p>This node is sending reports from an unknown configuration policy (with configuration ID '${lastRunConfigId.value}'
+               that is unknown to Rudder, run started at {lastRunDateTime.toString(dateFormat)}).
+               Please run "rudder agent update -f" on the node to force a policy update.</p>
+            <p>For information, expected node policies are displayed below.</p>
+            <p>{currentConfigId(expectedConfigInfo)}</p>
+          )
+      }
+
+    }
+
+    /*
+     * Number of reports requiring attention. We only display that message if we are in a case where
+     * compliance is actually meaningful.
+     */
+    val (background, lookReportsMessage) = report.runInfo match {
+      case NoRunNoExpectedReport | _:NoExpectedReport |
+           _:UnexpectedVersion | _:UnexpectedNoVersion |
+           _:UnexpectedUnknowVersion | _:NoReportInInterval =>
+
+        ("bg-danger text-danger", NodeSeq.Empty)
+
+      case _: ReportsDisabledInInterval =>
+        ("progress-bar-reportsdisabled", NodeSeq.Empty)
+
+      case  _:Pending =>
+        ("bg-info text-info", NodeSeq.Empty)
+
+      case _:ComputeCompliance =>
+
+        if(report.compliance.total <= 0) { //should not happen
+          ("bg-success text-success" , NodeSeq.Empty)
+        } else {
+          val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.missing + report.compliance.unexpected
+          if(nbAttention > 0) {
+            ( "bg-warning text-warning"
+            , <p>{nbAttention} reports below (out of {report.compliance.total} total reports) are not in Success, and may require attention."</p>
+            )
+          } else if(report.compliance.pc_pending > 0) {
+            ("bg-info text-info", NodeSeq.Empty)
+
+          } else {
+            ( "bg-success text-success"
+            , <p>All reports received for this node are in Success.</p>
+            )
+          }
+        }
+    }
+
+    <div class="tw-bs">
+      <div id="node-compliance-intro" class={background}>
+        <p>{explainCompliance(report.runInfo)}</p>{
+          lookReportsMessage
+      }</div>
+    </div>
   }
 
-  def displayReports(node : NodeInfo) : NodeSeq = {
-    reportingService.findImmediateReportsByNode(node.id) match {
-      case e:EmptyBox => <div class="error">Could not fetch reports information</div>
-      case Full(batches) => display(batches, "reportsGrid", node)
+  private[this] def displayReports(node : NodeInfo) : NodeSeq = {
+    val boxXml = (
+      for {
+        report       <- reportingService.findNodeStatusReport(node.id)
+        directiveLib <- directiveRepository.getFullDirectiveLibrary
+      } yield {
+
+        val intro = displayIntro(report)
+
+        /*
+         * Now, on some case, we don't want to display 50% missing / 50% unexpected
+         * because the node config id is not correct (or related cases), we want to display
+         * what is expected config, but without the compliance part.
+         *
+         * And if don't even have expected configuration, don't display anything.
+         */
+
+        report.runInfo match {
+          case NoRunNoExpectedReport | _:NoExpectedReport =>
+            bind("lastreportgrid", reportByNodeTemplate
+              , "intro"      -> intro
+              , "grid"       -> NodeSeq.Empty
+              , "missing"    -> NodeSeq.Empty
+              , "unexpected" -> NodeSeq.Empty
+            )
+
+          case _:UnexpectedVersion | _:UnexpectedNoVersion |
+               _:UnexpectedUnknowVersion | _:NoReportInInterval |
+               _:ReportsDisabledInInterval =>
+
+            /*
+             * In these case, filter out "unexpected" reports to only
+             * keep missing ones, and do not show the "compliance" row.
+             */
+            val filtered = NodeStatusReport(report.forNode, report.runInfo, report.report.reports.flatMap { x =>
+              x.withFilteredElements(
+                  _ => true   //keep all (non empty) directives
+                , _ => true   //keep all (non empty) component values
+                , { value =>  //filter values based on the message type - we don't want Unexpected values
+                    value.messages.forall { m => m.reportType != UnexpectedReportType }
+                  }
+              )
+            } )
+
+            bind("lastreportgrid", reportByNodeTemplate
+              , "intro"      -> intro
+              , "grid"       -> showReportDetail(filtered, node, withCompliance = false)
+              , "missing"    -> NodeSeq.Empty
+              , "unexpected" -> NodeSeq.Empty
+            )
+
+          case  _:Pending | _:ComputeCompliance =>
+
+            val missing    = getComponents(MissingReportType   , report, directiveLib).toSet
+            val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
+
+            bind("lastreportgrid", reportByNodeTemplate
+              , "intro"      -> intro
+              , "grid"       -> showReportDetail(report, node, withCompliance = true)
+              , "missing"    -> showMissingReports(missing)
+              , "unexpected" -> showUnexpectedReports(unexpected)
+            )
+        }
+      }
+    )
+
+    boxXml match {
+      case e:EmptyBox =>
+        logger.error(e)
+        <div class="error">Could not fetch reports information</div>
+      case Full(xml) => xml
     }
   }
 
-  def reportsGridXml : NodeSeq = {
-    <table id="reportsGrid" class="fixedlayout tablewidth" cellspacing="0">
-    </table>
+  private[this] def showReportDetail(reports: NodeStatusReport, node: NodeInfo, withCompliance: Boolean): NodeSeq = {
+    val data = getComplianceData(node.id, reports).map(_.json).getOrElse(JsArray())
+
+    val jsFunctionName = if(withCompliance) {
+      "createRuleComplianceTable"
+    } else {
+      "createExpectedReportTable"
+    }
+
+    <table id="reportsGrid" class="tablewidth" cellspacing="0"></table> ++
+    Script(JsRaw(s"""
+      ${jsFunctionName}("reportsGrid",${data.toJsCmd},"${S.contextPath}", ${refreshReportDetail(node).toJsCmd});
+      createTooltip();
+    """))
   }
 
-  def missingGridXml : NodeSeq = {
+  private[this] def getComplianceData(nodeId: NodeId, reportStatus: NodeStatusReport) = {
+    for {
+      directiveLib <- directiveRepository.getFullDirectiveLibrary
+      allNodeInfos <- getAllNodeInfos()
+      rules        <- ruleRepository.getAll(true)
+    } yield {
+      ComplianceData.getNodeByRuleComplianceDetails(nodeId, reportStatus, allNodeInfos, directiveLib, rules)
+    }
+  }
 
-     <h3>Missing reports</h3>
+  def showMissingReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
+    def showMissingReport(report:((String,String, List[String]),String,String)) : NodeSeq = {
+      val techniqueName =report._2
+      val techniqueVersion = report._3
+      val reportValue = report._1
+
+      ( "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)
+      & "#component *" #>  reportValue._1
+      & "#value *"     #>  reportValue._2
+      ) (
+        <tr>
+          <td id="technique"></td>
+          <td id="component"></td>
+          <td id="value"></td>
+        </tr>
+      )
+    }
+
+    /*
+     * NOTE : a missing report is an unknown report with no message
+     */
+    val missingComponents = reports.filter(r => r._1._3.isEmpty)
+    if (missingComponents.size >0){
+      ( "#reportLine" #> missingComponents.flatMap(showMissingReport(_) )).apply(
+      <h3>Missing reports</h3>
       <div>The following reports are what Rudder expected to receive, but did not. This usually indicates a bug in the Technique being used.</div>
       <table id="missingGrid"  cellspacing="0" style="clear:both">
         <thead>
@@ -204,87 +407,42 @@ class ReportDisplayer(
         </tbody>
       </table>
       <br/>
+      ) ++
+      buildTable(
+          "missing"
+         ,"missingGrid"
+         , """{ "sWidth": "150px" },
+              { "sWidth": "150px" },
+              { "sWidth": "150px" }"""
+      )
+    } else {
+      NodeSeq.Empty
+    }
+  }
+
+  def showUnexpectedReports(reports:Set[((String,String,List[String]),String,String)]) : NodeSeq = {
+    def showUnexpectedReport(report:((String,String,List[String]),String,String)) : NodeSeq = {
+      val techniqueName =report._2
+      val techniqueVersion = report._3
+      val reportValue = report._1
+
+      ( "#technique *"  #>  "%s (%s)".format(techniqueName,techniqueVersion)
+      & "#component *"  #>  reportValue._1
+      & "#value *"      #>  reportValue._2
+      & "#message *"    #>  <ul>{reportValue._3.map(msg => <li>{msg}</li>)}</ul>
+      ) (
+        <tr><td id="technique"></td><td id="component"></td><td id="value"></td><td id="message"></td></tr>
+      )
     }
 
-  def missingLineXml : NodeSeq = {
-      <tr>
-        <td id="technique"></td>
-        <td id="component"></td>
-        <td id="value"></td>
-      </tr>
-    }
-
-    def showMissingReports(batches:Seq[ExecutionBatch]) : NodeSeq = {
-      def showMissingReport(report:((String,String),String,String)) : NodeSeq = {
-        val techniqueName =report._2
-        val techniqueVersion = report._3
-        val reportValue = report._1
-              ( "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
-                "#component *" #>  reportValue._1&
-                "#value *" #>  reportValue._2
-              ) ( missingLineXml )
-            }
-
-      /*
-       * To get missing reports we have to find them in each node report
-       * So we have to go the value level and also get technique details at directive level for each report
-       * we could add more information at each level (directive name? rule name?)
-       * NOTE : a missing report is an unknown report with no message
-       */
-      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.reportType==UnknownReportType).flatMap { reports =>
-        val techniqueComponentsReports = reports.directives.filter(_.reportType==UnknownReportType).flatMap{dir =>
-          val componentsReport = dir.components.filter(_.reportType==UnknownReportType).flatMap{component =>
-            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.reportType==UnknownReportType&&value.message.size==0)
-            values.map(value => (component.component,value.componentValue))
-            }
-          val (tech, techVersion ) = directiveRepository.getActiveTechniqueAndDirective(dir.directiveId) match {
-            case Full((at, dir)) =>
-              (techniqueRepository.getLastTechniqueByName(at.techniqueName).map(_.name).getOrElse("Unknown Technique"), dir.techniqueVersion.toString)
-            case _ => ("Unknown Technique", "N/A")
-          }
-          componentsReport.map(compo=> (compo,tech,techVersion))}
-        techniqueComponentsReports }
-
-      if (reports.size >0){
-          ( "#reportLine" #> reports.flatMap(showMissingReport(_) )
-          ).apply(missingGridXml ) ++
-            Script( JsRaw("""
-             var oTableMissing = $('#missingGrid').dataTable({
-               "asStripeClasses": [ 'color1', 'color2' ],
-               "bAutoWidth": false,
-               "bFilter" : true,
-               "bPaginate" : true,
-               "bLengthChange": true,
-               "bStateSave": true,
-                    "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_missingGrid', JSON.stringify(oData) );
-                    },
-                    "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_missingGrid') );
-                    },
-               "sPaginationType": "full_numbers",
-               "bJQueryUI": true,
-               "oLanguage": {
-                 "sSearch": ""
-               },
-               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-               "aaSorting": [[ 0, "asc" ]],
-               "aoColumns": [
-                 { "sWidth": "150px" },
-                 { "sWidth": "150px" },
-                 { "sWidth": "150px" }
-               ]
-             } );
-         """) ) }
-        else
-          NodeSeq.Empty
-        }
-
-   def unexpectedGridXml : NodeSeq = {
-
-     <h3>Unexpected reports</h3>
-
-     <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
+   /*
+    * Note: unexpected reports are only the one with messages
+    */
+    val missingComponents = reports.filter(r => r._1._3.nonEmpty)
+    if (missingComponents.size >0){
+      ( "#reportLine" #> missingComponents.flatMap(showUnexpectedReport(_) )).apply(
+      <h3>Unexpected reports</h3>
+      <div>The following reports were received by Rudder, but did not match the reports declared by the Technique. This usually indicates a bug in the Technique being used.</div>
 
       <table id="unexpectedGrid"  cellspacing="0" style="clear:both">
         <thead>
@@ -299,83 +457,69 @@ class ReportDisplayer(
           <div id="reportLine"/>
         </tbody>
       </table>
-      <br/>
+      <br/> ) ++
+      buildTable("unexpected"
+        ,"unexpectedGrid"
+        , """{ "sWidth": "100px" },
+             { "sWidth": "100px" },
+             { "sWidth": "100px" },
+             { "sWidth": "200px" }"""
+      )
+    } else {
+     NodeSeq.Empty
     }
+  }
 
-    def unexpectedLineXml : NodeSeq = {
-      <tr>
-        <td id="technique"></td>
-        <td id="component"></td>
-        <td id="value"></td>
-        <td id="message"></td>
-      </tr>
+  private[this] def getComponents(status: ReportType, nodeStatusReports: NodeStatusReport, directiveLib: FullActiveTechniqueCategory) = {
+   /*
+    * Note:
+    * - missing reports are unexpected without error message
+    * - unexpected reports are only the one with messages
+    *
+    * To get unexpected reports we have to find them in each node report
+    * So we have to go the value level, get the messages
+    * and also get technique details at directive level for each report
+    * we could add more information at each level (directive name? rule name?)
+    */
+    for {
+      (_, directive) <- nodeStatusReports.report.directives
+      value          <- directive.getValues(v => v.status == status)
+    } yield {
+      val (techName, techVersion) = directiveLib.allDirectives.get(value._1).map { case(tech,dir) =>
+        (tech.techniqueName.value, dir.techniqueVersion.toString)
+      }.getOrElse(("Unknown technique", "N/A"))
+
+      ((value._2, value._3.componentValue, value._3.messages.flatMap(_.message)), techName, techVersion)
     }
+  }
 
-    def showUnexpectedReports(batches:Seq[ExecutionBatch]) : NodeSeq = {
-       def showUnexpectedReport(report:((String,String,List[String]),String,String)) : NodeSeq = {
-        val techniqueName =report._2
-        val techniqueVersion = report._3
-        val reportValue = report._1
-              (  "#technique *" #>  "%s (%s)".format(techniqueName,techniqueVersion)&
-                "#component *" #>  reportValue._1 &
-                "#value *" #>  reportValue._2 &
-                "#message *" #>  <ul>{reportValue._3.map(msg => <li>{msg}</li>)}</ul>
-              ) ( unexpectedLineXml )
-            }
-
-      /*
-       * To get unexpected reports we have to find them in each node report
-       * So we have to go the value level, get the messages
-       * and also get technique details at directive level for each report
-       * we could add more information at each level (directive name? rule name?)
-       */
-      val reports = batches.flatMap(x => x.getNodeStatus()).filter(_.reportType==UnknownReportType).flatMap { reports =>
-        val techniqueComponentsReports = reports.directives.filter(_.reportType==UnknownReportType).flatMap{dir =>
-          val componentsReport = dir.components.filter(_.reportType==UnknownReportType).flatMap{component =>
-            val values = (component.componentValues++component.unexpectedCptValues).filter(value => value.reportType==UnknownReportType&&value.message.size!=0)
-            values.map(value => (component.component,value.componentValue,value.message))
-            }
-          val (tech, techVersion ) = directiveRepository.getActiveTechniqueAndDirective(dir.directiveId) match {
-            case Full((at, dir)) =>
-              (techniqueRepository.getLastTechniqueByName(at.techniqueName).map(_.name).getOrElse("Unknown Technique"), dir.techniqueVersion.toString)
-            case _ => ("Unknown Technique", "N/A")
-          }
-          componentsReport.map(compo=> (compo,tech,techVersion))}
-        techniqueComponentsReports }
-       if (reports.size >0){
-         ( "#reportLine" #> reports.flatMap(showUnexpectedReport(_) )
-         ).apply(unexpectedGridXml ) ++
-            Script( JsRaw("""
-             var oTableUnexpected = $('#unexpectedGrid').dataTable({
-               "asStripeClasses": [ 'color1', 'color2' ],
-               "bAutoWidth": false,
-               "bFilter" : true,
-               "bPaginate" : true,
-               "bLengthChange": true,
-               "bStateSave": true,
+  private[this] def buildTable(name1: String, name2: String, colums: String): NodeSeq = {
+    Script( JsRaw(s"""
+     var oTable${name1} = $$('#${name2}').dataTable({
+       "asStripeClasses": [ 'color1', 'color2' ],
+       "bAutoWidth": false,
+       "bFilter" : true,
+       "bPaginate" : true,
+       "bLengthChange": true,
+       "bStateSave": true,
                     "fnStateSave": function (oSettings, oData) {
-                      localStorage.setItem( 'DataTables_unexpectedGrid', JSON.stringify(oData) );
+                      localStorage.setItem( 'DataTables_${name2}', JSON.stringify(oData) );
                     },
                     "fnStateLoad": function (oSettings) {
-                      return JSON.parse( localStorage.getItem('DataTables_unexpectedGrid') );
+                      return JSON.parse( localStorage.getItem('DataTables_${name2}') );
                     },
-               "sPaginationType": "full_numbers",
-               "bJQueryUI": true,
-               "oLanguage": {
-                 "sSearch": ""
-               },
-               "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
-               "aaSorting": [[ 0, "asc" ]],
-               "aoColumns": [
-                 { "sWidth": "100px" },
-                 { "sWidth": "100px" },
-                 { "sWidth": "100px" },
-                 { "sWidth": "200px" }
-               ]
-             } );
-         """ ) ) }
-        else
-          NodeSeq.Empty
-        }
+       "sPaginationType": "full_numbers",
+       "bJQueryUI": true,
+       "oLanguage": {
+         "sSearch": ""
+       },
+       "sDom": '<"dataTables_wrapper_top"fl>rt<"dataTables_wrapper_bottom"ip>',
+       "aaSorting": [[ 0, "asc" ]],
+       "aoColumns": [
+         ${colums}
+       ]
+     } );
+    """) )
+  }
 
 }

@@ -57,6 +57,7 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.util.Helpers
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.domain.nodes.MachineInfo
 
 
 
@@ -120,17 +121,17 @@ object DefaultRequestLimits extends RequestLimits(0,0,0,0)
  * in the ou=Nodes branch)
  */
 class AccepetedNodesLDAPQueryProcessor(
-    nodeDit:NodeDit,
-    inventoryDit:InventoryDit,
-    processor:InternalLDAPQueryProcessor,
-    nodeInfoService: NodeInfoService
+    nodeDit        : NodeDit
+  , inventoryDit   : InventoryDit
+  , processor      : InternalLDAPQueryProcessor
+  , nodeInfoService: NodeInfoService
 ) extends QueryProcessor with Loggable {
 
 
   private[this] case class QueryResult(
-      nodeEntry:LDAPEntry
-    , inventoryEntry:LDAPEntry
-    , machineObjectClass:Option[Seq[String]]
+      nodeEntry     : LDAPEntry
+    , inventoryEntry: LDAPEntry
+    , machineInfo   : Option[LDAPEntry]
   ) extends HashcodeCaching
 
   /**
@@ -150,14 +151,12 @@ class AccepetedNodesLDAPQueryProcessor(
 
     for {
       inventoryEntries <- processor.internalQueryProcessor(query,select,limitToNodeIds,debugId)
+      ldapEntries      <- nodeInfoService.getLDAPNodeInfo(inventoryEntries.flatMap(x => x(A_NODE_UUID).map(NodeId(_))).toSet)
     } yield {
-      val inNodes = (for {
-        inventoryEntry <- inventoryEntries
-        rdn <- inventoryEntry(A_NODE_UUID)
-        LDAPNodeInfo(nodeEntry, nodeInv, machineInv) <- nodeInfoService.getLDAPNodeInfo(NodeId(rdn))
-      } yield {
-        QueryResult(nodeEntry,nodeInv, machineInv)
-      })
+
+      val inNodes = ldapEntries.map { case LDAPNodeInfo(nodeEntry, nodeInv, machineInv) =>
+        QueryResult(nodeEntry, nodeInv, machineInv)
+      }
 
       if(logger.isDebugEnabled) {
         val filtered = inventoryEntries.map( _(A_NODE_UUID).get ).toSet -- inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }.toSet
@@ -166,19 +165,21 @@ class AccepetedNodesLDAPQueryProcessor(
         }
       }
 
-      //filter out policy server if necessary
+      //filter out Rudder server component if necessary
 
       query.returnType match {
         case NodeReturnType =>
-          val withoutPolicyServer = inNodes.filterNot { case QueryResult(e, _, _) => e.isA(OC_POLICY_SERVER_NODE)}
+            // we have a special case for the root node that always never to that group, even if some weird
+            // scenario lead to the removal (or non addition) of them
+          val withoutServerRole = inNodes.filterNot { case QueryResult(e, inv, _) =>  (inv.valuesFor(A_SERVER_ROLE).size>0 || e(A_NODE_UUID) == Some("root")) }
           if(logger.isDebugEnabled) {
-            val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutPolicyServer.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
+            val filtered = (inNodes.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }).toSet -- withoutServerRole.flatMap { case QueryResult(e, _, _) => e(A_NODE_UUID) }
             if(!filtered.isEmpty) {
-                logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutPolicyServer.size, filtered.mkString(", ")))
+                logger.debug("[%s] [post-filter:policyServer] %s results".format(debugId, withoutServerRole.size, filtered.mkString(", ")))
             }
           }
-          withoutPolicyServer
-        case NodeAndPolicyServerReturnType => inNodes
+          withoutServerRole.toSeq
+        case NodeAndPolicyServerReturnType => inNodes.toSeq
       }
     }
   }
@@ -186,7 +187,7 @@ class AccepetedNodesLDAPQueryProcessor(
 
   override def process(query:Query) : Box[Seq[NodeInfo]] = {
     //only keep the one of the form Full(...)
-    queryAndChekNodeId(query, processor.ldapMapper.nodeInfoAttributes, None).map { seq => seq.flatMap {
+    queryAndChekNodeId(query, NodeInfoService.nodeInfoAttributes, None).map { seq => seq.flatMap {
       case QueryResult(nodeEntry, inventoryEntry,machine) =>
         processor.ldapMapper.convertEntriesToNodeInfos(nodeEntry, inventoryEntry,machine) match {
           case Full(nodeInfo) => Seq(nodeInfo)

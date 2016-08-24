@@ -60,6 +60,9 @@ import JE._
 import net.liftweb.http.SHtml._
 import bootstrap.liftweb.RudderConfig
 import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.FullInventory
+import com.normation.rudder.domain.nodes.{Node => RudderNode}
+import com.normation.rudder.reports.ReportingConfiguration
 
 /**
  * A simple service that displays a NodeDetail widget from
@@ -90,7 +93,7 @@ class NodeHistoryViewer extends StatefulSnippet {
               case Empty => <div class="error">No history was retrieved for the chosen date</div>
               case Full(sm) =>
                 <div id={hid}>{
-                  DisplayNode.showPannedContent(sm.data, AcceptedInventory, "hist") ++
+                  DisplayNode.showPannedContent(None,sm.data, AcceptedInventory, "hist") ++
                   Script(DisplayNode.jsInit(sm.data.node.main.id,sm.data.node.softwareIds,"hist"))
                 }</div>
           } }
@@ -99,7 +102,6 @@ class NodeHistoryViewer extends StatefulSnippet {
       case _ => <div class="error">Missing node ID information: can not display history information</div>
     }
   }
-
 
   private def initState(suuid:String) : Unit = {
     val newUuid = NodeId(suuid)
@@ -126,7 +128,7 @@ class NodeHistoryViewer extends StatefulSnippet {
       case Failure(m,_,_) => Alert("Error while trying to display node history. Error message:" + m)
       case Empty => Alert("No history was retrieved for the chosen date")
       case Full(sm) =>
-        SetHtml(hid,DisplayNode.showPannedContent(sm.data, AcceptedInventory, "hist")) &
+        SetHtml(hid,DisplayNode.showPannedContent(None,sm.data, AcceptedInventory, "hist")) &
         DisplayNode.jsInit(sm.data.node.main.id, sm.data.node.softwareIds,"hist")
     }
   }

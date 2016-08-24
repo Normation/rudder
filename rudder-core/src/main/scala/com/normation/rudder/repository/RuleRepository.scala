@@ -36,13 +36,12 @@
 */
 
 package com.normation.rudder.repository
-
-import com.normation.rudder.domain.policies.RuleTarget
-import com.normation.rudder.domain.policies._
-import net.liftweb.common._
 import com.normation.eventlog.EventActor
-import com.normation.rudder.domain.archives.RuleArchiveId
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.archives.RuleArchiveId
+import com.normation.rudder.domain.policies._
+
+import net.liftweb.common._
 
 
 
@@ -69,6 +68,12 @@ trait RoRuleRepository {
    * with the method RuleTargetService#isApplied
    */
   def getAll(includeSytem:Boolean = false) : Box[Seq[Rule]]
+
+  /**
+   * Return all rules ids.
+   * Optionnaly include system rules
+   */
+  def getIds(includeSytem:Boolean = false) : Box[Set[RuleId]]
 
 }
 

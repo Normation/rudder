@@ -103,8 +103,10 @@ trait AbstractScheduler extends Loggable {
    */
   // -----------------------------------------------------
 
-  private class StatusManager extends LiftActor with Loggable {
+  private class StatusManager extends LiftActor {
     updateManager =>
+
+    val logger = ApplicationLogger
 
     private var updateId = 0L
     private var currentState: UpdaterStates = IdleUpdater

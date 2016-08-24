@@ -45,23 +45,24 @@ import net.liftweb.http.Req
 import net.liftweb.json.JsonDSL._
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.common._
+import com.normation.rudder.web.rest.ApiVersion
 
 class GroupAPI2 (
     readGroup     : RoNodeGroupRepository
   , restExtractor : RestExtractorService
-  , apiV2       : GroupApiService2
+  , apiV2         : GroupApiService2
 ) extends RestHelper with GroupAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]] = {
 
-    case Get(Nil, req) => apiV2.listGroups(req)
+    case Get(Nil, req) => apiV2.listGroups(req, apiVersion)
 
     case Nil JsonPut body -> req => {
       req.json match {
         case Full(arg) =>
           val restGroup = restExtractor.extractGroupFromJSON(arg)
-          apiV2.createGroup(restGroup, req)
+          apiV2.createGroup(restGroup, req, apiVersion)
         case eb:EmptyBox=>
           toJsonError(None, "No Json data sent")("createGroup",restExtractor.extractPrettify(req.params))
       }
@@ -69,18 +70,18 @@ class GroupAPI2 (
 
     case Put(Nil, req) => {
       val restGroup = restExtractor.extractGroup(req.params)
-      apiV2.createGroup(restGroup, req)
+      apiV2.createGroup(restGroup, req, apiVersion)
     }
 
-    case Get(id :: Nil, req) => apiV2.groupDetails(id, req)
+    case Get(id :: Nil, req) => apiV2.groupDetails(id, req, apiVersion)
 
-    case Delete(id :: Nil, req) =>  apiV2.deleteGroup(id,req)
+    case Delete(id :: Nil, req) =>  apiV2.deleteGroup(id,req, apiVersion)
 
     case id :: Nil JsonPost body -> req => {
       req.json match {
         case Full(arg) =>
           val restGroup = restExtractor.extractGroupFromJSON(arg)
-          apiV2.updateGroup(id,req,restGroup)
+          apiV2.updateGroup(id,req,restGroup, apiVersion)
         case eb:EmptyBox=>
           toJsonError(None, "No Json data sent")("updateGroup",restExtractor.extractPrettify(req.params))
       }
@@ -88,11 +89,11 @@ class GroupAPI2 (
 
     case Post(id:: Nil, req) => {
       val restGroup = restExtractor.extractGroup(req.params)
-      apiV2.updateGroup(id,req,restGroup)
+      apiV2.updateGroup(id,req,restGroup,apiVersion)
     }
 
     case Post( id :: "reload" ::  Nil, req) => {
-      apiV2.reloadGroup(id, req)
+      apiV2.reloadGroup(id, req, apiVersion)
     }
 
   }

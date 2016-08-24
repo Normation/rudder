@@ -39,6 +39,13 @@ package com.normation.rudder.domain.nodes
 
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching
+import com.normation.rudder.reports.ReportingConfiguration
+import net.liftweb.json.JsonAST.JObject
+import org.joda.time.DateTime
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.HeartbeatConfiguration
+import com.normation.rudder.domain.policies.SimpleDiff
+import com.normation.inventory.domain.FullInventory
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -47,10 +54,114 @@ import com.normation.utils.HashcodeCaching
  *
  */
 case class Node(
-    id:NodeId
-  , name:String
-  , description:String
-  , isBroken : Boolean
-  , isSystem : Boolean
-  , isPolicyServer: Boolean
+    id                        : NodeId
+  , name                      : String
+  , description               : String
+  , isBroken                  : Boolean
+  , isSystem                  : Boolean
+  , isPolicyServer            : Boolean
+  , creationDate              : DateTime
+  , nodeReportingConfiguration: ReportingConfiguration
+  , properties                : Seq[NodeProperty]
 ) extends HashcodeCaching
+
+case object Node {
+  def apply (inventory : FullInventory) : Node = {
+    Node(
+        inventory.node.main.id
+      , inventory.node.main.hostname
+      , inventory.node.description.getOrElse("")
+      , false
+      , false
+      , false
+      , inventory.node.inventoryDate.getOrElse(new DateTime(0))
+      , ReportingConfiguration(None,None)
+      , Seq()
+    )
+  }
+}
+
+case class NodeProperty(name: String, value: String)
+
+/**
+ * Node diff for event logs:
+ * Change
+ * - heartbeat frequency
+ * - run interval
+ * - properties
+ *
+ * For now, other simple properties are not handle.
+ */
+
+sealed trait NodeDiff
+
+/**
+ * Denote a change on the heartbeat frequency.
+ */
+final case class ModifyNodeHeartbeatDiff(
+    id          : NodeId
+  , modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]
+) extends NodeDiff with HashcodeCaching
+
+/**
+ * Diff on a change on agent run period
+ */
+final case class ModifyNodeAgentRunDiff(
+    id         : NodeId
+  , modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]
+) extends NodeDiff with HashcodeCaching
+
+/**
+ * Diff on the list of properties
+ */
+final case class ModifyNodePropertiesDiff(
+    id           : NodeId
+  , modProperties: Option[SimpleDiff[Seq[NodeProperty]]]
+)
+
+/**
+ * The part dealing with JsonSerialisation of node related
+ * attributes (especially properties)
+ */
+object JsonSerialisation {
+
+  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json._
+
+  implicit class JsonNodeProperty(x: NodeProperty) {
+    def toLdapJson(): JObject = (
+        ( "name"  , x.name  )
+      ~ ( "value" , x.value )
+    )
+  }
+
+  implicit class JsonNodeProperties(props: Seq[NodeProperty]) {
+    import net.liftweb.json.Serialization.write
+    implicit val formats = DefaultFormats
+
+    private[this] def json(x: NodeProperty): JObject = (
+        ( "name"  , x.name  )
+      ~ ( "value" , x.value )
+    )
+
+    def dataJson(x: NodeProperty) : JField = {
+      JField(x.name, x.value)
+    }
+
+    def toApiJson(): JArray = {
+      JArray(props.map(json(_)).toList)
+    }
+
+    def toDataJson(): JObject = {
+      props.map(dataJson(_)).toList.sortBy { _.name }
+    }
+  }
+
+  def unserializeLdapNodeProperty(value:String): NodeProperty = {
+    import net.liftweb.json.JsonParser._
+    implicit val formats = DefaultFormats
+
+    parse(value).extract[NodeProperty]
+  }
+
+}

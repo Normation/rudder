@@ -58,7 +58,10 @@ import com.normation.rudder.domain.policies.RuleId
 import net.liftweb.http.LocalSnippet
 import com.normation.rudder.web.components.popup.RuleCategoryPopup
 
-
+/**
+ * the component in charge of displaying the rule grid, with category tree
+ * and one line by rule.
+ */
 class RuleDisplayer (
     directive           : Option[DirectiveApplicationManagement]
   , gridId              : String
@@ -67,12 +70,12 @@ class RuleDisplayer (
   , showRulePopup        : (Option[Rule]) => JsCmd
 ) extends DispatchSnippet with Loggable  {
 
-
   private[this] val ruleRepository       = RudderConfig.roRuleRepository
   private[this] val roCategoryRepository = RudderConfig.roRuleCategoryRepository
   private[this] val woCategoryRepository = RudderConfig.woRuleCategoryRepository
   private[this] val ruleCategoryService  = RudderConfig.ruleCategoryService
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
+  private[this] val configService        = RudderConfig.configService
 
   private[this] val htmlId_popup = "createRuleCategoryPopup"
 
@@ -92,7 +95,6 @@ class RuleDisplayer (
   def dispatch = {
     case "display" => { _ => NodeSeq.Empty }
   }
-
 
   // Update Rule displayer after a Rule has changed ( update / creation )
   def onRuleChange (selectedCategoryUpdate : RuleCategoryId)= {
@@ -123,7 +125,6 @@ class RuleDisplayer (
     ) )
   }
   def viewCategories(ruleCategoryTree : RuleCategoryTree) : NodeSeq = {
-
 
     val actionButton =
                  if (directive.isEmpty) {
@@ -157,8 +158,6 @@ class RuleDisplayer (
     }
   }
 
-
-
   def viewRules : NodeSeq = {
 
     val callbackLink = {
@@ -171,8 +170,8 @@ class RuleDisplayer (
     val ruleGrid = {
       new RuleGrid(
           "rules_grid_zone"
-        , Seq()
         , callbackLink
+        , configService.display_changes_graph
         , directive.isDefined
         , directive
       )
@@ -186,8 +185,6 @@ class RuleDisplayer (
         , ("id","includeCheckbox")
       )
     }
-
-
 
     def actionButton = {
       if (directive.isDefined) {
@@ -203,7 +200,10 @@ class RuleDisplayer (
       </lift:authz>
       <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
       <hr class="spacer"/>
-      {ruleGrid.rulesGridWithUpdatedInfo(directive.isDefined) ++ Script(OnLoad(ruleGrid.refresh().applied)) }
+      { ruleGrid.rulesGridWithUpdatedInfo(None, !directive.isDefined, true)  ++
+        Script(OnLoad(ruleGrid.asyncDisplayAllRules(None, true, configService.display_changes_graph().openOr(true)).applied))
+      }
+
     </div>
 
   }
@@ -217,13 +217,13 @@ class RuleDisplayer (
      case Full(ruleCategoryTree) =>
        <div style="padding:10px;">
          <div style="float:left; width: 20%; overflow:auto">
-           <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;">CATEGORIES</div>
+           <div class="page-title">Categories</div>
            <div class="inner-portlet-content" id="categoryTreeParent">
                {viewCategories(ruleCategoryTree)}
            </div>
          </div>
          <div style="float:left; width:78%;padding-left:2%;">
-           <div class="inner-portlet-header" style="letter-spacing:1px; padding-top:0;" id="categoryDisplay">RULES</div>
+           <div class="page-title" id="categoryDisplay">Rule</div>
            <div class="inner-portlet-content" id={gridId}>
              {viewRules}
            </div>
@@ -242,7 +242,6 @@ class RuleDisplayer (
        </div>
    }
   }
-
 
   def ruleCreationPopup (ruleToClone:Option[Rule]) = {
     ruleCategoryTree match {
@@ -263,7 +262,6 @@ class RuleDisplayer (
        </div>
     }
   }
-
 
   // Popup
 

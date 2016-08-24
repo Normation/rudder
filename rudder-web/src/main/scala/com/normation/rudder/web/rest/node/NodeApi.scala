@@ -43,7 +43,13 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
+import com.normation.rudder.domain.nodes.NodeProperty
 
 trait NodeAPI extends RestAPI {
   val kind = "nodes"
 }
+
+case class RestNode(
+    properties: Option[Seq[NodeProperty]]
+)
+

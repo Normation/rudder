@@ -40,7 +40,6 @@ package com.normation.rudder.web.rest.parameter
 import com.normation.rudder.repository.RoParameterRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -50,14 +49,15 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
 import net.liftweb.json.JsonDSL._
+import com.normation.rudder.web.rest.ApiVersion
 
 class ParameterAPI2 (
-    restExtractor : RestExtractorService
-  , apiV2       : ParameterApiService2
+    restExtractor: RestExtractorService
+  , apiV2        : ParameterApiService2
 ) extends ParameterAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => apiV2.listParameters(req)
 

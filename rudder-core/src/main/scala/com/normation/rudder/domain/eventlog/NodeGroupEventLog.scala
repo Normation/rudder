@@ -43,7 +43,6 @@ import scala.xml._
 import org.joda.time.DateTime
 import net.liftweb.common._
 import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.rudder.domain.queries.Query
 import com.normation.inventory.domain.NodeId
 import com.normation.utils.HashcodeCaching

@@ -32,6 +32,7 @@ description: #54-Ubuntu SMP Thu Dec 10 17:23:29 UTC 2009
 isSystem: false
 isBroken: false
 createTimestamp: 20070101000000Z
+serializedNodeProperty: {"name":"foo", "value":"bar" }
 
 dn: nodeId=node2,ou=Nodes,cn=rudder-configuration
 objectClass: top
@@ -187,6 +188,7 @@ agentName: Nova
 policyServerId:root-policy-server
 ipHostNumber: 192.168.56.101
 ipHostNumber: 127.0.0.1
+environmentVariable: {"name":"SHELL","value":"/bin/sh"}
 
 # Example of a node
 dn: nodeId=node2,ou=Nodes,ou=Accepted Inventories,ou=Inventories,cn=rudder-configuration

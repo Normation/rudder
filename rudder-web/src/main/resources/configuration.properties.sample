@@ -117,6 +117,7 @@ rudder.jdbc.driver=org.postgresql.Driver
 rudder.jdbc.url=jdbc:postgresql://localhost:5432/rudder
 rudder.jdbc.username=rudder
 rudder.jdbc.password=Normation
+rudder.jdbc.maxPoolSize=25
 
 
 ###########################
@@ -137,10 +138,10 @@ rudder.jdbc.password=Normation
 # If the archive TTL is greater than the delete TTL then archiving will be disabled
 # as there will be no reports to archive (they would be deleted first).
 #
-# Defaults: archive after 3 days, delete after 90 days.
+# Defaults: archive after 4 days, delete after 90 days.
 #
 
-rudder.batch.reportscleaner.archive.TTL=3
+rudder.batch.reportscleaner.archive.TTL=4
 rudder.batch.reportscleaner.delete.TTL=90
 
 #
@@ -418,19 +419,46 @@ rudder.batch.storeAgentRunTimes.maxDays=5
 
 rudder.batch.storeAgentRunTimes.updateInterval=5
 
-#########################
-# LDAP Authentication    #############################################################
-#########################
+###########################
+# Rudder Authentication    #############################################################
+###########################
 
 #
-# Be default, both authentication and authorization are handle in the rudder-users.xml
+# Rudder has a root admin account, with full rights on the
+# application, and whose authentication is independant from 
+# the authentication provider chosen (file, LDAP, etc). 
+# By default, the accound is disabled (either by letting the
+# the login or the password empty, or by commenting it). 
+#
+
+#rudder.auth.admin.login=rootadmin
+#rudder.auth.admin.password=secret
+
+#
+# By default, both authentication and authorization are handle in the rudder-users.xml
 # file. But you may want to rely on your existing entreprise Active Directory or LDAP
-# to take care of the authentication part. The following parameters allow to configure
-# such an LDAP authentication scheme. 
-# The chosen LDAP procedure is a typical bind/search/rebind, in which an application
-# connection (bind) is used to search (search) for an user entry given some base and 
-# filter parameters, and then, a bind (rebind) is tried on that entry with the 
-# credential provided by the user. 
+# to take care of the authentication part. 
+# To choose the scheme to use, either use 'file' or 'ldap' for the rudder.auth.type
+# parameter. 
+# You can also use a comma separated list of authentication provider to use, 
+# like 'ldap, file' in which case each one will be tested in turned for authentication. 
+# 
+# When set to 'ldap', passwords in rudder-users.xml are ignored and the 
+# authentication is delegated to the LDAP server configured below. 
+# By convention, when LDAP authentication is enable, 'password' field in
+# rudder-users.xml are set to 'LDAP' 
+#
+# Comma separated list of authentication providers. Default provider are
+# 'file', 'ldap'. 
+#
+rudder.auth.provider=file
+
+
+# The following parameters allow to configure the LDAP authentication provider. 
+# The LDAP authentication procedure is a typical bind/search/rebind, in which 
+# an application connection (bind) is used to search (search) for an user entry 
+# given some base and filter parameters, and then, a bind (rebind) is tried on 
+# that entry with the credential provided by the user. 
 # That allows to seperate the user DN (especially RDN) from the search criteria. 
 #
 # Be careful, the authorization is still done in the rudder-user.xml, what means
@@ -438,17 +466,6 @@ rudder.batch.storeAgentRunTimes.updateInterval=5
 # Without that line, the user can have a successful LDAP authentication, but
 # won't be able to do or see anything in Rudder (safe logout). 
 # 
-
-#
-# Use the LDAP authentication
-# When set to true, passwords in rudder-users.xml are ignored and the 
-# authentication is delegated to the LDAP server configured below. 
-# By convention, when LDAP authentication is enable, "password" field in
-# rudder-users.xml are set to "LDAP" or left empty.
-#
-# Boolean, default to false
-#
-rudder.auth.ldap.enable=false
 
 #
 # Connection URL to the LDAP server, in the form:
@@ -484,8 +501,10 @@ rudder.auth.ldap.filter=(&(uid={0})(objectclass=person))
 #rudder.auth.ldap.filter=(&(sAMAccountName={0})(objectclass=user))
 
 
-#
-# Rudder roles definition
+###########################
+# Rudder roles definition  #############################################################
+###########################
+
 #
 # Allow to define which hosts have the roles ldap, db and relay-top when
 # using a split architecture of Rudder
@@ -511,6 +530,12 @@ rudder.server-roles.relay-top=autodetect
 
 # The hosts with the webapp role
 rudder.server-roles.web=autodetect
+
+# The hosts with the relay promises role
+rudder.server-roles.relay-promises-only=autodetect
+
+# The hosts with the cfengine mission portal role
+rudder.server-roles.cfengine-mission-portal=autodetect
 
 #########################
 # DEPRECATED properties #############################################################

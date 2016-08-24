@@ -66,6 +66,7 @@ class ClearCache extends DispatchSnippet with Loggable {
   private[this] val asyncDeploymentAgent     = RudderConfig.asyncDeploymentAgent
   private[this] val eventLogRepository       = RudderConfig.eventLogRepository
   private[this] val uuidGen                  = RudderConfig.stringUuidGenerator
+  private[this] val clearableCache           = RudderConfig.clearableCache
 
   def dispatch = {
     case "render" => clearCache
@@ -82,9 +83,14 @@ class ClearCache extends DispatchSnippet with Loggable {
       S.clearCurrentNotices
 
       val modId = ModificationId(uuidGen.newUuid)
+
+      //clear agentRun cache
+      clearableCache.foreach { _.clearCache }
+
+      //clear node configuration cache
       nodeConfigurationService.deleteAllNodeConfigurations match {
         case empty:EmptyBox =>
-          val e = empty ?~! "Error when clearing caches"
+          val e = empty ?~! "Error while clearing caches"
           S.error(e.messageChain)
         case Full(set) =>
           eventLogRepository.saveEventLog(modId,
@@ -100,9 +106,9 @@ class ClearCache extends DispatchSnippet with Loggable {
               logger.debug(e.exceptionChain)
             case _ => //ok
           }
-          logger.debug("Delete node configurations on user clear cache request")
+          logger.debug("Deleting node configurations on user clear cache request")
           asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
-          S.notice("clearCacheNotice","Caches were correctly cleaned")
+          S.notice("clearCacheNotice","Caches were successfully cleared")
       }
 
       Replace("clearCacheForm", outerXml.applyAgain)
@@ -110,7 +116,7 @@ class ClearCache extends DispatchSnippet with Loggable {
 
     //process the list of networks
     "#clearCacheButton" #> {
-      SHtml.ajaxSubmit("Clear Caches", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+      SHtml.ajaxSubmit("Clear caches", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
     }
   }
 }

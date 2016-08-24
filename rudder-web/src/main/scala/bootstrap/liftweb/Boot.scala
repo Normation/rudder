@@ -247,7 +247,7 @@ class Boot extends Loggable {
       Menu("UtilitiesHome", <span>Utilities</span>) /
         "secure" / "utilities" / "index" >>
         TestAccess ( () =>
-          if (workflowEnabled || CurrentUser.checkRights(Read("administration")))
+          if (workflowEnabled || CurrentUser.checkRights(Read("administration")) || CurrentUser.checkRights(Read("technique")))
             Empty
           else
              Full(RedirectWithState("/secure/index", redirection))
@@ -282,11 +282,16 @@ class Boot extends Loggable {
             "secure" / "utilities" / "eventLogs"
             >> LocGroup("utilitiesGroup")
             >> TestAccess ( () => userIsAllowed("/secure/index",Read("administration")) )
+
+        , Menu("techniqueEditor", <span>Technique Editor</span>) /
+            "secure" / "utilities" / "techniqueEditor"
+            >> LocGroup("utilitiesGroup")
+            >> TestAccess ( () => userIsAllowed("/secure/index",Read("technique")) )
       )
     }
 
     val rootMenu = List(
-        Menu("Home", <span>Home</span>) / "secure" / "index"
+        Menu("Home", <span>Home</span>) / "secure" / "index" >> Hidden
       , Menu("Login") / "index" >> Hidden
       , nodeManagerMenu
       , buildManagerMenu("configuration")

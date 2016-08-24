@@ -40,7 +40,6 @@ package com.normation.rudder.web.rest.rule
 import com.normation.rudder.repository.RoRuleRepository
 import com.normation.rudder.web.rest.RestUtils.toJsonError
 import com.normation.rudder.web.rest.RestExtractorService
-
 import net.liftweb.common.Box
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Full
@@ -49,15 +48,16 @@ import net.liftweb.http.LiftResponse
 import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import net.liftweb.json.JString
+import com.normation.rudder.web.rest.ApiVersion
 
 class RuleAPI2 (
-    readRule             : RoRuleRepository
-  , restExtractor        : RestExtractorService
+    readRule           : RoRuleRepository
+  , restExtractor      : RestExtractorService
   , apiV2              : RuleApiService2
 ) extends RuleAPI with Loggable{
 
 
-  val requestDispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
+  override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
     case Get(Nil, req) => apiV2.listRules(req)
 

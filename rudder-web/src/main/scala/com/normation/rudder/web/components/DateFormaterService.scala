@@ -38,6 +38,8 @@
 package com.normation.rudder.web.components
 
 import org.joda.time.DateTime
+import org.joda.time.format.PeriodFormatterBuilder
+import org.joda.time.Duration
 
 object DateFormaterService {
 
@@ -46,5 +48,28 @@ object DateFormaterService {
 
   def getFormatedDate(date : DateTime) : String = {
     date.toString(dateFormat)
+  }
+
+  private[this] val periodFormatter = new PeriodFormatterBuilder().
+    appendDays().
+    appendSuffix(" day", " days").
+    appendSeparator(", ").
+    appendHours().
+    appendSuffix(" hour", " hours").
+    appendSeparator(", ").
+    appendMinutes().
+    appendSuffix(" min", " min").
+    appendSeparator(", ").
+    appendSeconds().
+    appendSuffix(" s", " s")
+    .toFormatter()
+
+  def formatPeriod(duration:Duration) : String = {
+    if(duration.getMillis < 1000) "less than 1 s"
+    else periodFormatter.print(duration.toPeriod)
+  }
+
+  def getFormatedPeriod(start : DateTime, end : DateTime) : String = {
+    formatPeriod(new Duration(start,end))
   }
 }

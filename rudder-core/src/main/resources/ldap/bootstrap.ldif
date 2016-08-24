@@ -330,9 +330,15 @@ objectClass: organizationalUnit
 objectClass: top
 ou: Application Properties
 
+dn: propertyName=rudder_syslog_protocol,ou=Application Properties,cn=rudder-
+ configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_syslog_protocol
+propertyValue: UDP
+
 dn: propertyName=api_compatibility_mode,ou=Application Properties,cn=rudder-configuration
 objectClass: property
 objectClass: top
 propertyName: api_compatibility_mode
 propertyValue: false
-

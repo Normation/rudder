@@ -122,6 +122,13 @@ trait DirectiveField extends BaseField with SectionChildField {
   //update list error accordingly
   def parseClient(s: String): Unit
 
+  //reference to other fields used by that field
+  protected var _usedFields = Seq[DirectiveField]()
+  def usedFields_=(fields: Seq[DirectiveField]): Unit = {
+    _usedFields = fields
+  }
+  def usedFields = _usedFields
+
   private var description: String = ""
   override def displayName = description
   def displayName_=(s: String): Unit = description = s
@@ -158,6 +165,25 @@ trait DirectiveField extends BaseField with SectionChildField {
 
   override def displayHtml = Text(toClient)
 
+  def tooltipElem = {
+    if (tooltip == "") {
+      NodeSeq.Empty
+    } else {
+      val tooltipid = Helpers.nextFuncName
+      <span class="tw-bs" ><span tooltipid={tooltipid} class="ruddericon tooltipable glyphicon glyphicon-question-sign" title=""></span></span>
+      <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
+    }
+  }
+
+  def display(value: NodeSeq) = {
+    <tr>
+      <td class="directiveVarLabel">
+      <span>{ if (optional) displayName else <b>{ displayName}</b> } {tooltipElem} {if (optional) <span class="tw-bs"> - <small style="color:#999;">Optional</small></span>}</span>
+      </td>
+      <td class="directiveVarValue">{ value }</td>
+    </tr>
+  }
+
   override def toFormNodeSeq = {
     toForm match {
       case Failure(m, _, _) =>
@@ -169,44 +195,12 @@ trait DirectiveField extends BaseField with SectionChildField {
           "form representation of the field was empty"
         logger.error(errorMess.format(displayName))
         NodeSeq.Empty
-      case Full(form) if tooltip == "" =>
-        <tr>
-          <td class="directiveVarLabel">
-            { displayName + { if (optional) " (optional)" else "" } }:
-          </td>
-          <td class="directiveVarValue">{ form }</td>
-        </tr>
       case Full(form) =>
-        val tooltipid = Helpers.nextFuncName
-        <tr class = "tooltipable" title="" tooltipid={tooltipid}>
-          <td class="directiveVarLabel">
-            <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
-            { displayName + { if (optional) " (optional)" else "" } }:
-          </td>
-          <td class="directiveVarValue">{ form }</td>
-        </tr>
+        display( form)
     }
   }
 
-  def toHtmlNodeSeq = {
-    if (tooltip == "") {
-      <tr>
-        <td class="directiveVarLabel">
-          { displayName + { if (optional) " (optional)" else "" } }
-        </td>
-        <td class="directiveVarValue">{ displayValue }</td>
-      </tr>
-    } else {
-      val tooltipid = Helpers.nextFuncName
-      <tr class = "tooltipable" title="" tooltipid={tooltipid}>
-        <td class="directiveVarLabel">
-      	  <div class="tooltipContent" id={tooltipid}>{tooltip}</div>
-          { displayName + { if (optional) " (optional)" else "" } }
-        </td>
-        <td class="directiveVarValue">{ displayValue }</td>
-      </tr>
-    }
-  }
+  def toHtmlNodeSeq = display( displayValue )
 
   // This is only used when showing a PT, hence the values are the default values
   def displayValue: NodeSeq = {
@@ -216,7 +210,6 @@ trait DirectiveField extends BaseField with SectionChildField {
     }
   }
 }
-
 
 object DirectiveField {
   val logger = LoggerFactory.getLogger(classOf[DirectiveField])
@@ -239,6 +232,23 @@ trait SectionField extends SectionChildField {
   // - the user want to have the section displayed
   // - the user want to have the section hidden
   var displayed : Option[Boolean] = Option.empty[Boolean]
+
+  def collectVariables(onlyDirect: Boolean): Map[String, DirectiveField] = {
+    childFields.flatMap { x => x match {
+        case v: DirectiveField => Seq((v.id -> v))
+        case s: SectionField   =>
+          if(onlyDirect) {
+            Seq[(String, DirectiveField)]()
+          } else {
+            s.collectVariables(onlyDirect)
+      }
+    } }.toMap
+  }
+
+  // get all variables in that section
+  def getAllDirectVariables: Map[String, DirectiveField] = collectVariables(true)
+  //get all sub-variables
+  def getAllVariables: Map[String, DirectiveField] = collectVariables(false)
 
   def isMultivalued = this match {
     case _: MultivaluedSectionField => true
@@ -301,7 +311,7 @@ case class SectionFieldImp(
     else
       <tr><td colspan="2">
         <div  id={sectionId} class={classes}>
-         <div class="inner-portlet-header-lower" onClick={methodName}>Section: { name }</div>
+         <div class="section-title" onClick={methodName}>Section: { name }</div>
           <table class="directiveSectionDef">
               { childrenXml }
           </table>
@@ -315,7 +325,7 @@ case class SectionFieldImp(
     else
       <tr><td colspan="2">
         <div>
-        <div class="inner-portlet-header-lower">Section: { name }</div>
+        <div class="section-title">Section: { name }</div>
           <table class="directiveSectionDisplay">
             <tbody>
               { childrenXml }
@@ -447,7 +457,7 @@ case class MultivaluedSectionField(
 
             val classes = "groupFieldset foldableSection " + section.visibilityClasses
             <div  id={sectionId} class={classes}>
-              <div class="inner-portlet-header-lower" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
+              <div class="section-title" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
               { showFormEntry(section, i) }
               { // showAddAnother under the last element
                 if ((i + 1) == size) {
@@ -456,6 +466,7 @@ case class MultivaluedSectionField(
                   NodeSeq.Empty
                 }
               }
+              <hr class="spacer"/>
             </div> ++ Script(JsRaw(""" function %s { %s } """.format(methodName, changeVisibility.toJsCmd)))
         })
       }</div>
@@ -511,7 +522,7 @@ case class MultivaluedSectionField(
           <div class="directiveGroup">{
             (allSections.map { sect =>
               <div class="groupFieldset">
-                <div class="inner-portlet-header-lower">{ "%s".format(name) }</div>
+                <div class="section-title">{ "%s".format(name) }</div>
                 <table class="directiveGroupDisplay">
                   <tbody>
                     { sect.toHtmlNodeSeq }
@@ -544,7 +555,6 @@ case class DirectiveEditor(
   , val variableSpecs          : Map[String, VariableSpec]
   , val providesExpectedReports: Boolean
   )  extends HashcodeCaching {
-
 
   // We do not remove duplicate in case of meta-technique
   def removeDuplicateSections : Unit = providesExpectedReports match {
@@ -592,5 +602,3 @@ case class DirectiveEditor(
     </div>
   }
 }
-
-

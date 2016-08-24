@@ -12,7 +12,13 @@ import net.liftweb.common._
 import com.normation.cfclerk.domain._
 import com.normation.rudder.repository.FullNodeGroupCategory
 import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.domain.nodes.Node
+import com.normation.inventory.domain.Debian
+import com.normation.inventory.domain.Linux
+import com.normation.inventory.domain.Version
+import com.normation.inventory.domain.UndefinedKey
 
 @RunWith(classOf[JUnitRunner])
 class RuleTargetTest extends Specification with Loggable {
@@ -23,18 +29,21 @@ class RuleTargetTest extends Specification with Loggable {
     NodeId(s"${i}")
   }).toSet
 
+  def newNode(id : NodeId) = Node(id,"" ,"", false, false, false, DateTime.now, ReportingConfiguration(None,None), Seq())
+
   val allNodeIds = nodeIds + NodeId("root")
   val nodes = allNodeIds.map {
     id =>
       (
         id
       , NodeInfo (
-          Node(id,"" ,"", false, false, false),  s"Node-${id}"
-        , "" ,"" ,""
-        , None, Nil, DateTime.now
-        , "", Seq(), NodeId("root")
-        , "", DateTime.now,
-        Set()
+            newNode(id)
+          , s"Node-${id}"
+          , None
+          , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
+          , Nil, DateTime.now
+          , "", UndefinedKey, Seq(), NodeId("root")
+          , "" , Set(), None, None
       )
     )
   }.toMap

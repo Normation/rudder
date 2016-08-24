@@ -345,9 +345,9 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
     currentTechniqueDetails.is match {
       case e:EmptyBox =>
         <div id={htmlId_bottomPanel}>
-        <fieldset class="techniqueDetailsFieldset"><legend>Technique details</legend>
+          <h3>Technique details</h3>
           <p>Click on a Technique to display its details</p>
-        </fieldset></div>
+        </div>
       case Full(form) => form.showForm
     }
   }
@@ -374,7 +374,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
        }) match {
         case (sourceactiveTechniqueId, destCatId) :: Nil =>
           (for {
-            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
+            activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(TechniqueName(sourceactiveTechniqueId)).flatMap(Box(_)) ?~! "Error while trying to find Active Technique with requested id %s".format(sourceactiveTechniqueId)
             result <- rwActiveTechniqueRepository.move(activeTechnique.id, ActiveTechniqueCategoryId(destCatId), ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("User moved active technique from UI"))?~! "Error while trying to move Active Technique with requested id '%s' to category id '%s'".format(sourceactiveTechniqueId,destCatId)
           } yield {
             result
@@ -506,7 +506,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
 
   private[this] def refreshBottomPanel(id:ActiveTechniqueId) : JsCmd = {
     for {
-      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id)
+      activeTechnique <- roActiveTechniqueRepository.getActiveTechnique(id).flatMap { Box(_) }
       technique <- techniqueRepository.getLastTechniqueByName(activeTechnique.techniqueName)
     } { //TODO : check errors
       updateCurrentTechniqueDetails(Some(technique), Some(activeTechnique))
@@ -590,7 +590,7 @@ class TechniqueLibraryManagement extends DispatchSnippet with Loggable {
           toList.sortWith( treeUtilService.sortPtCategory( _ , _ ) ).
           map(jsTreeNodeOf_ptCategory(_)
         ) ++
-        category.packageIds.map( _.name ).
+        category.techniqueIds.map( _.name ).
           flatMap(x => treeUtilService.getPt(x,logger)).toList.
           sortWith((x,y) =>  treeUtilService.sortPt(x.id.name, y.id.name ) ).map(jsTreeNodeOf_pt( _ ) )
 

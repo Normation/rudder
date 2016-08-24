@@ -46,13 +46,14 @@ import com.normation.rudder.authorization.Edit
 import com.normation.rudder.authorization.Read
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleTarget
 import com.normation.rudder.domain.policies.TargetUnion
 import com.normation.rudder.domain.policies.TargetExclusion
-import com.normation.rudder.domain.reports.bean._
+import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.repository.FullNodeGroupCategory
@@ -87,6 +88,7 @@ import com.normation.rudder.domain.policies.TargetComposition
 import com.normation.rudder.web.services.CategoryHierarchyDisplayer
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.rule.category.RuleCategory
 
 object RuleEditForm {
@@ -118,7 +120,7 @@ object RuleEditForm {
     }) openOr Nil
 
   val htmlId_groupTree = "groupTree"
-  val htmlId_activeTechniquesTree = "userPiTree"
+  val htmlId_activeTechniquesTree = "directiveTree"
 }
 
 /**
@@ -175,15 +177,14 @@ class RuleEditForm(
   val extendsAt = SnippetExtensionKey(classOf[RuleEditForm].getSimpleName)
 
   def mainDispatch = Map(
-    "showForm" -> { _:NodeSeq =>
-      showForm() },
-    "showEditForm" -> { _:NodeSeq =>
-      showForm(1)}
+      "showForm"          -> { _:NodeSeq => showForm() }
+    , "showEditForm"      -> { _:NodeSeq => showForm(1) }
+    , "showRecentChanges" -> { _:NodeSeq => showForm(0,"changesGrid") }
   )
 
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
-  private[this] def showForm(tab :Int = 0) : NodeSeq = {
+  private[this] def showForm(tab :Int = 0, idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
     (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory) match {
       case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory)) =>
 
@@ -196,8 +197,10 @@ class RuleEditForm(
             }
 
             (
-              "#editForm" #> formContent &
-              "#details"  #> new RuleCompliance(rule,directiveLib, nodeInfos, rootRuleCategory).display
+                s"#${htmlId_EditZone} *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
+                ClearClearable &
+              "#ruleForm" #> formContent &
+              actionButtons()
             ).apply(body)
 
           } else {
@@ -208,55 +211,45 @@ class RuleEditForm(
         def updateCompliance() = {
            roRuleRepository.get(rule.id) match {
              case Full(updatedrule) =>
-               new RuleCompliance(updatedrule,directiveLib, nodeInfos, rootRuleCategory).display
+               new RuleCompliance(updatedrule, rootRuleCategory).display
              case eb:EmptyBox =>
                logger.error("could not get updated version of the Rule")
-               <div>Could not get updated version of the Rule, please </div>
+               <div>Could not get updated version of the Rule, please try again</div>
            }
 
         }
-        val ruleComplianceTabAjax = SHtml.ajaxCall(JsRaw("'"+rule.id.value+"'"), (v:String) => Replace("details",updateCompliance()))._2.toJsCmd
 
         form ++
         Script(
           OnLoad(JsRaw(
-            s"""$$( "#editRuleZone" ).tabs(); $$( "#editRuleZone" ).tabs('select', ${tab});"""
+           s"""
+            $$( "#editRuleZone" ).tabs();
+            $$( "#editRuleZone" ).tabs('select', ${tab});"""
           )) &
           JsRaw(s"""
-            | $$("#editRuleZone").bind( "show", function(event, ui) {
-            | if(ui.panel.id== 'ruleComplianceTab') { ${ruleComplianceTabAjax}; }
-            | });
-            """.stripMargin('|')
+            $$("#editRuleZonePortlet").removeClass("nodisplay");
+            ${Replace("details", new RuleCompliance(rule, rootRuleCategory).display).toJsCmd};
+            scrollToElement("${idToScroll}", ".rudder_col");
+            $$("#editRuleZone").bind( "show", function(event, ui) {
+              if((ui.panel.id== 'ruleComplianceTab')&&(recentChart !== undefined)) {
+                recentChart.flush();
+              }
+            });
+            """
           )
         )
 
-      case (a, b, c, d) =>
-        List(a,b,c, d).collect{ case eb: EmptyBox =>
-          val e = eb ?~! "An error happens when trying to get the node group library"
+      case (groupLib, directiveLib, allNodes, rootRuleCategory) =>
+        List(groupLib, directiveLib, allNodes, rootRuleCategory).collect{ case eb: EmptyBox =>
+          val e = eb ?~! "An error happens when trying to get rule datas"
           logger.error(e.messageChain)
           <div class="error">{e.msg}</div>
         }
     }
   }
 
-  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
-
-    val maptarget = groupLib.allTargets.map{
-      case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
-    }.toList.mkString("{",",","}")
-
-    val included = ruleTarget.includedTarget.targets
-    val excluded = ruleTarget.excludedTarget.targets
-
-    (
-      "#editForm *" #> { (n:NodeSeq) => SHtml.ajaxForm(n) } andThen
-      ClearClearable &
-      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
-          PendingChangeRequestDisplayer.checkByRule(xml, rule.id, workflowEnabled)
-        } &
-      //activation button: show disactivate if activated
-      "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
-      "#removeAction *" #> {
+  private[this] def actionButtons () = {
+    "#removeAction *" #> {
          SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","dangerButton"))
        } &
        "#desactivateAction *" #> {
@@ -268,6 +261,35 @@ class RuleEditForm(
                     , { () =>  onCloneCallback(rule) }
                     , ("type", "button")
       ) &
+      "#save" #> saveButton
+
+  }
+
+  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
+
+    //is't there an other way to do that? We already have the target/name
+    //in the tree, so there's just the existing id to find back
+    val maptarget = groupLib.allTargets.map{
+      case (gt,fg) => s" ${encJs(gt.target)} : ${encJs(fg.name)}"
+    }.toList.mkString("{",",","}")
+
+    val selectedDirectives =
+      (for {
+        id <- selectedDirectiveIds
+        (_,directive) <-  directiveLib.allDirectives.get(id)
+      } yield {
+         s" ${encJs(id.value)} : ${encJs(directive.name)}"
+      }).mkString("{",",","}")
+
+    val includedTarget = ruleTarget.includedTarget.targets
+    val excludedTarget = ruleTarget.excludedTarget.targets
+
+    (
+      "#pendingChangeRequestNotification" #> { xml:NodeSeq =>
+          PendingChangeRequestDisplayer.checkByRule(xml, rule.id, workflowEnabled)
+        } &
+      //activation button: show disactivate if activated
+      "#disactivateButtonLabel" #> { if(rule.isEnabledStatus) "Disable" else "Enable" } &
       "#nameField" #> crName.toForm_! &
       "#categoryField" #> category.toForm_! &
       "#shortDescriptionField" #> crShortDescription.toForm_! &
@@ -280,11 +302,12 @@ class RuleEditForm(
               , usedDirectiveIds = usedDirectiveIds
               , onClickCategory = None
               , onClickTechnique = None
-              , onClickDirective = None
+              , onClickDirective = Some((_,_,d) => directiveClick(d))
+              , addEditLink = true
+              , included = selectedDirectiveIds
                 //filter techniques without directives, and categories without technique
               , keepCategory    = category => category.allDirectives.nonEmpty
               , keepTechnique   = technique => technique.directives.nonEmpty
-              , addEditLink = true
             )
           }</ul>
         }</div> } &
@@ -298,25 +321,15 @@ class RuleEditForm(
                   "include" -> includeRuleTarget _
                 , "exclude" -> excludeRuleTarget _
               )
-            , included
-            , excluded
+            , includedTarget
+            , excludedTarget
           )}</ul>
         </div> } &
-      "#save" #> saveButton &
-      "#notifications" #>  updateAndDisplayNotifications &
-      "#editForm [id]" #> htmlId_rule
+      "#notifications" #>  updateAndDisplayNotifications
     )(crForm) ++
     Script(OnLoad(JsRaw("""
       correctButtons();
     """)))++ Script(
-        //a function to update the list of currently selected Directives in the tree
-        //and put the json string of ids in the hidden field.
-        JsCrVar("updateSelectedPis", AnonFunc(JsRaw("""
-          $('#selectedPis').val(JSON.stringify(
-            $.jstree._reference('#%s').get_selected().map(function(){
-              return this.id;
-            }).get()));""".format(htmlId_activeTechniquesTree)
-        ))) &
       OnLoad(
         // Initialize angular part of page and group tree
         JsRaw(s"""
@@ -328,11 +341,14 @@ class RuleEditForm(
           buildGroupTree('#${htmlId_groupTree}','${S.contextPath}', [], 'on', undefined, false);"""
         ) &
         //function to update list of PIs before submiting form
-        JsRaw("buildRulePIdepTree('#%1$s', %2$s,'%3$s');".format(
-            htmlId_activeTechniquesTree,
-            serializedirectiveIds(selectedDirectiveIds.toSeq),
-            S.contextPath
-        )) &
+        JsRaw(s"""
+          angular.bootstrap('#ruleDirectives', ['ruleDirectives']);
+          var ruleDirectiveScope = angular.element($$("#DirectiveCtrl")).scope();
+          ruleDirectiveScope.$$apply(function(){
+            ruleDirectiveScope.init(${selectedDirectives});
+          } );
+          buildDirectiveTree('#${htmlId_activeTechniquesTree}', ${serializedirectiveIds(selectedDirectiveIds.toSeq)},'${S.contextPath}', 0);
+        """) &
         After(TimeSpan(50), JsRaw("""createTooltip();"""))
       )
     )
@@ -395,7 +411,7 @@ class RuleEditForm(
   private[this] def onFailure() : JsCmd = {
     onFailureCallback() &
     updateFormClientSide() &
-    JsRaw("""scrollToElement("notifications");""")
+    JsRaw("""scrollToElement("notifications", ".rudder_col");""")
   }
 
   private[this] def onNothingToDo() : JsCmd = {
@@ -412,23 +428,28 @@ class RuleEditForm(
     // update onclick to get the list of directives and groups in the hidden
     // fields before submitting
 
-    val newOnclick = "updateSelectedPis(); " +
-      save.attributes.asAttrMap("onclick")
-
     SHtml.hidden( { ids =>
         selectedDirectiveIds = unserializedirectiveIds(ids).toSet
       }, serializedirectiveIds(selectedDirectiveIds.toSeq)
-    ) % ( "id" -> "selectedPis") ++
+    ) % ( "id" -> "selectedDirectives") ++
     SHtml.hidden( { target =>
         ruleTarget = unserializeTarget(target)
       }, ruleTarget.target
     ) % ( "id" -> "selectedTargets") ++
-    save % ( "onclick" -> newOnclick)
+    save
   }
 
   private[this] def targetClick(targetInfo: FullRuleTargetInfo) : JsCmd = {
     val target = targetInfo.target.target.target
     JsRaw(s"""onClickTarget("${target}");""")
+  }
+
+  private[this] def directiveClick(directive: Directive) : JsCmd = {
+    JsRaw(s"""onClickDirective("${directive.id.value}", "${directive.name}");""")
+  }
+
+  private[this] def includeDirective(directive: Directive) : JsCmd = {
+    JsRaw(s"""includeDirective("${directive.id.value}", "${directive.name}");""")
   }
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
@@ -550,15 +571,15 @@ class RuleEditForm(
   private[this] def workflowCallBack(action:String)(returns : Either[Rule,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
       JsRaw("$.modal.close();") & onSuccessCallback(rule) & SetHtml("editRuleZone",
-          <div id={htmlId_rule}>Rule '{rule.name}' successfully deleted</div>
+          <div id={htmlId_rule}> Rule '{rule.name}' successfully deleted</div>
       )
     } else {
       returns match {
         case Left(rule) => // ok, we've received a rule, do as before
           this.rule = rule
           JsRaw("$.modal.close();") &  onSuccess
-        case Right(changeRequest) => // oh, we have a change request, go to it
-          RedirectTo(s"""/secure/utilities/changeRequest/${changeRequest.value}""")
+        case Right(changeRequestId) => // oh, we have a change request, go to it
+          JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
       }
     }
   }

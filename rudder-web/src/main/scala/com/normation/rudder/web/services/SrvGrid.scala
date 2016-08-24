@@ -59,7 +59,10 @@ import com.normation.rudder.repository.ReportsRepository
 import bootstrap.liftweb.RudderConfig
 import com.normation.rudder.web.components.DateFormaterService
 import com.normation.rudder.reports.execution.RoReportsExecutionRepository
-import com.normation.rudder.reports.execution.ReportExecution
+import com.normation.rudder.reports.execution.AgentRun
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.inventory.domain.VirtualMachineType
+import com.normation.inventory.domain.PhysicalMachineType
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -81,8 +84,9 @@ object SrvGrid {
  * - call the display(servers) method
  */
 class SrvGrid(
-  roReportExecutionsRepository : RoReportsExecutionRepository
-) {
+    roAgentRunsRepository : RoReportsExecutionRepository
+  , asyncComplianceService : AsyncComplianceService
+) extends Loggable {
 
   private def templatePath = List("templates-hidden", "srv_grid")
   private def template() =  Templates(templatePath) match {
@@ -92,11 +96,6 @@ class SrvGrid(
   }
 
   private def tableTemplate = chooseTemplate("servergrid","table",template)
-
-  /*
-   * All JS/CSS needed to have datatable working
-   */
-  def head() : NodeSeq =  DisplayNode.head
 
   def jsVarNameForId(tableId:String) = "oTable" + tableId
 
@@ -109,7 +108,7 @@ class SrvGrid(
   def displayAndInit(
       nodes    : Seq[NodeInfo]
     , tableId  : String
-    , callback : Option[String => JsCmd] = None
+    , callback : Option[(String, Boolean) => JsCmd] = None
     , refreshNodes : Option[ () => Seq[NodeInfo]] = None
    ) : NodeSeq = {
     tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback,refreshNodes)))
@@ -124,7 +123,7 @@ class SrvGrid(
   def initJs(
       tableId  : String
     , nodes    : Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String, Boolean) => JsCmd]
     , refreshNodes : Option[ () => Seq[NodeInfo]]
   ) : JsCmd = {
 
@@ -134,35 +133,55 @@ class SrvGrid(
 
     JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh});""")
 
-   }
-
+  }
 
   def getTableData (
       nodes    : Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String,Boolean) => JsCmd]
   ) = {
 
-      val lines = for {
-        node <- nodes
-        lastReport = roReportExecutionsRepository.getNodeLastExecution(node.id)
-      } yield {
-        NodeLine(node,lastReport, callback)
-      }
-      JsTableData(lines.toList)
+    val now = System.currentTimeMillis
+    val runs = roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
+
+    if(TimingDebugLogger.isDebugEnabled) {
+      TimingDebugLogger.debug(s"Get all last run date time: ${System.currentTimeMillis - now} ms")
     }
+
+    val lines = (for {
+      lastReports <- runs
+    } yield {
+      nodes.map(node => NodeLine(node,lastReports.get(node.id), callback))
+    }) match {
+      case eb: EmptyBox =>
+        val msg = "Error when trying to get nodes info"
+        val e = eb ?~! msg
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach(ex => logger.error(ex) )
+        Nil
+      case Full(lines) => lines.toList
+    }
+
+    JsTableData(lines)
+  }
 
   def refreshData (
       refreshNodes : () => Seq[NodeInfo]
-    , callback : Option[String => JsCmd]
+    , callback : Option[(String, Boolean) => JsCmd]
     , tableId: String
   ) = {
-     val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
-       val nodes = refreshNodes()
-       val data = getTableData(nodes,callback)
-       JsRaw(s"""refreshTable("${tableId}",${data.json.toJsCmd});""")
-     } )
+    val ajaxCall = SHtml.ajaxCall(JsNull, (s) => {
+      val nodes = refreshNodes()
+      val futureCompliances = asyncComplianceService.complianceByNode(nodes.map(_.id).toSet, Set(), tableId)
 
-     AnonFunc("",ajaxCall)
+      val data = getTableData(nodes,callback)
+      JsRaw(s"""
+          nodeCompliances = {};
+          refreshTable("${tableId}",${data.json.toJsCmd});
+          ${futureCompliances.toJsCmd}
+      """)
+    } )
+
+    AnonFunc("",ajaxCall)
   }
 
   /**
@@ -188,13 +207,15 @@ class SrvGrid(
  */
 case class NodeLine (
     node       : NodeInfo
-  , lastReport : Box[Option[ReportExecution]]
-  , callback   : Option[String => JsCmd]
+  , lastReport : Box[Option[AgentRun]]
+  , callback   : Option[(String, Boolean) => JsCmd]
 ) extends JsTableLine {
 
-
   val optCallback = {
-    callback.map(cb => ("callback", AnonFunc(ajaxCall(JsNull, s => cb(node.id.value)))))
+    callback.map(cb => ("callback", AnonFunc("displayCompliance", ajaxCall(JsVar("displayCompliance"), s =>
+      {
+       val displayCompliance = s.toBoolean
+      cb(node.id.value,displayCompliance)}))))
   }
   val hostname = {
     if (isEmpty(node.hostname)) {
@@ -207,7 +228,7 @@ case class NodeLine (
   val lastReportValue = {
     lastReport match {
       case Full(exec) =>
-        exec.map(report =>  DateFormaterService.getFormatedDate(report.date)).getOrElse("Never")
+        exec.map(report =>  DateFormaterService.getFormatedDate(report.agentRunId.date)).getOrElse("Never")
       case eb : EmptyBox =>
         "Error While fetching node executions"
     }
@@ -217,10 +238,14 @@ case class NodeLine (
    JsObj(
        ( "name" -> hostname )
      , ( "id" -> node.id.value )
-     , ( "machineType" -> node.machineType )
-     , ( "osName") -> S.?(s"os.name.${node.osName}")
-     , ( "osVersion" -> node.osVersion)
-     , ( "servicePack" -> node.servicePack.getOrElse("N/A"))
+     , ( "machineType" -> node.machine.map { _.machineType match {
+                            case _: VirtualMachineType => "Virtual"
+                            case PhysicalMachineType   => "Physical"
+                          } }.getOrElse("No Machine Inventory" )
+       )
+     , ( "osName") -> S.?(s"os.name.${node.osDetails.os.name}")
+     , ( "osVersion" -> node.osDetails.version.value)
+     , ( "servicePack" -> node.osDetails.servicePack.getOrElse("N/A"))
      , ( "lastReport" ->  lastReportValue )
      )
   }

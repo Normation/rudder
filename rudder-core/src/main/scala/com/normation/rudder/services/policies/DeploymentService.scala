@@ -62,15 +62,36 @@ import com.normation.utils.HashcodeCaching
 import net.liftweb.common._
 import com.normation.rudder.domain.parameters.GlobalParameter
 import scala.collection.immutable.TreeMap
-
-
-
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
+import com.normation.inventory.domain.NodeInventory
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.domain.NodeInventory
+import com.normation.rudder.domain.parameters.GlobalParameter
+import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
+import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.ComplianceModeService
+import com.normation.rudder.reports.AgentRunIntervalService
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.domain.logger.ComplianceDebugLogger
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.policies.write.Cf3PromisesFileWriterService
+import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.domain.licenses.NovaLicense
+import javax.script.ScriptEngine
+import javax.script.ScriptEngineManager
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import com.normation.inventory.domain.AixOS
 
 /**
  * The main service which deploy modified rules and
  * their dependencies.
  */
-trait DeploymentService extends Loggable {
+trait PromiseGenerationService extends Loggable {
 
   /**
    * All mighy method that take all modified rules, find their
@@ -81,74 +102,101 @@ trait DeploymentService extends Loggable {
    *
    */
   def deploy() : Box[Set[NodeId]] = {
-
     logger.info("Start policy generation, checking updated rules")
 
     val initialTime = System.currentTimeMillis
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
 
     val result = for {
+      //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
 
-      allRules        <- findDependantRules() ?~! "Could not find dependant rules"
-      allNodeInfos    <- getAllNodeInfos ?~! "Could not get Node Infos"
-      directiveLib    <- getDirectiveLibrary() ?~! "Could not get the directive library"
-      groupLib        <- getGroupLibrary() ?~! "Could not get the group library"
-      allParameters   <- getAllGlobalParameters ?~! "Could not get global parameters"
-      agentRunInterval    =  getAgentRunInterval()
-      agentRunSplaytime   <- getAgentRunSplaytime() ?~! "Could not get agent run splaytime"
-      agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not get agent run start time (minute)"
-      agentRunStartHour   <- getAgentRunStartHour() ?~! "Could not get agent run start time (hour)"
+      allRules            <- findDependantRules() ?~! "Could not find dependant rules"
+      fetch1Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime} ms")
+      allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
+      fetch2Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
+      directiveLib        <- getDirectiveLibrary() ?~! "Could not get the directive library"
+      fetch3Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
+      groupLib            <- getGroupLibrary() ?~! "Could not get the group library"
+      fetch4Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
+      allParameters       <- getAllGlobalParameters ?~! "Could not get global parameters"
+      fetch5Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
+      globalAgentRun       <- getGlobalAgentRun
+      fetch6Time          =  System.currentTimeMillis
+      _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
+      scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
+      globalComplianceMode <- getGlobalComplianceMode
+      nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
+      allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
 
+      //from here, we can restrain the calcul on two axis:
+      // - number of nodes: only node somehow targetted by a rule have to be considered.
+      // - number of rules: any rule without target or with only target with no node can be skipped
+      activeRuleIds = getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
+      activeNodeIds = groupLib.getNodeIds(allRules.flatMap(_.targets).toSet, allNodeInfos)
       timeFetchAll    =  (System.currentTimeMillis - initialTime)
-      _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll}ms, start names historization.")
+      _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
+      nodeContextsTime =  System.currentTimeMillis
+      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
+      timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
+      _                =  logger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
+
+      /// end of inputs, all information gathered for promise generation.
+
+      ///// this thing has nothing to do with promise generation and should be
+      ///// else where. You can ignore it if you want to understand generation process.
       historizeTime =  System.currentTimeMillis
-      historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, agentRunInterval, agentRunSplaytime, agentRunStartHour, agentRunStartMinute)
+      historize     <- historizeData(allRules, directiveLib, groupLib, allNodeInfos, globalAgentRun)
       timeHistorize =  (System.currentTimeMillis - historizeTime)
-      _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
+      _             =  logger.debug(s"Historization of names done in ${timeHistorize} ms, start to build rule values.")
+      ///// end ignoring
 
       ruleValTime   =  System.currentTimeMillis
-      ruleVals      <- buildRuleVals(allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
+                       //only keep actually applied rules in a format where parameter analysis on directive is done.
+      ruleVals      <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
       timeRuleVal   =  (System.currentTimeMillis - ruleValTime)
-      _             =  logger.debug(s"RuleVals built in ${timeRuleVal}ms, start to expand their values.")
-
-      globalSystemVarTime   =  System.currentTimeMillis
-      globalSystemVariables <- buildGlobalSystemVariables() ?~! "Cannot build global system configuration"
-      timeGlobalSystemVar   =  (System.currentTimeMillis - globalSystemVarTime)
-      _                     =  logger.debug(s"Global system variables built in ${timeGlobalSystemVar}ms, start to build new node configurations.")
+      _             =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(ruleVals, allNodeInfos, groupLib, allParameters, globalSystemVariables) ?~! "Cannot build target configuration node"
+      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos, scriptEngineEnabled) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
-      _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
+      _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
       sanitizeTime        =  System.currentTimeMillis
       _                   <- forgetOtherNodeConfigurationState(config.map(_.nodeInfo.id).toSet) ?~! "Cannot clean the configuration cache"
       sanitizedNodeConfig <- sanitize(config) ?~! "Cannot set target configuration node"
       timeSanitize        =  (System.currentTimeMillis - sanitizeTime)
-      _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} millisec, start to detect changes in node configuration.")
+      _                   =  logger.debug(s"RuleVals updated in ${timeSanitize} ms, start to detect changes in node configuration.")
 
       beginTime                =  System.currentTimeMillis
-      //that's the first time we actually write something in repos: new serial for updated rules
-      nodeConfigCache          <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
-      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCache, directiveLib, allRules.map(x => (x.id, x)).toMap)?~! "Cannot detect the updates in the NodeConfiguration"
-      serialedNodes            =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
+      //that's the first time we actually output something : new serial for updated rules
+      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCaches, directiveLib, allRules.map(x => (x.id, x)).toMap)?~! "Cannot detect the updates in the NodeConfiguration"
+      uptodateSerialNodeconfig =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
       // Update the serial of ruleVals when there were modifications on Rules values
       // replace variables with what is really applied
       timeIncrementRuleSerial  =  (System.currentTimeMillis - beginTime)
-      _                        = logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial}ms")
+      _                        =  logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial} ms")
 
       writeTime           =  System.currentTimeMillis
+      nodeConfigVersions  =  calculateNodeConfigVersions(uptodateSerialNodeconfig.values.toSeq)
       //second time we write something in repos: updated node configuration
-      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, serialedNodes, nodeConfigCache) ?~! "Cannot write configuration node"
+      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, uptodateSerialNodeconfig, nodeConfigVersions, nodeConfigCaches, allLicenses) ?~! "Cannot write configuration node"
       timeWriteNodeConfig =  (System.currentTimeMillis - writeTime)
-      _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig}ms, start to update expected reports.")
+      _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
-      expectedReports       <- setExpectedReports(ruleVals, config, updatedCrs.toMap, deletedCrs)  ?~! "Cannot build expected reports"
+      updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
+      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
+      // now, invalidate cache
+      _                     =  invalidateComplianceCache(updatedNodeConfig)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
-      _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport}ms")
+      _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
 
     } yield {
       logger.debug("Timing summary:")
@@ -164,11 +212,9 @@ trait DeploymentService extends Loggable {
       writtenNodeConfigs.map( _.nodeInfo.id )
     }
 
-    logger.debug("Policy generation completed in %d millisec".format((System.currentTimeMillis - initialTime)))
+    logger.debug("Policy generation completed in %d ms".format((System.currentTimeMillis - initialTime)))
     result
   }
-
-
 
   /**
    * Snapshot all information needed:
@@ -181,11 +227,18 @@ trait DeploymentService extends Loggable {
   def getDirectiveLibrary(): Box[FullActiveTechniqueCategory]
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
-
+  def getAllInventories(): Box[Map[NodeId, NodeInventory]]
+  def getGlobalComplianceMode(): Box[ComplianceMode]
+  def getGlobalAgentRun() : Box[AgentRunInterval]
+  def getAllLicenses(): Box[Map[NodeId, NovaLicense]]
   def getAgentRunInterval    : () => Int
   def getAgentRunSplaytime   : () => Box[Int]
   def getAgentRunStartHour   : () => Box[Int]
   def getAgentRunStartMinute : () => Box[Int]
+  def getScriptEngineEnabled : () => Box[FeatureSwitch]
+
+  def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
+
   /**
    * Find all modified rules.
    * For them, find all directives with variables
@@ -201,29 +254,35 @@ trait DeploymentService extends Loggable {
    */
   def findDependantRules() : Box[Seq[Rule]]
 
-
   /**
-   * Build the list of "CFclerkRuleVal" from a list of
-   * rules.
-   * These objects are a cache of all rules
+   * Rule vals are just rules with a analysis of parameter
+   * on directive done, so that we will be able to bind them
+   * to a context latter.
    */
-  def buildRuleVals(rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]]
+  def buildRuleVals(activesRules: Set[RuleId], rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]]
 
-  /**
-   * Compute all the global system variable
-   */
-  def buildGlobalSystemVariables() : Box[Map[String, Variable]]
+  def getNodeContexts(
+      nodeIds               : Set[NodeId]
+    , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allGroups             : FullNodeGroupCategory
+    , allLicenses           : Map[NodeId, NovaLicense]
+    , globalParameters      : Seq[GlobalParameter]
+    , globalAgentRun        : AgentRunInterval
+    , globalComplianceMode  : ComplianceMode
+  ): Box[Map[NodeId, InterpolationContext]]
+
   /**
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual Cf3PolicyDraftBean they will have.
    * Replace all ${node.varName} vars.
    */
   def buildNodeConfigurations(
-      ruleVals            : Seq[RuleVal]
-    , allNodeInfos        : Map[NodeId, NodeInfo]
-    , groupLib            : FullNodeGroupCategory
-    , parameters          : Seq[GlobalParameter]
-    , globalSystemVariable: Map[String, Variable]
+      activeNodeIds: Set[NodeId]
+    , ruleVals     : Seq[RuleVal]
+    , nodeContexts : Map[NodeId, InterpolationContext]
+    , groupLib     : FullNodeGroupCategory
+    , allNodeInfos : Map[NodeId, NodeInfo]
+    , scriptEngineEnabled  : FeatureSwitch
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -236,7 +295,6 @@ trait DeploymentService extends Loggable {
    * If passed with an empty set, actually forget all node configuration.
    */
   def forgetOtherNodeConfigurationState(keep: Set[NodeId]) : Box[Set[NodeId]]
-
 
   /**
    * Get the actual cached values for NodeConfiguration
@@ -263,16 +321,29 @@ trait DeploymentService extends Loggable {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]]
-
+  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache], allLicenses: Map[NodeId, NovaLicense]) : Box[Set[NodeConfiguration]]
 
   /**
-   * Set the exepcted reports for the rule
+   * Set the expected reports for the rule
    * Caution : we can't handle deletion with this
    * @param ruleVal
    * @return
    */
-  def setExpectedReports(ruleVal : Seq[RuleVal], nodeConfigs: Seq[NodeConfiguration], updateCrs: Map[RuleId, Int], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]]
+  def setExpectedReports(
+      ruleVal          : Seq[RuleVal]
+    , nodeConfigs      : Seq[NodeConfiguration]
+    , versions         : Map[NodeId, NodeConfigId]
+    , updateCrs        : Map[RuleId, Int]
+    , deletedCrs       : Seq[RuleId]
+    , updatedNodeConfig: Set[NodeId]
+    , generationTime   : DateTime
+  ) : Box[Seq[RuleExpectedReports]]
+
+  /**
+   * After updates of everything, notify compliace cache
+   * that it should forbid what it knows about the updated nodes
+   */
+  def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit
 
   /**
    * Store groups and directive in the database
@@ -282,45 +353,53 @@ trait DeploymentService extends Loggable {
     , directiveLib     : FullActiveTechniqueCategory
     , groupLib         : FullNodeGroupCategory
     , allNodeInfos     : Map[NodeId, NodeInfo]
-    , globalInterval   : Int
-    , globalSplaytime  : Int
-    , globalStartHour  : Int
-    , globalStartMinute: Int
+    , globalAgentRun   : AgentRunInterval
   ) : Box[Unit]
 
+  protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
+    NodeConfigId(config.hashCode.toString)
+  }
+  def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
+    configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationCache(x)))).toMap
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //  Implémentation
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-class DeploymentServiceImpl (
+class PromiseGenerationServiceImpl (
     override val roRuleRepo: RoRuleRepository
   , override val woRuleRepo: WoRuleRepository
   , override val ruleValService : RuleValService
   , override val systemVarService: SystemVariableService
   , override val nodeConfigurationService : NodeConfigurationService
   , override val nodeInfoService : NodeInfoService
-  , override val reportingService : ReportingService
+  , override val licenseRepository: LicenseRepository
+  , override val reportingService : ExpectedReportsUpdate
   , override val historizationService : HistorizationService
   , override val roNodeGroupRepository: RoNodeGroupRepository
   , override val roDirectiveRepository: RoDirectiveRepository
   , override val ruleApplicationStatusService: RuleApplicationStatusService
   , override val parameterService : RoParameterService
   , override val interpolatedValueCompiler:InterpolatedValueCompiler
+  , override val roInventoryRepository: ReadOnlyFullInventoryRepository
+  , override val complianceModeService : ComplianceModeService
+  , override val agentRunService : AgentRunIntervalService
+  , override val complianceCache  : CachedFindRuleNodeStatusReports
+  , override val promisesFileWriterService: Cf3PromisesFileWriterService
   , override val getAgentRunInterval: () => Int
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
   , override val getAgentRunStartMinute: () => Box[Int]
-) extends DeploymentService with
-  DeploymentService_findDependantRules_bruteForce with
-  DeploymentService_buildRuleVals with
-  DeploymentService_buildNodeConfigurations with
-  DeploymentService_updateAndWriteRule with
-  DeploymentService_setExpectedReports with
-  DeploymentService_historization
-{}
-
+  , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
+) extends PromiseGenerationService with
+  PromiseGeneration_performeIO with
+  PromiseGeneration_buildRuleVals with
+  PromiseGeneration_buildNodeConfigurations with
+  PromiseGeneration_updateAndWriteRule with
+  PromiseGeneration_setExpectedReports with
+  PromiseGeneration_historization
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Follows: traits implementing each part of the deployment service
@@ -336,90 +415,37 @@ class DeploymentServiceImpl (
  * time, being too smart is much more slow.
  *
  */
-trait DeploymentService_findDependantRules_bruteForce extends DeploymentService {
+trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def roRuleRepo : RoRuleRepository
   def nodeInfoService: NodeInfoService
   def roNodeGroupRepository: RoNodeGroupRepository
   def roDirectiveRepository: RoDirectiveRepository
   def parameterService : RoParameterService
+  def roInventoryRepository: ReadOnlyFullInventoryRepository
+  def complianceModeService : ComplianceModeService
+  def agentRunService : AgentRunIntervalService
+
+  def interpolatedValueCompiler:InterpolatedValueCompiler
+  def systemVarService: SystemVariableService
+  def ruleApplicationStatusService: RuleApplicationStatusService
+
+  def licenseRepository: LicenseRepository
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true)
   override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll
   override def getDirectiveLibrary(): Box[FullActiveTechniqueCategory] = roDirectiveRepository.getFullDirectiveLibrary()
   override def getGroupLibrary(): Box[FullNodeGroupCategory] = roNodeGroupRepository.getFullGroupLibrary()
   override def getAllGlobalParameters: Box[Seq[GlobalParameter]] = parameterService.getAllGlobalParameters()
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-trait DeploymentService_buildRuleVals extends DeploymentService {
-
-  def ruleApplicationStatusService: RuleApplicationStatusService
-  def ruleValService              : RuleValService
-
-
-  /**
-   * Build the list of "CFclerkRuleVal" from a list of
-   * rules.
-   * These objects are a cache of all rules
-   */
-  override def buildRuleVals(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]] = {
-    val appliedRules = rules.filter(r => ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
+  override def getAllInventories(): Box[Map[NodeId, NodeInventory]] = roInventoryRepository.getAllNodeInventories(AcceptedInventory)
+  override def getGlobalComplianceMode(): Box[GlobalComplianceMode] = complianceModeService.getGlobalComplianceMode
+  override def getGlobalAgentRun(): Box[AgentRunInterval] = agentRunService.getGlobalAgentRun()
+  override def getAllLicenses(): Box[Map[NodeId, NovaLicense]] = licenseRepository.getAllLicense()
+  override def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId] = {
+     rules.filter(r => ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
       case _:AppliedStatus => true
       case _ => false
-    })
+    }).map(_.id).toSet
 
-    for {
-      rawRuleVals <- sequence(appliedRules) { rule => ruleValService.buildRuleVal(rule, directiveLib) } ?~! "Could not find configuration vals"
-    } yield rawRuleVals
-  }
-
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-trait DeploymentService_buildNodeConfigurations extends DeploymentService with Loggable {
-  def systemVarService: SystemVariableService
-  def roNodeGroupRepository: RoNodeGroupRepository
-  def interpolatedValueCompiler:InterpolatedValueCompiler
-
-
-  /**
-   * This is the draft of the policy, not yet a cfengine policy, but a level of abstraction between both
-   */
-   private[this] case class PolicyDraft(
-      ruleId         : RuleId
-    , directiveId    : DirectiveId
-    , technique      : Technique
-    , variableMap    : InterpolationContext => Box[Map[String, Variable]]
-    , trackerVariable: TrackerVariable
-    , priority       : Int
-    , serial         : Int
-  ) extends HashcodeCaching
-
-
-
-
-  /*
-   * parameters have to be taken appart:
-   *
-   * - they can be overriden by node - not handled here, it will be in the resolution of node
-   *   when implemented. Most likelly, we will have the information in the node info. And
-   *   in that case, we could just use an interpolation variable
-   *
-   * - they can be plain string => nothing to do
-   * - they can contains interpolated strings:
-   *   - to node info parameters: ok
-   *   - to parameters : hello loops!
-   */
-  private[this] def buildParams(parameters: Seq[GlobalParameter]): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
-    sequence(parameters) { param =>
-      for {
-        p <- interpolatedValueCompiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
-      } yield {
-        (param.name, p)
-      }
-    }.map( _.toMap)
   }
 
   /**
@@ -432,74 +458,126 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
    * It's also the place where parameters are looked for
    * local overrides.
    */
-  private[this] def buildInterpolationContext(
-      nodeIds              : Set[NodeId]
-    , allNodeInfos         : Map[NodeId, NodeInfo]
-    , parameters           : Map[ParameterName, InterpolationContext => Box[String]]
-    , globalSystemVariables: Map[String, Variable]
-  ): Map[NodeId, InterpolationContext] = {
+  override def getNodeContexts(
+      nodeIds               : Set[NodeId]
+    , allNodeInfos          : Map[NodeId, NodeInfo]
+    , allGroups             : FullNodeGroupCategory
+    , allLicenses           : Map[NodeId, NovaLicense]
+    , globalParameters      : Seq[GlobalParameter]
+    , globalAgentRun        : AgentRunInterval
+    , globalComplianceMode  : ComplianceMode
+  ): Box[Map[NodeId, InterpolationContext]] = {
 
-    (nodeIds.flatMap { nodeId:NodeId =>
-      (for {
-        nodeInfo <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID '${nodeId.value}' was not found in the list of known nodes"
-        policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Policy server with ID '${nodeInfo.policyServerId.value}' was not found (mandatory for building promises for the node)"
-        nodeContext <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables)
-      } yield {
-        (nodeId, InterpolationContext(
-                      nodeInfo
-                    , policyServer
-                    , nodeContext
-                    , parameters
-                  )
-        )
-      }) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Error while building target configuration node for node ${nodeId.value} which is one of the target of rules. Ignoring it for the rest of the process"
-          logger.error(e.messageChain)
-          None
-
-        case x => x
-      }
-    }).toMap
+    /*
+     * parameters have to be taken appart:
+     *
+     * - they can be overriden by node - not handled here, it will be in the resolution of node
+     *   when implemented. Most likelly, we will have the information in the node info. And
+     *   in that case, we could just use an interpolation variable
+     *
+     * - they can be plain string => nothing to do
+     * - they can contains interpolated strings:
+     *   - to node info parameters: ok
+     *   - to parameters : hello loops!
+     */
+    def buildParams(parameters: Seq[GlobalParameter]): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
+      sequence(parameters) { param =>
+        for {
+          p <- interpolatedValueCompiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+        } yield {
+          (param.name, p)
+        }
+      }.map( _.toMap)
     }
 
+    for {
+      globalSystemVariables <- systemVarService.getGlobalSystemVariables(globalAgentRun)
+      parameters            <-  buildParams(globalParameters) ?~! "Can not parsed global parameter (looking for interpolated variables)"
+    } yield {
+      (nodeIds.flatMap { nodeId:NodeId =>
+        (for {
+          nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID ${nodeId.value} was not found"
+          policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Node with ID ${nodeId.value} was not found"
 
+          nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, allGroups, allLicenses, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
+        } yield {
+          (nodeId, InterpolationContext(
+                        nodeInfo
+                      , policyServer
+                      , nodeContext
+                      , parameters
+                    )
+          )
+        }) match {
+          case eb:EmptyBox =>
+            val e = eb ?~! s"Error while building target configuration node for node ${nodeId.value} which is one of the target of rules. Ignoring it for the rest of the process"
+            logger.error(e.messageChain)
+            None
 
-  /**
-   * really, simply fetch all the global system variables
-   */
-  override def buildGlobalSystemVariables() : Box[Map[String, Variable]] = {
-    systemVarService.getGlobalSystemVariables()
+          case x => x
+        }
+      }).toMap
+    }
   }
 
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
+
+  def ruleValService              : RuleValService
+
+  override def buildRuleVals(activeRuleIds: Set[RuleId], rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]] = {
+    val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
+
+    for {
+      rawRuleVals <- sequence(appliedRules) { rule => ruleValService.buildRuleVal(rule, directiveLib) } ?~! "Could not find configuration vals"
+    } yield rawRuleVals
+  }
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService with Loggable {
+  def roNodeGroupRepository: RoNodeGroupRepository
+
   /**
+   * This is the draft of the policy, not yet a cfengine policy, but a level of abstraction between both
+   */
+   private[this] case class PolicyDraft(
+      ruleId         : RuleId
+    , directiveId    : DirectiveId
+    , technique      : Technique
+    , variableMap    : InterpolationContext => Box[Map[String, Variable]]
+    , trackerVariable: TrackerVariable
+    , priority       : Int
+    , serial         : Int
+    , ruleOrder      : BundleOrder
+    , directiveOrder : BundleOrder
+  ) extends HashcodeCaching
+
+   /**
    * From a list of ruleVal, find the list of all impacted nodes
-   * with the actual Cf3PolicyDraftBean they will have.
+   * with the actual Cf3PolicyDraft they will have.
    * Replace all ${rudder.node.varName} vars, returns the nodes ready to be configured, and expanded RuleVal
    * allNodeInfos *must* contains the nodes info of every nodes
    */
   override def buildNodeConfigurations(
-      ruleVals             : Seq[RuleVal]
-    , allNodeInfos         : Map[NodeId, NodeInfo]
-    , groupLib             : FullNodeGroupCategory
-    , parameters           : Seq[GlobalParameter]
-    , globalSystemVariables: Map[String, Variable]
+      activeNodeIds: Set[NodeId]
+    , ruleVals     : Seq[RuleVal]
+    , nodeContexts : Map[NodeId, InterpolationContext]
+    , groupLib     : FullNodeGroupCategory
+    , allNodeInfos : Map[NodeId, NodeInfo]
+    , scriptEngineEnabled  : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
-
-
-    val interpolatedParameters = buildParams(parameters) match {
-      case Full(x) => x
-      case eb: EmptyBox => return eb ?~! "Can not parsed global parameter (looking for interpolated variables)"
-    }
 
     //step 1: from RuleVals to expanded rules vals
     //1.1: group by nodes (because parameter expansion is node sensitive
-    //1.2: for each node, build the node context
     //1.3: build node config, binding ${rudder.parameters} parameters
 
-
     //1.1: group by nodes
-
 
     val seqOfMapOfPolicyDraftByNodeId = ruleVals.map { ruleVal =>
 
@@ -510,6 +588,7 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
         logger.error(s"Some nodes are in the target of rule ${ruleVal.ruleId.value} but are not present " +
             s"in the system. It looks like an inconsistency error. Ignored nodes: ${(wantedNodeIds -- nodeIds).map( _.value).mkString(", ")}")
       }
+
       val drafts: Seq[PolicyDraft] = ruleVal.directiveVals.map { directive =>
         PolicyDraft(
             ruleId         = ruleVal.ruleId
@@ -519,19 +598,20 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
           , trackerVariable= directive.trackerVariable
           , priority       = directive.priority
           , serial         = ruleVal.serial
+          , ruleOrder      = ruleVal.ruleOrder
+          , directiveOrder = directive.directiveOrder
         )
       }
 
       nodeIds.map(id => (id, drafts)).toMap
     }
 
-    //now, actually group by node, and also check
-    //consistency: a node can't have two directives based on
-    //different version of the same technique
-
+    //now, actually group by node
+    //no consistancy / unicity check is done here, it will be done
+    //in an other phase. We are just switching to a node-first view.
     val policyDraftByNode: Map[NodeId, Seq[PolicyDraft]] = {
 
-      val map = (Map.empty[NodeId, Seq[PolicyDraft]]/:seqOfMapOfPolicyDraftByNodeId){ case (global, newMap) =>
+      (Map.empty[NodeId, Seq[PolicyDraft]]/:seqOfMapOfPolicyDraftByNodeId){ case (global, newMap) =>
         val g = global.map{ case (nodeId, seq) => (nodeId, seq ++ newMap.getOrElse(nodeId, Seq()))}
         //add node not yet in global
         val keys = newMap.keySet -- global.keySet
@@ -539,94 +619,83 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
         g ++ missing
       }
 
-      //now, for each node, check for technique version consistency
-      val notConsistent = map.values.flatMap { seq =>
-        // Group policydraft of a node by technique name
-        val group = seq.groupBy(x => x.technique.id.name)
-        // Filter this grouping by technique having two different version
-        group.filter(x => x._2.groupBy(x => x.technique.id.version).size > 1).map(x => x._1)
-      }.toSet
-
-      if(notConsistent.nonEmpty) {
-        return Failure(s"There are directives based on techniques with different versions applied to the same node, please correct the version for the following directive(s): ${notConsistent.mkString(", ")}")
-      } else {
-        map
-      }
     }
-
-
-
-
-    //1.2: for each node, build the interpolation context
-    //this also give us the list of actual node to consider
-
-    val interpolationContexts = buildInterpolationContext(policyDraftByNode.keySet, allNodeInfos, interpolatedParameters, globalSystemVariables)
 
     //1.3: build node config, binding ${rudder.parameters} parameters
+    JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
 
-    val nodeConfigs = sequence(interpolationContexts.toSeq) { case (nodeId, context) =>
+      val nodeConfigs = sequence(nodeContexts.toSeq) { case (nodeId, context) =>
 
-      for {
-        drafts <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
-        /*
-         * Clearly, here, we are evaluating parameters, and we are not using that just after in the
-         * variable expansion, which mean that we are doing the same work again and again and again.
-         * Moreover, we also are evaluating again and again parameters whose context ONLY depends
-         * on other parameter, and not node config at all. Bad bad bad bad.
-         * TODO: two stages parameter evaluation
-         *  - global
-         *  - by node
-         *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
-         */
-        parameters <- sequence(context.parameters.toSeq) { case (name, param) =>
-                        for {
-                          p <- param(context)
-                        } yield {
-                          (name, p)
-                        }
-                      }
-        cf3PolicyDrafts <- sequence(drafts) { draft =>
-                            //bind variables
-                            draft.variableMap(context).map{ expandedVariables =>
-
-                              RuleWithCf3PolicyDraft(
-                                  ruleId = draft.ruleId
-                                , directiveId = draft.directiveId
-                                , technique = draft.technique
-                                , variableMap = expandedVariables
-                                , trackerVariable = draft.trackerVariable
-                                , priority = draft.priority
-                                , serial = draft.serial
-                              )
-                            }
+        for {
+          drafts <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
+          /*
+           * Clearly, here, we are evaluating parameters, and we are not using that just after in the
+           * variable expansion, which mean that we are doing the same work again and again and again.
+           * Moreover, we also are evaluating again and again parameters whose context ONLY depends
+           * on other parameter, and not node config at all. Bad bad bad bad.
+           * TODO: two stages parameter evaluation
+           *  - global
+           *  - by node
+           *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
+           */
+          parameters <- sequence(context.parameters.toSeq) { case (name, param) =>
+                          for {
+                            p <- param(context)
+                          } yield {
+                            (name, p)
                           }
-      } yield {
-        NodeConfiguration(
-            nodeInfo = context.nodeInfo
-          , policyDrafts = cf3PolicyDrafts.toSet
-          , nodeContext = context.nodeContext
-          , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
-          , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
-        )
-      }
-    }
+                        }
+          cf3PolicyDrafts <- sequence(drafts) { draft =>
+                               for {
+                                 //bind variables with interpolated context
+                                 expandedVariables <- draft.variableMap(context)
+                                 // And now, for each variable, eval - if needed - the result
+                                 evaluatedVars     <- sequence(expandedVariables.toSeq) { case (k, v) =>
+                                                        //js lib is specific to the node os, bind here to not leak eval between vars
+                                                        val jsLib = context.nodeInfo.osDetails.os match {
+                                                          case AixOS => JsRudderLibBinding.Aix
+                                                          case _     => JsRudderLibBinding.Crypt
+                                                        }
+                                                        jsEngine.eval(v, jsLib).map( x => (k, x) )
+                                                      }
+                               } yield {
 
+                                 Cf3PolicyDraft(
+                                     id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
+                                   , technique = draft.technique
+                                   , variableMap = evaluatedVars.toMap
+                                   , trackerVariable = draft.trackerVariable
+                                   , priority = draft.priority
+                                   , serial = draft.serial
+                                   , ruleOrder = draft.ruleOrder
+                                   , directiveOrder = draft.directiveOrder
+                                   , overrides = Set()
+                                 )
+                               }
+                             }
+        } yield {
+          NodeConfiguration(
+              nodeInfo = context.nodeInfo
+            , policyDrafts = cf3PolicyDrafts.toSet
+            , nodeContext = context.nodeContext
+            , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+            , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
+          )
+        }
+      }
     nodeConfigs
+    }
   }
 
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-trait DeploymentService_updateAndWriteRule extends DeploymentService {
+trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
 
   def nodeConfigurationService : NodeConfigurationService
-
-
-//  def roRuleRepo: RoRuleRepository
-
   def woRuleRepo: WoRuleRepository
+  def promisesFileWriterService: Cf3PromisesFileWriterService
 
   /**
    * That methode remove node configurations for nodes not in allNodes.
@@ -655,15 +724,19 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
 
   def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]] = nodeConfigurationService.getNodeConfigurationCache()
 
-
   /**
    * Detect changes in rules and update their serial
    * Returns two seq : the updated rules, and the deleted rules
    */
-  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory, allRules: Map[RuleId, Rule]) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
+  def detectUpdatesAndIncrementRuleSerial(
+      nodes       : Seq[NodeConfiguration]
+    , cache       : Map[NodeId, NodeConfigurationCache]
+    , directiveLib: FullActiveTechniqueCategory
+    , allRules    : Map[RuleId, Rule]
+  ) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
     val firstElt = (Map[RuleId,Int](), Seq[RuleId]())
     // First, fetch the updated CRs (which are either updated or deleted)
-    (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
+    val res = (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
       allRules.get(ruleId) match {
         case Some(rule) =>
           woRuleRepo.incrementSerial(rule.id) match {
@@ -678,6 +751,20 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
           Full((updated.toMap, (deleted :+ ruleId)))
       }
     } }
+
+    res.foreach { case (updated, deleted) =>
+      if(updated.nonEmpty) {
+        ComplianceDebugLogger.debug(s"Updated rules:${ updated.map { case (id, serial) =>
+          s"[${id.value}->${serial}]"
+        }.mkString("") }")
+      }
+      if(deleted.nonEmpty) {
+        ComplianceDebugLogger.debug(s"Deleted rules:${ deleted.map { id =>
+          s"[${id.value}]"
+        }.mkString("") }")
+      }
+    }
+    res
    }
 
   /**
@@ -693,7 +780,7 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]) : Box[Set[NodeConfiguration]] = {
+  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache], allLicenses: Map[NodeId, NovaLicense]) : Box[Set[NodeConfiguration]] = {
     /*
      * Several steps heres:
      * - look what node configuration are updated (based on their cache ?)
@@ -701,19 +788,24 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
      * - update caches
      */
     val updated = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, cache)
+
+    ComplianceDebugLogger.debug(s"Updated node configuration ids: ${updated.map {id =>
+      s"[${id.value}:${cache.get(id).fold("???")(x => computeNodeConfigIdFromCache(x).value)}->${computeNodeConfigIdFromCache(NodeConfigurationCache(allNodeConfigs(id))).value}]"
+    }.mkString("") }")
+
     val writtingTime = Some(DateTime.now)
     val fsWrite0   =  writtingTime.get.getMillis
 
     for {
-      written    <- nodeConfigurationService.writeTemplate(rootNodeId, updated, allNodeConfigs)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated, allNodeConfigs, versions, allLicenses)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
-      _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} millisec.")
+      _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
       //before caching, update the timestamp for last written time
       toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet.map( (x:NodeConfiguration) => x.copy(writtenDate = writtingTime))
       cached     <- nodeConfigurationService.cacheNodeConfiguration(toCache)
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
-      _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} millisec.")
+      _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
     } yield {
       written.toSet
     }
@@ -723,10 +815,9 @@ trait DeploymentService_updateAndWriteRule extends DeploymentService {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-trait DeploymentService_setExpectedReports extends DeploymentService {
-  def reportingService : ReportingService
-
+trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
+  def reportingService : ExpectedReportsUpdate
+  def complianceCache  : CachedFindRuleNodeStatusReports
 
    /**
    * Update the serials in the rule vals based on the updated rule (which may be empty if nothing is updated)
@@ -734,8 +825,8 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
    * So we can have several rule with different subset of values
    */
   private[this] def updateRuleVal(
-      rulesVal : Seq[ExpandedRuleVal]
-    , rules : Map[RuleId,Int]
+      rulesVal: Seq[ExpandedRuleVal]
+    , rules   : Map[RuleId,Int]
   ) : Seq[ExpandedRuleVal] = {
     rulesVal.map(ruleVal => {
       rules.find { case(id,serial) => id == ruleVal.ruleId } match {
@@ -746,17 +837,21 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
     })
   }
 
-  private[this] def getExpandedRuleVal(ruleVals:Seq[RuleVal], nodeConfigs: Seq[NodeConfiguration]) : Seq[ExpandedRuleVal]= {
+  private[this] def getExpandedRuleVal(
+      ruleVals   :Seq[RuleVal]
+    , nodeConfigs: Seq[NodeConfiguration]
+    , versions   : Map[NodeId, NodeConfigId]
+  ) : Seq[ExpandedRuleVal]= {
     ruleVals map { rule =>
 
       val directives = (nodeConfigs.flatMap { nodeConfig =>
-        val expectedDirectiveValsForNode = nodeConfig.policyDrafts.filter( x => x.ruleId == rule.ruleId) match {
+        val expectedDirectiveValsForNode = nodeConfig.policyDrafts.filter( x => x.id.ruleId == rule.ruleId) match {
             case drafts if drafts.size > 0 =>
               val directives = drafts.map { draft =>
-                rule.directiveVals.find( _.directiveId == draft.directiveId) match {
+                rule.directiveVals.find( _.directiveId == draft.id.directiveId) match {
                   case None =>
                     logger.error("Inconsistency in promise generation algorithme: missing original directive for a node configuration,"+
-                        s"please report this message. Directive with id '${draft.directiveId.value}' in rule '${rule.ruleId.value}' will be ignored")
+                        s"please report this message. Directive with id '${draft.id.directiveId.value}' in rule '${rule.ruleId.value}' will be ignored")
                     None
                   case Some(directiveVal) =>
                     Some(draft.toDirectiveVal(directiveVal.originalVariables))
@@ -768,27 +863,53 @@ trait DeploymentService_setExpectedReports extends DeploymentService {
             case _ => None
         }
 
-        expectedDirectiveValsForNode.map(d => nodeConfig.nodeInfo.id -> d.toSeq)
+        expectedDirectiveValsForNode.map(d => NodeAndConfigId(nodeConfig.nodeInfo.id, versions(nodeConfig.nodeInfo.id)) -> d.toSeq)
       })
 
       ExpandedRuleVal(
           rule.ruleId
-        ,  directives.toMap
         , rule.serial
+        , directives.toMap
       )
     }
   }
 
-  def setExpectedReports(ruleVal : Seq[RuleVal], configs: Seq[NodeConfiguration], updatedCrs:Map[RuleId, Int], deletedCrs : Seq[RuleId]) : Box[Seq[RuleExpectedReports]] = {
-    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs)
+  override def setExpectedReports(
+      ruleVal          : Seq[RuleVal]
+    , configs          : Seq[NodeConfiguration]
+    , versions         : Map[NodeId, NodeConfigId]
+    , updatedCrs       : Map[RuleId, Int]
+    , deletedCrs       : Seq[RuleId]
+    , updatedNodeConfig: Set[NodeId]
+    , generationTime   : DateTime
+  ) : Box[Seq[RuleExpectedReports]] = {
+    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, versions)
     val updatedRuleVal = updateRuleVal(expandedRuleVal, updatedCrs)
+    val updatedConfigIds = updatedNodeConfig.flatMap(id =>
+      //we should have all the nodeConfig for the nodeIds, but if it isn't
+      //the case, it seems safer to not try to save a new version of the nodeConfigId
+      //for that node and just ignore it.
+      configs.find( _.nodeInfo.id == id).map { x =>
+        (x.nodeInfo.id, versions(x.nodeInfo.id))
+      }
+    ).toMap
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs)
+    //we also want to build the list of overriden directive based on unique techniques.
+    val overriden = configs.flatMap { nodeConfig =>
+      nodeConfig.policyDrafts.flatMap( x => x.overrides.map { case (ruleId, directiveId) =>
+        UniqueOverrides(nodeConfig.nodeInfo.id, ruleId, directiveId, x.id)
+      })
+    }.toSet
+
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden)
+  }
+
+  override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {
+    complianceCache.invalidate(nodeIds)
   }
 }
 
-
-trait DeploymentService_historization extends DeploymentService {
+trait PromiseGeneration_historization extends PromiseGenerationService {
   def historizationService : HistorizationService
 
   def historizeData(
@@ -796,23 +917,17 @@ trait DeploymentService_historization extends DeploymentService {
       , directiveLib     : FullActiveTechniqueCategory
       , groupLib         : FullNodeGroupCategory
       , allNodeInfos     : Map[NodeId, NodeInfo]
-      , globalInterval   : Int
-      , globalSplaytime  : Int
-      , globalStartHour  : Int
-      , globalStartMinute: Int
+      , globalAgentRun   : AgentRunInterval
     ) : Box[Unit] = {
     for {
       _ <- historizationService.updateNodes(allNodeInfos.values.toSet)
       _ <- historizationService.updateGroups(groupLib)
       _ <- historizationService.updateDirectiveNames(directiveLib)
       _ <- historizationService.updatesRuleNames(rules)
-      _ <- historizationService.updateGlobalSchedule(globalInterval, globalSplaytime, globalStartHour, globalStartMinute)
+      _ <- historizationService.updateGlobalSchedule(globalAgentRun.interval, globalAgentRun.splaytime, globalAgentRun.startHour, globalAgentRun.startMinute)
     } yield {
       () // unit is expected
     }
   }
 
-
-
 }
-

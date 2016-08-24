@@ -61,6 +61,7 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.GitRuleCategoryArchiver
 import java.io.File
 import com.normation.rudder.rule.category.ImportRuleCategoryLibrary
+import com.normation.rudder.repository.EventLogRepository
 
 class ItemArchiveManagerImpl(
     roRuleRepository                  : RoRuleRepository

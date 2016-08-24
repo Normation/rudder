@@ -37,21 +37,18 @@
 
 package com.normation.rudder.web.snippet
 
-import scala.xml._
-import net.liftweb.http._
-import net.liftweb.http.js.JsCmds._
-import net.liftweb.http.js.JE._
-import net.liftweb.util._
-import com.normation.rudder.web.services.GetBaseUrlService
-import bootstrap.liftweb.RudderConfig
-import net.liftweb.http.js.JsCmd
-import net.liftweb.common._
-import com.normation.rudder.web.components.ShowNodeDetailsFromNode
-import net.liftmodules.widgets.autocomplete._
-import Helpers._
+import scala.xml.NodeSeq
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.components.AutoCompleteAutoSubmit
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.common._
+import net.liftweb.http.DispatchSnippet
+import net.liftweb.http.js.JsCmd
+import net.liftweb.http.js.JsCmds.Alert
+import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.util.Helpers.strToSuperArrowAssoc
+import net.liftweb.http.js.JsCmds.Run
 
 /**
  * This snippet allow to display the node "quick search" field.
@@ -85,23 +82,32 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
       val regex = """.+\[(.+)\]""".r
       s match {
         case regex(id) =>
-          RedirectTo(JsInitContextLinkUtil.nodeLink(NodeId(id)))
+          JsInitContextLinkUtil.redirectToNodeLink(NodeId(id)) &
+          Run(s"if(window.location.href.indexOf('nodeManager/searchNodes') > -1) { forceParseHashtag(); }")
         case _ =>
           Alert("No node was selected")
       }
     }
 
 
-    <div class="topQuickSearch"><lift:form>{
-      AutoCompleteAutoSubmit(
+
+    val searchInput =
+      AutoCompleteAutoSubmit (
           ""
         , buildQuery _
         , { s:String => parse(s) }
           //json option, see: https://code.google.com/p/jquery-autocomplete/wiki/Options
         , ("resultsClass", "'topQuickSearchResults ac_results '") :: Nil
         , ("placeholder" -> "Search nodes")
+        ,  ("class" -> "form-control")
       )
-    }</lift:form></div>
+
+
+   <lift:form class="navbar-form navbar-left">
+        <div class="form-group">
+          {searchInput}
+        </div>
+    </lift:form>
 
   }
 }

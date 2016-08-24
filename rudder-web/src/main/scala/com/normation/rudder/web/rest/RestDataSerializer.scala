@@ -51,6 +51,13 @@ import com.normation.rudder.domain.parameters._
 import com.normation.inventory.domain._
 import com.normation.rudder.domain.servers.Srv
 import com.normation.rudder.web.rest.node.NodeDetailLevel
+import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.web.rest.node.CustomDetailLevel
+import com.normation.rudder.web.rest.node.MinimalDetailLevel
+import com.normation.rudder.repository.FullActiveTechnique
+import scala.language.implicitConversions
 
 /**
  *  Centralize all function to serialize datas as valid answer for API Rest
@@ -59,21 +66,25 @@ trait RestDataSerializer {
 
   def serializeDirective(technique:Technique, directive : Directive, crId: Option[ChangeRequestId]): JValue
 
-  def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean) : JValue
+  def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean, apiVersion: ApiVersion) : JValue
 
-  def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue
+  def serializeGroup(group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue
+  def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue
 
   def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue
 
   def serializeRule (rule:Rule , crId: Option[ChangeRequestId]): JValue
+  def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rules : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue
 
   def serializeServerInfo (srv : Srv, status : String) : JValue
 
   def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue
 
-  def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue
+  def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
 
-  def serializeInventory (inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue
+
+  def serializeTechnique(technique:FullActiveTechnique): JValue
 }
 
 case class RestDataSerializerImpl (
@@ -84,36 +95,45 @@ case class RestDataSerializerImpl (
 
   import net.liftweb.json.JsonDSL._
 
-  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue ={
+  private[this] def serializeMachineType(machine: Option[MachineType]): JValue = {
+    machine match {
+      case None                           => "No machine Inventory"
+      case Some(PhysicalMachineType)      => "Physical"
+      case Some(VirtualMachineType(kind)) => "Virtual"
+    }
+  }
+
+  def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
-    (   ("id"          -> nodeInfo.id.value)
-      ~ ("status"      -> status)
-      ~ ("hostname"    -> nodeInfo.hostname)
-      ~ ("osName"      -> nodeInfo.osName)
-      ~ ("osVersion"   -> nodeInfo.osVersion)
-      ~ (machineTypeTag -> nodeInfo.machineType)
+    (   ("id"           -> nodeInfo.id.value)
+      ~ ("status"       -> status)
+      ~ ("hostname"     -> nodeInfo.hostname)
+      ~ ("osName"       -> nodeInfo.osDetails.os.name)
+      ~ ("osVersion"    -> nodeInfo.osDetails.version.value)
+      ~ (machineTypeTag -> serializeMachineType(nodeInfo.machine.map(_.machineType)))
     )
   }
 
-  def serializeInventory (inventory : FullInventory, detailLevel : NodeDetailLevel) : JValue = {
-    val fields : Set[JField] = detailLevel.fields.map(field => JField(field ,NodeDetailLevel.allFields(field)(inventory)))
-    JObject(fields.toList)
+  def serializeInventory(nodeInfo: NodeInfo, status:InventoryStatus, inventory : Option[FullInventory], software: Seq[Software], detailLevel : NodeDetailLevel, apiVersion: ApiVersion) : JValue = {
+    val filteredLevel = if(apiVersion.value <= 4) {
+      CustomDetailLevel(MinimalDetailLevel, detailLevel.fields - "properties")
+    } else {
+      detailLevel
+    }
+    filteredLevel.toJson(nodeInfo, status, inventory, software)
   }
-  def serializeInventory (inventory : FullInventory, status : String, tagFixed : Boolean) : JValue ={
+
+  def serializeInventory (inventory: FullInventory, status: String, tagFixed: Boolean) : JValue = {
     // before API v4, we had a typo that we choose to keep to not break preexisting API users
     val machineTypeTag = if (tagFixed) "machineType" else "machyneType"
-    val machineType = inventory.machine.map(_.machineType match {
-      case PhysicalMachineType => "Physical"
-      case VirtualMachineType(kind) => "Virtual"
-    }).getOrElse("No machine Inventory")
 
-    (   ("id"          -> inventory.node.main.id.value)
-      ~ ("status"      -> status)
-      ~ ("hostname"    -> inventory.node.main.hostname)
-      ~ ("osName"      -> inventory.node.main.osDetails.os.name)
-      ~ ("osVersion"   -> inventory.node.main.osDetails.version.toString)
-      ~ (machineTypeTag -> machineType)
+    (   ("id"           -> inventory.node.main.id.value)
+      ~ ("status"       -> status)
+      ~ ("hostname"     -> inventory.node.main.hostname)
+      ~ ("osName"       -> inventory.node.main.osDetails.os.name)
+      ~ ("osVersion"    -> inventory.node.main.osDetails.version.toString)
+      ~ (machineTypeTag -> serializeMachineType(inventory.machine.map( _.machineType )))
     )
   }
 
@@ -142,7 +162,28 @@ case class RestDataSerializerImpl (
    )
   }
 
-  def serializeParameter (parameter:Parameter , crId: Option[ChangeRequestId]): JValue = {
+  def serializeRuleCategory (category:RuleCategory, parent: RuleCategoryId, rulesMap : Map[RuleCategoryId,Seq[Rule]], detailLevel : DetailLevel): JValue = {
+
+    val (rules ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
+      case FullDetails =>
+        ( rulesMap.get(category.id).getOrElse(Nil).map(serializeRule(_,None))
+        , category.childs.map(serializeRuleCategory(_,category.id, rulesMap, detailLevel))
+        )
+      case MinimalDetails =>
+        ( rulesMap.get(category.id).getOrElse(Nil).map(rule => JString(rule.id.value))
+        , category.childs.map(cat => JString(cat.id.value))
+        )
+    }
+    (   ( "id" -> category.id.value)
+      ~ ( "name" -> category.name)
+      ~ ( "description" -> category.description)
+      ~ ( "parent" -> parent.value)
+      ~ ( "categories" -> categories)
+      ~ ( "rules" -> rules)
+    )
+  }
+
+  def serializeParameter (parameter:Parameter, crId: Option[ChangeRequestId]): JValue = {
    (   ( "changeRequestId" -> crId.map(_.value.toString))
      ~ ( "id"              -> parameter.name.value )
      ~ ( "value"           -> parameter.value )
@@ -151,14 +192,14 @@ case class RestDataSerializerImpl (
    )
   }
 
-  def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId]): JValue = {
+  override def serializeGroup (group : NodeGroup, crId: Option[ChangeRequestId], apiVersion: ApiVersion): JValue = {
     val query = group.query.map(query => query.toJSON)
     val extension : JObject =
       ( ("isEnabled" -> group.isEnabled )
       ~ ("isDynamic" -> group.isDynamic )
       )
-    val base =
-      ( ("changeRequestId" -> crId.map(_.value.toString))
+    val withoutClasses = (
+        ("changeRequestId" -> crId.map(_.value.toString))
       ~ ("id"              -> group.id.value)
       ~ ("displayName"     -> group.name)
       ~ ("description"     -> group.description)
@@ -167,7 +208,32 @@ case class RestDataSerializerImpl (
       ~ ("dynamic"         -> group.isDynamic)
       ~ ("enabled"         -> group.isEnabled )
       )
-    extendResponseCompatibility(base, extension)
+   val base = if (apiVersion.value < 7) {
+                withoutClasses
+              } else {
+                withoutClasses ~ ("groupClass" ->  List(group.id.value, group.name).map(RuleTarget.toCFEngineClassName _) )
+              }
+   extendResponseCompatibility(base, extension)
+  }
+
+  override def serializeGroupCategory (category:FullNodeGroupCategory, parent: NodeGroupCategoryId, detailLevel : DetailLevel, apiVersion: ApiVersion): JValue = {
+    val (groups ,categories) : (Seq[JValue],Seq[JValue]) = detailLevel match {
+      case FullDetails =>
+        ( category.ownGroups.values.map(fullGroup => serializeGroup(fullGroup.nodeGroup,None, apiVersion)).toSeq
+        , category.subCategories.map(serializeGroupCategory(_,category.id, detailLevel, apiVersion))
+        )
+      case MinimalDetails =>
+        ( category.ownGroups.keys.map(id => JString(id.value) ).toSeq
+        , category.subCategories.map(cat => JString(cat.id.value))
+        )
+    }
+    (   ( "id" -> category.id.value)
+      ~ ( "name" -> category.name)
+      ~ ( "description" -> category.description)
+      ~ ( "parent" -> parent.value)
+      ~ ( "categories" -> categories)
+      ~ ( "groups" -> groups)
+    )
   }
 
   def serializeSectionVal(sv:SectionVal, sectionName:String = SectionVal.ROOT_SECTION_NAME): JValue = {
@@ -342,7 +408,7 @@ case class RestDataSerializerImpl (
     }
   }
 
-  def serializeGroupChange(change : NodeGroupChange): Box[JValue] = {
+  def serializeGroupChange(change : NodeGroupChange, apiVersion: ApiVersion): Box[JValue] = {
 
     def serializeNodeGroupDiff(diff:ModifyNodeGroupDiff,initialState:NodeGroup) : JValue= {
       implicit def convert[T] (value : T) : JValue = value
@@ -376,12 +442,12 @@ case class RestDataSerializerImpl (
     } yield {
       diff match {
         case AddNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None)
+          val change = serializeGroup(group,None, apiVersion)
           (   ("action" -> create)
             ~ ("change" -> change)
           )
         case DeleteNodeGroupDiff(group) =>
-          val change = serializeGroup(group,None)
+          val change = serializeGroup(group,None, apiVersion)
           (   ("action" -> delete)
             ~ ("change" -> change)
           )
@@ -476,12 +542,12 @@ case class RestDataSerializerImpl (
     }
   }
 
-  def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean) = {
+  override def serializeCR(changeRequest:ChangeRequest , status : WorkflowNodeId, isAcceptable : Boolean, apiVersion: ApiVersion) = {
 
     val changes : JValue = changeRequest match {
       case cr : ConfigurationChangeRequest =>
       val directives = cr.directives.values.map(ch => serializeDirectiveChange(ch.changes).getOrElse(JString(s"Error while serializing directives from CR ${changeRequest.id}")))
-      val groups     = cr.nodeGroups.values.map(ch => serializeGroupChange(ch.changes).getOrElse(JString(s"Error while serializing groups from CR ${changeRequest.id}")))
+      val groups     = cr.nodeGroups.values.map(ch => serializeGroupChange(ch.changes, apiVersion).getOrElse(JString(s"Error while serializing groups from CR ${changeRequest.id}")))
       val parameters = cr.globalParams.values.map(ch => serializeGlobalParameterChange(ch.changes).getOrElse(JString(s"Error while serializing Parameters from CR ${changeRequest.id}")))
       val rules = cr.rules.values.map(ch => serializeRuleChange(ch.changes).getOrElse(JString(s"Error while serializing Rules from CR ${changeRequest.id}")))
       (   ("directives" -> directives)
@@ -502,6 +568,12 @@ case class RestDataSerializerImpl (
       ~ ("changes"      -> changes)
       )
     extendResponseCompatibility(base, extension)
+  }
+
+  def serializeTechnique(technique:FullActiveTechnique): JValue = {
+    (   ( "name"     -> technique.techniqueName.value )
+      ~ ( "versions" ->  technique.techniques.map(_._1.toString ) )
+    )
   }
 
 }

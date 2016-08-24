@@ -50,38 +50,82 @@ import scala.xml.Text
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Loggable
 import com.normation.rudder.domain.parameters.ParameterName
+import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.http.js.JsCmd
 /**
  * That class helps user to create valide JS initialisation context
  * links for pages that support them (search, Directive,
  * Rule).
+ * Link are constructed with a private definition, which is the actual base path to the page (starting by /)
+ * and then we have two functions, the link, with the context, and the JsCmd to redirect to this page
+ * without the Context, as the JS already embed the context in its redirect
  */
 object JsInitContextLinkUtil extends Loggable {
 
   private[this] val roRuleRepository      = RudderConfig.roRuleRepository
   private[this] val roGroupRepository     = RudderConfig.roNodeGroupRepository
   private[this] val roDirectiveRepository = RudderConfig.roDirectiveRepository
+  private[this] val nodeInfoService       = RudderConfig.nodeInfoService
 
-  def groupLink(id:NodeGroupId) =
+  def baseGroupLink(id:NodeGroupId) =
     s"""/secure/nodeManager/groups#{"groupId":"${id.value}"}"""
 
-  def ruleLink(id:RuleId) =
+  def groupLink(id:NodeGroupId) =
+    s"""${S.contextPath}${baseGroupLink(id)}"""
+
+  def redirectToGroupLink(id:NodeGroupId) : JsCmd=
+    RedirectTo(baseGroupLink(id))
+
+  def baseRuleLink(id:RuleId) =
     s"""/secure/configurationManager/ruleManagement#{"ruleId":"${id.value}"}"""
 
-  def directiveLink(id:DirectiveId) =
+  def ruleLink(id:RuleId) =
+    s"""${S.contextPath}${baseRuleLink(id)}"""
+
+  def redirectToRuleLink(id:RuleId) : JsCmd =
+    RedirectTo(baseRuleLink(id))
+
+  def baseDirectiveLink(id:DirectiveId) =
     s"""/secure/configurationManager/directiveManagement#{"directiveId":"${id.value}"}"""
 
-  def nodeLink(id:NodeId) =
+  def directiveLink(id:DirectiveId) =
+    s"""${S.contextPath}${baseDirectiveLink(id)}"""
+
+  def redirectToDirectiveLink(id:DirectiveId) : JsCmd =
+    RedirectTo(baseDirectiveLink(id))
+
+  def baseNodeLink(id:NodeId) =
     s"""/secure/nodeManager/searchNodes#{"nodeId":"${id.value}"}"""
 
-  def globalParameterLink(name:ParameterName) =
+  def nodeLink(id:NodeId) =
+    s"""${S.contextPath}${baseNodeLink(id)}"""
+
+  def redirectToNodeLink(id:NodeId) : JsCmd =
+     RedirectTo(baseNodeLink(id))
+
+
+  def baseGlobalParameterLink(name:ParameterName) =
     s"/secure/configurationManager/parameterManagement"
 
-  def changeRequestLink(id:ChangeRequestId) =
+  def globalParameterLink(name:ParameterName) =
+    s"${S.contextPath}${baseGlobalParameterLink(name)}"
+
+  def redirectToGlobalParameterLink(name:ParameterName) : JsCmd =
+     RedirectTo(baseGlobalParameterLink(name))
+
+  def baseChangeRequestLink(id:ChangeRequestId) =
     s"/secure/utilities/changeRequest/${id}"
+
+  def changeRequestLink(id:ChangeRequestId) =
+    s"${S.contextPath}${baseChangeRequestLink(id)}"
+
+  def redirectToChangeRequestLink(id:ChangeRequestId) : JsCmd =
+     RedirectTo(baseChangeRequestLink(id))
+
 
   def createRuleLink(id:RuleId) = {
     roRuleRepository.get(id) match {
-      case Full(rule) => <span> {SHtml.a(() => S.redirectTo(ruleLink(id)), Text(rule.name))} (Rudder ID: {id.value})</span>
+      case Full(rule) => <span> <a href={baseRuleLink(id)}>{rule.name}</a> (Rudder ID: {id.value})</span>
       case eb:EmptyBox => val fail = eb ?~! s"Could not find Rule with Id ${id.value}"
         logger.error(fail.msg)
         <span> {id.value} </span>
@@ -90,7 +134,7 @@ object JsInitContextLinkUtil extends Loggable {
 
   def createGroupLink(id:NodeGroupId) = {
     roGroupRepository.getNodeGroup(id) match {
-      case Full((group,_)) => <span> {SHtml.a(() => S.redirectTo(groupLink(id)), Text(group.name))} (Rudder ID: {id.value})</span>
+      case Full((group,_)) => <span> <a href={baseGroupLink(id)}>{group.name}</a> (Rudder ID: {id.value})</span>
       case eb:EmptyBox => val fail = eb ?~! s"Could not find NodeGroup with Id ${id.value}"
         logger.error(fail.msg)
         <span> {id.value} </span>
@@ -99,14 +143,23 @@ object JsInitContextLinkUtil extends Loggable {
 
   def createDirectiveLink(id:DirectiveId) = {
     roDirectiveRepository.getDirective(id) match {
-      case Full(directive) => <span> {SHtml.a(() => S.redirectTo(directiveLink(id)), Text(directive.name))} (Rudder ID: {id.value})</span>
+      case Full(directive) => <span> <a href={baseDirectiveLink(id)}>{directive.name}</a> (Rudder ID: {id.value})</span>
       case eb:EmptyBox => val fail = eb ?~! s"Could not find Directive with Id ${id.value}"
         logger.error(fail.msg)
         <span> {id.value} </span>
     }
   }
+
+  def createNodeLink(id: NodeId) = {
+    nodeInfoService.getNodeInfo(id) match {
+      case Full(Some(node)) =>
+        <span>Node <a href={baseNodeLink(id)}>{node.hostname}</a> (Rudder ID: {id.value})</span>
+      case _ =>
+        <span>Node {id.value}</span>
+    }
+  }
   // Naive implementation that redirect simply to all Global Parameter page
   def createGlobalParameterLink(name:ParameterName) = {
-     <span> {SHtml.a(() => S.redirectTo(globalParameterLink(name)), Text(name.value))} (Rudder ID: {name.value})</span>
+      <span> <a href={baseGlobalParameterLink(name)}>{name}</a></span>
   }
 }
