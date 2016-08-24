@@ -175,6 +175,8 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , sharedFilesFolder        = "/var/rudder/configuration-repository/shared-files"
     , webdavUser               = "rudder"
     , webdavPassword           = "rudder"
+    , reportsDbUri             = "rudder"
+    , reportsDbUser            = "rudder"
     , syslogPort               = 514
     , configurationRepository  = configurationRepositoryRoot.getAbsolutePath
     , serverRoles              = Seq(
