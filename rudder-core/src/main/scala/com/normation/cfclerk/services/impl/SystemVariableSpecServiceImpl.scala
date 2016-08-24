@@ -48,118 +48,141 @@ import com.normation.rudder.reports.ComplianceModeName
 class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
 
   private[this] val varSpecs : Seq[SystemVariableSpec] = Seq(
-      SystemVariableSpec("ALLOWCONNECT"   , "List of ip allowed to connect to the node (policyserver + children if any)"
-                                          , multivalued = true
+      SystemVariableSpec(
+                             "ALLOWCONNECT" , "List of ip allowed to connect to the node (policyserver + children if any)"
+                                            , multivalued = true
+                        )
+    , SystemVariableSpec(
+                           "CLIENTSFOLDERS" , "List of agent to contact via runagent"
+                                            , multivalued = true
+                                            , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
+                             "CMDBENDPOINT" , "The cmdb endpoint"
+                                            , multivalued  = false
       )
-    , SystemVariableSpec("CLIENTSFOLDERS" , "List of agent to contact via runagent"
-                                          , multivalued = true
-                                          , constraint = Constraint(mayBeEmpty=true)
+    , SystemVariableSpec(
+                            "COMMUNITYPORT" , "The port used by the community edition"
+                                            , multivalued  = false
       )
-    , SystemVariableSpec("CMDBENDPOINT"   , "The cmdb endpoint"
-                                          , multivalued  = false
+    , SystemVariableSpec(        "NODEROLE" , "List of nodeConfiguration roles")
+    , SystemVariableSpec(    "TOOLS_FOLDER" , "Tools folder")
+    , SystemVariableSpec(
+                                  "DAVUSER" , "Username for webdav user"
+                                            , multivalued = false
       )
-    , SystemVariableSpec("COMMUNITYPORT"  , "The port used by the community edition"
-                                          , multivalued  = false
+    , SystemVariableSpec(
+                             "DAVPASSWORD"  , "Password for webdav user"
+                                            , multivalued = false
       )
-    , SystemVariableSpec("NODEROLE"       , "List of nodeConfiguration roles")
-    , SystemVariableSpec("TOOLS_FOLDER"   , "Tools folder")
-    , SystemVariableSpec("DAVUSER"       , "Username for webdav user"
-                                          , multivalued = false
+    , SystemVariableSpec(       "INPUTLIST" , "Input list")
+    , SystemVariableSpec(      "BUNDLELIST" , "Bundle list")
+    , SystemVariableSpec(
+                                    "NOVA" , "The Cfengine Nova agent"
+                                           , constraint = Constraint(mayBeEmpty=true)
       )
-    , SystemVariableSpec("DAVPASSWORD"    , "Password for webdav user"
-                                          , multivalued = false
+    , SystemVariableSpec(      "COMMUNITY" , "The Cfengine Community agent"
+                                           , constraint = Constraint(mayBeEmpty=true)
       )
-    , SystemVariableSpec("INPUTLIST"      , "Input list")
-    , SystemVariableSpec("BUNDLELIST"     , "Bundle list")
-    , SystemVariableSpec("NOVA"           , "The Cfengine Nova agent"
-                                          , constraint = Constraint(mayBeEmpty=true)
+    , SystemVariableSpec(
+                     "SHARED_FILES_FOLDER" , "The path to the shared files folder"
+                                           , constraint = Constraint(mayBeEmpty=true)
       )
-    , SystemVariableSpec("COMMUNITY"      , "The Cfengine Community agent"
+    , SystemVariableSpec(
+                              "SYSLOGPORT" , "Port to use for rsyslog (used by reports)"
+                                           , multivalued = false
+                                           , isUniqueVariable = true
+                                           , constraint = Constraint(typeName = IntegerVType())
+      )
+    , SystemVariableSpec(
+         "CONFIGURATION_REPOSITORY_FOLDER" , "The path to the configuration repository folder"
+                                           , constraint = Constraint(mayBeEmpty=true)
+      )
+    , SystemVariableSpec(
+                      "MANAGED_NODES_NAME" , "Hostname of nodes managed by the policy server"
+                                           , constraint = Constraint(mayBeEmpty=true)
+      )
+    , SystemVariableSpec(
+                       "MANAGED_NODES_ID" , "UUID of nodes managed by the policy server"
                                           , constraint = Constraint(mayBeEmpty=true)
       )
     , SystemVariableSpec(
-              "SHARED_FILES_FOLDER"       , "The path to the shared files folder"
-                                          , constraint = Constraint(mayBeEmpty=true)
-      )
-    , SystemVariableSpec("SYSLOGPORT"     , "Port to use for rsyslog (used by reports)"
-                                          , multivalued = false
-                                          , isUniqueVariable = true
-                                          , constraint = Constraint(typeName = IntegerVType())
+                        "MANAGED_NODES_IP" , "IP of nodes managed by the policy server. A node may have several IPs - they are all here."
+                                           , constraint = Constraint(mayBeEmpty=true)
       )
     , SystemVariableSpec(
-        "CONFIGURATION_REPOSITORY_FOLDER" , "The path to the configuration repository folder"
+                    "MANAGED_NODES_ADMIN" , "Administrator login of nodes managed by the policy server"
                                           , constraint = Constraint(mayBeEmpty=true)
       )
-    , SystemVariableSpec("MANAGED_NODES_NAME", "Hostname of nodes managed by the policy server"
-                                          , constraint = Constraint(mayBeEmpty=true)
-      )
-    , SystemVariableSpec("MANAGED_NODES_ID", "UUID of nodes managed by the policy server"
-                                          , constraint = Constraint(mayBeEmpty=true)
-      )
-    , SystemVariableSpec("MANAGED_NODES_IP", "IP of nodes managed by the policy server. A node may have several IPs - they are all here."
-                                          , constraint = Constraint(mayBeEmpty=true)
-      )
-    , SystemVariableSpec("MANAGED_NODES_ADMIN", "Administrator login of nodes managed by the policy server"
-                                          , constraint = Constraint(mayBeEmpty=true)
-      )
-    , SystemVariableSpec("AUTHORIZED_NETWORKS", "Networks authorized to connect to the policy server"
+    , SystemVariableSpec(
+                    "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
                                           , constraint = Constraint(mayBeEmpty=true)
       )
       // this variable may be empty, has it is not filled by rudder, but by cf-clerk
-    , SystemVariableSpec("GENERATIONTIMESTAMP"
-                                          , "Timestamp of the promises generation"
+    , SystemVariableSpec(
+                    "GENERATIONTIMESTAMP" , "Timestamp of the promises generation"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(mayBeEmpty=true)
       )
-    , SystemVariableSpec("DENYBADCLOCKS"  , "Should CFEngine server accept connection from agent with a desynchronized clock?"
+    , SystemVariableSpec(
+                          "DENYBADCLOCKS" , "Should CFEngine server accept connection from agent with a desynchronized clock?"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
 
       )
-    , SystemVariableSpec("SKIPIDENTIFY"  , "Should CFEngine server skip the forward DNS lookup for node identification?"
+    , SystemVariableSpec(
+                           "SKIPIDENTIFY" , "Should CFEngine server skip the forward DNS lookup for node identification?"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = BooleanVType, default=Some("false"))
 
       )
-    , SystemVariableSpec("AGENT_RUN_INTERVAL", "Run interval (in minutes) at which the agent runs"
+    , SystemVariableSpec(
+                     "AGENT_RUN_INTERVAL" , "Run interval (in minutes) at which the agent runs"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = IntegerVType())
       )
-    , SystemVariableSpec("AGENT_RUN_SPLAYTIME", "Splaytime (in minutes) for the agent execution"
+    , SystemVariableSpec(
+                    "AGENT_RUN_SPLAYTIME" , "Splaytime (in minutes) for the agent execution"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = IntegerVType())
       )
 
-    , SystemVariableSpec("AGENT_RUN_SCHEDULE", "Schedule for the executor daemon"
+    , SystemVariableSpec(
+                     "AGENT_RUN_SCHEDULE" , "Schedule for the executor daemon"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("MODIFIED_FILES_TTL", "Number of days to retain modified files"
-                                          , multivalued = false
-                                          , isUniqueVariable = true
-                                          , constraint = Constraint(typeName = IntegerVType())
-      )
-    , SystemVariableSpec("CFENGINE_OUTPUTS_TTL", "Number of days to retain CFEngine outputs files"
+    , SystemVariableSpec(
+                     "MODIFIED_FILES_TTL" , "Number of days to retain modified files"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = IntegerVType())
       )
-    , SystemVariableSpec("STORE_ALL_CENTRALIZED_LOGS_IN_FILE"  , "Keep all centralized "
+    , SystemVariableSpec(
+                   "CFENGINE_OUTPUTS_TTL" , "Number of days to retain CFEngine outputs files"
+                                          , multivalued = false
+                                          , isUniqueVariable = true
+                                          , constraint = Constraint(typeName = IntegerVType())
+      )
+    , SystemVariableSpec(
+     "STORE_ALL_CENTRALIZED_LOGS_IN_FILE" , "Keep all centralized "
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = BooleanVType, default=Some("true"))
       )
-    , SystemVariableSpec("RUDDER_SERVER_ROLES", "Mapping of all role <-> hostnames"
+    , SystemVariableSpec(
+                    "RUDDER_SERVER_ROLES" , "Mapping of all role <-> hostnames"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(mayBeEmpty=true)
       )
-    , SystemVariableSpec("RUDDER_REPORT_MODE", "Defines if Rudder should send compliance reports or only change (error, repair) one. (default full-compliance)"
+    , SystemVariableSpec(
+                     "RUDDER_REPORT_MODE" , "Defines if Rudder should send compliance reports or only change (error, repair) one. (default full-compliance)"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(
@@ -178,47 +201,57 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                             , default=Some("full-compliance")
                                           )
       )
-    , SystemVariableSpec("RUDDER_HEARTBEAT_INTERVAL", "Interval between two heartbeat sending in changes-only mode (in number of runs)"
+    , SystemVariableSpec(
+              "RUDDER_HEARTBEAT_INTERVAL" , "Interval between two heartbeat sending in changes-only mode (in number of runs)"
                                           , multivalued = false
                                           , isUniqueVariable = true
                                           , constraint = Constraint(typeName = IntegerVType())
       )
-    , SystemVariableSpec("RUDDER_NODE_CONFIG_ID", "Store the node configuration version (actually an identifier) of a node"
+    , SystemVariableSpec(
+                  "RUDDER_NODE_CONFIG_ID" , "Store the node configuration version (actually an identifier) of a node"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("SEND_METRICS", "Should the server agent send metrics to Rudder development team"
+    , SystemVariableSpec(
+                           "SEND_METRICS" , "Should the server agent send metrics to Rudder development team"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("RUDDER_SYSLOG_PROTOCOL" , "Which protocol should syslog use"
+    , SystemVariableSpec(
+                 "RUDDER_SYSLOG_PROTOCOL" , "Which protocol should syslog use"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_system_directives, in a formatted string"
+    , SystemVariableSpec(
+      "RUDDER_SYSTEM_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_system_directives, in a formatted string"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("RUDDER_SYSTEM_DIRECTIVES_INPUTS" , "The list of inputs specific to bundles RUDDER_SYSTEM_DIRECTIVES_SEQUENCE, in a formatted string"
+    , SystemVariableSpec(
+        "RUDDER_SYSTEM_DIRECTIVES_INPUTS" , "The list of inputs specific to bundles RUDDER_SYSTEM_DIRECTIVES_SEQUENCE, in a formatted string"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("RUDDER_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_directives, in a formatted string"
+    , SystemVariableSpec(
+             "RUDDER_DIRECTIVES_SEQUENCE" , "The sequence of bundle to use as method call in bundle rudder_directives, in a formatted string"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("RUDDER_DIRECTIVES_INPUTS" , "The list of inputs specific to bundles RUDDER_DIRECTIVES_SEQUENCE, in a formatted string"
+    , SystemVariableSpec(
+               "RUDDER_DIRECTIVES_INPUTS" , "The list of inputs specific to bundles RUDDER_DIRECTIVES_SEQUENCE, in a formatted string"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
       // we have 2 systems variables for groups:
       // - one to define all the classes related to groups
       // - one to define the variable holding all groups
-    , SystemVariableSpec("RUDDER_NODE_GROUPS_CLASSES" , "The classes definition for groups, both group_UUID and group_normalized(NAME), in a formatted string"
+    , SystemVariableSpec(
+             "RUDDER_NODE_GROUPS_CLASSES" , "The classes definition for groups, both group_UUID and group_normalized(NAME), in a formatted string"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
-    , SystemVariableSpec("RUDDER_NODE_GROUPS_VARS" , "The array of group_UUID => group_NAME for the node, in a formatted string"
+    , SystemVariableSpec(
+                "RUDDER_NODE_GROUPS_VARS" , "The array of group_UUID => group_NAME for the node, in a formatted string"
                                           , multivalued = false
                                           , isUniqueVariable = true
       )
