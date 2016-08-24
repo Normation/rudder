@@ -139,7 +139,7 @@ class ReportDisplayer(
       val dateFormat = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
 
       def currentConfigId(expectedConfigInfo: NodeConfigIdInfo) = {
-        s"Current configuration ID for this node is '${expectedConfigInfo.configId.value}' (generated on ${expectedConfigInfo.creation.toString(dateFormat)})."
+        s"Current configuration ID for this node is '${expectedConfigInfo.configId.value}' (generated on ${expectedConfigInfo.creation.toString(dateFormat)})"
       }
 
       info match {
