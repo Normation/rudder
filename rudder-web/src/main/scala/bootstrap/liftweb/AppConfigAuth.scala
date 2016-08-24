@@ -221,7 +221,7 @@ class AppConfigAuth extends ApplicationContextAware {
     }
 
     if(set.isEmpty) {
-      logger.info("No master admin account is defined. You can defined one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file")
+      logger.info("No master admin account is defined. You can define one with 'rudder.auth.admin.login' and 'rudder.auth.admin.password' properties in the configuration file")
     }
 
     val provider = new DaoAuthenticationProvider()
