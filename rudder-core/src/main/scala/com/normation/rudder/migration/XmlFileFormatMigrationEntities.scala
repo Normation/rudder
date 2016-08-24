@@ -38,71 +38,75 @@
 
 package com.normation.rudder.migration
 
-import java.sql.Timestamp
-import java.util.Calendar
+import scala.concurrent.Future
+import scala.util.Try
 
-import scala.xml.Elem
-import com.normation.rudder.db.SlickSchema
 import com.normation.rudder.db.DB
+import com.normation.rudder.db.SlickSchema
+
+import org.joda.time.DateTime
 
 
-class MigrationEventLogRepository(db: SlickSchema) {
+class MigrationEventLogRepository(val schema: SlickSchema) {
+
+  import schema.api._
 
   /**
    * Retrieve the last version of the EventLog fileFormat as seen by the
    * the SQL script.
    * If the database does not exist or no line are present, return none.
    */
-  def getLastDetectionLine: Option[DB.MigrationEventLog] = {
-    squerylConnectionProvider.ourSession {
-      val q = from(MigrationEventLogTable.migrationEventLog)(line =>
-        select(line)
-        orderBy(line.id.desc)
-      )
-
-      q.page(0,1).toList.headOption
-    }
+  def getLastDetectionLine: Future[Try[Option[DB.MigrationEventLog]]] = {
+    val query = schema.migrationEventLogTable.sortBy( _.id.desc ).take(1)
+    val action = query.result.headOption
+    schema.db.run(action.asTry)
   }
 
   /**
    * Update the corresponding detection line with
    * the starting time of the migration (from Rudder)
    */
-  def setMigrationStartTime(id: Long, startTime: Timestamp) : Int = {
-    squerylConnectionProvider.ourTransaction {
-      update(MigrationEventLogTable.migrationEventLog)(l =>
-        where(l.id === id)
-        set(l.migrationStartTime := Some(startTime))
-      )
+  def setMigrationStartTime(id: Long, startTime: DateTime) : Future[Try[Int]] = {
+    val query = for {
+      x <- schema.migrationEventLogTable
+      if(x.id === id )
+    } yield {
+      x.migrationStartTime
     }
+
+    val action = query.update(Some(startTime))
+    schema.db.run(action.asTry)
   }
 
   /**
    * Update the corresponding detection line with the new,
    * up-to-date file format.
    */
-  def setMigrationFileFormat(id: Long, fileFormat:Long, endTime:Timestamp) : Int = {
-    squerylConnectionProvider.ourTransaction {
-      update(MigrationEventLogTable.migrationEventLog)(l =>
-        where(l.id === id)
-        set(
-            l.migrationEndTime := Some(endTime)
-          , l.migrationFileFormat := Some(fileFormat)
-        )
-      )
+  def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : Future[Try[Int]] = {
+    val query = for {
+      x <- schema.migrationEventLogTable
+      if(x.id === id )
+    } yield {
+      (x.migrationFileFormat, x.migrationEndTime)
     }
+
+    val action = query.update((Some(fileFormat), Some(endTime)))
+    schema.db.run(action.asTry)
   }
 
   /**
    * create a new status line with a timestamp of now and the given
    * detectedFileFormat.
    */
-  def createNewStatusLine(fileFormat:Long, description:Option[String] = None) : SerializedMigrationEventLog = {
-    squerylConnectionProvider.ourTransaction {
-      MigrationEventLogTable.migrationEventLog.insert(
-         SerializedMigrationEventLog(new Timestamp(Calendar.getInstance.getTime.getTime), fileFormat, None, None, None, description)
-      )
-    }
+  def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : Future[Try[DB.MigrationEventLog]] = {
+    val migrationEventLog = DB.MigrationEventLog(None, DateTime.now, fileFormat, None, None, None, description)
+    val action = (
+        schema.migrationEventLogTable
+        returning(schema.migrationEventLogTable.map( _.id))
+        into ((event, id) => event.copy(id=Some(id)))
+    ) += migrationEventLog
+
+    schema.db.run(action.asTry)
   }
 }
 

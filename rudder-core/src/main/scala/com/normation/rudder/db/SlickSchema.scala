@@ -50,40 +50,7 @@ import org.joda.time.DateTime
 
 import javax.sql.DataSource
 
-/*
- * That class defines mapping for Slick.
- * It also provides specific mapper for
- * special Postgresql types thanks to:
- * https://github.com/tminglei/slick-pg
- *
- */
 
-trait MyPostgresDriver extends ExPostgresDriver
-                          with PgArraySupport
-                          with PgRangeSupport
-                          with PgHStoreSupport
-                          with PgSearchSupport
-                          with PgNetSupport
-                          with PgLTreeSupport
-                          with PgDateSupportJoda
-{
-
-  override val api = MyAPI
-
-  object MyAPI extends API with ArrayImplicits
-                           with NetImplicits
-                           with LTreeImplicits
-                           with RangeImplicits
-                           with HStoreImplicits
-                           with SearchImplicits
-                           with SearchAssistants
-                           with JodaDateTimeImplicits
-  {
-    implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
-  }
-}
-
-object MyPostgresDriver extends MyPostgresDriver
 
 /*
  * Here, we need to declare all database table as a case classes that
@@ -153,23 +120,58 @@ final object DB {
  *
  * That file contains Slick schema
  *
+ * Use it by importing slickschema.api._
+ *
+ *
  */
 class SlickSchema(datasource: DataSource) {
+  /*
+   * That class defines mapping for Slick.
+   * It also provides specific mapper for
+   * special Postgresql types thanks to:
+   * https://github.com/tminglei/slick-pg
+   *
+   */
 
-  import MyPostgresDriver.api._
+  trait RudderDriver extends ExPostgresDriver
+                            with PgArraySupport
+                            with PgRangeSupport
+                            with PgHStoreSupport
+                            with PgSearchSupport
+                            with PgNetSupport
+                            with PgLTreeSupport
+                            with PgDateSupportJoda
+  {
+
+    override val api = MyAPI
+
+    object MyAPI extends API with ArrayImplicits
+                             with NetImplicits
+                             with LTreeImplicits
+                             with RangeImplicits
+                             with HStoreImplicits
+                             with SearchImplicits
+                             with SearchAssistants
+                             with JodaDateTimeImplicits
+    {
+      implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
+    }
+  }
+
+  object Driver extends RudderDriver
+
+  val api = Driver.api
+  import api._
+  val db  = Database.forDataSource(datasource)
 
 
-  val slickDB = Database.forDataSource(datasource)
-
-
-  val migrationEventLogTable    = TableQuery[MigrationEventLogTable]
   val expectedReportsTable      = TableQuery[ExpectedReportsTable]
+  val migrationEventLogTable    = TableQuery[MigrationEventLogTable]
   val expectedReportsNodesTable = TableQuery[ExpectedReportsNodesTable]
   val reportsTable              = TableQuery[ReportsTable]
 
-
   class MigrationEventLogTable(tag: Tag) extends Table[DB.MigrationEventLog](tag, "migrationeventlog") {
-    def id                  = column[Option[Long]]("id", O.PrimaryKey, O.AutoInc)
+    def id                  = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def detectionTime       = column[DateTime]("detectiontime")
     def detectedFileFormat  = column[Long]("detectedfileformat")
     def migrationStartTime  = column[Option[DateTime]]("migrationstarttime")
@@ -178,11 +180,10 @@ class SlickSchema(datasource: DataSource) {
     def description         = column[Option[String]]("description")
 
     def * = (
-        id,  detectionTime, detectedFileFormat, migrationStartTime
+        id.?,  detectionTime, detectedFileFormat, migrationStartTime
       , migrationEndTime, migrationFileFormat, description
     ) <> (DB.MigrationEventLog.tupled, DB.MigrationEventLog.unapply)
   }
-
 
   class ExpectedReportsTable(tag: Tag) extends Table[DB.ExpectedReports](tag, "expectedreports") {
     def pkId                       = column[Int]("pkid", O.PrimaryKey, O.AutoInc) // This is the primary key column

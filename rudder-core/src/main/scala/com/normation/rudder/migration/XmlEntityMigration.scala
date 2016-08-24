@@ -19,6 +19,9 @@ import com.normation.rudder.domain.logger.MigrationLogger
 import scala.xml.XML
 import java.sql.ResultSet
 import com.normation.rudder.db.DB
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import java.util.concurrent.TimeUnit
 
 /**
  * specify from/to version
@@ -151,6 +154,8 @@ case class MigrationChangeRequest(
  */
 trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
+  val MAX_QUERY_TIME = Duration(10, TimeUnit.SECONDS)
+
   def migrationEventLogRepository: MigrationEventLogRepository
   def batchMigrators             : Seq[BatchElementMigration[_]]
   def previousMigrationController: Option[ControlXmlFileFormatMigration]
@@ -159,11 +164,20 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
     /*
      * test is we have to migrate, and execute migration
      */
+    val x = migrationEventLogRepository.getLastDetectionLine.onComplete.flatten
+
+
+//    match {
+//
+//    }
+
+
+
     migrationEventLogRepository.getLastDetectionLine match {
       case None =>
-        logger.info("No migration detected by migration script (table '%s' is empty or does not exists)".
-            format(MigrationEventLogTable.migrationEventLog.name)
-        )
+        logger.info(s"No migration detected by migration script (table '${
+          migrationEventLogRepository.db.migrationEventLogTable.baseTableRow.tableName
+        }' is empty or does not exists)")
         Full(NoMigrationRequested)
 
       /*
@@ -175,8 +189,8 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
        */
 
       //new migration
-      case Some(status@DB.MigrationEventLog(
-          _
+      case Some(DB.MigrationEventLog(
+          id
         , _
         , detectedFileFormat
         , migrationStartTime
@@ -189,7 +203,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
          * or continue a previously started migration (but interrupted ?)
          */
         if(migrationStartTime.isEmpty) {
-          migrationEventLogRepository.setMigrationStartTime(status.id, new Timestamp(Calendar.getInstance.getTime.getTime))
+          migrationEventLogRepository.setMigrationStartTime(id, new Timestamp(Calendar.getInstance.getTime.getTime))
         }
 
         val migrationResults = batchMigrators.map { migrator =>
@@ -211,7 +225,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
          boxSequence(migrationResults) match {
           case Full(seq) =>
             val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
-            migrationEventLogRepository.setMigrationFileFormat(status.id, toVersion, new Timestamp(Calendar.getInstance.getTime.getTime))
+            migrationEventLogRepository.setMigrationFileFormat(id, toVersion, new Timestamp(Calendar.getInstance.getTime.getTime))
             logger.info(s"Completed migration to file format '${toVersion}', ${numberMigrated} records migrated")
             Full(MigrationSuccess(numberMigrated))
           case eb:EmptyBox => eb
