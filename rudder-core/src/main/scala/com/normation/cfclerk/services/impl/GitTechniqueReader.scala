@@ -191,7 +191,7 @@ class GitTechniqueReader(
         diffFmt.scan(revisionProvider.currentRevTreeId, nextId).flatMap { diffEntry =>
           Seq( (toTechniquePath(diffEntry.getOldPath), diffEntry.getChangeType), (toTechniquePath(diffEntry.getNewPath), diffEntry.getChangeType))
         }.toSet
-      diffFmt.release
+      diffFmt.close
 
       /*
        * now, group diff entries by TechniqueId to find which were updated
