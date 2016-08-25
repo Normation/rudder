@@ -583,7 +583,8 @@ class RuleGrid(
               """)
             }
           }
-          val isApplying = line.rule.directiveIds.contains(directiveApplication.directive.id)
+          //We check the rule status in the directive application object instead of looking directly in the rule.
+          val isApplying = directiveApplication.ruleStatus(line.rule)
           val ajax = SHtml.ajaxCall(JsVar("checked"), bool => check (bool.toBoolean))
           val callback = AnonFunc("checked",ajax)
           (isApplying,Some(callback))
