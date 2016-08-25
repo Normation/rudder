@@ -305,7 +305,7 @@ trait GitArchiverFullCommitUtils extends Loggable {
     } catch {
       case e:IOException => throw new JGitInternalException(e.getMessage(), e)
     } finally {
-      revWalk.release();
+      revWalk.close
     }
     tags.sortWith( (o1, o2) => o1.getTagName().compareTo(o2.getTagName()) <= 0 )
   }
