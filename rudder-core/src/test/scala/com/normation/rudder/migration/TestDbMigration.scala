@@ -46,6 +46,8 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
+import com.normation.rudder.db.SlickSchema
+import com.normation.BoxSpecMatcher
 
 case class MigEx102(msg:String) extends Exception(msg)
 
@@ -181,7 +183,7 @@ CREATE TEMP TABLE EventLog (
  * That database should be empty to avoid table name collision.
  */
 @RunWith(classOf[JUnitRunner])
-class TestDbMigration_2_3b extends DBCommon with XmlMatchers {
+class TestDbMigration_2_3b extends DBCommon with XmlMatchers with BoxSpecMatcher {
 
 
   lazy val migration = new EventLogsMigration_2_3(
@@ -192,38 +194,12 @@ class TestDbMigration_2_3b extends DBCommon with XmlMatchers {
     override val errorLogger = (f:Failure) => throw new MigEx102(f.messageChain)
   }
 
-  lazy val logRepo = new MigrationEventLogRepository(squerylConnectionProvider)
 
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
-          migrationEventLogRepository = logRepo
+          migrationEventLogRepository = migrationEventLogRepository
         , Seq(migration)
   )
 
-  override val sqlInit = """
-CREATE TEMP SEQUENCE eventLogIdSeq START 1;
-
-CREATE TEMP TABLE EventLog (
-  id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
-, creationDate timestamp with time zone NOT NULL DEFAULT 'now'
-, severity integer
-, causeId integer
-, principal varchar(64)
-, eventType varchar(64)
-, data xml
-);
-
-CREATE TEMP SEQUENCE MigrationEventLogId START 1;
-
-CREATE TEMP TABLE MigrationEventLog(
-  id                  integer PRIMARY KEY DEFAULT nextval('MigrationEventLogId')
-, detectionTime       timestamp NOT NULL
-, detectedFileFormat  integer
-, migrationStartTime  timestamp
-, migrationEndTime    timestamp
-, migrationFileFormat integer
-, description         text
-);
-    """
 
   var logs2WithId : Map[String,MigrationTestLog] = null //init in initDb
   var logs3WithId : Seq[MigrationTestLog] = null
@@ -259,15 +235,7 @@ CREATE TEMP TABLE MigrationEventLog(
 
     "be all found" in {
       val logs = migrationManagement.migrate()
-      logs match {
-        case Full(MigrationSuccess(i)) =>
-           i must beEqualTo(logs3WithId.size)
-        case Full(x) =>
-          ko("Migration not working, found result: " + x)
-        case eb:EmptyBox =>
-          val e = eb ?~! "Migration not working"
-          ko(e.messageChain)
-      }
+      logs mustFull(MigrationSuccess(logs3WithId.size))
     }
 
     "be correctly migrated" in {

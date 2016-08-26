@@ -90,15 +90,12 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <version>${jgit-version}</version>
     </dependency>
 
-<dependency>
-    <groupId>org.postgresql</groupId>
-    <artifactId>postgresql</artifactId>
-    <version>9.4.1209.jre7</version>
-</dependency>
     <dependency>
-      <groupId>org.postgresql</groupId>
-      <artifactId>postgresql</artifactId>
-      <version>9.3-1101-jdbc4</version>
+        <groupId>org.postgresql</groupId>
+        <artifactId>postgresql</artifactId>
+        <!-- BE CAREFULL CAN'T UPDATE VERSION DUE TO
+             https://github.com/tminglei/slick-pg/issues/220 -->
+        <version>9.4-1201-jdbc41</version>
       <scope>runtime</scope>
     </dependency>
 

@@ -22,6 +22,8 @@ import com.normation.rudder.db.DB
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
+import com.normation.rudder.db.SlickSchema
+import org.joda.time.DateTime
 
 /**
  * specify from/to version
@@ -154,152 +156,156 @@ case class MigrationChangeRequest(
  */
 trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
+  import scala.concurrent.ExecutionContext.Implicits.global
+  import scala.util.{Success => TSuccess, Failure => TFailure}
+
   val MAX_QUERY_TIME = Duration(10, TimeUnit.SECONDS)
 
   def migrationEventLogRepository: MigrationEventLogRepository
   def batchMigrators             : Seq[BatchElementMigration[_]]
   def previousMigrationController: Option[ControlXmlFileFormatMigration]
 
+//  val schema: SlickSchema = migrationEventLogRepository.schema
+//
+//  import schema.api._
+//  import schema.db._
+
   def migrate() : Box[MigrationStatus] = {
+
     /*
      * test is we have to migrate, and execute migration
      */
-    val x = migrationEventLogRepository.getLastDetectionLine.onComplete.flatten
+    Await.result(migrationEventLogRepository.getLastDetectionLine, Duration(500, TimeUnit.MILLISECONDS)) match {
+        case TFailure(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
+        case TSuccess(None) =>
+          logger.info(s"No migration detected by migration script (table '${
+            migrationEventLogRepository.schema.migrationEventLogTable.baseTableRow.tableName
+          }' is empty or does not exists)")
+          Full(NoMigrationRequested)
 
-
-//    match {
-//
-//    }
-
-
-
-    migrationEventLogRepository.getLastDetectionLine match {
-      case None =>
-        logger.info(s"No migration detected by migration script (table '${
-          migrationEventLogRepository.db.migrationEventLogTable.baseTableRow.tableName
-        }' is empty or does not exists)")
-        Full(NoMigrationRequested)
-
-      /*
-       * we only have to deal with the migration if:
-       * - fileFormat is == fromVersion AND (
-       *   - migrationEndTime is not set OR
-       *   - migrationFileFormat == fromVersion
-       * )
-       */
-
-      //new migration
-      case Some(DB.MigrationEventLog(
-          id
-        , _
-        , detectedFileFormat
-        , migrationStartTime
-        , migrationEndTime : None.type
-        , _
-        , _
-      )) if(detectedFileFormat == fromVersion) =>
         /*
-         * here, simply start a migration for the first time (if migrationStartTime is None)
-         * or continue a previously started migration (but interrupted ?)
+         * we only have to deal with the migration if:
+         * - fileFormat is == fromVersion AND (
+         *   - migrationEndTime is not set OR
+         *   - migrationFileFormat == fromVersion
+         * )
          */
-        if(migrationStartTime.isEmpty) {
-          migrationEventLogRepository.setMigrationStartTime(id, new Timestamp(Calendar.getInstance.getTime.getTime))
-        }
 
-        val migrationResults = batchMigrators.map { migrator =>
-          logger.info(s"Start migration of ${migrator.elementName} from format '${fromVersion}' to '${toVersion}'")
-
-          migrator.process() match {
-            case Full(MigrationProcessResult(i, nbBatches)) =>
-              logger.info(s"Migration of ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}' done, ${i} EventLogs migrated")
-              Full(MigrationSuccess(i))
-
-            case eb:EmptyBox =>
-              val e = (eb ?~! s"Could not correctly finish the migration for ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application.")
-              logger.error(e)
-              e
+        //new migration
+        case TSuccess(Some(DB.MigrationEventLog(
+            Some(id)
+          , _
+          , detectedFileFormat
+          , migrationStartTime
+          , migrationEndTime : None.type
+          , _
+          , _
+        ))) if(detectedFileFormat == fromVersion) =>
+          /*
+           * here, simply start a migration for the first time (if migrationStartTime is None)
+           * or continue a previously started migration (but interrupted ?)
+           */
+          if(migrationStartTime.isEmpty) {
+            migrationEventLogRepository.setMigrationStartTime(id, DateTime.now)
           }
-        }
 
+          val migrationResults = batchMigrators.map { migrator =>
+            logger.info(s"Start migration of ${migrator.elementName} from format '${fromVersion}' to '${toVersion}'")
 
-         boxSequence(migrationResults) match {
-          case Full(seq) =>
-            val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
-            migrationEventLogRepository.setMigrationFileFormat(id, toVersion, new Timestamp(Calendar.getInstance.getTime.getTime))
-            logger.info(s"Completed migration to file format '${toVersion}', ${numberMigrated} records migrated")
-            Full(MigrationSuccess(numberMigrated))
-          case eb:EmptyBox => eb
-        }
+            migrator.process() match {
+              case Full(MigrationProcessResult(i, nbBatches)) =>
+                logger.info(s"Migration of ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}' done, ${i} EventLogs migrated")
+                Full(MigrationSuccess(i))
 
-      //a past migration was done, but the final format is not the one we want
-      case Some(x@SerializedMigrationEventLog(
-          _
-        , _
-        , _
-        , Some(endTime)
-        , Some(migrationFileFormat)
-        , _
-      )) if(migrationFileFormat == fromVersion) =>
-        //create a new status line with detected format = migrationFileFormat,
-        //and a description to say why we recurse
-        migrationEventLogRepository.createNewStatusLine(migrationFileFormat, Some(s"Found a post-migration fileFormat='${migrationFileFormat}': update"))
-        this.migrate()
-
-          // lower file format found, send to parent)
-      case Some(status@SerializedMigrationEventLog(
-          _
-        , detectedFileFormat
-        , migrationStartTime
-        , migrationEndTime : None.type
-        , _
-        , _
-      )) if(detectedFileFormat < fromVersion) =>
-
-
-        logger.info("Found and older migration to do")
-        previousMigrationController match {
-          case None =>
-            logger.info(s"The detected format ${detectedFileFormat} is no more supported, you will have to " +
-                "use an installation of Rudder that understand it to do the migration. For information, " +
-                "Rudder 2.6.x is the last major version which is able to import file format 1.0")
-            Full(MigrationVersionNotSupported)
-
-          case Some(migrator) => migrator.migrate() match{
-            case Full(MigrationSuccess(i)) =>
-                logger.info("Older migration completed, relaunch migration")
-                this.migrate()
-            case eb:EmptyBox =>
-                val e = (eb ?~! s"Older migration failed, Could not correctly finish the migration from EventLog fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application")
+              case eb:EmptyBox =>
+                val e = (eb ?~! s"Could not correctly finish the migration for ${migrator.elementName} fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application.")
                 logger.error(e)
                 e
-            case _ =>
-                logger.info("Older migration completed, relaunch migration")
-                this.migrate()
             }
-        }
-
-      //a past migration was done, but the final format is not the one we want
-      case Some(x@SerializedMigrationEventLog(
-          _
-        , _
-        , _
-        , Some(endTime)
-        , Some(migrationFileFormat)
-        , _
-      )) if(migrationFileFormat < fromVersion) =>
-        //create a new status line with detected format = migrationFileFormat,
-        //and a description to say why we recurse
-        previousMigrationController.foreach { migrator =>
-          migrator.migrate()
-        }
-        this.migrate()
+          }
 
 
-      //other case: does nothing
-      case Some(x) =>
-        logger.debug(s"Migration of EventLog from format '${fromVersion}' to '${toVersion}': nothing to do")
-        Full(MigrationVersionNotHandledHere)
-    }
+           boxSequence(migrationResults) match {
+            case Full(seq) =>
+              val numberMigrated = seq.collect { case MigrationSuccess(i) => i }.sum
+              migrationEventLogRepository.setMigrationFileFormat(id, toVersion, DateTime.now)
+              logger.info(s"Completed migration to file format '${toVersion}', ${numberMigrated} records migrated")
+              Full(MigrationSuccess(numberMigrated))
+            case eb:EmptyBox => eb
+          }
+
+        //a past migration was done, but the final format is not the one we want
+        case TSuccess(Some(x@DB.MigrationEventLog(
+            _
+          , _
+          , _
+          , _
+          , Some(endTime)
+          , Some(migrationFileFormat)
+          , _
+        ))) if(migrationFileFormat == fromVersion) =>
+          //create a new status line with detected format = migrationFileFormat,
+          //and a description to say why we recurse
+          migrationEventLogRepository.createNewStatusLine(migrationFileFormat, Some(s"Found a post-migration fileFormat='${migrationFileFormat}': update"))
+          this.migrate()
+
+            // lower file format found, send to parent)
+        case TSuccess(Some(status@DB.MigrationEventLog(
+            _
+          , _
+          , detectedFileFormat
+          , migrationStartTime
+          , migrationEndTime : None.type
+          , _
+          , _
+        ))) if(detectedFileFormat < fromVersion) =>
+
+
+          logger.info("Found and older migration to do")
+          previousMigrationController match {
+            case None =>
+              logger.info(s"The detected format ${detectedFileFormat} is no more supported, you will have to " +
+                  "use an installation of Rudder that understand it to do the migration. For information, " +
+                  "Rudder 2.6.x is the last major version which is able to import file format 1.0")
+              Full(MigrationVersionNotSupported)
+
+            case Some(migrator) => migrator.migrate() match{
+              case Full(MigrationSuccess(i)) =>
+                  logger.info("Older migration completed, relaunch migration")
+                  this.migrate()
+              case eb:EmptyBox =>
+                  val e = (eb ?~! s"Older migration failed, Could not correctly finish the migration from EventLog fileFormat from '${fromVersion}' to '${toVersion}'. Check logs for errors. The process can be trigger by restarting the application")
+                  logger.error(e)
+                  e
+              case _ =>
+                  logger.info("Older migration completed, relaunch migration")
+                  this.migrate()
+              }
+          }
+
+        //a past migration was done, but the final format is not the one we want
+        case TSuccess(Some(x@DB.MigrationEventLog(
+            _
+          , _
+          , _
+          , _
+          , Some(endTime)
+          , Some(migrationFileFormat)
+          , _
+        ))) if(migrationFileFormat < fromVersion) =>
+          //create a new status line with detected format = migrationFileFormat,
+          //and a description to say why we recurse
+          previousMigrationController.foreach { migrator =>
+            migrator.migrate()
+          }
+          this.migrate()
+
+
+        //other case: does nothing
+        case TSuccess(Some(x)) =>
+          logger.debug(s"Migration of EventLog from format '${fromVersion}' to '${toVersion}': nothing to do")
+          Full(MigrationVersionNotHandledHere)
+      }
   }
 
 }

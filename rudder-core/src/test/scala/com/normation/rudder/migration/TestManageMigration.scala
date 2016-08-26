@@ -38,15 +38,19 @@
 package com.normation.rudder.migration
 
 import java.sql.ResultSet
-import java.sql.Timestamp
+import java.util.concurrent.TimeUnit
 
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+import com.normation.BoxSpecMatcher
+
+import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.runner.JUnitRunner
 import org.springframework.jdbc.core.RowCallbackHandler
 
 import net.liftweb.common.Failure
-import net.liftweb.common.Full
-
 
 /**
  * Test how the migration run with a Database context
@@ -56,7 +60,7 @@ import net.liftweb.common.Full
  * That database should be empty to avoid table name collision.
  */
 @RunWith(classOf[JUnitRunner])
-class TestManageMigration_2_3 extends DBCommon {
+class TestManageMigration_2_3 extends DBCommon with BoxSpecMatcher {
 
   case class MigEx102(msg:String) extends Exception(msg)
 
@@ -69,35 +73,9 @@ class TestManageMigration_2_3 extends DBCommon {
   }
 
   lazy val migrationManagement = new ControlEventLogsMigration_2_3(
-          migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
+          migrationEventLogRepository = migrationEventLogRepository
         , Seq(migration)
       )
-
-  override val sqlInit = """
-CREATE TEMP SEQUENCE eventLogIdSeq START 1;
-
-CREATE TEMP TABLE EventLog (
-  id integer PRIMARY KEY  DEFAULT nextval('eventLogIdSeq')
-, creationDate timestamp with time zone NOT NULL DEFAULT 'now'
-, severity integer
-, causeId integer
-, principal varchar(64)
-, eventType varchar(64)
-, data xml
-);
-
-CREATE TEMP SEQUENCE MigrationEventLogId START 1;
-
-CREATE TEMP TABLE MigrationEventLog(
-  id                  integer PRIMARY KEY DEFAULT nextval('MigrationEventLogId')
-, detectionTime       timestamp NOT NULL
-, detectedFileFormat  integer
-, migrationStartTime  timestamp
-, migrationEndTime    timestamp
-, migrationFileFormat integer
-, description         text
-);
-    """
 
   if(doDatabaseConnection) {
     jdbcTemplate.query("SELECT * FROM pg_catalog.pg_tables ", new RowCallbackHandler(){
@@ -114,10 +92,10 @@ CREATE TEMP TABLE MigrationEventLog(
   //given parameter, and delete it
   def withFileFormatLine[A](
       detectedFileFormat : Long
-    , migrationStartTime : Option[Timestamp] = None
+    , migrationStartTime : Option[DateTime] = None
     , migrationFileFormat: Option[Long] = None
   )(f:() => A) : A = {
-    val id = migrationEventLogRepository.createNewStatusLine(detectedFileFormat).id
+    val Some(id) = Await.result(migrationEventLogRepository.createNewStatusLine(detectedFileFormat), Duration(500, TimeUnit.MILLISECONDS)).map( _.id).get
     migrationStartTime.foreach { time =>
       migrationEventLogRepository.setMigrationStartTime(id, time)
     }
@@ -129,7 +107,7 @@ CREATE TEMP TABLE MigrationEventLog(
 
     //delete line
     withConnection { c =>
-      c.createStatement.execute("DELETE FROM MigrationEventLog WHERE id=%s".format(id))
+      c.createStatement.execute(s"DELETE FROM MigrationEventLog WHERE id=${id}")
     }
     res
   }
@@ -139,56 +117,56 @@ CREATE TEMP TABLE MigrationEventLog(
   "Migration of event logs from fileformat 2 to 3" should {
 
     "not be launched if no migration line exists in the DataBase" in {
-      migrationManagement.migrate ==== Full(NoMigrationRequested)
+      migrationManagement.migrate mustFull(NoMigrationRequested)
     }
 
     "not be launched if fileFormat is already 3" in {
       val res = withFileFormatLine(3) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res mustFull(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileFormat is higher than 3" in {
       val res = withFileFormatLine(42) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotHandledHere)
+      res mustFull(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileformat is negative" in {
       val res = withFileFormatLine(-1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotSupported)
+      res mustFull(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 0" in {
       val res = withFileFormatLine(0) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotSupported)
+      res mustFull(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 1" in {
       val res = withFileFormatLine(1) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationVersionNotSupported)
+      res mustFull(MigrationVersionNotSupported)
     }
 
     "be launched if fileformat is 2, event if marked finished" in {
       val res = withFileFormatLine(2, Some(now), Some(2)) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationSuccess(0))
+      res mustFull(MigrationSuccess(0))
     }
 
     "be launched if fileformat is 2" in {
       val res = withFileFormatLine(2) {
          migrationManagement.migrate
       }
-      res ==== Full(MigrationSuccess(0))
+      res mustFull(MigrationSuccess(0))
     }
 
   }

@@ -54,6 +54,8 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 
 import net.liftweb.common.Loggable
+import com.normation.rudder.db.SlickSchema
+import org.joda.time.DateTime
 
 
 
@@ -114,7 +116,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     dataSource.close
   }
 
-  def now = new Timestamp(System.currentTimeMillis)
+  def tnow = new Timestamp(System.currentTimeMillis)
+  def now = new DateTime(tnow.getTime)
 
 
   //execute something on the connection before commiting and closing it
@@ -181,7 +184,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
 
 
-  lazy val migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
+  lazy val slickSchema = new SlickSchema(dataSource)
+  lazy val migrationEventLogRepository = new MigrationEventLogRepository(slickSchema)
 
 
 }
