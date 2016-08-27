@@ -65,6 +65,8 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.db.SlickSchema
+import com.normation.rudder.db.DB
 
 /**
  * Test on database.
@@ -104,7 +106,7 @@ class ExpectedReportsTest extends DBCommon {
   val run3 = DateTime.now.minusMinutes(5*3)
 
 
-  def compareSlickER(report: SlickExpectedReports, expected: SlickExpectedReports) = {
+  def compareSlickER(report: DB.ExpectedReports, expected: DB.ExpectedReports) = {
     report.pkId === expected.pkId and
     report.nodeJoinKey === expected.nodeJoinKey and
     report.serial === expected.serial and
@@ -123,31 +125,28 @@ class ExpectedReportsTest extends DBCommon {
 
   }
 
-  import MyPostgresDriver.api._
-  import slick._
-
   "Finding nodes" should {
 
     val strangeVersions = List(" abc" , "def " , "\nghi\t").map(NodeConfigId(_)).reverse //ghi is the most recent
     //note: in version, [a,b,c] means "c" is the most recent versions
     //in the unzserialized object, the most recent version is the HEAD of the list.
     //note: spaces are trimmed in version
-    val expectedReportsNodes: Seq[SlickExpectedReportsNodes] = Seq(
-        SlickExpectedReportsNodes(1, "n0", List())
-      , SlickExpectedReportsNodes(1, "n1", NodeConfigVersionsSerializer.serialize(strangeVersions).toList.map(_.asInstanceOf[String]))
-      , SlickExpectedReportsNodes(2, "n0", List("cba"))
-      , SlickExpectedReportsNodes(3, "n2", List("xz"))
-      , SlickExpectedReportsNodes(4, "n1", List("pqr", "mno"))
+    val expectedReportsNodes: Seq[DB.ExpectedReportsNodes] = Seq(
+        DB.ExpectedReportsNodes(1, "n0", List())
+      , DB.ExpectedReportsNodes(1, "n1", NodeConfigVersionsSerializer.serialize(strangeVersions).toList.map(_.asInstanceOf[String]))
+      , DB.ExpectedReportsNodes(2, "n0", List("cba"))
+      , DB.ExpectedReportsNodes(3, "n2", List("xz"))
+      , DB.ExpectedReportsNodes(4, "n1", List("pqr", "mno"))
     )
     step {
       slickExec {
-        expectedReportsNodesTable ++= expectedReportsNodes
+        schema.expectedReportsNodesTable ++= expectedReportsNodes
       }
     }
 
     "get back what was inserted" in {
       slickExec {
-        expectedReportsNodesTable.result
+        schema.expectedReportsNodesTable.result
       } must contain(exactly(expectedReportsNodes:_*))
     }
 
@@ -201,7 +200,7 @@ class ExpectedReportsTest extends DBCommon {
     val d1 = DirectiveExpectedReports(DirectiveId("d1"),Seq(c1))
     val directiveExpectedReports = Seq(d1)
 
-    val expected = SlickExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+    val expected = DB.ExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
       , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
       , "[]", DateTime.now, None
     )
@@ -212,15 +211,15 @@ class ExpectedReportsTest extends DBCommon {
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
 
-      val reports =  slickExec(expectedReportsTable.result)
-      val nodes = slickExec(expectedReportsNodesTable.result)
+      val reports =  slickExec(schema.expectedReportsTable.result)
+      val nodes = slickExec(schema.expectedReportsNodesTable.result)
       val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
 
       compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
       reports.size === 1 and compareSlickER(reports(0), expected) and
       nodes.size === 2 and (nodes must contain(exactly(
-          SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
-        , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
+          DB.ExpectedReportsNodes(100, "n1", List("n1_v1"))
+        , DB.ExpectedReportsNodes(100, "n2", List("n2_v1"))
       )))
     }
 
@@ -229,14 +228,14 @@ class ExpectedReportsTest extends DBCommon {
 
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      val reports =  slickExec(expectedReportsTable.result)
-      val nodes = slickExec(expectedReportsNodesTable.result)
+      val reports =  slickExec(schema.expectedReportsTable.result)
+      val nodes = slickExec(schema.expectedReportsNodesTable.result)
 
       inserted.isInstanceOf[Failure] and
       reports.size === 1 and compareSlickER(reports(0), expected) and
       nodes.size === 2 and (nodes must contain(exactly(
-          SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
-        , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
+          DB.ExpectedReportsNodes(100, "n1", List("n1_v1"))
+        , DB.ExpectedReportsNodes(100, "n2", List("n2_v1"))
       )))
     }
 
@@ -315,7 +314,7 @@ class ExpectedReportsTest extends DBCommon {
 
     val expected = {
       val c1 = d1_exp.components(0)
-      SlickExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+      DB.ExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
       , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
       , """["d1_value"]""", DateTime.now, None
       )
@@ -335,8 +334,8 @@ class ExpectedReportsTest extends DBCommon {
       compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
       reports.size === 2 and compareSlickER(reports(0), expected) and
       nodes.size === 2 and (nodes must contain(exactly(
-          SlickExpectedReportsNodes(100, "n1", List("n1_v0"))
-        , SlickExpectedReportsNodes(101, "n2", List("n2_v0"))
+          DB.ExpectedReportsNodes(100, "n1", List("n1_v0"))
+        , DB.ExpectedReportsNodes(101, "n2", List("n2_v0"))
       )))
     }
   }

@@ -43,7 +43,13 @@ import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import com.normation.rudder.migration.DBCommon
 import java.sql.Timestamp
-import MyPostgresDriver.api._
+import com.normation.rudder.db.SlickSchema
+import slick.dbio.DBIOAction
+import slick.dbio.NoStream
+import scala.concurrent.Future
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+import java.util.concurrent.TimeUnit
 
 /**
  *
@@ -56,10 +62,6 @@ class MigrationTo212Test extends DBCommon {
 
   //we don't want the default 2.12 tables to be created
   override def sqlInit : String = ""
-
-  lazy val db = new SlickSchema(dataSource)
-  import db._
-  import db.slickDB._
 
   sequential
 

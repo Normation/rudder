@@ -2,7 +2,8 @@ package com.normation.rudder.repository
 
 import com.normation.eventlog.ModificationId
 import net.liftweb.common.Box
-import com.normation.rudder.repository.squeryl.GitCommitJoin
+import scala.concurrent.Future
+import com.normation.rudder.db.DB
 
 
 /**
@@ -14,7 +15,7 @@ trait GitModificationRepository {
   /**
    * Get commits linked to a modification Id
    */
-  def getCommits(modificationId: ModificationId) : Box[Option[GitCommitId]]
+  def getCommits(modificationId: ModificationId) : Future[Box[Option[GitCommitId]]]
 
-  def addCommit(commit:GitCommitId, modId:ModificationId) : Box[GitCommitJoin]
+  def addCommit(commit:GitCommitId, modId:ModificationId) : Future[Box[DB.GitCommitJoin]]
 }

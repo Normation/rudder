@@ -49,6 +49,8 @@ import com.normation.rudder.domain.reports.Reports
 import org.joda.time.DateTime
 
 import javax.sql.DataSource
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.repository.GitCommitId
 
 
 
@@ -113,6 +115,12 @@ final object DB {
     , policy             : String
     , msg                : String
   )
+
+  final case class GitCommitJoin (
+      gitCommit     : GitCommitId
+    , modificationId: ModificationId
+  )
+
 }
 
 
@@ -169,6 +177,7 @@ class SlickSchema(datasource: DataSource) {
   val migrationEventLogTable    = TableQuery[MigrationEventLogTable]
   val expectedReportsNodesTable = TableQuery[ExpectedReportsNodesTable]
   val reportsTable              = TableQuery[ReportsTable]
+  val gitCommitJoinTable        = TableQuery[GitCommitJoinTable]
 
   class MigrationEventLogTable(tag: Tag) extends Table[DB.MigrationEventLog](tag, "migrationeventlog") {
     def id                  = column[Long]("id", O.PrimaryKey, O.AutoInc)
@@ -248,5 +257,17 @@ class SlickSchema(datasource: DataSource) {
     DB.Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
         , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
   }
+
+  class GitCommitJoinTable(tag: Tag) extends Table[DB.GitCommitJoin](tag, "gitcommit") {
+    def gitCommit      = column[String]("gitcommit", O.PrimaryKey)
+    def modificationId = column[String]("modificationid")
+
+    //needed to map nested case classes
+    private[this] def toModel(t2: (String, String)) = DB.GitCommitJoin(GitCommitId(t2._1), ModificationId(t2._2))
+    private[this] def toTuples(m: DB.GitCommitJoin) = Some((m.gitCommit.value, m.modificationId.value))
+    private[this] val shape = (gitCommit, modificationId).shaped[(String, String)]
+    def * = shape <> (toModel, toTuples)
+  }
+
 }
 

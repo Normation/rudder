@@ -56,6 +56,12 @@ import org.springframework.jdbc.core.RowMapper
 import net.liftweb.common.Loggable
 import com.normation.rudder.db.SlickSchema
 import org.joda.time.DateTime
+import java.util.concurrent.TimeUnit
+import slick.dbio.DBIOAction
+import scala.concurrent.duration.Duration
+import scala.concurrent.Await
+import scala.concurrent.Future
+import slick.dbio.NoStream
 
 
 
@@ -187,5 +193,11 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   lazy val slickSchema = new SlickSchema(dataSource)
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(slickSchema)
 
-
+  /**
+   * A simple exec that is synchronized.
+   */
+  def slickExec[A](body: DBIOAction[A, NoStream, Nothing]): A = {
+    val f: Future[A] = slickSchema.db.run(body)
+    Await.result(f, Duration(5, TimeUnit.SECONDS))
+  }
 }

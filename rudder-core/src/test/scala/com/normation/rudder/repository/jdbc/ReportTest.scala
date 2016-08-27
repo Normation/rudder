@@ -50,6 +50,7 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+import com.normation.rudder.db.DB
 
 /**
  *
@@ -65,9 +66,21 @@ class ReportsTest extends DBCommon {
     jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
   }
 
-
   lazy val repostsRepo = new ReportsJdbcRepository(jdbcTemplate)
-  lazy val slick = new SlickSchema(dataSource)
+
+  import slickSchema.api._
+
+  def insertReports(reports: Seq[Reports]) = {
+    def toSlickReport(r:Reports): DB.Reports = {
+      DB.Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
+          , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
+    }
+    val slickReports = reports.map(toSlickReport(_))
+
+    slickExec {
+      super.slickSchema.reportsTable ++= slickReports
+    }
+  }
 
   sequential
 
@@ -114,7 +127,7 @@ class ReportsTest extends DBCommon {
       )
     )
     step {
-      slick.insertReports(reports.values.toSeq.flatten)
+      super.slickSchema.insertReports(reports.values.toSeq.flatten)
     }
 
     "find the last reports for node0" in {
@@ -163,7 +176,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      slick.insertReports(reports.values.toSeq.flatten)
+      super.slickSchema.insertReports(reports.values.toSeq.flatten)
     }
 
 
