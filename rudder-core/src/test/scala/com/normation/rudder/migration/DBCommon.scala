@@ -62,6 +62,8 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 import scala.concurrent.Future
 import slick.dbio.NoStream
+import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.db.DB
 
 
 
@@ -71,6 +73,7 @@ import slick.dbio.NoStream
  */
 trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
+
   logger.info("""Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test""")
 
   val doDatabaseConnection = System.getProperty("test.postgres", "").toLowerCase match {
@@ -78,6 +81,10 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     case _ => false
   }
 //  skipAllIf(!doDatabaseConnection)
+
+  // max time we wait for a request to complete
+  val MAX_TIME = Duration(300, TimeUnit.MILLISECONDS)
+
 
   /**
    * By default, init schema with the Rudder schema and tables, safe that
@@ -198,6 +205,18 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
    */
   def slickExec[A](body: DBIOAction[A, NoStream, Nothing]): A = {
     val f: Future[A] = slickSchema.db.run(body)
-    Await.result(f, Duration(5, TimeUnit.SECONDS))
+    Await.result(f, MAX_TIME)
+  }
+  def insertReports(reports: Seq[Reports]) = {
+    def toSlickReport(r:Reports): DB.Reports = {
+      DB.Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
+          , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
+    }
+    val slickReports = reports.map(toSlickReport(_))
+
+    slickExec {
+      import slickSchema.api._
+      slickSchema.reportsTable ++= slickReports
+    }
   }
 }

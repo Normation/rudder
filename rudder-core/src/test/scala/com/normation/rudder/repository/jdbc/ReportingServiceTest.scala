@@ -74,11 +74,11 @@ import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
-import MyPostgresDriver.api._
 import net.liftweb.common.Failure
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
+import com.normation.rudder.db.DB
 
 /**
  *
@@ -87,6 +87,9 @@ import com.normation.rudder.services.reports.NodeChangesServiceImpl
  */
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon {
+
+  import slickSchema.api._
+
   //clean data base
   def cleanTables() = {
     jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
@@ -102,7 +105,6 @@ class ReportingServiceTest extends DBCommon {
 
   lazy val pgIn = new PostgresqlInClause(2)
   lazy val reportsRepo = new ReportsJdbcRepository(jdbcTemplate)
-  lazy val slick = new SlickSchema(dataSource)
   lazy val findExpected = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
   lazy val updateExpected = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findExpected, findExpected)
   lazy val updateExpectedService = new ExpectedReportsUpdateImpl(updateExpected, updateExpected)
@@ -180,7 +182,7 @@ class ReportingServiceTest extends DBCommon {
   val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupBy( _._1 ).mapValues( _.map( _._2 ) )
 
   val expecteds = (
-    Map[SlickExpectedReports, Seq[SlickExpectedReportsNodes]]()
+    Map[DB.ExpectedReports, Seq[DB.ExpectedReportsNodes]]()
     ++ expect("r0", 1)( //r0 @ t1
         (1, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
       , (1, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v0"]""", gen1, Some(gen2), allNodes_t1 )
@@ -246,9 +248,9 @@ class ReportingServiceTest extends DBCommon {
 
   step {
 
-    slick.insertReports(reports.values.toSeq.flatten)
-    slickExec(expectedReportsTable ++= expecteds.keySet)
-    slickExec(expectedReportsNodesTable ++= expecteds.values.toSet.flatten)
+    insertReports(reports.values.toSeq.flatten)
+    slickExec(slickSchema.expectedReportsTable ++= expecteds.keySet)
+    slickExec(slickSchema.expectedReportsNodesTable ++= expecteds.values.toSet.flatten)
 
     //need to be done one time for init, one time for actual work
     updateRuns.findAndSaveExecutions(42).openOrThrowException("I should be able to init the 'find and save execution'")
@@ -855,11 +857,11 @@ class ReportingServiceTest extends DBCommon {
   def expect(ruleId: String, serial: Int)
             //           nodeJoinKey, directiveId  component   cardinality   componentValues  beging     end            , (nodeId, version)
             (expecteds: (Int        , String     , String    , Int         , String         , DateTime, Option[DateTime], Map[NodeId,NodeConfigIdInfo])*)
-  : Map[SlickExpectedReports, Seq[SlickExpectedReportsNodes]] = {
+  : Map[DB.ExpectedReports, Seq[DB.ExpectedReportsNodes]] = {
     expecteds.map { exp =>
-      SlickExpectedReports(None, exp._1, ruleId, serial, exp._2, exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
+      DB.ExpectedReports(None, exp._1, ruleId, serial, exp._2, exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
       exp._8.map{ case (nodeId, version) =>
-        SlickExpectedReportsNodes(exp._1, nodeId.value, version.configId.value :: Nil)
+        DB.ExpectedReportsNodes(exp._1, nodeId.value, version.configId.value :: Nil)
       }.toSeq
     }.toMap
   }

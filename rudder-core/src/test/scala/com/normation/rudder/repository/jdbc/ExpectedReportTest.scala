@@ -74,6 +74,7 @@ import com.normation.rudder.db.DB
 @RunWith(classOf[JUnitRunner])
 class ExpectedReportsTest extends DBCommon {
 
+  import slickSchema.api._
 
   //clean data base
   def cleanTables() = {
@@ -140,13 +141,13 @@ class ExpectedReportsTest extends DBCommon {
     )
     step {
       slickExec {
-        schema.expectedReportsNodesTable ++= expectedReportsNodes
+        slickSchema.expectedReportsNodesTable ++= expectedReportsNodes
       }
     }
 
     "get back what was inserted" in {
       slickExec {
-        schema.expectedReportsNodesTable.result
+        slickSchema.expectedReportsNodesTable.result
       } must contain(exactly(expectedReportsNodes:_*))
     }
 
@@ -211,8 +212,8 @@ class ExpectedReportsTest extends DBCommon {
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
 
-      val reports =  slickExec(schema.expectedReportsTable.result)
-      val nodes = slickExec(schema.expectedReportsNodesTable.result)
+      val reports =  slickExec(slickSchema.expectedReportsTable.result)
+      val nodes = slickExec(slickSchema.expectedReportsNodesTable.result)
       val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
 
       compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
@@ -228,8 +229,8 @@ class ExpectedReportsTest extends DBCommon {
 
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      val reports =  slickExec(schema.expectedReportsTable.result)
-      val nodes = slickExec(schema.expectedReportsNodesTable.result)
+      val reports =  slickExec(slickSchema.expectedReportsTable.result)
+      val nodes = slickExec(slickSchema.expectedReportsNodesTable.result)
 
       inserted.isInstanceOf[Failure] and
       reports.size === 1 and compareSlickER(reports(0), expected) and
@@ -328,8 +329,8 @@ class ExpectedReportsTest extends DBCommon {
         , genTime, Set(n1_overrides)
       )
 
-      val reports =  slickExec(expectedReportsTable.result)
-      val nodes = slickExec(expectedReportsNodesTable.result)
+      val reports =  slickExec(slickSchema.expectedReportsTable.result)
+      val nodes = slickExec(slickSchema.expectedReportsNodesTable.result)
 
       compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
       reports.size === 2 and compareSlickER(reports(0), expected) and

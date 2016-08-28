@@ -43,6 +43,10 @@ import net.liftweb.common._
 import com.normation.utils.StringUuidGenerator
 import org.eclipse.jgit.lib.PersonIdent
 import com.normation.rudder.repository.EventLogRepository
+import scala.concurrent.Await
+import scala.util.{Try, Success => TSuccess, Failure => TFailure}
+import scala.concurrent.duration.Duration
+import java.util.concurrent.TimeUnit
 
 class ModificationService(
       eventLogRepository : EventLogRepository
@@ -52,12 +56,12 @@ class ModificationService(
 
   def getCommitsfromEventLog(eventLog:EventLog) : Option[GitCommitId] = {
     eventLog.modificationId match {
-      case None =>
-      None
-      case Some(modId) => gitModificationRepository.getCommits(modId) match {
-        case Full(s) => s.headOption
-        case eb:EmptyBox =>
-          None
+      case None        => None
+      case Some(modId) =>
+        Try(Await.result(gitModificationRepository.getCommits(modId), Duration(200, TimeUnit.MILLISECONDS))) match {
+        case TSuccess(Full(s))     => s.headOption
+        case TSuccess(eb:EmptyBox) => None
+        case TFailure(ex) => Failure(s"Error when finding back commit ID for modification ID '${modId.value}': ${ex.getMessage}", Full(ex), Empty)
       }
     }
   }

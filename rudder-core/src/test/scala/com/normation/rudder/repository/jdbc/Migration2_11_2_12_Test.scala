@@ -50,6 +50,7 @@ import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import java.util.concurrent.TimeUnit
+import com.normation.rudder.db.DB
 
 /**
  *
@@ -59,6 +60,7 @@ import java.util.concurrent.TimeUnit
 @RunWith(classOf[JUnitRunner])
 class MigrationTo212Test extends DBCommon {
 
+  import slickSchema.api._
 
   //we don't want the default 2.12 tables to be created
   override def sqlInit : String = ""
@@ -100,10 +102,10 @@ class MigrationTo212Test extends DBCommon {
 
     "allows to add entry in expectedreportsnodes with node configuration" in {
 
-      val t= SlickExpectedReportsNodes(42, "node_1", List("node_config_1","node_config_2","node_config_3"))
+      val t= DB.ExpectedReportsNodes(42, "node_1", List("node_config_1","node_config_2","node_config_3"))
 
-      slickExec(expectedReportsNodesTable +=  t)
-      slickExec(expectedReportsNodesTable.result).head === t
+      slickExec(slickSchema.expectedReportsNodesTable +=  t)
+      slickExec(slickSchema.expectedReportsNodesTable.result).head === t
     }
 
 }

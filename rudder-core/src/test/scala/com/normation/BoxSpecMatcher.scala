@@ -66,7 +66,7 @@ trait BoxSpecMatcher extends Specification with Loggable {
   }
 
   implicit class BoxMustEquals[T](t: Box[T]) {
-    def mustFull(res: T): MatchResult[Any] = t match {
+    private[this] def matchRes(f: T => MatchResult[Any]) = t match {
       case f: Failure =>
         val msg = s"I wasn't explecting the failure: ${f.messageChain}"
         f.rootExceptionCause.foreach { ex =>
@@ -75,8 +75,13 @@ trait BoxSpecMatcher extends Specification with Loggable {
         }
         ko(msg)
       case Empty      => ko(s"How can I get an Empty!")
-      case Full(x)    => x === res
+      case Full(x)    => f(x)
     }
+
+    def mustFullEq(res: T): MatchResult[Any] = matchRes( (x:T) => x === res)
+
+    def mustFull: MatchResult[Any] = matchRes( (x:T) => ok(s"Got a ${x}"))
+
   }
 
 }

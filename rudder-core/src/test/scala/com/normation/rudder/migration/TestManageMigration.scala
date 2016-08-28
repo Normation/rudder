@@ -117,56 +117,56 @@ class TestManageMigration_2_3 extends DBCommon with BoxSpecMatcher {
   "Migration of event logs from fileformat 2 to 3" should {
 
     "not be launched if no migration line exists in the DataBase" in {
-      migrationManagement.migrate mustFull(NoMigrationRequested)
+      migrationManagement.migrate mustFullEq(NoMigrationRequested)
     }
 
     "not be launched if fileFormat is already 3" in {
       val res = withFileFormatLine(3) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationVersionNotHandledHere)
+      res mustFullEq(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileFormat is higher than 3" in {
       val res = withFileFormatLine(42) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationVersionNotHandledHere)
+      res mustFullEq(MigrationVersionNotHandledHere)
     }
 
     "not be launched if fileformat is negative" in {
       val res = withFileFormatLine(-1) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationVersionNotSupported)
+      res mustFullEq(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 0" in {
       val res = withFileFormatLine(0) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationVersionNotSupported)
+      res mustFullEq(MigrationVersionNotSupported)
     }
 
     "not be launched if fileformat is 1" in {
       val res = withFileFormatLine(1) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationVersionNotSupported)
+      res mustFullEq(MigrationVersionNotSupported)
     }
 
     "be launched if fileformat is 2, event if marked finished" in {
       val res = withFileFormatLine(2, Some(now), Some(2)) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationSuccess(0))
+      res mustFullEq(MigrationSuccess(0))
     }
 
     "be launched if fileformat is 2" in {
       val res = withFileFormatLine(2) {
          migrationManagement.migrate
       }
-      res mustFull(MigrationSuccess(0))
+      res mustFullEq(MigrationSuccess(0))
     }
 
   }

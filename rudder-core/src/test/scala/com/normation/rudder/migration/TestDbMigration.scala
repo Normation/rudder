@@ -235,7 +235,7 @@ class TestDbMigration_2_3b extends DBCommon with XmlMatchers with BoxSpecMatcher
 
     "be all found" in {
       val logs = migrationManagement.migrate()
-      logs mustFull(MigrationSuccess(logs3WithId.size))
+      logs mustFullEq(MigrationSuccess(logs3WithId.size))
     }
 
     "be correctly migrated" in {

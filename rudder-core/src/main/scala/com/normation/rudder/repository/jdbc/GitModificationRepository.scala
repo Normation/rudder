@@ -1,18 +1,20 @@
 package com.normation.rudder.repository.jdbc
 
-import net.liftweb.common._
-import com.normation.eventlog.ModificationId
-import com.normation.rudder.repository.GitCommitId
-import com.normation.rudder.db.SlickSchema
-import com.normation.rudder.db.DB.GitCommitJoin
-import com.normation.rudder.repository.GitModificationRepository
-import scala.util.{Success => TSuccess, Failure => TFailure }
-
 import scala.concurrent.ExecutionContext.Implicits.global
-import com.normation.rudder.db.DB
 import scala.concurrent.Future
+import scala.util.{ Failure => TFailure }
+import scala.util.{ Success => TSuccess }
 
-class SlickGitModificationRepositoryee(
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.db.DB
+import com.normation.rudder.db.DB.GitCommitJoin
+import com.normation.rudder.db.SlickSchema
+import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.repository.GitModificationRepository
+
+import net.liftweb.common._
+
+class SlickGitModificationRepository(
     schema : SlickSchema
 ) extends GitModificationRepository {
   import schema.api._
@@ -27,7 +29,7 @@ class SlickGitModificationRepositoryee(
 
   def getCommits(modificationId: ModificationId): Future[Box[Option[GitCommitId]]] = {
 
-    val action = (
+    val q = (
       for {
         commit <- schema.gitCommitJoinTable
         if(commit.modificationId === modificationId.value) //.value on right seems strange, I may be something about the mapping
@@ -36,10 +38,13 @@ class SlickGitModificationRepositoryee(
       }
     )
 
-    schema.db.run(action.asTry).map { res => res match {
+    schema.db.run(q.result.asTry).map { res => res match {
       case TSuccess(seq) =>
-        if(seq.size <=) Full(seq.headOption)
-        else Failure(s"Multiple commits for modification with ID '${modificationId.value}', commits are : ${q.mkString(", ")}")
+        if(seq.size <= 1) {
+          Full(seq.headOption.map(_.gitCommit))
+        } else {
+          Failure(s"Multiple commits for modification with ID '${modificationId.value}', commits are : ${seq.mkString(", ")}")
+        }
 
       case TFailure(ex) => Failure(s"Error when trying to get Git Commit for modification ID '${modificationId.value}': ${ex.getMessage}", Full(ex), Empty)
     } }

@@ -70,18 +70,6 @@ class ReportsTest extends DBCommon {
 
   import slickSchema.api._
 
-  def insertReports(reports: Seq[Reports]) = {
-    def toSlickReport(r:Reports): DB.Reports = {
-      DB.Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
-          , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
-    }
-    val slickReports = reports.map(toSlickReport(_))
-
-    slickExec {
-      super.slickSchema.reportsTable ++= slickReports
-    }
-  }
-
   sequential
 
   implicit def toReport(t:(DateTime,String, String, String, Int, String, String, DateTime, String, String)) = {
@@ -127,7 +115,7 @@ class ReportsTest extends DBCommon {
       )
     )
     step {
-      super.slickSchema.insertReports(reports.values.toSeq.flatten)
+      insertReports(reports.values.toSeq.flatten)
     }
 
     "find the last reports for node0" in {
@@ -176,7 +164,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      super.slickSchema.insertReports(reports.values.toSeq.flatten)
+      insertReports(reports.values.toSeq.flatten)
     }
 
 
