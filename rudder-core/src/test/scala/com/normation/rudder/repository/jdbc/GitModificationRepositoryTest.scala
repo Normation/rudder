@@ -76,7 +76,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      slickExec(slickSchema.gitCommitJoinTable.result) must beEmpty
+      slickExec(slickSchema.gitCommitJoin.result) must beEmpty
     }
 
     "be able to add commits" in {
@@ -91,7 +91,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
         , Try(Await.result(repos.addCommit("g42", "m4") , MAX_TIME))
       )
 
-      res must contain((x:Try[ADD]) => x must beASuccessfulTry((y:ADD) => y.mustFull ) ).foreach and (slickExec(slickSchema.gitCommitJoinTable.result).size === 5)
+      res must contain((x:Try[ADD]) => x must beASuccessfulTry((y:ADD) => y.mustFull ) ).foreach and (slickExec(slickSchema.gitCommitJoin.result).size === 5)
     }
 
     "find back a commit by" in {

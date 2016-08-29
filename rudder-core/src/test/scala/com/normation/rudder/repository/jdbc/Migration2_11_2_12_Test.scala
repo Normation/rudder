@@ -85,9 +85,9 @@ class MigrationTo212Test extends DBCommon {
     "no raise error" in {
       jdbcTemplate.execute(sql)
 
-      //some select to check existence
-      slickExec(sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)]).head
-      slickExec(sql"select * from expectedReportsNodes".as[(Int,String)]).head
+      //some select to check existence of the new tables column
+      slickExec(sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)]).headOption
+      slickExec(sql"select * from expectedReportsNodes".as[(Int,String)]).headOption
 
       success
     }
@@ -104,8 +104,8 @@ class MigrationTo212Test extends DBCommon {
 
       val t= DB.ExpectedReportsNodes(42, "node_1", List("node_config_1","node_config_2","node_config_3"))
 
-      slickExec(slickSchema.expectedReportsNodesTable +=  t)
-      slickExec(slickSchema.expectedReportsNodesTable.result).head === t
+      slickExec(slickSchema.expectedReportsNodes +=  t)
+      slickExec(slickSchema.expectedReportsNodes.result).head === t
     }
 
 }

@@ -95,7 +95,7 @@ class TestManageMigration_2_3 extends DBCommon with BoxSpecMatcher {
     , migrationStartTime : Option[DateTime] = None
     , migrationFileFormat: Option[Long] = None
   )(f:() => A) : A = {
-    val Some(id) = Await.result(migrationEventLogRepository.createNewStatusLine(detectedFileFormat), Duration(500, TimeUnit.MILLISECONDS)).map( _.id).get
+    val Some(id) = Await.result(migrationEventLogRepository.createNewStatusLine(detectedFileFormat), MAX_TIME).map( _.id).get
     migrationStartTime.foreach { time =>
       migrationEventLogRepository.setMigrationStartTime(id, time)
     }

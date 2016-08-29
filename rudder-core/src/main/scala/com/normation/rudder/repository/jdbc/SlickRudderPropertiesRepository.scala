@@ -35,83 +35,83 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.repository.squeryl
+package com.normation.rudder.repository.jdbc
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{ Failure => TFailure }
+import scala.util.{ Success => TSuccess }
 
-import com.normation.rudder.repository.jdbc._
-import com.normation.rudder.repository._
-import org.squeryl._
-import org.squeryl.annotations._
-import org.squeryl.PrimitiveTypeMode._
+import com.normation.rudder.db.DB
+import com.normation.rudder.db.SlickSchema
+
 import net.liftweb.common._
+import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.repository.RudderPropertiesRepository
 
-object RudderPropertiesTable extends Schema {
+class SlickRudderPropertiesRepository(
+     slickSchema      : SlickSchema
+   , reportsRepository: ReportsRepository
+) extends RudderPropertiesRepository with Loggable {
 
-  val rudderProperties = table[RudderProperty]("rudderproperties")
+  private[this] val PROP_REPORT_LAST_ID = "reportLoggerLastId"
 
-}
+  import slickSchema.api._
 
-case class RudderProperty (
-    @Column("name")  id    : String
-  , @Column("value") value : String
-
-) extends KeyedEntity[String]
-
-class RudderPropertiesSquerylRepository(
-      squerylConnectionProvider : SquerylConnectionProvider,
-    reportsRepository: ReportsRepository
-    ) extends RudderPropertiesRepository with Loggable {
-
-  import RudderPropertiesTable._
   /**
    * Get the last report id processed by the non compliant report Logger.
    * If there was no id processed, get the last report id in reports database
    * and add it to the database.
    */
-  def getReportLoggerLastId: Box[Long] = {
-    try {
-    squerylConnectionProvider.ourTransaction {
-      rudderProperties.lookup("reportLoggerLastId").map(_.value.toLong)
-      }
-    } catch {
-      case e : Exception => logger.error("could not fetch last id from the database, cause is %s".format(e.getMessage()))
-      Failure("could not fetch last id from the database, cause is %s".format(e.getMessage()))
+  def getReportLoggerLastId: Future[Box[Long]] = {
+
+    val q = for {
+      p <- slickSchema.runProperties
+           if( p.name === PROP_REPORT_LAST_ID)
+    } yield {
+      p.value
     }
+
+    slickSchema.db.run(q.result.asTry).map { res => res match {
+      case TSuccess(seq) => seq.headOption match { //name is primary key, at most 1
+        case None =>
+          Failure(s"The property '${PROP_REPORT_LAST_ID}' was not found in table '${slickSchema.runProperties.baseTableRow.tableName}'")
+        case Some(x) =>
+          try {
+            Full(x.toLong)
+          } catch {
+            case ex: Exception => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}' with value '${x}' as long", Full(ex), Empty)
+          }
+      }
+
+    } }
   }
 
   /**
    * Update the last id processed by the non compliant report logger
    * If not present insert it
    */
-   def updateReportLoggerLastId(newId: Long) : Box[Long] = {
-    try{
-    val updated = squerylConnectionProvider.ourTransaction {
-      update(rudderProperties)(l =>
-        where(l.id === "reportLoggerLastId")
-        set(l.value := newId.toString)
-      )
+  def updateReportLoggerLastId(newId: Long) : Future[Box[Long]] = {
+    val q = for {
+      rowsAffected <- slickSchema.runProperties
+                        .filter( _.name === PROP_REPORT_LAST_ID )
+                        .map(_.value).update(newId.toString)
+      result       <- rowsAffected match {
+                        case 0 =>
+                          logger.warn("last id not present in database, create it with value %d".format(newId))
+                          slickSchema.runProperties += DB.RunProperties(PROP_REPORT_LAST_ID, newId.toString) //insert
+                        case 1 => DBIO.successful(1)
+                        case n => DBIO.failed(new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${PROP_REPORT_LAST_ID}"))
+                      }
+    } yield {
+      result
     }
-    if (updated == 0){
-      logger.warn("last id not present in database, create it with value %d".format(newId))
-      createReportLoggerLastId(newId).map(_.value.toLong)
-    } else
-      Full(newId)
-    } catch {
-      case e : Exception => logger.error("could not update lastId from database, cause is %s".format(e.getMessage()))
-      Failure("could not update lastId from database, cause is %s".format(e.getMessage()))
+
+
+    slickSchema.db.run(q.asTry).map {
+      case TSuccess(x)  => Full(newId)
+      case TFailure(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 
-  /**
-   * add a new line containing the last id processed by the report logger
-   */
-  private[this] def createReportLoggerLastId(currentId : Long) : Box[RudderProperty] =
-    try{
-      Full(squerylConnectionProvider.ourTransaction {
-        rudderProperties.insert(RudderProperty("reportLoggerLastId",currentId.toString))
-    } )
-    } catch {
-      case e : Exception => logger.error("could not create last id: cause is %s".format(e.getMessage()))
-      Failure("could not create last id cause is %s".format(e.getMessage()))
-    }
 }

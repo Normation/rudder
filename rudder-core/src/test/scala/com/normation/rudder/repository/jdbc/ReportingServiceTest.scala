@@ -79,6 +79,7 @@ import net.liftweb.common.EmptyBox
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.rudder.db.DB
+import scala.concurrent.Await
 
 /**
  *
@@ -119,8 +120,8 @@ class ReportingServiceTest extends DBCommon {
 
   }
 
-  lazy val roAgentRun = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
-  lazy val woAgentRun = new WoReportsExecutionSquerylRepository(squerylConnectionProvider, roAgentRun)
+  lazy val roAgentRun = new RoReportsExecutionJdbcRepository(slickSchema, pgIn)
+  lazy val woAgentRun = new WoReportsExecutionSquerylRepository(slickSchema, roAgentRun)
 
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {
@@ -249,8 +250,8 @@ class ReportingServiceTest extends DBCommon {
   step {
 
     insertReports(reports.values.toSeq.flatten)
-    slickExec(slickSchema.expectedReportsTable ++= expecteds.keySet)
-    slickExec(slickSchema.expectedReportsNodesTable ++= expecteds.values.toSet.flatten)
+    slickExec(slickSchema.expectedReports ++= expecteds.keySet)
+    slickExec(slickSchema.expectedReportsNodes ++= expecteds.values.toSet.flatten)
 
     //need to be done one time for init, one time for actual work
     updateRuns.findAndSaveExecutions(42).openOrThrowException("I should be able to init the 'find and save execution'")
@@ -279,7 +280,7 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "contains runs for node" in {
-      val res = roAgentRun.getNodesLastRun(Set("n0", "n1", "n2", "n3", "n4").map(NodeId(_))).openOrThrowException("test failed")
+      val res = Await.result(roAgentRun.getNodesLastRun(Set("n0", "n1", "n2", "n3", "n4").map(NodeId(_))), MAX_TIME).openOrThrowException("test failed")
 
       res must beEqualTo(agentRuns(
           ("n0" -> None                               )

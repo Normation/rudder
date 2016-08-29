@@ -57,7 +57,7 @@ class MigrationEventLogRepository(val schema: SlickSchema) {
    * If the database does not exist or no line are present, return none.
    */
   def getLastDetectionLine: Future[Try[Option[DB.MigrationEventLog]]] = {
-    val query = schema.migrationEventLogTable.sortBy( _.id.desc ).take(1)
+    val query = schema.migrationEventLog.sortBy( _.id.desc ).take(1)
     val action = query.result.headOption
     schema.db.run(action.asTry)
   }
@@ -68,7 +68,7 @@ class MigrationEventLogRepository(val schema: SlickSchema) {
    */
   def setMigrationStartTime(id: Long, startTime: DateTime) : Future[Try[Int]] = {
     val query = for {
-      x <- schema.migrationEventLogTable
+      x <- schema.migrationEventLog
       if(x.id === id )
     } yield {
       x.migrationStartTime
@@ -84,7 +84,7 @@ class MigrationEventLogRepository(val schema: SlickSchema) {
    */
   def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : Future[Try[Int]] = {
     val query = for {
-      x <- schema.migrationEventLogTable
+      x <- schema.migrationEventLog
       if(x.id === id )
     } yield {
       (x.migrationFileFormat, x.migrationEndTime)
@@ -101,8 +101,8 @@ class MigrationEventLogRepository(val schema: SlickSchema) {
   def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : Future[Try[DB.MigrationEventLog]] = {
     val migrationEventLog = DB.MigrationEventLog(None, DateTime.now, fileFormat, None, None, None, description)
     val action = (
-        schema.migrationEventLogTable
-        returning(schema.migrationEventLogTable.map( _.id))
+        schema.migrationEventLog
+        returning(schema.migrationEventLog.map( _.id))
         into ((event, id) => event.copy(id=Some(id)))
     ) += migrationEventLog
 

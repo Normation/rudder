@@ -37,83 +37,63 @@
 
 package com.normation.rudder.reports.execution
 
-import java.sql.Timestamp
-import org.joda.time.DateTime
-import org.squeryl.KeyedEntity
-import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.Schema
-import org.squeryl.annotations.Column
-import org.squeryl.dsl.CompositeKey2
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.Try
+import scala.util.{ Failure => TFailure }
+import scala.util.{ Success => TSuccess }
+
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
-import net.liftweb.common._
-import ExecutionRepositoryUtils._
-import com.normation.rudder.domain.reports.NodeConfigId
-import java.sql.BatchUpdateException
-import java.sql.SQLException
-import org.springframework.jdbc.core.JdbcTemplate
+import com.normation.rudder.db.DB
+import com.normation.rudder.db.SlickSchema
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
-import net.liftweb.util.Helpers.tryo
-import org.springframework.jdbc.core.RowMapper
-import java.sql.ResultSet
-import com.normation.rudder.domain.reports.NodeConfigId
-import scala.collection.JavaConverters.asScalaBufferConverter
-import scala.language.implicitConversions
+
+import net.liftweb.common._
+import slick.jdbc.GetResult
 
 
 case class RoReportsExecutionJdbcRepository (
-    jdbcTemplate: JdbcTemplate
-  , pgInClause  : PostgresqlInClause
+    slickSchema: SlickSchema
+  , pgInClause : PostgresqlInClause
 ) extends RoReportsExecutionRepository with Loggable {
 
-  object AgentRunMapper extends RowMapper[(NodeId, AgentRun)] {
-    def mapRow(rs : ResultSet, rowNum: Int) : (NodeId, AgentRun) = {
+  import slickSchema.plainApi._
 
-      val nodeId = NodeId(rs.getString("nodeid"))
-      val id = AgentRunId(nodeId, new DateTime(rs.getTimestamp("date").getTime))
-      val configId = Option(rs.getString("nodeconfigid")).map(NodeConfigId(_))
-      val insertionId = rs.getLong("insertionid")
-      (nodeId, AgentRun(id, configId, rs.getBoolean("complete"), insertionId))
-    }
-  }
-
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]] = {
-    if(nodeIds.isEmpty) Full(Map())
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Future[Box[Map[NodeId, Option[AgentRun]]]] = {
+    if(nodeIds.isEmpty) Future.successful(Full(Map()))
     else {
-      import pgInClause.in
-      val query =
-        s"""SELECT DISTINCT ON (nodeid)
-           |  nodeid, date, nodeconfigid, complete, insertionid
-           |FROM  reportsexecution
-           |WHERE complete = true and ${in("nodeid", nodeIds.map(_.value))}
-           |ORDER BY nodeid, insertionId DESC""".stripMargin
+      val nodes = pgInClause.in("nodeid", nodeIds.map(_.value))
+      //needed to transform the result into AgentRuns. PlainSQL returns tuples otherwise.
+      implicit val getAgentRunResult = GetResult(r => DB.AgentRun(r.<<, r.nextZonedDateTime(), r.<<, r.<<, r.<<))
+
+      //notice the use of # ({} is forbidden) in place of ${} to interpolate the actual value of in,
+      //not make a sql parameter to the query
+      val query = sql"""SELECT DISTINCT ON (nodeid)
+                          nodeid, date, nodeconfigid, complete, insertionid
+                        FROM  reportsexecution
+                        WHERE complete = true and #${nodes}
+                        ORDER BY nodeid, insertionId DESC""".as[DB.AgentRun]
 
       val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
 
-      for {
-        entries <- tryo ( jdbcTemplate.query(query, AgentRunMapper).asScala ) ?~! errorMSg
-      } yield {
-        val res = entries.toMap
-        nodeIds.map(n => (n, res.get(n))).toMap
+      slickSchema.db.run(query.asTry).map {
+        case TSuccess(entries)  =>
+          val runs = entries.map(x => (NodeId(x.nodeId), x.asAgentRun)).toMap
+          Full(nodeIds.map(n => (n, runs.get(n))).toMap)
+        case TFailure(ex) => Failure(errorMSg + ": " + ex.getMessage, Full(ex), Empty)
       }
     }
   }
 }
 
 case class WoReportsExecutionSquerylRepository (
-    sessionProvider : SquerylConnectionProvider
-  , readExecutions  : RoReportsExecutionJdbcRepository
+    slickSchema   : SlickSchema
+  , readExecutions: RoReportsExecutionJdbcRepository
 ) extends WoReportsExecutionRepository with Loggable {
 
-  def updateExecutions(incomingExec : Seq[AgentRun]) : Box[Seq[AgentRun]] =  {
-    //"contains" is only defined regarding the primary key
-    def same(x:AgentRun, y:AgentRun) = {
-      x.agentRunId == y.agentRunId
-    }
+  import slickSchema.api._
 
-    def find(r:AgentRun, seq: Seq[AgentRun]) = {
-      seq.find(x => same(x,r))
-    }
+  def updateExecutions(runs : Seq[AgentRun]) : Future[Seq[Box[AgentRun]]] =  {
 
     //
     // Question: do we want to save an updated nodeConfigurationVersion ?
@@ -125,78 +105,66 @@ case class WoReportsExecutionSquerylRepository (
      * - already saved, completed: update them but keeping the "completed" state
      * - already saved, not completed: update them with whatever we found
      * - not already saved: insert them
+     *
+     * Note that each get-check-update_or_insert must be transactionnal, to
+     * not allow insert failure. But we don't need (at all) a big transaction
+     * wrapping ALL updates, quite the contrary.
+     * So the logic is near from an upsert, but with some more logic in the
+     * middle in case of update, to get the correct values for isCompleted/version
      */
-    try { sessionProvider.ourTransaction {
-      val existingExec = incomingExec.flatMap { execution =>
-        from(Executions.executions)(entry =>
-          where(
-                entry.nodeId === execution.agentRunId.nodeId.value
-            and entry.date   === toTimeStamp(execution.agentRunId.date)
-          )
-          select(entry)
-        )
-      }.toSeq.map(fromDB)
 
-      val toInsert = incomingExec.filter( x => find(x, existingExec).isEmpty )
+    def updateOne(ar: AgentRun) = {
+      val dbar = DB.AgentRun(
+          ar.agentRunId.nodeId.value        // String
+        , ar.agentRunId.date                // DateTume
+        , ar.nodeConfigVersion.map(_.value) // Option[String]
+        , ar.isCompleted                    // Boolean
+        , ar.insertionId                    // Long
+     )
 
-      val toUpdate =  incomingExec.flatMap( incoming =>
-                        find(incoming, existingExec)
-                        //for the one toUpdate, always keep the most recent
-                        // nodeConfigurationVersion (if not empty) and the most completed status
-                        .flatMap { existing =>
-                          val completed = incoming.isCompleted || existing.isCompleted
-                          val version = incoming.nodeConfigVersion.orElse(existing.nodeConfigVersion)
-                          val toSave = incoming.copy( isCompleted = completed, nodeConfigVersion = version)
-                          if(toSave == existing) {
-                            None
-                          } else {
-                            Some(toSave)
+      val select = (slickSchema.agentRun.filter(x => x.nodeId === dbar.nodeId && x.date === dbar.date ))
+      val update = select.map(x => (x.nodeConfigId, x.isCompleted, x.insertionId))
+      val insert = (slickSchema.agentRun += dbar)
+
+      //no update of nodeId/date
+
+      // need ? : http://stackoverflow.com/questions/14621172/how-do-you-change-lifted-types-back-to-scala-types-when-using-slick-lifted-embed
+
+      //the whole logic put together
+      /*
+       * We return an Try[Option[AgentRun]], if None => no upsert done (no modification)
+       */
+      val action = (for {
+        existing <- select.result
+        result   <- existing.headOption match {
+                      case None           => insert.map( _ => Some(dbar) ).asTry
+                      case Some(existing) => // if it's exactly the same element, don't update it
+                       val reverted = existing.isCompleted && !dbar.isCompleted
+                       if( reverted || existing == dbar ) { // does nothing if equals or isCompleted reverted to false
+                          DBIO.successful(TSuccess(None))
+                       } else {
+                         val version = dbar.nodeConfigId.orElse(existing.nodeConfigId)
+                         val completed = dbar.isCompleted || existing.isCompleted
+                          update.update((version, completed, dbar.insertionId)).asTry.map {
+                            case TSuccess(x)  => TSuccess(Some(dbar))
+                            case TFailure(ex) => TFailure(ex)
                           }
                         }
-                      )
+                    }
+      } yield {
+        result
+      }).transactionally
 
-      val updated = Executions.executions.update(toUpdate.map( toDB(_) ))
-      val inserted = Executions.executions.insert(toInsert.map( toDB(_) ))
-
-      Full(toInsert ++ toUpdate)
-
-    } } catch {
-      case e:SQLException  =>
-        val msg = s"Error when trying to update nodes report executions, reason is ${e.getMessage()}"
-        logger.error(msg, e)
-        logger.error(e.getNextException)
-        Failure(msg)
+      action
     }
+
+    // run the sequences of upsert, filter out "Full(None)" meaning nothing was done
+    slickSchema.db.run(DBIO.sequence(runs.map(updateOne))).map { seq => seq.flatMap {
+      case TSuccess(Some(x)) => Some(Full(x.asAgentRun))
+      case TSuccess(None)    => None
+      case TFailure(ex)      => Some(Failure(s"Error when updatating last agent runs information: ${ex.getMessage()}"))
+    } }
   }
 
 }
 
-object ExecutionRepositoryUtils {
-  implicit def toTimeStamp(d:DateTime) : Timestamp = {
-    new Timestamp(d.getMillis)
-  }
-
-  implicit def toDB (execution : AgentRun)  : DBAgentRun = {
-    DBAgentRun(execution.agentRunId.nodeId.value, execution.agentRunId.date, execution.nodeConfigVersion.map(_.value), execution.isCompleted, execution.insertionId)
-  }
-
-  implicit def fromDB (execution : DBAgentRun)  : AgentRun = {
-    AgentRun(AgentRunId(NodeId(execution.nodeId), new DateTime(execution.date)), execution.nodeConfigId.map(NodeConfigId(_)), execution.isCompleted, execution.insertionId)
-  }
-}
-
-
-object Executions extends Schema {
-  val executions = table[DBAgentRun]("reportsexecution")
-}
-
-case class DBAgentRun (
-    @Column("nodeid")   nodeId        : String
-  , @Column("date")     date          : Timestamp
-  , @Column("nodeconfigid") nodeConfigId : Option[String]
-  , @Column("complete") isCompleted   : Boolean
-  , @Column("insertionid") insertionId: Long
-) extends KeyedEntity[CompositeKey2[String,Timestamp]] {
-
-  def id = compositeKey(nodeId,date)
-}

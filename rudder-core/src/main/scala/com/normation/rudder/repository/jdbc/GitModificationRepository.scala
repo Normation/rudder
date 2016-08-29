@@ -20,7 +20,7 @@ class SlickGitModificationRepository(
   import schema.api._
 
   def addCommit(commit: GitCommitId, modId: ModificationId) : Future[Box[DB.GitCommitJoin]] = {
-    val action = (schema.gitCommitJoinTable += GitCommitJoin(commit, modId))
+    val action = (schema.gitCommitJoin += GitCommitJoin(commit, modId))
     schema.db.run(action.asTry).map { res => res match {
       case TSuccess(x) => Full(DB.GitCommitJoin(commit, modId))
       case TFailure(ex) => Failure(s"Error when trying to add a Git Commit in DB: ${ex.getMessage}", Full(ex), Empty)
@@ -31,7 +31,7 @@ class SlickGitModificationRepository(
 
     val q = (
       for {
-        commit <- schema.gitCommitJoinTable
+        commit <- schema.gitCommitJoin
         if(commit.modificationId === modificationId.value) //.value on right seems strange, I may be something about the mapping
       } yield {
         commit

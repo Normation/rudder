@@ -112,7 +112,7 @@ trait ReportsRepository {
   def getNewestReports() : Box[Option[Reports]]
   def getNewestArchivedReports() : Box[Option[Reports]]
   def getDatabaseSize(databaseName : String) : Box[Long]
-  def reportsTable : String
+  def reports : String
   def archiveTable : String
   def archiveEntries(date : DateTime) : Box[Int]
   def deleteEntries(date : DateTime) : Box[Int]

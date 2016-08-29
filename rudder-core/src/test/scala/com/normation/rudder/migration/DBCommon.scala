@@ -216,7 +216,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
     slickExec {
       import slickSchema.api._
-      slickSchema.reportsTable ++= slickReports
+      slickSchema.reports ++= slickReports
     }
   }
 }

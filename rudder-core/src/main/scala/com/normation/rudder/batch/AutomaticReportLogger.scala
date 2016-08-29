@@ -52,6 +52,8 @@ import com.normation.rudder.services.nodes.NodeInfoService
 
 import net.liftweb.actor._
 import net.liftweb.common._
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 
 /**
@@ -95,7 +97,7 @@ class AutomaticReportLogger(
 
     override protected def messageHandler = {
       case StartAutomaticReporting =>
-        propertyRepository.getReportLoggerLastId match {
+        Await.result(propertyRepository.getReportLoggerLastId, Duration.Inf) match {
           // Report logger was not running before, try to log the last hundred reports and initialize lastId
           case Empty =>
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
@@ -222,7 +224,7 @@ class AutomaticReportLogger(
     def updateLastId(newId : Long) : Unit = {
       //don't blow the stack
       def maxTry(tried: Int): Unit = {
-        propertyRepository.updateReportLoggerLastId(newId) match {
+        Await.result(propertyRepository.updateReportLoggerLastId(newId), Duration.Inf) match {
           case f:Full[_]    =>
             //ok, nothing to do
           case eb:EmptyBox  =>

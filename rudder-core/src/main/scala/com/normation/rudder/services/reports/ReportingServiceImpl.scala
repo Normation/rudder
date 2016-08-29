@@ -59,6 +59,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
+import scala.concurrent.duration.Duration
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -321,7 +322,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       runs              <- complianceMode.mode match {
                             //this is an optimisation to avoid querying the db in that case
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
-                             case _ => agentRunRepository.getNodesLastRun(nodeIds)
+                             case _ => Await.result(agentRunRepository.getNodesLastRun(nodeIds), Duration.Inf)
                            }
       nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
       runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)

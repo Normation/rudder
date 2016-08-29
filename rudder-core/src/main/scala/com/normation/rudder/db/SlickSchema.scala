@@ -51,6 +51,10 @@ import org.joda.time.DateTime
 import javax.sql.DataSource
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.reports.execution.{ AgentRun => RudderAgentRun }
+import com.normation.rudder.reports.execution.AgentRunId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.reports.NodeConfigId
 
 
 
@@ -64,75 +68,12 @@ import com.normation.rudder.repository.GitCommitId
  * Convention: all case classes declared here are under the DB object
  * and should always be used with that prefix, for ex:
  *
- * DB.ExpectedReports
+ * ExpectedReports
  *
- * (i.e, we should never do "import DB._"
+ * (i.e, we should never do "import _"
  */
 
 final object DB {
-
-  final case class MigrationEventLog(
-      id                 : Option[Long]
-    , detectionTime      : DateTime
-    , detectedFileFormat : Long
-    , migrationStartTime : Option[DateTime]
-    , migrationEndTime   : Option[DateTime]
-    , migrationFileFormat: Option[Long]
-    , description        : Option[String]
-  )
-
-  final case class ExpectedReports(
-      pkId                      : Option[Int]
-    , nodeJoinKey               : Int
-    , ruleId                    : String
-    , serial                    : Int
-    , directiveId               : String
-    , component                 : String
-    , cardinality               : Int
-    , componentsValues          : String
-    , unexpandedComponentsValues: String
-    , beginDate                 : DateTime
-    , endDate                   : Option[DateTime]
-  )
-
-  final case class ExpectedReportsNodes(
-      nodeJoinKey        : Int
-    , nodeId             : String
-    , nodeConfigVersions : List[String]
-  )
-
-  final case class Reports(
-      id                 : Option[Long]
-    , executionDate      : DateTime
-    , nodeId             : String
-    , directiveId        : String
-    , ruleId             : String
-    , serial             : Int
-    , component          : String
-    , keyValue           : String
-    , executionTimestamp : DateTime
-    , eventType          : String
-    , policy             : String
-    , msg                : String
-  )
-
-  final case class GitCommitJoin (
-      gitCommit     : GitCommitId
-    , modificationId: ModificationId
-  )
-
-}
-
-
-/**
- *
- * That file contains Slick schema
- *
- * Use it by importing slickschema.api._
- *
- *
- */
-class SlickSchema(datasource: DataSource) {
   /*
    * That class defines mapping for Slick.
    * It also provides specific mapper for
@@ -151,9 +92,7 @@ class SlickSchema(datasource: DataSource) {
                             with PgDateSupportJoda
   {
 
-    override val api = MyAPI
-
-    object MyAPI extends API with ArrayImplicits
+    override val api = new API with ArrayImplicits
                              with NetImplicits
                              with LTreeImplicits
                              with RangeImplicits
@@ -161,25 +100,31 @@ class SlickSchema(datasource: DataSource) {
                              with SearchImplicits
                              with SearchAssistants
                              with JodaDateTimeImplicits
-    {
-      implicit val strListTypeMapper = new SimpleArrayJdbcType[String]("text").to(_.toList)
-    }
-  }
+
+    val plainApi = new API with JodaDateTimePlainImplicits
+   }
 
   object Driver extends RudderDriver
 
-  val api = Driver.api
-  import api._
-  val db  = Database.forDataSource(datasource)
+  import Driver.api._
 
+  /**
+   * Object <-> Table mapping
+   */
 
-  val expectedReportsTable      = TableQuery[ExpectedReportsTable]
-  val migrationEventLogTable    = TableQuery[MigrationEventLogTable]
-  val expectedReportsNodesTable = TableQuery[ExpectedReportsNodesTable]
-  val reportsTable              = TableQuery[ReportsTable]
-  val gitCommitJoinTable        = TableQuery[GitCommitJoinTable]
+  //////////
 
-  class MigrationEventLogTable(tag: Tag) extends Table[DB.MigrationEventLog](tag, "migrationeventlog") {
+  final case class MigrationEventLog(
+      id                 : Option[Long]
+    , detectionTime      : DateTime
+    , detectedFileFormat : Long
+    , migrationStartTime : Option[DateTime]
+    , migrationEndTime   : Option[DateTime]
+    , migrationFileFormat: Option[Long]
+    , description        : Option[String]
+  )
+
+  class TableMigrationEventLog(tag: Tag) extends Table[MigrationEventLog](tag, "migrationeventlog") {
     def id                  = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def detectionTime       = column[DateTime]("detectiontime")
     def detectedFileFormat  = column[Long]("detectedfileformat")
@@ -191,10 +136,28 @@ class SlickSchema(datasource: DataSource) {
     def * = (
         id.?,  detectionTime, detectedFileFormat, migrationStartTime
       , migrationEndTime, migrationFileFormat, description
-    ) <> (DB.MigrationEventLog.tupled, DB.MigrationEventLog.unapply)
+    ) <> (MigrationEventLog.tupled, MigrationEventLog.unapply)
   }
 
-  class ExpectedReportsTable(tag: Tag) extends Table[DB.ExpectedReports](tag, "expectedreports") {
+
+  //////////
+
+
+  final case class ExpectedReports(
+      pkId                      : Option[Int]
+    , nodeJoinKey               : Int
+    , ruleId                    : String
+    , serial                    : Int
+    , directiveId               : String
+    , component                 : String
+    , cardinality               : Int
+    , componentsValues          : String
+    , unexpandedComponentsValues: String
+    , beginDate                 : DateTime
+    , endDate                   : Option[DateTime]
+  )
+
+  class TableExpectedReports(tag: Tag) extends Table[ExpectedReports](tag, "expectedreports") {
     def pkId                       = column[Int]("pkid", O.PrimaryKey, O.AutoInc) // This is the primary key column
     def nodeJoinKey                = column[Int]("nodejoinkey")
     def ruleId                     = column[String]("ruleid")
@@ -211,10 +174,19 @@ class SlickSchema(datasource: DataSource) {
     def * = (
         pkId.?, nodeJoinKey, ruleId, serial, directiveId, component
       , cardinality, componentsValues, unexpandedComponentsValues, beginDate, endDate
-    ) <> (DB.ExpectedReports.tupled, DB.ExpectedReports.unapply)
+    ) <> (ExpectedReports.tupled, ExpectedReports.unapply)
   }
 
-  class ExpectedReportsNodesTable(tag: Tag) extends Table[DB.ExpectedReportsNodes](tag, "expectedreportsnodes") {
+
+  //////////
+
+  final case class ExpectedReportsNodes(
+      nodeJoinKey        : Int
+    , nodeId             : String
+    , nodeConfigVersions : List[String]
+  )
+
+  class TableExpectedReportsNodes(tag: Tag) extends Table[ExpectedReportsNodes](tag, "expectedreportsnodes") {
     def nodeJoinKey        = column[Int]("nodejoinkey")
     def nodeId             = column[String]("nodeid")
     def nodeConfigVersions = column[List[String]]("nodeconfigids")
@@ -222,16 +194,29 @@ class SlickSchema(datasource: DataSource) {
     // Every table needs a * projection with the same type as the table's type parameter
     def * = (
       nodeJoinKey, nodeId, nodeConfigVersions
-    ) <> (DB.ExpectedReportsNodes.tupled, DB.ExpectedReportsNodes.unapply)
+    ) <> (ExpectedReportsNodes.tupled, ExpectedReportsNodes.unapply)
     def pk = primaryKey("pk_expectedreportsnodes", (nodeJoinKey, nodeId))
   }
 
 
-  /*
-   * **************************** Reports table ****************************
-   */
+  //////////
 
-  class ReportsTable(tag: Tag) extends Table[DB.Reports](tag, "ruddersysevents") {
+  final case class Reports(
+      id                 : Option[Long]
+    , executionDate      : DateTime
+    , nodeId             : String
+    , directiveId        : String
+    , ruleId             : String
+    , serial             : Int
+    , component          : String
+    , keyValue           : String
+    , executionTimestamp : DateTime
+    , eventType          : String
+    , policy             : String
+    , msg                : String
+  )
+
+  class TableReports(tag: Tag) extends Table[Reports](tag, "ruddersysevents") {
     def id                 = column[Long]("id", O.PrimaryKey, O.AutoInc) // This is the primary key column
     def executionDate      = column[DateTime]("executiondate")
     def nodeId             = column[String]("nodeid")
@@ -249,25 +234,104 @@ class SlickSchema(datasource: DataSource) {
     def * = (
         id.?, executionDate, nodeId, directiveId, ruleId, serial
       , component, keyValue, executionTimeStamp, eventType, policy, msg
-    ) <> (DB.Reports.tupled, DB.Reports.unapply)
+    ) <> (Reports.tupled, Reports.unapply)
   }
 
 
-  def toSlickReport(r:Reports): DB.Reports = {
-    DB.Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
-        , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
-  }
+  //////////
 
-  class GitCommitJoinTable(tag: Tag) extends Table[DB.GitCommitJoin](tag, "gitcommit") {
+  final case class GitCommitJoin (
+      gitCommit     : GitCommitId
+    , modificationId: ModificationId
+  )
+
+  class TableGitCommitJoin(tag: Tag) extends Table[GitCommitJoin](tag, "gitcommit") {
     def gitCommit      = column[String]("gitcommit", O.PrimaryKey)
     def modificationId = column[String]("modificationid")
 
     //needed to map nested case classes
-    private[this] def toModel(t2: (String, String)) = DB.GitCommitJoin(GitCommitId(t2._1), ModificationId(t2._2))
-    private[this] def toTuples(m: DB.GitCommitJoin) = Some((m.gitCommit.value, m.modificationId.value))
+    private[this] def toModel(t2: (String, String)) = GitCommitJoin(GitCommitId(t2._1), ModificationId(t2._2))
+    private[this] def toTuples(m: GitCommitJoin) = Some((m.gitCommit.value, m.modificationId.value))
     private[this] val shape = (gitCommit, modificationId).shaped[(String, String)]
     def * = shape <> (toModel, toTuples)
   }
+
+
+  //////////
+
+  final case class RunProperties (
+      name : String
+    , value: String
+  )
+
+  class TableRunProperties(tag: Tag) extends Table[RunProperties](tag, "rudderproperties") {
+    def name  = column[String]("name", O.PrimaryKey)
+    def value = column[String]("value")
+
+    def * = (name, value) <> (RunProperties.tupled, RunProperties.unapply)
+  }
+
+  //////////
+
+  final case class AgentRun(
+      nodeId      : String
+    , date        : DateTime
+    , nodeConfigId: Option[String]
+    , isCompleted : Boolean
+    , insertionId : Long // PURPOSE ?
+  ) {
+    def asAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), isCompleted, insertionId)
+  }
+
+  class TableAgentRun(tag: Tag) extends Table[AgentRun](tag, "reportsexecution") {
+    def nodeId      = column[String]("nodeid")
+    def date        = column[DateTime]("date")
+    def nodeConfigId= column[Option[String]]("nodeconfigid")
+    def isCompleted = column[Boolean]("complete")
+
+
+    /*
+     * WHAT IS THE GOAL OF THAT ? SHOULD WE SORT BY IT OR SOMETHING, SOMEWHERE ?
+     */
+    def insertionId = column[Long]("insertionid")
+
+    def * = (nodeId, date, nodeConfigId, isCompleted, insertionId) <>
+            (AgentRun.tupled, AgentRun.unapply)
+
+    def pk = primaryKey("pk", (nodeId, date))
+  }
+}
+
+
+/**
+ *
+ * That file contains Slick schema
+ *
+ * Use it by importing slickschema.api._
+ *
+ *
+ */
+class SlickSchema(datasource: DataSource) {
+
+  val plainApi = DB.Driver.plainApi
+  val api = DB.Driver.api
+  val db  = DB.Driver.api.Database.forDataSource(datasource)
+
+  import api._
+
+  val expectedReports      = TableQuery[DB.TableExpectedReports]
+  val migrationEventLog    = TableQuery[DB.TableMigrationEventLog]
+  val expectedReportsNodes = TableQuery[DB.TableExpectedReportsNodes]
+  val reports              = TableQuery[DB.TableReports]
+  val gitCommitJoin        = TableQuery[DB.TableGitCommitJoin]
+  val runProperties        = TableQuery[DB.TableRunProperties]
+  val agentRun             = TableQuery[DB.TableAgentRun]
+
+//  def toSlickReport(r:Reports): Reports = {
+//    Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
+//        , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
+//  }
+
 
 }
 

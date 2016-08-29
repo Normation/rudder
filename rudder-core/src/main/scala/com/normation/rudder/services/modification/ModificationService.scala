@@ -58,7 +58,7 @@ class ModificationService(
     eventLog.modificationId match {
       case None        => None
       case Some(modId) =>
-        Try(Await.result(gitModificationRepository.getCommits(modId), Duration(200, TimeUnit.MILLISECONDS))) match {
+        Try(Await.result(gitModificationRepository.getCommits(modId), Duration.Inf)) match {
         case TSuccess(Full(s))     => s.headOption
         case TSuccess(eb:EmptyBox) => None
         case TFailure(ex) => Failure(s"Error when finding back commit ID for modification ID '${modId.value}': ${ex.getMessage}", Full(ex), Empty)

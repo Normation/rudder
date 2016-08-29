@@ -37,22 +37,26 @@
 
 package com.normation.rudder.reports.execution
 
-import org.joda.time.DateTime
-import com.normation.rudder.batch.FindNewReportsExecution
-import com.normation.rudder.reports.statusUpdate.StatusUpdateRepository
-import com.normation.rudder.repository.ReportsRepository
-import net.liftweb.common._
-import com.normation.rudder.domain.logger.ReportLogger
-import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import java.util.concurrent.TimeUnit
+
 import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.util.Success
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
+
 import com.normation.inventory.domain.NodeId
-import org.joda.time.Duration
-import org.joda.time.format.PeriodFormat
-import org.joda.time.format.DateTimeFormat
+import com.normation.rudder.batch.FindNewReportsExecution
+import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.reports.statusUpdate.StatusUpdateRepository
 import com.normation.rudder.reports.statusUpdate.UpdateEntry
+import com.normation.rudder.repository.ReportsRepository
+import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
+import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
+import com.normation.utils.Control
+
+import org.joda.time.DateTime
+import org.joda.time.format.PeriodFormat
+
+import net.liftweb.common._
 
 /**
  * That service contains most of the logic to merge
@@ -112,7 +116,7 @@ class ReportsExecutionService (
 
 
               // Save new executions
-              val res = writeExecutions.updateExecutions(reportExec) match {
+              val res = Control.boxSequence(Await.result(writeExecutions.updateExecutions(reportExec), Duration.Inf)) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
                   logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
@@ -221,7 +225,7 @@ class ReportsExecutionService (
           logger.trace("Cache for compliance updates after new run received")
       }
     }
-
+    import org.joda.time.Duration
     logger.debug(s"Hooks execution time: ${PeriodFormat.getDefault().print(Duration.millis(System.currentTimeMillis - startHooks).toPeriod())}")
 
   }

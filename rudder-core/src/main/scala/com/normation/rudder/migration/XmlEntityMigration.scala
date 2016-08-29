@@ -1,29 +1,29 @@
 package com.normation.rudder.migration
 
-import scala.xml.Elem
-import net.liftweb.common._
-import com.normation.rudder.domain.logger.MigrationLogger
-import scala.xml.NodeSeq
-import net.liftweb.util.Helpers.tryo
-import org.springframework.jdbc.core.JdbcTemplate
-import scala.collection.JavaConverters.asScalaBufferConverter
-import org.springframework.jdbc.core.BatchPreparedStatementSetter
-import com.normation.utils.Control._
-import org.springframework.jdbc.core.RowMapper
-import java.sql.Timestamp
-import java.util.Calendar
-import com.normation.utils.XmlUtils
-import scala.xml.Node
 import java.sql.PreparedStatement
-import com.normation.rudder.domain.logger.MigrationLogger
-import scala.xml.XML
 import java.sql.ResultSet
-import com.normation.rudder.db.DB
+import java.util.concurrent.TimeUnit
+
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import java.util.concurrent.TimeUnit
-import com.normation.rudder.db.SlickSchema
+import scala.xml.Elem
+import scala.xml.Node
+import scala.xml.NodeSeq
+import scala.xml.XML
+
+import com.normation.rudder.db.DB
+import com.normation.rudder.domain.logger.MigrationLogger
+import com.normation.utils.Control. _
+import com.normation.utils.XmlUtils
+
 import org.joda.time.DateTime
+import org.springframework.jdbc.core.BatchPreparedStatementSetter
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
+
+import net.liftweb.common._
+import net.liftweb.util.Helpers.tryo
+import scala.collection.JavaConverters.asScalaBufferConverter
 
 /**
  * specify from/to version
@@ -156,8 +156,7 @@ case class MigrationChangeRequest(
  */
 trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-  import scala.util.{Success => TSuccess, Failure => TFailure}
+  import scala.util.{ Failure => TFailure, Success => TSuccess }
 
   val MAX_QUERY_TIME = Duration(10, TimeUnit.SECONDS)
 
@@ -175,11 +174,11 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
     /*
      * test is we have to migrate, and execute migration
      */
-    Await.result(migrationEventLogRepository.getLastDetectionLine, Duration(500, TimeUnit.MILLISECONDS)) match {
+    Await.result(migrationEventLogRepository.getLastDetectionLine, Duration.Inf) match {
         case TFailure(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
         case TSuccess(None) =>
           logger.info(s"No migration detected by migration script (table '${
-            migrationEventLogRepository.schema.migrationEventLogTable.baseTableRow.tableName
+            migrationEventLogRepository.schema.migrationEventLog.baseTableRow.tableName
           }' is empty or does not exists)")
           Full(NoMigrationRequested)
 
