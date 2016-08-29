@@ -144,7 +144,7 @@ class AcceptNode {
 
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
-      case f@Failure(_,_,_) => <div>Error while retriving server to confirm</div>
+      case f@Failure(_,_,_) => <div>Error while retrieving pending nodes list</div>
       case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""correctButtons();""") ) )
     }
   }
