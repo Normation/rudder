@@ -63,7 +63,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
   import slickSchema.api._
 
-  val repos = new SlickGitModificationRepository(slickSchema)
+  val repos = new GitModificationRepositoryImpl(slickSchema)
 
   implicit def toCommitId(s: String) = GitCommitId(s)
   implicit def toModId(s: String) = ModificationId(s)

@@ -120,8 +120,8 @@ class ReportingServiceTest extends DBCommon {
 
   }
 
-  lazy val roAgentRun = new RoReportsExecutionJdbcRepository(slickSchema, pgIn)
-  lazy val woAgentRun = new WoReportsExecutionSquerylRepository(slickSchema, roAgentRun)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(slickSchema, pgIn)
+  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(slickSchema, roAgentRun)
 
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {

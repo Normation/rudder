@@ -44,8 +44,8 @@ import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.migration.DBCommon
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.rudder.reports.execution.RoReportsExecutionJdbcRepository
-import com.normation.rudder.reports.execution.WoReportsExecutionSquerylRepository
+import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl
+import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
 
 import org.joda.time.DateTime
 
@@ -73,8 +73,8 @@ class AgentRunsTest extends DBCommon {
   }
 
 
-  lazy val roRunRepo = new RoReportsExecutionJdbcRepository(slickSchema, new PostgresqlInClause(2))
-  lazy val woRunRepo = new WoReportsExecutionSquerylRepository(slickSchema, roRunRepo)
+  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(slickSchema, new PostgresqlInClause(2))
+  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(slickSchema, roRunRepo)
 
 
   val (n1, n2) = (NodeId("n1"), NodeId("n2"))

@@ -65,13 +65,6 @@ trait HistorizationRepository {
   def getAllOpenedNodes() : Seq[SerializedNodes]
 
   /**
-   * Return all nodes that have been updated or created after a specific time (optionnal),
-   * If fetchUnclosed is set to true, it will also return the opened nodes, regardless of their
-   * opening time
-   */
-  def getAllNodes(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedNodes]
-
-  /**
    * Update a list of nodes, and close (end) another list, based on their id
    * Updating is really only setting now as a endTime for nodes, and creating them after
    */

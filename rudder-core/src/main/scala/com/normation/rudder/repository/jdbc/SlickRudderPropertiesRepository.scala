@@ -49,7 +49,7 @@ import net.liftweb.common._
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
 
-class SlickRudderPropertiesRepository(
+class RudderPropertiesRepositoryImpl(
      slickSchema      : SlickSchema
    , reportsRepository: ReportsRepository
 ) extends RudderPropertiesRepository with Loggable {

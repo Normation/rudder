@@ -14,7 +14,7 @@ import com.normation.rudder.repository.GitModificationRepository
 
 import net.liftweb.common._
 
-class SlickGitModificationRepository(
+class GitModificationRepositoryImpl(
     schema : SlickSchema
 ) extends GitModificationRepository {
   import schema.api._

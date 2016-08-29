@@ -95,7 +95,6 @@ import logger.MigrationLogger
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import net.liftweb.common._
 import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
-import com.normation.rudder.repository.squeryl._
 import com.normation.rudder.repository._
 import com.normation.rudder.services.modification.ModificationService
 import com.typesafe.config.Config
@@ -149,6 +148,8 @@ import org.apache.commons.io.FileUtils
 import com.normation.templates.FillTemplatesService
 
 import com.normation.rudder.web.rest.technique._
+import com.normation.rudder.db.SlickSchema
+
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -1005,6 +1006,7 @@ object RudderConfig extends Loggable {
   ////////////////////////////////////
 
   ///// end /////
+
   private[this] lazy val logRepository = new EventLogJdbcRepository(jdbcTemplate,eventLogFactory)
   private[this] lazy val inventoryLogEventServiceImpl = new InventoryEventLogServiceImpl(logRepository)
   private[this] lazy val licenseRepository = new LicenseRepositoryXML(RUDDER_DIR_LICENSESFOLDER + "/" + licensesConfiguration)
@@ -1143,7 +1145,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val woParameterServiceImpl = new WoParameterServiceImpl(roParameterServiceImpl, woLDAPParameterRepository, asyncDeploymentAgentImpl)
 
   ///// items archivers - services that allows to transform items to XML and save then on a Git FS /////
-  private[this] lazy val gitModificationRepository = new GitModificationSquerylRepository(squerylDatasourceProvider)
+  private[this] lazy val gitModificationRepository = new GitModificationRepositoryImpl(slickSchema)
   private[this] lazy val gitRuleArchiver: GitRuleArchiver = new GitRuleArchiverImpl(
       gitRepo
     , new File(RUDDER_DIR_GITROOT)
@@ -1494,11 +1496,13 @@ object RudderConfig extends Loggable {
       updateExpectedRepo
     , updateExpectedRepo
   )
+
   private[this] lazy val pgIn = new PostgresqlInClause(70)
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
   private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, transactionManager, findExpectedRepo, findExpectedRepo)
   private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
+  private[this] lazy val slickSchema = new SlickSchema(dataSourceProvider.datasource)
   private[this] lazy val squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
   private[this] lazy val jdbcTemplate = {
     val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
@@ -1650,7 +1654,7 @@ object RudderConfig extends Loggable {
    * Event log migration
    */
 
-  private[this] lazy val migrationRepository = new MigrationEventLogRepository(squerylDatasourceProvider)
+  private[this] lazy val migrationRepository = new MigrationEventLogRepository(slickSchema)
 
   private[this] lazy val eventLogsMigration_2_3 = new EventLogsMigration_2_3(
       jdbcTemplate        = jdbcTemplate
@@ -1818,8 +1822,8 @@ object RudderConfig extends Loggable {
     , roLdapDirectiveRepository
     , reportingServiceImpl
     , techniqueRepositoryImpl)
-  private[this] lazy val propertyRepository = new RudderPropertiesSquerylRepository(
-      squerylDatasourceProvider
+  private[this] lazy val propertyRepository = new RudderPropertiesRepositoryImpl(
+      slickSchema
     , reportsRepository )
   private[this] lazy val autoReportLogger = new AutomaticReportLogger(
       propertyRepository
@@ -1837,14 +1841,14 @@ object RudderConfig extends Loggable {
    * Agent runs: we use a cache for them.
    */
   private[this] lazy val cachedAgentRunRepository = {
-    val roRepo = new RoReportsExecutionJdbcRepository(jdbcTemplate, pgIn)
+    val roRepo = new RoReportsExecutionRepositoryImpl(slickSchema, pgIn)
     new CachedReportsExecutionRepository(
         roRepo
-      , new WoReportsExecutionSquerylRepository(squerylDatasourceProvider, roRepo )
+      , new WoReportsExecutionRepositoryImpl(slickSchema, roRepo )
     )
   }
 
-  val updatesEntryJdbcRepository = new StatusUpdateSquerylRepository(squerylDatasourceProvider)
+  val updatesEntryJdbcRepository = new SlickStatusUpdateRepository(slickSchema)
 
   val executionService = {
     val max   = if (RUDDER_REPORTS_EXECUTION_MAX_DAYS > 0) {

@@ -63,6 +63,8 @@ import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -141,7 +143,7 @@ class SrvGrid(
   ) = {
 
     val now = System.currentTimeMillis
-    val runs = roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
+    val runs = Await.result(roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet), Duration.Inf)
 
     if(TimingDebugLogger.isDebugEnabled) {
       TimingDebugLogger.debug(s"Get all last run date time: ${System.currentTimeMillis - now} ms")

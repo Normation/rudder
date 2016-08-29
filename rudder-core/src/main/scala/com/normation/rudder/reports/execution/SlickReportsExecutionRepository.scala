@@ -52,7 +52,7 @@ import net.liftweb.common._
 import slick.jdbc.GetResult
 
 
-case class RoReportsExecutionJdbcRepository (
+case class RoReportsExecutionRepositoryImpl (
     slickSchema: SlickSchema
   , pgInClause : PostgresqlInClause
 ) extends RoReportsExecutionRepository with Loggable {
@@ -86,9 +86,9 @@ case class RoReportsExecutionJdbcRepository (
   }
 }
 
-case class WoReportsExecutionSquerylRepository (
+case class WoReportsExecutionRepositoryImpl (
     slickSchema   : SlickSchema
-  , readExecutions: RoReportsExecutionJdbcRepository
+  , readExecutions: RoReportsExecutionRepositoryImpl
 ) extends WoReportsExecutionRepository with Loggable {
 
   import slickSchema.api._
