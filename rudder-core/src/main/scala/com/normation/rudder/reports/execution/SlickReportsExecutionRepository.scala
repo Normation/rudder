@@ -122,9 +122,9 @@ case class WoReportsExecutionSquerylRepository (
         , ar.insertionId                    // Long
      )
 
-      val select = (slickSchema.agentRun.filter(x => x.nodeId === dbar.nodeId && x.date === dbar.date ))
+      val select = (slickSchema.agentRuns.filter(x => x.nodeId === dbar.nodeId && x.date === dbar.date ))
       val update = select.map(x => (x.nodeConfigId, x.isCompleted, x.insertionId))
-      val insert = (slickSchema.agentRun += dbar)
+      val insert = (slickSchema.agentRuns += dbar)
 
       //no update of nodeId/date
 

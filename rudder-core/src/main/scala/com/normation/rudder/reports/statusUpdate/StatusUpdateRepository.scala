@@ -37,6 +37,8 @@
 
 package com.normation.rudder.reports.statusUpdate
 
+import scala.concurrent.Future
+import com.normation.rudder.db.DB
 import org.joda.time.DateTime
 import net.liftweb.common.Box
 
@@ -51,8 +53,8 @@ trait StatusUpdateRepository {
    * database.
    */
 
-  def getExecutionStatus : Box[Option[(Long,DateTime)]]
+  def getExecutionStatus : Future[Box[Option[(Long,DateTime)]]]
 
-  def setExecutionStatus (newId : Long, reportsDate : DateTime) : Box[UpdateEntry]
+  def setExecutionStatus (newId : Long, reportsDate : DateTime) : Future[Box[DB.StatusUpdate]]
 
 }

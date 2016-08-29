@@ -298,8 +298,26 @@ final object DB {
     def * = (nodeId, date, nodeConfigId, isCompleted, insertionId) <>
             (AgentRun.tupled, AgentRun.unapply)
 
-    def pk = primaryKey("pk", (nodeId, date))
+    def pk = primaryKey("pk_reportsexecution", (nodeId, date))
   }
+
+  //////////
+
+  case class StatusUpdate(
+      key    : String
+    , lastId : Long
+    , date   : DateTime
+  )
+
+  class TableStatusUpdate(tag: Tag) extends Table[StatusUpdate](tag, "statusupdate") {
+    def key    = column[String]("key", O.PrimaryKey)
+    def lastId = column[Long]("lastid")
+    def date   = column[DateTime]("date")
+
+    def * = (key, lastId, date) <> (StatusUpdate.tupled, StatusUpdate.unapply)
+  }
+
+
 }
 
 
@@ -325,7 +343,8 @@ class SlickSchema(datasource: DataSource) {
   val reports              = TableQuery[DB.TableReports]
   val gitCommitJoin        = TableQuery[DB.TableGitCommitJoin]
   val runProperties        = TableQuery[DB.TableRunProperties]
-  val agentRun             = TableQuery[DB.TableAgentRun]
+  val agentRuns            = TableQuery[DB.TableAgentRun]
+  val statusUpdates        = TableQuery[DB.TableStatusUpdate]
 
 //  def toSlickReport(r:Reports): Reports = {
 //    Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial

@@ -37,90 +37,63 @@
 
 package com.normation.rudder.reports.statusUpdate
 
-import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.Schema
-import org.squeryl.annotations.Column
-import net.liftweb.common._
-import com.normation.rudder.repository.jdbc._
-import java.sql.Timestamp
-import org.squeryl.KeyedEntity
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{ Failure => TFailure }
+import scala.util.{ Success => TSuccess }
+
+import com.normation.rudder.db.DB
+import com.normation.rudder.db.SlickSchema
+
 import org.joda.time.DateTime
-import net.liftweb.util.Helpers.tryo
 
-class StatusUpdateSquerylRepository (
-    sessionProvider : SquerylConnectionProvider
+
+
+import net.liftweb.common._
+
+class SlickStatusUpdateRepository (
+    slickSchema: SlickSchema
 ) extends StatusUpdateRepository with Loggable {
-  import StatusUpdate._
+  import slickSchema.api._
+
+  val PROP_EXECUTION_STATUS = "executionStatus"
 
 
-  def getExecutionStatus : Box[Option[(Long,DateTime)]] = {
-    getValue(executionStatus)
-  }
+  private[this] val queryGet = Compiled(slickSchema.statusUpdates
+                                            .filter( _.key === PROP_EXECUTION_STATUS)
+                                            .map(x => (x.lastId, x.date))
+                                          )
+  private[this] val actionGet = queryGet.result.headOption
 
-  private def getValue(key : String) : Box[Option[(Long,DateTime)]] = {
-    try {
-      sessionProvider.ourSession {
-        val q = from(statusTable)(entry =>
-          where(entry.key === key)
-          select(entry)
-        )
-        val result = q.toList
+  def getExecutionStatus : Future[Box[Option[(Long,DateTime)]]] = {
 
-        result match {
-          case Nil => Full(None)
-          case head :: Nil =>
-            Full(Some((head.lastId,new DateTime(head.date))))
-          case _ =>
-            val msg = s"Too many entry matching ${key} in table StatusUpdate "
-            logger.error(msg)
-            Failure(msg)
-        }
-      }
-    } catch {
-     case e:Exception => Failure(s"Error while fetching ${key} in table StatusUpdate :$e")
-    }
-
-  }
-
-
-  def setExecutionStatus(newId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
-    setValue(executionStatus, newId, reportsDate)
-  }
-
-  private[this] def setValue(key : String, reportId : Long, reportsDate : DateTime) : Box[UpdateEntry] = {
-    try {
-      sessionProvider.ourTransaction {
-        val timeStamp = new Timestamp(reportsDate.getMillis)
-        val q = update(statusTable)(entry =>
-          where(entry.key === key)
-          set(entry.lastId := reportId, entry.date := timeStamp))
-        val entry = new UpdateEntry(key, reportId, timeStamp)
-        if (q ==0) // could not update
-          Full(statusTable.insert(entry))
-        else {
-          Full(entry)
-        }
-      }
-    } catch {
-     case e:Exception =>
-       val msg = s"Error while setting ${key} in table StatusUpdate cause is: ${e.getMessage()}"
-       logger.error(msg)
-       Failure(msg)
+    slickSchema.db.run(actionGet.asTry).map {
+      case TSuccess(x)  => Full(x)
+      case TFailure(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 
-}
+  def setExecutionStatus(newId : Long, reportsDate : DateTime) : Future[Box[DB.StatusUpdate]] = {
+    def add = DB.StatusUpdate(PROP_EXECUTION_STATUS, newId, reportsDate)
 
-case class UpdateEntry(
-    @Column("key")    key    : String,
-    @Column("lastid") lastId : Long,
-    @Column("date")   date   : Timestamp
-) extends KeyedEntity[String]  {
-  def id = key
-}
+    val action = for {
+      entry  <- actionGet.asTry
+      result <- entry match {
+                  case TSuccess(None) =>
+                    (slickSchema.statusUpdates += add).asTry.map( _ => add)
+                  case TSuccess(Some(e)) =>
+                    queryGet.update((newId, reportsDate)).asTry.map( _ => add)
+                  case TFailure(ex) =>
+                    DBIO.failed(ex)
+                }
+    } yield {
+      result
+    }
 
-object StatusUpdate extends Schema {
-  val statusTable = table[UpdateEntry]("statusupdate")
+    slickSchema.db.run(action.asTry).map {
+      case TSuccess(x)  => Full(x)
+      case TFailure(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
+    }
+  }
 
-  val executionStatus = "executionStatus"
 }

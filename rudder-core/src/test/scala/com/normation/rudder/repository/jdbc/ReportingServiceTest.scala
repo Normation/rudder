@@ -55,7 +55,6 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.services.reports.ReportingServiceImpl
 import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
-import com.normation.rudder.reports.statusUpdate.StatusUpdateSquerylRepository
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.rudder.reports.AgentRunIntervalService
 import org.joda.time.Duration
@@ -80,6 +79,7 @@ import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.rudder.db.DB
 import scala.concurrent.Await
+import com.normation.rudder.reports.statusUpdate.SlickStatusUpdateRepository
 
 /**
  *
@@ -133,7 +133,7 @@ class ReportingServiceTest extends DBCommon {
     new ReportsExecutionService(
         reportsRepo
       , woAgentRun
-      , new StatusUpdateSquerylRepository(squerylConnectionProvider)
+      , new SlickStatusUpdateRepository(slickSchema)
       , dummyChangesCache
       , dummyComplianceCache
       , 1
