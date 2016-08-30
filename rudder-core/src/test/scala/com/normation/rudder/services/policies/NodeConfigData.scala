@@ -118,7 +118,7 @@ object NodeConfigData {
     , ""
     , false
     , false
-    , true
+    , false
     , DateTime.now
     , emptyNodeReportingConfiguration
     , Seq()
