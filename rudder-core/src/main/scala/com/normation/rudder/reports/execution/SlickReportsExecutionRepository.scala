@@ -53,11 +53,11 @@ import slick.jdbc.GetResult
 
 
 case class RoReportsExecutionRepositoryImpl (
-    slickSchema: SlickSchema
+    schema: SlickSchema
   , pgInClause : PostgresqlInClause
 ) extends RoReportsExecutionRepository with Loggable {
 
-  import slickSchema.plainApi._
+  import schema.plainApi._
 
   override def getNodesLastRun(nodeIds: Set[NodeId]): Future[Box[Map[NodeId, Option[AgentRun]]]] = {
     if(nodeIds.isEmpty) Future.successful(Full(Map()))
@@ -76,7 +76,7 @@ case class RoReportsExecutionRepositoryImpl (
 
       val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
 
-      slickSchema.db.run(query.asTry).map {
+      schema.db.run(query.asTry).map {
         case TSuccess(entries)  =>
           val runs = entries.map(x => (NodeId(x.nodeId), x.asAgentRun)).toMap
           Full(nodeIds.map(n => (n, runs.get(n))).toMap)
@@ -87,11 +87,11 @@ case class RoReportsExecutionRepositoryImpl (
 }
 
 case class WoReportsExecutionRepositoryImpl (
-    slickSchema   : SlickSchema
+    schema   : SlickSchema
   , readExecutions: RoReportsExecutionRepositoryImpl
 ) extends WoReportsExecutionRepository with Loggable {
 
-  import slickSchema.api._
+  import schema.api._
 
   def updateExecutions(runs : Seq[AgentRun]) : Future[Seq[Box[AgentRun]]] =  {
 
@@ -122,9 +122,9 @@ case class WoReportsExecutionRepositoryImpl (
         , ar.insertionId                    // Long
      )
 
-      val select = (slickSchema.agentRuns.filter(x => x.nodeId === dbar.nodeId && x.date === dbar.date ))
+      val select = (schema.agentRuns.filter(x => x.nodeId === dbar.nodeId && x.date === dbar.date ))
       val update = select.map(x => (x.nodeConfigId, x.isCompleted, x.insertionId))
-      val insert = (slickSchema.agentRuns += dbar)
+      val insert = (schema.agentRuns += dbar)
 
       //no update of nodeId/date
 
@@ -159,7 +159,7 @@ case class WoReportsExecutionRepositoryImpl (
     }
 
     // run the sequences of upsert, filter out "Full(None)" meaning nothing was done
-    slickSchema.db.run(DBIO.sequence(runs.map(updateOne))).map { seq => seq.flatMap {
+    schema.db.run(DBIO.sequence(runs.map(updateOne))).map { seq => seq.flatMap {
       case TSuccess(Some(x)) => Some(Full(x.asAgentRun))
       case TSuccess(None)    => None
       case TFailure(ex)      => Some(Failure(s"Error when updatating last agent runs information: ${ex.getMessage()}"))

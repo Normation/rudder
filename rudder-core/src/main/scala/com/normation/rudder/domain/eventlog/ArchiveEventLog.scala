@@ -37,19 +37,14 @@
 
 package com.normation.rudder.domain.eventlog
 
-import com.normation.eventlog._
 import scala.xml._
-import org.joda.time.DateTime
-import net.liftweb.common._
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.repository.NodeGroupCategoryContent
-import com.normation.rudder.repository.ActiveTechniqueCategoryContent
-import com.normation.rudder.repository.jdbc.Rules
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.repository.GitPath
+import com.normation.eventlog._
+import com.normation.rudder.domain.Constants
 import com.normation.rudder.repository.GitArchiveId
 import com.normation.rudder.repository.GitCommitId
-import com.normation.rudder.domain.Constants
+import com.normation.utils.HashcodeCaching
+
+import net.liftweb.common._
 
 sealed trait ImportExportEventLog  extends EventLog { override final val eventLogCategory = ImportExportItemsLogCategory }
 

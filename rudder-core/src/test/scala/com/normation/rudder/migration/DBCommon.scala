@@ -46,7 +46,6 @@ import scala.io.Source
 import scala.xml.XML
 
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
@@ -191,20 +190,16 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     }).mkString(", ") )
   }
 
-  lazy val squerylConnectionProvider = new SquerylConnectionProvider(dataSource)
-
   lazy val jdbcTemplate = new JdbcTemplate(dataSource)
 
-
-
-  lazy val slickSchema = new SlickSchema(dataSource)
-  lazy val migrationEventLogRepository = new MigrationEventLogRepository(slickSchema)
+  lazy val schema = new SlickSchema(dataSource)
+  lazy val migrationEventLogRepository = new MigrationEventLogRepository(schema)
 
   /**
    * A simple exec that is synchronized.
    */
   def slickExec[A](body: DBIOAction[A, NoStream, Nothing]): A = {
-    val f: Future[A] = slickSchema.db.run(body)
+    val f: Future[A] = schema.db.run(body)
     Await.result(f, MAX_TIME)
   }
   def insertReports(reports: Seq[Reports]) = {
@@ -215,8 +210,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     val slickReports = reports.map(toSlickReport(_))
 
     slickExec {
-      import slickSchema.api._
-      slickSchema.reports ++= slickReports
+      import schema.api._
+      schema.reports ++= slickReports
     }
   }
 }

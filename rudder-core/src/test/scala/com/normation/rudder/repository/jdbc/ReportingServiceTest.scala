@@ -89,7 +89,7 @@ import com.normation.rudder.reports.statusUpdate.SlickStatusUpdateRepository
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon {
 
-  import slickSchema.api._
+  import schema.api._
 
   //clean data base
   def cleanTables() = {
@@ -120,8 +120,8 @@ class ReportingServiceTest extends DBCommon {
 
   }
 
-  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(slickSchema, pgIn)
-  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(slickSchema, roAgentRun)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(schema, pgIn)
+  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(schema, roAgentRun)
 
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {
@@ -133,7 +133,7 @@ class ReportingServiceTest extends DBCommon {
     new ReportsExecutionService(
         reportsRepo
       , woAgentRun
-      , new SlickStatusUpdateRepository(slickSchema)
+      , new SlickStatusUpdateRepository(schema)
       , dummyChangesCache
       , dummyComplianceCache
       , 1
@@ -250,8 +250,8 @@ class ReportingServiceTest extends DBCommon {
   step {
 
     insertReports(reports.values.toSeq.flatten)
-    slickExec(slickSchema.expectedReports ++= expecteds.keySet)
-    slickExec(slickSchema.expectedReportsNodes ++= expecteds.values.toSet.flatten)
+    slickExec(schema.expectedReports ++= expecteds.keySet)
+    slickExec(schema.expectedReportsNodes ++= expecteds.values.toSet.flatten)
 
     //need to be done one time for init, one time for actual work
     updateRuns.findAndSaveExecutions(42).openOrThrowException("I should be able to init the 'find and save execution'")

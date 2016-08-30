@@ -94,7 +94,6 @@ import com.normation.rudder.domain.logger.ApplicationLogger
 import logger.MigrationLogger
 import com.normation.rudder.migration.DefaultXmlEventLogMigration
 import net.liftweb.common._
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 import com.normation.rudder.repository._
 import com.normation.rudder.services.modification.ModificationService
 import com.typesafe.config.Config
@@ -1052,7 +1051,7 @@ object RudderConfig extends Loggable {
       , "default-directive-names.conf"
     )
   }
-  private[this] lazy val historizationJdbcRepository = new HistorizationJdbcRepository(squerylDatasourceProvider)
+  private[this] lazy val historizationJdbcRepository = new HistorizationJdbcRepository(slickSchema)
   private[this] lazy val startStopOrchestratorImpl: StartStopOrchestrator = {
     if (!(new File(BIN_EMERGENCY_STOP)).exists)
       ApplicationLogger.error("The 'red button' program is not present at: '%s'. You will experience error when trying to use that functionnality".format(BIN_EMERGENCY_STOP))
@@ -1503,7 +1502,6 @@ object RudderConfig extends Loggable {
   private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(jdbcTemplate)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   private[this] lazy val slickSchema = new SlickSchema(dataSourceProvider.datasource)
-  private[this] lazy val squerylDatasourceProvider = new SquerylConnectionProvider(dataSourceProvider.datasource)
   private[this] lazy val jdbcTemplate = {
     val template = new org.springframework.jdbc.core.JdbcTemplate(dataSourceProvider.datasource)
     template

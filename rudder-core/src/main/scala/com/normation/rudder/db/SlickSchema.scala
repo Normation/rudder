@@ -37,24 +37,31 @@
 
 package com.normation.rudder.db
 
-import java.util.concurrent.TimeUnit
-
-import scala.concurrent.Await
-import scala.concurrent.Future
-import scala.concurrent.duration.Duration
 
 import com.github.tminglei.slickpg._
-import com.normation.rudder.domain.reports.Reports
+
 
 import org.joda.time.DateTime
 
 import javax.sql.DataSource
+import slick.lifted.PrimaryKey
+import com.normation.cfclerk.domain.Technique
 import com.normation.eventlog.ModificationId
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.repository.GitCommitId
 import com.normation.rudder.reports.execution.{ AgentRun => RudderAgentRun }
 import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.rudder.rule.category.RuleCategoryId
 
 
 
@@ -318,7 +325,303 @@ final object DB {
   }
 
 
+
+  //////////
+
+  final  case class SerializedGroups(
+      id              : Option[Long]
+    , groupId         : String
+    , groupName       : String
+    , groupDescription: String
+    , nodeCount       : Int
+    , groupStatus     : Int
+    , startTime       : DateTime
+    , endTime         : Option[DateTime]
+  )
+
+  class TableSerializedGroups(tag: Tag) extends Table[SerializedGroups](tag, "groups") {
+    def id               = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def groupId          = column[String]("groupid")
+    def groupName        = column[String]("groupName")
+    def groupDescription = column[String]("groupdescription")
+    def nodeCount        = column[Int]("nodecount")
+    def groupStatus      = column[Int]("groupstatus")
+    def startTime        = column[DateTime]("starttime")
+    def endTime          = column[Option[DateTime]]("endtime")
+
+    def * = (id.?, groupId, groupName, groupDescription, nodeCount, groupStatus, startTime, endTime
+            ) <> (SerializedGroups.tupled, SerializedGroups.unapply)
+  }
+
+  //////////
+
+  case class SerializedGroupsNodes(
+      groupPkeyId: Long   // really, the database id from the group
+    , nodes      : String
+  )
+
+  class TableSerializedGroupsNodes(tag: Tag) extends Table[SerializedGroupsNodes](tag, "groupsnodesjoin") {
+    def groupPkeyId = column[Long]("grouppkeyid")
+    def nodes       = column[String]("nodeid")
+
+    def * = (groupPkeyId, nodes) <> (SerializedGroupsNodes.tupled, SerializedGroupsNodes.unapply)
+
+    def px = primaryKey("pk_groupsnodesjoin", (groupPkeyId, nodes))
+  }
+
+
+  //////////
+
+  case class SerializedNodes(
+        id             : Option[Long]
+      , nodeId         : String
+      , nodeName       : String
+      , nodeDescription: String
+      , startTime      : DateTime
+      , endTime        : Option[DateTime]
+  )
+
+  class TableSerializedNodes(tag: Tag) extends Table[SerializedNodes](tag, "nodes") {
+    def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def nodeId          = column[String]("nodeid")
+    def nodeName        = column[String]("nodename")
+    def nodeDescription = column[String]("nodedescription")
+    def startTime       = column[DateTime]("starttime")
+    def endTime         = column[Option[DateTime]]("endtime")
+
+    def * = (id.?, nodeId, nodeName, nodeDescription, startTime, endTime
+            ) <> (SerializedNodes.tupled, SerializedNodes.unapply)
+  }
+
+
+  //////////
+
+  case class SerializedDirectives(
+        id                  : Option[Long]
+      , directiveId         : String
+      , directiveName       : String
+      , directiveDescription: String
+      , priority            : Int
+      , techniqueName       : String
+      , techniqueHumanName  : String
+      , techniqueDescription: String
+      , techniqueVersion    : String
+      , startTime           : DateTime
+      , endTime        : Option[DateTime]
+  )
+
+  class TableSerializedDirectives(tag: Tag) extends Table[SerializedDirectives](tag, "directives") {
+    def id                   = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def directiveId          = column[String]("directiveid")
+    def directiveName        = column[String]("directivename")
+    def directiveDescription = column[String]("directivedescription")
+    def priority             = column[Int]("priority")
+    def techniqueName        = column[String]("techniquename")
+    def techniqueHumanName   = column[String]("techniquehumanname")
+    def techniqueDescription = column[String]("techniquedescription")
+    def techniqueVersion     = column[String]("techniqueversion")
+    def startTime            = column[DateTime]("starttime")
+    def endTime              = column[Option[DateTime]]("endtime")
+
+    def * = (id.?, directiveId, directiveName, directiveDescription, priority, techniqueName
+            , techniqueHumanName, techniqueDescription, techniqueVersion, startTime, endTime
+            ) <> (SerializedDirectives.tupled, SerializedDirectives.unapply)
+  }
+
+
+  //////////
+
+  case class SerializedRules(
+      id               : Option[Long]
+    , ruleId           : String
+    , serial           : Int
+    , categoryId       : String
+    , name             : String
+    , shortDescription : String
+    , longDescription  : String
+    , isEnabledStatus  : Boolean
+    , startTime        : DateTime
+    , endTime        : Option[DateTime]
+  )
+
+  class TableSerializedRules(tag: Tag) extends Table[SerializedRules](tag, "directives") {
+    def id               = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def ruleId           = column[String]("ruleid")
+    def serial           = column[Int]("serial")
+    def categoryId       = column[String]("categoryid")
+    def name             = column[String]("name")
+    def shortDescription = column[String]("shortdescription")
+    def longDescription  = column[String]("longdescription")
+    def isEnabledStatus  = column[Boolean]("isenabled")
+    def startTime        = column[DateTime]("starttime")
+    def endTime          = column[Option[DateTime]]("endtime")
+
+    def * = (id.?, ruleId, serial, categoryId, name, shortDescription
+            , longDescription, isEnabledStatus, startTime, endTime
+            ) <> (SerializedRules.tupled, SerializedRules.unapply)
+  }
+
+
+  //////////
+
+
+  final case class SerializedRuleGroups(
+      rulePkeyId: Long   // really, the database id from the group
+    , targetSerialisation      : String
+  )
+
+  class TableSerializedRuleGroups(tag: Tag) extends Table[SerializedRuleGroups](tag, "rulesgroupjoin") {
+    def rulePkeyId          = column[Long]("rulepkeyid")
+    def targetSerialisation = column[String]("targetserialisation")
+
+    def * = (rulePkeyId, targetSerialisation) <> (SerializedRuleGroups.tupled, SerializedRuleGroups.unapply)
+
+    def px = primaryKey("pk_rulesgroupjoin", (rulePkeyId, targetSerialisation))
+  }
+
+  //////////
+
+  final case class SerializedRuleDirectives(
+      rulePkeyId  : Long   // really, the database id from the group
+    , directiveId : String
+  )
+
+  class TableSerializedRuleDirectives(tag: Tag) extends Table[SerializedRuleDirectives](tag, "rulesdirectivesjoin") {
+    def rulePkeyId  = column[Long]("rulepkeyid")
+    def directiveId = column[String]("directiveid")
+
+    def * = (rulePkeyId, directiveId) <> (SerializedRuleDirectives.tupled, SerializedRuleDirectives.unapply)
+
+    def px = primaryKey("pk_rulesgroupjoin", (rulePkeyId, directiveId))
+  }
+
+  //////////
+
+  final case class SerializedGlobalSchedule(
+      id          : Option[Long]
+    , interval    : Int
+    , splaytime   : Int
+    , start_hour  : Int
+    , start_minute: Int
+    , startTime   : DateTime
+    , endTime     : Option[DateTime]
+  )
+
+  class TableSerializedGlobalSchedule(tag: Tag) extends Table[SerializedGlobalSchedule](tag, "globalschedule") {
+    def id           = column[Long]("id", O.PrimaryKey, O.AutoInc)
+    def interval     = column[Int]("interval")
+    def splaytime    = column[Int]("splaytime")
+    def start_hour   = column[Int]("start_hour")
+    def start_minute = column[Int]("start_minute")
+    def startTime    = column[DateTime]("starttime")
+    def endTime      = column[Option[DateTime]]("endtime")
+
+    def * = (id.?, interval, splaytime, start_hour, start_minute, startTime, endTime
+            ) <> (SerializedGlobalSchedule.tupled, SerializedGlobalSchedule.unapply)
+  }
+
+  object Historize {
+    // Utilitary method to convert from/to nodeGroup/SerializedGroups
+    def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups = {
+      SerializedGroups(None, nodeGroup.id.value,
+              nodeGroup.name,
+              nodeGroup.description,
+              nodeGroup.serverList.size,
+              isDynamicToSql(nodeGroup.isDynamic),
+              DateTime.now(), None )
+    }
+
+    def isDynamicToSql(boolean : Boolean) : Int = {
+      boolean match {
+        case true => 1;
+        case false => 0;
+      }
+    }
+
+    def fromSQLtoDynamic(value : Int) : Option[Boolean] = {
+      value match {
+        case 1 => Some(true)
+        case 0 => Some(false)
+        case _ => None
+      }
+    }
+
+    def fromNode(node : NodeInfo) : SerializedNodes = {
+      new SerializedNodes(None, node.id.value,
+              node.hostname,
+              node.description,
+              DateTime.now(), None )
+    }
+
+    def fromDirective(t3 : (Directive, ActiveTechnique, Technique)) : SerializedDirectives = {
+      val (directive, at, technique) = t3
+      SerializedDirectives(
+        None, directive.id.value,
+              directive.name,
+              directive.shortDescription,
+              directive.priority,
+              at.techniqueName.value,
+              technique.name,
+              technique.description,
+              directive.techniqueVersion.toString,
+              DateTime.now(), null )
+    }
+
+    def fromSerializedRule(
+        rule : SerializedRules
+      , ruleTargets : Seq[SerializedRuleGroups]
+      , directives : Seq[SerializedRuleDirectives]
+    ) : Rule = {
+      Rule (
+          RuleId(rule.ruleId)
+        , rule.name
+        , rule.serial
+        , RuleCategoryId(rule.categoryId) // this is not really useful as RuleCategory are not really serialized
+        , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
+        , directives.map(x => DirectiveId(x.directiveId)).toSet
+        , rule.shortDescription
+        , rule.longDescription
+        , rule.isEnabledStatus
+        , false
+      )
+
+    }
+
+    def fromRule(rule : Rule) : SerializedRules = {
+      SerializedRules (
+          None
+        , rule.id.value
+        , rule.serial
+        , rule.categoryId.value
+        , rule.name
+        , rule.shortDescription
+        , rule.longDescription
+        , rule.isEnabledStatus
+        , DateTime.now()
+        , null
+      )
+    }
+
+    def fromGlobalSchedule(
+          interval    : Int
+        , splaytime   : Int
+        , start_hour  : Int
+        , start_minute: Int) : SerializedGlobalSchedule = {
+      SerializedGlobalSchedule(
+              None
+            , interval
+            , splaytime
+            , start_hour
+            , start_minute
+            , DateTime.now()
+            , None
+      )
+    }
+  }
+
 }
+
+
 
 
 /**
@@ -345,6 +648,15 @@ class SlickSchema(datasource: DataSource) {
   val runProperties        = TableQuery[DB.TableRunProperties]
   val agentRuns            = TableQuery[DB.TableAgentRun]
   val statusUpdates        = TableQuery[DB.TableStatusUpdate]
+  //historization
+  val serializedGroups         = TableQuery[DB.TableSerializedGroups]
+  val serializedGroupsNodes    = TableQuery[DB.TableSerializedGroupsNodes]
+  val serializedNodes          = TableQuery[DB.TableSerializedNodes]
+  val serializedDirectives     = TableQuery[DB.TableSerializedDirectives]
+  val serializedRules          = TableQuery[DB.TableSerializedRules]
+  val serializedRuleDirectives = TableQuery[DB.TableSerializedRuleDirectives]
+  val serializedRuleGroups     = TableQuery[DB.TableSerializedRuleGroups]
+  val serializedGlobalSchedule = TableQuery[DB.TableSerializedGlobalSchedule]
 
 //  def toSlickReport(r:Reports): Reports = {
 //    Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial

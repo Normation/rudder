@@ -100,12 +100,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     </dependency>
 
     <dependency>
-      <groupId>org.squeryl</groupId>
-      <artifactId>squeryl_${scala-binary-version}</artifactId>
-      <version>${squeryl-version}</version>
-    </dependency>
-
-    <dependency>
       <groupId>com.typesafe.slick</groupId>
       <artifactId>slick_${scala-binary-version}</artifactId>
       <version>3.1.1</version>

@@ -73,8 +73,8 @@ class AgentRunsTest extends DBCommon {
   }
 
 
-  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(slickSchema, new PostgresqlInClause(2))
-  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(slickSchema, roRunRepo)
+  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(schema, new PostgresqlInClause(2))
+  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(schema, roRunRepo)
 
 
   val (n1, n2) = (NodeId("n1"), NodeId("n2"))

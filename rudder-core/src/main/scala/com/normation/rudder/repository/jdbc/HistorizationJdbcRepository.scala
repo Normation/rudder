@@ -37,579 +37,231 @@
 
 package com.normation.rudder.repository.jdbc
 
-import org.joda.time.DateTime
-import org.squeryl.PrimitiveTypeMode._
-import org.squeryl.Schema
-import org.squeryl.annotations.Column
-import net.liftweb.common._
-import org.squeryl.KeyedEntity
-import org.squeryl.dsl.ast._
-import java.sql.Timestamp
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.repository.HistorizationRepository
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.ActiveTechnique
-import com.normation.utils.HashcodeCaching
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scala.util.{ Failure => TFailure }
+import scala.util.{ Success => TSuccess }
+
 import com.normation.cfclerk.domain.Technique
-import org.squeryl.dsl.CompositeKey2
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.domain.policies.GroupTarget
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.db.DB
+import com.normation.rudder.db.SlickSchema
+import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.repository.HistorizationRepository
 
+import org.joda.time.DateTime
+import net.liftweb.common._
 
-class HistorizationJdbcRepository(squerylConnectionProvider : SquerylConnectionProvider)  extends HistorizationRepository with  Loggable {
+class HistorizationJdbcRepository(schema: SlickSchema)  extends HistorizationRepository with  Loggable {
 
-  def toTimeStamp(d:DateTime) : Timestamp = new Timestamp(d.getMillis)
+  import schema.api._
 
-
-  def getAllOpenedNodes() : Seq[SerializedNodes] = {
-
-    squerylConnectionProvider.ourSession {
-	    val q = from(Nodes.nodes)(node =>
-	      where(node.endTime.isNull)
-	      select(node)
-	    )
-      Seq() ++ q.toList
-    }
+  def getAllOpenedNodes() : Future[Seq[DB.SerializedNodes]] = {
+    val action = Compiled(schema.serializedNodes.filter(_.endTime.isEmpty)).result
+    schema.db.run(action)
   }
 
-  def getAllNodes(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedNodes] = {
-    squerylConnectionProvider.ourSession {
-	    val q = from(Nodes.nodes)(node =>
-	      where(after.map(date => {
-	        node.startTime > toTimeStamp(date) or
-	        (node.endTime.isNotNull and node.endTime.>(Some(toTimeStamp(date))))or
-          ( (fetchUnclosed === true) and node.endTime.isNull)
-	      }).getOrElse(1===1))
-	      select(node)
-	    )
-      Seq() ++ q.toList
+  def updateNodes(nodes: Seq[NodeInfo], closable: Seq[String]): Future[Unit] = {
+    val toClose = nodes.map(x => x.id.value) ++ closable
+    val q = for {
+      e <- schema.serializedNodes
+           if( e.endTime.isEmpty && (e.nodeId inSet(toClose)) )
+    } yield {
+      e.endTime
     }
-  }
 
-
-  def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]) :Seq[SerializedNodes] = {
-    squerylConnectionProvider.ourTransaction {
-      // close the nodes
-      val q = update(Nodes.nodes)(node =>
-        where(node.endTime.isNull and node.nodeId.in(nodes.map(x => x.id.value) ++ closable))
-        set(node.endTime := Some(toTimeStamp(DateTime.now())))
-      )
-
-      val insertion = Nodes.nodes.insert(nodes.map(SerializedNodes.fromNode(_)))
-      // add the new ones
-     Seq()
-    }
+    val action = (for {
+      updated  <- q.update(Some(DateTime.now))
+      inserted <- (schema.serializedNodes ++= nodes.map(DB.Historize.fromNode))
+    } yield {
+      ()
+    }).transactionally
+    schema.db.run(action)
   }
 
   /**
    * Fetch the serialization of groups that are still open (endTime is null), along with the
    * nodes within
    */
-  def getAllOpenedGroups() : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
-    squerylConnectionProvider.ourSession {
-      // first, fetch all the groups (without nodes
-	    val q = from(Groups.groups)(group =>
-	      where(group.endTime.isNull)
-	      select(group)
-	    )
-	    getNodesFromSerializedGroups(Seq() ++ q.toList)
+  def getAllOpenedGroups() : Future[Seq[(DB.SerializedGroups, Seq[DB.SerializedGroupsNodes])]] = {
 
+    def nodeJoin(gids: Traversable[Long]) = for {
+      join <- schema.serializedGroupsNodes
+              if(join.groupPkeyId inSet(gids))
+    } yield {
+      join
+    }
+
+    val groups = for {
+       group <- schema.serializedGroups
+                if(group.endTime.isEmpty)
+    } yield {
+      group
+    }
+
+    val action = for {
+      gs   <- groups.result
+      join <- nodeJoin(gs.map(_.id.get)).result
+    } yield {
+      (gs, join)
+    }
+
+    schema.db.run(action.asTry).map {
+      case TSuccess((groups, joins)) =>
+        val joinMap = joins.groupBy(_.groupPkeyId)
+        groups.map(g => (g, joinMap.getOrElse(g.id.get, Seq())))
+      case TFailure(ex) => throw ex
     }
   }
 
-  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
-    squerylConnectionProvider.ourSession {
-	    val q = from(Groups.groups)(group =>
-	      where(after.map(date => {
-	        group.startTime > toTimeStamp(date) or
-	        (group.endTime.isNotNull and group.endTime.>(Some(toTimeStamp(date)))) or
-          (fetchUnclosed === true and group.endTime.isNull)
-	      }).getOrElse(1===1))
-	      select(group)
-	    )
 
-	    getNodesFromSerializedGroups(Seq() ++ q.toList)
+  def updateGroups(groups : Seq[NodeGroup], closable : Seq[String]): Future[Unit] = {
+    val toClose = groups.map(x => x.id.value) ++ closable
+    val q = for {
+      e <- schema.serializedGroups
+           if( e.endTime.isEmpty && (e.groupId inSet(toClose)) )
+    } yield {
+      e.endTime
     }
-  }
 
-  /**
-   * Utility method to get the groups of nodes
-   */
-  private[this] def getNodesFromSerializedGroups(groups: Seq[SerializedGroups]) :  Seq[(SerializedGroups, Seq[SerializedGroupsNodes])] = {
-    // fetch all the nodes linked to these groups
-    val r = from(Groups.nodes)( node =>
-      where(node.groupPkeyId.in(groups.map(x => x.id)))
-      select(node)
-    )
-    val nodes = Seq() ++ r.toList
-
-    groups.map (group => (group, nodes.filter(node => node.groupPkeyId == group.id)))
+    val action = (for {
+      updated  <- q.update(Some(DateTime.now))
+      inserted <- (schema.serializedGroups ++= groups.map(DB.Historize.fromNodeGroup))
+    } yield {
+      ()
+    }).transactionally
+    schema.db.run(action)
   }
 
 
+  def getAllOpenedDirectives() : Future[Seq[DB.SerializedDirectives]] = {
+    val action = Compiled(schema.serializedDirectives.filter(_.endTime.isEmpty)).result
+    schema.db.run(action)
+  }
 
-  def updateGroups(groups : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups] = {
-    squerylConnectionProvider.ourTransaction {
-      // close the groups
-      val q = update(Groups.groups)(group =>
-        where(group.endTime.isNull and group.groupId.in(groups.map(x => x.id.value) ++ closable))
-        set(group.endTime := Some(toTimeStamp(DateTime.now())))
-      )
+  def updateDirectives(
+      directives : Seq[(Directive, ActiveTechnique, Technique)]
+    , closable : Seq[String]
+  ): Future[Unit] = {
+    val toClose = directives.map(x => x._1.id.value) ++ closable
+    val q = for {
+      e <- schema.serializedDirectives
+           if( e.endTime.isEmpty && (e.directiveId inSet(toClose)) )
+    } yield {
+      e.endTime
+    }
 
-      // Add the new/updated groups
-      groups.map { group =>
-        val insertion = Groups.groups.insert(SerializedGroups.fromNodeGroup(group))
-        group.serverList.map( node => Groups.nodes.insert(SerializedGroupsNodes(insertion.id , node.value)))
+    val action = (for {
+      updated  <- q.update(Some(DateTime.now))
+      inserted <- (schema.serializedDirectives ++= directives.map(DB.Historize.fromDirective))
+    } yield {
+      ()
+    }).transactionally
+    schema.db.run(action)
+  }
+
+  def getAllOpenedRules() : Future[Seq[Rule]] = {
+    val ruleQuery = Compiled(schema.serializedRules.filter(_.endTime.isEmpty))
+
+    def directiveQuery(rules: Seq[DB.SerializedRules]) = {
+      for {
+        directives <- schema.serializedRuleDirectives
+                      if( directives.rulePkeyId inSet( rules.map( _.id.get ) ) )
+      } yield {
+        directives
       }
-
-      Seq()
-    }
-  }
-
-
-  def getAllOpenedDirectives() : Seq[SerializedDirectives] = {
-    squerylConnectionProvider.ourSession {
-      val q = from(Directives.directives)(directive =>
-        where(directive.endTime.isNull)
-        select(directive)
-      )
-      Seq() ++ q.toList
-
-    }
-  }
-
-   def getAllDirectives(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedDirectives] = {
-    squerylConnectionProvider.ourSession {
-      val q = from(Directives.directives)(directive =>
-        where(after.map(date => {
-          directive.startTime > toTimeStamp(date) or
-          (directive.endTime.isNotNull and directive.endTime > toTimeStamp(date)) or
-          ( fetchUnclosed=== true and directive.endTime.isNull)
-        }).getOrElse(1===1))
-        select(directive)
-      )
-      Seq() ++ q.toList
-
-    }
-  }
-
-  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)],
-              closable : Seq[String]) :Seq[SerializedDirectives] = {
-
-    squerylConnectionProvider.ourTransaction {
-      // close the directives
-      val q = update(Directives.directives)(directive =>
-        where(directive.endTime.isNull and directive.directiveId.in(directives.map(x => x._1.id.value) ++ closable))
-        set(directive.endTime := toTimeStamp(DateTime.now()))
-      )
-
-      val insertion = Directives.directives.insert(directives.map(x => SerializedDirectives.fromDirective(x._1, x._2, x._3)))
-      // add the new ones
-
-     Seq()
-    }
-  }
-
-  def getAllOpenedRules() : Seq[Rule] = {
-    squerylConnectionProvider.ourSession {
-      val q = from(Rules.rules)(rule =>
-        where(rule.endTime.isNull)
-        select(rule)
-      )
-      val rules = Seq() ++q.toList
-
-
-      // Now that we have the opened CR, we must complete them
-      val directives = from(Rules.directives)(directive =>
-        where(directive.rulePkeyId.in(rules.map(x => x.id)))
-        select(directive)
-      )
-      val groups = from(Rules.groups)(group =>
-        where(group.rulePkeyId.in(rules.map(x => x.id)))
-        select(group)
-      )
-
-
-      val (piSeq, groupSeq) = (Seq() ++directives.toList, Seq() ++groups.toList)
-
-      rules.map ( rule => (rule,
-          groupSeq.filter(group => group.rulePkeyId == rule.id),
-          piSeq.filter(directive => directive.rulePkeyId == rule.id)
-      )).map( x=> SerializedRules.fromSerialized(x._1, x._2, x._3) )
     }
 
-  }
-
-  def getAllRules(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])] = {
-    squerylConnectionProvider.ourSession {
-      val q = from(Rules.rules)(rule =>
-         where(after.map(date => {
-          rule.startTime > toTimeStamp(date) or
-          (rule.endTime.isNotNull and rule.endTime > toTimeStamp(date)) or
-          (fetchUnclosed === true and rule.endTime.isNull)
-        }).getOrElse(1===1))
-        select(rule)
-      )
-      val rules = Seq() ++ q.toList
-
-
-      // Now that we have the opened CR, we must complete them
-      val directives = from(Rules.directives)(directive =>
-        where(directive.rulePkeyId.in(rules.map(x => x.id)))
-        select(directive)
-      )
-      val groups = from(Rules.groups)(group =>
-        where(group.rulePkeyId.in(rules.map(x => x.id)))
-        select(group)
-      )
-
-
-      val (piSeq, groupSeq) = rules.size match {
-        case 0 => (Seq(), Seq())
-        case _ => (Seq() ++directives.toSeq, Seq() ++ groups.toSeq)
+    def groupQuery(rules: Seq[DB.SerializedRules]) = {
+      for {
+        groups     <- schema.serializedRuleGroups
+                      if( groups.rulePkeyId inSet( rules.map( _.id.get ) ) )
+      } yield {
+        groups
       }
-
-      rules.map ( rule => (rule,
-          groupSeq.filter(group => group.rulePkeyId == rule.id),
-          piSeq.filter(directive => directive.rulePkeyId == rule.id)
-      ))
     }
 
+
+    val action = for {
+      rules      <- ruleQuery.result
+      result     <- for {
+                      directives <- directiveQuery(rules).result
+                      groups     <- groupQuery(rules).result
+                    } yield {
+                      (directives, groups)
+                    }
+    } yield {
+      (rules, result._1, result._2)
+    }
+
+    schema.db.run(action).map { case (rules, directives, groups) =>
+        val dMap = directives.groupBy(_.rulePkeyId)
+        val gMap = groups.groupBy(_.rulePkeyId)
+        rules.map( rule => DB.Historize.fromSerializedRule(
+            rule
+          , gMap.getOrElse(rule.id.get, Seq())
+          , dMap.getOrElse(rule.id.get, Seq())
+        ) )
+    }
   }
 
 
-  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Unit = {
-    squerylConnectionProvider.ourTransaction {
-      // close the rules
-      val q = update(Rules.rules)(rule =>
-        where(rule.endTime.isNull and rule.ruleId.in(rules.map(x => x.id.value) ++ closable))
-        set(rule.endTime := toTimeStamp(DateTime.now()))
-      )
+  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Future[Unit] = {
+    val toClose = rules.map(x => x.id.value) ++ closable
+    val q = for {
+      e <- schema.serializedRules
+           if( e.endTime.isEmpty && (e.ruleId inSet(toClose)) )
+    } yield {
+      e.endTime
+    }
 
-      rules.map( rule => {
-        val serialized = Rules.rules.insert(SerializedRules.toSerialized(rule))
-
-
-        rule.directiveIds.map( directive => Rules.directives.insert(new SerializedRuleDirectives(serialized.id, directive.value)))
-
-        rule.targets.map { target =>
-          Rules.groups.insert(new SerializedRuleGroups(serialized.id, target.target))
+    def oneRule(rule: Rule) = {
+      for {
+        id <- ((schema.serializedRules returning schema.serializedRules.map(_.id)) += DB.Historize.fromRule(rule))
+        _  <- DBIO.seq((rule.directiveIds.toSeq.map(d => schema.serializedRuleDirectives += DB.SerializedRuleDirectives(id, d.value)) ++
+                        rule.targets.toSeq.map(t => schema.serializedRuleGroups += DB.SerializedRuleGroups(id, t.target))):_*)
+        } yield {
+          ()
         }
-      })
-
-    } ; () //unit is expected
-  }
-
-  def getOpenedGlobalSchedule() : Option[SerializedGlobalSchedule] = {
-
-    squerylConnectionProvider.ourSession {
-      val q = from(GlobalSchedule.globalSchedule)(globalSchedule =>
-        where(globalSchedule.endTime.isNull)
-        select(globalSchedule)
-      )
-      q.toList.headOption
     }
+
+    val action = (for {
+      _ <- q.update(Some(DateTime.now))
+      _ <- DBIO.seq(rules.map(oneRule):_*)
+    } yield {
+      ()
+    }).transactionally
+
+    schema.db.run(action)
   }
 
-  def getAllGlobalSchedule(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGlobalSchedule] = {
-    squerylConnectionProvider.ourSession {
-      val q = from(GlobalSchedule.globalSchedule)(globalSchedule =>
-        where(after.map(date => {
-          globalSchedule.startTime > toTimeStamp(date) or
-          (globalSchedule.endTime.isNotNull and globalSchedule.endTime.>(Some(toTimeStamp(date))))or
-          ( (fetchUnclosed === true) and globalSchedule.endTime.isNull)
-        }).getOrElse(1===1))
-        select(globalSchedule)
-      )
-      Seq() ++ q.toList
-    }
+  def getOpenedGlobalSchedule() : Future[Option[DB.SerializedGlobalSchedule]] = {
+    val action = Compiled(schema.serializedGlobalSchedule.filter(_.endTime.isEmpty)).result.headOption
+    schema.db.run(action)
   }
-
 
   def updateGlobalSchedule(
         interval    : Int
       , splaytime   : Int
       , start_hour  : Int
       , start_minute: Int
-  ) : Unit = {
-    squerylConnectionProvider.ourTransaction {
-      // close the previous schedule
-      val q = update(GlobalSchedule.globalSchedule)(globalSchedule =>
-        where(globalSchedule.endTime.isNull)
-        set(globalSchedule.endTime := Some(toTimeStamp(DateTime.now())))
-      )
-      // add the new ones
-      val insertion = GlobalSchedule.globalSchedule.insert(SerializedGlobalSchedule.fromGlobalSchedule(interval, splaytime, start_hour, start_minute))
-    }
-    ()
-  }
-}
-
-
-//// here are some utility classes to use with the service ////
-
-case class SerializedGroups(
-    @Column("groupid") groupId: String,
-    @Column("groupname") groupName: String,
-    @Column("groupdescription") groupDescription: String,
-    @Column("nodecount") nodeCount: Int,
-    @Column("groupstatus") groupStatus: Int,
-    @Column("starttime") startTime: Timestamp,
-    @Column("endtime") endTime: Option[Timestamp]
-) extends KeyedEntity[Long] {
-  @Column("id")
-  val id = 0L
-}
-
-case class SerializedGroupsNodes(
-    @Column("grouppkeyid") groupPkeyId: Long,// really, the database id from the group
-    @Column("nodeid") nodes: String
-) extends KeyedEntity[CompositeKey2[Long,String]]  {
-
-  def id = compositeKey(groupPkeyId, nodes)
-}
-
-object SerializedGroups {
-  // Utilitary method to convert from/to nodeGroup/SerializedGroups
-  def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups = {
-    new SerializedGroups(nodeGroup.id.value,
-            nodeGroup.name,
-            nodeGroup.description,
-            nodeGroup.serverList.size,
-            isDynamicToSql(nodeGroup.isDynamic),
-            new Timestamp(DateTime.now().getMillis), None )
-  }
-
-  def fromSerializedGroup(
-      group: SerializedGroups
-    , nodes: Seq[SerializedGroupsNodes]) : Option[NodeGroup] = {
-    fromSQLtoDynamic(group.groupStatus) match {
-      case Some(status) =>
-        Some(NodeGroup(
-          NodeGroupId(group.groupId)
-        , group.groupName
-        , group.groupDescription
-        , None
-        , status
-        , nodes.map(x => NodeId(x.nodes)).toSet
-        , true
-        , false
-        ))
-      case _ => None
+  ) : Future[Unit] = {
+    val q = for {
+      e <- schema.serializedGlobalSchedule
+           if( e.endTime.isEmpty )
+    } yield {
+      e.endTime
     }
 
+    val action = (for {
+      updated  <- q.update(Some(DateTime.now))
+      inserted <- (schema.serializedGlobalSchedule += DB.Historize.fromGlobalSchedule(interval, splaytime, start_hour, start_minute))
+    } yield {
+      ()
+    }).transactionally
+    schema.db.run(action)
   }
-
-  def isDynamicToSql(boolean : Boolean) : Int = {
-    boolean match {
-      case true => 1;
-      case false => 0;
-    }
-  }
-
-  def fromSQLtoDynamic(value : Int) : Option[Boolean] = {
-    value match {
-      case 1 => Some(true)
-      case 0 => Some(false)
-      case _ => None
-    }
-  }
-}
-
-
-object Groups extends Schema {
-  val groups = table[SerializedGroups]("groups")
-  val nodes = table[SerializedGroupsNodes]("groupsnodesjoin")
-
-  on(groups)(t => declare(
-      t.id.is(autoIncremented("groupsid"), primaryKey)))
-}
-
-case class SerializedNodes(
-    @Column("nodeid") nodeId: String,
-    @Column("nodename") nodeName: String,
-    @Column("nodedescription") nodeDescription: String,
-    @Column("starttime") startTime: Timestamp,
-    @Column("endtime") endTime: Option[Timestamp]
-) extends KeyedEntity[Long] {
-  @Column("id")
-  val id = 0L
-}
-
-object SerializedNodes {
-  def fromNode(node : NodeInfo) : SerializedNodes = {
-    new SerializedNodes(node.id.value,
-            node.hostname,
-            node.description,
-            new Timestamp(DateTime.now().getMillis), None )
-  }
-}
-
-
-object Nodes extends Schema {
-  val nodes = table[SerializedNodes]("nodes")
-
-  on(nodes)(t => declare(
-      t.id.is(autoIncremented("nodesid"), primaryKey)))
-}
-
-case class SerializedDirectives(
-    @Column("directiveid") directiveId: String,
-    @Column("directivename") directiveName: String,
-    @Column("directivedescription") directiveDescription: String,
-    @Column("priority") priority: Int,
-    @Column("techniquename") techniqueName: String,
-    @Column("techniquehumanname") techniqueHumanName: String,
-    @Column("techniquedescription") techniqueDescription: String,
-    @Column("techniqueversion") techniqueVersion: String,
-    @Column("starttime") startTime: Timestamp,
-    @Column("endtime") endTime: Timestamp
-) extends KeyedEntity[Long]  {
-  @Column("id")
-  val id = 0L
-}
-
-object SerializedDirectives {
-  def fromDirective(directive : Directive,
-      userPT : ActiveTechnique,
-      technique : Technique) : SerializedDirectives = {
-    new SerializedDirectives(directive.id.value,
-            directive.name,
-            directive.shortDescription,
-            directive.priority,
-            userPT.techniqueName.value,
-            technique.name,
-            technique.description,
-            directive.techniqueVersion.toString,
-            new Timestamp(DateTime.now().getMillis), null )
-  }
-}
-
-object Directives extends Schema {
-  val directives = table[SerializedDirectives]("directives")
-
-  on(directives)(t => declare(
-      t.id.is(autoIncremented("directivesid"), primaryKey)))
-}
-
-case class SerializedRules(
-    @Column("ruleid")           ruleId           : String
-  , @Column("serial")           serial           : Int
-  , @Column("categoryid")       categoryId       : String
-  , @Column("name")             name             : String
-  , @Column("shortdescription") shortDescription : String
-  , @Column("longdescription")  longDescription  : String
-  , @Column("isenabled")        isEnabledStatus  : Boolean
-  , @Column("starttime")        startTime        : Timestamp
-  , @Column("endtime")          endTime          : Timestamp
-) extends KeyedEntity[Long]  {
-  @Column("rulepkeyid")
-  val id = 0L
-}
-
-case class SerializedRuleGroups(
-    @Column("rulepkeyid") rulePkeyId: Long,// really, the id (not the cr one)
-    @Column("targetserialisation") targetSerialisation: String
-) extends KeyedEntity[CompositeKey2[Long,String]]  {
-
-  def id = compositeKey(rulePkeyId, targetSerialisation)
-}
-
-case class SerializedRuleDirectives(
-    @Column("rulepkeyid") rulePkeyId: Long,// really, the id (not the cr one)
-    @Column("directiveid") directiveId: String
-) extends KeyedEntity[CompositeKey2[Long,String]]  {
-
-  def id = compositeKey(rulePkeyId, directiveId)
-}
-
-object SerializedRules {
-  def fromSerialized(
-      rule : SerializedRules
-    , ruleTargets : Seq[SerializedRuleGroups]
-    , directives : Seq[SerializedRuleDirectives]
-  ) : Rule = {
-    Rule (
-        RuleId(rule.ruleId)
-      , rule.name
-      , rule.serial
-      , RuleCategoryId(rule.categoryId) // this is not really useful as RuleCategory are not really serialized
-      , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
-      , directives.map(x => new DirectiveId(x.directiveId)).toSet
-      , rule.shortDescription
-      , rule.longDescription
-      , rule.isEnabledStatus
-      , false
-    )
-
-  }
-
-  def toSerialized(rule : Rule) : SerializedRules = {
-    SerializedRules (
-        rule.id.value
-      , rule.serial
-      , rule.categoryId.value
-      , rule.name
-      , rule.shortDescription
-      , rule.longDescription
-      , rule.isEnabledStatus
-      , new Timestamp(DateTime.now().getMillis)
-      , null
-    )
-  }
-
-}
-
-object Rules extends Schema {
-  val rules = table[SerializedRules]("rules")
-  val groups = table[SerializedRuleGroups]("rulesgroupjoin")
-  val directives = table[SerializedRuleDirectives]("rulesdirectivesjoin")
-
-  on(rules)(t => declare(
-      t.id.is(autoIncremented("rulesid"), primaryKey)))
-
-}
-
-case class SerializedGlobalSchedule(
-    @Column("interval") interval: Int,
-    @Column("splaytime") splaytime: Int,
-    @Column("start_hour") start_hour: Int,
-    @Column("start_minute") start_minute: Int,
-    @Column("starttime") startTime: Timestamp,
-    @Column("endtime") endTime: Option[Timestamp]
-) extends KeyedEntity[Long] {
-  @Column("id")
-  val id = 0L
-}
-
-object SerializedGlobalSchedule {
-  def fromGlobalSchedule(
-        interval    : Int
-      , splaytime   : Int
-      , start_hour  : Int
-      , start_minute: Int) : SerializedGlobalSchedule = {
-    new SerializedGlobalSchedule(
-            interval
-          , splaytime
-          , start_hour
-          , start_minute
-          , new Timestamp(DateTime.now().getMillis)
-          , None
-    )
-  }
-}
-
-object GlobalSchedule extends Schema {
-  val globalSchedule = table[SerializedGlobalSchedule]("globalschedule")
-
-  on(globalSchedule)(t => declare(
-      t.id.is(autoIncremented("globalscheduleid"), primaryKey)))
 }

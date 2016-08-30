@@ -61,9 +61,9 @@ import net.liftweb.common.Full
 @RunWith(classOf[JUnitRunner])
 class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
-  import slickSchema.api._
+  import schema.api._
 
-  val repos = new GitModificationRepositoryImpl(slickSchema)
+  val repos = new GitModificationRepositoryImpl(schema)
 
   implicit def toCommitId(s: String) = GitCommitId(s)
   implicit def toModId(s: String) = ModificationId(s)
@@ -76,7 +76,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      slickExec(slickSchema.gitCommitJoin.result) must beEmpty
+      slickExec(schema.gitCommitJoin.result) must beEmpty
     }
 
     "be able to add commits" in {
@@ -91,7 +91,7 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
         , Try(Await.result(repos.addCommit("g42", "m4") , MAX_TIME))
       )
 
-      res must contain((x:Try[ADD]) => x must beASuccessfulTry((y:ADD) => y.mustFull ) ).foreach and (slickExec(slickSchema.gitCommitJoin.result).size === 5)
+      res must contain((x:Try[ADD]) => x must beASuccessfulTry((y:ADD) => y.mustFull ) ).foreach and (slickExec(schema.gitCommitJoin.result).size === 5)
     }
 
     "find back a commit by" in {

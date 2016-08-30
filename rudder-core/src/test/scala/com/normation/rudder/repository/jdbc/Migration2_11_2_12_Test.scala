@@ -60,7 +60,7 @@ import com.normation.rudder.db.DB
 @RunWith(classOf[JUnitRunner])
 class MigrationTo212Test extends DBCommon {
 
-  import slickSchema.api._
+  import schema.api._
 
   //we don't want the default 2.12 tables to be created
   override def sqlInit : String = ""
@@ -104,8 +104,8 @@ class MigrationTo212Test extends DBCommon {
 
       val t= DB.ExpectedReportsNodes(42, "node_1", List("node_config_1","node_config_2","node_config_3"))
 
-      slickExec(slickSchema.expectedReportsNodes +=  t)
-      slickExec(slickSchema.expectedReportsNodes.result).head === t
+      slickExec(schema.expectedReportsNodes +=  t)
+      slickExec(schema.expectedReportsNodes.result).head === t
     }
 
 }

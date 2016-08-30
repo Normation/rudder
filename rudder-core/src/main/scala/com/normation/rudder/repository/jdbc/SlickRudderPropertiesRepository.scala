@@ -50,13 +50,13 @@ import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
 
 class RudderPropertiesRepositoryImpl(
-     slickSchema      : SlickSchema
+     schema      : SlickSchema
    , reportsRepository: ReportsRepository
 ) extends RudderPropertiesRepository with Loggable {
 
   private[this] val PROP_REPORT_LAST_ID = "reportLoggerLastId"
 
-  import slickSchema.api._
+  import schema.api._
 
   /**
    * Get the last report id processed by the non compliant report Logger.
@@ -66,16 +66,16 @@ class RudderPropertiesRepositoryImpl(
   def getReportLoggerLastId: Future[Box[Long]] = {
 
     val q = for {
-      p <- slickSchema.runProperties
+      p <- schema.runProperties
            if( p.name === PROP_REPORT_LAST_ID)
     } yield {
       p.value
     }
 
-    slickSchema.db.run(q.result.asTry).map { res => res match {
+    schema.db.run(q.result.asTry).map { res => res match {
       case TSuccess(seq) => seq.headOption match { //name is primary key, at most 1
         case None =>
-          Failure(s"The property '${PROP_REPORT_LAST_ID}' was not found in table '${slickSchema.runProperties.baseTableRow.tableName}'")
+          Failure(s"The property '${PROP_REPORT_LAST_ID}' was not found in table '${schema.runProperties.baseTableRow.tableName}'")
         case Some(x) =>
           try {
             Full(x.toLong)
@@ -93,13 +93,13 @@ class RudderPropertiesRepositoryImpl(
    */
   def updateReportLoggerLastId(newId: Long) : Future[Box[Long]] = {
     val q = for {
-      rowsAffected <- slickSchema.runProperties
+      rowsAffected <- schema.runProperties
                         .filter( _.name === PROP_REPORT_LAST_ID )
                         .map(_.value).update(newId.toString)
       result       <- rowsAffected match {
                         case 0 =>
                           logger.warn("last id not present in database, create it with value %d".format(newId))
-                          slickSchema.runProperties += DB.RunProperties(PROP_REPORT_LAST_ID, newId.toString) //insert
+                          schema.runProperties += DB.RunProperties(PROP_REPORT_LAST_ID, newId.toString) //insert
                         case 1 => DBIO.successful(1)
                         case n => DBIO.failed(new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${PROP_REPORT_LAST_ID}"))
                       }
@@ -108,7 +108,7 @@ class RudderPropertiesRepositoryImpl(
     }
 
 
-    slickSchema.db.run(q.asTry).map {
+    schema.db.run(q.asTry).map {
       case TSuccess(x)  => Full(newId)
       case TFailure(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
     }

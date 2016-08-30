@@ -52,14 +52,14 @@ import org.joda.time.DateTime
 import net.liftweb.common._
 
 class SlickStatusUpdateRepository (
-    slickSchema: SlickSchema
+    schema: SlickSchema
 ) extends StatusUpdateRepository with Loggable {
-  import slickSchema.api._
+  import schema.api._
 
   val PROP_EXECUTION_STATUS = "executionStatus"
 
 
-  private[this] val queryGet = Compiled(slickSchema.statusUpdates
+  private[this] val queryGet = Compiled(schema.statusUpdates
                                             .filter( _.key === PROP_EXECUTION_STATUS)
                                             .map(x => (x.lastId, x.date))
                                           )
@@ -67,7 +67,7 @@ class SlickStatusUpdateRepository (
 
   def getExecutionStatus : Future[Box[Option[(Long,DateTime)]]] = {
 
-    slickSchema.db.run(actionGet.asTry).map {
+    schema.db.run(actionGet.asTry).map {
       case TSuccess(x)  => Full(x)
       case TFailure(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }
@@ -80,7 +80,7 @@ class SlickStatusUpdateRepository (
       entry  <- actionGet.asTry
       result <- entry match {
                   case TSuccess(None) =>
-                    (slickSchema.statusUpdates += add).asTry.map( _ => add)
+                    (schema.statusUpdates += add).asTry.map( _ => add)
                   case TSuccess(Some(e)) =>
                     queryGet.update((newId, reportsDate)).asTry.map( _ => add)
                   case TFailure(ex) =>
@@ -90,7 +90,7 @@ class SlickStatusUpdateRepository (
       result
     }
 
-    slickSchema.db.run(action.asTry).map {
+    schema.db.run(action.asTry).map {
       case TSuccess(x)  => Full(x)
       case TFailure(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
     }

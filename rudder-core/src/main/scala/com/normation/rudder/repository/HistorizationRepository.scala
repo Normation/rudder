@@ -36,21 +36,16 @@
 */
 
 package com.normation.rudder.repository
-import com.normation.rudder.repository.jdbc.SerializedGroups
-import com.normation.rudder.domain.nodes.NodeGroup
-import com.normation.rudder.repository.jdbc.SerializedDirectives
-import com.normation.rudder.domain.policies.Directive
-import com.normation.rudder.domain.policies.ActiveTechnique
+
+import scala.concurrent.Future
+
 import com.normation.cfclerk.domain.Technique
-import com.normation.rudder.domain.policies.Rule
-import com.normation.rudder.repository.jdbc.SerializedRuleDirectives
-import com.normation.rudder.repository.jdbc.SerializedRuleGroups
-import com.normation.rudder.repository.jdbc.SerializedRules
-import org.joda.time.DateTime
-import com.normation.rudder.repository.jdbc.SerializedNodes
+import com.normation.rudder.db.DB
+import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.repository.jdbc.SerializedGroupsNodes
-import com.normation.rudder.repository.jdbc.SerializedGlobalSchedule
+import com.normation.rudder.domain.policies.ActiveTechnique
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.Rule
 
 /**
  * Repository to retrieve information about Nodes, Groups, directives, rules
@@ -62,77 +57,51 @@ trait HistorizationRepository {
   /**
    * Return all the nodes that are still "opened"
    */
-  def getAllOpenedNodes() : Seq[SerializedNodes]
+  def getAllOpenedNodes() : Future[Seq[DB.SerializedNodes]]
 
   /**
    * Update a list of nodes, and close (end) another list, based on their id
    * Updating is really only setting now as a endTime for nodes, and creating them after
    */
-  def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]) :Seq[SerializedNodes]
-
-  /**
-   * Return all groups that have been updated or created after a specific time (optionnal),
-   * If fetchUnclosed is set to true, it will also return the opened group, regardless of their
-   * opening time
-   */
-  def getAllGroups(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])]
+  def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]): Future[Unit]
 
   /**
    * Return all the groups that are still "opened"
    */
-  def getAllOpenedGroups() : Seq[(SerializedGroups, Seq[SerializedGroupsNodes])]
+  def getAllOpenedGroups() : Future[Seq[(DB.SerializedGroups, Seq[DB.SerializedGroupsNodes])]]
 
   /**
    * Update a list of groups, and close (end) another list, based on their id
    * Updating is really setting a given endTime for the groups, and creating new ones, with all the nodes within
    */
-  def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]) :Seq[SerializedGroups]
-
-  /**
-   * Return all directives that have been updated or created after a specific time (optionnal),
-   * If fetchUnclosed is set to true, it will also return the opened directives, regardless of their
-   * opening time
-   */
-  def getAllDirectives(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedDirectives]
+  def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]): Future[Unit]
 
   /**
    * Return all the directives that are still "opened"
    */
-  def getAllOpenedDirectives() : Seq[SerializedDirectives]
+  def getAllOpenedDirectives(): Future[Seq[DB.SerializedDirectives]]
 
   /**
    * Update a list of directives, and close (end) another list, based on their id
    * Updating is really only setting now as a endTime for the directives, and then
    * (re)create the directives
    */
-  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)],
-              closable : Seq[String]) :Seq[SerializedDirectives]
-
-  /**
-   * Return all rules created or closed after a given time, and if
-   * fetchUnclosed is true, return also the unclosed rule
-   */
-  def getAllRules(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[(SerializedRules, Seq[SerializedRuleGroups],  Seq[SerializedRuleDirectives])]
+  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)], closable : Seq[String]): Future[Unit]
 
   /**
    * Return all the rules that are still "opened"
    */
-  def getAllOpenedRules() : Seq[Rule]
+  def getAllOpenedRules() : Future[Seq[Rule]]
 
   /**
    * close the rules based on their id, update the rule to update (updating is closing and creating)
    */
-  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Unit
+  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Future[Unit]
 
   /**
    * Get the current GlobalSchedule historized (the one considered in use)
    */
-  def getOpenedGlobalSchedule() : Option[SerializedGlobalSchedule]
-
-  /**
-   * Get all the global schedule
-   */
-  def getAllGlobalSchedule(after : Option[DateTime], fetchUnclosed : Boolean = false) : Seq[SerializedGlobalSchedule]
+  def getOpenedGlobalSchedule() : Future[Option[DB.SerializedGlobalSchedule]]
 
   /**
    * Update the current schedule historized by closing the previous and writing a new one
@@ -142,6 +111,6 @@ trait HistorizationRepository {
       , splaytime   : Int
       , start_hour  : Int
       , start_minute: Int
-  ) : Unit
+  ): Future[Unit]
 }
 

@@ -68,7 +68,7 @@ class ReportsTest extends DBCommon {
 
   lazy val repostsRepo = new ReportsJdbcRepository(jdbcTemplate)
 
-  import slickSchema.api._
+  import schema.api._
 
   sequential
 
