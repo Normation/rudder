@@ -332,7 +332,7 @@ final object DB {
       id              : Option[Long]
     , groupId         : String
     , groupName       : String
-    , groupDescription: String
+    , groupDescription: Option[String]
     , nodeCount       : Int
     , groupStatus     : Int
     , startTime       : DateTime
@@ -349,7 +349,7 @@ final object DB {
     def startTime        = column[DateTime]("starttime")
     def endTime          = column[Option[DateTime]]("endtime")
 
-    def * = (id.?, groupId, groupName, groupDescription, nodeCount, groupStatus, startTime, endTime
+    def * = (id.?, groupId, groupName, groupDescription.?, nodeCount, groupStatus, startTime, endTime
             ) <> (SerializedGroups.tupled, SerializedGroups.unapply)
   }
 
@@ -376,7 +376,7 @@ final object DB {
         id             : Option[Long]
       , nodeId         : String
       , nodeName       : String
-      , nodeDescription: String
+      , nodeDescription: Option[String]
       , startTime      : DateTime
       , endTime        : Option[DateTime]
   )
@@ -389,7 +389,7 @@ final object DB {
     def startTime       = column[DateTime]("starttime")
     def endTime         = column[Option[DateTime]]("endtime")
 
-    def * = (id.?, nodeId, nodeName, nodeDescription, startTime, endTime
+    def * = (id.?, nodeId, nodeName, nodeDescription.?, startTime, endTime
             ) <> (SerializedNodes.tupled, SerializedNodes.unapply)
   }
 
@@ -400,11 +400,11 @@ final object DB {
         id                  : Option[Long]
       , directiveId         : String
       , directiveName       : String
-      , directiveDescription: String
+      , directiveDescription: Option[String]
       , priority            : Int
       , techniqueName       : String
       , techniqueHumanName  : String
-      , techniqueDescription: String
+      , techniqueDescription: Option[String]
       , techniqueVersion    : String
       , startTime           : DateTime
       , endTime        : Option[DateTime]
@@ -423,8 +423,8 @@ final object DB {
     def startTime            = column[DateTime]("starttime")
     def endTime              = column[Option[DateTime]]("endtime")
 
-    def * = (id.?, directiveId, directiveName, directiveDescription, priority, techniqueName
-            , techniqueHumanName, techniqueDescription, techniqueVersion, startTime, endTime
+    def * = (id.?, directiveId, directiveName, directiveDescription.?, priority, techniqueName
+            , techniqueHumanName, techniqueDescription.?, techniqueVersion, startTime, endTime
             ) <> (SerializedDirectives.tupled, SerializedDirectives.unapply)
   }
 
@@ -435,13 +435,13 @@ final object DB {
       id               : Option[Long]
     , ruleId           : String
     , serial           : Int
-    , categoryId       : String
+    , categoryId       : Option[String]
     , name             : String
-    , shortDescription : String
-    , longDescription  : String
+    , shortDescription : Option[String]
+    , longDescription  : Option[String]
     , isEnabledStatus  : Boolean
     , startTime        : DateTime
-    , endTime        : Option[DateTime]
+    , endTime          : Option[DateTime]
   )
 
   class TableSerializedRules(tag: Tag) extends Table[SerializedRules](tag, "rules") {
@@ -456,8 +456,8 @@ final object DB {
     def startTime        = column[DateTime]("starttime")
     def endTime          = column[Option[DateTime]]("endtime")
 
-    def * = (id.?, ruleId, serial, categoryId, name, shortDescription
-            , longDescription, isEnabledStatus, startTime, endTime
+    def * = (id.?, ruleId, serial, categoryId.?, name, shortDescription.?
+            , longDescription.?, isEnabledStatus, startTime, endTime
             ) <> (SerializedRules.tupled, SerializedRules.unapply)
   }
 
@@ -521,11 +521,19 @@ final object DB {
   }
 
   object Historize {
+
+    //sanitize a string to option string
+    def Opt(s: String) = s match {
+      case null => None
+      case _ if(s.trim == "") => None
+      case _ => Some(s)
+    }
+
     // Utilitary method to convert from/to nodeGroup/SerializedGroups
     def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups = {
       SerializedGroups(None, nodeGroup.id.value,
               nodeGroup.name,
-              nodeGroup.description,
+              Opt(nodeGroup.description),
               nodeGroup.serverList.size,
               isDynamicToSql(nodeGroup.isDynamic),
               DateTime.now(), None )
@@ -549,7 +557,7 @@ final object DB {
     def fromNode(node : NodeInfo) : SerializedNodes = {
       new SerializedNodes(None, node.id.value,
               node.hostname,
-              node.description,
+              Opt(node.description),
               DateTime.now(), None )
     }
 
@@ -558,11 +566,11 @@ final object DB {
       SerializedDirectives(
         None, directive.id.value,
               directive.name,
-              directive.shortDescription,
+              Opt(directive.shortDescription),
               directive.priority,
               at.techniqueName.value,
               technique.name,
-              technique.description,
+              Opt(technique.description),
               directive.techniqueVersion.toString,
               DateTime.now(), null )
     }
@@ -576,11 +584,11 @@ final object DB {
           RuleId(rule.ruleId)
         , rule.name
         , rule.serial
-        , RuleCategoryId(rule.categoryId) // this is not really useful as RuleCategory are not really serialized
+        , RuleCategoryId(rule.categoryId.getOrElse("rootRuleCategory")) // this is not really useful as RuleCategory are not really serialized
         , ruleTargets.flatMap(x => RuleTarget.unser(x.targetSerialisation)).toSet
         , directives.map(x => DirectiveId(x.directiveId)).toSet
-        , rule.shortDescription
-        , rule.longDescription
+        , rule.shortDescription.getOrElse("")
+        , rule.longDescription.getOrElse("")
         , rule.isEnabledStatus
         , false
       )
@@ -592,10 +600,10 @@ final object DB {
           None
         , rule.id.value
         , rule.serial
-        , rule.categoryId.value
+        , Opt(rule.categoryId.value)
         , rule.name
-        , rule.shortDescription
-        , rule.longDescription
+        , Opt(rule.shortDescription)
+        , Opt(rule.longDescription)
         , rule.isEnabledStatus
         , DateTime.now()
         , null
