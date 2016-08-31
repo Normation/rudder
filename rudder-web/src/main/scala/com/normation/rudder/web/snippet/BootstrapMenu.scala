@@ -73,7 +73,8 @@ class BootstrapMenu {
               </a>
               <ul class="treeview-menu"> {
                 for (kid <- kids) yield {
-                  <li><a href={kid.uri}>{kid.text}</a></li>
+                  val styleKid = if (kid.current) "active" else ""
+                  <li><a href={kid.uri} class={styleKid}><span class="fa fa-arrow-right"></span>{kid.text}</a></li>
                 }
               } </ul>
             </li>

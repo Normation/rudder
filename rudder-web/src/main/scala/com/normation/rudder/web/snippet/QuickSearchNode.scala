@@ -99,14 +99,14 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
           //json option, see: https://code.google.com/p/jquery-autocomplete/wiki/Options
         , ("resultsClass", "'topQuickSearchResults ac_results '") :: Nil
         , ("placeholder" -> "Search nodes")
-        ,  ("class" -> "form-control")
+        , ("class" -> "form-control")
       )
 
 
-   <lift:form class="sidebar-form">
-        <div class="input-group col-xs-12">
-          {searchInput}
-        </div>
+    <lift:form class="sidebar-form topbar-search-form">
+      <div class="input-group">
+        {searchInput}
+      </div>
     </lift:form>
   }
 }
