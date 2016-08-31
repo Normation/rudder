@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -55,26 +55,23 @@ import net.liftweb.common._
 import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
+import com.normation.eventlog.EventActor
+import com.normation.rudder.domain.nodes.Node
 
-class NodeApiService5 (
+class NodeApiService8 (
     nodeRepository : WoNodeRepository
   , nodeInfoService: NodeInfoService
   , uuidGen        : StringUuidGenerator
-  , restExtractor  : RestExtractorService
   , asyncRegenerate: AsyncDeploymentAgent
 ) extends Loggable {
 
-  def updateRestNode(nodeId: NodeId, boxRestNode: Box[RestNodeProperties], req: Req) = {
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    implicit val action = "updateNodeProperties"
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = RestUtils.getActor(req)
+  def updateRestNode(nodeId: NodeId, restNode: RestNode, actor : EventActor, reason : Option[String]) : Box[Node] = {
 
-    (for {
-      reason   <- restExtractor.extractReason(req)
+    val modId = ModificationId(uuidGen.newUuid)
+
+    for {
       node     <- nodeInfoService.getNode(nodeId)
-      restNode <- boxRestNode
-      updated  =  node.copy(properties = updateProperties(node.properties, restNode.properties))
+      updated  =  node.copy(properties = updateProperties(node.properties, restNode.properties), policyMode = restNode.policyMode.getOrElse(node.policyMode))
       saved    <- if(updated == node) Full(node)
                   else nodeRepository.updateNode(updated, modId, actor, reason)
     } yield {
@@ -82,13 +79,7 @@ class NodeApiService5 (
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor)
       }
       saved
-    }) match {
-      case Full(node) =>
-          toJsonResponse(Some(nodeId.value), ( "properties" -> node.properties.toApiJson ))
-        case eb: EmptyBox =>
-          val message = (eb ?~ s"Could not update properties of node '${nodeId.value}'").messageChain
-          toJsonError(Some(nodeId.value), message)
-      }
+    }
   }
 
   /**
@@ -99,7 +90,7 @@ class NodeApiService5 (
    * - if the value is the emtpy string, remove
    *   the property
    */
-  private[this] def updateProperties(props: Seq[NodeProperty], updates: Option[Seq[NodeProperty]]) = {
+  def updateProperties(props: Seq[NodeProperty], updates: Option[Seq[NodeProperty]]) = {
     updates match {
       case None => props
       case Some(u) =>

@@ -71,7 +71,6 @@ trait EventLogFactory {
     , reason         : Option[String]
   ) : AddRule
 
-
   def getDeleteRuleFromDiff(
       id          : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -254,7 +253,6 @@ trait EventLogFactory {
     , reason             : Option[String]
   ) : DeleteAPIAccountEventLog
 
-
   def getModifyGlobalPropertyFromDiff(
       id             : Option[Int] = None
     , modificationId : Option[ModificationId] = None
@@ -271,31 +269,41 @@ trait EventLogFactory {
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
     , principal          : EventActor
-    , modifyDiff         : ModifyNodePropertiesDiff
+    , modifyDiff         : ModifyNodeDiff
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) : ModifyNodeProperties
+  ) : ModifyNodeProperties
 
   def getModifyNodeAgentRunFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
     , principal          : EventActor
-    , modifyDiff         : ModifyNodeAgentRunDiff
+    , modifyDiff         : ModifyNodeDiff
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) : ModifyNodeAgentRun
+  ) : ModifyNodeAgentRun
 
   def getModifyNodeHeartbeatFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
     , principal          : EventActor
-    , modifyDiff         : ModifyNodeHeartbeatDiff
+    , modifyDiff         : ModifyNodeDiff
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) : ModifyNodeHeartbeat
+  ) : ModifyNodeHeartbeat
+
+  def getModifyNodeFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodeDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : ModifyNode
 
 }
 
@@ -332,7 +340,6 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-
 
   override def getDeleteRuleFromDiff(
       id          : Option[Int] = None
@@ -490,7 +497,6 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity))
   }
-
 
   override def getAddNodeGroupFromDiff(
       id          : Option[Int] = None
@@ -810,7 +816,6 @@ class EventLogFactoryImpl(
     ))
   }
 
-
   override def getDeleteApiAccountFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
@@ -861,11 +866,11 @@ class EventLogFactoryImpl(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
     , principal          : EventActor
-    , modifyDiff         : ModifyNodePropertiesDiff
+    , modifyDiff         : ModifyNodeDiff
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) : ModifyNodeProperties = {
+  ) : ModifyNodeProperties = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{modifyDiff.id.value}</id>{
@@ -889,15 +894,81 @@ class EventLogFactoryImpl(
     ) )
   }
 
+  def getModifyNodeFromDiff(
+      id                 : Option[Int] = None
+    , modificationId     : Option[ModificationId] = None
+    , principal          : EventActor
+    , modifyDiff         : ModifyNodeDiff
+    , creationDate       : DateTime = DateTime.now()
+    , severity           : Int = 100
+    , reason             : Option[String]
+  ) : ModifyNode = {
+    val details = EventLog.withContent{
+      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
+        <id>{modifyDiff.id.value}</id>
+        {
+          modifyDiff.modProperties match {
+            case None    => NodeSeq.Empty
+            case Some(x) => SimpleDiff.toXml(<properties/>, x) { props =>
+              props.flatMap { p => <property><name>{ p.name }</name><value>{ p.value }</value></property> }
+            } }
+        }{
+          modifyDiff.modAgentRun match {
+            case None    => NodeSeq.Empty
+            case Some(x) => SimpleDiff.toXml(<agentRun/>, x) { _ match {
+              case None      => NodeSeq.Empty
+              case Some(run) => (
+                                  <override>{run.overrides.map(_.toString).getOrElse("")}</override>
+                                  <interval>{run.interval}</interval>
+                                  <startMinute>{run.startMinute}</startMinute>
+                                  <startHour>{run.startHour}</startHour>
+                                  <splaytime>{run.splaytime}</splaytime>
+                                )
+            } }
+          }
+        } {
+          modifyDiff.modHeartbeat match {
+            case None    => NodeSeq.Empty
+            case Some(x) => SimpleDiff.toXml(<heartbeat/>, x) { _ match {
+              case None     => NodeSeq.Empty
+              case Some(hb) => (
+                                  <override>{hb.overrides}</override>
+                                  <period>{hb.heartbeatPeriod}</period>
+                                )
+            } }
+          }
+        } {
+          modifyDiff.modPolicyMode match {
+            case None    => NodeSeq.Empty
+            case Some(x) => SimpleDiff.toXml(<policyMode/>, x) { _ match {
+              case None       => Text("default")
+              case Some(mode) => Text(mode.name)
+            } }
+          }
+        }
+      </node>)
+    }
+
+    ModifyNode(EventLogDetails(
+        id = id
+      , modificationId = modificationId
+      , principal = principal
+      , details = details
+      , creationDate = creationDate
+      , reason = reason
+      , severity = severity
+    ) )
+  }
+
   def getModifyNodeAgentRunFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
     , principal          : EventActor
-    , modifyDiff         : ModifyNodeAgentRunDiff
+    , modifyDiff         : ModifyNodeDiff
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) : ModifyNodeAgentRun = {
+  ) : ModifyNodeAgentRun = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{modifyDiff.id.value}</id>{
@@ -929,16 +1000,15 @@ class EventLogFactoryImpl(
     ) )
   }
 
-
   def getModifyNodeHeartbeatFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
     , principal          : EventActor
-    , modifyDiff         : ModifyNodeHeartbeatDiff
+    , modifyDiff         : ModifyNodeDiff
     , creationDate       : DateTime = DateTime.now()
     , severity           : Int = 100
     , reason             : Option[String]
- ) : ModifyNodeHeartbeat = {
+  ) : ModifyNodeHeartbeat = {
     val details = EventLog.withContent{
       scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
         <id>{modifyDiff.id.value}</id>{
@@ -968,5 +1038,3 @@ class EventLogFactoryImpl(
   }
 
 }
-
-

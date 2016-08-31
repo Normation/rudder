@@ -87,7 +87,6 @@ class LDAPDiffMapper(
 
   ///////////////////////////////////////////////////////////////////////////////////////
 
-
   ///// rule diff /////
 
   def addChangeRecords2RuleDiff(crDn:DN, change:LDIFChangeRecord) : Box[AddRuleDiff] = {
@@ -105,7 +104,6 @@ class LDAPDiffMapper(
       Failure("The following change record does not belong to Rule entry '%s': %s".format(crDn,change))
     }
   }
-
 
   /**
    * Map a list of com.unboundid.ldif.LDIFChangeRecord into a
@@ -162,7 +160,6 @@ class LDAPDiffMapper(
       Failure("The following change record does not belong to Rule entry '%s': %s".format(beforeChangeEntry.dn,change))
     }
   }
-
 
   ///// Technique diff /////
 
@@ -235,6 +232,12 @@ class LDAPDiffMapper(
                   tryo(diff.copy(modIsActivated = Some(SimpleDiff(oldPi.isEnabled, mod.getAttribute().getValueAsBoolean))))
                 case A_IS_SYSTEM =>
                   tryo(diff.copy(modIsSystem = Some(SimpleDiff(oldPi.isSystem,mod.getAttribute().getValueAsBoolean))))
+                case A_POLICY_MODE =>
+                  for {
+                    policyMode <- PolicyMode.parseDefault(mod.getAttribute().getValue)
+                  } yield {
+                    diff.copy(modPolicyMode = Some(SimpleDiff(oldPi.policyMode,policyMode)))
+                  }
                 case x => Failure("Unknown diff attribute: " + x)
               }
             }
@@ -250,7 +253,6 @@ class LDAPDiffMapper(
       Failure("The following change record does not belong to directive entry '%s': %s".format(piDn,change))
     }
   }
-
 
   ///// Node group diff /////
 
@@ -269,7 +271,6 @@ class LDAPDiffMapper(
       Failure("The following change record does not belong to Node Group entry '%s': %s".format(groupDN,change))
     }
   }
-
 
   def modChangeRecords2NodeGroupDiff(beforeChangeEntry:LDAPEntry, change:LDIFChangeRecord) : Box[Option[ModifyNodeGroupDiff]] = {
       change match {

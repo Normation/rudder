@@ -74,6 +74,7 @@ import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.services.queries.StringQuery
 import net.liftweb.http.Req
+import com.normation.rudder.domain.policies.PolicyMode
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -620,6 +621,15 @@ case class RestExtractorService (
     }
   }
 
+  def extractNode (params : Map[String, List[String]]) : Box[RestNode] = {
+    for {
+      properties <- extractNodeProperties(params)
+      mode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
+    } yield {
+      RestNode(properties,mode)
+    }
+  }
+
   /*
    * expecting json:
    * { "properties": [
@@ -628,11 +638,20 @@ case class RestExtractorService (
    * ,  {"name":"plop", "value":"plop" }
    * ] }
    */
-  def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNode] = {
+  def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNodeProperties] = {
     import net.liftweb.json.JsonParser._
     implicit val formats = DefaultFormats
 
-    Box(json.extractOpt[RestNode]) ?~! "Error when extracting node information"
+    Box(json.extractOpt[RestNodeProperties]) ?~! "Error when extracting node properties"
+  }
+
+  def extractNodeFromJSON (json : JValue) : Box[RestNode] = {
+    for {
+      properties <- extractNodePropertiesrFromJSON(json)
+      mode       <- extractOneValueJson(json, "policyMode")(PolicyMode.parseDefault)
+    } yield {
+      RestNode(properties.properties,mode)
+    }
   }
 
   /*
@@ -666,8 +685,9 @@ case class RestExtractorService (
       parameters       <- extractOneValue(params, "parameters")(convertToDirectiveParam)
       techniqueName    <- extractOneValue(params, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValue(params, "techniqueVersion")(x => Full(TechniqueVersion(x)))
+      policyMode       <- extractOneValue(params, "policyMode")(PolicyMode.parseDefault)
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority, techniqueName, techniqueVersion)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority, techniqueName, techniqueVersion, policyMode)
     }
   }
 
@@ -705,8 +725,9 @@ case class RestExtractorService (
       parameters       <- extractJsonDirectiveParam(json)
       techniqueName    <- extractOneValueJson(json, "techniqueName")(x => Full(TechniqueName(x)))
       techniqueVersion <- extractOneValueJson(json, "techniqueVersion")(x => Full(TechniqueVersion(x)))
+      policyMode       <- extractOneValueJson(json, "policyMode")(PolicyMode.parseDefault)
     } yield {
-      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion)
+      RestDirective(name,shortDescription,longDescription,enabled,parameters,priority,techniqueName,techniqueVersion,policyMode)
     }
   }
 

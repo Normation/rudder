@@ -175,7 +175,6 @@ case class DirectiveAPIService2 (
     } yield {
       actualDirectiveCreation(newDirective,baseDirective,activeTechnique,technique) _
     }
-
   }
 
   def createDirective(directiveId : DirectiveId, restDirective: RestDirective) : Box[( EventActor,ModificationId,  Option[String]) => Box[JValue]] = {
@@ -183,7 +182,7 @@ case class DirectiveAPIService2 (
       name <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
       technique <- restExtractor.extractTechnique(restDirective.techniqueName, restDirective.techniqueVersion)  ?~! s"Technique is not correctly defined in request data."
       activeTechnique <- readDirective.getActiveTechnique(technique.id.name).flatMap(Box(_)) ?~! s"Technique ${technique.id.name} cannot be found."
-      baseDirective = Directive(directiveId,technique.id.version,Map(),name,"", _isEnabled = true)
+      baseDirective = Directive(directiveId,technique.id.version,Map(),name,"",None, _isEnabled = true)
       result = actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique) _
     } yield {
       result

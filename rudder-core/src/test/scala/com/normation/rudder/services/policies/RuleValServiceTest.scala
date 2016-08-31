@@ -138,6 +138,7 @@ class RuleValServiceTest extends Specification {
       , Map()
       , "MyDirective"
       , "shortDescription"
+      , None
       , "longDescription"
       , 5
       , true

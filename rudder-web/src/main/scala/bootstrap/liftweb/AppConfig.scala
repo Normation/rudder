@@ -725,6 +725,20 @@ object RudderConfig extends Loggable {
     )
   }
 
+  val nodeApi8 = {
+    new NodeAPI8 (
+        nodeApi6
+      , new NodeApiService8(
+            woNodeRepository
+          , nodeInfoService
+          , uuidGen
+          , asyncDeploymentAgent
+        )
+      , restExtractorService
+      , restDataSerializer
+    )
+  }
+
   val parameterApiService2 =
     new ParameterApiService2 (
         roLDAPParameterRepository
@@ -775,6 +789,8 @@ object RudderConfig extends Loggable {
   val complianceApi6 = new ComplianceAPI7(restExtractorService, complianceAPIService, v6compatibility = true)
   val complianceApi7 = new ComplianceAPI7(restExtractorService, complianceAPIService)
 
+  val settingsApi8 = new SettingsAPI8(restExtractorService, configService)
+
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil
   // Add change request support
@@ -787,6 +803,8 @@ object RudderConfig extends Loggable {
   val apiV6 : List[RestAPI] = techniqueApi6 ::complianceApi6 :: nodeApi6 :: ruleApi6 :: groupApi6 :: apiV5.filter( _ != nodeApi5).filter( _ != ruleApi2).filter( _ != groupApi5)
   // apiv7 just add compatible changes on compliances, adding "level" option and "compliance mode" attribute in response
   val apiV7 = complianceApi7 :: apiV6.filter( _ != complianceApi6)
+  // apiv8 add policy mode in node API and settings API
+  val apiV8 = nodeApi8 :: settingsApi8 :: apiV7.filter( _ != nodeApi6)
 
   val apis = {
     Map (
@@ -802,6 +820,8 @@ object RudderConfig extends Loggable {
       , ( ApiVersion(6,false) -> apiV6 )
         //Rudder 3.2
       , ( ApiVersion(7,false) -> apiV7 )
+        //Rudder 4.0
+      , ( ApiVersion(8,false) -> apiV8 )
     )
   }
 

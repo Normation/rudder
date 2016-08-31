@@ -98,6 +98,17 @@ class ShowNodeDetailsFromNode(
   private[this] val nodeRepo             = RudderConfig.woNodeRepository
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val configService = RudderConfig.configService
+  private[this] var nodeInfo = nodeInfoService.getNodeInfo(nodeId) match {
+    case Full(Some(info)) => info
+    case eb : EmptyBox =>
+      val e = eb ?~! s"Could not get Node '${nodeId.value}' details"
+      logger.error(e.messageChain)
+      throw new Exception(e.messageChain)
+    case Full(None) =>
+      val error = s"Could not get Node '${nodeId.value}' details because it does not exist"
+      logger.error(error)
+      throw new Exception(error)
+  }
 
   def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
@@ -117,11 +128,6 @@ class ShowNodeDetailsFromNode(
   def getHeartBeat : Box[(GlobalComplianceMode,NodeComplianceMode)] = {
     for {
       globalMode  <- configService.rudder_compliance_mode()
-      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
-      nodeInfo    <- optNodeInfo match {
-                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
-                       case Some(x) => Full(x)
-                     }
     } yield {
       // If heartbeat is not overriden, we revert to the default one
       val defaultHeartBeat = HeartbeatConfiguration(false, globalMode.heartbeatPeriod)
@@ -134,8 +140,9 @@ class ShowNodeDetailsFromNode(
   def saveHeart(complianceMode : NodeComplianceMode) : Box[Unit] = {
     val heartbeatConfiguration = HeartbeatConfiguration(complianceMode.overrideGlobal, complianceMode.heartbeatPeriod)
     val modId = ModificationId(uuidGen.newUuid)
+    nodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))
     for {
-      result <- nodeRepo.updateNodeHeartbeat(nodeId, heartbeatConfiguration, modId, CurrentUser.getActor, None)
+      result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.getActor, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }
@@ -167,22 +174,16 @@ class ShowNodeDetailsFromNode(
 
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
   def getSchedule : Box[AgentRunInterval] = {
-    for {
-      optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
-      nodeInfo    <- optNodeInfo match {
-                       case None    => Failure(s"The node with id '${nodeId.value}' was not found")
-                       case Some(x) => Full(x)
-                     }
-    } yield {
-      nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval))
-    }
+     Full( nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval)))
   }
 
   def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
     val modId =  ModificationId(uuidGen.newUuid)
     val user  =  CurrentUser.getActor
+    nodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
     for {
-      result  <- nodeRepo.updateAgentRunPeriod(nodeId, schedule, modId, user, None)
+      oldNode <- nodeInfoService.getNode(nodeId)
+      result  <- nodeRepo.updateNode(nodeInfo.node, modId, user, None)
     } yield {
       asyncDeploymentAgent ! AutomaticStartDeployment(modId, CurrentUser.getActor)
     }

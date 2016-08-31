@@ -37,8 +37,6 @@
 
 package com.normation.rudder.repository
 
-
-
 import net.liftweb.common._
 import com.normation.rudder.api.DeleteApiAccountDiff
 import com.normation.rudder.domain.eventlog.ChangeRequestDiff
@@ -71,10 +69,10 @@ import com.normation.rudder.domain.policies.AddDirectiveDiff
 import com.normation.rudder.domain.nodes.DeleteNodeGroupDiff
 import com.normation.eventlog.EventLog
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.domain.nodes.ModifyNodeDiff
 
 trait EventLogRepository {
   def eventLogFactory : EventLogFactory
-
 
   /**
    * Save an eventLog
@@ -342,46 +340,18 @@ trait EventLogRepository {
     )
   }
 
-
   /**
    * Node properties: heartbeat, agent run, properties
    */
-  def saveModifyNodeAgentRun(
-      modId: ModificationId
-    , principal: EventActor
-    , modifyDiff: ModifyNodeAgentRunDiff
-    , reason:Option[String]) = {
+  def saveModifyNode(
+      modId     : ModificationId
+    , principal : EventActor
+    , modifyDiff: ModifyNodeDiff
+    , reason    : Option[String]
+  ) = {
     saveEventLog(
         modId
-      , eventLogFactory.getModifyNodeAgentRunFromDiff (
-            principal  = principal
-          , modifyDiff = modifyDiff
-          , reason = reason
-        )
-    )
-  }
-  def saveModifyNodeHeartbeat(
-      modId: ModificationId
-    , principal: EventActor
-    , modifyDiff: ModifyNodeHeartbeatDiff
-    , reason:Option[String]) = {
-    saveEventLog(
-        modId
-      , eventLogFactory.getModifyNodeHeartbeatFromDiff (
-            principal  = principal
-          , modifyDiff = modifyDiff
-          , reason = reason
-        )
-    )
-  }
-  def saveModifyNodeProperties(
-      modId: ModificationId
-    , principal: EventActor
-    , modifyDiff: ModifyNodePropertiesDiff
-    , reason:Option[String]) = {
-    saveEventLog(
-        modId
-      , eventLogFactory.getModifyNodePropertiesFromDiff (
+      , eventLogFactory.getModifyNodeFromDiff (
             principal  = principal
           , modifyDiff = modifyDiff
           , reason = reason
@@ -398,7 +368,6 @@ trait EventLogRepository {
    * For the moment it only a string, it should be something else in the future
    */
   def getEventLogByCriteria(criteria : Option[String], limit:Option[Int] = None, orderBy:Option[String] = None) : Box[Seq[EventLog]]
-
 
   def getEventLogByChangeRequest(changeRequest : ChangeRequestId, xpath:String, optLimit:Option[Int] = None, orderBy:Option[String] = None, eventTypeFilter : Option[Seq[EventLogFilter]] = None) : Box[Seq[EventLog]]
 

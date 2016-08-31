@@ -256,6 +256,12 @@ attributeTypes: ( 1.3.6.1.4.1.35061.2.1.230
   EQUALITY caseIgnoreMatch
   SUBSTR caseIgnoreSubstringsMatch
   SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{4096} )
+attributeTypes: ( 1.3.6.1.4.1.35061.2.1.231
+  NAME 'policyMode'
+  DESC 'Policy mode (Enforce/Verify) for this element '
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+  EQUALITY caseIgnoreMatch
+  SUBSTR caseIgnoreSubstringsMatch )
 ### API principal and tokens 
 attributeTypes: ( 1.3.6.1.4.1.35061.2.1.250
   NAME 'apiToken'
@@ -331,7 +337,8 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.1
   SUP top
   STRUCTURAL
   MUST ( nodeId $ cn $ isSystem $ isBroken)
-  MAY ( description $ serializedNodeProperty $ serializedAgentRunInterval ) )
+  MAY (  description $ serializedNodeProperty $ serializedAgentRunInterval $
+        serializedHeartbeatRunConfiguration $ policyMode ) )
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.2
   NAME 'rudderPolicyServer'
   DESC 'The Node representation of a policy server'
@@ -389,7 +396,7 @@ objectClasses: ( 1.3.6.1.4.1.35061.2.2.23
   STRUCTURAL
   MUST ( directiveId $ techniqueVersion )
   MAY ( cn $ description $ longDescription $ isEnabled $ isSystem $
-  directivePriority $ directiveVariable  ) )
+  directivePriority $ directiveVariable $ policyMode ) )
 ### rules ###
 objectClasses: ( 1.3.6.1.4.1.35061.2.2.30
   NAME 'rule'

@@ -79,6 +79,7 @@ trait RestDataSerializer {
   def serializeServerInfo (srv : Srv, status : String) : JValue
 
   def serializeNodeInfo(nodeInfo : NodeInfo, status : String, tagFixed : Boolean) : JValue
+  def serializeNode(node : Node) : JValue
 
   def serializeInventory(inventory: FullInventory, status: String, tagFixed: Boolean) : JValue
 
@@ -112,6 +113,14 @@ case class RestDataSerializerImpl (
       ~ ("osName"       -> nodeInfo.osDetails.os.name)
       ~ ("osVersion"    -> nodeInfo.osDetails.version.value)
       ~ (machineTypeTag -> serializeMachineType(nodeInfo.machine.map(_.machineType)))
+    )
+  }
+
+  def serializeNode(node : Node) : JValue = {
+    import com.normation.rudder.domain.nodes.JsonSerialisation._
+    (   ("id"         -> node.id.value)
+      ~ ("properties" -> node.properties.toApiJson)
+      ~ ("policyMode" -> node.policyMode.map(_.name).getOrElse("default"))
     )
   }
 
@@ -288,6 +297,7 @@ case class RestDataSerializerImpl (
       ~ ("priority"         -> directive.priority)
       ~ ("enabled"          -> directive.isEnabled )
       ~ ("system"           -> directive.isSystem )
+      ~ ("policyMode"       -> directive.policyMode.map(_.name).getOrElse("default"))
     )
     extendResponseCompatibility(base,extension)
   }

@@ -177,7 +177,7 @@ trait DirectiveField extends BaseField with SectionChildField {
 
   def display(value: NodeSeq) = {
     <tr>
-      <td class="directiveVarLabel">
+      <td class="tw-bs" colspan="2">
       <span>{ if (optional) displayName else <b>{ displayName}</b> } {tooltipElem} {if (optional) <span class="tw-bs"> - <small class="greyscala">Optional</small></span>}</span>
       </td>
       <td class="directiveVarValue">{ value }</td>

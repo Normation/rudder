@@ -47,8 +47,6 @@ import net.liftweb.json.JString
 import net.liftweb.json.JValue
 import scala.language.implicitConversions
 
-
-
 /**
  * The trait of all API definition
  * It needs to define its kind (will  be the url prefix )
@@ -62,7 +60,6 @@ trait RestAPI  extends RestHelper{
   def requestDispatch(apiVersion : ApiVersion): PartialFunction[Req, () => Box[LiftResponse]]
 
 }
-
 
 /**
  * The class that actually dispatch the API
@@ -82,6 +79,7 @@ case class APIDispatcher (
         apis.foreach{
           api =>
             serve("api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch(v)  )
+            serve("secure" / "api" / s"${version}" / s"${api.kind}" prefix api.requestDispatch(v)  )
         }
     }
 
@@ -91,6 +89,7 @@ case class APIDispatcher (
       api =>
         // ... and Dispatch it
         serve("api" / "latest" / s"${api.kind}" prefix api.requestDispatch(latest))
+        serve("secure" / "api" / "latest" / s"${api.kind}" prefix api.requestDispatch(latest))
     }
 
     // regroup api by kind, to be able to dispatch header api version
@@ -125,7 +124,6 @@ case class APIDispatcher (
         serve("api" / s"${kind}" prefix requestDispatch)
     }
 
-
     serve {
       case Get("api" :: "info" :: Nil,req) =>
         implicit val action = "ApiGeneralInformations"
@@ -143,7 +141,6 @@ case class APIDispatcher (
             ( "latest" -> max.value) ~
             ( "all" -> availableVersions)
           )
-
 
         RestUtils.toJsonResponse(None, versions)
 

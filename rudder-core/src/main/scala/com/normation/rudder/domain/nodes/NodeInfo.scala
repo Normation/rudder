@@ -50,7 +50,6 @@ import com.normation.inventory.domain.OsDetails
 import com.normation.inventory.domain.MachineUuid
 import com.normation.inventory.domain.KeyStatus
 
-
 final case class MachineInfo(
     id          : MachineUuid
   , machineType : MachineType
@@ -92,5 +91,6 @@ final case class NodeInfo(
   val creationDate               = node.creationDate
   val nodeReportingConfiguration = node.nodeReportingConfiguration
   val properties                 = node.properties
+  val policyMode                 = node.policyMode
 
 }
