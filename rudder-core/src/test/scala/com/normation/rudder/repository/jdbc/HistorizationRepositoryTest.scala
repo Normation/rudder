@@ -56,6 +56,11 @@ import com.normation.rudder.services.eventlog.HistorizationServiceImpl
 import com.normation.rudder.services.policies.NodeConfigData
 import org.specs2.specification.mutable.ExecutionEnvironment
 import org.specs2.concurrent.ExecutionEnv
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.policies.Rule
 
 /**
  *
@@ -72,8 +77,6 @@ def is(implicit ee: ExecutionEnv) = {
   val service = new HistorizationServiceImpl(repos)
 
 
-  val node1 = NodeConfigData.node1
-  val node2 = NodeConfigData.node2
 
   sequential
 
@@ -84,17 +87,97 @@ def is(implicit ee: ExecutionEnv) = {
     }
 
     "be able to add and found" in {
-      val op1 = Await.result(repos.updateNodes(Seq(node1), Seq()), MAX_TIME)
+      val op1 = Await.result(repos.updateNodes(Seq(NodeConfigData.node1), Seq()), MAX_TIME)
       val op2 = Await.result(repos.getAllOpenedNodes, MAX_TIME)
 
       (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node1")
     }
 
     "be able to close and found new ones" in {
-      val op1 = service.updateNodes(Set(node2)).openOrThrowException("that test should not throw")
+      val op1 = service.updateNodes(Set(NodeConfigData.node2)).openOrThrowException("that test should not throw")
       val op2 = Await.result(repos.getAllOpenedNodes, MAX_TIME)
 
       (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node2")
     }
+
+    "check that policy servers are ignored (not sure why)" in {
+      val op1 = service.updateNodes(Set(NodeConfigData.root)).openOrThrowException("that test should not throw")
+      val op2 = Await.result(repos.getAllOpenedNodes, MAX_TIME)
+
+      (op1 === ()) and (op2.size === 0)
+    }
+
   }
+
+  "Basic add and close for nodes" should {
+
+    //build a full category based on the groups id from NodeConfigDate
+    def buildCategory(groups: List[NodeGroupId]) = FullNodeGroupCategory(NodeGroupCategoryId("test_root"), "", "", Nil
+      , groups.map(g => NodeConfigData.fullRuleTargetInfos.getOrElse(g, throw new Exception(s"Missing group with ID '${g}' in NodeConfigDate, for tests")))
+    )
+
+    "found nothing at begining" in {
+      repos.getAllOpenedGroups() must haveSize[Seq[(DB.SerializedGroups, Seq[DB.SerializedGroupsNodes])]](0).await
+    }
+
+    "be able to add and found" in {
+      val op1 = Await.result(repos.updateGroups(Seq(NodeConfigData.g1), Seq()), MAX_TIME)
+      val op2 = Await.result(repos.getAllOpenedGroups(), MAX_TIME)
+
+      (op1 === ()) and (op2.size === 1) and (op2.head._1.groupId === "1")
+    }
+
+    "be able to close and found new ones" in {
+      val op1 = service.updateGroups(buildCategory(NodeConfigData.g2.id :: NodeConfigData.g3.id :: Nil)).openOrThrowException("that test should not throw")
+      val op2 = Await.result(repos.getAllOpenedGroups(), MAX_TIME)
+
+      (op1 === ()) and (op2.size === 2) and (op2.head._1.groupId === "2")
+    }
+
+  }
+
+  "Basic add and close for directives" should {
+
+    "found nothing at begining" in {
+      repos.getAllOpenedDirectives() must haveSize[Seq[DB.SerializedDirectives]](0).await
+    }
+
+    "be able to add and found" in {
+      val op1 = Await.result(repos.updateDirectives(Seq((NodeConfigData.d1, NodeConfigData.fat1.toActiveTechnique, NodeConfigData.t1)), Seq()), MAX_TIME)
+      val op2 = Await.result(repos.getAllOpenedDirectives(), MAX_TIME)
+
+      (op1 === ()) and (op2.size === 1) and (op2.head.directiveId === "d1")
+    }
+
+    "be able to close and found new ones" in {
+      val op1 = service.updateDirectiveNames(NodeConfigData.directives).openOrThrowException("that test should not throw")
+      val op2 = Await.result(repos.getAllOpenedDirectives(), MAX_TIME)
+
+      (op1 === ()) and (op2.size === 2) and (op2.sortBy(_.directiveId).last.directiveId === "d2")
+    }
+
+  }
+
+  "Basic add and close for rules" should {
+
+    "found nothing at begining" in {
+      repos.getAllOpenedRules() must haveSize[Seq[Rule]](0).await
+    }
+
+    "be able to add and found" in {
+      val op1 = Await.result(repos.updateRules(Seq(NodeConfigData.r1), Seq()), MAX_TIME)
+      val op2 = Await.result(repos.getAllOpenedRules(), MAX_TIME)
+
+      (op1 === ()) and (op2.size === 1) and (op2.head.id.value === "r1")
+    }
+
+    "be able to close and found new ones" in {
+      val op1 = service.updatesRuleNames(NodeConfigData.r2 :: Nil).openOrThrowException("that test should not throw")
+      val op2 = Await.result(repos.getAllOpenedRules(), MAX_TIME)
+
+      (op1 === ()) and (op2.size === 1) and (op2.head.id.value === "r2")
+    }
+
+  }
+
 } }

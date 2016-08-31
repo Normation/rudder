@@ -58,6 +58,36 @@ import com.normation.inventory.domain.VirtualMachineType
 import com.normation.rudder.domain.nodes.MachineInfo
 import com.normation.inventory.domain.MemorySize
 import com.normation.inventory.domain.MachineUuid
+import com.normation.rudder.domain.policies.TargetExclusion
+import com.normation.rudder.domain.nodes.NodeGroup
+import com.normation.rudder.domain.policies.TargetComposition
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.policies.TargetUnion
+import com.normation.rudder.domain.policies.GroupTarget
+import com.normation.rudder.domain.policies.FullGroupTarget
+import com.normation.rudder.domain.policies.TargetIntersection
+import com.normation.rudder.domain.policies.FullRuleTargetInfo
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.domain.policies.ActiveTechniqueCategoryId
+import com.normation.rudder.repository.FullActiveTechnique
+import com.normation.rudder.domain.policies.ActiveTechniqueId
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.cfclerk.domain.TrackerVariableSpec
+import com.normation.cfclerk.domain.SectionSpec
+import scala.language.implicitConversions
+import com.normation.cfclerk.domain.TechniqueVersion
+import scala.collection.SortedMap
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.Directive
+import com.normation.rudder.domain.policies.Rule
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.rule.category.RuleCategoryId
+
 
 /*
  * This file is a container for testing data that are a little boring to
@@ -205,4 +235,103 @@ object NodeConfigData {
   , writtenDate = None
   , isRootServer= false
   )
+
+
+  /**
+   * Some more nodes
+   */
+  val nodeIds = (for {
+    i <- 0 to 10
+  } yield {
+    NodeId(s"${i}")
+  }).toSet
+
+  def newNode(id : NodeId) = Node(id,"" ,"", false, false, false, DateTime.now, ReportingConfiguration(None,None), Seq())
+
+  val nodes = (Set(root, node1, node2) ++ nodeIds.map {
+    id =>
+      NodeInfo (
+            newNode(id)
+          , s"Node-${id}"
+          , None
+          , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
+          , Nil, DateTime.now
+          , "", UndefinedKey, Seq(), NodeId("root")
+          , "" , Set(), None, None
+    )
+  }).map(n => (n.id, n)).toMap
+
+
+  /**
+   *   ************************************************************************
+   *                         Some groups
+   *   ************************************************************************
+   */
+
+  val g1 = NodeGroup (NodeGroupId("1"), "Empty group", "", None, false, Set(), true)
+  val g2 = NodeGroup (NodeGroupId("2"), "only root", "", None, false, Set(NodeId("root")), true)
+  val g3 = NodeGroup (NodeGroupId("3"), "Even nodes", "", None, false, nodeIds.filter(_.value.toInt == 2), true)
+  val g4 = NodeGroup (NodeGroupId("4"), "Odd nodes", "", None, false, nodeIds.filter(_.value.toInt != 2), true)
+  val g5 = NodeGroup (NodeGroupId("5"), "Nodes id divided by 3", "", None, false, nodeIds.filter(_.value.toInt == 3), true)
+  val g6 = NodeGroup (NodeGroupId("6"), "Nodes id divided by 5", "", None, false, nodeIds.filter(_.value.toInt == 5), true)
+  val groups = Set(g1, g2, g3, g4, g5, g6 ).map(g => (g.id, g))
+
+  val groupTargets = groups.map{ case (id, g) => (GroupTarget(g.id), g) }
+
+  val fullRuleTargetInfos = (groupTargets.map(gt =>
+    ( gt._1.groupId
+    , FullRuleTargetInfo(
+          FullGroupTarget(gt._1,gt._2)
+        , ""
+        , ""
+        , true
+        , false
+      )
+    )
+  )).toMap
+
+
+  val fngc = FullNodeGroupCategory (
+      NodeGroupCategoryId("test_root")
+    , ""
+    , ""
+    , Nil
+    , fullRuleTargetInfos.values.toList
+  )
+
+
+  /**
+   *   ************************************************************************
+   *                         Some directives
+   *   ************************************************************************
+   */
+  implicit def toATID(s: String) = ActiveTechniqueId(s)
+  implicit def toTV(s: String) = TechniqueVersion(s)
+  implicit def toTN(s: String) = TechniqueName(s)
+  implicit def toTID(id: (String, String)) = TechniqueId(id._1, id._2)
+  implicit def toDID(id: String) = DirectiveId(id)
+  implicit def toRID(id: String) = RuleId(id)
+  implicit def toRCID(id: String) = RuleCategoryId(id)
+  val t1 = Technique(("t1", "1.0"), "t1", "t1", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("root"), None)
+  val d1 = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1")
+  val d2 = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2")
+  val fat1 = FullActiveTechnique("d1", "t1"
+    , SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00") )
+    , SortedMap(toTV("1.0") -> t1)
+    , d1 :: d2 :: Nil
+  )
+
+  val directives = FullActiveTechniqueCategory(ActiveTechniqueCategoryId("root"), "root", "root", Nil, fat1 :: Nil)
+
+
+    /**
+   *   ************************************************************************
+   *                         Some rules
+   *   ************************************************************************
+   */
+
+   val r1 = Rule("r1", "r1", 1, "cat1")
+   val r2 = Rule("r2", "r2", 1, "cat1")
+
+
 }

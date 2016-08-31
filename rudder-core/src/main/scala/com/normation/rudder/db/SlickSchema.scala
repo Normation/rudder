@@ -342,7 +342,7 @@ final object DB {
   class TableSerializedGroups(tag: Tag) extends Table[SerializedGroups](tag, "groups") {
     def id               = column[Long]("id", O.PrimaryKey, O.AutoInc)
     def groupId          = column[String]("groupid")
-    def groupName        = column[String]("groupName")
+    def groupName        = column[String]("groupname")
     def groupDescription = column[String]("groupdescription")
     def nodeCount        = column[Int]("nodecount")
     def groupStatus      = column[Int]("groupstatus")
@@ -444,8 +444,8 @@ final object DB {
     , endTime        : Option[DateTime]
   )
 
-  class TableSerializedRules(tag: Tag) extends Table[SerializedRules](tag, "directives") {
-    def id               = column[Long]("id", O.PrimaryKey, O.AutoInc)
+  class TableSerializedRules(tag: Tag) extends Table[SerializedRules](tag, "rules") {
+    def id               = column[Long]("rulepkeyid", O.PrimaryKey, O.AutoInc)
     def ruleId           = column[String]("ruleid")
     def serial           = column[Int]("serial")
     def categoryId       = column[String]("categoryid")
