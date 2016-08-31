@@ -194,8 +194,8 @@ class EventListDisplayer(
     }
 
     def nodeDesc(x:EventLog, actionName: NodeSeq) = {
-        val id = (x.details \ "node" \ "id").text
-        val name = (x.details \ "node" \ "hostname").text
+        val id = (x.details \\ "node" \ "id").text
+        val name = (x.details \\ "node" \ "hostname").text
         Text("Node ") ++ {
           if ((id.size < 1)||(actionName==Text(" deleted"))) Text(name)
           else <a href={nodeLink(NodeId(id))} onclick="noBubble(event);">{name}</a> ++ actionName
@@ -300,8 +300,8 @@ class EventListDisplayer(
       case x:ModifyNodeAgentRun            => nodeDesc(x, Text(" modified"))
       case x:ModifyNodeHeartbeat           => nodeDesc(x, Text(" modified"))
       case x:ModifyNodeProperties          => nodeDesc(x, Text(" modified"))
+      case x:ModifyNode                    => nodeDesc(x, Text(" modified"))
       case _ => Text("Unknow event type")
-
     }
   }
 
@@ -1104,6 +1104,55 @@ class EventListDisplayer(
 							{
                 mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
                   nodePropertiesDetails(props)
+                }
+              }
+              { reasonHtml }
+              { xmlParameters(event.id) }
+            </div>
+          case e:EmptyBox => logger.warn(e)
+          errorMessage(e)
+        }
+      }
+
+      case mod:ModifyNode =>
+
+        "*" #> { logDetailsService.getModifyNodeDetails(mod.details) match {
+        case Full(modDiff) =>
+            logger.info(modDiff.modAgentRun)
+            <div class="evloglmargin">
+              { addRestoreAction }
+              { generatedByChangeRequest }
+              <h4>Node '{modDiff.id.value}' modified:</h4>
+              <ul class="evlogviewpad">
+                <li><b>Node ID:</b>{modDiff.id.value} </li>
+              </ul>
+							{
+                mapComplexDiff(modDiff.modAgentRun){ (optAr:Option[AgentRunInterval]) =>
+                  optAr match {
+                    case None => <span>No value</span>
+                    case Some(ar) => agentRunDetails(ar)
+                  }
+                }
+              }
+							{
+                mapComplexDiff(modDiff.modHeartbeat){ (optHb:Option[HeartbeatConfiguration]) =>
+                  optHb match {
+                    case None => <span>No value</span>
+                    case Some(hb) => heartbeatDetails(hb)
+                  }
+                }
+              }
+							{
+                mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
+                  nodePropertiesDetails(props)
+                }
+              }
+							{
+                mapComplexDiff(modDiff.modPolicyMode){ (optMode:Option[PolicyMode]) =>
+                  optMode match {
+                    case None => <span>Use global policy mode</span>
+                    case Some(mode) => <span>{mode.name}</span>
+                  }
                 }
               }
               { reasonHtml }

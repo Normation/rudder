@@ -59,7 +59,6 @@ final case object GlobalPropertyEventLogCategory extends EventLogCategory
 final case object SettingsLogCategory extends EventLogCategory
 final case object NodeLogCategory extends EventLogCategory
 
-
 // the promises related event type
 final case object AutomaticStartDeployementEventType extends NoRollbackEventLogType {
   def serialize = "AutomaticStartDeployement"
@@ -228,8 +227,6 @@ final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
 }
 
-
-
 // node properties: properties, heartbeat, agent run.
 final case object ModifyHeartbeatNodeEventType extends RollbackEventLogType {
   def serialize = "NodeHeartbeatModified"
@@ -241,6 +238,10 @@ final case object ModifyAgentRunIntervalNodeEventType extends RollbackEventLogTy
 
 final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
   def serialize = "NodePropertiesModified"
+}
+
+final case object ModifyNodeEventType extends RollbackEventLogType {
+  def serialize = "NodeModified"
 }
 
 sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType {
@@ -287,6 +288,11 @@ final case object ModifyRudderSyslogProtocolEventType extends ModifyGlobalProper
   val propertyName = "Rudder syslog protocol"
 }
 
+final case object ModifyPolicyModeEventType extends ModifyGlobalPropertyEventType {
+  def serialize = "PolicyModeModified"
+  val propertyName = "Global policy mode"
+}
+
 /**
  * List of event generating a modification of promises
  */
@@ -322,11 +328,11 @@ object ModificationWatchList {
     , ModifyHeartbeatNodeEventType
     , ModifyAgentRunIntervalNodeEventType
     , ModifyPropertiesNodeEventType
+    , ModifyNodeEventType
 
   ) ++ ModifyGlobalPropertyEventLogsFilter.eventTypes
 
 }
-
 
 object EventTypeFactory {
   val eventTypes = List[EventLogType](
@@ -392,6 +398,7 @@ object EventTypeFactory {
     , ModifyHeartbeatNodeEventType
     , ModifyAgentRunIntervalNodeEventType
     , ModifyPropertiesNodeEventType
+    , ModifyNodeEventType
 
   ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
 

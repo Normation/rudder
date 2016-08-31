@@ -163,13 +163,14 @@ trait EventLogDetailsService {
   def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)]
 
   // Node modifiction
-  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeAgentRunDiff]
+  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
 
-  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeHeartbeatDiff]
+  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
 
-  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodePropertiesDiff]
+  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
+
+  def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
 }
-
 
 /**
  * Details should always be in the format: <entry>{more details here}</entry>
@@ -184,9 +185,6 @@ class EventLogDetailsServiceImpl(
   , globalParameterUnserialisation  : GlobalParameterUnserialisation
   , apiAccountUnserialisation       : ApiAccountUnserialisation
 ) extends EventLogDetailsService {
-
-
-
 
   /**
    * An utility method that is able the parse a <X<from>....</from><to>...</to></X>
@@ -211,7 +209,6 @@ class EventLogDetailsServiceImpl(
    * Special case of getFromTo for strings.
    */
   private[this] def getFromToString(opt:Option[NodeSeq]) = getFromTo[String](opt,(s:NodeSeq) => Full(s.text))
-
 
   def getEntryContent(xml:NodeSeq) : Box[Elem] = {
     if(xml.size == 1) {
@@ -353,27 +350,24 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-
   ///// directives /////
-
 
   /**
    * Map XML into a directive
    */
   private[this] def getDirectiveFromXML(xml:NodeSeq, changeType:String) : Box[(TechniqueName, Directive, SectionVal)] = {
     for {
-      entry                 <- getEntryContent(xml)
-      piXml                 <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry)
-      changeTypeAddOk       <- {
-                                  if(piXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
-                                  else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
-                                }
-      ptPiSectionVals       <- piUnserialiser.unserialise(piXml)
+      entry           <- getEntryContent(xml)
+      directiveXml    <- (entry \ "directive").headOption ?~! ("Entry type is not a directive: " + entry)
+      changeTypeAddOk <- {
+                           if(directiveXml.attribute("changeType").map( _.text ) == Some(changeType)) Full("OK")
+                           else Failure("Directive attribute does not have changeType=%s: ".format(changeType) + entry)
+                         }
+      unserialised    <- piUnserialiser.unserialise(directiveXml)
     } yield {
-      ptPiSectionVals
+      unserialised
     }
   }
-
 
   def getDirectiveAddDetails(xml:NodeSeq) : Box[(AddDirectiveDiff, SectionVal)] = {
     getDirectiveFromXML(xml, "add").map { case (ptName, directive,sectionVal) =>
@@ -409,21 +403,23 @@ class EventLogDetailsServiceImpl(
       shortDescription      <- getFromToString((directive \ "shortDescription").headOption)
       longDescription       <- getFromToString((directive \ "longDescription").headOption)
       priority              <- getFromTo[Int]((directive \ "priority").headOption, { x => tryo(x.text.toInt) } )
-      isEnabled           <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
+      isEnabled             <- getFromTo[Boolean]((directive \ "isEnabled").headOption, { s => tryo { s.text.toBoolean } } )
       isSystem              <- getFromTo[Boolean]((directive \ "isSystem").headOption, { s => tryo { s.text.toBoolean } } )
+      policyMode            <- getFromTo[Option[PolicyMode]]((directive \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text) })
     } yield {
       ModifyDirectiveDiff(
           techniqueName = TechniqueName(ptName)
-        , id = DirectiveId(id)
-        , name = displayName
-        , modName = name
-        , modTechniqueVersion = techniqueVersion
-        , modParameters = parameters
-        , modShortDescription = shortDescription
-        , modLongDescription = longDescription
-        , modPriority = priority
-        , modIsActivated = isEnabled
-        , modIsSystem = isSystem
+        , DirectiveId(id)
+        , displayName
+        , name
+        , techniqueVersion
+        , parameters
+        , shortDescription
+        , longDescription
+        , priority
+        , isEnabled
+        , isSystem
+        , policyMode
       )
     }
   }
@@ -498,7 +494,6 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-
   def getAcceptNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "accept")
   }
@@ -535,11 +530,9 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-
   def getDeleteNodeLogDetails(xml:NodeSeq) : Box[InventoryLogDetails] = {
     getInventoryLogDetails(xml, "delete")
   }
-
 
   def getDeploymentStatusDetails(xml:NodeSeq) : Box[CurrentDeploymentStatus] = {
     for {
@@ -578,7 +571,6 @@ class EventLogDetailsServiceImpl(
       )
     }
   }
-
 
   /**
    * <techniqueReloaded fileFormat="2">
@@ -723,8 +715,6 @@ class EventLogDetailsServiceImpl(
 
   }
 
-
-
   def getWorkflotStepChange(xml:NodeSeq) : Box[WorkflowStepChange] = {
     for {
       entry         <- getEntryContent(xml)
@@ -737,7 +727,6 @@ class EventLogDetailsServiceImpl(
       }
 
   }
-
 
   def getRollbackDetails(xml:NodeSeq) : Box[RollbackInfo] = {
   def getEvents(xml:NodeSeq)= {
@@ -869,7 +858,6 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-
   // global properties
   def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)] = {
     for {
@@ -886,7 +874,7 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  // Node modifiction
+  // Node modification
   private[this] def getModifyNodeDetails[T, U](xml:NodeSeq, tag: String, details: NodeSeq => Box[T], build: (NodeId, Option[SimpleDiff[T]]) => U) : Box[U] = {
     for {
       entry        <- getEntryContent(xml)
@@ -904,11 +892,12 @@ class EventLogDetailsServiceImpl(
     }
   }
 
-  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeAgentRunDiff] = {
-    def extract(details: NodeSeq) = {
-      val children = (details \ "_")
-      if(children.isEmpty) Full(None)
-      else for {
+  private[this] def extractAgentRun(xml : NodeSeq)( details : NodeSeq ) = {
+    val children = (details \ "_")
+    if(children.isEmpty){
+      Full(None)
+    } else {
+      for {
         overrides   <- (details \ "override").headOption match {
                          case None => Full(None)
                          case Some(elt) => tryo(Some(elt.text.toBoolean))
@@ -927,15 +916,9 @@ class EventLogDetailsServiceImpl(
         ))
       }
     }
-
-    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[AgentRunInterval]]]) : ModifyNodeAgentRunDiff = {
-      ModifyNodeAgentRunDiff(nodeId, details)
-    }
-    getModifyNodeDetails(xml, "agentRun", extract, build)
   }
 
-  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeHeartbeatDiff] = {
-    def extract(details: NodeSeq) = {
+   private[this] def extractHeartbeatConfiguration(xml : NodeSeq)(details: NodeSeq) = {
       if((details\"_").isEmpty) Full(None)
       else for {
         overrides <- (details \ "override").headOption.flatMap(x => tryo(x.text.toBoolean )) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
@@ -945,14 +928,7 @@ class EventLogDetailsServiceImpl(
       }
     }
 
-    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[HeartbeatConfiguration]]]): ModifyNodeHeartbeatDiff = {
-      ModifyNodeHeartbeatDiff(nodeId, details)
-    }
-    getModifyNodeDetails(xml, "heartbeat", extract, build)
-  }
-
-  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodePropertiesDiff] = {
-    def extract(details: NodeSeq): Box[Seq[NodeProperty]] = {
+  private[this] def extractNodeProperties(xml : NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
       if(details.isEmpty) Full(Seq())
       else for {
         properties <- sequence((details \ "property").toSeq) { prop =>
@@ -967,13 +943,54 @@ class EventLogDetailsServiceImpl(
         properties
       }
     }
+  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
 
-    def build(nodeId: NodeId, details: Option[SimpleDiff[Seq[NodeProperty]]]) : ModifyNodePropertiesDiff = {
-      ModifyNodePropertiesDiff(nodeId, details)
+    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[AgentRunInterval]]]) : ModifyNodeDiff = {
+      ModifyNodeAgentRunDiff(nodeId, details)
     }
-    getModifyNodeDetails(xml, "properties", extract, build)
+    getModifyNodeDetails(xml, "agentRun", (extractAgentRun(xml)), build)
   }
 
+  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
+
+    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[HeartbeatConfiguration]]]): ModifyNodeDiff = {
+      ModifyNodeHeartbeatDiff(nodeId, details)
+    }
+    getModifyNodeDetails(xml, "heartbeat", extractHeartbeatConfiguration(xml), build)
+  }
+
+  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
+
+    def build(nodeId: NodeId, details: Option[SimpleDiff[Seq[NodeProperty]]]) : ModifyNodeDiff = {
+      ModifyNodePropertiesDiff(nodeId, details)
+    }
+    getModifyNodeDetails(xml, "properties", extractNodeProperties(xml), build)
+  }
+
+  def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
+    for {
+      entry        <- getEntryContent(xml)
+      node         <- (entry \ "node").headOption ?~! ("Entry type is not node : " + entry)
+      fileFormatOk <- TestFileFormat(node)
+      changeTypeOk <- {
+                        if(node.attribute("changeType").map( _.text ) == Some("modify")) Full("OK")
+                        else Failure(s"'Node modification' entry does not have attribute 'changeType' with value 'modify', entry is: ${entry}")
+                      }
+      id           <- (node \ "id").headOption.map( x => NodeId(x.text) ) ?~! ("Missing element 'id' in entry type Node: " + entry)
+      policyMode   <- getFromTo[Option[PolicyMode]]((node \ "policyMode" ).headOption ,{ x => PolicyMode.parseDefault(x.text) })
+      agentRun     <- getFromTo[Option[AgentRunInterval]](  (node \ "agentRun").headOption ,{ x => extractAgentRun(xml)(x) })
+      heartbeat    <- getFromTo[Option[HeartbeatConfiguration]]((node \ "heartbeat").headOption ,{ x => extractHeartbeatConfiguration(xml)(x) })
+      properties   <- getFromTo[Seq[NodeProperty]]( (node \ "properties").headOption ,{ x => extractNodeProperties(xml)(x) })
+    } yield {
+      ModifyNodeDiff(
+          id
+        , heartbeat
+        , agentRun
+        , properties
+        , policyMode
+      )
+    }
+  }
 }
 
 case class RollbackInfo(

@@ -94,6 +94,7 @@ import scala.xml.XML
 import scala.xml.PrettyPrinter
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RuleCategoryId
+import com.normation.rudder.domain.policies.PolicyMode
 
 case class XmlUnserializerImpl (
     rule        : RuleUnserialisation
@@ -159,20 +160,22 @@ class DirectiveUnserialisationImpl extends DirectiveUnserialisation {
       isEnabled             <- (directive \ "isEnabled").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isEnabled' in entry type directive : " + xml)
       priority              <- (directive \ "priority").headOption.flatMap(s => tryo { s.text.toInt } ) ?~! ("Missing or bad attribute 'priority' in entry type directive : " + xml)
       isSystem              <- (directive \ "isSystem").headOption.flatMap(s => tryo { s.text.toBoolean } ) ?~! ("Missing attribute 'isSystem' in entry type directive : " + xml)
-      directiveIds     =  (directive \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
+      policyMode            =  (directive \ "policyMode").headOption.flatMap(s => PolicyMode.parse(s.text) )
+      directiveIds          =  (directive \ "directiveIds" \ "id" ).map( n => DirectiveId( n.text ) ).toSet
     } yield {
       (
           TechniqueName(ptName)
         , Directive(
-              id = DirectiveId(id)
-            , name = name
+              id               = DirectiveId(id)
+            , name             = name
             , techniqueVersion = techniqueVersion
-            , parameters = SectionVal.toMapVariables(sectionVal)
+            , parameters       = SectionVal.toMapVariables(sectionVal)
             , shortDescription = shortDescription
-            , longDescription = longDescription
-            , priority = priority
-            , _isEnabled = isEnabled
-            , isSystem = isSystem
+            , policyMode       = policyMode
+            , longDescription  = longDescription
+            , priority         = priority
+            , _isEnabled       = isEnabled
+            , isSystem         = isSystem
           )
         , sectionVal
       )

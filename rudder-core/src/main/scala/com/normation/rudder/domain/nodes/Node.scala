@@ -37,15 +37,17 @@
 
 package com.normation.rudder.domain.nodes
 
+import com.normation.inventory.domain.FullInventory
+
 import com.normation.inventory.domain.NodeId
-import com.normation.utils.HashcodeCaching
-import com.normation.rudder.reports.ReportingConfiguration
-import net.liftweb.json.JsonAST.JObject
-import org.joda.time.DateTime
+import com.normation.rudder.domain.policies.SimpleDiff
+import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
-import com.normation.rudder.domain.policies.SimpleDiff
-import com.normation.inventory.domain.FullInventory
+import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.utils.HashcodeCaching
+
+import org.joda.time.DateTime
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -63,6 +65,7 @@ case class Node(
   , creationDate              : DateTime
   , nodeReportingConfiguration: ReportingConfiguration
   , properties                : Seq[NodeProperty]
+  , policyMode                : Option[PolicyMode]
 ) extends HashcodeCaching
 
 case object Node {
@@ -77,6 +80,7 @@ case object Node {
       , inventory.node.inventoryDate.getOrElse(new DateTime(0))
       , ReportingConfiguration(None,None)
       , Seq()
+      , None
     )
   }
 }
@@ -98,26 +102,45 @@ sealed trait NodeDiff
 /**
  * Denote a change on the heartbeat frequency.
  */
-final case class ModifyNodeHeartbeatDiff(
-    id          : NodeId
-  , modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]
-) extends NodeDiff with HashcodeCaching
+object ModifyNodeHeartbeatDiff{
+  def apply(id: NodeId,  modHeartbeat: Option[SimpleDiff[Option[HeartbeatConfiguration]]]) = ModifyNodeDiff(id,modHeartbeat, None, None, None)
+}
 
 /**
  * Diff on a change on agent run period
  */
-final case class ModifyNodeAgentRunDiff(
-    id         : NodeId
-  , modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]
-) extends NodeDiff with HashcodeCaching
+object ModifyNodeAgentRunDiff{
+  def apply(id: NodeId, modAgentRun: Option[SimpleDiff[Option[AgentRunInterval]]]) = ModifyNodeDiff(id,None,modAgentRun, None, None)
+}
 
 /**
  * Diff on the list of properties
  */
-final case class ModifyNodePropertiesDiff(
+object ModifyNodePropertiesDiff{
+  def apply(id: NodeId, modProperties: Option[SimpleDiff[Seq[NodeProperty]]]) = ModifyNodeDiff(id,None,None, modProperties, None)
+}
+
+/**
+ * Diff on the list of properties
+ */
+final case class ModifyNodeDiff(
     id           : NodeId
+  , modHeartbeat : Option[SimpleDiff[Option[HeartbeatConfiguration]]]
+  , modAgentRun  : Option[SimpleDiff[Option[AgentRunInterval]]]
   , modProperties: Option[SimpleDiff[Seq[NodeProperty]]]
+  , modPolicyMode: Option[SimpleDiff[Option[PolicyMode]]]
 )
+
+object ModifyNodeDiff {
+  def apply(oldNode : Node, newNode : Node) : ModifyNodeDiff = {
+    val policy     = if (oldNode.policyMode == newNode.policyMode) None else Some(SimpleDiff(oldNode.policyMode,newNode.policyMode))
+    val properties = if (oldNode.properties.toSet == newNode.properties.toSet) None else Some(SimpleDiff(oldNode.properties,newNode.properties))
+    val agentRun   = if (oldNode.nodeReportingConfiguration.agentRunInterval == newNode.nodeReportingConfiguration.agentRunInterval) None else Some(SimpleDiff(oldNode.nodeReportingConfiguration.agentRunInterval,newNode.nodeReportingConfiguration.agentRunInterval))
+    val heartbeat  = if (oldNode.nodeReportingConfiguration.heartbeatConfiguration == newNode.nodeReportingConfiguration.heartbeatConfiguration) None else Some(SimpleDiff(oldNode.nodeReportingConfiguration.heartbeatConfiguration,newNode.nodeReportingConfiguration.heartbeatConfiguration))
+
+    ModifyNodeDiff(newNode.id,heartbeat,agentRun,properties,policy)
+  }
+}
 
 /**
  * The part dealing with JsonSerialisation of node related
@@ -125,8 +148,8 @@ final case class ModifyNodePropertiesDiff(
  */
 object JsonSerialisation {
 
-  import net.liftweb.json.JsonDSL._
   import net.liftweb.json._
+  import net.liftweb.json.JsonDSL._
 
   implicit class JsonNodeProperty(x: NodeProperty) {
     def toLdapJson(): JObject = (
@@ -136,7 +159,6 @@ object JsonSerialisation {
   }
 
   implicit class JsonNodeProperties(props: Seq[NodeProperty]) {
-    import net.liftweb.json.Serialization.write
     implicit val formats = DefaultFormats
 
     private[this] def json(x: NodeProperty): JObject = (

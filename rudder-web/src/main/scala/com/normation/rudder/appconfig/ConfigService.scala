@@ -66,7 +66,10 @@ import scala.language.implicitConversions
 import ca.mrvisser.sealerate
 import com.normation.rudder.web.components.popup.ModificationValidationPopup.Disable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
-
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 /**
  * A service that Read mutable (runtime) configuration properties
@@ -134,6 +137,20 @@ trait ReadConfigService {
   def rudder_compliance_mode_name(): Box[String]
 
   def rudder_compliance_heartbeatPeriod(): Box[Int]
+
+  /**
+   * Policy mode: See PolicyMode class for more details
+   */
+  def rudder_global_policy_mode(): Box[GlobalPolicyMode] = {
+    for {
+        mode        <- rudder_policy_mode_name
+        overridable <- rudder_policy_overridable
+    } yield {
+      GlobalPolicyMode(mode, if(overridable) PolicyModeOverrides.Always else PolicyModeOverrides.Unoverridable)
+    }
+  }
+  def rudder_policy_mode_name(): Box[PolicyMode]
+  def rudder_policy_overridable(): Box[Boolean]
 
   /**
    * Send Metrics
@@ -246,6 +263,24 @@ trait UpdateConfigService {
    * Should we evaluate scripts in variable values?
    */
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit]
+
+/**
+   * Set the compliance mode
+   */
+  def set_rudder_policy_mode(mode : GlobalPolicyMode, actor: EventActor, reason: Option[String]): Box[Unit] = {
+    for {
+      _ <- set_rudder_policy_mode_name(mode.mode, actor, reason)
+      u <- set_rudder_policy_overridable(if(mode.overridable == PolicyModeOverrides.Always) true else false, actor, reason)
+    } yield {
+      u
+    }
+
+  }
+
+  def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : Box[Unit]
+
+  def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit]
+
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -278,6 +313,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        display.changes.graph=true
        api.compatibility.mode=false
        rudder.featureSwitch.directiveScriptEngine=disabled
+       rudder.policy.mode.name=${Enforce.name}
+       rudder.policy.mode.overridable=false
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -444,6 +481,18 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
     save("rudder_compliance_heartbeatPeriod", value, Some(info))
   }
 
+  def rudder_policy_mode_name(): Box[PolicyMode] = get("rudder_policy_mode_name").flatMap { PolicyMode.parse(_) }
+  def set_rudder_policy_mode_name(name : PolicyMode, actor : EventActor, reason: Option[String]) : Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
+    save("rudder_policy_mode_name", name, Some(info))
+  }
+
+  def rudder_policy_overridable(): Box[Boolean] = get("rudder_policy_mode_overridable")
+  def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit] = {
+    val info = ModifyGlobalPropertyInfo(ModifyComplianceModeEventType,actor,reason)
+    save("rudder_policy_mode_overridable", overridable, Some(info))
+  }
+
   /**
    * Send Metrics
    */
@@ -480,7 +529,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   /////
   ///// Feature switches /////
   /////
-
 
   /**
    * Should we evaluate scripts in the variables?

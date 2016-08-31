@@ -44,12 +44,17 @@ import net.liftweb.http.Req
 import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.policies.PolicyMode
 
 trait NodeAPI extends RestAPI {
   val kind = "nodes"
 }
 
-case class RestNode(
-    properties: Option[Seq[NodeProperty]]
+case class RestNodeProperties(
+    properties : Option[Seq[NodeProperty]]
 )
 
+case class RestNode (
+    properties : Option[Seq[NodeProperty]]
+  , policyMode : Option[Option[PolicyMode]]
+)

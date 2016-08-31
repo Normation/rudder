@@ -71,25 +71,24 @@ final case class AddDirectiveDiff(
   def needDeployment : Boolean = false
 }
 
-
 final case class ModifyDirectiveDiff(
     techniqueName      : TechniqueName
   , id                 : DirectiveId
   , name               : String //keep the name around to be able to display it as it was at that time
-  , modName            : Option[SimpleDiff[String]]           = None
-  , modTechniqueVersion: Option[SimpleDiff[TechniqueVersion]] = None
-  , modParameters      : Option[SimpleDiff[SectionVal]]       = None
-  , modShortDescription: Option[SimpleDiff[String]]           = None
-  , modLongDescription : Option[SimpleDiff[String]]           = None
-  , modPriority        : Option[SimpleDiff[Int]]              = None
-  , modIsActivated     : Option[SimpleDiff[Boolean]]          = None
-  , modIsSystem        : Option[SimpleDiff[Boolean]]          = None
+  , modName            : Option[SimpleDiff[String]]            = None
+  , modTechniqueVersion: Option[SimpleDiff[TechniqueVersion]]  = None
+  , modParameters      : Option[SimpleDiff[SectionVal]]        = None
+  , modShortDescription: Option[SimpleDiff[String]]            = None
+  , modLongDescription : Option[SimpleDiff[String]]            = None
+  , modPriority        : Option[SimpleDiff[Int]]               = None
+  , modIsActivated     : Option[SimpleDiff[Boolean]]           = None
+  , modIsSystem        : Option[SimpleDiff[Boolean]]           = None
+  , modPolicyMode      : Option[SimpleDiff[Option[PolicyMode]]]= None
 ) extends DirectiveSaveDiff with HashcodeCaching {
   def needDeployment : Boolean = {
-    modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined || modIsActivated.isDefined || modName.isDefined
+    modTechniqueVersion.isDefined || modParameters.isDefined || modPriority.isDefined || modIsActivated.isDefined || modName.isDefined ||modPolicyMode.isDefined
   }
 }
-
 
 final case class ModifyToDirectiveDiff(
     techniqueName: TechniqueName

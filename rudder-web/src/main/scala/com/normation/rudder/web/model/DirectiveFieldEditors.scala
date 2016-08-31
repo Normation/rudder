@@ -75,6 +75,10 @@ class TextField(val id: String) extends DirectiveField {
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
   def toForm() = {
     val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
+    val html  =
+      <div class="tw-bs">
+
+      </div>
     Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
   }
   def manifest = manifestOf[String]

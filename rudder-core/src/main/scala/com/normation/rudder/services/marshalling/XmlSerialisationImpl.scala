@@ -88,7 +88,6 @@ import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.domain.appconfig.RudderWebProperty
 import com.normation.rudder.domain.policies.SimpleDiff
 
-
 case class XmlSerializerImpl (
     rule        : RuleSerialisation
   , directive   : DirectiveSerialisation
@@ -190,6 +189,7 @@ class DirectiveSerialisationImpl(xmlVersion:String) extends DirectiveSerialisati
       ::  <priority>{directive.priority}</priority>
       ::  <isEnabled>{directive.isEnabled}</isEnabled>
       ::  <isSystem>{directive.isSystem}</isSystem>
+      ::  <policyMode>{directive.policyMode.map(_.name).getOrElse("default")}</policyMode>
       ::  Nil
     )
   }
@@ -421,7 +421,6 @@ class ChangeRequestChangesSerialisationImpl(
           </globalParameter>
         }
 
-
     createTrimedElem(XML_TAG_CHANGE_REQUEST, xmlVersion)  (
       <groups>
         {groups}
@@ -461,7 +460,6 @@ class APIAccountSerialisationImpl(xmlVersion:String) extends APIAccountSerialisa
     )
   }
 }
-
 
 /**
  * That trait allows to serialize a web property to an XML

@@ -43,7 +43,6 @@ import bootstrap.liftweb.RudderConfig
 import scala.xml.NodeSeq
 import net.liftweb.http.js.JsCmds._
 
-
 class Nodes extends StatefulSnippet with Loggable {
   private[this] val nodeInfoService = RudderConfig.nodeInfoService
   val srvGrid =  RudderConfig.srvGrid

@@ -188,14 +188,16 @@ class CreateCloneDirectivePopup(
     if(formTracker.hasErrors) {
       onFailure & onFailureCallback()
     } else {
-      val cloneDirective = new Directive(
-        id = DirectiveId(uuidGen.newUuid),
-        techniqueVersion = directive.techniqueVersion,
-        parameters = directive.parameters,
-        name = directiveName.is,
-        shortDescription = directiveShortDescription.is,
-        _isEnabled = directive.isEnabled
-      )
+      val cloneDirective =
+        new Directive(
+            id = DirectiveId(uuidGen.newUuid)
+          , techniqueVersion = directive.techniqueVersion
+          , parameters = directive.parameters
+          , name = directiveName.is
+          , shortDescription = directiveShortDescription.is
+          , _isEnabled = directive.isEnabled
+          , policyMode = directive.policyMode
+        )
       roDirectiveRepository.getActiveTechniqueAndDirective(directive.id) match {
         case Full((activeTechnique, _)) =>
           woDirectiveRepository.saveDirective(activeTechnique.id, cloneDirective, ModificationId(uuidGen.newUuid), CurrentUser.getActor, reasons.map(_.is)) match {

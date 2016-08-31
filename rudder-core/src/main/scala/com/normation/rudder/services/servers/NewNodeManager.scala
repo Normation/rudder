@@ -37,41 +37,58 @@
 
 package com.normation.rudder.services.servers
 
-import com.normation.rudder.batch.UpdateDynamicGroups
-import com.normation.rudder.domain._
-import com.normation.rudder.domain.nodes._
-import com.normation.rudder.domain.Constants._
-import com.normation.rudder.domain.servers.Srv
-import com.normation.rudder.repository._
-import com.normation.rudder.repository.ldap.LDAPEntityMapper
-import com.normation.inventory.ldap.core.InventoryDitService
-import com.normation.inventory.domain._
-import com.normation.inventory.ldap.core._
-import LDAPConstants._
-import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
-import com.unboundid.ldap.sdk._
-import com.unboundid.ldif.LDIFChangeRecord
-import com.normation.ldap.sdk._
-import BuildFilter.{ALL,EQ}
-import com.normation.utils.Control._
-import scala.collection.mutable.Buffer
-import net.liftweb.common._
-import Box._
-import net.liftweb.util.Helpers._
-import com.normation.cfclerk.domain.TechniqueId
-import org.joda.time.DateTime
-import org.slf4j.LoggerFactory
-import com.normation.eventlog.EventActor
-import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
-import com.normation.rudder.services.queries.QueryProcessor
-import com.normation.rudder.domain.queries._
 import java.lang.IllegalArgumentException
+
+
+import org.joda.time.DateTime
+import net.liftweb.common.Loggable
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
+import net.liftweb.common.Empty
+
+import com.normation.eventlog.EventActor
 import com.normation.eventlog.ModificationId
-import java.net.InetAddress
-import org.apache.commons.net.util.SubnetUtils
-import com.normation.rudder.domain.eventlog._
-import com.normation.rudder.reports._
+import com.normation.ldap.sdk.LDAPConnectionProvider
+import com.normation.ldap.sdk.RoLDAPConnection
+import com.normation.ldap.sdk.RwLDAPConnection
+import com.normation.ldap.sdk.BuildFilter.{ ALL, EQ }
+import com.normation.inventory.domain.InventoryStatus
+import com.normation.inventory.domain.NodeId
+import com.normation.inventory.domain.PendingInventory
+import com.normation.inventory.domain.FullInventory
+import com.normation.inventory.domain.AcceptedInventory
+import com.normation.inventory.ldap.core.InventoryDit
+import com.normation.inventory.ldap.core.InventoryHistoryLogRepository
+import com.normation.inventory.ldap.core.InventoryDitService
+import com.normation.inventory.ldap.core.LDAPConstants._
+import com.normation.inventory.ldap.core.LDAPFullInventoryRepository
+import com.normation.inventory.services.core.ReadOnlyFullInventoryRepository
+import com.normation.rudder.batch.UpdateDynamicGroups
+import com.normation.rudder.domain.Constants
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.NodeDit
+import com.normation.rudder.domain.servers.Srv
+import com.normation.rudder.domain.queries.NodeReturnType
+import com.normation.rudder.domain.queries.CriterionLine
+import com.normation.rudder.domain.queries.DitQueryData
+import com.normation.rudder.domain.queries.Query
+import com.normation.rudder.domain.queries.Or
+import com.normation.rudder.domain.queries.Equals
+import com.normation.rudder.domain.eventlog.InventoryLogDetails
+import com.normation.rudder.domain.eventlog.RefuseNodeEventLog
+import com.normation.rudder.domain.eventlog.AcceptNodeEventLog
+import com.normation.rudder.repository.RoNodeGroupRepository
+import com.normation.rudder.repository.CachedRepository
+import com.normation.rudder.repository.WoNodeGroupRepository
 import com.normation.rudder.repository.EventLogRepository
+import com.normation.rudder.repository.ldap.LDAPEntityMapper
+import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.services.queries.QueryProcessor
+import com.unboundid.ldif.LDIFChangeRecord
+import com.normation.utils.Control.sequence
+import com.normation.utils.Control.bestEffort
 
 /**
  * A trait to manage the acceptation of new node in Rudder
@@ -111,7 +128,6 @@ trait NewNodeManager {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 /**
  * Default implementation: a new server manager composed with a sequence of
  * "unit" accept, one by main goals of what it means to accept a server;
@@ -135,7 +151,6 @@ class NewNodeManagerImpl(
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 trait ListNewNode extends NewNodeManager with Loggable {
   def ldap:LDAPConnectionProvider[RoLDAPConnection]
   def serverSummaryService:NodeSummaryServiceImpl
@@ -155,7 +170,6 @@ trait ListNewNode extends NewNodeManager with Loggable {
     }
   }
 }
-
 
 trait UnitRefuseInventory {
 
@@ -221,7 +235,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
   def serverSummaryService:NodeSummaryService
   def unitAcceptors:Seq[UnitAcceptInventory]
   def unitRefusors:Seq[UnitRefuseInventory]
-
 
   def inventoryHistoryLogRepository : InventoryHistoryLogRepository
   def eventLogRepository : EventLogRepository
@@ -368,7 +381,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
     }
   }
 
-
   /**
    * Accept one server.
    * Accepting mean that the server went to all unitAccept items and that all of them
@@ -396,7 +408,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         e
     }
   }
-
 
   override def accept(id: NodeId, modId: ModificationId, actor:EventActor) : Box[FullInventory] = {
     //
@@ -427,7 +438,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
       }
     }
 
-
     //
     //now, execute unit acceptor
     //
@@ -443,7 +453,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         logger.error(e.messageChain)
         return eb
     }
-
 
     //
     //now, execute global post process
@@ -467,7 +476,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
         e
     }
   }
-
 
   override def accept(ids: Seq[NodeId], modId: ModificationId, actor:EventActor, actorIp : String) : Box[Seq[FullInventory]] = {
 
@@ -589,7 +597,6 @@ trait ComposedNewNodeManager extends NewNodeManager with Loggable {
 
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -641,7 +648,6 @@ class AcceptInventory(
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
 /**
  * Accept FullInventory at ou=node level: just add it
  * TODO: use NodeRepository
@@ -653,7 +659,6 @@ class AcceptFullInventoryInNodeOu(
   ldapEntityMapper: LDAPEntityMapper,
   inventoryStatus:InventoryStatus //expected inventory status of nodes for that processor
 ) extends UnitAcceptInventory with UnitRefuseInventory with Loggable {
-
 
   override def preAccept(sms:Seq[FullInventory], modId: ModificationId, actor:EventActor) : Box[Seq[FullInventory]] = Full(sms) //nothing to do
 
@@ -684,6 +689,7 @@ class AcceptFullInventoryInNodeOu(
       , DateTime.now // won't be used on save - dummy value
       , ReportingConfiguration(None,None) // use global schedule
       , Seq() //no user properties for now
+      , None // Default policy mode
     )
 
     val entry = ldapEntityMapper.nodeToEntry(node)
@@ -713,7 +719,6 @@ class AcceptFullInventoryInNodeOu(
     }
   }
 
-
   //////////// refuse ////////////
   override def refuseOne(srv:Srv, modId: ModificationId, actor:EventActor) : Box[Srv] = {
     //refuse ou=nodes: delete it
@@ -727,7 +732,6 @@ class AcceptFullInventoryInNodeOu(
   }
 
 }
-
 
 class RefuseGroups(
     override val name:String
@@ -775,10 +779,6 @@ class AcceptHostnameAndIp(
   , ditQueryData     : DitQueryData
   , policyServerNet  : PolicyServerManagementService
 ) extends UnitAcceptInventory {
-
-
-
-
 
   //return the list of ducplicated hostname from user input - we want that to be empty
   private[this] def checkDuplicateString(attributes:Seq[String], attributeName:String) : Box[Unit]= {

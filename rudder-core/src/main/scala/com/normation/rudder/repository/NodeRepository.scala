@@ -50,21 +50,8 @@ import com.normation.inventory.domain.NodeId
  * To update the Node Run Configuration
  */
 trait WoNodeRepository {
-
   /**
-   * Change the configuration of agent run period for the given node
+   * Complete update of the Node object
    */
-  def updateAgentRunPeriod(nodeId: NodeId, agentRun: AgentRunInterval, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
-
-  /**
-   * Change the configuration of heartbeat frequency for the given node
-   */
-  def updateNodeHeartbeat(nodeId: NodeId, heartbeat: HeartbeatConfiguration, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
-
-
-  /**
-   * Update the list of properties for the node, setting the content to exactly
-   * what is given in paramater
-   */
-  def updateNodeProperties(nodeId: NodeId, properties: Seq[NodeProperty], modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
+  def updateNode(node: Node, modId: ModificationId, actor:EventActor, reason:Option[String]) : Box[Node]
 }

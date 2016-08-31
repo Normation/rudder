@@ -70,6 +70,12 @@ trait DiffService {
 
 class DiffServiceImpl extends DiffService {
 
+  def toDiff[U,T](reference : U, newItem : U)(toData : U => T) : Option[SimpleDiff[T]] = {
+    val refValue = toData(reference)
+    val newValue = toData(newItem)
+    if ( refValue == newValue) None else Some(SimpleDiff(refValue,newValue))
+  }
+
   def diffDirective(
       reference:Directive
     , refRootSection : SectionSpec
@@ -77,16 +83,19 @@ class DiffServiceImpl extends DiffService {
     , newRootSection : SectionSpec
     , techniqueName : TechniqueName) : ModifyDirectiveDiff = {
     import SectionVal._
-    val refSectionVal = directiveValToSectionVal(refRootSection,reference.parameters)
-    val newSectionVal = directiveValToSectionVal(newRootSection,newItem.parameters)
-    val diffName = if (reference.name == newItem.name) None else Some(SimpleDiff(reference.name,newItem.name))
-    val diffShortDescription = if (reference.shortDescription == newItem.shortDescription) None else Some(SimpleDiff(reference.shortDescription,newItem.shortDescription))
-    val diffLongDescription = if (reference.longDescription == newItem.longDescription) None else Some(SimpleDiff(reference.longDescription,newItem.longDescription))
-    val diffTechniqueVersion = if (reference.techniqueVersion == newItem.techniqueVersion) None else Some(SimpleDiff(reference.techniqueVersion,newItem.techniqueVersion))
-    val diffPriority  = if (reference.priority == newItem.priority) None else Some(SimpleDiff(reference.priority,newItem.priority))
-    val diffParameters = if (refSectionVal == newSectionVal) None else Some(SimpleDiff(refSectionVal,newSectionVal))
-    val diffSystem = if (reference.isSystem == newItem.isSystem) None else Some(SimpleDiff(reference.isSystem,newItem.isSystem))
-    val diffEnable = if (reference.isEnabled == newItem.isEnabled) None else Some(SimpleDiff(reference.isEnabled,newItem.isEnabled))
+
+    def toDirectiveDiff[T] : (Directive => T) => Option[SimpleDiff[T]] = toDiff(reference,newItem) _
+    val refSectionVal        = directiveValToSectionVal(refRootSection,reference.parameters)
+    val newSectionVal        = directiveValToSectionVal(newRootSection,newItem.parameters)
+    val diffParameters       = if (refSectionVal == newSectionVal) None else Some(SimpleDiff(refSectionVal,newSectionVal))
+    val diffName             = toDirectiveDiff( _.name)
+    val diffShortDescription = toDirectiveDiff( _.shortDescription)
+    val diffLongDescription  = toDirectiveDiff( _.longDescription)
+    val diffTechniqueVersion = toDirectiveDiff( _.techniqueVersion)
+    val diffPriority         = toDirectiveDiff( _.priority)
+    val diffSystem           = toDirectiveDiff( _.isSystem)
+    val diffEnable           = toDirectiveDiff( _.isEnabled)
+    val diffPolicyMode       = toDirectiveDiff( _.policyMode)
     ModifyDirectiveDiff(
         techniqueName
       , reference.id
@@ -99,9 +108,9 @@ class DiffServiceImpl extends DiffService {
       , diffPriority
       , diffEnable
       , diffSystem
+      , diffPolicyMode
       )
   }
-
 
   def diffNodeGroup(reference:NodeGroup, newItem:NodeGroup) : ModifyNodeGroupDiff = {
     val diffName = if (reference.name == newItem.name) None else Some(SimpleDiff(reference.name,newItem.name))

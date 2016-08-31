@@ -109,7 +109,6 @@ case class CustomDetailLevel (
 
 object NodeDetailLevel {
 
-
   val otherDefaultFields = List(
         "os"
       , "architectureDescription"
@@ -121,6 +120,7 @@ object NodeDetailLevel {
       , "policyServerId"
       , "managementTechnology"
       , "properties"
+      , "policyMode"
   )
 
   val otherAllFields = List(
@@ -170,6 +170,7 @@ object NodeDetailLevel {
     val arch         : NodeInfo => JValue = (inv: NodeInfo) => inv.archDescription
     val inventoryDate: NodeInfo => JValue = (inv: NodeInfo) => DateFormaterService.getFormatedDate(inv.inventoryDate)
     val properties   : NodeInfo => JValue = (inv: NodeInfo) => inv.properties.toApiJson
+    val policyMode   : NodeInfo => JValue = (inv: NodeInfo) => inv.policyMode.map(_.name).getOrElse[String]("default")
 
     val os = {
       ( inv : NodeInfo ) =>
@@ -203,7 +204,6 @@ object NodeDetailLevel {
         ( "serialNumber" -> inv.machine.flatMap(_.systemSerial))
     }
 
-
     val ips = {
       ( inv : NodeInfo ) =>
         val ips =inv.ips.map(ip => JString(ip)).toList
@@ -220,8 +220,6 @@ object NodeDetailLevel {
        JArray(agents)
     }
 
-
-
     Map (
         ( "id"       -> id )
       , ( "hostname" -> hostname )
@@ -235,6 +233,7 @@ object NodeDetailLevel {
       , ( "managementTechnology"    -> management)
       , ( "architectureDescription" -> arch )
       , ( "properties" -> properties )
+      , ( "policyMode" -> policyMode )
     )
   }
 
@@ -592,6 +591,5 @@ object NodeDetailLevel {
     )
 
   }
-
 
 }

@@ -80,6 +80,7 @@ import net.liftweb.json._
 import JsonDSL._
 import com.normation.rudder.reports._
 import com.normation.inventory.ldap.core.InventoryMapper
+import com.normation.rudder.domain.policies.PolicyMode
 
 /**
  * Map objects from/to LDAPEntries
@@ -124,6 +125,11 @@ class LDAPEntityMapper(
         entry +=! (A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION, Printer.compact(JsonAST.render(json)))
       case _ => // Save nothing if missing
     }
+
+    for {
+      mode <- node.policyMode
+    } entry += (A_POLICY_MODE, mode.name)
+
     entry
   }
 
@@ -158,6 +164,10 @@ class LDAPEntityMapper(
         date <- e.getAsGTime(A_OBJECT_CREATION_DATE) ?~! s"Can not find mandatory attribute '${A_OBJECT_CREATION_DATE}' in entry"
         agentRunInterval = e(A_SERIALIZED_AGENT_RUN_INTERVAL).map(unserializeAgentRunInterval(_))
         heartbeatConf = e(A_SERIALIZED_HEARTBEAT_RUN_CONFIGURATION).map(unserializeNodeHeartbeatConfiguration(_))
+        policyMode <- e(A_POLICY_MODE) match {
+          case None => Full(None)
+          case Some(value) => PolicyMode.parse(value).map {Some(_) }
+        }
       } yield {
         Node(
             id
@@ -172,6 +182,7 @@ class LDAPEntityMapper(
               , heartbeatConf
             )
           , e.valuesFor(A_NODE_PROPERTY).map(unserializeLdapNodeProperty(_)).toSeq
+          , policyMode
         )
       }
     } else {
@@ -217,6 +228,7 @@ class LDAPEntityMapper(
                 , new DateTime(0) // we don't know anymore the acceptation date
                 , ReportingConfiguration(None, None) //we don't know anymore agent run frequency
                 , Seq() //we forgot node properties
+                , None
               )
      nodeInfo <- inventoryEntriesToNodeInfos(node, inventoryEntry, machineEntry)
     } yield {
@@ -527,6 +539,10 @@ class LDAPEntityMapper(
       for {
         id <- e(A_DIRECTIVE_UUID) ?~! "Missing required attribute %s in entry %s".format(A_DIRECTIVE_UUID, e)
         s_version <- e(A_TECHNIQUE_VERSION) ?~! "Missing required attribute %s in entry %s".format(A_TECHNIQUE_VERSION, e)
+        policyMode <- e(A_POLICY_MODE) match {
+          case None => Full(None)
+          case Some(value) => PolicyMode.parse(value).map {Some(_) }
+        }
         version <- tryo(TechniqueVersion(s_version))
         name = e(A_NAME).getOrElse(id)
         params = parsePolicyVariables(e.valuesFor(A_DIRECTIVE_VARIABLES).toSeq)
@@ -537,8 +553,16 @@ class LDAPEntityMapper(
         isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
       } yield {
         Directive(
-            DirectiveId(id), version, params, name,
-            shortDescription,longDescription,priority, isEnabled, isSystem
+            DirectiveId(id)
+          , version
+          , params
+          , name
+          , shortDescription
+          , policyMode
+          , longDescription
+          , priority
+          , isEnabled
+          , isSystem
         )
       }
     } else Failure("The given entry is not of the expected ObjectClass '%s'. Entry details: %s".format(OC_DIRECTIVE, e))
@@ -558,6 +582,7 @@ class LDAPEntityMapper(
     entry +=! (A_PRIORITY, directive.priority.toString)
     entry +=! (A_IS_ENABLED, directive.isEnabled.toLDAPString)
     entry +=! (A_IS_SYSTEM, directive.isSystem.toLDAPString)
+    directive.policyMode.foreach ( mode => entry +=! (A_POLICY_MODE, mode.name) )
     entry
   }
 
