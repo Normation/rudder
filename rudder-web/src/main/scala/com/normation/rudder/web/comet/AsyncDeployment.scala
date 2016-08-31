@@ -62,6 +62,7 @@ import com.normation.eventlog.EventLogDetails
 import com.normation.utils.StringUuidGenerator
 import com.normation.eventlog.ModificationId
 import bootstrap.liftweb.RudderConfig
+import com.normation.rudder.web.snippet.administration.ClearCache
 
 class AsyncDeployment extends CometActor with CometListener with Loggable {
 
@@ -69,6 +70,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   private[this] val eventLogDeploymentService = RudderConfig.eventLogDeploymentService
   private[this] val eventList                 = RudderConfig.eventListDisplayer
   private[this] val uuidGen                   = RudderConfig.stringUuidGenerator
+  private[this] val clearCache                = new ClearCache()
 
   //current states of the deployment
   private[this] var deploymentStatus = DeploymentStatus(NoStatus, IdleDeployer)
@@ -124,7 +126,7 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
     def commonStatement(start : DateTime, end : DateTime, durationText : String, headText : String, iconClass: String, statusClass : String) = {
       <li>
         <ul class="menu">
-          <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span> {headText}</a></li>
+          <li><a href="#" class={statusClass + " no-click"}><span class={iconClass}></span>{headText}</a></li>
           <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-start"}></span>Started at {DateFormaterService.getFormatedDate(start)}</a></li>
           <li><a href="#" class="no-click"><span class={statusClass +" fa fa-hourglass-end"}></span>Finished <span id="deployment-end">{DateFormaterService.getFormatedPeriod(end, DateTime.now)}</span> ago</a></li>
           <li><a href="#" class="no-click"><span class={statusClass +" fa fa-clock-o"}></span>{durationText} {DateFormaterService.getFormatedPeriod(start,end)}</a></li>
@@ -173,20 +175,41 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
   }
 
   private[this] def currentStatus : NodeSeq = {
-
     <lift:authz role="deployment_write"> {
       SHtml.a( {
-          () =>
-            asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual policy update") //TODO: let the user fill the cause
-            Noop
-        }
-        , Text("Update")
+        () =>
+          asyncDeploymentAgent ! ManualStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor, "User requested a manual policy update") //TODO: let the user fill the cause
+          Noop
+      }
+      , Text("Update policies")
       )
     }
     </lift:authz>
-
   }
-
+  private[this] def fullPolicyGeneration : NodeSeq = {
+    <lift:authz role="deployment_write"> {
+      SHtml.ajaxButton(
+        "Regenerate"
+        , () => {
+          clearCache.action
+          Noop
+        }
+        , ("class","btn btn-danger")
+      )
+    }
+    </lift:authz>
+  }
+  private[this] def showGeneratePoliciesPopup : NodeSeq = {
+    val callback = JsRaw("$('#generatePoliciesDialog').bsModal('show');")
+    <lift:authz role="deployment_write"> {
+      SHtml.a(
+          Text("Regenerate all policies")
+          , callback
+          , ("class","regeneratePolicies")
+      )
+    }
+    </lift:authz>
+  }
   private[this] def layout = {
     <lift:authz role="deployment_read">
       <li class="dropdown notifications-menu">
@@ -201,9 +224,13 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
           <li class="footer">
             {currentStatus}
           </li>
+          <li class="footer">
+            {showGeneratePoliciesPopup}
+          </li>
         </ul>
       </li>
       {errorPopup}
+      {generatePoliciesPopup}
     </lift:authz>
   }
 
@@ -239,5 +266,34 @@ class AsyncDeployment extends CometActor with CometListener with Loggable {
       </div>
   }
 
+  private[this] def generatePoliciesPopup = {
+    <div class="modal fade" id="generatePoliciesDialog">
+      <div class="modal-backdrop fade in" style="height: 100%;"></div>
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <div class="close" data-dismiss="modal">
+              <span aria-hidden="true">&times;</span>
+              <span class="sr-only">Close</span>
+            </div>
+            <h4 class="modal-title">Regenerate Policies</h4>
+          </div>
+          <div class="modal-body">
+            <div class="row space-bottom">
+              <div class="col-lg-12">
+                <h4 class="text-center">
+                  Are you sure that you want to regenerate all policies ?
+                </h4>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+            {fullPolicyGeneration}
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div>
+  }
 }
 
