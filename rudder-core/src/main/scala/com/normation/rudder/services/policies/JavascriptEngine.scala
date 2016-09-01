@@ -75,6 +75,8 @@ import com.normation.cfclerk.domain.AixPasswordHashAlgo
 import com.normation.cfclerk.domain.HashAlgoConstraint
 import com.normation.cfclerk.domain.AbstactPassword
 import java.security.NoSuchAlgorithmException
+import java.net.NetPermission
+import java.util.logging.LoggingPermission
 
 sealed trait HashOsType
 
@@ -436,7 +438,7 @@ final object JsEngine {
           script(engine)
         } catch {
           case RudderFatalScriptException(message, cause) =>
-            Failure(message)
+            Failure(message, Full(cause), Empty)
         } finally {
           //clear everything
           pool = null
@@ -643,6 +645,8 @@ final object JsEngine {
       , "loadLibrary.j2pkcs11"  //needed by Rudder JS Lib
       , "accessClassInPackage.org.jcp.xml.dsig.internal.dom"
       , "getProtectionDomain"
+      , "shutdownHooks"
+      , "setContextClassLoader"
     )
     private[this] val reflectPerms = Set(
         "suppressAccessChecks" //needed by rhino to run almost anything, like creating a var - else NPE
@@ -670,14 +674,18 @@ final object JsEngine {
             // so we work-around by authorizing a lot of stuff
           case x: FilePermission     if( x.getActions == "read" && (x.getName.contains(".class") || x.getName.endsWith(".jar")  || x.getName.endsWith(".so")   || x.getName.endsWith(".cfg") || x.getName.endsWith(".properties") || x.getName.endsWith(".certs") ) )  => // ok
           case x: SecurityPermission if( securityPerms.exists( p => x.getName.startsWith(p) )       ) => // ok
+          case x: NetPermission      if( x.getName == "specifyStreamHandler" ) => //ok
           case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.nashorn")   ) => // ok
+          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.com.sun.script")   ) => // ok
           case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.security.") ) => // ok
+          case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.reflect") ) => // ok
           case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.sun.org.mozilla.javascript") ) => // ok
           case x: RuntimePermission  if( x.getName.startsWith("accessClassInPackage.jdk.internal.org.objectweb.asm") ) => // ok
           case x: RuntimePermission  if( runtimePerms.contains(x.getName)  ) => // ok
           case x: ReflectPermission  if( reflectPerms.contains(x.getName)  ) => // ok
           case x: PropertyPermission if( x.getActions == "read"            ) => // ok
-          case _ =>
+          case x: LoggingPermission  => // ok
+          case x =>
             throw new SecurityException("access denied to: " + permission)    // error
         }
       } else {
