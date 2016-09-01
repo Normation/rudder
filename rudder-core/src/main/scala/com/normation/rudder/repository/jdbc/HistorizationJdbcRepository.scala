@@ -54,39 +54,53 @@ import com.normation.rudder.repository.HistorizationRepository
 
 import org.joda.time.DateTime
 import net.liftweb.common._
+import com.normation.rudder.db.Doobie
+
+import doobie.imports._
+import scalaz._, Scalaz._
+import scalaz.concurrent.Task
+import com.normation.rudder.db.Doobie
 
 class HistorizationJdbcRepository(schema: SlickSchema)  extends HistorizationRepository with  Loggable {
 
-  import schema.api._
+  val doobie = new Doobie(schema.datasource)
+  import doobie._
 
-  def getAllOpenedNodes() : Future[Seq[DB.SerializedNodes]] = {
-    val action = Compiled(schema.serializedNodes.filter(_.endTime.isEmpty)).result
-    schema.db.run(action)
+  def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
+    sql"select * from nodes where endtime is null".query[DB.SerializedNodes[Long]].list.transact(xa).run
   }
 
-  def updateNodes(nodes: Seq[NodeInfo], closable: Seq[String]): Future[Unit] = {
-    val toClose = nodes.map(x => x.id.value) ++ closable
-    val q = for {
-      e <- schema.serializedNodes
-           if( e.endTime.isEmpty && (e.nodeId inSet(toClose)) )
-    } yield {
-      e.endTime
-    }
+  def updateNodes(nodes: Seq[NodeInfo], closable: Seq[String]): Unit = {
+    val toCloseList =  (nodes.map(x => x.id.value) ++ closable).toList
+    val toClose = NonEmptyList(toCloseList.head, toCloseList.tail:_*)
+    implicit val closeParam = Param.many(toClose)
 
-    val action = (for {
-      updated  <- q.update(Some(DateTime.now))
-      inserted <- (schema.serializedNodes ++= nodes.map(DB.Historize.fromNode))
+    (for {
+      updated  <- sql"update nodes set endtime = ${Some(DateTime.now)} where endtime is null and nodeid in (${toClose: toClose.type})".update.run
+      inserted <- Update[DB.SerializedNodes[Unit]](
+                    "insert into nodes (nodeid, nodename, nodedescription, starttime, endtime) values (?, ?, ?, ?, ?)"
+                  ).updateMany(nodes.map(DB.Historize.fromNode).toList)
     } yield {
       ()
-    }).transactionally
-    schema.db.run(action)
+    }).transact(xa).run
+
   }
 
   /**
    * Fetch the serialization of groups that are still open (endTime is null), along with the
    * nodes within
    */
-  def getAllOpenedGroups() : Future[Seq[(DB.SerializedGroups, Seq[DB.SerializedGroupsNodes])]] = {
+  def getAllOpenedGroups(): Seq[(DB.SerializedGroups[Long], Seq[DB.SerializedGroupsNodes])] = {
+    val xxx = for {
+      groups     <- sql"select * from groups where endtime is null".query[DB.SerializedNodes[Long]].list
+      joinGroups <- pointOrEmpty(groups.nonEmpty) {
+                      val nelgroups = NonEmptyList(groups.head, groups.tail)
+                      sql"select * from groupsnodesjoin where grouppkeyid in ()".query[DB.SerializedGroupsNodes].list
+                    }
+    } yield {
+      val byIds = joinGroups.groupBy(_.groupPkeyId)
+      groups.map(x => (x, byIds.getOrElse(x.id, Nil)))
+    }
 
     def nodeJoin(gids: Traversable[Long]) = for {
       join <- schema.serializedGroupsNodes
@@ -136,6 +150,7 @@ class HistorizationJdbcRepository(schema: SlickSchema)  extends HistorizationRep
     schema.db.run(action)
   }
 
+  import schema.api._
 
   def getAllOpenedDirectives() : Future[Seq[DB.SerializedDirectives]] = {
     val action = Compiled(schema.serializedDirectives.filter(_.endTime.isEmpty)).result

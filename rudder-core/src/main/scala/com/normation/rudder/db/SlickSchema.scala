@@ -328,8 +328,8 @@ final object DB {
 
   //////////
 
-  final  case class SerializedGroups(
-      id              : Option[Long]
+  final  case class SerializedGroups[T](
+      id              : T
     , groupId         : String
     , groupName       : String
     , groupDescription: Option[String]
@@ -339,19 +339,19 @@ final object DB {
     , endTime         : Option[DateTime]
   )
 
-  class TableSerializedGroups(tag: Tag) extends Table[SerializedGroups](tag, "groups") {
-    def id               = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def groupId          = column[String]("groupid")
-    def groupName        = column[String]("groupname")
-    def groupDescription = column[String]("groupdescription")
-    def nodeCount        = column[Int]("nodecount")
-    def groupStatus      = column[Int]("groupstatus")
-    def startTime        = column[DateTime]("starttime")
-    def endTime          = column[Option[DateTime]]("endtime")
-
-    def * = (id.?, groupId, groupName, groupDescription.?, nodeCount, groupStatus, startTime, endTime
-            ) <> (SerializedGroups.tupled, SerializedGroups.unapply)
-  }
+//  class TableSerializedGroups(tag: Tag) extends Table[SerializedGroups](tag, "groups") {
+//    def id               = column[Long]("id", O.PrimaryKey, O.AutoInc)
+//    def groupId          = column[String]("groupid")
+//    def groupName        = column[String]("groupname")
+//    def groupDescription = column[String]("groupdescription")
+//    def nodeCount        = column[Int]("nodecount")
+//    def groupStatus      = column[Int]("groupstatus")
+//    def startTime        = column[DateTime]("starttime")
+//    def endTime          = column[Option[DateTime]]("endtime")
+//
+//    def * = (id.?, groupId, groupName, groupDescription.?, nodeCount, groupStatus, startTime, endTime
+//            ) <> (SerializedGroups.tupled, SerializedGroups.unapply)
+//  }
 
   //////////
 
@@ -372,8 +372,8 @@ final object DB {
 
   //////////
 
-  case class SerializedNodes(
-        id             : Option[Long]
+  case class SerializedNodes[T](
+        id             : T  // will be Unit for insert and Long for select
       , nodeId         : String
       , nodeName       : String
       , nodeDescription: Option[String]
@@ -381,17 +381,17 @@ final object DB {
       , endTime        : Option[DateTime]
   )
 
-  class TableSerializedNodes(tag: Tag) extends Table[SerializedNodes](tag, "nodes") {
-    def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def nodeId          = column[String]("nodeid")
-    def nodeName        = column[String]("nodename")
-    def nodeDescription = column[String]("nodedescription")
-    def startTime       = column[DateTime]("starttime")
-    def endTime         = column[Option[DateTime]]("endtime")
-
-    def * = (id.?, nodeId, nodeName, nodeDescription.?, startTime, endTime
-            ) <> (SerializedNodes.tupled, SerializedNodes.unapply)
-  }
+//  class TableSerializedNodes(tag: Tag) extends Table[SerializedNodes](tag, "nodes") {
+//    def id              = column[Long]("id", O.PrimaryKey, O.AutoInc)
+//    def nodeId          = column[String]("nodeid")
+//    def nodeName        = column[String]("nodename")
+//    def nodeDescription = column[String]("nodedescription")
+//    def startTime       = column[DateTime]("starttime")
+//    def endTime         = column[Option[DateTime]]("endtime")
+//
+//    def * = (id.?, nodeId, nodeName, nodeDescription.?, startTime, endTime
+//            ) <> (SerializedNodes.tupled, SerializedNodes.unapply)
+//  }
 
 
   //////////
@@ -554,8 +554,8 @@ final object DB {
       }
     }
 
-    def fromNode(node : NodeInfo) : SerializedNodes = {
-      new SerializedNodes(None, node.id.value,
+    def fromNode(node : NodeInfo) : SerializedNodes[Unit] = {
+      new SerializedNodes((), node.id.value,
               node.hostname,
               Opt(node.description),
               DateTime.now(), None )
@@ -640,7 +640,7 @@ final object DB {
  *
  *
  */
-class SlickSchema(datasource: DataSource) {
+class SlickSchema(val datasource: DataSource) {
 
   val plainApi = DB.Driver.plainApi
   val api = DB.Driver.api
@@ -659,7 +659,7 @@ class SlickSchema(datasource: DataSource) {
   //historization
   val serializedGroups         = TableQuery[DB.TableSerializedGroups]
   val serializedGroupsNodes    = TableQuery[DB.TableSerializedGroupsNodes]
-  val serializedNodes          = TableQuery[DB.TableSerializedNodes]
+  //val serializedNodes          = TableQuery[DB.TableSerializedNodes]
   val serializedDirectives     = TableQuery[DB.TableSerializedDirectives]
   val serializedRules          = TableQuery[DB.TableSerializedRules]
   val serializedRuleDirectives = TableQuery[DB.TableSerializedRuleDirectives]

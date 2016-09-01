@@ -99,6 +99,25 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <scope>runtime</scope>
     </dependency>
 
+
+    <!-- Doobie for SQL queries -->
+    <dependency>
+      <groupId>org.tpolecat</groupId>
+      <artifactId>doobie-core_${scala-binary-version}</artifactId>
+      <version>0.2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.tpolecat</groupId>
+      <artifactId>doobie-contrib-postgresql_${scala-binary-version}</artifactId>
+      <version>0.2.4</version>
+    </dependency>
+    <dependency>
+      <groupId>org.tpolecat</groupId>
+      <artifactId>doobie-contrib-specs2_${scala-binary-version}</artifactId>
+      <version>0.2.4</version>
+      <scope>test</scope>
+    </dependency>
+
     <dependency>
       <groupId>com.typesafe.slick</groupId>
       <artifactId>slick_${scala-binary-version}</artifactId>

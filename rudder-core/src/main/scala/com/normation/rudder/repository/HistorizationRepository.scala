@@ -57,13 +57,13 @@ trait HistorizationRepository {
   /**
    * Return all the nodes that are still "opened"
    */
-  def getAllOpenedNodes() : Future[Seq[DB.SerializedNodes]]
+  def getAllOpenedNodes() : Seq[DB.SerializedNodes[Long]]
 
   /**
    * Update a list of nodes, and close (end) another list, based on their id
    * Updating is really only setting now as a endTime for nodes, and creating them after
    */
-  def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]): Future[Unit]
+  def updateNodes(nodes : Seq[NodeInfo], closable : Seq[String]): Unit
 
   /**
    * Return all the groups that are still "opened"

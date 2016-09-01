@@ -115,23 +115,21 @@ class HistorizationServiceImpl(
 
     val nodeInfos = allNodeInfo.filterNot(_.isPolicyServer).toSeq
 
-    val res = (tryo { Await.result(for {
+    val res = (tryo {
       // fetch all the current nodes in the jdbc
-      registered <- historizationRepository.getAllOpenedNodes().map(seq => seq.map(x => x.nodeId -> x).toMap)
+      val registered = historizationRepository.getAllOpenedNodes().map(x => x.nodeId -> x).toMap
 
       // detect changes
-      changed = nodeInfos.filter(x => registered.get(x.id.value) match {
+      val changed = nodeInfos.filter(x => registered.get(x.id.value) match {
         case None => true
         case Some(entry) => (entry.nodeName != x.hostname || entry.nodeDescription != x.description )
       })
 
       // a node closable is a node that is current in the database, but don't exist in the
       // ldap
-      closable = registered.keySet.filter(x => !(nodeInfos.map(node => node.id.value)).contains(x))
-      res <- historizationRepository.updateNodes(changed, closable.toSeq)
-    } yield {
-      res
-    }, Duration.Inf) }) ?~! "Could not update the nodes historisation information in base."
+      val closable = registered.keySet.filter(x => !(nodeInfos.map(node => node.id.value)).contains(x))
+      historizationRepository.updateNodes(changed, closable.toSeq)
+    }) ?~! "Could not update the nodes historisation information in base."
 
     log("update nodes", res)
     res

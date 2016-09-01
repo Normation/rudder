@@ -68,10 +68,10 @@ import com.normation.rudder.domain.policies.Rule
  *
  */
 @RunWith(classOf[JUnitRunner])
-class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher with ExecutionEnvironment {
-def is(implicit ee: ExecutionEnv) = {
+class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
+//def is(implicit ee: ExecutionEnv) = {
 
-  import schema.api._
+//S import schema.api._
 
   val repos = new HistorizationJdbcRepository(schema)
   val service = new HistorizationServiceImpl(repos)
@@ -83,32 +83,33 @@ def is(implicit ee: ExecutionEnv) = {
   "Basic add and close for nodes" should {
 
     "found nothing at begining" in {
-      repos.getAllOpenedNodes must haveSize[Seq[DB.SerializedNodes]](0).await
+      repos.getAllOpenedNodes must haveSize[Seq[DB.SerializedNodes[Long]]](0)
     }
 
     "be able to add and found" in {
-      val op1 = Await.result(repos.updateNodes(Seq(NodeConfigData.node1), Seq()), MAX_TIME)
-      val op2 = Await.result(repos.getAllOpenedNodes, MAX_TIME)
+      val op1 = repos.updateNodes(Seq(NodeConfigData.node1), Seq())
+      val op2 = repos.getAllOpenedNodes
 
       (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateNodes(Set(NodeConfigData.node2)).openOrThrowException("that test should not throw")
-      val op2 = Await.result(repos.getAllOpenedNodes, MAX_TIME)
+      val op2 = repos.getAllOpenedNodes
 
       (op1 === ()) and (op2.size === 1) and (op2.head.nodeId === "node2")
     }
 
     "check that policy servers are ignored (not sure why)" in {
       val op1 = service.updateNodes(Set(NodeConfigData.root)).openOrThrowException("that test should not throw")
-      val op2 = Await.result(repos.getAllOpenedNodes, MAX_TIME)
+      val op2 = repos.getAllOpenedNodes
 
       (op1 === ()) and (op2.size === 0)
     }
 
   }
 
+  /*
   "Basic add and close for nodes" should {
 
     //build a full category based on the groups id from NodeConfigDate
@@ -180,4 +181,7 @@ def is(implicit ee: ExecutionEnv) = {
 
   }
 
-} }
+}
+*/
+}
+
