@@ -67,7 +67,6 @@ import ca.mrvisser.sealerate
 import com.normation.rudder.web.components.popup.ModificationValidationPopup.Disable
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 
-
 /**
  * A service that Read mutable (runtime) configuration properties
  *
@@ -161,6 +160,11 @@ trait ReadConfigService {
    * Should we activate the script engine bar ?
    */
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
+
+  /*
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch]
 }
 
 /**
@@ -248,6 +252,11 @@ trait UpdateConfigService {
    * Should we evaluate scripts in variable values?
    */
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit]
+
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -479,6 +488,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def api_compatibility_mode(): Box[Boolean] = get("api_compatibility_mode")
   def set_api_compatibility_mode(value : Boolean): Box[Unit] = save("api_compatibility_mode", value)
 
+
   /////
   ///// Feature switches /////
   /////
@@ -490,4 +500,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
 
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch] = get("rudder_featureSwitch_quicksearchEverything")
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_quicksearchEverything", status)
 }
