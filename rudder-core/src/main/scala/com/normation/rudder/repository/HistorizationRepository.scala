@@ -68,40 +68,40 @@ trait HistorizationRepository {
   /**
    * Return all the groups that are still "opened"
    */
-  def getAllOpenedGroups() : Future[Seq[(DB.SerializedGroups, Seq[DB.SerializedGroupsNodes])]]
+  def getAllOpenedGroups() : Seq[(DB.SerializedGroups[Long], Seq[DB.SerializedGroupsNodes])]
 
   /**
    * Update a list of groups, and close (end) another list, based on their id
    * Updating is really setting a given endTime for the groups, and creating new ones, with all the nodes within
    */
-  def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]): Future[Unit]
+  def updateGroups(nodes : Seq[NodeGroup], closable : Seq[String]): Unit
 
   /**
    * Return all the directives that are still "opened"
    */
-  def getAllOpenedDirectives(): Future[Seq[DB.SerializedDirectives]]
+  def getAllOpenedDirectives(): Seq[DB.SerializedDirectives[Long]]
 
   /**
    * Update a list of directives, and close (end) another list, based on their id
    * Updating is really only setting now as a endTime for the directives, and then
    * (re)create the directives
    */
-  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)], closable : Seq[String]): Future[Unit]
+  def updateDirectives(directives : Seq[(Directive, ActiveTechnique, Technique)], closable : Seq[String]): Unit
 
   /**
    * Return all the rules that are still "opened"
    */
-  def getAllOpenedRules() : Future[Seq[Rule]]
+  def getAllOpenedRules() : Seq[Rule]
 
   /**
    * close the rules based on their id, update the rule to update (updating is closing and creating)
    */
-  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Future[Unit]
+  def updateRules(rules : Seq[Rule], closable : Seq[String]) : Unit
 
   /**
    * Get the current GlobalSchedule historized (the one considered in use)
    */
-  def getOpenedGlobalSchedule() : Future[Option[DB.SerializedGlobalSchedule]]
+  def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]]
 
   /**
    * Update the current schedule historized by closing the previous and writing a new one
@@ -111,6 +111,6 @@ trait HistorizationRepository {
       , splaytime   : Int
       , start_hour  : Int
       , start_minute: Int
-  ): Future[Unit]
+  ): Unit
 }
 

@@ -37,30 +37,19 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scala.concurrent.Await
-import scala.util.Try
-
 import com.normation.BoxSpecMatcher
-import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
+import com.normation.rudder.domain.nodes.NodeGroupCategoryId
+import com.normation.rudder.domain.nodes.NodeGroupId
+import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.migration.DBCommon
-import com.normation.rudder.repository.GitCommitId
+import com.normation.rudder.repository.FullNodeGroupCategory
+import com.normation.rudder.services.eventlog.HistorizationServiceImpl
+import com.normation.rudder.services.policies.NodeConfigData
 
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-
-import net.liftweb.common.Box
-import net.liftweb.common.Full
-import com.normation.rudder.services.eventlog.HistorizationServiceImpl
-import com.normation.rudder.services.policies.NodeConfigData
-import org.specs2.specification.mutable.ExecutionEnvironment
-import org.specs2.concurrent.ExecutionEnv
-import com.normation.rudder.domain.policies.FullRuleTargetInfo
-import com.normation.rudder.domain.nodes.NodeGroupId
-import com.normation.rudder.repository.FullNodeGroupCategory
-import com.normation.rudder.domain.nodes.NodeGroupCategoryId
-import com.normation.rudder.domain.policies.Rule
 
 /**
  *
@@ -69,9 +58,6 @@ import com.normation.rudder.domain.policies.Rule
  */
 @RunWith(classOf[JUnitRunner])
 class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
-//def is(implicit ee: ExecutionEnv) = {
-
-//S import schema.api._
 
   val repos = new HistorizationJdbcRepository(schema)
   val service = new HistorizationServiceImpl(repos)
@@ -109,8 +95,8 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
 
   }
 
-  /*
-  "Basic add and close for nodes" should {
+
+  "Basic add and close for groups" should {
 
     //build a full category based on the groups id from NodeConfigDate
     def buildCategory(groups: List[NodeGroupId]) = FullNodeGroupCategory(NodeGroupCategoryId("test_root"), "", "", Nil
@@ -118,19 +104,19 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
     )
 
     "found nothing at begining" in {
-      repos.getAllOpenedGroups() must haveSize[Seq[(DB.SerializedGroups, Seq[DB.SerializedGroupsNodes])]](0).await
+      repos.getAllOpenedGroups() must haveSize[Seq[(DB.SerializedGroups[Long], Seq[DB.SerializedGroupsNodes])]](0)
     }
 
     "be able to add and found" in {
-      val op1 = Await.result(repos.updateGroups(Seq(NodeConfigData.g1), Seq()), MAX_TIME)
-      val op2 = Await.result(repos.getAllOpenedGroups(), MAX_TIME)
+      val op1 = repos.updateGroups(Seq(NodeConfigData.g1), Seq())
+      val op2 = repos.getAllOpenedGroups()
 
       (op1 === ()) and (op2.size === 1) and (op2.head._1.groupId === "1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateGroups(buildCategory(NodeConfigData.g2.id :: NodeConfigData.g3.id :: Nil)).openOrThrowException("that test should not throw")
-      val op2 = Await.result(repos.getAllOpenedGroups(), MAX_TIME)
+      val op2 = repos.getAllOpenedGroups()
 
       (op1 === ()) and (op2.size === 2) and (op2.head._1.groupId === "2")
     }
@@ -140,19 +126,19 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
   "Basic add and close for directives" should {
 
     "found nothing at begining" in {
-      repos.getAllOpenedDirectives() must haveSize[Seq[DB.SerializedDirectives]](0).await
+      repos.getAllOpenedDirectives() must haveSize[Seq[DB.SerializedDirectives[Long]]](0)
     }
 
     "be able to add and found" in {
-      val op1 = Await.result(repos.updateDirectives(Seq((NodeConfigData.d1, NodeConfigData.fat1.toActiveTechnique, NodeConfigData.t1)), Seq()), MAX_TIME)
-      val op2 = Await.result(repos.getAllOpenedDirectives(), MAX_TIME)
+      val op1 = repos.updateDirectives(Seq((NodeConfigData.d1, NodeConfigData.fat1.toActiveTechnique, NodeConfigData.t1)), Seq())
+      val op2 = repos.getAllOpenedDirectives()
 
       (op1 === ()) and (op2.size === 1) and (op2.head.directiveId === "d1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updateDirectiveNames(NodeConfigData.directives).openOrThrowException("that test should not throw")
-      val op2 = Await.result(repos.getAllOpenedDirectives(), MAX_TIME)
+      val op2 = repos.getAllOpenedDirectives()
 
       (op1 === ()) and (op2.size === 2) and (op2.sortBy(_.directiveId).last.directiveId === "d2")
     }
@@ -162,19 +148,19 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
   "Basic add and close for rules" should {
 
     "found nothing at begining" in {
-      repos.getAllOpenedRules() must haveSize[Seq[Rule]](0).await
+      repos.getAllOpenedRules() must haveSize[Seq[Rule]](0)
     }
 
     "be able to add and found" in {
-      val op1 = Await.result(repos.updateRules(Seq(NodeConfigData.r1), Seq()), MAX_TIME)
-      val op2 = Await.result(repos.getAllOpenedRules(), MAX_TIME)
+      val op1 = repos.updateRules(Seq(NodeConfigData.r1), Seq())
+      val op2 = repos.getAllOpenedRules()
 
       (op1 === ()) and (op2.size === 1) and (op2.head.id.value === "r1")
     }
 
     "be able to close and found new ones" in {
       val op1 = service.updatesRuleNames(NodeConfigData.r2 :: Nil).openOrThrowException("that test should not throw")
-      val op2 = Await.result(repos.getAllOpenedRules(), MAX_TIME)
+      val op2 = repos.getAllOpenedRules()
 
       (op1 === ()) and (op2.size === 1) and (op2.head.id.value === "r2")
     }
@@ -182,6 +168,5 @@ class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
   }
 
 }
-*/
-}
+
 

@@ -139,12 +139,12 @@ class HistorizationServiceImpl(
     // Fetch all groups from the ldap
     val nodeGroups = groupLib.allGroups.values
 
-    val res = tryo { Await.result(for {
+    val res = (tryo {
       // fetch all the current group in the database
-      registered <- historizationRepository.getAllOpenedGroups().map(seq => seq.map(x => x._1.groupId -> x).toMap)
+      val registered = historizationRepository.getAllOpenedGroups().map(x => x._1.groupId -> x).toMap
 
       // detect changes
-      changed = nodeGroups.filter(x => registered.get(x.nodeGroup.id.value) match {
+      val changed = nodeGroups.filter(x => registered.get(x.nodeGroup.id.value) match {
         case None => true
         case Some((entry, nodes)) =>
           (entry.groupName != x.nodeGroup.name ||
@@ -155,12 +155,10 @@ class HistorizationServiceImpl(
 
       // a group closable is a group that is current in the database, but don't exist in the
       // ldap
-      closable = registered.keySet.filter(x => !(nodeGroups.map( _.nodeGroup.id.value)).toSet.contains(x))
+      val closable = registered.keySet.filter(x => !(nodeGroups.map( _.nodeGroup.id.value)).toSet.contains(x))
 
-      res <- historizationRepository.updateGroups(changed, closable.toSeq)
-    } yield {
-      res
-    }, Duration.Inf) } ?~! "Could not update the groups historisation information in base."
+      historizationRepository.updateGroups(changed, closable.toSeq)
+    }) ?~! "Could not update the groups historisation information in base."
     log("update groups", res)
     res
   }
@@ -177,10 +175,10 @@ class HistorizationServiceImpl(
       }
     }
 
-    val res = tryo { Await.result(for {
-      registered <- historizationRepository.getAllOpenedDirectives().map(seq => seq.map(x => x.directiveId -> x).toMap)
+    val res = ( tryo {
+      val registered = historizationRepository.getAllOpenedDirectives().map(x => x.directiveId -> x).toMap
 
-      changed = directives.values.filter { case (technique, fullActiveTechnique, directive) =>
+      val changed = directives.values.filter { case (technique, fullActiveTechnique, directive) =>
         registered.get(directive.id.value) match {
           case None => true
           case Some(entry) => (
@@ -199,31 +197,27 @@ class HistorizationServiceImpl(
 
       val closable = registered.keySet.filter(x => !stringDirectiveIds.contains(x))
 
-      res <- historizationRepository.updateDirectives(changed, closable.toSeq)
-    } yield {
-      res
-    }, Duration.Inf) } ?~! s"Could not update the directives historisation information in base."
+      historizationRepository.updateDirectives(changed, closable.toSeq)
+    }) ?~! s"Could not update the directives historisation information in base."
     log("update directives", res)
     res
   }
 
   override def updatesRuleNames(rules:Seq[Rule]) : Box[Unit] = {
-    val res = tryo { Await.result(for {
-      registered <- historizationRepository.getAllOpenedRules().map(seq => seq.map(x => x.id -> x).toMap)
-      changed = rules.filter(rule => registered.get(rule.id) match {
+    val res = ( tryo {
+      val registered = historizationRepository.getAllOpenedRules().map(x => x.id -> x).toMap
+      val changed = rules.filter(rule => registered.get(rule.id) match {
           case None => true
           case Some(entry) =>
             !isEqual(entry, rule)
       })
 
       // a closable rule is a rule that is in the database, but not in the ldap
-      closable = registered.keySet.filter(x => !(rules.map(rule => rule.id)).contains(x)).
+      val closable = registered.keySet.filter(x => !(rules.map(rule => rule.id)).contains(x)).
                     map(x => x.value)
 
-      res <- historizationRepository.updateRules(changed, closable.toSeq)
-    } yield {
-      res
-    }, Duration.Inf) } ?~! s"Could not update the rules historisation information in base."
+      historizationRepository.updateRules(changed, closable.toSeq)
+    }) ?~! s"Could not update the rules historisation information in base."
     log("update rules", res)
     res
   }
@@ -243,24 +237,22 @@ class HistorizationServiceImpl(
       , start_hour  : Int
       , start_minute: Int
   ) : Box[Unit] = {
-    val res = tryo { Await.result(for {
-      registered <- historizationRepository.getOpenedGlobalSchedule()
+    val res = ( tryo {
+      val registered = historizationRepository.getOpenedGlobalSchedule()
 
       // we need to update if:
       // 1 - we don't have any entry
       // 2 - we have a result that doesn't match
 
-      res <- registered match {
+      registered match {
                 case Some(schedule) if (
                        schedule.interval == interval
                     && schedule.splaytime == splaytime
                     && schedule.start_hour == start_hour
-                    && schedule.start_minute == start_minute) => Future.successful(())
+                    && schedule.start_minute == start_minute) => ()
                 case _ => historizationRepository.updateGlobalSchedule(interval, splaytime, start_hour, start_minute)
              }
-    } yield {
-      res
-    }, Duration.Inf) } ?~! s"Could not update the global agent execution schedule information in base."
+    }) ?~! s"Could not update the global agent execution schedule information in base."
     log("update global agent execution schedule", res)
     res
   }

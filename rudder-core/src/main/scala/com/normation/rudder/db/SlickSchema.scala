@@ -396,8 +396,8 @@ final object DB {
 
   //////////
 
-  case class SerializedDirectives(
-        id                  : Option[Long]
+  case class SerializedDirectives[T](
+        id                  : T
       , directiveId         : String
       , directiveName       : String
       , directiveDescription: Option[String]
@@ -407,32 +407,32 @@ final object DB {
       , techniqueDescription: Option[String]
       , techniqueVersion    : String
       , startTime           : DateTime
-      , endTime        : Option[DateTime]
+      , endTime             : Option[DateTime]
   )
 
-  class TableSerializedDirectives(tag: Tag) extends Table[SerializedDirectives](tag, "directives") {
-    def id                   = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def directiveId          = column[String]("directiveid")
-    def directiveName        = column[String]("directivename")
-    def directiveDescription = column[String]("directivedescription")
-    def priority             = column[Int]("priority")
-    def techniqueName        = column[String]("techniquename")
-    def techniqueHumanName   = column[String]("techniquehumanname")
-    def techniqueDescription = column[String]("techniquedescription")
-    def techniqueVersion     = column[String]("techniqueversion")
-    def startTime            = column[DateTime]("starttime")
-    def endTime              = column[Option[DateTime]]("endtime")
-
-    def * = (id.?, directiveId, directiveName, directiveDescription.?, priority, techniqueName
-            , techniqueHumanName, techniqueDescription.?, techniqueVersion, startTime, endTime
-            ) <> (SerializedDirectives.tupled, SerializedDirectives.unapply)
-  }
+//  class TableSerializedDirectives(tag: Tag) extends Table[SerializedDirectives](tag, "directives") {
+//    def id                   = column[Long]("id", O.PrimaryKey, O.AutoInc)
+//    def directiveId          = column[String]("directiveid")
+//    def directiveName        = column[String]("directivename")
+//    def directiveDescription = column[String]("directivedescription")
+//    def priority             = column[Int]("priority")
+//    def techniqueName        = column[String]("techniquename")
+//    def techniqueHumanName   = column[String]("techniquehumanname")
+//    def techniqueDescription = column[String]("techniquedescription")
+//    def techniqueVersion     = column[String]("techniqueversion")
+//    def startTime            = column[DateTime]("starttime")
+//    def endTime              = column[Option[DateTime]]("endtime")
+//
+//    def * = (id.?, directiveId, directiveName, directiveDescription.?, priority, techniqueName
+//            , techniqueHumanName, techniqueDescription.?, techniqueVersion, startTime, endTime
+//            ) <> (SerializedDirectives.tupled, SerializedDirectives.unapply)
+//  }
 
 
   //////////
 
-  case class SerializedRules(
-      id               : Option[Long]
+  case class SerializedRules[T](
+      id               : T
     , ruleId           : String
     , serial           : Int
     , categoryId       : Option[String]
@@ -444,22 +444,22 @@ final object DB {
     , endTime          : Option[DateTime]
   )
 
-  class TableSerializedRules(tag: Tag) extends Table[SerializedRules](tag, "rules") {
-    def id               = column[Long]("rulepkeyid", O.PrimaryKey, O.AutoInc)
-    def ruleId           = column[String]("ruleid")
-    def serial           = column[Int]("serial")
-    def categoryId       = column[String]("categoryid")
-    def name             = column[String]("name")
-    def shortDescription = column[String]("shortdescription")
-    def longDescription  = column[String]("longdescription")
-    def isEnabledStatus  = column[Boolean]("isenabled")
-    def startTime        = column[DateTime]("starttime")
-    def endTime          = column[Option[DateTime]]("endtime")
-
-    def * = (id.?, ruleId, serial, categoryId.?, name, shortDescription.?
-            , longDescription.?, isEnabledStatus, startTime, endTime
-            ) <> (SerializedRules.tupled, SerializedRules.unapply)
-  }
+//  class TableSerializedRules(tag: Tag) extends Table[SerializedRules](tag, "rules") {
+//    def id               = column[Long]("rulepkeyid", O.PrimaryKey, O.AutoInc)
+//    def ruleId           = column[String]("ruleid")
+//    def serial           = column[Int]("serial")
+//    def categoryId       = column[String]("categoryid")
+//    def name             = column[String]("name")
+//    def shortDescription = column[String]("shortdescription")
+//    def longDescription  = column[String]("longdescription")
+//    def isEnabledStatus  = column[Boolean]("isenabled")
+//    def startTime        = column[DateTime]("starttime")
+//    def endTime          = column[Option[DateTime]]("endtime")
+//
+//    def * = (id.?, ruleId, serial, categoryId.?, name, shortDescription.?
+//            , longDescription.?, isEnabledStatus, startTime, endTime
+//            ) <> (SerializedRules.tupled, SerializedRules.unapply)
+//  }
 
 
   //////////
@@ -497,8 +497,8 @@ final object DB {
 
   //////////
 
-  final case class SerializedGlobalSchedule(
-      id          : Option[Long]
+  final case class SerializedGlobalSchedule[T](
+      id          : T //long or unit
     , interval    : Int
     , splaytime   : Int
     , start_hour  : Int
@@ -507,18 +507,18 @@ final object DB {
     , endTime     : Option[DateTime]
   )
 
-  class TableSerializedGlobalSchedule(tag: Tag) extends Table[SerializedGlobalSchedule](tag, "globalschedule") {
-    def id           = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def interval     = column[Int]("interval")
-    def splaytime    = column[Int]("splaytime")
-    def start_hour   = column[Int]("start_hour")
-    def start_minute = column[Int]("start_minute")
-    def startTime    = column[DateTime]("starttime")
-    def endTime      = column[Option[DateTime]]("endtime")
-
-    def * = (id.?, interval, splaytime, start_hour, start_minute, startTime, endTime
-            ) <> (SerializedGlobalSchedule.tupled, SerializedGlobalSchedule.unapply)
-  }
+//  class TableSerializedGlobalSchedule(tag: Tag) extends Table[SerializedGlobalSchedule](tag, "globalschedule") {
+//    def id           = column[Long]("id", O.PrimaryKey, O.AutoInc)
+//    def interval     = column[Int]("interval")
+//    def splaytime    = column[Int]("splaytime")
+//    def start_hour   = column[Int]("start_hour")
+//    def start_minute = column[Int]("start_minute")
+//    def startTime    = column[DateTime]("starttime")
+//    def endTime      = column[Option[DateTime]]("endtime")
+//
+//    def * = (id.?, interval, splaytime, start_hour, start_minute, startTime, endTime
+//            ) <> (SerializedGlobalSchedule.tupled, SerializedGlobalSchedule.unapply)
+//  }
 
   object Historize {
 
@@ -530,8 +530,8 @@ final object DB {
     }
 
     // Utilitary method to convert from/to nodeGroup/SerializedGroups
-    def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups = {
-      SerializedGroups(None, nodeGroup.id.value,
+    def fromNodeGroup(nodeGroup : NodeGroup) : SerializedGroups[Unit] = {
+      SerializedGroups((), nodeGroup.id.value,
               nodeGroup.name,
               Opt(nodeGroup.description),
               nodeGroup.serverList.size,
@@ -561,10 +561,10 @@ final object DB {
               DateTime.now(), None )
     }
 
-    def fromDirective(t3 : (Directive, ActiveTechnique, Technique)) : SerializedDirectives = {
+    def fromDirective(t3 : (Directive, ActiveTechnique, Technique)) : SerializedDirectives[Unit] = {
       val (directive, at, technique) = t3
-      SerializedDirectives(
-        None, directive.id.value,
+      SerializedDirectives[Unit](
+        (), directive.id.value,
               directive.name,
               Opt(directive.shortDescription),
               directive.priority,
@@ -576,7 +576,7 @@ final object DB {
     }
 
     def fromSerializedRule(
-        rule : SerializedRules
+        rule : SerializedRules[Long]
       , ruleTargets : Seq[SerializedRuleGroups]
       , directives : Seq[SerializedRuleDirectives]
     ) : Rule = {
@@ -595,9 +595,9 @@ final object DB {
 
     }
 
-    def fromRule(rule : Rule) : SerializedRules = {
+    def fromRule(rule : Rule) : SerializedRules[Unit] = {
       SerializedRules (
-          None
+          ()
         , rule.id.value
         , rule.serial
         , Opt(rule.categoryId.value)
@@ -614,9 +614,9 @@ final object DB {
           interval    : Int
         , splaytime   : Int
         , start_hour  : Int
-        , start_minute: Int) : SerializedGlobalSchedule = {
+        , start_minute: Int) : SerializedGlobalSchedule[Unit] = {
       SerializedGlobalSchedule(
-              None
+              ()
             , interval
             , splaytime
             , start_hour
@@ -657,14 +657,14 @@ class SlickSchema(val datasource: DataSource) {
   val agentRuns            = TableQuery[DB.TableAgentRun]
   val statusUpdates        = TableQuery[DB.TableStatusUpdate]
   //historization
-  val serializedGroups         = TableQuery[DB.TableSerializedGroups]
-  val serializedGroupsNodes    = TableQuery[DB.TableSerializedGroupsNodes]
+//  val serializedGroups         = TableQuery[DB.TableSerializedGroups]
+//  val serializedGroupsNodes    = TableQuery[DB.TableSerializedGroupsNodes]
   //val serializedNodes          = TableQuery[DB.TableSerializedNodes]
-  val serializedDirectives     = TableQuery[DB.TableSerializedDirectives]
-  val serializedRules          = TableQuery[DB.TableSerializedRules]
-  val serializedRuleDirectives = TableQuery[DB.TableSerializedRuleDirectives]
-  val serializedRuleGroups     = TableQuery[DB.TableSerializedRuleGroups]
-  val serializedGlobalSchedule = TableQuery[DB.TableSerializedGlobalSchedule]
+//  val serializedDirectives     = TableQuery[DB.TableSerializedDirectives]
+//  val serializedRules          = TableQuery[DB.TableSerializedRules]
+//  val serializedRuleDirectives = TableQuery[DB.TableSerializedRuleDirectives]
+//  val serializedRuleGroups     = TableQuery[DB.TableSerializedRuleGroups]
+//  val serializedGlobalSchedule = TableQuery[DB.TableSerializedGlobalSchedule]
 
 //  def toSlickReport(r:Reports): Reports = {
 //    Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial

@@ -62,5 +62,15 @@ class Doobie(datasource: DataSource) {
       , dt => new java.sql.Timestamp(dt.getMillis)
   )
 
+  trait MonoidConnectionIOList[T] extends Monoid[ConnectionIO[List[T]]] {
+      def zero : ConnectionIO[List[T]] = List.empty[T].point[ConnectionIO]
+      def append(f1: ConnectionIO[List[T]], f2: => ConnectionIO[List[T]]): ConnectionIO[List[T]] = for {
+        l1 <- f1
+        l2 <- f2
+      } yield {
+        l1 ::: l2
+      }
+    }
+
 }
 
