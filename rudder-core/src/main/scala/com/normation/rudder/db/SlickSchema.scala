@@ -572,7 +572,7 @@ final object DB {
               technique.name,
               Opt(technique.description),
               directive.techniqueVersion.toString,
-              DateTime.now(), null )
+              DateTime.now(), None )
     }
 
     def fromSerializedRule(
@@ -606,7 +606,7 @@ final object DB {
         , Opt(rule.longDescription)
         , rule.isEnabledStatus
         , DateTime.now()
-        , null
+        , None
       )
     }
 

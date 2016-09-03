@@ -129,10 +129,10 @@ class HistorizationJdbcRepository(schema: SlickSchema)  extends HistorizationRep
 
       (for {
         updated  <- sql"update directives set endtime = ${Some(DateTime.now)} where endtime is null and directiveid in (${toClose: toClose.type})".update.run
-        inserted <- Update[DB.SerializedDirectives[Unit]](
-                      "insert into directives (directiveid, directivename, directivedescription, priority, techniquename, "+
-                      "techniquedescription, techniqueversion, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-                    ).updateMany(directives.map(DB.Historize.fromDirective).toList)
+        inserted <- Update[DB.SerializedDirectives[Unit]]("""
+                      insert into directives (directiveid, directivename, directivedescription, priority, techniquename,
+                      techniquehumanname, techniquedescription, techniqueversion, starttime, endtime) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """).updateMany(directives.map(DB.Historize.fromDirective).toList)
       } yield {
         ()
       }).transact(xa).run

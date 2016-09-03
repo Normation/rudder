@@ -83,6 +83,7 @@ class RudderPropertiesRepositoryImpl(
             case ex: Exception => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}' with value '${x}' as long", Full(ex), Empty)
           }
       }
+      case TFailure(ex) => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}'", Full(ex), Empty)
 
     } }
   }
