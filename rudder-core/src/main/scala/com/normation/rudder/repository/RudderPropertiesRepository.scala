@@ -45,11 +45,11 @@ trait RudderPropertiesRepository {
   /**
    * Get the last report id processed by the non compliant report Logger.
    */
-  def getReportLoggerLastId: Future[Box[Long]]
+  def getReportLoggerLastId: Box[Long]
 
   /**
    * Update or create (if needed the last id processed by the non compliant report logger
    */
-  def updateReportLoggerLastId(newId: Long) : Future[Box[Long]]
+  def updateReportLoggerLastId(newId: Long): Box[Long]
 
 }

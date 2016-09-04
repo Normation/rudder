@@ -35,17 +35,22 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.statusUpdate
+package com.normation.rudder.reports.execution
 
-import scala.concurrent.Future
+import scalaz.{ Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+
 import com.normation.rudder.db.DB
+
 import org.joda.time.DateTime
-import net.liftweb.common.Box
+import net.liftweb.common._
+import com.normation.rudder.db.Doobie
 
 /**
  * Manage the status of the fetching of execution date per node
  */
-trait StatusUpdateRepository {
+trait LastProcessedReportRepository {
 
   /*
    * BE CAREFUL : these methods will report false value
@@ -53,8 +58,61 @@ trait StatusUpdateRepository {
    * database.
    */
 
-  def getExecutionStatus : Future[Box[Option[(Long,DateTime)]]]
+  def getExecutionStatus : Box[Option[(Long,DateTime)]]
 
-  def setExecutionStatus (newId : Long, reportsDate : DateTime) : Future[Box[DB.StatusUpdate]]
+  def setExecutionStatus (newId : Long, reportsDate : DateTime): Box[DB.StatusUpdate]
 
 }
+
+
+class LastProcessedReportRepositoryImpl (
+    db: Doobie
+) extends LastProcessedReportRepository with Loggable {
+  import db._
+
+  val PROP_EXECUTION_STATUS = "executionStatus"
+
+  def getExecutionStatus : Box[Option[(Long,DateTime)]] = {
+    val sql = sql"""
+        select lastid, date from statusupdate where key=${PROP_EXECUTION_STATUS}
+      """.query[(Long, DateTime)].option
+
+    sql.attempt.transact(xa).run match {
+      case \/-(x)  => Full(x)
+      case -\/(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
+    }
+  }
+
+  def setExecutionStatus(newId : Long, reportsDate : DateTime) : Box[DB.StatusUpdate] = {
+    import doobie.contrib.postgresql.sqlstate.class23.UNIQUE_VIOLATION
+
+    //upsert of the poor :)
+    val insert = sql"""
+      insert into statusupdate (key, lastid, date)
+      values (${PROP_EXECUTION_STATUS}, ${newId}, ${reportsDate})
+    """.update
+
+    val update = sql"""
+      update statusupdate set lastid=${newId}, date=${reportsDate}
+      where key=${PROP_EXECUTION_STATUS}
+    """.update
+
+    val action = for {
+      rowAffected <- update.run
+      entry       <- rowAffected match {
+                       case 0 => insert.run
+                       case 1 => 1.point[ConnectionIO]
+                       case n => throw new RuntimeException(s"Error when updateing the table statusupdate properties ${PROP_EXECUTION_STATUS}")
+                     }
+    } yield {
+      entry
+    }
+
+    action.attempt.transact(xa).run match {
+      case \/-(x)  => Full(DB.StatusUpdate(PROP_EXECUTION_STATUS, newId, reportsDate))
+      case -\/(ex) => Failure(s"Error when retrieving '${PROP_EXECUTION_STATUS}' from db: ${ex.getMessage}", Full(ex), Empty)
+    }
+  }
+
+}
+

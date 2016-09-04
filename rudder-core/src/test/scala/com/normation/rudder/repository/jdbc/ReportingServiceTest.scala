@@ -78,8 +78,6 @@ import net.liftweb.common.EmptyBox
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.rudder.db.DB
-import scala.concurrent.Await
-import com.normation.rudder.reports.statusUpdate.SlickStatusUpdateRepository
 
 /**
  *
@@ -133,7 +131,7 @@ class ReportingServiceTest extends DBCommon {
     new ReportsExecutionService(
         reportsRepo
       , woAgentRun
-      , new SlickStatusUpdateRepository(schema)
+      , new LastProcessedReportRepositoryImpl(doobie)
       , dummyChangesCache
       , dummyComplianceCache
       , 1

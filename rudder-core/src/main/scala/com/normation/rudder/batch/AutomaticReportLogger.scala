@@ -97,7 +97,7 @@ class AutomaticReportLogger(
 
     override protected def messageHandler = {
       case StartAutomaticReporting =>
-        Await.result(propertyRepository.getReportLoggerLastId, Duration.Inf) match {
+        propertyRepository.getReportLoggerLastId match {
           // Report logger was not running before, try to log the last hundred reports and initialize lastId
           case Empty =>
             logger.warn("Automatic report logger has never run, logging latest 100 non compliant reports")
@@ -224,7 +224,7 @@ class AutomaticReportLogger(
     def updateLastId(newId : Long) : Unit = {
       //don't blow the stack
       def maxTry(tried: Int): Unit = {
-        Await.result(propertyRepository.updateReportLoggerLastId(newId), Duration.Inf) match {
+        propertyRepository.updateReportLoggerLastId(newId) match {
           case f:Full[_]    =>
             //ok, nothing to do
           case eb:EmptyBox  =>

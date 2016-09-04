@@ -46,7 +46,6 @@ import scala.concurrent.duration.Duration
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.batch.FindNewReportsExecution
 import com.normation.rudder.domain.logger.ReportLogger
-import com.normation.rudder.reports.statusUpdate.StatusUpdateRepository
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.CachedNodeChangesServiceImpl
@@ -65,7 +64,7 @@ import com.normation.rudder.db.DB
 class ReportsExecutionService (
     reportsRepository      : ReportsRepository
   , writeExecutions        : WoReportsExecutionRepository
-  , statusUpdateRepository : StatusUpdateRepository
+  , statusUpdateRepository : LastProcessedReportRepository
   , cachedChanges          : CachedNodeChangesServiceImpl
   , cachedCompliance       : CachedFindRuleNodeStatusReports
   , maxDays                : Int // in days
@@ -79,7 +78,7 @@ class ReportsExecutionService (
     // Get execution status
 
 
-    Await.result(statusUpdateRepository.getExecutionStatus, Duration.Inf) match {
+    statusUpdateRepository.getExecutionStatus match {
       // Find it, start looking for new executions
       case Full(Some((lastReportId,lastReportDate))) =>
         //a test to let the user that there is some inconsistencies in the run
@@ -122,7 +121,7 @@ class ReportsExecutionService (
                   logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
                       s"Added or updated ${result.size} agent runs, up to SQL ID ${maxReportId} (last run time was ${maxDate.toString()})")
                   idForCheck = maxReportId
-                  Await.result(statusUpdateRepository.setExecutionStatus(maxReportId, maxDate), Duration.Inf)
+                  statusUpdateRepository.setExecutionStatus(maxReportId, maxDate)
 
                 case eb:EmptyBox => val fail = eb ?~! "could not save nodes executions"
                   logger.error(s"Could not save execution of Nodes from report ID ${lastReportId} - date ${lastReportDate} to " +
@@ -153,7 +152,7 @@ class ReportsExecutionService (
               logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +
                   s"Added or updated 0 agent runs")
               idForCheck = lastReportId
-              Await.result(statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate), Duration.Inf).map( Some(_) )
+              statusUpdateRepository.setExecutionStatus(lastReportId, endBatchDate).map( Some(_) )
             }
 
           case eb:EmptyBox =>
@@ -168,7 +167,7 @@ class ReportsExecutionService (
           case Full(Some((id, report))) =>
             logger.debug(s"Initializing the status execution update to  id ${id}, date ${report.executionTimestamp}")
             idForCheck = id
-            Await.result(statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp), Duration.Inf).map( Some(_) )
+            statusUpdateRepository.setExecutionStatus(id, report.executionTimestamp).map( Some(_) )
           case Full(None) =>
             logger.debug("There are no node execution in the database, cannot save the execution")
             Full( None )

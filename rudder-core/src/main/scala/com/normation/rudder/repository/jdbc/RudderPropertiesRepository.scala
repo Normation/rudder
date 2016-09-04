@@ -37,81 +37,79 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.{ Failure => TFailure }
-import scala.util.{ Success => TSuccess }
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
 import com.normation.rudder.db.DB
-import com.normation.rudder.db.SlickSchema
 
 import net.liftweb.common._
 import com.normation.rudder.repository.ReportsRepository
 import com.normation.rudder.repository.RudderPropertiesRepository
+import com.normation.rudder.db.Doobie
 
 class RudderPropertiesRepositoryImpl(
-     schema      : SlickSchema
-   , reportsRepository: ReportsRepository
+     db: Doobie
 ) extends RudderPropertiesRepository with Loggable {
 
-  private[this] val PROP_REPORT_LAST_ID = "reportLoggerLastId"
+  val PROP_REPORT_LAST_ID = "reportLoggerLastId"
 
-  import schema.api._
+  import db._
 
   /**
    * Get the last report id processed by the non compliant report Logger.
    * If there was no id processed, get the last report id in reports database
    * and add it to the database.
    */
-  def getReportLoggerLastId: Future[Box[Long]] = {
+  def getReportLoggerLastId: Box[Long] = {
 
-    val q = for {
-      p <- schema.runProperties
-           if( p.name === PROP_REPORT_LAST_ID)
-    } yield {
-      p.value
+    val sql = sql"select value from rudderproperties where name=${PROP_REPORT_LAST_ID}".query[Long].option
+    sql.attempt.transact(xa).run match {
+      case \/-(None) =>
+          Failure(s"The property '${PROP_REPORT_LAST_ID}' was not found in table 'rudderproperties'")
+      case \/-(Some(x)) =>
+        try {
+          Full(x.toLong)
+        } catch {
+          case ex: Exception => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}' with value '${x}' as long", Full(ex), Empty)
+        }
+      case -\/(ex) => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}'", Full(ex), Empty)
     }
-
-    schema.db.run(q.result.asTry).map { res => res match {
-      case TSuccess(seq) => seq.headOption match { //name is primary key, at most 1
-        case None =>
-          Failure(s"The property '${PROP_REPORT_LAST_ID}' was not found in table '${schema.runProperties.baseTableRow.tableName}'")
-        case Some(x) =>
-          try {
-            Full(x.toLong)
-          } catch {
-            case ex: Exception => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}' with value '${x}' as long", Full(ex), Empty)
-          }
-      }
-      case TFailure(ex) => Failure(s"Error when parsing property '${PROP_REPORT_LAST_ID}'", Full(ex), Empty)
-
-    } }
   }
 
   /**
    * Update the last id processed by the non compliant report logger
    * If not present insert it
    */
-  def updateReportLoggerLastId(newId: Long) : Future[Box[Long]] = {
-    val q = for {
-      rowsAffected <- schema.runProperties
-                        .filter( _.name === PROP_REPORT_LAST_ID )
-                        .map(_.value).update(newId.toString)
+  def updateReportLoggerLastId(newId: Long) : Box[Long] = {
+
+    val insert = sql"""
+      insert into rudderproperties(name, value)
+      values (${PROP_REPORT_LAST_ID}, ${newId})
+    """.update
+    val update = sql"""
+      update rudderproperties
+      set value=${newId.toString}
+      where name=${PROP_REPORT_LAST_ID}
+    """.update
+
+    val sql = for {
+      rowsAffected <- update.run
       result       <- rowsAffected match {
                         case 0 =>
                           logger.warn("last id not present in database, create it with value %d".format(newId))
-                          schema.runProperties += DB.RunProperties(PROP_REPORT_LAST_ID, newId.toString) //insert
-                        case 1 => DBIO.successful(1)
-                        case n => DBIO.failed(new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${PROP_REPORT_LAST_ID}"))
+                          insert.run
+                        case 1 => 1.point[ConnectionIO]
+                        case n => throw new RuntimeException(s"Expected 0 or 1 change, not ${n} for ${PROP_REPORT_LAST_ID}")
                       }
     } yield {
       result
     }
 
 
-    schema.db.run(q.asTry).map {
-      case TSuccess(x)  => Full(newId)
-      case TFailure(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
+    sql.attempt.transact(xa).run match {
+      case \/-(x)  => Full(newId)
+      case -\/(ex) => Failure(s"could not update lastId from database, cause is: ${ex.getMessage}", Full(ex), Empty)
     }
   }
 
