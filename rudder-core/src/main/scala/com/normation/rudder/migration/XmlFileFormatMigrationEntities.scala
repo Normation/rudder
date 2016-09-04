@@ -45,68 +45,55 @@ import com.normation.rudder.db.DB
 import com.normation.rudder.db.SlickSchema
 
 import org.joda.time.DateTime
+import com.normation.rudder.db.Doobie
+import scalaz._, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
+class MigrationEventLogRepository(val db: Doobie) {
 
-class MigrationEventLogRepository(val schema: SlickSchema) {
+  import db._
 
-  import schema.api._
+  val table = "migrationeventlog"
 
   /**
    * Retrieve the last version of the EventLog fileFormat as seen by the
    * the SQL script.
    * If the database does not exist or no line are present, return none.
    */
-  def getLastDetectionLine: Future[Try[Option[DB.MigrationEventLog]]] = {
-    val query = schema.migrationEventLog.sortBy( _.id.desc ).take(1)
-    val action = query.result.headOption
-    schema.db.run(action.asTry)
+  def getLastDetectionLine: \/[Throwable, Option[DB.MigrationEventLog[Long]]] = {
+    val sql = sql"""select * from migrationeventlog order by id desc limit 1""".query[DB.MigrationEventLog[Long]].option
+    sql.attempt.transact(xa).run
   }
 
   /**
    * Update the corresponding detection line with
    * the starting time of the migration (from Rudder)
    */
-  def setMigrationStartTime(id: Long, startTime: DateTime) : Future[Try[Int]] = {
-    val query = for {
-      x <- schema.migrationEventLog
-      if(x.id === id )
-    } yield {
-      x.migrationStartTime
-    }
-
-    val action = query.update(Some(startTime))
-    schema.db.run(action.asTry)
+  def setMigrationStartTime(id: Long, startTime: DateTime) : \/[Throwable,Int] = {
+    val sql = sql"""update migrationeventlog set migrationstarttime = ${startTime} where id=${id}""".update
+    sql.run.attempt.transact(xa).run
   }
 
   /**
    * Update the corresponding detection line with the new,
    * up-to-date file format.
    */
-  def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : Future[Try[Int]] = {
-    val query = for {
-      x <- schema.migrationEventLog
-      if(x.id === id )
-    } yield {
-      (x.migrationFileFormat, x.migrationEndTime)
-    }
-
-    val action = query.update((Some(fileFormat), Some(endTime)))
-    schema.db.run(action.asTry)
+  def setMigrationFileFormat(id: Long, fileFormat: Long, endTime: DateTime) : \/[Throwable, Int] = {
+    val sql = sql"""update migrationeventlog set migrationfileformat=${fileFormat}, migrationendtime=${endTime} where id=${id}""".update
+    sql.run.attempt.transact(xa).run
   }
 
   /**
    * create a new status line with a timestamp of now and the given
    * detectedFileFormat.
    */
-  def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : Future[Try[DB.MigrationEventLog]] = {
-    val migrationEventLog = DB.MigrationEventLog(None, DateTime.now, fileFormat, None, None, None, description)
-    val action = (
-        schema.migrationEventLog
-        returning(schema.migrationEventLog.map( _.id))
-        into ((event, id) => event.copy(id=Some(id)))
-    ) += migrationEventLog
-
-    schema.db.run(action.asTry)
+  def createNewStatusLine(fileFormat: Long, description: Option[String] = None) : \/[Throwable, DB.MigrationEventLog[Long]] = {
+    val now = DateTime.now
+    val sql = sql"""insert into migrationeventlog (detectiontime, detectedfileformat, description) values (${now}, ${fileFormat}, ${description})""".update
+    sql.withUniqueGeneratedKeys[Long]("id").attempt.transact(xa).run.map(id =>
+      DB.MigrationEventLog[Long](id, now, fileFormat, None, None, None, description)
+    )
   }
 }
 

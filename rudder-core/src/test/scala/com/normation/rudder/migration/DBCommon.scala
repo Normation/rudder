@@ -63,6 +63,7 @@ import scala.concurrent.Future
 import slick.dbio.NoStream
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.db.DB
+import com.normation.rudder.db.Doobie
 
 
 
@@ -193,7 +194,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
   lazy val jdbcTemplate = new JdbcTemplate(dataSource)
 
   lazy val schema = new SlickSchema(dataSource)
-  lazy val migrationEventLogRepository = new MigrationEventLogRepository(schema)
+  lazy val doobie = new Doobie(dataSource)
+  lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
   /**
    * A simple exec that is synchronized.

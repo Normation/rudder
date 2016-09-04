@@ -25,6 +25,8 @@ import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import scala.collection.JavaConverters.asScalaBufferConverter
 
+import scalaz.{-\/, \/-}
+
 /**
  * specify from/to version
  */
@@ -174,12 +176,10 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
     /*
      * test is we have to migrate, and execute migration
      */
-    Await.result(migrationEventLogRepository.getLastDetectionLine, Duration.Inf) match {
-        case TFailure(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
-        case TSuccess(None) =>
-          logger.info(s"No migration detected by migration script (table '${
-            migrationEventLogRepository.schema.migrationEventLog.baseTableRow.tableName
-          }' is empty or does not exists)")
+    migrationEventLogRepository.getLastDetectionLine match {
+        case -\/(ex) => Failure("Error when retrieving migration information", Full(ex), Empty)
+        case \/-(None) =>
+          logger.info(s"No migration detected by migration script (table '${migrationEventLogRepository.table}' is empty or does not exists)")
           Full(NoMigrationRequested)
 
         /*
@@ -191,8 +191,8 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
          */
 
         //new migration
-        case TSuccess(Some(DB.MigrationEventLog(
-            Some(id)
+        case \/-(Some(DB.MigrationEventLog(
+            id
           , _
           , detectedFileFormat
           , migrationStartTime
@@ -234,7 +234,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           }
 
         //a past migration was done, but the final format is not the one we want
-        case TSuccess(Some(x@DB.MigrationEventLog(
+        case \/-(Some(x@DB.MigrationEventLog(
             _
           , _
           , _
@@ -249,7 +249,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           this.migrate()
 
             // lower file format found, send to parent)
-        case TSuccess(Some(status@DB.MigrationEventLog(
+        case \/-(Some(status@DB.MigrationEventLog(
             _
           , _
           , detectedFileFormat
@@ -283,7 +283,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
           }
 
         //a past migration was done, but the final format is not the one we want
-        case TSuccess(Some(x@DB.MigrationEventLog(
+        case \/-(Some(x@DB.MigrationEventLog(
             _
           , _
           , _
@@ -301,7 +301,7 @@ trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
 
         //other case: does nothing
-        case TSuccess(Some(x)) =>
+        case \/-(Some(x)) =>
           logger.debug(s"Migration of EventLog from format '${fromVersion}' to '${toVersion}': nothing to do")
           Full(MigrationVersionNotHandledHere)
       }

@@ -121,8 +121,8 @@ final object DB {
 
   //////////
 
-  final case class MigrationEventLog(
-      id                 : Option[Long]
+  final case class MigrationEventLog[T](
+      id                 : T
     , detectionTime      : DateTime
     , detectedFileFormat : Long
     , migrationStartTime : Option[DateTime]
@@ -131,20 +131,20 @@ final object DB {
     , description        : Option[String]
   )
 
-  class TableMigrationEventLog(tag: Tag) extends Table[MigrationEventLog](tag, "migrationeventlog") {
-    def id                  = column[Long]("id", O.PrimaryKey, O.AutoInc)
-    def detectionTime       = column[DateTime]("detectiontime")
-    def detectedFileFormat  = column[Long]("detectedfileformat")
-    def migrationStartTime  = column[Option[DateTime]]("migrationstarttime")
-    def migrationEndTime    = column[Option[DateTime]]("migrationendtime")
-    def migrationFileFormat = column[Option[Long]]("migrationfileformat")
-    def description         = column[Option[String]]("description")
-
-    def * = (
-        id.?,  detectionTime, detectedFileFormat, migrationStartTime
-      , migrationEndTime, migrationFileFormat, description
-    ) <> (MigrationEventLog.tupled, MigrationEventLog.unapply)
-  }
+//  class TableMigrationEventLog(tag: Tag) extends Table[MigrationEventLog](tag, "migrationeventlog") {
+//    def id                  = column[Long]("id", O.PrimaryKey, O.AutoInc)
+//    def detectionTime       = column[DateTime]("detectiontime")
+//    def detectedFileFormat  = column[Long]("detectedfileformat")
+//    def migrationStartTime  = column[Option[DateTime]]("migrationstarttime")
+//    def migrationEndTime    = column[Option[DateTime]]("migrationendtime")
+//    def migrationFileFormat = column[Option[Long]]("migrationfileformat")
+//    def description         = column[Option[String]]("description")
+//
+//    def * = (
+//        id.?,  detectionTime, detectedFileFormat, migrationStartTime
+//      , migrationEndTime, migrationFileFormat, description
+//    ) <> (MigrationEventLog.tupled, MigrationEventLog.unapply)
+//  }
 
 
   //////////
@@ -649,7 +649,7 @@ class SlickSchema(val datasource: DataSource) {
   import api._
 
   val expectedReports      = TableQuery[DB.TableExpectedReports]
-  val migrationEventLog    = TableQuery[DB.TableMigrationEventLog]
+//  val migrationEventLog    = TableQuery[DB.TableMigrationEventLog]
   val expectedReportsNodes = TableQuery[DB.TableExpectedReportsNodes]
   val reports              = TableQuery[DB.TableReports]
   val gitCommitJoin        = TableQuery[DB.TableGitCommitJoin]
