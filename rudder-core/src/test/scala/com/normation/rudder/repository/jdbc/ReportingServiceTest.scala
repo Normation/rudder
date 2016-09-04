@@ -120,8 +120,8 @@ class ReportingServiceTest extends DBCommon {
 
   }
 
-  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(schema, pgIn)
-  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(schema, roAgentRun)
+  lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, pgIn)
+  lazy val woAgentRun = new WoReportsExecutionRepositoryImpl(doobie, roAgentRun)
 
 
   lazy val dummyChangesCache = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepo)) {
@@ -280,7 +280,7 @@ class ReportingServiceTest extends DBCommon {
     }
 
     "contains runs for node" in {
-      val res = Await.result(roAgentRun.getNodesLastRun(Set("n0", "n1", "n2", "n3", "n4").map(NodeId(_))), MAX_TIME).openOrThrowException("test failed")
+      val res = roAgentRun.getNodesLastRun(Set("n0", "n1", "n2", "n3", "n4").map(NodeId(_))).openOrThrowException("test failed")
 
       res must beEqualTo(agentRuns(
           ("n0" -> None                               )

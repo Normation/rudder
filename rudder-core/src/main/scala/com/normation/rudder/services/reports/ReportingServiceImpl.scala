@@ -322,7 +322,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       runs              <- complianceMode.mode match {
                             //this is an optimisation to avoid querying the db in that case
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
-                             case _ => Await.result(agentRunRepository.getNodesLastRun(nodeIds), Duration.Inf)
+                             case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
       nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
       runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)

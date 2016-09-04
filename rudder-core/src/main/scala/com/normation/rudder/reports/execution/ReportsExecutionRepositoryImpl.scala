@@ -37,63 +37,60 @@
 
 package com.normation.rudder.reports.execution
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.util.Try
-import scala.util.{ Failure => TFailure }
-import scala.util.{ Success => TSuccess }
 
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.db.DB
-import com.normation.rudder.db.SlickSchema
 import com.normation.rudder.repository.jdbc.PostgresqlInClause
 
 import net.liftweb.common._
-import slick.jdbc.GetResult
-
+import com.normation.rudder.db.Doobie
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
 case class RoReportsExecutionRepositoryImpl (
-    schema: SlickSchema
+    db: Doobie
   , pgInClause : PostgresqlInClause
 ) extends RoReportsExecutionRepository with Loggable {
 
-  import schema.plainApi._
+  import db._
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Future[Box[Map[NodeId, Option[AgentRun]]]] = {
-    if(nodeIds.isEmpty) Future.successful(Full(Map()))
-    else {
-      val nodes = pgInClause.in("nodeid", nodeIds.map(_.value))
-      //needed to transform the result into AgentRuns. PlainSQL returns tuples otherwise.
-      implicit val getAgentRunResult = GetResult(r => DB.AgentRun(r.<<, r.nextZonedDateTime(), r.<<, r.<<, r.<<))
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]] = {
+    nodeIds.map( _.value).toList.toNel match {
+      case None => Full(Map())
+      case Some(nodes) =>
 
-      //notice the use of # ({} is forbidden) in place of ${} to interpolate the actual value of in,
-      //not make a sql parameter to the query
-      val query = sql"""SELECT DISTINCT ON (nodeid)
-                          nodeid, date, nodeconfigid, complete, insertionid
-                        FROM  reportsexecution
-                        WHERE complete = true and #${nodes}
-                        ORDER BY nodeid, insertionId DESC""".as[DB.AgentRun]
+        //val nodes = pgInClause.in("nodeid", nodeIds.map(_.value))
+        implicit val nodesParam = Param.many(nodes)
 
-      val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
+        //notice the use of # ({} is forbidden) in place of ${} to interpolate the actual value of in,
+        //not make a sql parameter to the query
+        val sql = sql"""select distinct on (nodeid)
+                            nodeid, date, nodeconfigid, complete, insertionid
+                        from  reportsexecution
+                        where complete = true and nodeid in (${nodes : nodes.type})
+                        order by nodeid, insertionid desc""".query[DB.AgentRun].list
 
-      schema.db.run(query.asTry).map {
-        case TSuccess(entries)  =>
-          val runs = entries.map(x => (NodeId(x.nodeId), x.asAgentRun)).toMap
-          Full(nodeIds.map(n => (n, runs.get(n))).toMap)
-        case TFailure(ex) => Failure(errorMSg + ": " + ex.getMessage, Full(ex), Empty)
-      }
+        val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
+
+        sql.attempt.transact(xa).run match {
+          case \/-(entries)  =>
+            val runs = entries.map(x => (NodeId(x.nodeId), x.toAgentRun)).toMap
+            Full(nodeIds.map(n => (n, runs.get(n))).toMap)
+          case -\/(ex) => Failure(errorMSg + ": " + ex.getMessage, Full(ex), Empty)
+        }
     }
   }
 }
 
 case class WoReportsExecutionRepositoryImpl (
-    schema   : SlickSchema
+    db            : Doobie
   , readExecutions: RoReportsExecutionRepositoryImpl
 ) extends WoReportsExecutionRepository with Loggable {
 
-  import schema.api._
+  import db._
 
-  def updateExecutions(runs : Seq[AgentRun]) : Future[Seq[Box[AgentRun]]] =  {
+  def updateExecutions(runs : Seq[AgentRun]) : Seq[Box[AgentRun]] =  {
 
     //
     // Question: do we want to save an updated nodeConfigurationVersion ?
@@ -122,48 +119,48 @@ case class WoReportsExecutionRepositoryImpl (
         , ar.insertionId                    // Long
      )
 
-      val select = (schema.agentRuns.filter(x => x.nodeId === dbar.nodeId && x.date === dbar.date ))
-      val update = select.map(x => (x.nodeConfigId, x.isCompleted, x.insertionId))
-      val insert = (schema.agentRuns += dbar)
-
-      //no update of nodeId/date
-
-      // need ? : http://stackoverflow.com/questions/14621172/how-do-you-change-lifted-types-back-to-scala-types-when-using-slick-lifted-embed
-
-      //the whole logic put together
       /*
-       * We return an Try[Option[AgentRun]], if None => no upsert done (no modification)
+       * We return an \/[Option[AgentRun]], if None => no upsert done (no modification)
        */
-      val action = (for {
-        existing <- select.result
-        result   <- existing.headOption match {
-                      case None           => insert.map( _ => Some(dbar) ).asTry
+      val action = for {
+        select <- sql"""select nodeid, date, nodeconfigid, complete, insertionid
+                        from reportsexecution
+                        where nodeid=${dbar.nodeId} and date=${dbar.date}
+                     """.query[DB.AgentRun].option
+        result <- select match {
+                      case None =>
+                          (sql"""insert into reportsexecution (nodeid, date, nodeconfigid, complete, insertionid)
+                                 values (${dbar.nodeId}, ${dbar.date}, ${dbar.nodeConfigId}, ${dbar.isCompleted}, ${dbar.insertionId})"""
+                                 .update.run.map(_ => some(dbar)) )
                       case Some(existing) => // if it's exactly the same element, don't update it
                        val reverted = existing.isCompleted && !dbar.isCompleted
                        if( reverted || existing == dbar ) { // does nothing if equals or isCompleted reverted to false
-                          DBIO.successful(TSuccess(None))
+                         none[DB.AgentRun].point[ConnectionIO]
                        } else {
                          val version = dbar.nodeConfigId.orElse(existing.nodeConfigId)
                          val completed = dbar.isCompleted || existing.isCompleted
-                          update.update((version, completed, dbar.insertionId)).asTry.map {
-                            case TSuccess(x)  => TSuccess(Some(dbar))
-                            case TFailure(ex) => TFailure(ex)
-                          }
+                         sql"""update reportsexecution set nodeconfigid=${version}, complete=${completed}, insertionid=${dbar.insertionId}
+                               where nodeid=${dbar.nodeId} and date=${dbar.date}""".update.run.map(_ => some(dbar))
                         }
                     }
       } yield {
         result
-      }).transactionally
+      }
 
-      action
+      action.attempt.transact(xa)
     }
 
-    // run the sequences of upsert, filter out "Full(None)" meaning nothing was done
-    schema.db.run(DBIO.sequence(runs.map(updateOne))).map { seq => seq.flatMap {
-      case TSuccess(Some(x)) => Some(Full(x.asAgentRun))
-      case TSuccess(None)    => None
-      case TFailure(ex)      => Some(Failure(s"Error when updatating last agent runs information: ${ex.getMessage()}"))
-    } }
+
+    runs.toList.map(updateOne).sequence.run.flatMap(x => x match {
+      case -\/(ex)        =>
+        println("failure: " + ex)
+        Some(Failure(s"Error when updatating last agent runs information: ${ex.getMessage()}"))
+      case \/-(Some(res)) =>
+        Some(Full(res.toAgentRun))
+      case \/-(None)      =>
+        println("not updating one")
+        None
+    })
   }
 
 }

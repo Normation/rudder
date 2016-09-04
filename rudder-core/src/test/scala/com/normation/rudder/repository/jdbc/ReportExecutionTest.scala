@@ -54,7 +54,7 @@ import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 
 import net.liftweb.common.Full
-import org.specs2.concurrent.ExecutionEnv
+import net.liftweb.common.EmptyBox
 
 
 /**
@@ -65,16 +65,14 @@ import org.specs2.concurrent.ExecutionEnv
 @RunWith(classOf[JUnitRunner])
 class AgentRunsTest extends DBCommon {
 
-  type EE = ExecutionEnv
-
   //clean data base
   def cleanTables() = {
     jdbcTemplate.execute("DELETE FROM ReportsExecution;")
   }
 
 
-  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(schema, new PostgresqlInClause(2))
-  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(schema, roRunRepo)
+  lazy val roRunRepo = new RoReportsExecutionRepositoryImpl(doobie, new PostgresqlInClause(2))
+  lazy val woRunRepo = new WoReportsExecutionRepositoryImpl(doobie, roRunRepo)
 
 
   val (n1, n2) = (NodeId("n1"), NodeId("n2"))
@@ -90,21 +88,21 @@ class AgentRunsTest extends DBCommon {
       , AgentRun(AgentRunId(n1, runMinus1), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
     )
 
-    "correctly insert" in { implicit ee: EE =>
-      woRunRepo.updateExecutions(Seq(runs(0))) must beEqualTo( Seq(Full(runs(0)) )).await
+    "correctly insert" in {
+      woRunRepo.updateExecutions(Seq(runs(0))) must beEqualTo( Seq(Full(runs(0)) ))
     }
 
-    "correctly find back" in { implicit ee: EE =>
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0))))).await
+    "correctly find back" in {
+      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
     }
 
-    "correctly ignore incomplete" in { implicit ee: EE =>
+    "correctly ignore incomplete" in {
       //(woRunRepo.updateExecutions(runs) must beEqualTo( Full(Seq(runs(1))) )) and
-      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0))))).await
+      roRunRepo.getNodesLastRun(Set(n1)) must beEqualTo(Full(Map(n1 -> Some(runs(0)))))
     }
 
-    "don't find report when none was added" in { implicit ee: EE =>
-      roRunRepo.getNodesLastRun(Set(n2)) must beEqualTo(Full(Map(n2 -> None))).await
+    "don't find report when none was added" in {
+      roRunRepo.getNodesLastRun(Set(n2)) must beEqualTo(Full(Map(n2 -> None)))
     }
   }
 
@@ -132,7 +130,7 @@ class AgentRunsTest extends DBCommon {
 
   "Updating execution" should {
 
-    "correctly close and let closed existing execution" in { implicit ee: EE =>
+    "correctly close and let closed existing execution" in {
       val news = Seq(
           AgentRun(AgentRunId(n1, runMinus2.minusMinutes(10)), Some(NodeConfigId("nodeConfig_n1_v1")), true, 12)
         , AgentRun(AgentRunId(n1, runMinus1.plusMinutes(5)), Some(NodeConfigId("nodeConfig_n1_v1")), false, 42)
@@ -152,7 +150,13 @@ class AgentRunsTest extends DBCommon {
       )
       val all = news ++ updated ++ notToUpdate
 
-      Await.result(woRunRepo.updateExecutions(all), MAX_TIME).flatten must contain(exactly((news ++ updated):_*))
+      val res = woRunRepo.updateExecutions(all)
+      //check for failure
+      res.collect { case eb:EmptyBox =>
+        val e = eb ?~! "error"
+        throw new Exception(e.messageChain)
+      }
+      res.flatten must contain(exactly((news ++ updated):_*))
 
     }
   }

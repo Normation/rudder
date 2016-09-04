@@ -287,7 +287,7 @@ final object DB {
     , isCompleted : Boolean
     , insertionId : Long // PURPOSE ?
   ) {
-    def asAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), isCompleted, insertionId)
+    def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), isCompleted, insertionId)
   }
 
   class TableAgentRun(tag: Tag) extends Table[AgentRun](tag, "reportsexecution") {

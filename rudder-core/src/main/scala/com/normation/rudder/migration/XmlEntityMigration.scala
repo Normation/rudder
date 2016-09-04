@@ -25,7 +25,7 @@ import net.liftweb.common._
 import net.liftweb.util.Helpers.tryo
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-import scalaz.{-\/, \/-}
+import scalaz.{\/-, -\/}
 
 /**
  * specify from/to version
@@ -158,18 +158,9 @@ case class MigrationChangeRequest(
  */
 trait ControlXmlFileFormatMigration extends XmlFileFormatMigration {
 
-  import scala.util.{ Failure => TFailure, Success => TSuccess }
-
-  val MAX_QUERY_TIME = Duration(10, TimeUnit.SECONDS)
-
   def migrationEventLogRepository: MigrationEventLogRepository
   def batchMigrators             : Seq[BatchElementMigration[_]]
   def previousMigrationController: Option[ControlXmlFileFormatMigration]
-
-//  val schema: SlickSchema = migrationEventLogRepository.schema
-//
-//  import schema.api._
-//  import schema.db._
 
   def migrate() : Box[MigrationStatus] = {
 

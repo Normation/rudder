@@ -116,7 +116,7 @@ class ReportsExecutionService (
 
 
               // Save new executions
-              val res = Control.boxSequence(Await.result(writeExecutions.updateExecutions(reportExec), Duration.Inf)) match {
+              val res = Control.boxSequence(writeExecutions.updateExecutions(reportExec)) match {
                 case Full(result) =>
                   val executionTime = DateTime.now().getMillis() - startTime
                   logger.debug(s"[${FindNewReportsExecution.SERVICE_NAME} #${processId}] (${executionTime} ms) " +

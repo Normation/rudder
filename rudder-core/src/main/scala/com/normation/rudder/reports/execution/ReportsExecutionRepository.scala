@@ -42,9 +42,6 @@ import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.ReportLogger
-import scala.concurrent.Future
-import scala.util.{Try, Success => TSuccess, Failure => TFailure}
-import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Service for reading or storing execution of Nodes
@@ -60,7 +57,7 @@ trait RoReportsExecutionRepository {
    * So the last run are the last run inserted in the reports database
    * See ticket http://www.rudder-project.org/redmine/issues/6005
    */
-  def getNodesLastRun(nodeIds: Set[NodeId]): Future[Box[Map[NodeId, Option[AgentRun]]]]
+  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]]
 }
 
 
@@ -76,7 +73,7 @@ trait WoReportsExecutionRepository {
    *   "not completed" to "completed" (i.e: a completed execution can
    *   not be un-completed).
    */
-  def updateExecutions(executions : Seq[AgentRun]) : Future[Seq[Box[AgentRun]]]
+  def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]]
 
 }
 
@@ -118,28 +115,23 @@ class CachedReportsExecutionRepository(
     cache = Map()
   }
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Future[Box[Map[NodeId, Option[AgentRun]]]] = this.synchronized {
-    readBackend.getNodesLastRun(nodeIds.diff(cache.keySet)).andThen {
-      case TFailure(ex)  => Failure(s"Error when trying to update the cache of Agent Runs informations: ${ex.getMessage}", Full(ex), Empty)
-      case TSuccess(box) =>
-        for {
-          runs <- box
-        } yield {
-          cache = cache ++ runs
-          cache.filterKeys { x => nodeIds.contains(x) }
-        }
-    }
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]] = this.synchronized {
+    (for {
+      runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
+    } yield {
+      cache = cache ++ runs
+      cache.filterKeys { x => nodeIds.contains(x) }
+    }) ?~! s"Error when trying to update the cache of Agent Runs informations"
   }
 
-  override def updateExecutions(executions : Seq[AgentRun]) : Future[Seq[Box[AgentRun]]] = this.synchronized {
+  override def updateExecutions(executions : Seq[AgentRun]) : Seq[Box[AgentRun]] = this.synchronized {
     logger.trace(s"Update runs for nodes [${executions.map( _.agentRunId.nodeId.value ).mkString(", ")}]")
-    for {
-      runs <- writeBackend.updateExecutions(executions)
-    } yield {
-      val complete = runs.collect { case Full(x) if(x.isCompleted) => x }
-      logger.debug(s"Updating agent runs cache: [${complete.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
-      cache = cache ++ complete.map(x => (x.agentRunId.nodeId, Some(x))).toMap
-      runs
-    }
+
+    val runs = writeBackend.updateExecutions(executions)
+    //update complete runs
+    val completed = runs.collect { case Full(x) if(x.isCompleted) => x }
+    logger.debug(s"Updating agent runs cache: [${completed.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
+    cache = cache ++ completed.map(x => (x.agentRunId.nodeId, Some(x))).toMap
+    runs
   }
 }
