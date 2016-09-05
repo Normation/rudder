@@ -78,6 +78,12 @@ import net.liftweb.common.EmptyBox
 import com.normation.rudder.services.reports.NodeChangesService
 import com.normation.rudder.services.reports.NodeChangesServiceImpl
 import com.normation.rudder.db.DB
+import doobie.util.update.Update
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import com.normation.BoxSpecMatcher
 
 /**
  *
@@ -85,9 +91,9 @@ import com.normation.rudder.db.DB
  *
  */
 @RunWith(classOf[JUnitRunner])
-class ReportingServiceTest extends DBCommon {
+class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
-  import schema.api._
+  import doobie._
 
   //clean data base
   def cleanTables() = {
@@ -137,7 +143,6 @@ class ReportingServiceTest extends DBCommon {
       , 1
     )
   }
-  import slick._
 
   //help differentiate run number with the millis
   //perfect case: generation are followe by runs one minute latter
@@ -181,7 +186,7 @@ class ReportingServiceTest extends DBCommon {
   val allConfigs = (allNodes_t1.toSeq ++ allNodes_t2).groupBy( _._1 ).mapValues( _.map( _._2 ) )
 
   val expecteds = (
-    Map[DB.ExpectedReports, Seq[DB.ExpectedReportsNodes]]()
+    Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]]()
     ++ expect("r0", 1)( //r0 @ t1
         (1, "r0_d0", "r0_d0_c0", 1, """["r0_d0_c0_v0"]""", gen1, Some(gen2), allNodes_t1 )
       , (1, "r0_d0", "r0_d0_c1", 1, """["r0_d0_c1_v0"]""", gen1, Some(gen2), allNodes_t1 )
@@ -245,19 +250,36 @@ class ReportingServiceTest extends DBCommon {
 
   sequential
 
-  step {
+  "Init data" should {
+    import doobie._
 
-    insertReports(reports.values.toSeq.flatten)
-    slickExec(schema.expectedReports ++= expecteds.keySet)
-    slickExec(schema.expectedReportsNodes ++= expecteds.values.toSet.flatten)
+    "insert reports 1" in {
 
-    //need to be done one time for init, one time for actual work
-    updateRuns.findAndSaveExecutions(42).openOrThrowException("I should be able to init the 'find and save execution'")
-    updateRuns.findAndSaveExecutions(43).openOrThrowException("I should be able to init the 'find and save execution'")
+      val q = for {
+        r <- doobie.insertReports(reports.values.toList.flatten)
+        e <- doobie.insertExpectedReports(expecteds.keySet.toList)
+        n <- doobie.insertExpectedReportsNode(expecteds.values.toSet.flatten.toList)
+      } yield {
+        (r, e, n)
+      }
 
-    //add node configuration in repos, testing "add" method
-    updateExpected.addNodeConfigIdInfo(allNodes_t1.mapValues(_.configId), gen1).openOrThrowException("I should be able to add node config id info")
-    updateExpected.addNodeConfigIdInfo(allNodes_t2.mapValues(_.configId), gen2).openOrThrowException("I should be able to add node config id info")
+      val (r, e, n) = q.transact(xa).run
+
+      (r must be_==(30)) and (e must be_==(6)) and (n must be_==(20))
+    }
+
+
+    "insert execution" in {
+      //need to be done one time for init, one time for actual work
+      (updateRuns.findAndSaveExecutions(42) mustFull) and
+      (updateRuns.findAndSaveExecutions(43) mustFull)
+    }
+
+    "insert node config info" in {
+      //add node configuration in repos, testing "add" method
+      (updateExpected.addNodeConfigIdInfo(allNodes_t1.mapValues(_.configId), gen1) mustFull) and
+      (updateExpected.addNodeConfigIdInfo(allNodes_t2.mapValues(_.configId), gen2) mustFull)
+    }
   }
 
   "Testing set-up for expected reports and agent run" should {  //be in ExpectedReportsTest!
@@ -856,9 +878,9 @@ class ReportingServiceTest extends DBCommon {
   def expect(ruleId: String, serial: Int)
             //           nodeJoinKey, directiveId  component   cardinality   componentValues  beging     end            , (nodeId, version)
             (expecteds: (Int        , String     , String    , Int         , String         , DateTime, Option[DateTime], Map[NodeId,NodeConfigIdInfo])*)
-  : Map[DB.ExpectedReports, Seq[DB.ExpectedReportsNodes]] = {
+  : Map[DB.ExpectedReports[Unit], Seq[DB.ExpectedReportsNodes]] = {
     expecteds.map { exp =>
-      DB.ExpectedReports(None, exp._1, ruleId, serial, exp._2, exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
+      DB.ExpectedReports[Unit]((), exp._1, ruleId, serial, exp._2, exp._3, exp._4, exp._5, exp._5, exp._6, exp._7) ->
       exp._8.map{ case (nodeId, version) =>
         DB.ExpectedReportsNodes(exp._1, nodeId.value, version.configId.value :: Nil)
       }.toSeq

@@ -143,7 +143,7 @@ class SrvGrid(
   ) = {
 
     val now = System.currentTimeMillis
-    val runs = Await.result(roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet), Duration.Inf)
+    val runs = roAgentRunsRepository.getNodesLastRun(nodes.map(_.id).toSet)
 
     if(TimingDebugLogger.isDebugEnabled) {
       TimingDebugLogger.debug(s"Get all last run date time: ${System.currentTimeMillis - now} ms")

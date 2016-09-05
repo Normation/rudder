@@ -94,7 +94,9 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
         <groupId>org.postgresql</groupId>
         <artifactId>postgresql</artifactId>
         <!-- BE CAREFULL CAN'T UPDATE VERSION DUE TO
-             https://github.com/tminglei/slick-pg/issues/220 -->
+             https://github.com/tminglei/slick-pg/issues/220
+             which seems to impact also other drivers
+        -->
         <version>9.4-1201-jdbc41</version>
       <scope>runtime</scope>
     </dependency>
@@ -116,23 +118,6 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>doobie-contrib-specs2_${scala-binary-version}</artifactId>
       <version>0.2.4</version>
       <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>com.typesafe.slick</groupId>
-      <artifactId>slick_${scala-binary-version}</artifactId>
-      <version>3.1.1</version>
-    </dependency>
-    <!-- slick postgresql support:  https://github.com/tminglei/slick-pg -->
-    <dependency>
-      <groupId>com.github.tminglei</groupId>
-      <artifactId>slick-pg_${scala-binary-version}</artifactId>
-      <version>0.14.3</version>
-    </dependency>
-    <dependency>
-      <groupId>com.github.tminglei</groupId>
-      <artifactId>slick-pg_joda-time_${scala-binary-version}</artifactId>
-      <version>0.14.3</version>
     </dependency>
 
     <!-- pool connection: https://github.com/brettwooldridge/HikariCP -->

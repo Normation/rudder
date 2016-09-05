@@ -53,14 +53,11 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 
 import net.liftweb.common.Loggable
-import com.normation.rudder.db.SlickSchema
 import org.joda.time.DateTime
 import java.util.concurrent.TimeUnit
-import slick.dbio.DBIOAction
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 import scala.concurrent.Future
-import slick.dbio.NoStream
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
@@ -193,27 +190,7 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
   lazy val jdbcTemplate = new JdbcTemplate(dataSource)
 
-  lazy val schema = new SlickSchema(dataSource)
   lazy val doobie = new Doobie(dataSource)
   lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
-  /**
-   * A simple exec that is synchronized.
-   */
-  def slickExec[A](body: DBIOAction[A, NoStream, Nothing]): A = {
-    val f: Future[A] = schema.db.run(body)
-    Await.result(f, MAX_TIME)
-  }
-  def insertReports(reports: Seq[Reports]) = {
-    def toSlickReport(r:Reports): DB.Reports = {
-      DB.Reports(None, r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
-          , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
-    }
-    val slickReports = reports.map(toSlickReport(_))
-
-    slickExec {
-      import schema.api._
-      schema.reports ++= slickReports
-    }
-  }
 }

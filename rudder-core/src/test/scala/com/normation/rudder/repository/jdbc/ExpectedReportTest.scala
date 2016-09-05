@@ -38,12 +38,9 @@
 package com.normation.rudder.repository.jdbc
 
 import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Technique
 import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
@@ -65,8 +62,11 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.db.SlickSchema
 import com.normation.rudder.db.DB
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
 /**
  * Test on database.
@@ -74,7 +74,7 @@ import com.normation.rudder.db.DB
 @RunWith(classOf[JUnitRunner])
 class ExpectedReportsTest extends DBCommon {
 
-  import schema.api._
+  import doobie._
 
   //clean data base
   def cleanTables() = {
@@ -84,8 +84,6 @@ class ExpectedReportsTest extends DBCommon {
   val pgIn = new PostgresqlInClause(2)
   lazy val findReports = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
   lazy val expectedReportsRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findReports, findReports)
-  lazy val slick = new SlickSchema(dataSource)
-
   lazy val updateExpectedService = new ExpectedReportsUpdateImpl(expectedReportsRepo, expectedReportsRepo)
 
 
@@ -107,7 +105,7 @@ class ExpectedReportsTest extends DBCommon {
   val run3 = DateTime.now.minusMinutes(5*3)
 
 
-  def compareSlickER(report: DB.ExpectedReports, expected: DB.ExpectedReports) = {
+  def compareSlickER(report: DB.ExpectedReports[Long], expected: DB.ExpectedReports[Long]) = {
     report.pkId === expected.pkId and
     report.nodeJoinKey === expected.nodeJoinKey and
     report.serial === expected.serial and
@@ -132,7 +130,7 @@ class ExpectedReportsTest extends DBCommon {
     //note: in version, [a,b,c] means "c" is the most recent versions
     //in the unzserialized object, the most recent version is the HEAD of the list.
     //note: spaces are trimmed in version
-    val expectedReportsNodes: Seq[DB.ExpectedReportsNodes] = Seq(
+    val expectedReportsNodes: List[DB.ExpectedReportsNodes] = List(
         DB.ExpectedReportsNodes(1, "n0", List())
       , DB.ExpectedReportsNodes(1, "n1", NodeConfigVersionsSerializer.serialize(strangeVersions).toList.map(_.asInstanceOf[String]))
       , DB.ExpectedReportsNodes(2, "n0", List("cba"))
@@ -140,24 +138,17 @@ class ExpectedReportsTest extends DBCommon {
       , DB.ExpectedReportsNodes(4, "n1", List("pqr", "mno"))
     )
     step {
-      slickExec {
-        schema.expectedReportsNodes ++= expectedReportsNodes
-      }
+      doobie.insertExpectedReportsNode(expectedReportsNodes).transact(xa).run
     }
 
     "get back what was inserted" in {
-      slickExec {
-        schema.expectedReportsNodes.result
-      } must contain(exactly(expectedReportsNodes:_*))
+      doobie.getExpectedReportsNode().transact(xa).run must contain(exactly(expectedReportsNodes:_*))
     }
 
     "get in the same way" in {
-//      import scala.slick.driver.JdbcDriver.backend.Database
-//      import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-//      import Q.interpolation
       val i = 1
       //here, we get the Postgres string representation of ARRAYs
-      val res = slickExec(sql"""select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}""".as[(String, String)])
+      val res = sql"""select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}""".query[(String, String)].list.transact(xa).run
 
       //the most recent must be in head of the array
       res must contain(exactly( ("n0", "{}"), ("n1", "{ghi,def,abc}")  ))
@@ -201,7 +192,7 @@ class ExpectedReportsTest extends DBCommon {
     val d1 = DirectiveExpectedReports(DirectiveId("d1"),Seq(c1))
     val directiveExpectedReports = Seq(d1)
 
-    val expected = DB.ExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+    val expected = DB.ExpectedReports[Long](100, 100, r1.value, serial, d1.directiveId.value
       , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
       , "[]", DateTime.now, None
     )
@@ -212,8 +203,8 @@ class ExpectedReportsTest extends DBCommon {
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
 
-      val reports =  slickExec(schema.expectedReports.result)
-      val nodes = slickExec(schema.expectedReportsNodes.result)
+      val reports = doobie.getExpectedReports().transact(xa).run
+      val nodes   = doobie.getExpectedReportsNode().transact(xa).run
       val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
 
       compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
@@ -229,8 +220,8 @@ class ExpectedReportsTest extends DBCommon {
 
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      val reports =  slickExec(schema.expectedReports.result)
-      val nodes = slickExec(schema.expectedReportsNodes.result)
+      val reports = doobie.getExpectedReports().transact(xa).run
+      val nodes   = doobie.getExpectedReportsNode().transact(xa).run
 
       inserted.isInstanceOf[Failure] and
       reports.size === 1 and compareSlickER(reports(0), expected) and
@@ -315,7 +306,7 @@ class ExpectedReportsTest extends DBCommon {
 
     val expected = {
       val c1 = d1_exp.components(0)
-      DB.ExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+      DB.ExpectedReports[Long](100, 100, r1.value, serial, d1.directiveId.value
       , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
       , """["d1_value"]""", DateTime.now, None
       )
@@ -329,8 +320,8 @@ class ExpectedReportsTest extends DBCommon {
         , genTime, Set(n1_overrides)
       )
 
-      val reports =  slickExec(schema.expectedReports.result)
-      val nodes = slickExec(schema.expectedReportsNodes.result)
+      val reports = doobie.getExpectedReports().transact(xa).run
+      val nodes   = doobie.getExpectedReportsNode().transact(xa).run
 
       compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
       reports.size === 2 and compareSlickER(reports(0), expected) and

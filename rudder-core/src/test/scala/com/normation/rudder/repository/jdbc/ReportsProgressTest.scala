@@ -37,27 +37,15 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scala.concurrent.Await
-
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.reports.NodeConfigId
+import com.normation.BoxSpecMatcher
+import com.normation.rudder.db.DB.StatusUpdate
 import com.normation.rudder.migration.DBCommon
-import com.normation.rudder.reports.execution.AgentRun
-import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.rudder.reports.execution.RoReportsExecutionRepositoryImpl
-import com.normation.rudder.reports.execution.WoReportsExecutionRepositoryImpl
+import com.normation.rudder.reports.execution.LastProcessedReportRepositoryImpl
 
 import org.joda.time.DateTime
-
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
-
-import net.liftweb.common.Full
-import net.liftweb.common.EmptyBox
-import com.normation.rudder.reports.execution.LastProcessedReportRepositoryImpl
-import com.normation.BoxSpecMatcher
-import com.normation.rudder.db.DB.StatusUpdate
 
 
 /**

@@ -50,6 +50,10 @@ import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 import com.normation.rudder.db.DB
 
 /**
@@ -60,6 +64,7 @@ import com.normation.rudder.db.DB
 @RunWith(classOf[JUnitRunner])
 class ReportsTest extends DBCommon {
 
+  import doobie._
 
   //clean data base
   def cleanTables() = {
@@ -67,8 +72,6 @@ class ReportsTest extends DBCommon {
   }
 
   lazy val repostsRepo = new ReportsJdbcRepository(jdbcTemplate)
-
-  import schema.api._
 
   sequential
 
@@ -114,8 +117,9 @@ class ReportsTest extends DBCommon {
         , ("r1", "d1", 1, "c2", "cv2", run1, "result_success", "msg1")
       )
     )
-    step {
-      insertReports(reports.values.toSeq.flatten)
+    "correctly init info" in {
+      doobie.insertReports(reports.values.toList.flatten).transact(xa).run
+      sql"""select id from ruddersysevents""".query[Long].list.transact(xa).run.size === 8
     }
 
     "find the last reports for node0" in {
@@ -164,7 +168,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      insertReports(reports.values.toSeq.flatten)
+      doobie.insertReports(reports.values.toList.flatten).transact(xa).run
     }
 
 

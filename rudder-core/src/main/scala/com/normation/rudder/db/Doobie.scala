@@ -42,7 +42,8 @@ import doobie.imports._
 import scalaz._, Scalaz._
 import scalaz.concurrent.Task
 import org.joda.time.DateTime
-
+import doobie.contrib.postgresql.pgtypes._
+import com.normation.rudder.domain.reports.Reports
 
 /**
  *
@@ -62,15 +63,49 @@ class Doobie(datasource: DataSource) {
       , dt => new java.sql.Timestamp(dt.getMillis)
   )
 
-  trait MonoidConnectionIOList[T] extends Monoid[ConnectionIO[List[T]]] {
-      def zero : ConnectionIO[List[T]] = List.empty[T].point[ConnectionIO]
-      def append(f1: ConnectionIO[List[T]], f2: => ConnectionIO[List[T]]): ConnectionIO[List[T]] = for {
-        l1 <- f1
-        l2 <- f2
-      } yield {
-        l1 ::: l2
-      }
+  /*
+   * Some common queries
+   */
+  def insertExpectedReports(reports: List[DB.ExpectedReports[Unit]]): ConnectionIO[Int] = {
+    Update[DB.ExpectedReports[Unit]]("""
+      insert into expectedreports (nodejoinkey, ruleid, serial, directiveid, component, cardinality,
+                                   componentsvalues, unexpandedcomponentsvalues, begindate, enddate)
+      values (?,?,?, ?,?,?, ?,?,?, ?)
+      """).updateMany(reports)
+  }
+
+  def getExpectedReports() = {
+    sql"""
+      select pkid, nodejoinkey, ruleid, serial, directiveid, component, cardinality
+           , componentsvalues, unexpandedcomponentsvalues, begindate, enddate
+      from expectedreports
+    """.query[DB.ExpectedReports[Long]].list
+  }
+
+  def insertExpectedReportsNode(nodes: List[DB.ExpectedReportsNodes]): ConnectionIO[Int] = {
+    Update[DB.ExpectedReportsNodes]("""
+      insert into expectedreportsnodes (nodejoinkey, nodeid, nodeconfigids)
+      values (?,?,?)
+    """).updateMany(nodes)
+  }
+
+  def getExpectedReportsNode() = {
+    sql"""
+      select nodejoinkey, nodeid, nodeconfigids from expectedreportsnodes
+    """.query[DB.ExpectedReportsNodes].list
+  }
+
+  def insertReports(reports: List[Reports]): ConnectionIO[Int] = {
+    val dbreports = reports.map { r =>
+      DB.Reports[Unit]((), r.executionDate, r.nodeId.value, r.directiveId.value, r.ruleId.value, r.serial
+                      , r.component, r.keyValue, r.executionTimestamp, r.severity, "policy", r.message)
     }
 
+    Update[DB.Reports[Unit]]("""
+      insert into ruddersysevents
+        (executiondate, nodeid, directiveid, ruleid, serial, component, keyvalue, executiontimestamp, eventtype, policy, msg)
+      values (?,?,?, ?,?,?, ?,?,?, ?,?)
+    """).updateMany(dbreports)
+  }
 }
 

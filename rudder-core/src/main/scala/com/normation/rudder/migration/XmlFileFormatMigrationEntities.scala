@@ -38,11 +38,7 @@
 
 package com.normation.rudder.migration
 
-import scala.concurrent.Future
-import scala.util.Try
-
 import com.normation.rudder.db.DB
-import com.normation.rudder.db.SlickSchema
 
 import org.joda.time.DateTime
 import com.normation.rudder.db.Doobie

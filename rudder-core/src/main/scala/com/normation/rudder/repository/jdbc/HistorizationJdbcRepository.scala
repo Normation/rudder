@@ -41,7 +41,6 @@ import net.liftweb.common._
 
 import com.normation.rudder.db.DB
 import com.normation.rudder.db.Doobie
-import com.normation.rudder.db.SlickSchema
 import com.normation.rudder.domain.nodes.NodeGroup
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.repository.HistorizationRepository
@@ -55,10 +54,9 @@ import com.normation.rudder.domain.policies.ActiveTechnique
 import com.normation.rudder.domain.policies.Directive
 import com.normation.rudder.domain.policies.Rule
 
-class HistorizationJdbcRepository(schema: SlickSchema)  extends HistorizationRepository with  Loggable {
+class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository with  Loggable {
 
-  val doobie = new Doobie(schema.datasource)
-  import doobie._
+  import db._
 
   def getAllOpenedNodes(): Seq[DB.SerializedNodes[Long]] = {
     sql"select * from nodes where endtime is null".query[DB.SerializedNodes[Long]].list.transact(xa).run

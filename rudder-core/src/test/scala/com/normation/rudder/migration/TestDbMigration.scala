@@ -46,7 +46,6 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import com.normation.rudder.db.SlickSchema
 import com.normation.BoxSpecMatcher
 
 case class MigEx102(msg:String) extends Exception(msg)

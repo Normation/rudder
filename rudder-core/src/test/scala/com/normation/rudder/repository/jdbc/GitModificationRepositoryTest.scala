@@ -37,9 +37,6 @@
 
 package com.normation.rudder.repository.jdbc
 
-import scala.concurrent.Await
-import scala.util.Try
-
 import com.normation.BoxSpecMatcher
 import com.normation.eventlog.ModificationId
 import com.normation.rudder.db.DB
@@ -53,6 +50,10 @@ import org.specs2.runner.JUnitRunner
 import net.liftweb.common.Box
 import net.liftweb.common.Full
 
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+
 /**
  *
  * Test on database.
@@ -61,9 +62,8 @@ import net.liftweb.common.Full
 @RunWith(classOf[JUnitRunner])
 class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
-  import schema.api._
-
-  val repos = new GitModificationRepositoryImpl(schema)
+  val repos = new GitModificationRepositoryImpl(doobie)
+  import doobie._
 
   implicit def toCommitId(s: String) = GitCommitId(s)
   implicit def toModId(s: String) = ModificationId(s)
@@ -76,34 +76,36 @@ class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
   "Git modification repo" should {
 
     "found nothing at start" in {
-      slickExec(schema.gitCommitJoin.result) must beEmpty
+      sql"select gitcommit from gitcommit".query[String].list.transact(xa).run must beEmpty
     }
 
     "be able to add commits" in {
 
       val res = Vector(
-          Try(Await.result(repos.addCommit("g1", "m1") , MAX_TIME))
-        , Try(Await.result(repos.addCommit("g2", "m2") , MAX_TIME))
-        , Try(Await.result(repos.addCommit("g3", "m3") , MAX_TIME))
+          repos.addCommit("g1", "m1")
+        , repos.addCommit("g2", "m2")
+        , repos.addCommit("g3", "m3")
 
           //this one has two commit id for the same modid
-        , Try(Await.result(repos.addCommit("g41", "m4") , MAX_TIME))
-        , Try(Await.result(repos.addCommit("g42", "m4") , MAX_TIME))
+        , repos.addCommit("g41", "m4")
+        , repos.addCommit("g42", "m4")
       )
 
-      res must contain((x:Try[ADD]) => x must beASuccessfulTry((y:ADD) => y.mustFull ) ).foreach and (slickExec(schema.gitCommitJoin.result).size === 5)
+      (res must contain((y:ADD) => y.mustFull).foreach) and
+      (sql"select count(*) from gitcommit".query[Long].unique.transact(xa).run === 5)
+
     }
 
     "find back a commit by" in {
-      Try(Await.result(repos.getCommits("m3"), MAX_TIME)) must beASuccessfulTry(Full(Some(GitCommitId("g3")) ))
+      repos.getCommits("m3") mustFullEq(Some(GitCommitId("g3")) )
     }
 
     "not find back a non existing commit" in {
-      Try(Await.result(repos.getCommits("badId"), MAX_TIME)) must beASuccessfulTry(Full(None))
+      repos.getCommits("badId") mustFullEq(None)
     }
 
     "produce an error when several commits were added" in {
-      Try(Await.result(repos.getCommits("m4"), MAX_TIME)) must beASuccessfulTry((x:GET) => x.mustFails)
+      repos.getCommits("m4") mustFails
     }
 
   }

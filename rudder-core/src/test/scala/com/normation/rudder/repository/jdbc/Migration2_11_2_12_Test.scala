@@ -42,15 +42,12 @@ import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner.JUnitRunner
 import com.normation.rudder.migration.DBCommon
-import java.sql.Timestamp
-import com.normation.rudder.db.SlickSchema
-import slick.dbio.DBIOAction
-import slick.dbio.NoStream
-import scala.concurrent.Future
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import java.util.concurrent.TimeUnit
 import com.normation.rudder.db.DB
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import org.joda.time.DateTime
 
 /**
  *
@@ -60,7 +57,7 @@ import com.normation.rudder.db.DB
 @RunWith(classOf[JUnitRunner])
 class MigrationTo212Test extends DBCommon {
 
-  import schema.api._
+  import doobie._
 
   //we don't want the default 2.12 tables to be created
   override def sqlInit : String = ""
@@ -86,17 +83,18 @@ class MigrationTo212Test extends DBCommon {
       jdbcTemplate.execute(sql)
 
       //some select to check existence of the new tables column
-      slickExec(sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)]).headOption
-      slickExec(sql"select * from expectedReportsNodes".as[(Int,String)]).headOption
+      sql"select * from reportsexecution".query[(String,DateTime,Boolean,String)].option.transact(xa).run
+      sql"select * from expectedReportsNodes".query[(Int,String)].option.transact(xa).run
 
       success
     }
 
     "allows to add an entry in reportsexecution with nodeConfiguration" in {
-        val t= ("node_1", new Timestamp(System.currentTimeMillis), false, "node_config_1")
+        val t= ("node_1", DateTime.now, false, "node_config_1")
 
-        slickExec(sqlu"""insert into  reportsexecution (nodeid, date, complete, nodeconfigid) values (${t._1}, ${t._2}, ${t._3}, ${t._4});""")
-        slickExec(sql"select * from reportsexecution".as[(String,Timestamp,Boolean,String)]).head === t
+        sql"""insert into reportsexecution (nodeid, date, complete, nodeconfigid)
+              values (${t._1}, ${t._2}, ${t._3}, ${t._4})""".update.run.transact(xa).run
+        sql"select * from reportsexecution".query[(String,DateTime,Boolean,String)].list.transact(xa).run.head === t
       }
     }
 
@@ -104,8 +102,8 @@ class MigrationTo212Test extends DBCommon {
 
       val t= DB.ExpectedReportsNodes(42, "node_1", List("node_config_1","node_config_2","node_config_3"))
 
-      slickExec(schema.expectedReportsNodes +=  t)
-      slickExec(schema.expectedReportsNodes.result).head === t
+      doobie.insertExpectedReportsNode(t :: Nil).transact(xa).run
+      doobie.getExpectedReportsNode().transact(xa).run.head === t
     }
 
 }
