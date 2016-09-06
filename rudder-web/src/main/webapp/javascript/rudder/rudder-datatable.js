@@ -348,6 +348,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "sWidth": "10%"
     , "sTitle": "Recent changes"
     , "sSortDataType": "changes"
+    , "sType" : "numeric"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var elem = callbackElement(oData, "showRecentChanges");
         var id = "Changes-"+oData.id;
