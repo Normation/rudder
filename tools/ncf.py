@@ -231,7 +231,7 @@ def parse_bundlefile_metadata(content, bundle_type):
     res['parameter'] = parameters
     
   if bundle_type == "generic_method" and not "agent_version" in res:
-    res["agent_version"] = ">= 3.5"
+    res["agent_version"] = ">= 3.6"
 
   # Remove trailing line breaks
   for tag in multiline_tags:
