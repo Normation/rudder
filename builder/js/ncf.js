@@ -801,6 +801,8 @@ $scope.groupMethodsByCategory = function () {
 
        // Update technique if still selected
       if (angular.equals($scope.originalTechnique, origin_technique)) {
+        // If we were cloning a technique, remove its 'clone' state
+        savedTechnique.isClone = false;
         $scope.originalTechnique=angular.copy(savedTechnique);
         $scope.selectedTechnique=angular.copy(savedTechnique);
         // We will lose the link between the selected method and the technique, to prevent unintended behavior, close the edit method panel
