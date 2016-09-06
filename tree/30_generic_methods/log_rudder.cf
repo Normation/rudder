@@ -32,8 +32,12 @@ bundle agent log_rudder(message, old_class_prefix, origin_class_prefix, args)
   vars:
 
       "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
-      "expected_reports_temp"   string => "${expected_reports_source}.tmp";
-      "expected_reports_file"   string => "${expected_reports_source}.res";
+      "expected_reports_destination" string => "${sys.workdir}/state/rudder_expected_reports.${this.promiser_pid}.csv";
+      # We put those files into the state directory to avoid purging them during each update
+      # (which would break the current run's reporting).
+      # We add the PID to the file name to be able to handle cuncurrent agent runs with separate expected reports
+      "expected_reports_temp"   string => "${expected_reports_destination}.tmp";
+      "expected_reports_file"   string => "${expected_reports_destination}.res";
 
     pass1.(!final_resfile_exists.logger_rudder_temp_resfile_reached|logger_rudder_temp_resfile_repaired)::
       # 2/ If the temporary file has been updated, read it to get all values in an array, and canonify the first entry
@@ -172,6 +176,31 @@ bundle agent _log_rudder_v2(expected_reports_source, message, class_prefix, args
     report_data_found::
       "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${class_prefix}", "${report_data[3]}", "${promisers}", "${args_line1}", "${message_line1}"),
             classes   => classes_generic("logger_rudder_${class_prefix}");
+}
+
+# This bundle will delete the current expected reports file
+# It is supposed to be called at the end of the run
+bundle agent _clean_current_expected_reports_file {
+
+  vars:
+      "files_to_remove" slist => { "${logger_rudder.expected_reports_temp}",
+                                   "${logger_rudder.expected_reports_file}" };
+
+  files:
+      "${files_to_remove}"
+         delete => tidy;
+      
+}
+
+# This bundle will delete expected reports files older than the given age
+# It allows cleaning leftovers from interrupted executions
+bundle agent _clean_old_expected_reports_file(days) {
+
+  files:
+      "${sys.workdir}/state/rudder_expected_reports\.\d+\.csv\.(tmp|res)"
+        delete => tidy,
+        file_select => days_old("${days}");
+
 }
 
 
