@@ -58,7 +58,7 @@ html,body{
     border-color: #222D32;
 	border-top-left-radius:5px;
 	border-bottom-left-radius:5px;  
-	font-size: 20px;
+	font-size: 19px;
 }
 #login-page .rudder-form .has-feedback label~.form-control-feedback {
     top: 0px;
