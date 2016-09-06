@@ -72,6 +72,7 @@ def get_authentication_modules():
   authentication_modules = { "Rudder" : check_authentication_from_rudder, "None" : no_authentication }
   # Name of all available modules, should read from a file or ncf path. only Rudder available for now
   available_modules_name = ["None"]
+  
   if use_rudder_auth:
     available_modules_name = ["Rudder"]
 

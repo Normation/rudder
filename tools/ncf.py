@@ -79,7 +79,7 @@ def check_output(command, env = {}):
     sys.stderr.write(error)
   else:
     if VERBOSE == 1:
-      sys.stderr.write("VERBOSE: Exception triggered, Command returned error code " + retcode + "\n")
+      sys.stderr.write("VERBOSE: Exception triggered, Command returned error code " + str(retcode) + "\n")
     raise NcfError("Error while running post-hook command " + str(command), error)
 
   if VERBOSE == 1:
