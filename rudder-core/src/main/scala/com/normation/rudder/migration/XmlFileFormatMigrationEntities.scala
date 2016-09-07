@@ -58,7 +58,8 @@ class MigrationEventLogRepository(val db: Doobie) {
    * If the database does not exist or no line are present, return none.
    */
   def getLastDetectionLine: \/[Throwable, Option[DB.MigrationEventLog[Long]]] = {
-    val sql = sql"""select * from migrationeventlog order by id desc limit 1""".query[DB.MigrationEventLog[Long]].option
+    val sql = sql"""select id, detectiontime, detectedfileformat, migrationstarttime, migrationendtime, migrationfileformat, description
+                    from migrationeventlog order by id desc limit 1""".query[DB.MigrationEventLog[Long]].option
     sql.attempt.transact(xa).run
   }
 

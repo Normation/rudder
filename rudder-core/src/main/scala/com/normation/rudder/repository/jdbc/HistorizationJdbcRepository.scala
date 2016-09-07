@@ -85,10 +85,11 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 //    implicit object monoid extends MonoidConnectionIOList[DB.SerializedGroupsNodes]
 
     val action = for {
-      groups     <- sql"select * from groups where endtime is null".query[DB.SerializedGroups[Long]].list
+      groups     <- sql"""select id, groupid, groupname, groupdescription, nodecount, groupstatus, starttime, endtime
+                          from groups where endtime is null""".query[DB.SerializedGroups[Long]].list
       joinGroups <- groups.map( _.id).toNel.foldMap { joinIds =>
                       implicit val joinIdsParam = Param.many(joinIds)
-                      sql"select * from groupsnodesjoin where grouppkeyid in (${joinIds: joinIds.type})".query[DB.SerializedGroupsNodes].list
+                      sql"select grouppkeyid, nodeid from groupsnodesjoin where grouppkeyid in (${joinIds: joinIds.type})".query[DB.SerializedGroupsNodes].list
                     }(Monoid.liftMonoid)
     } yield {
       val byIds = joinGroups.groupBy(_.groupPkeyId)
@@ -115,7 +116,10 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   }
 
   def getAllOpenedDirectives(): Seq[DB.SerializedDirectives[Long]] = {
-    sql"select * from DIRECTIVES where endtime is null".query[DB.SerializedDirectives[Long]].list.transact(xa).run
+    sql"""select id, directiveid, directivename, directivedescription, priority, techniquename,
+                  techniquehumanname, techniquedescription, techniqueversion, starttime, endtime
+          from directives
+          where endtime is null""".query[DB.SerializedDirectives[Long]].list.transact(xa).run
   }
 
   def updateDirectives(
@@ -139,7 +143,10 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
 
   def getAllOpenedRules() : Seq[Rule] = {
     (for {
-      rules      <- sql"select * from rules where endtime is null".query[DB.SerializedRules[Long]].list
+      rules      <- sql"""select rulepkeyid, ruleid, serial, categoryid, name, shortdescription,
+                                 longdescription, isenabled, starttime, endtime
+                          from rules
+                          where endtime is null""".query[DB.SerializedRules[Long]].list
       ruleIds    =  rules.map( _.id).toNel
       groups     <- ruleIds.foldMap { joinIds =>
                         implicit val joinIdsParam = Param.many(joinIds)
@@ -204,7 +211,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   }
 
   def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]] = {
-    sql"select * from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).run
+    sql"select id, interval, splaytime, start_hour, start_minute, starttime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).run
   }
 
   def updateGlobalSchedule(interval: Int, splaytime: Int, start_hour: Int, start_minute: Int  ) : Unit = {

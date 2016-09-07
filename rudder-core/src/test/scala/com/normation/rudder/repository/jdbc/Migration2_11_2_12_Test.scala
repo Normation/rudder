@@ -49,6 +49,8 @@ import doobie.imports._
 import scalaz.concurrent.Task
 import org.joda.time.DateTime
 
+import doobie.contrib.postgresql.pgtypes._
+
 /**
  *
  * Test on database.
@@ -80,11 +82,12 @@ class MigrationTo212Test extends DBCommon {
     }
 
     "no raise error" in {
+
       jdbcTemplate.execute(sql)
 
       //some select to check existence of the new tables column
-      sql"select * from reportsexecution".query[(String,DateTime,Boolean,String)].option.transact(xa).run
-      sql"select * from expectedReportsNodes".query[(Int,String)].option.transact(xa).run
+      sql"select nodeid, date, complete, nodeconfigid from reportsexecution".query[(String,DateTime,Boolean,String)].option.transact(xa).run
+      sql"select nodejoinkey, nodeid, nodeconfigids from expectedreportsnodes".query[(Int,String, List[String])].option.transact(xa).run
 
       success
     }
@@ -94,7 +97,7 @@ class MigrationTo212Test extends DBCommon {
 
         sql"""insert into reportsexecution (nodeid, date, complete, nodeconfigid)
               values (${t._1}, ${t._2}, ${t._3}, ${t._4})""".update.run.transact(xa).run
-        sql"select * from reportsexecution".query[(String,DateTime,Boolean,String)].list.transact(xa).run.head === t
+        sql"select nodeid, date, complete, nodeconfigid from reportsexecution".query[(String,DateTime,Boolean,String)].list.transact(xa).run.head === t
       }
     }
 
