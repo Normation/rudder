@@ -63,6 +63,7 @@ class TechniqueAPI6 (
       response(
         restExtractor
       , "techniques"
+      , None
       )(
           apiV6.listTechniques
         , req
@@ -74,6 +75,7 @@ class TechniqueAPI6 (
       response(
         restExtractor
       , "directives"
+      , Some(name)
       )(
           apiV6.listDirectives(techniqueName, None)
         , req
@@ -91,6 +93,7 @@ class TechniqueAPI6 (
       response(
           restExtractor
         , "directives"
+        , Some(s"${name}/${version}")
       ) ( directives
         , req
         , s"Could not find list of directives based on version '${version}' of '${techniqueName}' Technique"

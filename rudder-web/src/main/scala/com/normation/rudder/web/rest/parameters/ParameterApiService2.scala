@@ -86,11 +86,11 @@ case class ParameterApiService2 (
     , act          : String
   ) (implicit action : String, prettify : Boolean) = {
 
-    logger.info(restExtractor.extractReason(req.params))
+    logger.info(restExtractor.extractReason(req))
     ( for {
-        reason <- restExtractor.extractReason(req.params)
-        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
-        crDescription = restExtractor.extractChangeRequestDescription(req.params)
+        reason <- restExtractor.extractReason(req)
+        crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Parameter ${parameter.name} from API"))
+        crDescription = restExtractor.extractChangeRequestDescription(req)
         cr     <- changeRequestService.createChangeRequestFromGlobalParameter(
                   crName
                 , crDescription

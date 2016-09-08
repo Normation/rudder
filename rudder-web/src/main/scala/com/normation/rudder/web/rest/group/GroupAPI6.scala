@@ -63,14 +63,15 @@ class GroupAPI6(
   , uuidGen   : StringUuidGenerator
 ) extends RestHelper with GroupAPI with Loggable{
 
+  import RestUtils._
   val dataName = "groupCategories"
 
-  def response ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
-    RestUtils.response(restExtractor, dataName)(function, req, errorMessage)
+  def response ( function : Box[JValue], req : Req, errorMessage : String, id : Option[String])(implicit action : String) : LiftResponse = {
+    RestUtils.response(restExtractor, dataName, id)(function, req, errorMessage)
   }
 
-  def actionResponse ( function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
-    RestUtils.actionResponse(restExtractor, dataName, uuidGen)(function, req, errorMessage)
+  def actionResponse ( function : Box[ActionType], req : Req, errorMessage : String, id : Option[String])(implicit action : String) : LiftResponse = {
+    RestUtils.actionResponse(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)
   }
 
   val v6Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -80,6 +81,7 @@ class GroupAPI6(
           serviceV6.getCategoryTree
         , req
         , s"Could not fetch Group category tree"
+        , None
       ) ("GetGroupTree")
 
     case Get("categories"  :: id :: Nil, req) => {
@@ -87,62 +89,75 @@ class GroupAPI6(
           serviceV6.getCategoryDetails(NodeGroupCategoryId(id))
         , req
         , s"Could not fetch Group category '${id}' details"
+        , Some(id)
      ) ("getGroupCategoryDetails")
     }
 
     case Delete("categories"  :: id :: Nil, req) => {
       actionResponse(
-          serviceV6.deleteCategory(NodeGroupCategoryId(id))
+          Full(serviceV6.deleteCategory(NodeGroupCategoryId(id)))
         , req
         , s"Could not delete Group category '${id}'"
+        , Some(id)
       ) ("deleteGroupCategory")
     }
 
     case "categories" :: id :: Nil JsonPost body -> req => {
-      val restCategory = for {
+      val action = for {
         json <- req.json ?~! "No JSON data sent"
         cat <- restExtractor.extractGroupCategory(json)
       } yield {
-        cat
+          serviceV6.updateCategory(NodeGroupCategoryId(id), cat) _
       }
       actionResponse(
-          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory)
+          action
         , req
         , s"Could not update Group category '${id}'"
+        , Some(id)
       ) ("updateGroupCategory")
     }
 
     case Post("categories" :: id :: Nil, req) => {
-      val restCategory = restExtractor.extractGroupCategory(req.params)
+      val action = for {
+        restCategory <- restExtractor.extractGroupCategory(req.params)
+      } yield {
+        serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory) _
+      }
       actionResponse(
-          serviceV6.updateCategory(NodeGroupCategoryId(id), restCategory)
+          action
         , req
         , s"Could not update Group category '${id}'"
+        , Some(id)
       ) ("updateGroupCategory")
     }
 
     case "categories" :: Nil JsonPut body -> req => {
-      val restCategory = for {
-        json <- req.json ?~! "No JSON data sent"
-        cat <- restExtractor.extractGroupCategory(json)
-      } yield {
-        cat
-      }
       val id = NodeGroupCategoryId(uuidGen.newUuid)
+      val action = for {
+        cat <- restExtractor.extractGroupCategory(body)
+      } yield {
+        serviceV6.createCategory(id, cat) _
+      }
       actionResponse(
-          serviceV6.createCategory(id, restCategory)
+          action
         , req
         , s"Could not create Group category"
+        , Some(id.value)
       ) ("createGroupCategory")
     }
 
     case Put("categories" :: Nil, req) => {
-      val restCategory = restExtractor.extractGroupCategory(req.params)
       val id = NodeGroupCategoryId(uuidGen.newUuid)
+      val action = for {
+        restCategory <- restExtractor.extractGroupCategory(req.params)
+      } yield {
+        serviceV6.createCategory(id, restCategory) _
+      }
       actionResponse(
-          serviceV6.createCategory(id, restCategory)
+          action
         , req
         , s"Could not update Group category '${id}' details"
+        , Some(id.value)
       ) ("createGroupCategory")
     }
 

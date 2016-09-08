@@ -78,11 +78,20 @@ object RestUtils extends Loggable {
 
   def getActor(req:Req) : EventActor = EventActor(getUsername(req).getOrElse("UnknownRestUser"))
 
-  def getPrettify(req:Req) : Box[Boolean] = req.params.get("prettify") match {
-    case None => Full(false)
-    case Some("true" :: Nil) => Full(true)
-    case Some("false" :: Nil) => Full(false)
-    case _ => Failure("Prettify should only have one value, and should be set to true or false")
+  def getPrettify(req:Req) : Box[Boolean] =
+    req.json match {
+      case Full(json) => json \ "prettify" match {
+        case JBool(prettify) => Full(prettify)
+        case JNothing        => Full(false)
+        case x               => Failure(s"Not a valid value for 'prettify' parameter, current value is : ${x}")
+      }
+      case _ =>
+        req.params.get("prettify") match {
+          case None                 => Full(false)
+          case Some("true" :: Nil)  => Full(true)
+          case Some("false" :: Nil) => Full(false)
+          case _                    => Failure("Prettify should only have one value, and should be set to true or false")
+    }
   }
 
   /**
@@ -192,33 +201,55 @@ object RestUtils extends Loggable {
     toJsonError(None, JString(s"Version ${version} exists for this API function, but it's implementation is missing"))(action,false)
    }
 
-  def response (restExtractor : RestExtractorService, dataName: String) (function : Box[JValue], req : Req, errorMessage : String) (implicit action : String) : LiftResponse = {
+  def response (restExtractor : RestExtractorService, dataName: String, id : Option[String]) (function : Box[JValue], req : Req, errorMessage : String) (implicit action : String) : LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     function match {
       case Full(category : JValue) =>
-        toJsonResponse(None, ( dataName -> category))
+        toJsonResponse(id, ( dataName -> category))
       case eb: EmptyBox =>
         val message = (eb ?~! errorMessage).messageChain
-        toJsonError(None, message)
+        toJsonError(id, message)
     }
   }
 
-  def actionResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator) (function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+  type ActionType = (EventActor, ModificationId, Option[String]) => Box[JValue]
+  def actionResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : Box[ActionType], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
 
     ( for {
-      reason <- restExtractor.extractReason(req.params)
+      reason <- restExtractor.extractReason(req)
       modId = ModificationId(uuidGen.newUuid)
       actor = RestUtils.getActor(req)
-      categories <- function(actor,modId,reason)
+      result <- function.flatMap { _(actor,modId,reason) }
     } yield {
-      categories
+      result
     } ) match {
-      case Full(categories : JValue) =>
-        toJsonResponse(None, ( "groupCategories" -> categories))
+      case Full(result : JValue) =>
+        toJsonResponse(id, ( dataName -> result))
       case eb: EmptyBox =>
         val message = (eb ?~! errorMessage).messageChain
-        toJsonError(None, message)
+        toJsonError(id, message)
+    }
+  }
+
+  type WorkflowType = (EventActor, Option[String], String, String) => Box[JValue]
+  def workflowResponse (restExtractor : RestExtractorService, dataName: String, uuidGen: StringUuidGenerator, id : Option[String]) (function : WorkflowType , req : Req, errorMessage : String, defaultName : String)(implicit action : String) : LiftResponse = {
+    implicit val prettify = restExtractor.extractPrettify(req.params)
+
+    ( for {
+      reason <- restExtractor.extractReason(req)
+      actor = RestUtils.getActor(req)
+      crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(defaultName))
+      crDesc = restExtractor.extractChangeRequestDescription(req)
+      result <- function(actor,reason, crName, crDesc)
+    } yield {
+      result
+    } ) match {
+      case Full(result : JValue) =>
+        toJsonResponse(id, ( dataName -> result))
+      case eb: EmptyBox =>
+        val message = (eb ?~! errorMessage).messageChain
+        toJsonError(id, message)
     }
   }
 

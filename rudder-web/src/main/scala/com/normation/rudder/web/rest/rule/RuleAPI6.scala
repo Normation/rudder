@@ -64,14 +64,15 @@ class RuleAPI6(
   , uuidGen   : StringUuidGenerator
 ) extends RestHelper with RuleAPI with Loggable{
 
+  import RestUtils._
   val dataName = "ruleCategories"
 
   def response ( function : Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
-    RestUtils.response(restExtractor, dataName)(function, req, errorMessage)
+    RestUtils.response(restExtractor, dataName,None)(function, req, errorMessage)
   }
 
-  def actionResponse ( function : (EventActor, ModificationId, Option[String]) => Box[JValue], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
-    RestUtils.actionResponse(restExtractor, dataName, uuidGen)(function, req, errorMessage)
+  def actionResponse ( function : Box[ActionType], req : Req, errorMessage : String)(implicit action : String) : LiftResponse = {
+    RestUtils.actionResponse(restExtractor, dataName, uuidGen, None)(function, req, errorMessage)
   }
 
   val v6Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
@@ -83,7 +84,6 @@ class RuleAPI6(
         , s"Could not fetch Rule category tree"
       ) ("GetRuleTree")
 
-
     case Get("categories"  :: id :: Nil, req) => {
       response (
           serviceV6.getCategoryDetails(RuleCategoryId(id))
@@ -94,56 +94,63 @@ class RuleAPI6(
 
     case Delete("categories"  :: id :: Nil, req) => {
       actionResponse(
-          serviceV6.deleteCategory(RuleCategoryId(id))
+          Full(serviceV6.deleteCategory(RuleCategoryId(id)))
         , req
         , s"Could not delete Rule category '${id}'"
       ) ("deleteRuleCategory")
     }
 
     case "categories" :: id :: Nil JsonPost body -> req => {
-      val restCategory = for {
+      val action = for {
         json <- req.json ?~! "No JSON data sent"
         cat <- restExtractor.extractRuleCategory(json)
       } yield {
-        cat
+         serviceV6.updateCategory(RuleCategoryId(id), cat) _
       }
       actionResponse(
-          serviceV6.updateCategory(RuleCategoryId(id), restCategory)
+          action
         , req
         , s"Could not update Rule category '${id}'"
       ) ("updateRuleCategory")
     }
 
     case Post("categories" :: id :: Nil, req) => {
-      val restCategory = restExtractor.extractRuleCategory(req.params)
+
+      val action =  for {
+        restCategory <- restExtractor.extractRuleCategory(req.params)
+      } yield {
+        serviceV6.updateCategory(RuleCategoryId(id), restCategory) _
+      }
       actionResponse(
-          serviceV6.updateCategory(RuleCategoryId(id), restCategory)
+          action
         , req
         , s"Could not update Rule category '${id}'"
       ) ("updateRuleCategory")
     }
 
     case "categories" :: Nil JsonPut body -> req => {
-      val restCategory = for {
-        json <- req.json ?~! "No JSON data sent"
-        cat <- restExtractor.extractRuleCategory(json)
-      } yield {
-        cat
-      }
       val id = RuleCategoryId(uuidGen.newUuid)
+      val action = for {
+        cat <- restExtractor.extractRuleCategory(body)
+      } yield {
+        serviceV6.createCategory(id, cat) _
+      }
       actionResponse(
-          serviceV6.createCategory(id, restCategory)
+          action
         , req
         , s"Could not create Rule category"
       ) ("createRuleCategory")
     }
 
-
     case Put("categories" :: Nil, req) => {
-      val restCategory = restExtractor.extractRuleCategory(req.params)
       val id = RuleCategoryId(uuidGen.newUuid)
+      val action = for {
+        restCategory <- restExtractor.extractRuleCategory(req.params)
+      } yield {
+        serviceV6.createCategory(id, restCategory) _
+      }
       actionResponse(
-          serviceV6.createCategory(id, restCategory)
+          action
         , req
         , s"Could not update Rule category '${id}' details"
       ) ("createRuleCategory")

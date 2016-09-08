@@ -84,9 +84,9 @@ case class GroupApiService2 (
   ) (implicit action : String, prettify : Boolean) = {
 
     ( for {
-        reason <- restExtractor.extractReason(req.params)
-        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Group ${group.name} from API"))
-        crDescription = restExtractor.extractChangeRequestDescription(req.params)
+        reason <- restExtractor.extractReason(req)
+        crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Group ${group.name} from API"))
+        crDescription = restExtractor.extractChangeRequestDescription(req)
         cr <- changeRequestService.createChangeRequestFromNodeGroup(
                   crName
                 , crDescription
@@ -141,7 +141,7 @@ case class GroupApiService2 (
     def actualGroupCreation(restGroup : RestGroup, baseGroup : NodeGroup, nodeGroupCategoryId: NodeGroupCategoryId) = {
       val newGroup = restGroup.updateGroup( baseGroup )
       ( for {
-        reason   <- restExtractor.extractReason(req.params)
+        reason   <- restExtractor.extractReason(req)
         saveDiff <- writeGroup.create(newGroup, nodeGroupCategoryId, modId, actor, reason)
       } yield {
         saveDiff
@@ -192,7 +192,6 @@ case class GroupApiService2 (
                  * else if (workflowEnabled) false
                  * else defaultEnabled
                  */
-
 
                 workflowEnabled() match {
                   case Full(enabled) =>
@@ -322,6 +321,5 @@ case class GroupApiService2 (
         toJsonError(Some(groupId.value), message)
     }
   }
-
 
   }
