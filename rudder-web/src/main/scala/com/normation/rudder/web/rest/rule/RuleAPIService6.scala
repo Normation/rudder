@@ -99,17 +99,16 @@ case class RuleApiService6 (
     }
   }
 
-  def updateCategory(id : RuleCategoryId, restData: Box[RestRuleCategory])(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def updateCategory(id : RuleCategoryId, restData: RestRuleCategory)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     logger.info(restData)
     for {
-      data <- restData
       root <- readRuleCategory.getRootCategory()
       (category,parent) <- root.find(id)
       rules <- readRule.getAll()
-      update = data.update(category)
-      updatedParent = data.parent.getOrElse(parent)
+      update = restData.update(category)
+      updatedParent = restData.parent.getOrElse(parent)
 
-      _ <- data.parent match {
+      _ <- restData.parent match {
         case Some(parent) =>
           writeRuleCategory.updateAndMove(update, parent, modId, actor, reason)
         case None =>
@@ -121,13 +120,10 @@ case class RuleApiService6 (
     }
   }
 
-
-
-  def createCategory(id : RuleCategoryId, restData: Box[RestRuleCategory])(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def createCategory(id : RuleCategoryId, restData: RestRuleCategory)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      data <- restData
-      update <- data.create(id)
-      parent = data.parent.getOrElse(RuleCategoryId("rootRuleCategory"))
+      update <- restData.create(id)
+      parent = restData.parent.getOrElse(RuleCategoryId("rootRuleCategory"))
       _ <-writeRuleCategory.create(update,parent, modId, actor, reason)
       category <- getCategoryInformations(update,parent,MinimalDetails)
     } yield {
