@@ -110,26 +110,27 @@ trait PromiseGenerationService extends Loggable {
     val result = for {
       //fetch all - yep, memory is cheap... (TODO: size of that for 1000 nodes, 100 rules, 100 directives, 100 groups ?)
 
-      allRules            <- findDependantRules() ?~! "Could not find dependant rules"
-      fetch1Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime} ms")
-      allNodeInfos        <- getAllNodeInfos ?~! "Could not get Node Infos"
-      fetch2Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
-      directiveLib        <- getDirectiveLibrary() ?~! "Could not get the directive library"
-      fetch3Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
-      groupLib            <- getGroupLibrary() ?~! "Could not get the group library"
-      fetch4Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
-      allParameters       <- getAllGlobalParameters ?~! "Could not get global parameters"
-      fetch5Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
+      allRules             <- findDependantRules() ?~! "Could not find dependant rules"
+      fetch1Time           =  System.currentTimeMillis
+      _                    =  logger.trace(s"Fetched rules in ${fetch1Time-initialTime} ms")
+      allNodeInfos         <- getAllNodeInfos ?~! "Could not get Node Infos"
+      fetch2Time           =  System.currentTimeMillis
+      _                    =  logger.trace(s"Fetched node infos in ${fetch2Time-fetch1Time} ms")
+      directiveLib         <- getDirectiveLibrary() ?~! "Could not get the directive library"
+      fetch3Time           =  System.currentTimeMillis
+      _                    =  logger.trace(s"Fetched directives in ${fetch3Time-fetch2Time} ms")
+      groupLib             <- getGroupLibrary() ?~! "Could not get the group library"
+      fetch4Time           =  System.currentTimeMillis
+      _                    =  logger.trace(s"Fetched groups in ${fetch4Time-fetch3Time} ms")
+      allParameters        <- getAllGlobalParameters ?~! "Could not get global parameters"
+      fetch5Time           =  System.currentTimeMillis
+      _                    =  logger.trace(s"Fetched global parameters in ${fetch5Time-fetch4Time} ms")
       globalAgentRun       <- getGlobalAgentRun
-      fetch6Time          =  System.currentTimeMillis
-      _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
-      scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
+      fetch6Time           =  System.currentTimeMillis
+      _                    =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
+      scriptEngineEnabled  <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
       globalComplianceMode <- getGlobalComplianceMode
+      globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
       nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
 
@@ -185,7 +186,7 @@ trait PromiseGenerationService extends Loggable {
       writeTime           =  System.currentTimeMillis
       nodeConfigVersions  =  calculateNodeConfigVersions(uptodateSerialNodeconfig.values.toSeq)
       //second time we write something in repos: updated node configuration
-      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, uptodateSerialNodeconfig, nodeConfigVersions, nodeConfigCaches, allLicenses) ?~! "Cannot write configuration node"
+      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, uptodateSerialNodeconfig, nodeConfigVersions, nodeConfigCaches, allLicenses, globalPolicyMode) ?~! "Cannot write configuration node"
       timeWriteNodeConfig =  (System.currentTimeMillis - writeTime)
       _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
@@ -236,6 +237,7 @@ trait PromiseGenerationService extends Loggable {
   def getAgentRunStartHour   : () => Box[Int]
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
+  def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
 
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
@@ -321,7 +323,14 @@ trait PromiseGenerationService extends Loggable {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfig: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache], allLicenses: Map[NodeId, NovaLicense]) : Box[Set[NodeConfiguration]]
+  def writeNodeConfigurations(
+      rootNodeId      : NodeId
+    , allNodeConfig   : Map[NodeId, NodeConfiguration]
+    , versions        : Map[NodeId, NodeConfigId]
+    , cache           : Map[NodeId, NodeConfigurationCache]
+    , allLicenses     : Map[NodeId, NovaLicense]
+    , globalPolicyMode: GlobalPolicyMode
+  ) : Box[Set[NodeConfiguration]]
 
   /**
    * Set the expected reports for the rule
@@ -393,6 +402,7 @@ class PromiseGenerationServiceImpl (
   , override val getAgentRunStartHour: () => Box[Int]
   , override val getAgentRunStartMinute: () => Box[Int]
   , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
+  , override val getGlobalPolicyMode: () => Box[GlobalPolicyMode]
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
@@ -430,6 +440,8 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
   def ruleApplicationStatusService: RuleApplicationStatusService
 
   def licenseRepository: LicenseRepository
+
+  def getGlobalPolicyMode: () => Box[GlobalPolicyMode]
 
   override def findDependantRules() : Box[Seq[Rule]] = roRuleRepo.getAll(true)
   override def getAllNodeInfos(): Box[Map[NodeId, NodeInfo]] = nodeInfoService.getAll
@@ -556,6 +568,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , serial         : Int
     , ruleOrder      : BundleOrder
     , directiveOrder : BundleOrder
+    , policyMode     : Option[PolicyMode]
   ) extends HashcodeCaching
 
    /**
@@ -600,6 +613,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
           , serial         = ruleVal.serial
           , ruleOrder      = ruleVal.ruleOrder
           , directiveOrder = directive.directiveOrder
+          , policyMode     = directive.policyMode
         )
       }
 
@@ -661,24 +675,25 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                } yield {
 
                                  Cf3PolicyDraft(
-                                     id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
-                                   , technique = draft.technique
-                                   , variableMap = evaluatedVars.toMap
+                                     id              = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
+                                   , technique       = draft.technique
+                                   , variableMap     = evaluatedVars.toMap
                                    , trackerVariable = draft.trackerVariable
-                                   , priority = draft.priority
-                                   , serial = draft.serial
-                                   , ruleOrder = draft.ruleOrder
-                                   , directiveOrder = draft.directiveOrder
-                                   , overrides = Set()
+                                   , priority        = draft.priority
+                                   , serial          = draft.serial
+                                   , ruleOrder       = draft.ruleOrder
+                                   , directiveOrder  = draft.directiveOrder
+                                   , overrides       = Set()
+                                   , policyMode      = draft.policyMode
                                  )
                                }
                              }
         } yield {
           NodeConfiguration(
-              nodeInfo = context.nodeInfo
+              nodeInfo     = context.nodeInfo
             , policyDrafts = cf3PolicyDrafts.toSet
-            , nodeContext = context.nodeContext
-            , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
+            , nodeContext  = context.nodeContext
+            , parameters   = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
             , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
           )
         }
@@ -780,7 +795,14 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    * Else, promises are generated;
    * Return the list of configuration successfully written.
    */
-  def writeNodeConfigurations(rootNodeId: NodeId, allNodeConfigs: Map[NodeId, NodeConfiguration], versions: Map[NodeId, NodeConfigId], cache: Map[NodeId, NodeConfigurationCache], allLicenses: Map[NodeId, NovaLicense]) : Box[Set[NodeConfiguration]] = {
+  def writeNodeConfigurations(
+      rootNodeId      : NodeId
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+    , versions        : Map[NodeId, NodeConfigId]
+    , cache           : Map[NodeId, NodeConfigurationCache]
+    , allLicenses     : Map[NodeId, NovaLicense]
+    , globalPolicyMode: GlobalPolicyMode
+  ) : Box[Set[NodeConfiguration]] = {
     /*
      * Several steps heres:
      * - look what node configuration are updated (based on their cache ?)
@@ -797,7 +819,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     val fsWrite0   =  writtingTime.get.getMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated, allNodeConfigs, versions, allLicenses)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated, allNodeConfigs, versions, allLicenses, globalPolicyMode)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")

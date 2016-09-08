@@ -149,6 +149,7 @@ class RuleValServiceImpl(
               , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
               , BundleOrder(directive.name)
+              , directive.policyMode
             ))
         }
     }

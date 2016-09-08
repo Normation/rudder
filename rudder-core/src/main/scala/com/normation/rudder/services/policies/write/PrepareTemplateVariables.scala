@@ -38,7 +38,8 @@
 package com.normation.rudder.services.policies.write
 
 import scala.annotation.migration
-import com.normation.utils.Control.bestEffort
+import scala.io.Codec
+
 import com.normation.cfclerk.domain.Bundle
 import com.normation.cfclerk.domain.PARAMETER_VARIABLE
 import com.normation.cfclerk.domain.SectionVariableSpec
@@ -59,10 +60,15 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-import org.joda.time.DateTime
-import net.liftweb.common._
-import scala.io.Codec
 import com.normation.templates.STVariable
+import com.normation.utils.Control._
+import scala.language.implicitConversions
+
+import org.joda.time.DateTime
+
+import net.liftweb.common._
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
 
 trait PrepareTemplateVariables {
 
@@ -83,88 +89,19 @@ trait PrepareTemplateVariables {
     , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
+    , globalPolicyMode : GlobalPolicyMode
   ): AgentNodeWritableConfiguration
 
 }
-
-object PrepareTemplateVariables extends Loggable {
-
-  /*
-   * utilitary method for formating list of "promisee usebundle => bundlename;"
-   */
-  def formatMethodsUsebundle(x:Seq[(String, Bundle)]): String = {
-
-    val alignWidth = if(x.size <= 0) 0 else x.map(_._1.size).max
-    x.map { case (promiser, bundle) =>
-      val escaped = ParameterEntry.escapeString(promiser)
-      //the promiser value (may) comes from user input, so we need to escape "
-      s""""${escaped}"${" "*Math.max(0, alignWidth - escaped.size)} usebundle => ${bundle.name};"""
-    }.mkString( "\n")
-  }
-
-  /*
-   * utilitary method for formating an input list
-   */
-  def formatBundleFileInputs(x: Seq[String]) = {
-    val inputs = x.distinct
-    if (inputs.isEmpty) {
-      ""
-    } else {
-      inputs.mkString("\"", s"""",\n"""", s"""",""")
-    }
-  }
-
-  /*
-   * Sort the techniques according to the order of the associated BundleOrder of Cf3PolicyDraft.
-   * Sort at best: sort rule then directives, and take techniques on that order, only one time
-   * Sort system directive first.
-   *
-   * CAREFUL: this method only take care of sorting based on "BundleOrder", other sorting (like
-   * "system must go first") are not taken into account here !
-   */
-  def sortTechniques(nodeId: NodeId, techniques: Seq[Technique], container: Cf3PolicyDraftContainer): Seq[(Technique, List[BundleOrder])] = {
-
-    def compareBundleOrder(a: Cf3PolicyDraft, b: Cf3PolicyDraft): Boolean = {
-      BundleOrder.compareList(List(a.ruleOrder, a.directiveOrder), List(b.ruleOrder, b.directiveOrder)) <= 0
-    }
-
-    val drafts = container.getAll().values.toSeq
-
-    //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
-    val pairs = techniques.map { t =>
-      val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
-
-      //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
-      val order = tDrafts.map( t => List(t.ruleOrder, t.directiveOrder)).headOption.getOrElse(List(BundleOrder.default))
-
-      (t, order)
-    }
-
-    //now just sort the pair by order and keep only techniques
-    val ordered = pairs.sortWith { case ((_, o1), (_, o2)) => BundleOrder.compareList(o1, o2) <= 0 }
-
-    //some debug info to understand what order was used for each node:
-    if(logger.isDebugEnabled) {
-      val sorted = ordered.map(p => s"${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
-      logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
-    }
-
-    ordered
-
-  }
-}
-
 
 /**
  * This class is responsible of transforming a NodeConfiguration for a given agent type
  * into a set of templates and variables that could be filled to string template.
  */
 class PrepareTemplateVariablesImpl(
-    techniqueRepository      : TechniqueRepository
+    techniqueRepository      : TechniqueRepository        // only for getting reports file content
   , systemVariableSpecService: SystemVariableSpecService
 ) extends PrepareTemplateVariables with Loggable {
-
-  import PrepareTemplateVariables._
 
   override def prepareTemplateForAgentNodeConfiguration(
       agentNodeConfig  : AgentNodeConfiguration
@@ -173,6 +110,7 @@ class PrepareTemplateVariablesImpl(
     , templates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
+    , globalPolicyMode : GlobalPolicyMode
   ): AgentNodeWritableConfiguration = {
 
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
@@ -192,7 +130,10 @@ class PrepareTemplateVariablesImpl(
         , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
       ).map(x => (x.spec.name, x)).toMap
 
-      prepareTechniqueTemplate(agentNodeConfig.config.nodeInfo.id, container, systemVariables.toMap, templates, generationTimestamp)
+      prepareTechniqueTemplate(
+          agentNodeConfig.config.nodeInfo.id, agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode
+        , container, systemVariables.toMap, templates, generationTimestamp
+      )
     }
 
     logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
@@ -202,15 +143,20 @@ class PrepareTemplateVariablesImpl(
   }
 
   private[this] def prepareTechniqueTemplate(
-      nodeId: NodeId // for log message
-    , container: Cf3PolicyDraftContainer
+      nodeId              : NodeId // for log message
+    , nodePolicyMode      : Option[PolicyMode]
+    , globalPolicyMode    : GlobalPolicyMode
+    , container           : Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
-    , allTemplates: Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
-    , generationTimestamp: Long
+    , allTemplates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
+    , generationTimestamp : Long
   ) : Map[TechniqueId, PreparedTechnique] = {
 
-    val techniques = techniqueRepository.getByIds(container.getAllIds)
-    val variablesByTechnique = prepareVariables(nodeId, container, prepareBundleVars(nodeId, container) ++ extraSystemVariables, techniques)
+    val techniques = container.getTechniques().values.toList
+    val variablesByTechnique = (
+        prepareVariables(nodeId, container, prepareBundleVars(nodeId, nodePolicyMode, globalPolicyMode, container)
+        ++ extraSystemVariables, techniques)
+    )
 
     /*
      * From the container, convert the parameter into StringTemplate variable, that contains a list of
@@ -317,74 +263,22 @@ class PrepareTemplateVariablesImpl(
    * @param extraVariables : optional : extra system variables that we could want to add
    * @return
    */
-  private[this] def prepareBundleVars(nodeId: NodeId, container: Cf3PolicyDraftContainer) : Map[String,Variable] = {
-    // Compute the correct bundlesequence
-    // ncf technique must call before-hand a bundle to register which ncf technique is being called
-    val NCF_REPORT_DEFINITION_BUNDLE_NAME = "current_technique_report_info"
+  private[this] def prepareBundleVars(
+      nodeId          : NodeId
+    , nodePolicyMode  : Option[PolicyMode]
+    , globalPolicyMode: GlobalPolicyMode
+    , container       : Cf3PolicyDraftContainer
+  ) : Map[String,Variable] = {
 
-    //ad-hoc data structure to store a technique and the promisee name to use for it
-    case class BundleTechnique(
-      technique: Technique
-    , promisee : String
-    )
-    implicit def pairs2BundleTechniques(seq: Seq[(Technique, List[BundleOrder])]): Seq[BundleTechnique] = {
-      seq.map( x => BundleTechnique(x._1, x._2.map(_.value).mkString("/")))
-    }
-
-    logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
-
-    // Fetch the policies configured, with the system policies first
-    val bundleTechniques: Seq[BundleTechnique] =  sortTechniques(nodeId, techniqueRepository.getByIds(container.getAllIds), container)
-
-    //list of inputs file to include: all the outPath of templates that should be "included".
-    //returned the pair of (technique, outpath)
-    val inputs: Seq[(Technique, String)] = bundleTechniques.flatMap {
-      case bt =>
-        bt.technique.templates.collect { case template if(template.included) => (bt.technique, template.outPath) } ++
-        bt.technique.files.collect { case file if(file.included) => (bt.technique, file.outPath) }
-
-    }
-
-    val bundleSeq: Seq[(Technique, String, Bundle)] = bundleTechniques.flatMap { case BundleTechnique(technique, promiser) =>
-      // We need to remove zero-length bundle name from the bundlesequence (like, if there is no ncf bundles to call)
-      // to avoid having two successives commas in the bundlesequence
-      val techniqueBundles = technique.bundlesequence.flatMap { bundle =>
-        if(bundle.name.trim.size > 0) {
-          Some((technique, promiser, bundle))
-        } else {
-          logger.warn(s"Technique '${technique.id}' used in node '${nodeId.value}' contains some bundle with empty name, which is forbidden and so they are ignored in the final bundle sequence")
-          None
-        }
-      }
-
-      //now, for each technique that provided reports (i.e: an ncf technique), we must add the
-      //NCF_REPORT_DEFINITION_BUNDLE_NAME just before the other bundle of the technique
-
-      //we assume that the bundle name to use as suffix of NCF_REPORT_DEFINITION_BUNDLE_NAME
-      // is the first of the provided bundle sequence for that technique
-      if(technique.providesExpectedReports) {
-        techniqueBundles match {
-          case Seq() => Seq()
-          case (t, p,b) +: tail => (t, p, Bundle(s"${NCF_REPORT_DEFINITION_BUNDLE_NAME}(${b.name})")) +: (t, p,b) +: tail
-        }
-      } else {
-        techniqueBundles
-      }
-    }
-
-    //split system and user directive (technique)
-    val (systemInputs, userInputs) = inputs.partition { case (t,i) => t.isSystem }
-    val (systemBundle, userBundle) = bundleSeq.partition { case(t, p, b) => t.isSystem }
-
-
+    val bundleVars = BuildBundleSequence.prepareBundleVars(nodeId, nodePolicyMode, globalPolicyMode, container)
 
     List(
-      SystemVariable(systemVariableSpecService.get("INPUTLIST"), Seq(formatBundleFileInputs(inputs.map(_._2))))
-    , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), Seq(bundleSeq.map( _._3.name).mkString(", ", ", ", "")))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , Seq(formatBundleFileInputs(systemInputs.map(_._2))))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), Seq(formatMethodsUsebundle(systemBundle.map(x => (x._2,x._3)))))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , Seq(formatBundleFileInputs(userInputs.map(_._2))))
-    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), Seq(formatMethodsUsebundle(userBundle.map(x => (x._2,x._3)))))
+      SystemVariable(systemVariableSpecService.get("INPUTLIST") , bundleVars.inputlist  :: Nil)
+    , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), bundleVars.bundlelist :: Nil)
+    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputs    :: Nil)
+    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle :: Nil)
+    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , bundleVars.directivesInputs    :: Nil)
+    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), bundleVars.directivesUsebundle :: Nil)
     ).map(x => (x.spec.name, x)).toMap
 
   }
@@ -399,38 +293,39 @@ class PrepareTemplateVariablesImpl(
   def prepareAllCf3PolicyDraftVariables(cf3PolicyDraftContainer: Cf3PolicyDraftContainer): Map[TechniqueId, Map[String, Variable]] = {
     (for {
       // iterate over each policyName
-      activeTechniqueId <- cf3PolicyDraftContainer.getAllIds
+      (techniqueId, technique) <- cf3PolicyDraftContainer.getTechniques
     } yield {
-      val technique = techniqueRepository.get(activeTechniqueId).getOrElse(
-          throw new RuntimeException("Error, can not find policy with id '%s' and version ".format(activeTechniqueId.name.value) +
-              "'%s' in the policy service".format(activeTechniqueId.name.value)))
       val cf3PolicyDraftVariables = scala.collection.mutable.Map[String, Variable]()
 
       for {
         // over each cf3PolicyDraft for this name
-        (directiveId, cf3PolicyDraft) <- cf3PolicyDraftContainer.findById(activeTechniqueId)
+        (directiveId, cf3PolicyDraft) <- cf3PolicyDraftContainer.findById(techniqueId)
       } yield {
-        // start by setting the directiveVariable
-        val (directiveVariable, boundingVariable) = cf3PolicyDraft.getDirectiveVariable
+        // start by setting the TRACKINGKEY variable
+        // we need to deal with it appart because we need to have the
+        // number of values for the tracked variable
+        val (trackingKeyVariable, trackedVariable) = cf3PolicyDraft.getDirectiveVariable
 
-        cf3PolicyDraftVariables.get(directiveVariable.spec.name) match {
+        val values = {
+          // Only multi-instance policy may have a trackingKeyVariable with high cardinal
+          // Because if the technique is Unique, then we can't have several directive ID on the same
+          // rule, and we just always use the same cf3PolicyDraftId
+          val size = if (technique.isMultiInstance) { trackedVariable.values.size } else { 1 }
+          Seq.fill(size)(createRudderId(cf3PolicyDraft))
+        }
+        cf3PolicyDraftVariables.get(trackingKeyVariable.spec.name) match {
           case None =>
               //directiveVariable.values = scala.collection.mutable.Buffer[String]()
-              cf3PolicyDraftVariables.put(directiveVariable.spec.name, directiveVariable.copy(values = Seq()))
-          case Some(x) => // value is already there
+              cf3PolicyDraftVariables.put(trackingKeyVariable.spec.name, trackingKeyVariable.copy(values = values))
+          case Some(x) =>
+              cf3PolicyDraftVariables.put(trackingKeyVariable.spec.name, x.copyWithAppendedValues(values))
         }
-
-        // Only multi-instance policy may have a policyinstancevariable with high cardinal
-        val size = if (technique.isMultiInstance) { boundingVariable.values.size } else { 1 }
-        val values = Seq.fill(size)(createRudderId(cf3PolicyDraft))
-        val variable = cf3PolicyDraftVariables(directiveVariable.spec.name).copyWithAppendedValues(values)
-        cf3PolicyDraftVariables(directiveVariable.spec.name) = variable
 
         // All other variables now
         for (variable <- cf3PolicyDraft.getVariables) {
           variable._2 match {
-            case newVar: TrackerVariable => // nothing, it's been dealt with already
-            case newVar: Variable =>
+            case _     : TrackerVariable => // nothing, it's been dealt with already
+            case newVar: Variable        =>
               if ((!newVar.spec.checked) || (newVar.spec.isSystem)) {} else { // Only user defined variables should need to be agregated
                 val variable = cf3PolicyDraftVariables.get(newVar.spec.name) match {
                   case None =>
@@ -447,7 +342,8 @@ class PrepareTemplateVariablesImpl(
           }
         }
       }
-      (activeTechniqueId, cf3PolicyDraftVariables.toMap)
+
+      (techniqueId, cf3PolicyDraftVariables.toMap)
     }).toMap
   }
 
@@ -457,16 +353,13 @@ class PrepareTemplateVariablesImpl(
   private[this] def prepareReportingDataForMetaTechnique(cf3PolicyDraftContainer: Cf3PolicyDraftContainer, rudderTag: String ): Seq[String] = {
     (for {
       // iterate over each policyName
-      activeTechniqueId <- cf3PolicyDraftContainer.getAllIds
+      (techniqueId, technique) <- cf3PolicyDraftContainer.getTechniques()
     } yield {
-      val technique = techniqueRepository.get(activeTechniqueId).getOrElse(
-          throw new RuntimeException("Error, can not find technique with id '%s' and version ".format(activeTechniqueId.name.value) +
-              "'%s' in the policy service".format(activeTechniqueId.name.value)))
 
       technique.providesExpectedReports match {
         case true =>
             // meta Technique are UNIQUE, hence we can get at most ONE cf3PolicyDraft per activeTechniqueId
-            cf3PolicyDraftContainer.findById(activeTechniqueId) match {
+            cf3PolicyDraftContainer.findById(techniqueId) match {
               case seq if seq.size == 0 =>
                 Seq[String]()
               case seq if seq.size == 1 =>
@@ -478,7 +371,7 @@ class PrepareTemplateVariablesImpl(
                       case Some(inputStream) =>
                         scala.io.Source.fromInputStream(inputStream)(Codec.UTF8).getLines().map{ case line =>
                           line.trim.startsWith("#") match {
-                            case true => line
+                            case true  => line
                             case false => line.replaceAll(rudderTag, rudderId)
                           }
                         }.toSeq
@@ -491,7 +384,7 @@ class PrepareTemplateVariablesImpl(
         case false =>
           Seq[String]()
       }
-    }).flatten
+    }).toList.flatten
   }
 
 }

@@ -61,16 +61,14 @@ class DirectiveAgregationTest {
   implicit def str2directiveId(id: String) = Cf3PolicyDraftId(RuleId("r_"+id), DirectiveId("d_"+id))
 
   def compareValues(expected: Seq[(String, String)], actual1: Seq[String], actual2: Seq[String]) = {
-    assertEquals(expected.size, actual1.size)
-    assertEquals(expected.size, actual2.size)
     val actual = actual1.zip(actual2)
-
     expected.foreach { e =>
       assertEquals(expected.groupBy(x => x), actual.groupBy(x => x))
     }
+    assertEquals(expected.size, actual1.size)
+    assertEquals(expected.size, actual2.size)
   }
 
-  def newTechnique(id: TechniqueId) = Technique(id, "tech" + id, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
 
   import scala.collection.immutable.Set
   val trackerVariableSpec = TrackerVariableSpec(Some("card"))
@@ -79,46 +77,49 @@ class DirectiveAgregationTest {
   val activeTechniqueId1 = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
   val activeTechniqueId2 = TechniqueId(TechniqueName("other"), TechniqueVersion("1.0"))
 
+  val techniqueRepository = new DummyTechniqueRepository(Seq(
+      Technique(
+          activeTechniqueId1
+        , "name"
+        , "DESCRIPTION"
+        , Seq()
+        , Seq()
+        , Seq()
+        , trackerVariableSpec
+        , SectionSpec(name="root", children=Seq())
+        , None
+        , isMultiInstance = true
+      )
+    , Technique(
+          activeTechniqueId2
+        , "name"
+        , "DESCRIPTION"
+        , Seq()
+        , Seq()
+        , Seq()
+        , trackerVariableSpec
+        , SectionSpec(name="root", children=Seq())
+        , None
+        , isMultiInstance = true
+      )
+  ) )
+
   val prepareTemplate = new PrepareTemplateVariablesImpl(
-    new DummyTechniqueRepository(Seq(
-        Technique(
-            activeTechniqueId1
-          , "name"
-          , "DESCRIPTION"
-          , Seq()
-          , Seq()
-          , Seq()
-          , trackerVariableSpec
-          , SectionSpec(name="root", children=Seq())
-          , None
-          , isMultiInstance = true
-        )
-      , Technique(
-            activeTechniqueId2
-          , "name"
-          , "DESCRIPTION"
-          , Seq()
-          , Seq()
-          , Seq()
-          , trackerVariableSpec
-          , SectionSpec(name="root", children=Seq())
-          , None
-          , isMultiInstance = true
-        )
-    ) )
-  , new SystemVariableSpecServiceImpl()
+      techniqueRepository
+    , new SystemVariableSpecServiceImpl()
   )
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId),
-        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
+    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get,
+        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
 
     val variable = new InputVariable(InputVariableSpec("card", "varDescription1"), Seq("value" + i))
     instance.copyWithAddedVariable(variable)
   }
 
   def createDirectiveWithArrayBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
+    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, Map(), trackerVariable, priority = 0, serial = 0,
+        ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
 
     val variable = InputVariable(
           InputVariableSpec("card", "varDescription1", multivalued = true)
@@ -129,7 +130,8 @@ class DirectiveAgregationTest {
   }
 
   def createDirectiveWithArrayBindingAndNullValues(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, newTechnique(activeTechniqueId), Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
+    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, Map(), trackerVariable, priority = 0, serial = 0,
+        ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
 
     val values = (0 until i).map(j =>
       if (j > 0) "value" + i
@@ -152,24 +154,27 @@ class DirectiveAgregationTest {
 
     val allVars = prepareTemplate.prepareAllCf3PolicyDraftVariables(node)
 
+
+    compareValues(Seq(("value1", "r_id1@@d_id1@@0"), ("value2", "r_id2@@d_id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
     assertEquals(2, allVars(activeTechniqueId1).size)
     assertTrue(allVars(activeTechniqueId1).contains("card"))
     assertTrue(allVars(activeTechniqueId1).contains(TRACKINGKEY))
 
-    compareValues(Seq(("value1", "r_id1@@d_id1@@0"), ("value2", "r_id2@@d_id2@@0")), allVars(activeTechniqueId1)("card").values, allVars(activeTechniqueId1)(TRACKINGKEY).values)
-
+    compareValues(Seq(("value3", "r_id3@@d_id3@@0")), allVars(activeTechniqueId2)("card").values, allVars(activeTechniqueId2)(TRACKINGKEY).values)
     assertEquals(2, allVars(activeTechniqueId2).size)
     assertTrue(allVars(activeTechniqueId2).contains("card"))
     assertTrue(allVars(activeTechniqueId2).contains(TRACKINGKEY))
-
-    compareValues(Seq(("value3", "r_id3@@d_id3@@0")), allVars(activeTechniqueId2)("card").values, allVars(activeTechniqueId2)(TRACKINGKEY).values)
   }
 
   // Create a Directive with arrayed value , and add it to a server, and agregate values
   @Test
   def arrayedDirectiveTest() {
-    val instance = new Cf3PolicyDraft("id", newTechnique(TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))),
-        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set())
+
+    val newTechniqueId = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
+    def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
+
+    val instance = new Cf3PolicyDraft("id", newTechnique, Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"),
+        directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
 
     val machineA = new Cf3PolicyDraftContainer(Set(), Set(
         createDirectiveWithArrayBinding(activeTechniqueId1,1)

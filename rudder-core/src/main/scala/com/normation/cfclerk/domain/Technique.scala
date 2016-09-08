@@ -120,6 +120,7 @@ case class Technique(
   val getAllVariableSpecs = this.rootSection.getAllVariables ++ this.systemVariableSpecs :+ this.trackerVariableSpec
 }
 
+
 /**
  * The representation of a bundle name, used for the bundlesequence
  */

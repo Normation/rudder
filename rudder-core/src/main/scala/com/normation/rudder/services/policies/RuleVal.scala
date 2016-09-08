@@ -52,6 +52,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.RuleTarget
+import com.normation.rudder.domain.policies.PolicyMode
 
 
 final case class BundleOrder(value: String)
@@ -151,6 +152,7 @@ case class DirectiveVal(
   , variables        : InterpolationContext => Box[Map[String, Variable]]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
   , directiveOrder   : BundleOrder
+  , policyMode       : Option[PolicyMode]
 ) extends HashcodeCaching {
 
   def toExpandedDirectiveVal(context: InterpolationContext) = {
