@@ -39,8 +39,9 @@ package com.normation.rudder.services.policies.write
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import com.normation.rudder.services.policies.write.PrepareTemplateVariables._
+import com.normation.rudder.services.policies.write.BuildBundleSequence._
 import com.normation.cfclerk.domain.Bundle
+import com.normation.rudder.domain.policies.PolicyMode
 
 @RunWith(classOf[JUnitRunner])
 class PrepareTemplateVariableTest extends Specification {
@@ -51,7 +52,7 @@ class PrepareTemplateVariableTest extends Specification {
     , ("""Nodes only/Name resolution version "3.0" and counting"""                        , Bundle("check_dns_configuration"))
     , (raw"""Nodes only/Package \"management\" for Debian"""                              , Bundle("check_apt_package_installation"))
     , (raw"""Nodes only/Package \\"management\\" for Debian - again"""                    , Bundle("check_apt_package_installation2"))
-  )
+  ).map { case(x,y) => TechniqueBundles(Promiser(x), Nil, y::Nil, Nil, false, false, PolicyMode.Enforce) }
 
   // Ok, now I can test
   "Preparing the string for writting usebundle of directives" should {

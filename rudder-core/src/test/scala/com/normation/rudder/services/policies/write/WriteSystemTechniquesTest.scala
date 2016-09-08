@@ -96,6 +96,10 @@ import com.normation.rudder.domain.policies.FullRuleTargetInfo
 import com.normation.rudder.domain.licenses.NovaLicense
 import org.specs2.specification.AfterEach
 import com.normation.templates.FillTemplatesService
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
+import java.security.Policy.PolicyDelegate
 
 
 
@@ -359,6 +363,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , ruleOrder       = BundleOrder("Rudder system policy: basic setup (common)")
     , directiveOrder  = BundleOrder("Common")
     , overrides       = Set()
+    , policyMode      = None
   )
 
   val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -380,6 +385,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , ruleOrder       = BundleOrder("Rudder system policy: Server roles")
     , directiveOrder  = BundleOrder("Server Roles")
     , overrides       = Set()
+    , policyMode      = None
   )
 
   val distributeTechnique = techniqueRepository.get(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -400,6 +406,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , ruleOrder       = BundleOrder("distributePolicy")
     , directiveOrder  = BundleOrder("Distribute Policy")
     , overrides       = Set()
+    , policyMode      = None
   )
 
   val inventoryTechnique = techniqueRepository.get(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -420,8 +427,70 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , ruleOrder       = BundleOrder("Rudder system policy: daily inventory")
     , directiveOrder  = BundleOrder("Inventory")
     , overrides       = Set()
+    , policyMode      = None
   )
 
+
+  //
+  // Two user directives: clock management and rpm
+  //
+  val clockTechnique = techniqueRepository.get(TechniqueId(TechniqueName("clockConfiguration"), TechniqueVersion("3.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val clockVariables = {
+     val spec = clockTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("CLOCK_FQDNNTP").toVariable(Seq("true"))
+       , spec("CLOCK_HWSYNC_ENABLE").toVariable(Seq("true"))
+       , spec("CLOCK_NTPSERVERS").toVariable(Seq("pool.ntp.org"))
+       , spec("CLOCK_SYNCSCHED").toVariable(Seq("240"))
+       , spec("CLOCK_TIMEZONE").toVariable(Seq("dontchange"))
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  val clock = Cf3PolicyDraft(
+      id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
+    , technique       = clockTechnique
+    , variableMap     = clockVariables
+    , trackerVariable = clockTechnique.trackerVariableSpec.toVariable(Seq())
+    , priority        = 5
+    , serial          = 2
+    , modificationDate= DateTime.now
+    , ruleOrder       = BundleOrder("10. Global configuration for all nodes")
+    , directiveOrder  = BundleOrder("10. Clock Configuration")
+    , overrides       = Set()
+    , policyMode      = Some(PolicyMode.Enforce)
+  )
+
+
+  val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
+  val rpmVariables = {
+     val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
+     Seq(
+         spec("RPM_PACKAGE_CHECK_INTERVAL").toVariable(Seq("5"))
+       , spec("RPM_PACKAGE_POST_HOOK_COMMAND").toVariable(Seq(""))
+       , spec("RPM_PACKAGE_POST_HOOK_RUN").toVariable(Seq("false"))
+       , spec("RPM_PACKAGE_REDACTION").toVariable(Seq("add"))
+       , spec("RPM_PACKAGE_REDLIST").toVariable(Seq("plop"))
+       , spec("RPM_PACKAGE_VERSION").toVariable(Seq(""))
+       , spec("RPM_PACKAGE_VERSION_CRITERION").toVariable(Seq("=="))
+       , spec("RPM_PACKAGE_VERSION_DEFINITION").toVariable(Seq("default"))
+     ).map(v => (v.spec.name, v)).toMap
+  }
+  val rpm = Cf3PolicyDraft(
+      id              = Cf3PolicyDraftId(RuleId("rule2"), DirectiveId("directive2"))
+    , technique       = rpmTechnique
+    , variableMap     = rpmVariables
+    , trackerVariable = rpmTechnique.trackerVariableSpec.toVariable(Seq())
+    , priority        = 5
+    , serial          = 2
+    , modificationDate= DateTime.now
+    , ruleOrder       = BundleOrder("50. Deploy PLOP STACK")
+    , directiveOrder  = BundleOrder("20. Install PLOP STACK main rpm")
+    , overrides       = Set()
+    , policyMode      = None
+  )
+
+
+  // Allows override in policy mode, but default to verify
+  val globalPolicyMode = GlobalPolicyMode(PolicyMode.Verify, PolicyModeOverrides.Always)
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // actual tests
@@ -436,9 +505,9 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     }
   }
 
-  "A root node, with no node connected and defauls installation" should {
-    "correctly write the expected promises files" in {
+  "A root node, with no node connected" should {
 
+    def writeRootNodeConfigWithUserDirectives(userDrafts: Cf3PolicyDraft*) = {
       // system variables for root
       val systemVariables = systemVariableService.getSystemVariables(
           root, allNodesInfo, groupLib, noLicense
@@ -447,29 +516,44 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
 
       // the root node configuration
       val rnc = rootNodeConfig.copy(
-          policyDrafts = Set(common, serverRole, distributePolicy, inventoryAll)
+          policyDrafts = Set(common, serverRole, distributePolicy, inventoryAll) ++ userDrafts
         , nodeContext  = systemVariables
         , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
       )
 
-
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map())
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
+    }
 
+    def compareWith(expected: String, ignoreRegex: List[String] = Nil) = {
       /*
        * And compare them with expected, modulo the configId and the name
        * of the (temp) directory where we wrote them
        */
-      rootGeneratedPromisesDir must haveSameFilesAs(EXPECTED_SHARE/"root-default-install")
+      rootGeneratedPromisesDir must haveSameFilesAs(EXPECTED_SHARE/expected)
         .withFilter { f => f.getName != "rudder_promises_generated" }
         .withMatcher(ignoreSomeLinesMatcher(
              """.*rudder_node_config_id" string => .*"""
           :: """.*string => "/.*/configuration-repository.*"""
-          :: Nil
+          :: ignoreRegex
         ))
     }
-  }
 
+
+    "correctly write the expected promises files with defauls installation" in {
+      writeRootNodeConfigWithUserDirectives()
+      compareWith("root-default-install")
+    }
+
+    "correctly write the expected promises files when 2 directives configured" in {
+      writeRootNodeConfigWithUserDirectives(clock, rpm)
+      compareWith("root-with-two-directives",
+           """.*rudder_common_report\("ntpConfiguration".*@@.*"""  //clock reports
+        :: """.*add:default:==:.*"""                               //rpm reports
+        :: Nil
+      )
+    }
+  }
 
   "rudder-group.st template" should {
 
@@ -490,7 +574,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
 
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map())
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
 
       rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/no-group.cf")
     }
@@ -515,7 +599,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
       )
 
       // Actually write the promise files for the root node
-      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map())
+      promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
 
       rootGeneratedPromisesDir/"common/1.0/rudder-groups.cf" must haveSameLinesAs(EXPECTED_SHARE/"test-rudder-groups/some-groups.cf")
     }

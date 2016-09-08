@@ -57,6 +57,9 @@ import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.services.policies.BundleOrder
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 @RunWith(classOf[JUnitRunner])
 class NodeConfigurationChangeDetectServiceTest extends Specification {
@@ -107,6 +110,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , ruleOrder = BundleOrder("10")
     , directiveOrder = BundleOrder("10")
     , overrides = Set()
+    , policyMode = None
     // no variable
   )
 
@@ -121,6 +125,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , ruleOrder = BundleOrder("10")
     , directiveOrder = BundleOrder("10")
     , overrides = Set()
+    , policyMode = None
   )
 
   private val policyOtherVaredOne = policyVaredOne.copyWithSetVariable(

@@ -79,6 +79,8 @@ import scala.util.{Failure => FailTry}
 import com.normation.rudder.domain.Constants
 import net.liftweb.json.JsonAST
 import net.liftweb.json.Printer
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import scala.language.postfixOps
 
 /**
  * Write promises for the set of nodes, with the given configs.
@@ -96,6 +98,7 @@ trait Cf3PromisesFileWriterService {
     , allNodeConfigs: Map[NodeId, NodeConfiguration]
     , versions      : Map[NodeId, NodeConfigId]
     , allLicenses   : Map[NodeId, NovaLicense]
+    , globalPolicyMode: GlobalPolicyMode
   ) : Box[Seq[NodeConfiguration]]
 }
 
@@ -146,11 +149,12 @@ class Cf3PromisesFileWriterServiceImpl(
    *
    */
   override def writeTemplate(
-      rootNodeId    : NodeId
-    , nodesToWrite  : Set[NodeId]
-    , allNodeConfigs: Map[NodeId, NodeConfiguration]
-    , versions      : Map[NodeId, NodeConfigId]
-    , allLicenses   : Map[NodeId, NovaLicense]
+      rootNodeId      : NodeId
+    , nodesToWrite    : Set[NodeId]
+    , allNodeConfigs  : Map[NodeId, NodeConfiguration]
+    , versions        : Map[NodeId, NodeConfigId]
+    , allLicenses     : Map[NodeId, NovaLicense]
+    , globalPolicyMode: GlobalPolicyMode
   ) : Box[Seq[NodeConfiguration]] = {
 
     val nodeConfigsToWrite = allNodeConfigs.filterKeys(nodesToWrite.contains(_))
@@ -191,7 +195,7 @@ class Cf3PromisesFileWriterServiceImpl(
       templates        <- readTemplateFromFileSystem(techniqueIds)
       preparedPromises <- sequencePar(configAndPaths) { case agentNodeConfig =>
                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                           Full(prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID))
+                           Full(prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode))
                          }
       promiseWritten   <- sequencePar(preparedPromises) { prepared =>
                             for {

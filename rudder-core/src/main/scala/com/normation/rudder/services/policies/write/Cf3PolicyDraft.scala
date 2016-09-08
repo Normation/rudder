@@ -50,6 +50,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.services.policies.BundleOrder
 import com.normation.rudder.services.policies.ExpandedDirectiveVal
 import com.normation.rudder.exceptions.NotFoundException
+import com.normation.rudder.domain.policies.PolicyMode
 
 /**
  * Unique identifier for a CFClerk policy instance
@@ -83,6 +84,7 @@ final case class Cf3PolicyDraft(
   , ruleOrder       : BundleOrder
   , directiveOrder  : BundleOrder
   , overrides       : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
+  , policyMode      : Option[PolicyMode]
 ) extends Loggable {
 
   def toDirectiveVal(originalVariables: Map[String, Variable]) = ExpandedDirectiveVal(
@@ -282,31 +284,21 @@ protected[write] class Cf3PolicyDraftContainer(
     inprocessing.toMap
   }
 
-  /**
-   * Returns cf3PolicyDraft by their techniqueId (might returns several of them) (not its id)
+  /*
+   * Returns cf3PolicyDraft by their techniqueId (might returns several of them)
    * Returns them in their priority order
-   * @param policyName
-   * @return
    */
   def findById(techniqueId: TechniqueId) = {
     cf3PolicyDrafts.filter(x => x._2.technique.id == techniqueId).toSeq.sortBy(x => x._2.priority)
   }
 
-  /**
-   * Returns all the cf3PolicyDraft ids defined in this container
-   * @return
+  /*
+   * Return all techniques used in the container
    */
-  def getAllIds(): Seq[TechniqueId] = {
+  def getTechniques(): Map[TechniqueId, Technique] = {
     // toSet to suppress duplicates
-    cf3PolicyDrafts.values.map(_.technique.id).toSet.toSeq
+    cf3PolicyDrafts.values.map(x => (x.technique.id, x.technique)).toMap
   }
-
-  /**
-   * Returns all the policy instances
-   * @return
-   */
-  def getAll(): Map[Cf3PolicyDraftId, Cf3PolicyDraft] = cf3PolicyDrafts
-
 }
 
 

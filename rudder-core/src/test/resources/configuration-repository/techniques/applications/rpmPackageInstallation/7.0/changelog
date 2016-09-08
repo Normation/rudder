@@ -1,0 +1,24 @@
+ -- Matthieu CERDA <matthieu.cerda@normation.com>  Mon, 07 Jan 2013 17:19:00 +0100
+  * Version 2.2
+  ** Enable the user to specify a package version
+ Nicolas CHARLES <nicolas.charles@normation.com> Fri, 19 Apr 2013 19:45:00 +0100
+  * Version 3.0
+  ** Improve performance
+ Nicolas PERRON <nicolas.perron@normation.com> Mon, 22 Apr 2013 20:15:00 +0100
+  * Version 4.0
+  ** Improve performance by preventing check of packages and ZMD process
+  * Version 5.0
+  ** Ignore package manager return codes in body classes, and rely on CFEngine's logic for that
+  * Version 5.1
+  ** Use Zypper as package manager if the version is usable or use Rug instead
+ -- Benoit PECCATTE <benoit.peccatte@normation.com> Tue Sep  9 08:17:55 CEST 2014
+  * Version 6.0
+  ** Rewrite with normal ordering and {}
+ -- Nicolas CHARLES <nicolas.charles@normation.com> Fri Oct  3 17:17:55 CEST 2014
+  * Version 6.1
+  ** Allow to update to latest available version
+
+ -- Benoît Peccatte <benoit.peccatte@normation.com> Fri Oct 17 14:10:43 CEST 2014
+  * Version 7.0
+  ** Use rudder_common_report instead of reports:
+  ** Implement rpmPackageInstallation post hook commands 

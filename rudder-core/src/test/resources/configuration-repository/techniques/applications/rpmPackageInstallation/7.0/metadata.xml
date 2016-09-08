@@ -1,0 +1,173 @@
+<!--
+Copyright 2011-2013 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!--
+    This is the rpmPackageInstallation PT.
+    Compatibility : Linux RedHat like
+
+It is intended to install the defined packages, by OS,
+and to ensure certain parameters are met, such as the
+presence of a package, and if not met to enforce them.
+-->
+
+<TECHNIQUE name="Package management for RHEL / CentOS / SuSE / RPM systems">
+  <DESCRIPTION>This technique operates on individual packages.
+
+  It will ensure that the defined packages are installed, up-to-date or removed using the yum/zypper package manager.</DESCRIPTION>
+  
+  <MULTIINSTANCE>true</MULTIINSTANCE>
+  <COMPATIBLE>
+    <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
+    <OS version=">= 10 SP1 (Agama Lizard)">SuSE LES / DES / OpenSuSE</OS>
+    <AGENT version=">= 3.4.0">cfengine-community</AGENT>
+  </COMPATIBLE>
+
+  <BUNDLES>
+    <NAME>check_rpm_package_installation</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="rpmPackageInstallation"/>
+    <TML name="rpmPackageInstallationData">
+      <OUTPATH>rpmPackageInstallation/7.0/rpmPackageInstallationData</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+  </TMLS>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>RPM_PACKAGE_REDLIST</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+  
+  <SECTIONS>
+    <SECTION name="ZMD process" component="true" />
+    <SECTION name="Check interval" component="false">
+      <INPUT>
+        <NAME>RPM_PACKAGE_CHECK_INTERVAL</NAME>
+        <DESCRIPTION>Check package statuses every (minutes)</DESCRIPTION>
+        <LONGDESCRIPTION>By default, check packages every 5 minutes. Increase this value to reduce load on managed nodes. Note that when any setting is changed for a host, package statuses will be checked immediately and this timer will be reset</LONGDESCRIPTION>
+        <UNIQUEVARIABLE>true</UNIQUEVARIABLE>
+        <CONSTRAINT>
+          <DEFAULT>5</DEFAULT>
+          <TYPE>integer</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+    <SECTION name="RHEL/CentOS/SuSE packages" multivalued="true" component="true" componentKey="RPM_PACKAGE_REDLIST">
+      <!-- Redhat like related Section , index 1-->
+      <INPUT>
+        <NAME>RPM_PACKAGE_REDLIST</NAME>
+        <DESCRIPTION>Package name</DESCRIPTION>
+      </INPUT>
+      <SELECT1>
+        <NAME>RPM_PACKAGE_REDACTION</NAME>
+        <DESCRIPTION>Action to perform on this package</DESCRIPTION>
+        <ITEM>
+          <LABEL>Install only (don't update)</LABEL>
+          <VALUE>add</VALUE>
+        </ITEM>
+        <ITEM>
+          <LABEL>Update only (don't install)</LABEL>
+          <VALUE>update</VALUE>
+        </ITEM>
+        <!--<ITEM> # CURRENTLY BROKEN IN CFENGINE #
+          <LABEL>Install and update automatically</LABEL>
+          <VALUE>addupdate</VALUE>
+        </ITEM>-->
+        <ITEM>
+          <LABEL>Remove</LABEL>
+          <VALUE>delete</VALUE>
+        </ITEM>
+        <CONSTRAINT>
+          <DEFAULT>add</DEFAULT>
+        </CONSTRAINT>
+      </SELECT1>
+      <SECTION name="Package version" component="false">
+        <SELECT1>
+          <NAME>RPM_PACKAGE_VERSION_DEFINITION</NAME>
+          <DESCRIPTION>Define package version to install</DESCRIPTION>
+          <ITEM>
+            <LABEL>Use package manager default version</LABEL>
+            <VALUE>default</VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL>Define version criteria below</LABEL>
+            <VALUE>specific</VALUE>
+          </ITEM>
+          <CONSTRAINT>
+            <DEFAULT>default</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+        <SELECT1>
+          <NAME>RPM_PACKAGE_VERSION_CRITERION</NAME>
+          <DESCRIPTION>Package version match</DESCRIPTION>
+          <ITEM>
+            <LABEL><![CDATA[==]]> This exact version only</LABEL>
+            <VALUE><![CDATA[==]]></VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL><![CDATA[!=]]> Anything but this version</LABEL>
+            <VALUE><![CDATA[!=]]></VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL><![CDATA[>=]]> This version or any later one</LABEL>
+            <VALUE><![CDATA[>=]]></VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL><![CDATA[>=]]> This version or any earlier one</LABEL>
+            <VALUE><![CDATA[>=]]></VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL><![CDATA[>]]> Any later version</LABEL>
+            <VALUE><![CDATA[>]]></VALUE>
+          </ITEM>
+          <ITEM>
+            <LABEL><![CDATA[<]]> Any earlier version</LABEL>
+            <VALUE><![CDATA[<]]></VALUE>
+          </ITEM>
+          <CONSTRAINT>
+            <DEFAULT>==</DEFAULT>
+          </CONSTRAINT>
+        </SELECT1>
+        <INPUT>
+          <NAME>RPM_PACKAGE_VERSION</NAME>
+          <DESCRIPTION>Package version number</DESCRIPTION>
+          <CONSTRAINT>
+            <MAYBEEMPTY>true</MAYBEEMPTY>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+      <SECTION name="Post-modification hook" component="true" componentKey="RPM_PACKAGE_REDLIST">
+        <INPUT>
+          <NAME>RPM_PACKAGE_POST_HOOK_RUN</NAME> 
+          <DESCRIPTION>Should the command(s) below be run if the above package has been modified?</DESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>boolean</TYPE>
+            <DEFAULT>false</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+        <INPUT>
+          <NAME>RPM_PACKAGE_POST_HOOK_COMMAND</NAME>
+          <DESCRIPTION>Command to run after any modifications</DESCRIPTION>
+          <CONSTRAINT>
+            <TYPE>textarea</TYPE>
+            <MAYBEEMPTY>true</MAYBEEMPTY>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+    </SECTION>
+  </SECTIONS>
+
+</TECHNIQUE>       

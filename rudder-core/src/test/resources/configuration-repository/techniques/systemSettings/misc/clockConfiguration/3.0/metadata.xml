@@ -1,0 +1,162 @@
+<!--
+Copyright 2011 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+<!-- This technique sets generalist clock parameters like NTP servers and timezones -->
+<TECHNIQUE name="Time settings">
+  <DESCRIPTION>Configure system clock (automatic updates via NTP, time zone, ...)</DESCRIPTION>
+  <COMPATIBLE>
+    <OS version=">= 4 (Etch)">Debian</OS>
+    <OS version=">= 4 (Nahant)">RHEL / CentOS</OS>
+    <OS version=">= 10 SP1 (Agama Lizard)">SuSE LES / DES / OpenSuSE</OS>
+    <AGENT version=">= 3.1.5">cfengine-community</AGENT>
+  </COMPATIBLE>
+
+  <SYSTEMVARS>
+    <NAME>NOVA</NAME>
+  </SYSTEMVARS>
+
+  <BUNDLES>
+    <NAME>check_clock_configuration</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="clockConfiguration"/>
+  </TMLS>
+
+  <TRACKINGVARIABLE>
+    <SAMESIZEAS>CLOCK_TIMEZONE</SAMESIZEAS>
+  </TRACKINGVARIABLE>
+
+  <SECTIONS>
+    <!-- general Section -->
+    <SECTION name="Time synchronization (NTP)" component="true">
+      <INPUT>
+        <NAME>CLOCK_FQDNNTP</NAME>
+        <DESCRIPTION>NTP server list uses DNS domain names instead of IP addresses?</DESCRIPTION>
+        <LONGDESCRIPTION>This should be enabled if a DNS domain name is used as an NTP server instead of an IP address. It is for Windows compatibility.</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>boolean</TYPE>
+          <DEFAULT>true</DEFAULT>
+        </CONSTRAINT>
+      </INPUT>
+      <SECTION name="clock ntpservers" multivalued="true">
+        <INPUT>
+          <NAME>CLOCK_NTPSERVERS</NAME>
+          <DESCRIPTION>List of NTP time servers to use</DESCRIPTION>
+          <CONSTRAINT>
+            <DEFAULT>pool.ntp.org</DEFAULT>
+          </CONSTRAINT>
+        </INPUT>
+      </SECTION>
+    </SECTION>
+
+    <SECTION name="Time zone" component="true">
+      <SELECT1>
+        <NAME>CLOCK_TIMEZONE</NAME>
+        <DESCRIPTION>Country to define time zone</DESCRIPTION>
+        <LONGDESCRIPTION>This country name will be used to set the standard time zone on each node.</LONGDESCRIPTION>
+        <ITEM>
+          <VALUE>dontchange</VALUE>
+          <LABEL>Don't change</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>france</VALUE>
+          <LABEL>France</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>uk</VALUE>
+          <LABEL>United Kingdom</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>germany</VALUE>
+          <LABEL>Germany</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>spain</VALUE>
+          <LABEL>Spain</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>italy</VALUE>
+          <LABEL>Italy</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>us-pacific</VALUE>
+          <LABEL>United States - Pacific</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>us-mountain</VALUE>
+          <LABEL>United States - Mountains</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>us-central</VALUE>
+          <LABEL>United States - Central</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>us-eastern</VALUE>
+          <LABEL>United States - Eastern</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>canada</VALUE>
+          <LABEL>Canada</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>belgium</VALUE>
+          <LABEL>Belgium</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>luxembourg</VALUE>
+          <LABEL>Luxembourg</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>netherlands</VALUE>
+          <LABEL>Netherlands</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>norway</VALUE>
+          <LABEL>Norway</LABEL>
+        </ITEM>
+        <ITEM>
+          <VALUE>beijing</VALUE>
+          <LABEL>China (Beijing)</LABEL>
+        </ITEM>
+        <CONSTRAINT>
+          <DEFAULT>dontchange</DEFAULT>
+        </CONSTRAINT>
+      </SELECT1>
+    </SECTION>
+    <SECTION name="Hardware clock (RTC)" component="true">
+      <INPUT>
+        <NAME>CLOCK_HWSYNC_ENABLE</NAME>
+        <DESCRIPTION>Synchronize the system clock periodically with the hardware clock</DESCRIPTION>
+        <LONGDESCRIPTION>Save the system clock to the hardware clock periodically. Can cause problems with Xen DomU's!</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>boolean</TYPE>
+          <DEFAULT>true</DEFAULT>
+        </CONSTRAINT>
+      </INPUT>
+      <INPUT>
+        <NAME>CLOCK_SYNCSCHED</NAME>
+        <DESCRIPTION>Set hardware clock from system clock every (minutes)</DESCRIPTION>
+        <LONGDESCRIPTION>This is the time to wait between each synchronisation of the system clock to the the hardware clock.</LONGDESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>string</TYPE>
+          <DEFAULT>240</DEFAULT>
+        </CONSTRAINT>
+      </INPUT>
+    </SECTION>
+  </SECTIONS>
+
+</TECHNIQUE>

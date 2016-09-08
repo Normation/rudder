@@ -1,0 +1,6 @@
+ -- Benoit PECCATTE <benoit.peccatte@normation.com> Tue Sep  9 08:52:55 CEST 2014
+  * Version 2.0
+  ** Rewrite with normal ordering and {}
+ -- Benoît Peccatte <benoit.peccatte@normation.com> Fri Oct 17 14:10:43 CEST 2014
+  * Version 3.0
+  ** Use rudder_common_report instead of reports:
