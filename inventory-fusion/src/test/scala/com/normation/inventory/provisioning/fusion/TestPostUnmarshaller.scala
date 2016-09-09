@@ -121,4 +121,10 @@ class TestPreUnmarshaller extends Specification {
         noFQDN.toOption must beNone
      }
   }
+
+  "A report without OS/NAME but with KERNEL_NAME" should { "work" in {
+    val report = post.check("fusion-report/only-kernel-name-0034fbbe-4b52-4212-9535-1f1a952c6f36.ocs")
+    report.toOption must not beNone
+  } }
+
 }
