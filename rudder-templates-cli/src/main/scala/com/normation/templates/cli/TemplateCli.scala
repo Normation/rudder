@@ -87,7 +87,7 @@ object TemplateCli {
   val fillerService = new FillTemplatesService()
 
   val parser = new OptionParser[Config]("Rudder template cli") {
-    head("rudder-templates-cli", "3.3.x")
+    head("rudder-templates-cli", "4.0.x")
 
     opt[File]("outdir") valueName("<file>") action { (x, c) =>
       c.copy(outdir = x) } text("output directory for filled template, default is '.'")
