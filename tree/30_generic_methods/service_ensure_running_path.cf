@@ -57,7 +57,7 @@ bundle agent service_ensure_running_path(service_name, service_path)
         ifvarclass => "(real_path.service_check_running_${canonified_service_path}_kept)|(!real_path.service_check_running_${canonified_service_name})";
  
       "class copy if not running"
-        usebundle => _classes_copy("service_start_${canonified_service_path}", "${class_prefix}"),
+        usebundle => _classes_copy("service_start_${canonified_service_name}", "${class_prefix}"),
         ifvarclass => "(real_path.!service_check_running_${canonified_service_path}_kept)|(!real_path.!service_check_running_${canonified_service_name})";
 
     any::
