@@ -85,7 +85,7 @@ SKIPPED_TESTS=0
 OUR_DIR=`dirname "$0"`
 NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
 NCF_TESTS_ACCEPTANCE=`cd "${OUR_DIR}" && pwd`
-
+NCF_COMPATIBLE_INPUTS="${NCF_TREE}/10_ncf_internals/list-compatible-inputs"
 #
 # Many older platforms don't support date +%s, so check for compatibility
 # and find Perl for the unix_seconds() routine below. (Mantis #1254)
@@ -452,6 +452,9 @@ if [ "$UNSAFE_TESTS" = "1" -a "$GAINROOT" = "fakeroot" ]; then
     exit 1
 fi
 
+# Get current agent version
+AGENT_VERSION=`"${AGENT}" -V | cut -d' ' -f 3 | sed 's/\.[^.]*$//'`
+
 if [ $# -gt 0 ]; then
   # We need to run all specified tests, but not unsafe ones.
   STAGING_TESTS=1
@@ -464,7 +467,7 @@ if [ $# -gt 0 ]; then
     if [ -f $test ]; then
       TESTS="$TESTS${TESTS:+ }$test"
     elif [ -d $test ]; then
-      ADDTESTS=`find "$test" -name '*.cf' | sort`
+      ADDTESTS=`"${NCF_COMPATIBLE_INPUTS}" ${AGENT_VERSION} "${test}" . | sort`
       TESTS="$TESTS${TESTS:+ }$ADDTESTS"
     else
       echo "Unable to open test file/directory: $test"
@@ -472,7 +475,7 @@ if [ $# -gt 0 ]; then
   done
 else
   MYDIR=`dirname $0`
-  TESTS=`find "${MYDIR}" -name '*.cf' | sort`
+  TESTS=`"${NCF_COMPATIBLE_INPUTS}" ${AGENT_VERSION} "${MYDIR}" . | sort`
 fi
 
 #
