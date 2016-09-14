@@ -3,16 +3,15 @@
 bundle common ncf_inputs
 {
   vars:
-     "ncf_tree" string => getenv("NCF_TREE", 1024);
+      "ncf_tree" string => getenv("NCF_TREE", 1024);
 
-     # We could use find to build the full paths here, but that causes a very
-     # long string to be built, causing CFEngine to error out, so we rebuild
-     # the full paths using maplist below
-     "generic_ncf_files"
-        string => execresult("/bin/bash -c \"cd ${ncf_tree} && /usr/bin/find 10_ncf_internals/configuration.cf 10_ncf_internals/expand_configuration.cf 20_cfe_basics 30_generic_methods 40_it_ops_knowledge -name '*.cf' -print\"", "noshell");
+      # Almost same as promises.cf, but only load necessary parts
+      "list_compatible_inputs" string => "/bin/sh ${ncf_tree}/10_ncf_internals/list-compatible-inputs";
 
-     "default_files_relative" slist => splitstring("${generic_ncf_files}", "\n", 10000);
-     "default_files"          slist => maplist("${ncf_tree}/${this}", default_files_relative);
+      "generic_framework"      string => execresult("${list_compatible_inputs} ${sys.cf_version} ${ncf_tree} 10_ncf_internals 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "useshell");
+
+      "default_files_relative" slist => splitstring("${generic_framework}", "\n", 10000);
+      "default_files"         slist => maplist("${ncf_tree}/${this}", default_files_relative);
 
 }
 
