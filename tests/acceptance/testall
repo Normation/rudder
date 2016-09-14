@@ -467,7 +467,7 @@ if [ $# -gt 0 ]; then
     if [ -f $test ]; then
       TESTS="$TESTS${TESTS:+ }$test"
     elif [ -d $test ]; then
-      ADDTESTS=`"${NCF_COMPATIBLE_INPUTS}" ${AGENT_VERSION} "${test}" . | sort`
+      ADDTESTS=`"${NCF_COMPATIBLE_INPUTS}" ${AGENT_VERSION} "${NCF_TESTS_ACCEPTANCE}/${test}" . | awk -v path="${test}" '{ print path"/"$0 }' | sort`
       TESTS="$TESTS${TESTS:+ }$ADDTESTS"
     else
       echo "Unable to open test file/directory: $test"
