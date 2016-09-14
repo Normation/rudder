@@ -252,9 +252,7 @@ archlinux::
 # Don't do anything if class warn is defined, or remediate the promises
 # if immediate is defined (default action)
 body action do_if_immediate {
-  immediate::
-   action_policy => "fix";
-  warn::
+  warn|dry_run|global_dry_run::
    action_policy => "warn";
 }
 

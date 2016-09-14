@@ -61,6 +61,9 @@ body action if_elapsed(x)
 {
       ifelapsed => "$(x)";
       expireafter => "$(x)";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -70,6 +73,9 @@ body action if_elapsed_day
 {
       ifelapsed => "1440";    # 60 x 24
       expireafter => "1400";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -84,6 +90,9 @@ body action measure_performance(x)
       measurement_class => "Detect changes in $(this.promiser)";
       ifelapsed => "$(x)";
       expireafter => "$(x)";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -94,6 +103,9 @@ body action measure_promise_time(identifier)
 # @param identifier Measurement name.
 {
       measurement_class => "$(identifier)";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -117,6 +129,9 @@ body action bg(elapsed,expire)
       ifelapsed   => "$(elapsed)";
       expireafter => "$(expire)";
       background  => "true";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -126,6 +141,9 @@ body action ifwin_bg
 {
     windows::
       background => "true";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -134,6 +152,9 @@ body action immediate
 # @brief Evaluate the promise at every `cf-agent` execution.
 {
       ifelapsed => "0";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -143,6 +164,9 @@ body action policy(p)
 # @param p The action policy
 {
       action_policy => "$(p)";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -156,6 +180,9 @@ body action log_repaired(log,message)
 {
       log_string => "$(sys.date), $(message)";
       log_repaired => "$(log)";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ###
@@ -164,6 +191,9 @@ body action log_verbose
 # @brief Sets the `log_level` attribute to "verbose"
 {
       log_level => "verbose";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##
@@ -175,6 +205,9 @@ body action sample_rate(x)
 {
       ifelapsed => "$(x)";
       expireafter => "10";
+
+    dry_run|global_dry_run::
+      action_policy => "warn";
 }
 
 ##-------------------------------------------------------
