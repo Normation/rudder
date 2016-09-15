@@ -93,11 +93,10 @@ case class RuleApiService2 (
     , act          : String
   ) (implicit action : String, prettify : Boolean) = {
 
-
     ( for {
-        reason <- restExtractor.extractReason(req.params)
-        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Rule ${rule.name} from API"))
-        crDescription = restExtractor.extractChangeRequestDescription(req.params)
+        reason <- restExtractor.extractReason(req)
+        crName <- restExtractor.extractChangeRequestName(req).map(_.getOrElse(s"${act} Rule ${rule.name} from API"))
+        crDescription = restExtractor.extractChangeRequestDescription(req)
         cr <- changeRequestService.createChangeRequestFromRule(
                   crName
                 , crDescription
@@ -152,7 +151,7 @@ case class RuleApiService2 (
     def actualRuleCreation(restRule : RestRule, baseRule : Rule) = {
       val newRule = restRule.updateRule( baseRule )
       ( for {
-        reason   <- restExtractor.extractReason(req.params)
+        reason   <- restExtractor.extractReason(req)
         saveDiff <-  writeRule.create(newRule, modId, actor, reason)
       } yield {
         saveDiff
@@ -294,6 +293,5 @@ case class RuleApiService2 (
         toJsonError(Some(ruleId.value), message)
     }
   }
-
 
 }
