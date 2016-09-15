@@ -622,7 +622,7 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     private def displayTabProperties(jsId:JsNodeId, node: NodeInfo) : NodeSeq = {
     displayTabGrid(jsId)("props", Full(node.properties)){
         ("Name", {x:NodeProperty => Text(x.name)}) ::
-        ("Value", {x:NodeProperty => Text(x.value)}) ::
+        ("Value", {x:NodeProperty => Text(net.liftweb.json.compactRender(x.value))}) ::
         Nil
     }
     }

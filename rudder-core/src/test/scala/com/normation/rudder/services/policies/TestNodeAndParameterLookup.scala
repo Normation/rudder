@@ -55,6 +55,15 @@ import com.normation.rudder.domain.policies.InterpolationContext
 import InterpolationContext._
 import com.normation.rudder.reports.FullCompliance
 import com.normation.rudder.reports.ReportingConfiguration
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import net.liftweb.json.parse
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
+import scala.util.matching.Regex
+import org.specs2.matcher.Matcher
+import org.specs2.matcher.Expectable
+import java.util.regex.Pattern
 
 /**
  * Test how parametrized variables are replaced for
@@ -64,6 +73,23 @@ import com.normation.rudder.reports.ReportingConfiguration
 
 @RunWith(classOf[JUnitRunner])
 class TestNodeAndParameterLookup extends Specification {
+
+  //matcher for failure
+  def beFailure[T](r: Regex) = new Matcher[Box[T]] {
+    def apply[S <: Box[T]](v: Expectable[S]) = {
+
+      val res = v.value match {
+        case Full(x)           => false
+        case Empty             => false
+        case Failure(m, _, _) => r.pattern.matcher(m).matches()
+      }
+
+      result(res, "ok", "Didn't get failure matching regex " + r.toString, v, Failure(r.toString()).toString, v.value.toString)
+    }
+  }
+
+
+
   import NodeConfigData._
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
@@ -79,10 +105,11 @@ class TestNodeAndParameterLookup extends Specification {
   )
 
   def lookup(
-      variables: Seq[Variable]
-    , context: InterpolationContext
+      variables     : Seq[Variable]
+    , context       : InterpolationContext
+    , nodePropSwitch: FeatureSwitch = FeatureSwitch.Enabled
   )(test:Seq[Seq[String]] => Example) : Example  = {
-    lookupService.lookupNodeParameterization(variables)(context) match {
+    lookupService.lookupNodeParameterization(variables, nodePropSwitch)(context) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error in test"
         val ex = e ?~! e.rootExceptionCause.map( _.getMessage ).openOr("(not caused by an other exception)")
@@ -90,6 +117,8 @@ class TestNodeAndParameterLookup extends Specification {
       case Full(res) => test(res.values.map( _.values ).toSeq)
     }
   }
+
+  def jparse(s: String): JValue = try { parse(s) } catch { case ex: Exception => JString(s) }
 
   //two variables
   val var1 = InputVariableSpec("var1", "").toVariable(Seq("== ${rudder.param.foo} =="))
@@ -104,8 +133,8 @@ class TestNodeAndParameterLookup extends Specification {
 
   val dangerVariable = InputVariableSpec("danger", "").toVariable(Seq("${rudder.param.danger}"))
 
-  val multilineParamVariable = InputVariableSpec("multiParam", "").toVariable(Seq("== ${rudder.\rparam.\nfoo} =="))
   val multilineInputVariable = InputVariableSpec("multiInput", "").toVariable(Seq("=\r= \n${rudder.param.foo} =\n="))
+  val multilineNodePropVariable = InputVariableSpec("multiNodeProp", "").toVariable(Seq("=\r= \n${node.properties[datacenter][Europe]} =\n="))
 
   val var2 = InputVariableSpec("var1", "", multivalued = true).toVariable(Seq(
       "a${rudder.node.id})"
@@ -130,7 +159,7 @@ class TestNodeAndParameterLookup extends Specification {
   def p(params: ParameterForConfiguration*): Map[ParameterName, InterpolationContext => Box[String]] = {
     sequence(params.toSeq) { param =>
       for {
-        p <- compiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+        p <- compiler.compile(param.value, FeatureSwitch.Enabled) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
       } yield {
         (param.name, p)
       }
@@ -143,18 +172,22 @@ class TestNodeAndParameterLookup extends Specification {
     }
   }
 
+
+  import InterpolatedValueCompilerImpl._
+
+  import compiler.{parseAll, ParseResult, NoSuccess, Success, all, plainString, interpol}
+
+  //in case of success, test for the result
+  def test[T](r: ParseResult[T], result: Any) = r match {
+    case NoSuccess(msg, x) => ko(msg)
+    case Success(x, remaining) =>  x === result
+  }
+
   /**
    * Test that the parser correctly parse strings
    * to the expected AST
    */
   "Parsing values" should {
-    import compiler.{failure => fff, _}
-
-    //in case of success, test for the result
-    def test[T](r: ParseResult[T], result: Any) = r match {
-      case NoSuccess(msg, x) => ko(msg)
-      case Success(x, remaining) =>  x === result
-    }
 
     "parse (multiline) plain text" in {
       val s = """some vars chars with \z \n plop foo"""
@@ -194,9 +227,159 @@ class TestNodeAndParameterLookup extends Specification {
       val s = """${rudder_parameters.foo}"""
       test(parseAll(all, s), List(CharSeq(s)))
     }
+
+    "accept rudderthing variable as a plain variable" in {
+      val s = """${rudderthings.foo}"""
+      test(parseAll(all, s), List(CharSeq(s)))
+    }
+
+    "accept node.things variable as a plain variable" in {
+      val s = """${node.thing.foo}"""
+      test(parseAll(all, s), List(CharSeq(s)))
+    }
+
+    "accept nodethings variable as a plain variable" in {
+      val s = """${nodething.foo}"""
+      test(parseAll(all, s), List(CharSeq(s)))
+    }
+
+    "fails on unknown rudder subpath" in {
+      val s = """${rudder.foo.bar}"""
+      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers$Failure]
+    }
+
+    "error on parse node properties with path=0" in {
+      val s = """${node.properties}"""
+      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers$Failure]
+    }
+
+    "error on parse node properties with path=0" in {
+      val s = """${node.properties[]}"""
+      parseAll(all, s) must haveClass[scala.util.parsing.combinator.Parsers$Failure]
+    }
+
+    "parse node properties with path=1" in {
+      val s = """${node.properties[datacenter]}"""
+      test(parseAll(all, s), List(Property("datacenter" :: Nil, None)))
+    }
+
+    "parse node properties with path=2" in {
+      val s = """${node.properties[datacenter][Europe]}"""
+      test(parseAll(all, s), List(Property("datacenter" :: "Europe" :: Nil, None)))
+    }
+
+    "parse node properties with path=N>2" in {
+      val s = """${node.properties[datacenter][Europe][France][Paris][3]}"""
+      test(parseAll(all, s), List(Property("datacenter" :: "Europe" :: "France" :: "Paris" :: "3" :: Nil, None)))
+    }
+
+    "parse node properties in the middle of a string" in {
+      val s = """some text and ${node.properties[datacenter][Europe]}  and some more text"""
+      test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, None), CharSeq("  and some more text")))
+    }
+
+    "parse node properties 'node' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|node}  and some more text"""
+      test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(InterpreteOnNode)), CharSeq("  and some more text")))
+    }
+
+    "parse node properties 'default:''' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default= ""}  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("")::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+    "parse node properties 'default:string' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default= "default value"}  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default value")::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+    "parse node properties 'default:string with {}' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default= "default {} value" }  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+
+    "parse node properties 'default:tq'' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default= """ + "\"\"\"\"\"\"" + """}  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("")::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+    "parse node properties 'default:string' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default= """ + "\"\"\"" + "default {} value"+ "\"\"\"" + """}  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+    "parse node properties 'default:string with {}' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default= """ + "\"\"\"" + "default {} value"+ "\"\"\"" + """ }  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(CharSeq("default {} value")::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+
+
+    "parse node properties 'default:param' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default=${rudder.param.foo}}  and some more text"""
+      test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Param("foo")::Nil))), CharSeq("  and some more text")))
+    }
+
+    "parse node properties 'default:node.hostname' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default=${rudder.node.hostname}}  and some more text"""
+      test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
+    }
+
+    "parse node properties 'default:node.properties' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]}}  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, None)::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
+
+    "parse node properties 'default:node.properties+default' option" in {
+      val s = """some text and ${node.properties[datacenter][Europe]|default=${node.properties[defaultDatacenter]|default="some default value"}}  and some more text"""
+      test(parseAll(all, s), List(
+          CharSeq("some text and ")
+        , Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(Property("defaultDatacenter" :: Nil, Some(DefaultValue(CharSeq("some default value")::Nil)))::Nil)))
+        , CharSeq("  and some more text")
+      ))
+    }
   }
 
-  def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
+  "Parsing values with spaces" should {
+
+    "parse node properties 'default:node.hostname' option" in {
+      val s = """some text and ${node . properties [
+        datacenter] [ Europe] | default= ${rudder . node
+        . hostname }  }  and some more text"""
+
+      test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
+    }
+  }
+  def compileAndGet(s:String) = compiler.compile(s, FeatureSwitch.Enabled).openOrThrowException("Initialisation test error")
 
   /**
    * Test that the interpretation of an AST is
@@ -235,7 +418,7 @@ class TestNodeAndParameterLookup extends Specification {
 
     "raise an error for an unknow accessor" in {
       val badAccessor = "rudder.node.foo"
-      compiler.compile("${"+badAccessor+"}") match {
+      compiler.compile("${"+badAccessor+"}", FeatureSwitch.Enabled) match {
         case eb:EmptyBox => ko((eb?~!"Error when parsing interpolated value").messageChain)
         case Full(i) => i(context) match {
           case Full(res) => ko(s"When interpreted, an unkown accessor '${badAccessor}' should yield an error")
@@ -355,30 +538,39 @@ class TestNodeAndParameterLookup extends Specification {
       )
     }
 
+    "match when node properties are on multiline" in {
+      val node = context.nodeInfo.node.copy(properties = Seq(NodeProperty("datacenter", jparse("""{"Europe": "Paris"}"""))))
+      val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
+      lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)))( values =>
+        values must containTheSameElementsAs(Seq(Seq("=\r= \nParis =\n=")))
+      )
+    }
+
+    "don't replace anything if the node properties is disabled" in {
+      val node = context.nodeInfo.node.copy(properties = Seq(NodeProperty("datacenter", jparse("""{"Europe": "Paris"}"""))))
+      val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
+      lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)), FeatureSwitch.Disabled )( values =>
+        values must containTheSameElementsAs(Seq(Seq("=\r= \n${node.properties[datacenter][Europe]} =\n=")))
+      )
+    }
+
     "fails when the curly brace after ${rudder. is not closed" in {
-      lookupService.lookupNodeParameterization(Seq(badUnclosed))(context) must beEqualTo(
-        Failure("""Error when parsing variable empty""",Empty,Full(Failure("""Error when parsing value "== ${rudder.param.foo ==", error message is: `}' expected but ` ' found""")))
+      lookupService.lookupNodeParameterization(Seq(badUnclosed), FeatureSwitch.Enabled)(context) must beFailure(
+        """On variable 'empty'.* `}' expected but `=' found.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is empty" in {
-      lookupService.lookupNodeParameterization(Seq(badEmptyRudder))(context) must beEqualTo(
-        Failure("""Error when parsing variable empty""",Empty,Full(Failure("""Error when parsing value "== ${rudder.} ==", error message is: string matching regex `(?iu)\Qparam\E' expected but `}' found""")))
+      lookupService.lookupNodeParameterization(Seq(badEmptyRudder), FeatureSwitch.Enabled)(context) must beFailure(
+        (".*" + Pattern.quote("""string matching regex `(?iu)\Qparam\E' expected but `}' found""")+".*"). r
       )
     }
 
     "fails when the part after ${rudder.} is not recognised" in {
-      lookupService.lookupNodeParameterization(Seq(badUnknown))(context.copy(parameters = p(fooParam))) must beEqualTo(
-        Failure("""Error when parsing variable empty""",Empty,Full(Failure("""Error when parsing value "== ${rudder.foo} ==", error message is: string matching regex `(?iu)\Qparam\E' expected but `f' found""")))
+      lookupService.lookupNodeParameterization(Seq(badUnknown), FeatureSwitch.Enabled)(context.copy(parameters = p(fooParam))) must beFailure(
+        (".*" + Pattern.quote("""string matching regex `(?iu)\Qparam\E' expected but `f' found""")+".*"). r
       )
     }
-
-    "not match when parameter names are splited on multiple lines" in {
-      lookupService.lookupNodeParameterization(Seq(multilineParamVariable))(context.copy(parameters = p(fooParam))) must beEqualTo(
-        Failure("""Error when parsing variable multiParam""",Empty,Full(Failure("Error when parsing value \"== ${rudder.\rparam.\nfoo} ==\", error message is: string matching regex `(?iu)\\Qparam\\E' expected but `\r' found",Empty,Empty)))
-      )
-    }
-
   }
 
   "A double parameter" should {
@@ -412,6 +604,70 @@ class TestNodeAndParameterLookup extends Specification {
     }
   }
 
+  "Node properties in directives" should {
+
+    def compare(param: String, props: Seq[(String, String)])= {
+      val i = compileAndGet(param)
+      val p = props.map { case (k, v) => NodeProperty(k, jparse(v)) }
+      val node = context.nodeInfo.node.copy(properties = p)
+      val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
+
+      i(c)
+    }
+
+    val json = """{  "Europe" : {  "France"  : "Paris" }   }"""
+
+    "not be able to replace parameter when no properties" in {
+      compare("${node.properties[plop]}", ("datacenter", "some data center") :: Nil) must haveClass[Failure]
+    }
+
+    "correctly get the value even if not in JSON for 1-deep-length path" in {
+      compare("${node.properties[datacenter]}", ("datacenter", "some data center") :: Nil) must beEqualTo("some data center")
+    }
+
+    "not be able to replace a parameter with a 2-deep length path in non-json value" in {
+      compare("${node.properties[datacenter][Europe]}", ("datacenter", "some data center") :: Nil) must haveClass[Failure]
+    }
+
+    "not be able to replace a parameter with a 2-deep length path in a json value without the asked path" in {
+      compare("${node.properties[datacenter][Asia]}", ("datacenter", json) :: Nil) must haveClass[Failure]
+    }
+
+    "correclty return the compacted json string for 1-length" in {
+      compare("${node.properties[datacenter]}", ("datacenter", json) :: Nil) must beEqualTo(net.liftweb.json.compactRender(jparse(json)))
+    }
+
+    "correctly return the compacted json string for 2-or-more-lenght" in {
+      compare("${node.properties[datacenter][Europe]}", ("datacenter", json) :: Nil) must beEqualTo("""{"France":"Paris"}""") // look, NO SPACES
+    }
+
+    "correctly return the same string if interpretation is done on node" in {
+      compare("${node.properties[datacenter][Europe]|node}", ("datacenter", json) :: Nil) must beEqualTo("""${node.properties[datacenter][Europe]}""")
+    }
+
+    "correctly return the default string if value is missing on node" in {
+      compare("""${node.properties[datacenter][Europe]|default="some default"}""", ("missing_datacenter", json) :: Nil) must beEqualTo("""some default""")
+    }
+
+    "correctly return the replaced value if key is present on node" in {
+      compare("""${node.properties[datacenter][Europe]|default="some default"}""", ("datacenter", json) :: Nil) must beEqualTo("""{"France":"Paris"}""")
+    }
+
+    "correctly return the replaced value, two level deep, if first key is missing" in {
+      compare("""${node.properties[missing][key]|default= ${node.properties[datacenter][Europe]|default="some default"}}"""
+           , ("datacenter", json) :: Nil) must beEqualTo("""{"France":"Paris"}""")
+    }
+    "correctly return the default value, two level deep, if all keys are missing" in {
+      compare("""${node.properties[missing][key]|default= ${node.properties[missing_datacenter][Europe]|default="some default"}}"""
+           , ("datacenter", json) :: Nil) must beEqualTo("""some default""")
+    }
+    "correctly return the default value which is ${node.properties...}, if default has the 'node' optiopn" in {
+      compare("""${node.properties[missing][key]|default= ${node.properties[datacenter][Europe]|node}}"""
+           , ("datacenter", json) :: Nil) must beEqualTo("""${node.properties[datacenter][Europe]}""")
+    }
+  }
+
+
   "Case" should {
     "not matter in the path" in {
       lookup(Seq(pathCaseInsensitive), context.copy(parameters = p(fooParam)))( values =>
@@ -419,19 +675,15 @@ class TestNodeAndParameterLookup extends Specification {
       )
     }
 
-    "matter for parameter names" in {
-      lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive))(context) must beEqualTo(
-        Failure(
-            "Error when resolving interpolated variable in directive variable paramNameCaseSensitive"
-          , Empty
-          , Full(Failure("Error when trying to interpolate a variable: Rudder parameter not found: 'Foo'",Empty,Empty))
-        )
-      )
-    }
-
     "not matter in nodes path accessor" in {
       val i = compileAndGet("${rudder.node.HoStNaMe}")
       i(context) must beEqualTo(Full("node1.localhost"))
+    }
+
+    "matter for parameter names" in {
+      lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive), FeatureSwitch.Enabled)(context) must beFailure(
+        ".*Rudder parameter not found: 'Foo'".r
+      )
     }
 
     "matter in param names" in {
@@ -447,6 +699,23 @@ class TestNodeAndParameterLookup extends Specification {
         case Empty => ko("No, we should have a failure")
         case Failure(m,_,_) => m must beEqualTo("Error when trying to interpolate a variable: Rudder parameter not found: 'xX'")
       }
+    }
+
+    "matter in node properties" in {
+      val value = "some data center somewhere"
+
+      def compare(s1: String, s2: String) = {
+        val i = compileAndGet(s"$${node.properties[${s1}]}")
+        val props = Seq(NodeProperty(s2, jparse(value)))
+        val node = context.nodeInfo.node.copy(properties = props)
+        val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
+
+        i(c)
+      }
+
+      compare("DataCenter", "datacenter") must haveClass[Failure]
+      compare("datacenter", "DataCenter") must haveClass[Failure]
+      compare("datacenter", "datacenter") must beEqualTo(value)
     }
 
   }
