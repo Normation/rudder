@@ -82,7 +82,7 @@ do
       then
         # keep if cfengine_version < required_version
         # exclude if cfengine_version >= required_version
-        if [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -eq -a "${cfengine_minor}" -ge "${minor}" ]
+        if [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}"  -a "${cfengine_minor}" -ge "${minor}" ]
         then
           # posix compliant syntax to exclude a file
           excludes="${excludes} -name ${file_name} -prune -o"
