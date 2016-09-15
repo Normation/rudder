@@ -70,7 +70,6 @@ case class ChangeRequestAPIService3 (
   , workflowEnabled      : () => Box[Boolean]
   ) extends Loggable {
 
-
   private[this] def unboxAnswer(actionName:String, id : ChangeRequestId, boxedAnwser : Box[LiftResponse]) (implicit action : String, prettify : Boolean) = {
     boxedAnwser match {
         case Full(response) => response
@@ -136,7 +135,6 @@ case class ChangeRequestAPIService3 (
         disabledWorkflowAnswer(None)
      }
 
-
   }
 
   def changeRequestDetails(id:ChangeRequestId, req:Req, apiVersion: ApiVersion) = {
@@ -172,7 +170,7 @@ case class ChangeRequestAPIService3 (
       val answer = for {
         (_,func) <- optStep.map(Full(_)).
         		      getOrElse(Failure(s"Could not decline ChangeRequest ${id} details cause is: could not decline ChangeRequest ${id}, because status '${step.value}' cannot be cancelled."))
-        reason   <- restExtractor.extractReason(req.params)  ?~ "There was an error while extracting reason message"
+        reason   <- restExtractor.extractReason(req)  ?~ "There was an error while extracting reason message"
         result   <- func(id,actor,reason) ?~!(s"Could not decline ChangeRequest ${id}" )
       } yield {
     	  val jsonChangeRequest = List(serialize(changeRequest,result,apiVersion))
@@ -198,8 +196,6 @@ case class ChangeRequestAPIService3 (
     }
   }
 
-
-
   def acceptChangeRequest(id: ChangeRequestId, targetStep : WorkflowNodeId, req: Req, apiVersion: ApiVersion) = {
 
     val actor = RestUtils.getActor(req)
@@ -212,7 +208,7 @@ case class ChangeRequestAPIService3 (
       val answer = for {
         (_,func) <- optStep.map(Full(_)).
         		      getOrElse(Failure(s"Could not accept ChangeRequest ${id} details cause is: you could not send Change Request from '${step.value}' to '${targetStep.value}'."))
-        reason   <- restExtractor.extractReason(req.params)  ?~ "There was an error while extracting reason message"
+        reason   <- restExtractor.extractReason(req)  ?~ "There was an error while extracting reason message"
         result   <- func(id,actor,reason) ?~!(s"Could not accept ChangeRequest ${id}" )
       } yield {
     	  val jsonChangeRequest = List(serialize(changeRequest,result,apiVersion))
@@ -300,4 +296,3 @@ case class APIChangeRequestInfo (
     )
   }
 }
-

@@ -51,67 +51,96 @@ import net.liftweb.json.JString
 import com.normation.rudder.web.rest.ApiVersion
 import net.liftweb.http.NotFoundResponse
 import com.normation.rudder.domain.policies.DirectiveId
+import net.liftweb.json.JsonAST.JValue
+import com.normation.eventlog.EventActor
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.web.rest.RestUtils
+import com.normation.utils.StringUuidGenerator
+import net.liftweb.common.Failure
 
 class DirectiveAPI2 (
     readDirective : RoDirectiveRepository
   , restExtractor : RestExtractorService
-  , apiV2          : DirectiveAPIService2
+  , apiV2         : DirectiveAPIService2
+  , uuidGen       : StringUuidGenerator
 ) extends DirectiveAPI with Loggable{
+
+  val dataName = "directives"
+
+  def response ( function : Box[JValue], req : Req, errorMessage : String, id : Option[String])(implicit action : String) : LiftResponse = {
+    RestUtils.response(restExtractor, dataName, id)(function, req, errorMessage)
+  }
+
+  type ActionType = RestUtils.ActionType
+  def actionResponse ( function : Box[ActionType], req : Req, errorMessage : String, id : Option[String])(implicit action : String) : LiftResponse = {
+    RestUtils.actionResponse(restExtractor, dataName, uuidGen, id)(function, req, errorMessage)
+  }
+
+  type WorkflowType = RestUtils.WorkflowType
+  def workflowResponse ( function : WorkflowType, req : Req, errorMessage : String, id : Option[String], defaultName : String)(implicit action : String) : LiftResponse = {
+    RestUtils.workflowResponse(restExtractor, dataName, uuidGen, id)(function, req, errorMessage, defaultName)
+  }
 
   override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
 
-    case Get(Nil, req) => apiV2.listDirectives(req)
+    case Get(Nil, req) => {
+      implicit val action = "listDirectives"
+      response(apiV2.listDirectives(), req, "Could not fetch list of Directives", None)
+    }
 
-    case Nil JsonPut body -> req => {
-      req.json match {
-        case Full(arg) =>
-          val restDirective = restExtractor.extractDirectiveFromJSON(arg)
-          apiV2.createDirective(restDirective,req)
-        case eb:EmptyBox=>
-          toJsonError(None, JString("No Json data sent"))("createDirective",restExtractor.extractPrettify(req.params))
-      }
+    case Get(id :: Nil, req) => {
+      implicit val action = "directiveDetails"
+      response(apiV2.directiveDetails(DirectiveId(id)), req, s"Could not find Directive '$id' details", Some(id))
     }
 
     case Put(Nil, req) => {
-      val restDirective = restExtractor.extractDirective(req.params)
-      apiV2.createDirective(restDirective, req)
-    }
-
-    case Get(id :: Nil, req) => apiV2.directiveDetails(id, req)
-
-    case Delete(id :: Nil, req) =>  apiV2.deleteDirective(id,req)
-
-    case id :: check JsonPost body -> req => {
-      val directiveId = DirectiveId(id)
-      req.json match {
-        case Full(arg) =>
-          val restDirective = restExtractor.extractDirectiveFromJSON(arg)
-          check match {
-            case Nil =>
-              apiV2.updateDirective(directiveId,req,restDirective)
-            case "check" :: Nil =>
-              apiV2.checkDirective(directiveId,req,restDirective)
-            case notFound =>
-             NotFoundResponse(s"Directive api url '${id}/${notFound.mkString("/")}' does not exists")
-          }
-        case eb:EmptyBox=>
-          toJsonError(None, JString("No Json data sent"))("updateDirective",restExtractor.extractPrettify(req.params))
+      implicit var action = "createDirective"
+      for {
+        restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
+        directiveId <- restExtractor.extractId(req)(DirectiveId).map(_.getOrElse(DirectiveId(uuidGen.newUuid)))
+        optCloneId <- restExtractor.extractString("source")(req)(DirectiveId)
+        result = optCloneId match {
+          case None =>
+            apiV2.createDirective(directiveId,restDirective)
+          case Some(cloneId) =>
+            action = "cloneDirective"
+            apiV2.cloneDirective(directiveId, restDirective, cloneId)
+        }
+      } yield {
+        val id = Some(directiveId.value)
+        actionResponse(result, req, "Could not create Directives", id)
       }
     }
 
-    case Post(id:: check, req) => {
-      val directiveId = DirectiveId(id)
-      val restDirective = restExtractor.extractDirective(req.params)
-      check match {
-        case Nil =>
-          apiV2.updateDirective(directiveId,req,restDirective)
-        case "check" :: Nil =>
-          apiV2.checkDirective(directiveId,req,restDirective)
-        case notFound =>
-          NotFoundResponse(s"Directive api url '${id}/${notFound.mkString("/")}' does not exists")
+    case Delete(id :: Nil, req) => {
+      implicit val action = "deleteDirective"
+      for {
+        result <- apiV2.deleteDirective(DirectiveId(id))
+      } yield {
+        workflowResponse(result,req, s"Could not delete Directive '$id'", Some(id),s"Delete Directive '${id}' from API")
       }
     }
 
+    case Post(id:: "check" :: Nil, req) => {
+      val directiveId = DirectiveId(id)
+      implicit val action = "checkDirective"
+      for {
+        restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
+        result = apiV2.checkDirective(directiveId,restDirective)
+      } yield {
+        response(result, req, s"Could not check Directive '${id}' update", Some(id))
+      }
+    }
+
+    case Post(id:: Nil, req) => {
+      val directiveId = DirectiveId(id)
+      implicit val action = "updateDirective"
+      for {
+        restDirective <- restExtractor.extractDirective(req) ?~! s"Could not extract values from request."
+        result <- apiV2.updateDirective(directiveId,restDirective)
+      } yield {
+        workflowResponse(result, req, s"Could not update Directive '${id}'", Some(id), s"Update Directive '${id}' from API")
+      }
+    }
   }
-
 }

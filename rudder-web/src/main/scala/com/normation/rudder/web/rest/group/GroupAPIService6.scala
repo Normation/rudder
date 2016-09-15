@@ -82,26 +82,24 @@ case class GroupApiService6 (
     }
   }
 
-  def updateCategory(id : NodeGroupCategoryId, restData: Box[RestGroupCategory], apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def updateCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      data <- restData
       root <- readGroup.getFullGroupLibrary
       category <- Box(root.allCategories.get(id)) ?~! s"Cannot find Group category '${id.value}'"
       oldParent <- Box(root.parentCategories.get(id)) ?~! s"Cannot find Group category '${id.value}' parent"
-      parent = data.parent.getOrElse(oldParent.id)
-      update = data.update(category)
+      parent = restData.parent.getOrElse(oldParent.id)
+      update = restData.update(category)
       _ <-writeGroup.saveGroupCategory(update.toNodeGroupCategory,parent, modId, actor, reason)
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)
     }
   }
 
-  def createCategory(id : NodeGroupCategoryId, restData: Box[RestGroupCategory], apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
+  def createCategory(id : NodeGroupCategoryId, restData: RestGroupCategory, apiVersion: ApiVersion)(actor : EventActor, modId : ModificationId, reason : Option[String]) = {
     for {
-      data <- restData
-      update <- data.create(id)
+      update <- restData.create(id)
       category = update.toNodeGroupCategory
-      parent = data.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
+      parent = restData.parent.getOrElse(NodeGroupCategoryId("GroupRoot"))
       _ <-writeGroup.addGroupCategorytoCategory(category,parent, modId, actor, reason)
     } yield {
       restDataSerializer.serializeGroupCategory(update, parent, MinimalDetails, apiVersion)

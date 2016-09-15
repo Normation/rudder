@@ -56,8 +56,6 @@ import net.liftweb.http.Req
 import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 
-
-
 class NodeApiService5 (
     nodeRepository : WoNodeRepository
   , nodeInfoService: NodeInfoService
@@ -66,7 +64,6 @@ class NodeApiService5 (
   , asyncRegenerate: AsyncDeploymentAgent
 ) extends Loggable {
 
-
   def updateRestNode(nodeId: NodeId, boxRestNode: Box[RestNode], req: Req) = {
     implicit val prettify = restExtractor.extractPrettify(req.params)
     implicit val action = "updateNodeProperties"
@@ -74,7 +71,7 @@ class NodeApiService5 (
     val actor = RestUtils.getActor(req)
 
     (for {
-      reason   <- restExtractor.extractReason(req.params)
+      reason   <- restExtractor.extractReason(req)
       node     <- nodeInfoService.getNode(nodeId)
       restNode <- boxRestNode
       updated  =  node.copy(properties = updateProperties(node.properties, restNode.properties))
@@ -93,7 +90,6 @@ class NodeApiService5 (
           toJsonError(Some(nodeId.value), message)
       }
   }
-
 
   /**
    * Update a set of properties with the map:
@@ -121,5 +117,3 @@ class NodeApiService5 (
     }
   }
 }
-
-
