@@ -746,13 +746,8 @@ replace_value => "$(x)";
 occurrences => "all";
 }
 
-##
 
-body select_region INI_section(x)
-{
-select_start => "\[$(x)\]\s*";
-select_end => "\[.*\]\s*";
-}
+# INI_section has been moved into version-specific files, files_39p.cf and files_39m.cf
 
 ##-------------------------------------------------------
 ## edit_defaults
