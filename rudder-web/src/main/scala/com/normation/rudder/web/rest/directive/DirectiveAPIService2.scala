@@ -73,6 +73,7 @@ import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.rudder.domain.workflows.ChangeRequestId
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.services.TechniqueRepository
+import net.liftweb.json.JsonAST.JValue
 
 case class DirectiveAPIService2 (
     readDirective        : RoDirectiveRepository
@@ -88,24 +89,16 @@ case class DirectiveAPIService2 (
   , techniqueRepository  : TechniqueRepository
   ) extends Loggable {
 
-  def serialize(technique : Technique, directive:Directive, crId : Option[ChangeRequestId] = None) = restDataSerializer.serializeDirective(technique, directive, crId)
+  def serialize = restDataSerializer.serializeDirective _
 
   private[this] def createChangeRequestAndAnswer (
-      id              : String
-    , diff            : ChangeRequestDirectiveDiff
+      diff            : ChangeRequestDirectiveDiff
     , technique       : Technique
     , activeTechnique : ActiveTechnique
     , directive       : Directive
     , initialState    : Option[Directive]
-    , actor           : EventActor
-    , req             : Req
-    , act             : String
-  ) (implicit action : String, prettify : Boolean) = {
-
-    ( for {
-        reason <- restExtractor.extractReason(req.params)
-        crName <- restExtractor.extractChangeRequestName(req.params).map(_.getOrElse(s"${act} Directive ${directive.name} from API"))
-        crDescription = restExtractor.extractChangeRequestDescription(req.params)
+  ) (actor : EventActor, reason : Option[String], crName : String, crDescription : String) : Box[JValue] = {
+    for {
         cr <- changeRequestService.createChangeRequestFromDirective(
                   crName
                 , crDescription
@@ -116,193 +109,113 @@ case class DirectiveAPIService2 (
                 , diff
                 , actor
                 , reason
-              )
-        wfStarted <- workflowService.startWorkflow(cr.id, actor, None)
+              ) ?~! s"Change request creation on Directive '${directive.name}' failed"
+        wfStarted <- workflowService.startWorkflow(cr.id, actor, None) ?~! s"Could not start workflow for change request creation on Directive '${directive.name}'"
+        enabled   <- workflowEnabled() ?~! s"Could not check workflow property"
+        optCrId = if (enabled) Some(cr.id) else None
+        jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
       } yield {
-        cr.id
+        jsonDirective
       }
-    ) match {
-      case Full(crId) =>
-        workflowEnabled() match {
-          case Full(enabled) =>
-            val optCrId = if (enabled) Some(crId) else None
-            val jsonDirective = ("directives" -> JArray(List(serialize(technique, directive, optCrId))))
-            toJsonResponse(Some(id), jsonDirective)
-          case eb : EmptyBox =>
-            val fail = eb ?~ (s"Could not check workflow property" )
-            val msg = s"Change request creation failed, cause is: ${fail.msg}."
-            toJsonError(Some(id), msg)
-        }
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not save changes on Directive ${id}" )
-        val msg = s"Change request creation failed, cause is: ${fail.msg}."
-        toJsonError(Some(id), msg)
-    }
   }
 
-  def listDirectives(req : Req) = {
-    implicit val action = "listDirectives"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    readDirective.getFullDirectiveLibrary match {
-      case Full(fullLibrary) =>
-        val atDirectives = fullLibrary.allDirectives.values.filter(!_._2.isSystem)
-        val res = ( for {
+  def listDirectives() : Box[JValue] = {
+    for {
+      fullLibrary <- readDirective.getFullDirectiveLibrary ?~! "Could not fetch Directives"
+      atDirectives = fullLibrary.allDirectives.values.filter(!_._2.isSystem)
+      serializedDirectives = ( for {
           (activeTechnique, directive) <- atDirectives
           activeTechniqueId = TechniqueId(activeTechnique.techniqueName, directive.techniqueVersion)
           technique         <- Box(techniqueRepository.get(activeTechniqueId)) ?~! "No Technique with ID=%s found in reference library.".format(activeTechniqueId)
         } yield {
-          serialize(technique,directive)
+          serialize(technique,directive,None)
         } )
-        toJsonResponse(None, ( "directives" -> JArray(res.toList)))
-      case eb: EmptyBox =>
-        val message = (eb ?~ ("Could not fetch Directives")).msg
-        toJsonError(None, message)
+    } yield {
+      ( "directives" -> JArray(serializedDirectives.toList))
     }
   }
 
-  def createDirective(restDirective: Box[RestDirective], req:Req) = {
-    implicit val action = "createDirective"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
+  private[this] def actualDirectiveCreation (restDirective : RestDirective, baseDirective : Directive, activeTechnique: ActiveTechnique, technique : Technique)
+  ( actor : EventActor, modId: ModificationId, reason : Option[String]) : Box[JValue] = {
+    val newDirective = restDirective.updateDirective( baseDirective )
     val modId = ModificationId(uuidGen.newUuid)
-    val actor = RestUtils.getActor(req)
-    val directiveId = DirectiveId(req.param("id").getOrElse(uuidGen.newUuid))
-
-    def actualDirectiveCreation(restDirective : RestDirective, baseDirective : Directive, activeTechnique: ActiveTechnique, technique : Technique) = {
-      val newDirective = restDirective.updateDirective( baseDirective )
-      ( for {
-        reason   <- restExtractor.extractReason(req.params)
-        saveDiff <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, reason)
-      } yield {
-        saveDiff
-      } ) match {
-        case Full(saveDiff) =>
-          // We need to deploy only if there is a saveDiff, that says that a deployment is needed
-          if (saveDiff.map(_.needDeployment).getOrElse(false)) {
-            asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
-          }
-          val jsonDirective = List(serialize(technique,newDirective))
-          toJsonResponse(Some(directiveId.value), ("directives" -> JArray(jsonDirective)))
-
-        case eb:EmptyBox =>
-          val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
-          val message = s"Could not create Directive ${newDirective.name} (id:${directiveId.value}) cause is: ${fail.msg}."
-          toJsonError(Some(directiveId.value), message)
+    for {
+      // Check if a directive exists with the current id
+      _ <- readDirective.getDirective(newDirective.id) match {
+        case Full(alreadyExists) => Failure(s"Cannot create a new Directive with id '${newDirective.id.value}' already exists")
+        case _ => Full("ok")
       }
-    }
 
-    restDirective match {
-      case Full(restDirective) =>
-        restDirective.name match {
-          case Some(name) =>
-            req.params.get("source") match {
-              // Cloning
-              case Some(sourceId :: Nil) =>
-                readDirective.getDirectiveWithContext(DirectiveId(sourceId)) match {
-                  case Full((technique,activeTechnique,sourceDirective)) =>
+       // Check parameters of the new Directive
+       _   <- ( for {
+                              // Two step process, could be simplified
+                              paramEditor <- editorService.get(technique.id, newDirective.id, newDirective.parameters)
+                              checkedParameters <- sequence (paramEditor.mapValueSeq.toSeq)( checkParameters(paramEditor))
+                            } yield { checkedParameters.toMap }
+                          ) ?~ (s"Error with directive Parameters" )
 
-                    restExtractor.checkTechniqueVersion(technique.id.name, restDirective.techniqueVersion) match {
-                      case Full(version) =>
-                        actualDirectiveCreation(restDirective.copy(enabled = Some(false),techniqueVersion = version),sourceDirective.copy(id=directiveId),activeTechnique,technique)
-                      case eb:EmptyBox =>
-                        val fail = eb ?~ (s"Could not find technique version" )
-                        val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on Directive ${sourceId} : cause is: ${fail.msg}."
-                        toJsonError(Some(directiveId.value), message)
-                    }
-                    // disable rest Directive if cloning
-                    actualDirectiveCreation(restDirective.copy(enabled = Some(false)),sourceDirective.copy(id=directiveId),activeTechnique,technique)
-                  case eb:EmptyBox =>
-                    val fail = eb ?~ (s"Could not find Directive ${sourceId}" )
-                    val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on Directive ${sourceId} : cause is: ${fail.msg}."
-                    toJsonError(Some(directiveId.value), message)
-                }
-
-              // Create a new Directive
-              case None =>
-                // If enable is missing in parameter consider it to true
-                val defaultEnabled = restDirective.enabled.getOrElse(true)
-                restExtractor.extractTechnique(restDirective.techniqueName, restDirective.techniqueVersion) match {
-                  case Full(technique) =>
-                    readDirective.getActiveTechnique(technique.id.name) match {
-                      case Full(Some(activeTechnique)) =>
-                        val baseDirective = Directive(directiveId,technique.id.version,Map(),name,"", _isEnabled = true)
-                        actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique)
-                      case Full(None) =>
-                        toJsonError(Some(directiveId.value), "Could not create Directive because the technique was not found")
-
-                      case eb:EmptyBox =>
-                        val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
-                        val message = s"Could not create Directive cause is: ${fail.msg}."
-                        toJsonError(Some(directiveId.value), message)
-                    }
-                  case eb:EmptyBox =>
-                    val fail = eb ?~ (s"Could not save Directive ${directiveId.value}" )
-                    val message = s"Could not create Directive cause is: ${fail.msg}."
-                    toJsonError(Some(directiveId.value), message)
-                }
-
-              // More than one source, make an error
-              case _ =>
-                val message = s"Could not create Directive ${name} (id:${directiveId.value}) based on an already existing Directive, cause is : too many values for source parameter."
-                toJsonError(Some(directiveId.value), message)
-            }
-
-          case None =>
-            val message =  s"Could not get create a Directive details because there is no value as display name."
-            toJsonError(Some(directiveId.value), message)
-        }
-
-      case eb : EmptyBox =>
-        val fail = eb ?~ (s"Could extract values from request" )
-        val message = s"Could not create Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonError(Some(directiveId.value), message)
+      saveDiff <- writeDirective.saveDirective(activeTechnique.id, newDirective, modId, actor, reason)  ?~! (s"Could not save Directive ${newDirective.id.value}" )
+    } yield {
+      // We need to deploy only if there is a saveDiff, that says that a deployment is needed
+      if (saveDiff.map(_.needDeployment).getOrElse(false)) {
+        asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
+      }
+      val jsonDirective = List(serialize(technique,newDirective, None))
+      ("directives" -> JArray(jsonDirective))
     }
   }
 
-  def directiveDetails(id:String, req:Req) = {
-    implicit val action = "directiveDetails"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
+  def cloneDirective(directiveId : DirectiveId, restDirective: RestDirective, source : DirectiveId) : Box[( EventActor,ModificationId,  Option[String]) => Box[JValue]] = {
+    for {
+      name <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
+      (technique,activeTechnique,sourceDirective) <- readDirective.getDirectiveWithContext(source) ?~ s"Cannot find Directive ${source.value} to use as clone base."
+      version <- restExtractor.checkTechniqueVersion(technique.id.name, restDirective.techniqueVersion) ?~! (s"Cannot find a valid technique version" )
+      newDirective = restDirective.copy(enabled = Some(false),techniqueVersion = version)
+      baseDirective = sourceDirective.copy(id=directiveId)
+    } yield {
+      actualDirectiveCreation(newDirective,baseDirective,activeTechnique,technique) _
+    }
 
-    readDirective.getDirectiveWithContext(DirectiveId(id)) match {
-      case Full((technique,activeTechnique,directive)) =>
-        val jsonDirective = List(serialize(technique,directive))
-        toJsonResponse(Some(id),("directives" -> JArray(jsonDirective)))
-      case eb:EmptyBox =>
-        val fail = eb ?~!(s"Could not find Directive ${id}" )
-        val message=  s"Could not get Directive ${id} details cause is: ${fail.msg}."
-        toJsonError(Some(id), message)
+  }
+
+  def createDirective(directiveId : DirectiveId, restDirective: RestDirective) : Box[( EventActor,ModificationId,  Option[String]) => Box[JValue]] = {
+    for {
+      name <- Box(restDirective.name) ?~! s"Directive name is not defined in request data."
+      technique <- restExtractor.extractTechnique(restDirective.techniqueName, restDirective.techniqueVersion)  ?~! s"Technique is not correctly defined in request data."
+      activeTechnique <- readDirective.getActiveTechnique(technique.id.name).flatMap(Box(_)) ?~! s"Technique ${technique.id.name} cannot be found."
+      baseDirective = Directive(directiveId,technique.id.version,Map(),name,"", _isEnabled = true)
+      result = actualDirectiveCreation(restDirective,baseDirective,activeTechnique,technique) _
+    } yield {
+      result
     }
   }
 
-  def deleteDirective(id:String, req:Req) = {
-    implicit val action = "deleteDirective"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = RestUtils.getActor(req)
-    val directiveId = DirectiveId(id)
+  def directiveDetails(id : DirectiveId) : Box[JValue] = {
+    for {
+      (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id) ?~! s"Could not find Directive ${id.value}"
+      jsonDirective = JArray(List(serialize(technique,directive, None)))
+    } yield {
+      ("directives" -> jsonDirective)
+    }
+  }
 
-    readDirective.getDirectiveWithContext(directiveId) match {
-      case Full((technique,activeTechnique,directive)) =>
-        val deleteDirectiveDiff = DeleteDirectiveDiff(technique.id.name,directive)
-        createChangeRequestAndAnswer(
-            id
-          , deleteDirectiveDiff
+  def deleteDirective(id:DirectiveId) = {
+    for {
+      (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id) ?~! s"Could not find Directive ${id.value}"
+      deleteDirectiveDiff = DeleteDirectiveDiff(technique.id.name,directive)
+      result = createChangeRequestAndAnswer(
+            deleteDirectiveDiff
           , technique
           , activeTechnique
           , directive
           , Some(directive)
-          , actor
-          , req
-          , "Delete"
-        )
-
-      case eb:EmptyBox =>
-        val fail = eb ?~ (s"Could not find Directive ${directiveId.value}" )
-        val message = s"Could not delete Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonError(Some(directiveId.value), message)
+        ) _
+    } yield {
+      result
     }
   }
 
-    // A function to check if Variables passed as parameter are correct
+  // A function to check if Variables passed as parameter are correct
   private[this] def checkParameters (paramEditor : DirectiveEditor) (parameterValues : (String,Seq[String])) = {
     try {
       val s = Seq((paramEditor.variableSpecs(parameterValues._1).toVariable(parameterValues._2)))
@@ -342,39 +255,19 @@ case class DirectiveAPIService2 (
     }
   }
 
-  def checkDirective(directiveId: DirectiveId, req: Req, restValues : Box[RestDirective]) = {
-
-    implicit val action = "checkDirective"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = getActor(req)
-
-    ( for {
-      restDirective   <- restValues ?~ (s"Could not extract values from request" )
+  def checkDirective(directiveId: DirectiveId, restDirective : RestDirective) : Box[JValue] = {
+    for {
       directiveUpdate <- updateDirectiveModel(directiveId, restDirective)
     } yield {
       val updatedTechnique = directiveUpdate.after.technique
       val updatedDirective = directiveUpdate.after.directive
-      val jsonDirective = List(serialize(updatedTechnique,updatedDirective))
-      toJsonResponse(Some(directiveId.value),("directives" -> JArray(jsonDirective)))
-    } ) match {
-      case Full(response) => response
-      case eb: EmptyBox =>
-        val fail = eb ?~  s" An error occured during request "
-        val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonError(Some(directiveId.value), message)
+      val jsonDirective = List(serialize(updatedTechnique,updatedDirective, None))
+      ("directives" -> JArray(jsonDirective))
     }
   }
 
-  def updateDirective(directiveId: DirectiveId, req: Req, restValues : Box[RestDirective]) = {
-
-    implicit val action = "updateDirective"
-    implicit val prettify = restExtractor.extractPrettify(req.params)
-    val modId = ModificationId(uuidGen.newUuid)
-    val actor = getActor(req)
-
-    ( for {
-      restDirective <- restValues ?~ (s"Could not extract values from request" )
+  def updateDirective(directiveId: DirectiveId, restDirective : RestDirective) = {
+    for {
       directiveUpdate <- updateDirectiveModel(directiveId, restDirective)
 
       updatedTechnique = directiveUpdate.after.technique
@@ -384,23 +277,12 @@ case class DirectiveAPIService2 (
       diff = ModifyToDirectiveDiff(updatedTechnique.id.name,updatedDirective,oldTechnique.rootSection)
     } yield {
         createChangeRequestAndAnswer(
-            directiveId.value
-          , diff
+            diff
           , updatedTechnique
           , directiveUpdate.activeTechnique
           , updatedDirective
           , Some(oldDirective)
-          , actor
-          , req
-          , "Update"
-        )
-    } ) match {
-      case Full(response) => response
-      case eb: EmptyBox =>
-        val fail = eb ?~  s" An error occured during request "
-        val message = s"Could not modify Directive ${directiveId.value} cause is: ${fail.msg}."
-        toJsonError(Some(directiveId.value), message)
+        ) _
     }
   }
-
 }

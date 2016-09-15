@@ -73,6 +73,7 @@ import com.normation.rudder.services.queries.StringCriterionLine
 import com.normation.rudder.domain.queries.QueryReturnType
 import com.normation.rudder.domain.queries.NodeReturnType
 import com.normation.rudder.services.queries.StringQuery
+import net.liftweb.http.Req
 
 case class RestExtractorService (
     readRule             : RoRuleRepository
@@ -432,25 +433,30 @@ case class RestExtractorService (
     extractOneValue(params, "prettify")(convertToBoolean).map(_.getOrElse(false)).getOrElse(false)
   }
 
-  def extractReason (params : Map[String,List[String]]) : Box[Option[String]] = {
+  def extractReason (req : Req) : Box[Option[String]] = {
     import com.normation.rudder.web.services.ReasonBehavior._
     userPropertyService.reasonsFieldBehavior match {
       case Disabled  => Full(None)
-      case Mandatory =>  extractOneValue(params, "reason")(convertToMinimalSizeString(5)) match {
-        case Full(None)  => Failure("Reason field is mandatory and should be at least 5 characters long")
-        case Full(value) => Full(value)
-        case eb:EmptyBox => eb ?~ "Error while extracting mandatory reason field"
-      }
-      case Optionnal => extractOneValue(params, "reason")()
+      case mode =>
+        val reason = extractString("reason")(req)(identity)
+        mode match {
+          case Mandatory =>
+            reason match {
+              case Full(None) =>  Failure("Reason field is mandatory and should be at least 5 characters long")
+              case Full(Some(v)) if v.size < 5 => Failure("Reason field should be at least 5 characters long")
+              case _ => reason
+            }
+          case Optionnal => reason
+        }
     }
   }
 
-  def extractChangeRequestName (params : Map[String,List[String]]) : Box[Option[String]] = {
-    extractOneValue(params, "changeRequestName")(convertToMinimalSizeString(3))
+  def extractChangeRequestName (req : Req) : Box[Option[String]] = {
+    extractString("changeRequestName")(req)(identity)
   }
 
-  def extractChangeRequestDescription (params : Map[String,List[String]]) : String = {
-    extractOneValue(params, "changeRequestDescription")().getOrElse(None).getOrElse("")
+  def extractChangeRequestDescription (req : Req) : String = {
+    extractString("changeRequestDescription")(req)(identity).getOrElse(None).getOrElse("")
   }
 
   def extractNodeStatus (params : Map[String,List[String]]) : Box[NodeStatusAction] = {
@@ -589,7 +595,6 @@ case class RestExtractorService (
     }
   }
 
-
   def extractParameter (params : Map[String,List[String]]) : Box[RestParameter] = {
     for {
       description <- extractOneValue(params, "description")()
@@ -644,9 +649,16 @@ case class RestExtractorService (
     }
   }
 
+  def extractDirective(req : Req) : Box[RestDirective] = {
+    req.json match {
+      case Full(json) => extractDirectiveFromJSON(json)
+      case _ => extractDirective(req.params)
+    }
+  }
+
   def extractDirective (params : Map[String,List[String]]) : Box[RestDirective] = {
     for {
-      name             <- extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
+      name             <- extractOneValue(params, "name")(convertToMinimalSizeString(3)) or extractOneValue(params, "displayName")(convertToMinimalSizeString(3))
       shortDescription <- extractOneValue(params, "shortDescription")()
       longDescription  <- extractOneValue(params, "longDescription")()
       enabled          <- extractOneValue(params, "enabled")( convertToBoolean)
@@ -685,7 +697,7 @@ case class RestExtractorService (
 
   def extractDirectiveFromJSON (json : JValue) : Box[RestDirective] = {
     for {
-      name             <- extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
+      name             <- extractOneValueJson(json, "name")(convertToMinimalSizeString(3)) or extractOneValueJson(json, "displayName")(convertToMinimalSizeString(3))
       shortDescription <- extractOneValueJson(json, "shortDescription")()
       longDescription  <- extractOneValueJson(json, "longDescription")()
       enabled          <- extractJsonBoolean(json, "enabled")
@@ -801,5 +813,22 @@ case class RestExtractorService (
     }
   }
 
+  def extractString[T](key : String) (req : Req)(fun : String => T)  = {
+    req.json match {
+      case Full(json) => json \ key match {
+        case JString(id) => Full(Some(fun(id)))
+        case JNothing => Full(None)
+        case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+      }
+      case _ =>
+        req.params.get(key) match {
+          case None => Full(None)
+          case Some(head :: Nil) => Full(Some(fun(head)))
+          case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
+        }
+    }
+  }
+
+  def extractId[T] (req : Req)(fun : String => T)  = extractString("id")(req)(fun)
 
 }
