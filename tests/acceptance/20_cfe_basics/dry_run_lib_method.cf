@@ -1,8 +1,10 @@
 #######################################################
 #
-# Test ncf dry-run with a generic method
+# Test ncf dry-run using the set_dry_run_mode call
 #
 #######################################################
+
+# @agent_requirements "capabilities": [ "defaultbody" ] || "agent_version" >= 3.9
 
 bundle common acc_path
 {
@@ -19,15 +21,16 @@ body common control
 
 #######################################################
 
-bundle agent init
+bundle agent init {}
+
+#######################################################
+
+bundle agent test_action(name)
 {
-
-  vars:
-      "file" slist => { "default", "dryrun", "notdryrun" };
-
-      "path[${file}]" string => "$(G.testdir)/${file}";
-      "canon[${file}]" string => canonify("${path[${file}]}");
-
+  files:
+	  "$(G.testdir)/${name}"
+             create => "true",
+             classes => classes_generic("create_${name}");
 }
 
 #######################################################
@@ -37,25 +40,25 @@ bundle agent test
 
   methods:
       "default"
-        usebundle => file_create("${init.path[default]}");
+        usebundle => test_action("default");
       "enable dry-run"
         usebundle => set_dry_run_mode("true");
       "dryrun"
-        usebundle => file_create("${init.path[dryrun]}");
+        usebundle => test_action("dryrun");
       "disable dry-run"
         usebundle => set_dry_run_mode("false");
       "not dryrun"
-        usebundle => file_create("${init.path[notdryrun]}");
+        usebundle => test_action("notdryrun");
 
 }
 
 bundle agent check
 {
   classes:
-    "default_created" expression => fileexists("${init.path[default]}");
-    "dryrun_created" expression => fileexists("${init.path[dryrun]}");
-    "notdryrun_created" expression => fileexists("${init.path[notdryrun]}");
-    "ok" expression => "file_create_${init.canon[dryrun]}_reached.!dryrun_created.default_created.notdryrun_created";
+    "default_created" expression => fileexists("$(G.testdir)/default");
+    "dryrun_created" expression => fileexists("$(G.testdir)/dryrun");
+    "notdryrun_created" expression => fileexists("$(G.testdir)/notdryrun");
+    "ok" expression => "create_dryrun_reached.!dryrun_created.default_created.notdryrun_created";
 
   reports:   
     ok::
