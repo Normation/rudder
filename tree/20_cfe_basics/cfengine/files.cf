@@ -1070,15 +1070,8 @@ body replace_with value(x)
       occurrences => "all";
 }
 
-##
 
-body select_region INI_section(x)
-# @brief Restrict the `edit_line` promise to the lines in section `[x]`
-# @param x The name of the section in an INI-like configuration file
-{
-      select_start => "\[$(x)\]\s*";
-      select_end => "\[.*\]\s*";
-}
+# INI_section has been moved into version-specific files, files_39p.cf and files_39m.cf
 
 ##-------------------------------------------------------
 ## edit_defaults
