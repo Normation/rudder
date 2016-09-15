@@ -46,16 +46,18 @@ import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.sequence
+import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequenceEmptyable
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.InterpolationContext
 import com.normation.rudder.domain.policies.InterpolationContext
 import com.normation.cfclerk.domain.BundleOrder
+import com.normation.rudder.domain.appconfig.FeatureSwitch
 
 trait RuleValService {
-  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
+  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, nodePropFeature: FeatureSwitch) : Box[RuleVal]
 
-  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]]
+  def lookupNodeParameterization(variables:Seq[Variable], nodePropFeature: FeatureSwitch): InterpolationContext => Box[Map[String, Variable]]
 }
 
 
@@ -94,26 +96,33 @@ class RuleValServiceImpl(
    * interpolation is) and build the function that, given an interpolation context,
    * give (on success) the string with expansion done.
    */
-  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]] = {
+  def lookupNodeParameterization(variables:Seq[Variable], nodePropFeature: FeatureSwitch): InterpolationContext => Box[Map[String, Variable]] = {
     (context:InterpolationContext) =>
-      sequence(variables) { variable =>
-        (sequence(variable.values) { value =>
+      bestEffort(variables) { variable =>
+        (bestEffort(variable.values) { value =>
           for {
-            parsed <- interpolatedValueCompiler.compile(value) ?~! s"Error when parsing variable ${variable.spec.name}"
+            parsed <- interpolatedValueCompiler.compile(value, nodePropFeature)
             //can lead to stack overflow, no ?
-            applied <- parsed(context) ?~! s"Error when resolving interpolated variable in directive variable ${variable.spec.name}"
+            applied <- parsed(context)
           } yield {
             applied
           }
         }) match {
-          case eb: EmptyBox => eb
+          case eb:EmptyBox =>
+            val msg = eb match {
+              case Empty => ""
+              case f:Failure => //make the error message somehow readable!
+                ": " + f.failureChain.map(_.msg).toSet.mkString("; ")
+            }
+            Failure(s"On variable '${variable.spec.name}'" + msg)
+
           case Full(seq) => Full(Variable.matchCopy(variable, seq))
         }
       }.map(seqVar => seqVar.map(v => (v.spec.name, v)).toMap)
   }
 
 
-  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory) : Box[Option[DirectiveVal]]= {
+  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory, nodePropFeature: FeatureSwitch) : Box[Option[DirectiveVal]]= {
     directiveLib.allDirectives.get(piId) match {
       case None => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
       case Some((_, directive) ) if !(directive.isEnabled) =>
@@ -146,7 +155,7 @@ class RuleValServiceImpl(
               , directive.id
               , directive.priority
               , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
-              , lookupNodeParameterization(otherVars.values.toSeq)
+              , lookupNodeParameterization(otherVars.values.toSeq, nodePropFeature)
               , vared
               , BundleOrder(directive.name)
             ))
@@ -154,12 +163,12 @@ class RuleValServiceImpl(
     }
   }
 
-  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal] = {
+  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, nodePropFeature: FeatureSwitch) : Box[RuleVal] = {
     val targets      = rule.targets
     val directiveIds = rule.directiveIds.toSeq
 
     for {
-      containers   <- sequence(directiveIds) { getContainer(_, rule.id, directiveLib) }
+      containers   <- bestEffort(directiveIds) { getContainer(_, rule.id, directiveLib, nodePropFeature) }
     } yield {
       RuleVal(
         rule.id,

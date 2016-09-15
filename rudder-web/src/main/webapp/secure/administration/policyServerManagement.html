@@ -449,7 +449,39 @@ These files are automatically removed to save on disk space. You can configure t
         </div>
       </div>
     </div>
+    <div class="inner-portlet">
+      <div class="page-title">Allows ${node.properties[key]} expansion in Directives for key-&gt;value and key-&gt;json</div>
+      <div class="portlet-content">
 
+        <div class="lift:administration.PropertiesManagement.directiveNodePropertiesConfiguration" id="directiveNodeProperties">
+          <div class="intro">
+            <div>
+            If enabled, you can use the syntax ${node.properties[propertyName]} in directive parameters to use the corresponding
+            value of the node property. If the value is a JSON data string, you can reach sub entry with their key, for
+            example with: ${node.properties[propertyName][jsonKey][jsonSubKey]}.
+            Read the <a href="/rudder-doc/#_node_properties_in_directives">node properties expansion in directives documentation</a>for more information.
+            </div>
+          </div>
+
+          <hr class="spacer" />
+          <div class="deca">
+            <form class="lift:form.ajax">
+              <div class="wbBaseField">
+                <label class="threeCol textright" for="directiveNodePropertiesCheckbox" style="font-weight:bold;width: 30%;">Enable node properties expansion in Directives:</label>
+                <input id="directiveNodePropertiesCheckbox" type="checkbox"/>
+              </div>
+              <hr class="spacer"/>
+              <lift:authz role="administration_write">
+                <input type="submit" value="Save Changes" id="directiveNodePropertiesSubmit"/>
+                <lift:Msg id="directiveNodePropertiesMsg">[messages]</lift:Msg>
+              </lift:authz>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="inner-portlet">
       <div class="inner-portlet-header">Enable QuickSearch on Everything</div>
       <div class="inner-portlet">
         <div class="lift:administration.PropertiesManagement.quickSearchConfiguration" id="quickSearchConfiguration">

@@ -128,6 +128,7 @@ trait DeploymentService extends Loggable {
       agentRunStartMinute <- getAgentRunStartMinute() ?~! "Could not get agent run start time (minute)"
       agentRunStartHour   <- getAgentRunStartHour() ?~! "Could not get agent run start time (hour)"
       scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
+      nodePropFeature     <- getNodePropEnabled() ?~! "Could not get if we should allow ${node.properties[key]} in directive parameters"
       fetch6Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched run infos in ${fetch4Time-fetch3Time}ms")
 
@@ -140,7 +141,7 @@ trait DeploymentService extends Loggable {
       _             =  logger.debug(s"Historization of names done in ${timeHistorize}ms, start to build rule values.")
 
       ruleValTime   =  System.currentTimeMillis
-      ruleVals      <- buildRuleVals(allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
+      ruleVals      <- buildRuleVals(allRules, directiveLib, groupLib, allNodeInfos, nodePropFeature) ?~! "Cannot build Rule vals"
       timeRuleVal   =  (System.currentTimeMillis - ruleValTime)
       _             =  logger.debug(s"RuleVals built in ${timeRuleVal}ms, start to expand their values.")
 
@@ -161,6 +162,7 @@ trait DeploymentService extends Loggable {
                            , globalRunInterval
                            , globalComplianceMode
                            , scriptEngineEnabled
+                           , nodePropFeature
                          ) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig}, start to update rule values.")
@@ -237,6 +239,7 @@ trait DeploymentService extends Loggable {
   def getAgentRunStartHour   : () => Box[Int]
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
+  def getNodePropEnabled     : () => Box[FeatureSwitch]
 
   /**
    * Find all modified rules.
@@ -259,7 +262,7 @@ trait DeploymentService extends Loggable {
    * rules.
    * These objects are a cache of all rules
    */
-  def buildRuleVals(rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]]
+  def buildRuleVals(rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], nodePropFeature: FeatureSwitch) : Box[Seq[RuleVal]]
 
   /**
    * Compute all the global system variable
@@ -279,6 +282,7 @@ trait DeploymentService extends Loggable {
     , globalAgentRun       : AgentRunInterval
     , globalComplianceMode : ComplianceMode
     , scriptEngineEnabled  : FeatureSwitch
+    , nodePropFeature      : FeatureSwitch
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -393,6 +397,7 @@ class DeploymentServiceImpl (
   , override val getAgentRunStartHour: () => Box[Int]
   , override val getAgentRunStartMinute: () => Box[Int]
   , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
+  , override val getNodePropEnabled    : () => Box[FeatureSwitch]
 ) extends DeploymentService with
   DeploymentService_findDependantRules_bruteForce with
   DeploymentService_buildRuleVals with
@@ -450,14 +455,14 @@ trait DeploymentService_buildRuleVals extends DeploymentService {
    * rules.
    * These objects are a cache of all rules
    */
-  override def buildRuleVals(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]] = {
+  override def buildRuleVals(rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], nodePropFeature: FeatureSwitch) : Box[Seq[RuleVal]] = {
     val appliedRules = rules.filter(r => ruleApplicationStatusService.isApplied(r, groupLib, directiveLib, allNodeInfos) match {
       case _:AppliedStatus => true
       case _ => false
     })
 
     for {
-      rawRuleVals <- sequence(appliedRules) { rule => ruleValService.buildRuleVal(rule, directiveLib) } ?~! "Could not find configuration vals"
+      rawRuleVals <- bestEffort(appliedRules) { rule => ruleValService.buildRuleVal(rule, directiveLib, nodePropFeature) } ?~! "Could not find configuration vals"
     } yield rawRuleVals
   }
 
@@ -501,10 +506,10 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
    *   - to node info parameters: ok
    *   - to parameters : hello loops!
    */
-  private[this] def buildParams(parameters: Seq[GlobalParameter]): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
-    sequence(parameters) { param =>
+  private[this] def buildParams(parameters: Seq[GlobalParameter], nodePropFeature: FeatureSwitch): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
+    bestEffort(parameters) { param =>
       for {
-        p <- interpolatedValueCompiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+        p <- interpolatedValueCompiler.compile(param.value, nodePropFeature) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
       } yield {
         (param.name, p)
       }
@@ -578,10 +583,11 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
     , globalAgentRun       : AgentRunInterval
     , globalComplianceMode : ComplianceMode
     , scriptEngineEnabled  : FeatureSwitch
+    , nodePropFeature      : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
 
 
-    val interpolatedParameters = buildParams(parameters) match {
+    val interpolatedParameters = buildParams(parameters, nodePropFeature) match {
       case Full(x) => x
       case eb: EmptyBox => return eb ?~! "Can not parsed global parameter (looking for interpolated variables)"
     }
@@ -667,12 +673,32 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
       )
     }
 
-    //1.3: build node config, binding ${rudder.parameters} parameters
+
+    /*
+     * Utility class that helps deduplicate same failures in a chain
+     * of failure when using bestEffort.
+     */
+    implicit class DedupFailure[T](box: Box[T]) {
+      def dedupFailures(failure: String, transform: String => String = identity) = {
+        box match { //dedup error messages
+            case Full(res)   => Full(res)
+            case eb:EmptyBox =>
+              val msg = eb match {
+                case Empty      => ""
+                case f: Failure => //here, dedup
+                  ": " + f.failureChain.map(m => transform(m.msg).trim).toSet.mkString("; ")
+              }
+              Failure(failure + msg)
+        }
+      }
+    }
+
+    //1.3: build node config, binding ${rudder./node.properties} parameters
     // open a scope for the JsEngine, because its init is long.
     JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
       for {
-        nodeConfigs <- sequence(interpolationContexts.toSeq) { case (nodeId, context) =>
-          for {
+        nodeConfigs <- bestEffort(interpolationContexts.toSeq) { case (nodeId, context) =>
+          (for {
             drafts          <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
             /*
              * Clearly, here, we are evaluating parameters, and we are not using that just after in the
@@ -684,19 +710,19 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
              *  - by node
              *  + use them in variable expansion (the variable expansion should have a fully evaluated InterpolationContext)
              */
-            parameters      <- sequence(context.parameters.toSeq) { case (name, param) =>
+            parameters      <- bestEffort(context.parameters.toSeq) { case (name, param) =>
                                  for {
                                    p <- param(context)
                                  } yield {
                                    (name, p)
                                  }
                                }
-            cf3PolicyDrafts <- sequence(drafts) { draft =>
-                                  for {
+            cf3PolicyDrafts <- bestEffort(drafts) { draft =>
+                                  (for {
                                     //bind variables with interpolated context
                                     expandedVariables <- draft.variableMap(context)
                                     // And now, for each variable, eval - if needed - the result
-                                    evaluatedVars     <- sequence(expandedVariables.toSeq) { case (k, v) =>
+                                    evaluatedVars     <- bestEffort(expandedVariables.toSeq) { case (k, v) =>
                                                             //js lib is specific to the node os, bind here to not leak eval between vars
                                                             val jsLib = context.nodeInfo.osDetails.os match {
                                                              case AixOS => JsRudderLibBinding.Aix
@@ -717,7 +743,7 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
                                       , ruleOrder = draft.ruleOrder
                                       , directiveOrder = draft.directiveOrder
                                     )
-                                  }
+                                  }).dedupFailures(s"When processing directive '${draft.directiveOrder.value}'")
                                 }
           } yield {
             NodeConfiguration(
@@ -727,7 +753,10 @@ trait DeploymentService_buildNodeConfigurations extends DeploymentService with L
               , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
               , isRootServer = context.nodeInfo.id == context.policyServerInfo.id
             )
-          }
+          }).dedupFailures(
+                s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})"
+              , _.replaceAll("on node .*", "")
+            )
         }
       } yield {
         nodeConfigs
