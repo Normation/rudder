@@ -21,20 +21,26 @@ Change ownership of your tree to allow ncf-api to edit it:
 The current version needs to be patched to remove built-in authentication and to change default path. 
 This won't be necessary in future versions.
 
-Edit /usr/share/ncf/api/ncf_api_flask_app/views.py to remove built-in authentication:
+
+Edit `/usr/share/ncf/api/ncf_api_flask_app/views.py` to remove built-in authentication:
+```
 	Line 71     : available_modules_name = ["Rudder"] 
 	Replace with: available_modules_name = ["None"]
+```
 
-Edit /usr/share/ncf/api/ncf_api_flask_app/views.py to change default path.
+Edit `/usr/share/ncf/api/ncf_api_flask_app/views.py` to change default path.
+
+```
 Replace the default path to your CFEngine policies path:
 	Change: default_path = ""
 	To    : default_path = "/var/cfengine/inputs/" # your test path
+```
 
 Then restart apache.
 
 ### Test ncf Builder
 
-Now simply go to http://localhost/ncf-builder/ and add or modify your techniques.
+Now simply go to [http://localhost/ncf-builder/](http://localhost/ncf-builder/) and add or modify your techniques.
 
 Please be aware that for now this editor only edit *techniques*, you still need to write or modify a *service* file to call them from ncf.
 
