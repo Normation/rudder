@@ -29,3 +29,8 @@ hr {
   margin-bottom : -10px;
   border-width : 2px 0 0;
 }
+
+footer hr {
+  margin-bottom : 5px;
+}
+
