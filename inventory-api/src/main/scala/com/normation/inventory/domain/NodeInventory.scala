@@ -89,7 +89,7 @@ case class Process (
   , started       : Option[String]   = None
   , tty           : Option[String]   = None
   , user          : Option[String]   = None
-  , virtualMemory : Option[Int]      = None
+  , virtualMemory : Option[Double]   = None
   , description   : Option[String]   = None
 )extends NodeElement with HashcodeCaching
 
