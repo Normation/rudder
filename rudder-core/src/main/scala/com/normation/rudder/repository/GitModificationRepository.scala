@@ -1,8 +1,9 @@
 package com.normation.rudder.repository
 
 import com.normation.eventlog.ModificationId
+import com.normation.rudder.db.DB
+
 import net.liftweb.common.Box
-import com.normation.rudder.repository.squeryl.GitCommitJoin
 
 
 /**
@@ -16,5 +17,5 @@ trait GitModificationRepository {
    */
   def getCommits(modificationId: ModificationId) : Box[Option[GitCommitId]]
 
-  def addCommit(commit:GitCommitId, modId:ModificationId) : Box[GitCommitJoin]
+  def addCommit(commit:GitCommitId, modId:ModificationId) : Box[DB.GitCommitJoin]
 }

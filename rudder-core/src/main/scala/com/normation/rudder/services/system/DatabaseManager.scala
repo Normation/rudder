@@ -117,7 +117,7 @@ class DatabaseManagerImpl(
   }
 
    def getDatabaseSize() : Box[Long] = {
-     reportsRepository.getDatabaseSize(reportsRepository.reportsTable)
+     reportsRepository.getDatabaseSize(reportsRepository.reports)
    }
 
    def getArchiveSize() : Box[Long] = {

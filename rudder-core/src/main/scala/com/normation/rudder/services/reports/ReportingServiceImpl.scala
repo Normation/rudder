@@ -59,6 +59,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
+import scala.concurrent.duration.Duration
 
 /**
  * Defaults non-cached version of the reporting service.

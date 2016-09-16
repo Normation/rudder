@@ -46,7 +46,6 @@ import scala.io.Source
 import scala.xml.XML
 
 import com.normation.rudder.repository.jdbc.RudderDatasourceProvider
-import com.normation.rudder.repository.jdbc.SquerylConnectionProvider
 
 import org.specs2.mutable.Specification
 import org.specs2.specification.BeforeAfterAll
@@ -54,6 +53,14 @@ import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.jdbc.core.RowMapper
 
 import net.liftweb.common.Loggable
+import org.joda.time.DateTime
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
+import scala.concurrent.Await
+import scala.concurrent.Future
+import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.db.DB
+import com.normation.rudder.db.Doobie
 
 
 
@@ -63,13 +70,18 @@ import net.liftweb.common.Loggable
  */
 trait DBCommon extends Specification with Loggable with BeforeAfterAll {
 
+
   logger.info("""Set JAVA property 'test.postgres' to false to ignore that test, for example from maven with: mvn -DargLine="-Dtest.postgres=false" test""")
 
   val doDatabaseConnection = System.getProperty("test.postgres", "").toLowerCase match {
     case "true" | "1" => true
     case _ => false
   }
-  skipAllIf(!doDatabaseConnection)
+//  skipAllIf(!doDatabaseConnection)
+
+  // max time we wait for a request to complete
+  val MAX_TIME = Duration(300, TimeUnit.MILLISECONDS)
+
 
   /**
    * By default, init schema with the Rudder schema and tables, safe that
@@ -114,7 +126,8 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     dataSource.close
   }
 
-  def now = new Timestamp(System.currentTimeMillis)
+  def tnow = new Timestamp(System.currentTimeMillis)
+  def now = new DateTime(tnow.getTime)
 
 
   //execute something on the connection before commiting and closing it
@@ -175,13 +188,9 @@ trait DBCommon extends Specification with Loggable with BeforeAfterAll {
     }).mkString(", ") )
   }
 
-  lazy val squerylConnectionProvider = new SquerylConnectionProvider(dataSource)
-
   lazy val jdbcTemplate = new JdbcTemplate(dataSource)
 
-
-
-  lazy val migrationEventLogRepository = new MigrationEventLogRepository(squerylConnectionProvider)
-
+  lazy val doobie = new Doobie(dataSource)
+  lazy val migrationEventLogRepository = new MigrationEventLogRepository(doobie)
 
 }

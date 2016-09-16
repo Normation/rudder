@@ -36,39 +36,37 @@
 */
 
 package com.normation.rudder.repository.jdbc
-import java.sql.BatchUpdateException
-import java.sql.Timestamp
-import scala.slick.driver.PostgresDriver.simple._
-import org.joda.time.DateTime
-import org.junit.runner.RunWith
-import org.specs2.runner.JUnitRunner
-import org.specs2.mutable._
-import org.springframework.jdbc.datasource.DataSourceTransactionManager
+
+import com.normation.cfclerk.domain.InputVariableSpec
+import com.normation.cfclerk.domain.Technique
+import com.normation.cfclerk.domain.TrackerVariableSpec
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports._
 import com.normation.rudder.migration.DBCommon
-import javax.sql.DataSource
-import net.liftweb.common._
-import com.normation.cfclerk.domain.Technique
-import com.normation.cfclerk.domain.TechniqueId
-import com.normation.cfclerk.domain.SectionSpec
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.cfclerk.domain.TechniqueName
-import com.normation.cfclerk.domain.TrackerVariableSpec
-import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.cfclerk.domain.InputVariableSpec
-import com.normation.rudder.services.policies.UniqueOverrides
-import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
-import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
-import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
-import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
-import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.services.policies.ExpandedDirectiveVal
 import com.normation.rudder.services.policies.ExpandedRuleVal
+import com.normation.rudder.services.policies.ExpectedReportsUpdateImpl
+import com.normation.rudder.services.policies.UniqueOverrides
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
+import org.springframework.jdbc.datasource.DataSourceTransactionManager
+
+import net.liftweb.common._
+import com.normation.cfclerk.domain.SectionSpec
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.TechniqueId
+import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.cfclerk.domain.TechniqueVersion
+import com.normation.rudder.db.DB
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
 
 /**
  * Test on database.
@@ -76,6 +74,7 @@ import com.normation.rudder.services.policies.ExpandedRuleVal
 @RunWith(classOf[JUnitRunner])
 class ExpectedReportsTest extends DBCommon {
 
+  import doobie._
 
   //clean data base
   def cleanTables() = {
@@ -85,11 +84,8 @@ class ExpectedReportsTest extends DBCommon {
   val pgIn = new PostgresqlInClause(2)
   lazy val findReports = new FindExpectedReportsJdbcRepository(jdbcTemplate, pgIn)
   lazy val expectedReportsRepo = new UpdateExpectedReportsJdbcRepository(jdbcTemplate, new DataSourceTransactionManager(dataSource), findReports, findReports)
-  lazy val slick = new SlickSchema(dataSource)
-
   lazy val updateExpectedService = new ExpectedReportsUpdateImpl(expectedReportsRepo, expectedReportsRepo)
 
-  import slick._
 
   sequential
 
@@ -109,7 +105,7 @@ class ExpectedReportsTest extends DBCommon {
   val run3 = DateTime.now.minusMinutes(5*3)
 
 
-  def compareSlickER(report: SlickExpectedReports, expected: SlickExpectedReports) = {
+  def compareSlickER(report: DB.ExpectedReports[Long], expected: DB.ExpectedReports[Long]) = {
     report.pkId === expected.pkId and
     report.nodeJoinKey === expected.nodeJoinKey and
     report.serial === expected.serial and
@@ -134,37 +130,28 @@ class ExpectedReportsTest extends DBCommon {
     //note: in version, [a,b,c] means "c" is the most recent versions
     //in the unzserialized object, the most recent version is the HEAD of the list.
     //note: spaces are trimmed in version
-    val expectedReportsNodes: Seq[SlickExpectedReportsNodes] = Seq(
-        SlickExpectedReportsNodes(1, "n0", List())
-      , SlickExpectedReportsNodes(1, "n1", NodeConfigVersionsSerializer.serialize(strangeVersions).toList.map(_.asInstanceOf[String]))
-      , SlickExpectedReportsNodes(2, "n0", List("cba"))
-      , SlickExpectedReportsNodes(3, "n2", List("xz"))
-      , SlickExpectedReportsNodes(4, "n1", List("pqr", "mno"))
+    val expectedReportsNodes: List[DB.ExpectedReportsNodes] = List(
+        DB.ExpectedReportsNodes(1, "n0", List())
+      , DB.ExpectedReportsNodes(1, "n1", NodeConfigVersionsSerializer.serialize(strangeVersions).toList.map(_.asInstanceOf[String]))
+      , DB.ExpectedReportsNodes(2, "n0", List("cba"))
+      , DB.ExpectedReportsNodes(3, "n2", List("xz"))
+      , DB.ExpectedReportsNodes(4, "n1", List("pqr", "mno"))
     )
     step {
-      slickExec { implicit s =>
-        expectedReportsNodesTable ++= expectedReportsNodes
-      }
+      doobie.insertExpectedReportsNode(expectedReportsNodes).transact(xa).run
     }
 
     "get back what was inserted" in {
-      slickExec { implicit s =>
-        expectedReportsNodesTable.list must contain(exactly(expectedReportsNodes:_*))
-      }
+      doobie.getExpectedReportsNode().transact(xa).run must contain(exactly(expectedReportsNodes:_*))
     }
 
     "get in the same way" in {
-      import scala.slick.driver.JdbcDriver.backend.Database
-      import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-      import Q.interpolation
-      slickExec { implicit s =>
-        val i = 1
-        //here, we get the Postgres string representation of ARRAYs
-        val res = sql"select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}".as[(String, String)].list
+      val i = 1
+      //here, we get the Postgres string representation of ARRAYs
+      val res = sql"""select nodeid, nodeconfigids from expectedreportsnodes where nodeJoinKey = ${i}""".query[(String, String)].list.transact(xa).run
 
-        //the most recent must be in head of the array
-        res must contain(exactly( ("n0", "{}"), ("n1", "{ghi,def,abc}")  ))
-      }
+      //the most recent must be in head of the array
+      res must contain(exactly( ("n0", "{}"), ("n1", "{ghi,def,abc}")  ))
     }
 
     "find the last reports for nodejoinkey" in {
@@ -205,7 +192,7 @@ class ExpectedReportsTest extends DBCommon {
     val d1 = DirectiveExpectedReports(DirectiveId("d1"),Seq(c1))
     val directiveExpectedReports = Seq(d1)
 
-    val expected = SlickExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+    val expected = DB.ExpectedReports[Long](100, 100, r1.value, serial, d1.directiveId.value
       , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
       , "[]", DateTime.now, None
     )
@@ -215,18 +202,17 @@ class ExpectedReportsTest extends DBCommon {
       val genTime = DateTime.now
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      slickExec { implicit s =>
-        val reports =  expectedReportsTable.list
-        val nodes = expectedReportsNodesTable.list
-        val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
 
-        compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
-        reports.size === 1 and compareSlickER(reports(0), expected) and
-        nodes.size === 2 and (nodes must contain(exactly(
-            SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
-          , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
-        )))
-      }
+      val reports = doobie.getExpectedReports().transact(xa).run
+      val nodes   = doobie.getExpectedReportsNode().transact(xa).run
+      val directiveOnNodes = Seq(DirectivesOnNodes(100, nodeConfigIds, directiveExpectedReports))
+
+      compareER(inserted.openOrThrowException("Test failed"), RuleExpectedReports(r1, serial, directiveOnNodes, genTime, None)) and
+      reports.size === 1 and compareSlickER(reports(0), expected) and
+      nodes.size === 2 and (nodes must contain(exactly(
+          DB.ExpectedReportsNodes(100, "n1", List("n1_v1"))
+        , DB.ExpectedReportsNodes(100, "n2", List("n2_v1"))
+      )))
     }
 
     "saving the same exactly, nothing change" in {
@@ -234,17 +220,15 @@ class ExpectedReportsTest extends DBCommon {
 
       val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
 
-      slickExec { implicit s =>
-        val reports =  expectedReportsTable.list
-        val nodes = expectedReportsNodesTable.list
+      val reports = doobie.getExpectedReports().transact(xa).run
+      val nodes   = doobie.getExpectedReportsNode().transact(xa).run
 
-        inserted.isInstanceOf[Failure] and
-        reports.size === 1 and compareSlickER(reports(0), expected) and
-        nodes.size === 2 and (nodes must contain(exactly(
-            SlickExpectedReportsNodes(100, "n1", List("n1_v1"))
-          , SlickExpectedReportsNodes(100, "n2", List("n2_v1"))
-        )))
-      }
+      inserted.isInstanceOf[Failure] and
+      reports.size === 1 and compareSlickER(reports(0), expected) and
+      nodes.size === 2 and (nodes must contain(exactly(
+          DB.ExpectedReportsNodes(100, "n1", List("n1_v1"))
+        , DB.ExpectedReportsNodes(100, "n2", List("n2_v1"))
+      )))
     }
 
   }
@@ -322,7 +306,7 @@ class ExpectedReportsTest extends DBCommon {
 
     val expected = {
       val c1 = d1_exp.components(0)
-      SlickExpectedReports(Some(100), 100, r1.value, serial, d1.directiveId.value
+      DB.ExpectedReports[Long](100, 100, r1.value, serial, d1.directiveId.value
       , c1.componentName, c1.cardinality, ComponentsValuesSerialiser.serializeComponents(c1.componentsValues)
       , """["d1_value"]""", DateTime.now, None
       )
@@ -336,17 +320,15 @@ class ExpectedReportsTest extends DBCommon {
         , genTime, Set(n1_overrides)
       )
 
-      slickExec { implicit s =>
-        val reports =  expectedReportsTable.list
-        val nodes = expectedReportsNodesTable.list
+      val reports = doobie.getExpectedReports().transact(xa).run
+      val nodes   = doobie.getExpectedReportsNode().transact(xa).run
 
-        compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
-        reports.size === 2 and compareSlickER(reports(0), expected) and
-        nodes.size === 2 and (nodes must contain(exactly(
-            SlickExpectedReportsNodes(100, "n1", List("n1_v0"))
-          , SlickExpectedReportsNodes(101, "n2", List("n2_v0"))
-        )))
-      }
+      compareER(inserted.openOrThrowException("Test failed")(0), expectedRule) and
+      reports.size === 2 and compareSlickER(reports(0), expected) and
+      nodes.size === 2 and (nodes must contain(exactly(
+          DB.ExpectedReportsNodes(100, "n1", List("n1_v0"))
+        , DB.ExpectedReportsNodes(101, "n2", List("n2_v0"))
+      )))
     }
   }
 

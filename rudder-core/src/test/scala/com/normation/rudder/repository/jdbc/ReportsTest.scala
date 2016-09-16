@@ -37,26 +37,24 @@
 
 package com.normation.rudder.repository.jdbc
 
-import java.sql.Timestamp
-import org.junit.runner.RunWith
-import org.specs2.mutable._
-import org.specs2.runner.JUnitRunner
-import scala.slick.driver.PostgresDriver.simple._
-import org.joda.time.DateTime
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.policies.RuleId
+import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.domain.reports.Reports
 import com.normation.rudder.migration.DBCommon
-import com.normation.rudder.reports.execution.AgentRunId
-import javax.sql.DataSource
-import net.liftweb.common.Loggable
-import java.sql.BatchUpdateException
-import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.rudder.reports.execution.AgentRun
 import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.rudder.domain.reports.NodeConfigId
+
+import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.specs2.mutable._
+import org.specs2.runner.JUnitRunner
+
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import com.normation.rudder.db.DB
 
 /**
  *
@@ -66,15 +64,14 @@ import com.normation.rudder.domain.reports.NodeConfigId
 @RunWith(classOf[JUnitRunner])
 class ReportsTest extends DBCommon {
 
+  import doobie._
 
   //clean data base
   def cleanTables() = {
     jdbcTemplate.execute("DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;")
   }
 
-
   lazy val repostsRepo = new ReportsJdbcRepository(jdbcTemplate)
-  lazy val slick = new SlickSchema(dataSource)
 
   sequential
 
@@ -120,8 +117,9 @@ class ReportsTest extends DBCommon {
         , ("r1", "d1", 1, "c2", "cv2", run1, "result_success", "msg1")
       )
     )
-    step {
-      slick.insertReports(reports.values.toSeq.flatten)
+    "correctly init info" in {
+      doobie.insertReports(reports.values.toList.flatten).transact(xa).run
+      sql"""select id from ruddersysevents""".query[Long].list.transact(xa).run.size === 8
     }
 
     "find the last reports for node0" in {
@@ -170,7 +168,7 @@ class ReportsTest extends DBCommon {
     )
     step {
       cleanTables()
-      slick.insertReports(reports.values.toSeq.flatten)
+      doobie.insertReports(reports.values.toList.flatten).transact(xa).run
     }
 
 

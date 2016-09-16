@@ -61,7 +61,7 @@ import org.springframework.dao.DataAccessException
 
 class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsRepository with Loggable {
 
-  val reportsTable = "ruddersysevents"
+  val reports = "ruddersysevents"
   val archiveTable = "archivedruddersysevents"
 
   private[this] val reportsExecutionTable = "reportsexecution"
@@ -228,21 +228,21 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
                 (id, ${common_reports_column})
           (select id, ${common_reports_column} from %s
         where executionTimeStamp < '%s')
-        """.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd") )
+        """.format(archiveTable,reports,date.toString("yyyy-MM-dd") )
        )
 
       logger.debug(s"""Archiving report with SQL query: [[
                    | insert into %s (id, ${common_reports_column})
                    | (select id, ${common_reports_column} from %s
                    | where executionTimeStamp < '%s')
-                   |]]""".stripMargin.format(archiveTable,reportsTable,date.toString("yyyy-MM-dd")))
+                   |]]""".stripMargin.format(archiveTable,reports,date.toString("yyyy-MM-dd")))
 
       val delete = jdbcTemplate.update("""
         delete from %s  where executionTimeStamp < '%s'
-        """.format(reportsTable,date.toString("yyyy-MM-dd") )
+        """.format(reports,date.toString("yyyy-MM-dd") )
       )
 
-      jdbcTemplate.execute("vacuum %s".format(reportsTable))
+      jdbcTemplate.execute("vacuum %s".format(reports))
 
       Full(delete)
     } catch {
@@ -262,14 +262,14 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
                    | delete from %s  where executionTimeStamp < '%s'
                    |]] and: [[
                    | delete from %s  where date < '%s'
-                   |]]""".stripMargin.format(reportsTable, date.toString("yyyy-MM-dd")
+                   |]]""".stripMargin.format(reports, date.toString("yyyy-MM-dd")
                                            , archiveTable, date.toString("yyyy-MM-dd")
                                            , reportsExecutionTable, date.toString("yyyy-MM-dd")))
     try{
 
       val delete = jdbcTemplate.update("""
           delete from %s where executionTimeStamp < '%s'
-          """.format(reportsTable,date.toString("yyyy-MM-dd") )
+          """.format(reports,date.toString("yyyy-MM-dd") )
       ) + jdbcTemplate.update("""
           delete from %s  where executionTimeStamp < '%s'
           """.format(archiveTable,date.toString("yyyy-MM-dd") )
@@ -278,7 +278,7 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
           """.format(reportsExecutionTable,date.toString("yyyy-MM-dd") )
       )
 
-      jdbcTemplate.execute("vacuum %s".format(reportsTable))
+      jdbcTemplate.execute("vacuum %s".format(reports))
       jdbcTemplate.execute("vacuum full %s".format(archiveTable))
       jdbcTemplate.execute("vacuum %s".format(reportsExecutionTable))
 
