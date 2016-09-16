@@ -251,6 +251,7 @@ archlinux::
 
 # Don't do anything if class warn is defined, or remediate the promises
 # if immediate is defined (default action)
+# DEPRECATED: warn and immediate need to be global classes, use policy(p) instead.
 body action do_if_immediate {
   warn|dry_run|global_dry_run::
    action_policy => "warn";
