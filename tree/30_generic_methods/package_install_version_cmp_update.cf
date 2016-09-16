@@ -41,7 +41,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
       "class_prefix"            string => "package_install_${canonified_package_name}";
 
   defaults:
-      "action" string => "immediate", if_match_regex => "add";
+      "action" string => "fix", if_match_regex => "add";
       "action" string => "warn", if_match_regex => "verify|";
       "update_policy" slist => {"add", "update"}, if_match_regex => "true";
       "update_policy" string => "add",            if_match_regex => "false";
@@ -64,7 +64,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_select  => "${version_comparator}",
                         package_method  => debian_local_install,
                         classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
+                        action          => policy("${action}");
 
 
     !version_not_specified.!local_package.debian::
@@ -74,7 +74,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_select  => "${version_comparator}",
                         package_method  => apt_get,
                         classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
+                        action          => policy("${action}");
 
 
     version_not_specified.local_package.debian::
@@ -82,14 +82,14 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy => "${update_policy}",
                         package_method => debian_local_install,
                         classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+                        action         => policy("${action}");
 
     version_not_specified.!local_package.debian::
       "${package_name}"
                         package_policy => "${update_policy}",
                         package_method => apt_get,
                         classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+                        action         => policy("${action}");
 
     ## RedHat support ##
     !version_not_specified.local_package.redhat::
@@ -99,7 +99,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_select  => "${version_comparator}",
                         package_method  => redhat_local_install,
                         classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
+                        action          => policy("${action}");
 
     !version_not_specified.!local_package.redhat::
       "${package_name}"
@@ -108,7 +108,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_select  => "${version_comparator}",
                         package_method  => yum_rpm,
                         classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
+                        action          => policy("${action}");
 
 
     version_not_specified.local_package.redhat::
@@ -116,7 +116,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy => "${update_policy}",
                         package_method => redhat_local_install,
                         classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+                        action         => policy("${action}");
 
 
     version_not_specified.!local_package.redhat::
@@ -124,7 +124,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy => "${update_policy}",
                         package_method => yum_rpm,
                         classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+                        action         => policy("${action}");
 
     ## SUSE support ##
     !version_not_specified.local_package.SuSE::
@@ -134,7 +134,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_select  => "${version_comparator}",
                         package_method  => ncf_generic,
                         classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
+                        action          => policy("${action}");
 
     !version_not_specified.!local_package.SuSE::
       "${package_name}"
@@ -143,7 +143,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_select  => "${version_comparator}",
                         package_method  => ncf_generic,
                         classes         => classes_generic("${class_prefix}"),
-                        action          => do_if_immediate;
+                        action          => policy("${action}");
 
 
     version_not_specified.local_package.SuSE::
@@ -151,7 +151,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy => "${update_policy}",
                         package_method => ncf_generic,
                         classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+                        action         => policy("${action}");
 
 
     version_not_specified.!local_package.SuSE::
@@ -159,7 +159,7 @@ bundle agent package_install_version_cmp_update(package_name, version_comparator
                         package_policy => "${update_policy}",
                         package_method => ncf_generic,
                         classes        => classes_generic("${class_prefix}"),
-                        action         => do_if_immediate;
+                        action         => policy("${action}");
 
   methods:
     (debian|redhat|SuSE).immediate.!update::
