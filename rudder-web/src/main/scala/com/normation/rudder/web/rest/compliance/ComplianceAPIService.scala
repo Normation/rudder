@@ -48,8 +48,7 @@ import net.liftweb.common.Box
 import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.nodes.NodeInfo
 import net.liftweb.common.Full
-
-
+import com.normation.rudder.repository.RoDirectiveRepository
 
 /**
  * The class in charge of getting and calculating
@@ -60,9 +59,8 @@ class ComplianceAPIService(
   , nodeInfoService : NodeInfoService
   , nodeGroupRepo   : RoNodeGroupRepository
   , reportingService: ReportingService
+  , directiveRepo   : RoDirectiveRepository
 ) {
-
-
 
   /**
    * Get the compliance for everything
@@ -71,6 +69,7 @@ class ComplianceAPIService(
 
     for {
       groupLib      <- nodeGroupRepo.getFullGroupLibrary()
+      directivelib  <- directiveRepo.getFullDirectiveLibrary()
       nodeInfos     <- nodeInfoService.getAll()
       reportsByNode <- reportingService.findRuleNodeStatusReports(
                         nodeInfos.keySet, rules.map(_.id).toSet
@@ -88,6 +87,7 @@ class ComplianceAPIService(
 
           (rule.id, ByRuleRuleCompliance(
               rule.id
+            , rule.name
             , ComplianceLevel(noAnswer = nodeIds.size)
             , Seq()
           ))
@@ -101,15 +101,16 @@ class ComplianceAPIService(
         //aggregate by directives
         val byDirectives = reports.flatMap { r => r.directives.values.map(d => (r.nodeId, d)).toSeq }.groupBy( _._2.directiveId)
 
-
         (
           ruleId,
           ByRuleRuleCompliance(
               ruleId
+            , initializedCompliances.get(ruleId).map(_.name).getOrElse("Unknown rule")
             , ComplianceLevel.sum(reports.map(_.compliance))
             , byDirectives.map{ case (directiveId, nodeDirectives) =>
                 ByRuleDirectiveCompliance(
                     directiveId
+                  , directivelib.allDirectives.get(directiveId).map(_._2.name).getOrElse("Unknown directive")
                   , ComplianceLevel.sum(nodeDirectives.map( _._2.compliance) )
                   , //here we want the compliance by components of the directive. Get all components and group by their name
                     {
@@ -124,6 +125,7 @@ class ComplianceAPIService(
                               byNode.map { case (nodeId, components) =>
                                 ByRuleNodeCompliance(
                                     nodeId
+                                  , nodeInfos.get(nodeId).map(_.name).getOrElse("Unknown node")
                                   , components.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
                                 )
                               }.toSeq
@@ -137,14 +139,12 @@ class ComplianceAPIService(
         )
       }.toMap
 
-
       //return the full list, even for non responding nodes/directives
       //but override with values when available.
       (initializedCompliances ++ nonEmptyRules).values.toSeq
 
     }
   }
-
 
   def getRuleCompliance(ruleId: RuleId): Box[ByRuleRuleCompliance] = {
     for {
@@ -173,6 +173,7 @@ class ComplianceAPIService(
     for {
       rules        <- rulesRepo.getAll()
       groupLib     <- nodeGroupRepo.getFullGroupLibrary()
+      directiveLib <- directiveRepo.getFullDirectiveLibrary().map(_.allDirectives)
       allNodeInfos <- nodeInfoService.getAll()
       nodeInfos    <- onlyNode match {
                         case None => Full(allNodeInfos)
@@ -188,6 +189,7 @@ class ComplianceAPIService(
         (rule, groupLib.getNodeIds(rule.targets, allNodeInfos) )
       }
 
+      val ruleMap = rules.map(r => (r.id,r)).toMap
       // get an empty-initialized array of compliances to be used
       // as defaults
       val initializedCompliances : Map[NodeId, ByNodeNodeCompliance] = {
@@ -196,12 +198,14 @@ class ComplianceAPIService(
 
           (nodeId, ByNodeNodeCompliance(
               nodeId
+            , nodeInfos.get(nodeId).map(_.name).getOrElse("Unknown node")
             , ComplianceLevel(noAnswer = rulesForNode.size)
             , (rulesForNode.map { rule =>
                 ByNodeRuleCompliance(
                     rule.id
+                  , rule.name
                   , ComplianceLevel(noAnswer = rule.directiveIds.size)
-                  , rule.directiveIds.map { id => ByNodeDirectiveCompliance(id, ComplianceLevel(noAnswer = 1), Map())}.toSeq
+                  , rule.directiveIds.map { id => ByNodeDirectiveCompliance(id, directiveLib.get(id).map(_._2.name).getOrElse("Unknown Directive"), ComplianceLevel(noAnswer = 1), Map())}.toSeq
                 )
               }).toSeq
           ))
@@ -215,18 +219,19 @@ class ComplianceAPIService(
           nodeId,
           ByNodeNodeCompliance(
               nodeId
+            , nodeInfos.get(nodeId).map(_.name).getOrElse("Unknown node")
             , ComplianceLevel.sum(ruleNodeStatusReports.map(_.compliance))
             , ruleNodeStatusReports.toSeq.map(r =>
                ByNodeRuleCompliance(
                     r.ruleId
+                  , ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule")
                   , r.compliance
-                  , r.directives.toSeq.map { case (_, directiveReport) => ByNodeDirectiveCompliance(directiveReport) }
+                  , r.directives.toSeq.map { case (_, directiveReport) => ByNodeDirectiveCompliance(directiveReport,directiveLib.get(directiveReport.directiveId).map(_._2.name).getOrElse("Unknown Directive")) }
                 )
               )
           )
         )
       }.toMap
-
 
       //return the full list, even for non responding nodes/directives
       //but override with values when available.
@@ -234,7 +239,6 @@ class ComplianceAPIService(
 
     }
   }
-
 
   def getNodeCompliance(nodeId: NodeId): Box[ByNodeNodeCompliance] = {
     for {
