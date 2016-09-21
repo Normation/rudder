@@ -76,10 +76,28 @@ class FusionReportUnmarshaller(
    * - remove leading/trailing spaces ;
    * - remove multiple space
    */
-  private def optText(n:NodeSeq) = n.text match {
+  private def optText(n:NodeSeq): Option[String] = n.text match {
     case null | "" => None
     case s => Some(s.trim().replaceAll("""[\p{Blank}]+"""," "))
   }
+
+  //extremelly specialized convert used for optionnal field only, that
+  //log the error in place of using a box
+  private[this] def convert[T](input: Option[String], tag: String, format: String, conv: String => T): Option[T] = {
+    try {
+      input.map( s => conv(s))
+    } catch {
+      case ex: Exception =>
+        logger.warn(s"Ignoring '${tag}' content because it can't be converted to ${format}. Error is: ${ex.getMessage}")
+        None
+    }
+  }
+
+  //same as above, but handle conversion to int
+  private[this] def optInt   (n:NodeSeq, tag: String): Option[Int]    = convert(optText(n \ tag), tag, "Int"   , java.lang.Integer.parseInt)
+  private[this] def optLong  (n:NodeSeq, tag: String): Option[Long]   = convert(optText(n \ tag), tag, "Long"  , java.lang.Long.parseLong)
+  private[this] def optFloat (n:NodeSeq, tag: String): Option[Float]  = convert(optText(n \ tag), tag, "Float" , java.lang.Float.parseFloat)
+  private[this] def optDouble(n:NodeSeq, tag: String): Option[Double] = convert(optText(n \ tag), tag, "Double", java.lang.Double.parseDouble)
 
   private def optTextHead(n:NodeSeq) : Option[String] = for {
     head <- n.headOption
@@ -209,15 +227,15 @@ class FusionReportUnmarshaller(
         case "VIRTUALMACHINES" => processVms(elt).foreach { x =>  report = report.copy(node  = report.node.copy( vms = x +: report.node.vms) ) }
      // done previously :    case "VERSIONCLIENT" => report = report.copy( version = processVersion(elt))
         case x => contentParsingExtensions.find {
-            pf => pf.isDefinedAt(elt,report)
+            pf => pf.isDefinedAt((elt,report))
           }.foreach { pf =>
-            report = pf(elt,report)
+            report = pf((elt,report))
           }
       } }
       case x => rootParsingExtensions.find {
-          pf => pf.isDefinedAt(e,report)
+          pf => pf.isDefinedAt((e,report))
         }.foreach { pf =>
-          report = pf(e,report)
+          report = pf((e,report))
         }
     } }
 
@@ -676,10 +694,10 @@ class FusionReportUnmarshaller(
       case Some(mountPoint) =>
         Some(FileSystem(
             mountPoint = mountPoint
-          , name = optText(d\"FILESYSTEM")
-          , freeSpace = optText(d\"FREE").map(m => MemorySize(m + fsSpaceUnit))
+          , name       = optText(d\"FILESYSTEM")
+          , freeSpace  = optText(d\"FREE").map(m => MemorySize(m + fsSpaceUnit))
           , totalSpace = optText(d\"TOTAL").map(m => MemorySize(m + fsSpaceUnit))
-          , fileCount = optText(d\"NUMFILES").map(n => n.toInt)
+          , fileCount  = optInt(d, "NUMFILES")
         ) )
     }
   }
@@ -981,21 +999,21 @@ class FusionReportUnmarshaller(
                 manufacturer    = optText(c\"MANUFACTURER").map(new Manufacturer(_))
                 , arch          = optText(c\"ARCH")
                 , name          = name
-                , speed         = optText(c\"SPEED").map(_.toFloat.toInt)
-                , externalClock = optText(c\"EXTERNAL_CLOCK").map(_.toFloat)
-                , core          = optText(c\"CORE").map(_.toInt)
-                , thread        = optText(c\"THREAD").map(_.toInt)
-                , cpuid         = optText(c\"ID")
-                , stepping      = optText(c\"STEPPING").map(_.toInt)
-                , model         = optText(c\"MODEL").map(_.toInt)
-                , family        = optText(c\"FAMILYNUMBER").map(_.toInt)
-                , familyName    = optText(c\"FAMILYNAME")
+                , speed         = optFloat(c, "SPEED").map(_.toInt)
+                , externalClock = optFloat(c, "EXTERNAL_CLOCK")
+                , core          = optInt(c, "CORE")
+                , thread        = optInt(c, "THREAD")
+                , cpuid         = optText(c \ "ID")
+                , stepping      = optInt(c, "STEPPING")
+                , model         = optInt(c, "MODEL")
+                , family        = optInt(c, "FAMILYNUMBER")
+                , familyName    = optText(c \ "FAMILYNAME")
                 ) )
     }
   }
 
   def processEnvironmentVariable(ev : NodeSeq) : Option[EnvironmentVariable] = {
-    optText(ev\"KEY")	match {
+    optText(ev\"KEY")  match {
     case None =>
       logger.debug("Ignoring entry Envs because tag KEY is empty")
       logger.debug(ev)
@@ -1010,58 +1028,58 @@ class FusionReportUnmarshaller(
   }
 
   def processVms(vm : NodeSeq) : Option[VirtualMachine] = {
-	  optText(vm\"UUID") match {
-	  case None =>
-	    logger.debug("Ignoring entry VirtualMachine because tag UUID is empty")
-	    logger.debug(vm)
-	    None
-	  case Some(uuid) =>
-	      Some(
-	      VirtualMachine (
-	            vmtype    = optText(vm\"VMTYPE")
-	          , subsystem = optText(vm\"SUBSYSTEM")
-	          , owner     = optText(vm\"OWNER")
-	          , name      = optText(vm\"NAME")
-	          , status    = optText(vm\"STATUS")
-	          , vcpu      = optText(vm\"VCPU").map(_.toInt)
-	          , memory    = optText(vm\"MEMORY")
-	          , uuid      = new MachineUuid(uuid)
-	          ) )
-	  }
+    optText(vm\"UUID") match {
+    case None =>
+      logger.debug("Ignoring entry VirtualMachine because tag UUID is empty")
+      logger.debug(vm)
+      None
+    case Some(uuid) =>
+        Some(
+        VirtualMachine (
+              vmtype    = optText(vm\"VMTYPE")
+            , subsystem = optText(vm\"SUBSYSTEM")
+            , owner     = optText(vm\"OWNER")
+            , name      = optText(vm\"NAME")
+            , status    = optText(vm\"STATUS")
+            , vcpu      = optInt(vm, "VCPU")
+            , memory    = optText(vm\"MEMORY")
+            , uuid      = new MachineUuid(uuid)
+            ) )
+    }
   }
 
   def processProcesses(proc : NodeSeq) : Option[Process] = {
-     optText(proc\"PID") match {
-	  case None =>
-	    logger.debug("Ignoring entry Process because tag PID is empty")
-	    logger.debug(proc)
-	    None
-	  case Some(pid) =>
-	    Some (
-	      Process(
-	            pid   = pid.toInt
-	          , cpuUsage      = optText(proc\"CPUUSAGE").map(_.toFloat)
-	          , memory        = optText(proc\"MEM").map(_.toFloat)
-	          , commandName   = optText(proc\"CMD")
-	          , started       = optText(proc\"STARTED")
-	          , tty           = optText(proc\"TTY")
-	          , user          = optText(proc\"USER")
-	          , virtualMemory = optText(proc\"VIRTUALMEMORY").map(_.toInt)
-	          ) )
-	  }
+     optInt(proc, "PID") match {
+    case None =>
+      logger.debug("Ignoring entry Process because tag PID is invalid")
+      logger.debug(proc)
+      None
+    case Some(pid) =>
+      Some (
+        Process(
+              pid   = pid
+            , cpuUsage      = optFloat(proc, "CPUUSAGE")
+            , memory        = optFloat(proc, "MEM")
+            , commandName   = optText(proc\"CMD")
+            , started       = optText(proc\"STARTED")
+            , tty           = optText(proc\"TTY")
+            , user          = optText(proc\"USER")
+            , virtualMemory = optDouble(proc, "VIRTUALMEMORY")
+            ) )
+    }
   }
 
   def processAccessLog (accessLog : NodeSeq) : Option[DateTime] = {
      val fmt = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
-	 optText(accessLog\"LOGDATE") match {
-	   case None => None;
-	   case Some(date) => try {
-	       Some(DateTime.parse(date,fmt))
-	     } catch {
-	       case e:IllegalArgumentException => logger.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))
-	           None
-	     }
-	 }
+   optText(accessLog\"LOGDATE") match {
+     case None => None;
+     case Some(date) => try {
+         Some(DateTime.parse(date,fmt))
+       } catch {
+         case e:IllegalArgumentException => logger.warn("error when parsing ACCESSLOG, reason %s".format(e.getMessage()))
+             None
+       }
+   }
   }
 
    def processVersion (vers : NodeSeq) : Option[Version] = {
