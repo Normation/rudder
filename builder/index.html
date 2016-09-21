@@ -237,8 +237,8 @@
                               </h4>
                               <br style="clear:both"/>
                               <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
-                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" ></input>
-                                <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple />
+                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter"/>
+                                <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple >
                                   <div class="text-danger" ng-message="constraint">
                                     Invalid constraint for parameter: '{{parameter.name}}'
                                   </div>
@@ -248,6 +248,7 @@
                                   {{getClassParameter(method_call)}}
                               </div>
                           </div>
+                        </div>
                       </li>
                   </ul>
             </div>
@@ -257,7 +258,7 @@
                         <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
                         Add methods
                     </div>
-                    <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique()" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
+                    <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || CForm.versionForm.$invalid" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
                     <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
                 </div>
             </div>
@@ -287,7 +288,7 @@
                                   <select class="form-control" ng-change="updateOSName()" ng-model="selectedMethod.OS_class.name" ng-options="os for os in os_classes_by_type[selectedMethod.OS_class.type]"></select>
                                 </div>
                               </form>
-                              <form class="form-inline" name="versionForm" role="form">
+                              <form class="form-inline sm-space-top" name="CForm.versionForm" role="form">
                                 <div class="form-group" ng-show="checkMajorVersion()">
                                   <label for="os_class">Version (Major):</label>
                                   <input type="text" ng-pattern="versionRegex" style="width:50px" class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.OS_class.majorVersion" name="versionMaj" placeholder="">
@@ -296,12 +297,21 @@
                                   <label for="os_class">Version (Minor):</label>
                                   <input type="text"  style="width:50px" ng-pattern="versionRegex" class="form-control" ng-change="updateClassContext()" ng-disabled="selectedMethod.OS_class.majorVersion === undefined || selectedMethod.OS_class.majorVersion === '' " ng-model="selectedMethod.OS_class.minorVersion"  placeholder="" name="versionMin">
                                 </div>
+                                <div ng-messages="CForm.versionForm.versionMaj.$error" class="sm-space-top" role="alert">
+                                  <div ng-message="pattern" class="text-danger">Invalid major version's number</div>
+                                </div>
+                                <div ng-messages="CForm.versionForm.versionMin.$error" role="alert">
+                                  <div ng-message="pattern" class="text-danger">Invalid minor version's number</div>
+                                </div>
                               </form>
                             </div>
                             <form name="CForm.form">
                                 <div class="form-group condition-form">
-                                  <label for="advanced">Other CFEngine classes:</label>
-                                  <input  type="text" name="cfClasses" id="advanced"  class="form-control" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" placeholder="">
+                                  <label class="control-label" for="advanced">Other CFEngine classes:</label>
+                                  <input type="text" class="form-control" name="cfClasses" id="advanced" aria-describedby="helpBlock" ng-change="updateClassContext()" ng-model="selectedMethod.advanced_class" ng-pattern="/^\S+$/">
+                                  <div ng-messages="CForm.form.cfClasses.$error" role="alert">
+                                    <div ng-message="pattern" class="text-danger">This field cannot contain whitespace</div>
+                                  </div>
                                 </div>
                                 <div class="form-group condition-form">
                                   <label for="class_context">CFEngine class context:</label>
