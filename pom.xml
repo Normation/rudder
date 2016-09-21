@@ -148,8 +148,7 @@ limitations under the License.
         <configuration>
           <scalaCompatVersion>${scala-binary-version}</scalaCompatVersion>
           <args>
-            <!-- require java8, cf http://www.rudder-project.org/redmine/issues/8963 -->
-            <arg>-target:jvm-1.8</arg>
+            <arg>-target:jvm-1.7</arg>
             <arg>-dependencyfile</arg>
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
@@ -185,9 +184,8 @@ limitations under the License.
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.1</version>
         <configuration>
-          <!-- require java8, cf http://www.rudder-project.org/redmine/issues/8963 -->
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>1.7</source>
+          <target>1.7</target>
         </configuration>
         <executions>
           <execution>
