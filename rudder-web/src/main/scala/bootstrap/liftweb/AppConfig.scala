@@ -149,6 +149,8 @@ import org.apache.commons.io.FileUtils
 import com.normation.templates.FillTemplatesService
 
 import com.normation.rudder.web.rest.technique._
+import com.normation.rudder.services.quicksearch.FullQuickSearchService
+
 /**
  * Define a resource for configuration.
  * For now, config properties can only be loaded from either
@@ -543,6 +545,7 @@ object RudderConfig extends Loggable {
   val restGetGitCommitAsZip = new RestGetGitCommitAsZip(gitRepo)
   val restApiAccounts = new RestApiAccounts(roApiAccountRepository,woApiAccountRepository,restExtractorService,tokenGenerator, uuidGen)
   val restDataSerializer = RestDataSerializerImpl(techniqueRepository,diffService, configService.api_compatibility_mode)
+  val restQuicksearch = new RestQuicksearch(new FullQuickSearchService()(roLDAPConnectionProvider, nodeDit, acceptedNodesDit, rudderDit, roDirectiveRepository))
 
   val ruleApiService2 =
     new RuleApiService2(
