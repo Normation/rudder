@@ -17,14 +17,14 @@
     
     <link type="text/css" rel="stylesheet" href="/style/c3/c3-0.4.10.min.css" />
     <link type="text/css" rel="stylesheet" href="/style/font-awesome/font-awesome-4.6.3.min.css"/>
-    <link type="text/css" rel="stylesheet" href="/style/angucomplete-ie8-v0.1.2.css" media="screen" />
     
     <link type="text/css" rel="stylesheet" href="/style/rudder/rudder.css" media="screen" />
     
     <link type="text/css" rel="stylesheet" href="/style/bootstrap/tw-bs-bootstrap-3.3.7.css" media="screen" />
     <link type="text/css" rel="stylesheet" href="/style/rudder/rudder-progress-bar.css" media="screen" />
     <link type="text/css" rel="stylesheet" href="/style/rudder/rudder-bootstrap.css" media="screen" />
-    <link type="text/css" rel="stylesheet" href="/style/rudder-quicksearch.css" media="screen" />
+    <link type="text/css" rel="stylesheet" href="/style/angular/angucomplete-alt.css" media="screen" />
+    <link type="text/css" rel="stylesheet" href="/style/rudder/rudder-quicksearch.css" media="screen" />
     
     <link type="text/css" rel="stylesheet" href="/style/AdminLTE/AdminLTE.min.css"/>
     <link type="text/css" rel="stylesheet" href="/style/rudder/rudder-menu.css"/>
@@ -54,8 +54,8 @@
     <script type="text/javascript" src="/javascript/angular/angular.min.js" ></script>
     <script type="text/javascript" src="/javascript/angular/angular-animate.min.js" ></script>
     <script type="text/javascript" src="/javascript/angular/angular-datatables.js" ></script>
-    <script type="text/javascript" src="/javascript/angular/angular-touch.min.js" />
-    <script type="text/javascript" src="/javascript/angular/angucomplete-ie8-v0.1.2.js"></script>
+    <script type="text/javascript" src="/javascript/angular/angular-touch.min.js"></script>
+    <script type="text/javascript" src="/javascript/angular/angucomplete-alt.min.js"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/quicksearch.js"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/groupManagement.js"></script>
     <script type="text/javascript" src="/javascript/rudder/angular/ruleDirectives.js"></script>
@@ -96,13 +96,29 @@
             <span class="sr-only">Toggle navigation</span>
           </a>
           <!-- Quick Search-->
-         <div data-lift="QuickSearchNode.render" >        <!-- Quick Search -->
+         <div data-lift="QuickSearchNode.render"  class="sidebar-form topbar-search-form" >        <!-- Quick Search -->
   
-            <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="navbar-form navbar-left">
-            <script type="text/ng-template" id="/my-custom-template.html">
+            <div ng-app="quicksearch" id="quicksearch" ng-controller="QuicksearchCtrl" class="input-group">
+            <script type="text/ng-template" id="quicksearch.html">
               <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown};">
                 <div class="input-group group-search" ng-class="{'open':searchStr.length>0}">
-                  <ul class="dropdown-menu dropdown-search dropdown-menu-right">
+                  
+                  <input ng-model="searchStr"
+                    ng-disabled="disableInput"
+                    type="text"
+                    value=""
+                    placeholder="{{placeholder}}"
+                    ng-focus="resetHideResults(); onFocusHandler()"
+                    id="searchInput"
+                    class="{{inputClass}}"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    autocomplete="off"
+                    ng-change="inputChangeHandler(searchStr);$parent.refreshFilterSearch(searchStr)"/>
+          <div class="input-group-btn">
+                  <span ng-class="{noRemove:!searchStr}" class="input-group-addon" id="help-search"><span ng-click="$parent.setValueSearchInput('');$parent.refreshFilterSearch(searchStr);" class="glyphicon glyphicon-remove"></span></span>
+                </div>
+                  <ul class="dropdown-menu dropdown-search angucomplete-dropdown dropdown-menu-right" ng-show="showDropdown">
                     <li class="dropdown-header">
                       <div class="row no-margin">
                         <div class="row" id="search-tab">
@@ -230,27 +246,12 @@
                       </div>
                     </li>
                   </ul>
-                  <input ng-model="searchStr"
-                    ng-disabled="disableInput"
-                    type="text"
-                    value=""
-                    placeholder="{{placeholder}}"
-                    ng-focus="resetHideResults(); onFocusHandler()"
-                    id="searchInput"
-                    class="{{inputClass}}"
-                    autocapitalize="off"
-                    autocorrect="off"
-                    autocomplete="off"
-                    ng-change="inputChangeHandler(searchStr);$parent.refreshFilterSearch(searchStr)"/>
-          <div class="input-group-btn">
-                  <span ng-class="{noRemove:!searchStr}" class="input-group-addon" id="help-search"><span ng-click="$parent.setValueSearchInput('');$parent.refreshFilterSearch(searchStr);" class="glyphicon glyphicon-remove"></span></span>
-                </div>
               </div>
             </div>
           </script>
   
               <div id="angucomplete-ie8-quicksearch"
-                   angucomplete-ie8=""
+                   angucomplete-alt=""
                    placeholder="Search anything"
                    maxlength="100"
                    pause="500"
@@ -260,9 +261,9 @@
                    title-field="name"
                    description-field="desc"
                    minlength="3"
-                   input-class="form-control"
+                   input-class="form-control input"
                    match-class="highlight"
-                   template-url="/my-custom-template.html">
+                   template-url="quicksearch.html">
               </div>
             </div>
           </div>

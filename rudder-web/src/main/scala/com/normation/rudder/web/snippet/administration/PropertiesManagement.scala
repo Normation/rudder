@@ -95,7 +95,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "displayGraphsConfiguration" => displayGraphsConfiguration
     case "apiMode" => apiComptabilityMode
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
-    case "quickSearchConfiguration" => quickSearchConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -140,7 +139,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           S.error("updateChangeMsg","The message field cannot be empty.")
         }else{
           S.notice("updateChangeMsg","")
-        }    
+        }
       }
       Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif||emptyString});""")
     }
@@ -893,50 +892,4 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } ) apply xml
   }
 
-
-  def quickSearchConfiguration = { xml : NodeSeq =>
-
-    ( configService.rudder_featureSwitch_quicksearchEverything() match {
-      case Full(initialValue) =>
-
-        var x = initialValue
-        def noModif() = x == initialValue
-        def check() = {
-          S.notice("quickSearchEverythingMsg","")
-          Run(s"""$$("#quickSearchEverythingSubmit").button( "option", "disabled",${noModif()});""")
-        }
-
-        def submit() = {
-          val save = configService.set_rudder_featureSwitch_quicksearchEverything(x)
-          S.notice("quickSearchEverythingMsg", save match {
-            case Full(_)  =>
-              "'quick search everything' property updated. The feature will be loaded as soon as you go to another page or reload this one."
-            case eb: EmptyBox =>
-              "There was an error when updating the value of the 'quick search everything' property"
-          } )
-        }
-
-        ( "#quickSearchEverythingCheckbox" #> {
-            SHtml.ajaxCheckbox(
-                x == Enabled
-              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
-              , ("id","quickSearchEverythingCheckbox")
-            )
-          } &
-          "#quickSearchEverythingSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _)
-          } &
-          "#quickSearchEverythingSubmit *+" #> {
-            Script(Run("correctButtons();") & check())
-          }
-        )
-
-      case eb: EmptyBox =>
-        ( "#quickSearchEverything" #> {
-          val fail = eb ?~ "there was an error while fetching value of property: 'quick search everything'"
-          logger.error(fail.messageChain)
-          <div class="error">{fail.messageChain}</div>
-        } )
-    } ) apply xml
-  }
 }

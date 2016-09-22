@@ -40,7 +40,6 @@ package com.normation.rudder.services.quicksearch
 import org.junit.runner._
 import org.specs2.mutable._
 import org.specs2.runner._
-import org.specs2.specification.Fragments
 import net.liftweb.common._
 import org.specs2.matcher.MatchResult
 
