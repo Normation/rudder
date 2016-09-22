@@ -497,7 +497,7 @@ case class RestDataSerializerImpl (
           )
           Full(extendResponseCompatibility(base, extension))
       } catch {
-         case e:Exception => e
+         case e:Exception =>
              val errorMsg = "Error while trying to serialize Directive Diff. cause is: " + e.getMessage()
              logger.error(errorMsg)
              Failure(errorMsg)
