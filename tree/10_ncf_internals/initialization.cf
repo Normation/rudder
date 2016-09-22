@@ -19,7 +19,7 @@
 # Initialization
 # This bundle will make necessary steps to prepare ncf before running any configuration
 # It needs to be called just after loading ncf and its configuration.
-bundle agent init
+bundle agent initialization
 {
 
   files:
