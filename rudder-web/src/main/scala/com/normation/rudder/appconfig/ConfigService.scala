@@ -176,6 +176,11 @@ trait ReadConfigService {
    * Should we activate the script engine bar ?
    */
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
+
+  /*
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch]
 }
 
 /**
@@ -281,6 +286,10 @@ trait UpdateConfigService {
 
   def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit]
 
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -315,6 +324,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.featureSwitch.directiveScriptEngine=disabled
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=false
+       rudder.featureSwitch.quicksearchEverything=enabled
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -536,4 +546,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
 
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch] = get("rudder_featureSwitch_quicksearchEverything")
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_quicksearchEverything", status)
 }

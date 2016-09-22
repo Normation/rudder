@@ -4,12 +4,12 @@
 *************************************************************************************
 *
 * This file is part of Rudder.
-* 
+*
 * Rudder is free software: you can redistribute it and/or modify
 * it under the terms of the GNU General Public License as published by
 * the Free Software Foundation, either version 3 of the License, or
 * (at your option) any later version.
-* 
+*
 * In accordance with the terms of section 7 (7. Additional Terms.) of
 * the GNU General Public License version 3, the copyright holders add
 * the following Additional permissions:
@@ -22,12 +22,12 @@
 * documentation that, without modification of the Source Code, enables
 * supplementary functions or services in addition to those offered by
 * the Software.
-* 
+*
 * Rudder is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
 
@@ -37,6 +37,19 @@
 .tw-bs .modal{
   overflow-x: hidden;
   overflow-y: auto;
+}
+.tw-bs .row.no-margin{
+  margin-right: 0;
+  margin-left: 0;
+}
+.tw-bs .row.small-margin{
+  margin-right: -5px;
+  margin-left: -5px;
+}
+@media (min-width: 768px){
+  .tw-bs .nav.navbar-nav:first-child > li:last-child{
+    margin-right : 10px;
+  }
 }
 
 .tw-bs .modal-header {
@@ -66,51 +79,49 @@
 
 .tw-bs  .navbar-form {
   padding:0;
-  font-size:13px; 
+  font-size:13px;
 }
 
+.tw-bs .navbar-form button.btn.btn-default.dropdown-toggle .glyphicon {
+  color:#ccc;
+  transition-duration:.2s;
+}
 .tw-bs .navbar-rudder .navbar-nav > .active > a, .tw-bs .navbar-rudder .navbar-nav > .active > a:hover, .tw-bs .navbar-rudder .navbar-nav > .active > a:focus,
 .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a, .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a:hover, .tw-bs .navbar-rudder .navbar-nav .dropdown.active > a:focus {
   background-color: #2e2d2d;
   color: #e78f08;
 }
-
 .tw-bs .nav > li > a:hover, .tw-bs .nav > li > a:focus,
 .tw-bs .nav li.dropdown > a:hover, .tw-bs .nav li.dropdown > a:focus {
   background-color: #2e2d2d;
   color: #e78f08;
   text-decoration:none;
 }
-
 .tw-bs .navbar-rudder.navbar-fixed-top {
   border: none;
 }
-
 .tw-bs .navbar-nav li.dropdown {
   float: left;
 }
-
 .tw-bs .navbar-nav li.dropdown > a {
   padding: 15px 8px;
   line-height: 20px;
   display:block;
   position:relative;
 }
-
 .tw-bs .navbar-nav > li > a {
   padding: 15px 8px;
 }
 
 .tw-bs .nav > li > a:hover .glyphicon, .tw-bs .nav > li > a:focus .glyphicon,
 .tw-bs .nav li.dropdown > a:hover .glyphicon, .tw-bs .nav li.dropdown > a:focus .glyphicon {
-  color: #e78f08; 
+  color: #e78f08;
 }
 
 .tw-bs .nav > li > a:hover .badge, .tw-bs .nav > li > a:focus .badge,
 .tw-bs .nav li.dropdown > a:hover .badge, .tw-bs .nav li.dropdown > a:focus .badge {
-  background-color: #2e2d2d; 
+  background-color: #2e2d2d;
 }
-
 
 .tw-bs .badge {
   background-color: #2e2d2d;
@@ -121,14 +132,13 @@
   font-weight:bold;
 }
 
-
 .tw-bs a .badge .glyphicon{
   color: #eee;
   font-size:12px;
 }
 
 .tw-bs a .badge .glyphicon.glyphicon-ok{
-	color:#4f8a10;
+  color:#4f8a10;
 }
 
 .tw-bs a .badge .glyphicon.glyphicon-remove{
@@ -137,15 +147,15 @@
 
 
 .tw-bs .nav li.dropdown > a:hover .badge .glyphicon, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon {
-  color: #eee; 
+  color: #eee;
 }
 
 .tw-bs .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-ok, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-ok {
-  color: #4f8a10; 
+  color: #4f8a10;
 }
 
 .tw-bs .nav li.dropdown > a:hover .badge .glyphicon.glyphicon-remove, .tw-bs .nav li.dropdown > a:focus .badge .glyphicon.glyphicon-remove {
-  color: #d8000c; 
+  color: #d8000c;
 }
 
 .tw-bs .navbar-nav .glyphicon {
@@ -153,19 +163,15 @@
 }
 
 .tw-bs .form-control {
-	font-size:12px;
+  font-size:12px;
 }
 
-.tw-bs .navbar-form .form-control {
-	width:120px;
-	padding: 6px;
-    margin-left: 8px;
-}
+
 .tw-bs .navbar-form .form-control:focus {
-    border-color: #FE9F32;
-    outline: 0;
-    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(219, 219, 219, 0.71);
-    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(219, 219, 219, 0.71);
+  border-color: #cccccc;
+  outline: 0;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(219, 219, 219, 0.71);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 8px rgba(219, 219, 219, 0.71);
 }
 .rudder_col{
   float: left;
@@ -177,16 +183,14 @@
   padding: 15px 25px 0;
 }
 
-
-
 * {
   box-sizing: border-box;
 }
 
 .container {
-   height:100%;
-   padding:80px 0 30px;
-   margin: -90px 0 0;
+  height:100%;
+  padding:80px 0 30px;
+  margin: -90px 0 0;
 }
 
 .container:before {
@@ -197,7 +201,7 @@
 }
 
 .col {
-	background-color:#fff;
+  background-color:#fff;
   float: left;
   overflow: auto;
   position: static;
@@ -247,7 +251,7 @@
 }
 
 #editRuleZone form {
-	padding-bottom:40px;
+  padding-bottom:40px;
 }
 
 @media (max-width:1280px) {
@@ -255,100 +259,95 @@
     padding:120px 0 30px;
     margin: -130px 0 0;
   }
-
   .fixed-footer {
     bottom: 40px;
   }
 }
 
 #generation-status{
-	padding-top:2px;
-	padding-bottom:2px;
+  padding-top:2px;
+  padding-bottom:2px;
 }
 
 .bs-callout {
-    -moz-border-bottom-colors: none;
-    -moz-border-left-colors: none;
-    -moz-border-right-colors: none;
-    -moz-border-top-colors: none;
-    border-color: #eee;
-    border-image: none;
-    border-radius: 3px;
-    border-style: solid;
-    border-width: 1px 1px 1px 5px;
-    padding: 10px;
+  -moz-border-bottom-colors: none;
+  -moz-border-left-colors: none;
+  -moz-border-right-colors: none;
+  -moz-border-top-colors: none;
+  border-color: #eee;
+  border-image: none;
+  border-radius: 3px;
+  border-style: solid;
+  border-width: 1px 1px 1px 5px;
+  padding: 10px;
 }
 .bs-callout h4 {
-    margin-bottom: 5px;
-    margin-top: 0;
+  margin-bottom: 5px;
+  margin-top: 0;
 }
 .bs-callout p:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 .bs-callout code {
-    border-radius: 3px;
-}
-.bs-callout + .bs-callout {
-    margin-top: -5px;
+  border-radius: 3px;
+}.bs-callout + .bs-callout {
+  margin-top: -5px;
 }
 .bs-callout-danger {
-    border-left-color: #d9534f;
+  border-left-color: #d9534f;
 }
 .bs-callout-danger h4 {
-    color: #d9534f;
+  color: #d9534f;
 }
 .bs-callout-warning {
-    border-left-color: #f0ad4e;
+  border-left-color: #f0ad4e;
 }
 .bs-callout-warning h4 {
-    color: #f0ad4e;
+  color: #f0ad4e;
 }
 .bs-callout-info {
-    border-left-color: #5bc0de;
+  border-left-color: #5bc0de;
 }
 .bs-callout-info h4 {
-    color: #5bc0de;
+  color: #5bc0de;
 }
-
 .tw-bs .bs-callout h4 {
-	font-size:14px;
+  font-size:14px;
 }
-
 .tw-bs .ruddericon {
   color:#999;
 }
-
 .tw-bs .tooltipable.ruddericon:hover {
   color:#666;
 }
-
 .tw-bs .form-group, .form-group {
   margin-bottom:5px;
 }
-
-
 .pull-left {
-	float:left !important
+  float:left !important
 }
-
 .col-sm-1 {
-    width: 8.333333%;
-    float: left;
-    min-height: 1px;
-    padding-left: 15px;
-    padding-right: 15px;
-    position: relative;
+  width: 8.333333%;
+  float: left;
+  min-height: 1px;
+  padding-left: 15px;
+  padding-right: 15px;
+  position: relative;
 }
 
 .form-horizontal .form-group:after,.form-horizontal .form-group:before {
-	clear:both;
-	content: " ";
+  clear:both;
+  content: " ";
   display: table;
 }
 
+.tw-bs .control-label{
+  font-weight: normal;
+}
+
 #cfagentSchedule .control-label.col-sm-1 {
-	width:150px;
-	text-align:right;
+  width:150px;
+  text-align:right;
 }
 
 .control-label {
@@ -357,7 +356,7 @@
 }
 
 .tw-bs input[type="number"]{
-	padding-right:0;
+  padding-right:0;
 }
 
 .form-control {
@@ -368,6 +367,7 @@
   height:150px;
   padding: 30px 20px
 }
+
 #globalCompliance .progress .progress-bar {
     line-height: 90px;
     font-size: 25px;
@@ -375,17 +375,16 @@
 }
 
 .tw-bs .nav-pills  > li > a {
-	border-radius : 0px;
+  border-radius : 0px;
   color : #2e2d2d;
   font-size: 15px;
-} 
+}
 
 #complianceGauge {
     float: left;
     width: 75%;
     margin-left: 12.5%;
 }
-
 #gauge-value {
     font-weight: bold;
     text-align: center;
@@ -393,18 +392,19 @@
     float: left;
     width: 100%;
 }
+
 .tw-bs .nav-pills.navbar-rudder {
-	padding-right : 0px;
+  padding-right : 0px;
   background-color: #fff;
   background-image:none;
 }
 
 .tw-bs .panel-heading {
-	font-size:18px;
+  font-size:18px;
 }
 
 .modal-dialog {
-	z-index:1050;
+  z-index:1050;
 }
 
 .tw-bs .modal .table#grid_dependentRulesGrid {
@@ -668,16 +668,16 @@ form .tw-bs input {
 }
 
 #password-actions {
-	padding: 0 15px 15px;
+  padding: 0 15px 15px;
 }
 
 .tw-bs .padding-form {
-	padding-bottom: 15px;
+  padding-bottom: 15px;
 }
 
 .tw-bs .input-group-btn  .dropdown-toggle {
-	height : 34px;
-} 
+  height : 34px;
+}
 
 .tw-bs .input-group-btn > .btn:hover, .tw-bs .input-group-btn > .btn:focus, .tw-bs .input-group-btn > .btn:active {
   z-index: 0;
