@@ -22,7 +22,7 @@
 #
 # @parameter source_template Source file containing a template to be expanded
 # @parameter destination     Destination file
-# @parameter template_type   Template type (cfengine or mustache)
+# @parameter template_type   Template type (cfengine, jinja2 or mustache)
 #
 # @class_prefix file_from_template
 # @class_parameter destination
@@ -37,6 +37,7 @@ bundle agent file_from_template_type(source_template, destination, template_type
 
   classes:
     "template_exists" expression => fileexists("${source_template}");
+    "is_jinja2"       expression => strcmp("${template_type}", "jinja2");
 
   files:
     "${destination}"
@@ -44,17 +45,22 @@ bundle agent file_from_template_type(source_template, destination, template_type
       edit_template   => "${source_template}",
       template_method => "${template_type}",
       edit_defaults   => ncf_empty_select("true"),
-      ifvarclass      => "template_exists",
+      ifvarclass      => "!is_jinja2.template_exists",
       classes         => classes_generic_two("${old_class_prefix}", "${class_prefix}");
 
   methods:
+    is_jinja2.template_exists::
+      "template" usebundle => file_from_template_jinja2("${source_template}", "${destination}");
 
     !template_exists::
-
       "template_absent" usebundle => _classes_failure("${old_class_prefix}");
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
-    any::
+    is_jinja2.template_exists:
+      "new result classes" usebundle => _classes_copy("${class_prefix}_file_from_template_jinja2", "${class_prefix}");
+      "report" usebundle => _log("Build file ${destination} from ${template_type} template ${source_template}", "", "${class_prefix}", @{args});
+
+    !(is_jinja2.template_exists)::
       "sanitize" usebundle => _classes_sanitize("${class_prefix}");
       "sanitize" usebundle => _classes_sanitize("${old_class_prefix}");
       "report"   usebundle => _log("Build file ${destination} from ${template_type} template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
