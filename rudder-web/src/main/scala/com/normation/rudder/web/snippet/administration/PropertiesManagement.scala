@@ -62,6 +62,7 @@ import com.normation.rudder.reports.SyslogTCP
 import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.popup.ModificationValidationPopup.Enable
+import com.normation.rudder.domain.appconfig.FeatureSwitch._
 
 /**
  * This class manage the displaying of user configured properties.
@@ -94,6 +95,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "displayGraphsConfiguration" => displayGraphsConfiguration
     case "apiMode" => apiComptabilityMode
     case "directiveScriptEngineConfiguration" => directiveScriptEngineConfiguration
+    case "quickSearchConfiguration" => quickSearchConfiguration
   }
 
   def changeMessageConfiguration = { xml : NodeSeq =>
@@ -799,7 +801,6 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } ) apply xml
   }
 
-
   def apiComptabilityMode = { xml : NodeSeq =>
 
     //  initial values, updated on successfull submit
@@ -886,6 +887,53 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       case eb: EmptyBox =>
         ( "#directiveScriptEngine" #> {
           val fail = eb ?~ "there was an error while fetching value of property: 'directive script engine'"
+          logger.error(fail.messageChain)
+          <div class="error">{fail.messageChain}</div>
+        } )
+    } ) apply xml
+  }
+
+
+  def quickSearchConfiguration = { xml : NodeSeq =>
+
+    ( configService.rudder_featureSwitch_quicksearchEverything() match {
+      case Full(initialValue) =>
+
+        var x = initialValue
+        def noModif() = x == initialValue
+        def check() = {
+          S.notice("quickSearchEverythingMsg","")
+          Run(s"""$$("#quickSearchEverythingSubmit").button( "option", "disabled",${noModif()});""")
+        }
+
+        def submit() = {
+          val save = configService.set_rudder_featureSwitch_quicksearchEverything(x)
+          S.notice("quickSearchEverythingMsg", save match {
+            case Full(_)  =>
+              "'quick search everything' property updated. The feature will be loaded as soon as you go to another page or reload this one."
+            case eb: EmptyBox =>
+              "There was an error when updating the value of the 'quick search everything' property"
+          } )
+        }
+
+        ( "#quickSearchEverythingCheckbox" #> {
+            SHtml.ajaxCheckbox(
+                x == Enabled
+              , (b : Boolean) => { if(b) { x = Enabled } else { x = Disabled }; check}
+              , ("id","quickSearchEverythingCheckbox")
+            )
+          } &
+          "#quickSearchEverythingSubmit " #> {
+            SHtml.ajaxSubmit("Save changes", submit _)
+          } &
+          "#quickSearchEverythingSubmit *+" #> {
+            Script(Run("correctButtons();") & check())
+          }
+        )
+
+      case eb: EmptyBox =>
+        ( "#quickSearchEverything" #> {
+          val fail = eb ?~ "there was an error while fetching value of property: 'quick search everything'"
           logger.error(fail.messageChain)
           <div class="error">{fail.messageChain}</div>
         } )
