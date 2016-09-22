@@ -42,13 +42,18 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.web.components.AutoCompleteAutoSubmit
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import bootstrap.liftweb.RudderConfig
+import net.liftweb.util._
+import net.liftweb.util.Helpers._
 import net.liftweb.common._
 import net.liftweb.http.DispatchSnippet
 import net.liftweb.http.js.JsCmd
-import net.liftweb.http.js.JsCmds.Alert
-import net.liftweb.http.js.JsCmds.RedirectTo
+import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.util.Helpers.strToSuperArrowAssoc
-import net.liftweb.http.js.JsCmds.Run
+import net.liftweb.http.js.JsCmds._
+import net.liftweb.http.S
+import com.normation.rudder.services.quicksearch.QSObject
+import com.normation.rudder.services.quicksearch.QSMapping
+import com.normation.rudder.domain.appconfig.FeatureSwitch
 
 /**
  * This snippet allow to display the node "quick search" field.
@@ -58,12 +63,57 @@ import net.liftweb.http.js.JsCmds.Run
 class QuickSearchNode extends DispatchSnippet with Loggable {
 
   private[this] val quickSearchService = RudderConfig.quickSearchService
+  private[this] val config = RudderConfig.configService
 
   def dispatch = {
-    case "render" => quickSearch
+    case "render" => chooseSearch
   }
 
-  def quickSearch(html:NodeSeq) : NodeSeq = {
+  def chooseSearch(html: NodeSeq): NodeSeq = {
+
+    config.rudder_featureSwitch_quicksearchEverything() match {
+      case Full(FeatureSwitch.Enabled ) => quickSearchEveryting(html)
+      case Full(FeatureSwitch.Disabled) => quickSearchNode(html)
+      case eb: EmptyBox                 =>
+        val e = eb ?~! "Error when trying to know what quicksearch bar should be displayed, defaulting to the default one"
+        logger.warn(e.messageChain)
+        //default to node quicksearch
+        quickSearchNode(html)
+    }
+
+  }
+
+  def quickSearchEveryting(html: NodeSeq) : NodeSeq = {
+    val bind = (
+      "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch/"
+    )
+    (bind(html) ++ Script(OnLoad(JsRaw(s"initQuicksearchDocinfo(${jsonDocinfo})"))))
+  }
+
+  //json view of the aliases
+  val jsonDocinfo = {
+    import net.liftweb.json._
+    import net.liftweb.json.JsonAST.{render => _, _}
+    import net.liftweb.json.JsonDSL._
+    import com.normation.rudder.services.quicksearch.QSObject._
+
+    val objs: List[JObject] = QSObject.all.toList.sortWith(sortQSObject).map { obj =>
+
+      (
+          ( "name" -> obj.name )
+        ~ ( "attributes" -> obj.attributes.toSeq.map ( attr => (
+                ( "name" -> attr.name )
+              ~ ( "aliases" -> QSMapping.attributeNames.getOrElse(attr, Set()).toList )
+          ) ) )
+      )
+    }
+
+    "'" + compact(render(objs)) + "'"
+  }
+
+
+
+  def quickSearchNode(html:NodeSeq) : NodeSeq = {
     def buildQuery(current: String, limit: Int): Seq[String] = {
       quickSearchService.lookup(current,100) match {
         case Full(seq) => seq.map(nodeInfo => "%s [%s]".format(nodeInfo.hostname, nodeInfo.id.value))
@@ -90,9 +140,10 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
     }
 
 
-
-    val searchInput =
-      AutoCompleteAutoSubmit (
+    //actual XML returned by the method
+    <lift:form class="navbar-form navbar-left">
+      <div class="form-group">
+      {AutoCompleteAutoSubmit (
           ""
         , buildQuery _
         , { s:String => parse(s) }
@@ -100,13 +151,8 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
         , ("resultsClass", "'topQuickSearchResults ac_results '") :: Nil
         , ("placeholder" -> "Search nodes")
         ,  ("class" -> "form-control")
-      )
-
-
-   <lift:form class="navbar-form navbar-left">
-        <div class="form-group">
-          {searchInput}
-        </div>
+      )}
+      </div>
     </lift:form>
 
   }
