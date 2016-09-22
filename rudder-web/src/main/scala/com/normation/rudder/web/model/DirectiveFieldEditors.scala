@@ -66,16 +66,71 @@ import com.normation.rudder.services.policies.JsEngine
  * This field is a simple input text, without any
  * special validation nor anything.
  */
-class TextField(val id: String) extends DirectiveField {
+
+object TextField {
+
+  def textInput(kind : String)(id : String) = {
+      // Html template
+    def templatePath = List("templates-hidden", "components", "directiveInput")
+    def template() =  Templates(templatePath) match {
+       case eb : EmptyBox =>
+         val failure = eb ?~ s"Template for text input configuration not found. I was looking for ${templatePath.mkString("/")}.html"
+         sys.error(failure.messageChain)
+       case Full(n) => n
+    }
+    def textInput = chooseTemplate("input", kind, template)
+
+    val css: CssSel =  ".tw-bs [id]" #> id &
+    ".text-section [id]" #>  (id+"-controller")
+
+    css(textInput)
+
+  }
+}
+
+class TextField(
+    val id           : String
+  , scriptSwitch : () => Box[FeatureSwitch]
+) extends DirectiveField {
   self =>
   type ValueType = String
   protected var _x: String = getDefaultValue
 
   def get = _x
   def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
-  def toForm() = {
-    val attrs = if(isReadOnly) Seq(("readonly" -> "readonly")) else Seq()
-    Full(SHtml.text(toClient, { x => parseClient(x) }, attrs:_*))
+
+  def toForm() = display(TextField.textInput("text") )
+
+  def display( xml: String => NodeSeq) = {
+    val formId = Helpers.nextFuncName
+    val valueInput = SHtml.text("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
+    val (scriptEnabled, currentPrefix, currentValue) = scriptSwitch().getOrElse(Disabled) match {
+      case Disabled => (JsFalse, "",toClient)
+      case Enabled  =>
+        val (currentPrefix, currentValue) =
+          if (toClient.startsWith(JsEngine.EVALJS)) {
+            (JsEngine.EVALJS, toClient.substring(JsEngine.EVALJS.length()))
+          } else {
+            ("",toClient)
+          }
+        ( JsTrue, currentPrefix, currentValue)
+    }
+    val initScript = {
+      Script(OnLoad( JsRaw(s"""
+       angular.bootstrap("#${formId}", ['text']);
+       var scope = angular.element($$("#${formId}-controller")).scope();
+       scope.$$apply(function(){
+         scope.init(
+             ${Str(currentValue).toJsCmd}
+           , ${Str(currentPrefix).toJsCmd}
+           , ${scriptEnabled.toJsCmd}
+         );
+       });""")))
+    }
+
+    val form = (".text-section *+" #> valueInput).apply(xml(formId)) ++ initScript
+    Full(form)
+
   }
   def manifest = manifestOf[String]
 
@@ -123,16 +178,22 @@ class ReadOnlyTextField(val id:String) extends DirectiveField {
  * "textareaField"
  *
  */
-class TextareaField(override val id: String) extends TextField(id) {
+
+class TextareaField(
+    override val id: String
+  , scriptSwitch   : () => Box[FeatureSwitch]
+) extends TextField(id,scriptSwitch) {
   self =>
 
-  override def toForm() = Full {
-    SHtml.textarea(toClient, { x => parseClient(x) }) % ("class" -> "textareaField") % ("COLS" -> "80")
-  }
+  override def toForm() = display(TextField.textInput("textarea") )
 
 }
 
-class InputSizeField(override val id: String, val expectedUnit: String = "b") extends TextField(id) {
+class InputSizeField(
+    override val id: String
+  , scriptSwitch   : () => Box[FeatureSwitch]
+  , expectedUnit   : String = "b"
+) extends TextField(id,scriptSwitch) {
   val units = ValueLabel("b", "B") :: ValueLabel("kb", "KB") :: ValueLabel("mb", "MB") :: ValueLabel("gb", "GB") :: ValueLabel("tb", "TB") :: Nil
 
   override def toForm() = Full(<div>{ inputToForm ++ unitsToForm }</div>)
