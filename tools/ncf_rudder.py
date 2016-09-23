@@ -320,6 +320,7 @@ def generate_rudder_reporting(technique):
 
     class_prefix = generic_method["class_prefix"]+"_"+key_value_canonified
     logger_rudder_call = '"dummy_report" usebundle => logger_rudder("' + generic_method['name'] + ' ' + key_value + ' if ' + method_call['class_context'] + '", "' + class_prefix +'")'
+    logger_rudder_call = logger_rudder_call.replace("&", "\\&")
 
     # Always add an empty line for readability
     content.append('')
