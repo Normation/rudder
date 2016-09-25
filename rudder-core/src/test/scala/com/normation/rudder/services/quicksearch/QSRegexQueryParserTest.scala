@@ -107,13 +107,13 @@ class QSRegexQueryParserTest extends Specification {
     }
 
     "if only on attributes, give all objects" in {
-      parse(" iN:displayName here, the query in:NodeId").mustFull(
+      parse(" iN:display_name here, the query in:Node_Id").mustFull(
           Query("here, the query", QSObject.all, Set(NodeId, Name))
       )
     }
 
     "on both sides works" in {
-      parse(" Is:Directive is:RuLes iN:displayName here, the query in:NodeId").mustFull(
+      parse(" Is:Directive is:RuLes iN:display_Name here, the query in:Node_Id").mustFull(
           Query("here, the query", Set(Directive, Rule), Set(NodeId, Name))
       )
     }
@@ -123,12 +123,12 @@ class QSRegexQueryParserTest extends Specification {
       )
     }
     "only at starts works" in {
-      parse(" is:Directive is:RuLes in:displayName here, the query ").mustFull(
+      parse(" is:Directive is:RuLes in:display_Name here, the query ").mustFull(
           Query("here, the query", Set(Directive, Rule), Set(Name))
       )
     }
     "parse multiple filter comma separated" in {
-      parse(" is:Directive,rules in:displayName here, the query in:NodeId,RuleId").mustFull(
+      parse(" is:Directive,rules in:display_Name here, the query in:Node_Id,Rule_Id").mustFull(
           Query("here, the query", Set(Directive, Rule), Set(NodeId, Name, RuleId))
       )
     }
