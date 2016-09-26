@@ -75,6 +75,8 @@ import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.services.queries.CmdbQueryParser
 import com.normation.rudder.services.marshalling._
 import com.normation.rudder.services.marshalling.TestFileFormat
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.JString
 
 /**
  * A service that helps mapping event log details to there structured data model.
@@ -929,6 +931,7 @@ class EventLogDetailsServiceImpl(
     }
 
   private[this] def extractNodeProperties(xml : NodeSeq)(details: NodeSeq): Box[Seq[NodeProperty]] = {
+      import net.liftweb.json.{parse => jparse }
       if(details.isEmpty) Full(Seq())
       else for {
         properties <- sequence((details \ "property").toSeq) { prop =>
@@ -936,13 +939,15 @@ class EventLogDetailsServiceImpl(
                            name  <- (prop \ "name" ).headOption.map( _.text ) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
                            value <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
                          } yield {
-                           NodeProperty(name, value)
+                           val json = tryo { jparse(value) }.openOr(JString(value))
+                           NodeProperty(name, json)
                          }
                        }
       } yield {
         properties
       }
-    }
+  }
+  
   def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
 
     def build(nodeId: NodeId, details: Option[SimpleDiff[Option[AgentRunInterval]]]) : ModifyNodeDiff = {

@@ -45,6 +45,7 @@ import net.liftweb.http.rest.RestHelper
 import com.normation.rudder.web.rest.RestAPI
 import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.policies.PolicyMode
+import net.liftweb.json.JsonAST.JString
 
 trait NodeAPI extends RestAPI {
   val kind = "nodes"
@@ -58,3 +59,32 @@ case class RestNode (
     properties : Option[Seq[NodeProperty]]
   , policyMode : Option[Option[PolicyMode]]
 )
+
+object CompareProperties {
+  /**
+   * Update a set of properties with the map:
+   * - if a key of the map matches a property name,
+   *   use the map value for the key as value for
+   *   the property
+   * - if the value is the emtpy string, remove
+   *   the property
+   */
+  def updateProperties(props: Seq[NodeProperty], updates: Option[Seq[NodeProperty]]) = {
+    updates match {
+      case None => props
+      case Some(u) =>
+        val values = u.map { case NodeProperty(k, v) => (k, v)}.toMap
+        val existings = props.map(_.name).toSet
+        //for news values, don't keep empty
+        val news = (values -- existings).collect { case(k,v) if(v != JString("")) => NodeProperty(k,v) }
+        props.flatMap { case p@NodeProperty(name, value)  =>
+          values.get(name) match {
+            case None              => Some(p)
+            case Some(JString("")) => None
+            case Some(x)           => Some(NodeProperty(name, x))
+          }
+        } ++ news
+    }
+  }
+
+}

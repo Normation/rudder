@@ -639,10 +639,24 @@ case class RestExtractorService (
    * ] }
    */
   def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNodeProperties] = {
-    import net.liftweb.json.JsonParser._
-    implicit val formats = DefaultFormats
+    import com.normation.utils.Control.sequence
 
-    Box(json.extractOpt[RestNodeProperties]) ?~! "Error when extracting node properties"
+    for {
+      props <- json \ "properties" match {
+        case JArray(props) => Full(props)
+        case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
+      }
+      seq   <- sequence(props) { p =>
+                 p match {
+                   case JObject(JField("name", JString(nameValue)):: JField("value", value) :: Nil) =>
+                     Full(NodeProperty(nameValue, value))
+                   case _  => Failure(s"""Error when trying to parse new property: '${compact(render(p))
+                                          }'. The awaited format is: {"name": string, "value": json}""")
+                 }
+               }
+    } yield {
+      RestNodeProperties(Some(seq))
+    }
   }
 
   def extractNodeFromJSON (json : JValue) : Box[RestNode] = {

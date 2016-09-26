@@ -129,7 +129,7 @@ object InterpolationContext {
         //must be a case insensitive Map !!!!
       , nodeContext     : Map[String, Variable]
         // parameters for this node
-        //must be a case insensitive Map !!!!
+        //must be a case SENSITIVE Map !!!!
       , parameters      : Map[ParameterName, InterpolationContext => Box[String]]
         //the depth of the interpolation context evaluation
         //used as a lazy, trivial, mostly broken way to detect cycle in interpretation
