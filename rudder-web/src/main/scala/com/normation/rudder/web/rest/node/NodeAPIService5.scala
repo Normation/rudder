@@ -106,12 +106,12 @@ class NodeApiService5 (
         val values = u.map { case NodeProperty(k, v) => (k, v)}.toMap
         val existings = props.map(_.name).toSet
         //for news values, don't keep empty
-        val news = (values -- existings).collect { case(k,v) if(v.nonEmpty) => NodeProperty(k,v) }
+        val news = (values -- existings).collect { case(k,v) if(v != JString("")) => NodeProperty(k,v) }
         props.flatMap { case p@NodeProperty(name, value)  =>
           values.get(name) match {
-            case None => Some(p)
-            case Some("") => None
-            case Some(x)  => Some(NodeProperty(name, x))
+            case None              => Some(p)
+            case Some(JString("")) => None
+            case Some(x)           => Some(NodeProperty(name, x))
           }
         } ++ news
     }
