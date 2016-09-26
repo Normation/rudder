@@ -41,20 +41,8 @@
     <script type="text/javascript" src="/javascript/rudder/rudder-datatable.js"></script>
     <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
 
-    <script type="text/javascript">
-      // <![CDATA[
-      $(document).ready(function() {
-        correctButtons();
-        $("a", "form").click(function() { return false; });
-        createTooltip();
-      });
-      // ]]>
-    </script>
-    <script type="text/javascript">
-      // <![CDATA[
-      $(document).ready(function() {roundTabs();});
-      // ]]>
-    </script>
+    <link type="text/css" rel="stylesheet" href="/javascript/jquery/jquery-timepicker/jquery-ui-timepicker-addon.min.css" media="screen" />
+    <script type="text/javascript" src="/javascript/jquery/jquery-timepicker/jquery-ui-timepicker-addon.min.js" id="tree"></script>
 
     <script type="text/javascript" src="/javascript/angular/angular.min.js" />
     <script type="text/javascript" src="/javascript/angular/angular-animate.min.js" />
@@ -91,6 +79,20 @@
       // ]]>
     </script>
 
+    <script type="text/javascript">
+      // <![CDATA[
+      $(document).ready(function() {
+        correctButtons();
+        $("a", "form").click(function() { return false; });
+        createTooltip();
+        roundTabs();
+
+        //don't let the browser tell, it may end-up with chinese if jquery doesn't know the variation :/
+        $.datepicker.setDefaults($.datepicker.regional['en']);
+        $.timepicker.setDefaults($.timepicker.regional['en']);
+      });
+      // ]]>
+    </script>
 
 
     <lift:SendMetricsPopup.display />
