@@ -61,6 +61,8 @@ import org.springframework.context.{ ApplicationContext, ApplicationContextAware
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.io.ClassPathResource
 import com.normation.spring._
+import net.liftweb.common.Full
+import com.normation.rudder.domain.appconfig.FeatureSwitch.Disabled
 
 @RunWith(classOf[JUnitRunner])
 class Section2FieldServiceTest extends Specification {
@@ -188,7 +190,7 @@ object ConfigSection2FieldService {
           case DestinationPathVType => default(id)
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
-          case s:SizeVType => new InputSizeField(id)
+          case s:SizeVType => new InputSizeField(id, () => Full(Disabled))
           case _ => default(id)
         }
         case _ =>
@@ -196,7 +198,7 @@ object ConfigSection2FieldService {
       }
     }
 
-    override def default(id: String) = new TextField(id)
+    override def default(id: String) = new TextField(id, () => Full(Disabled))
   }
 
   def section2FieldService: Section2FieldService = {
@@ -212,4 +214,3 @@ object ConfigSection2FieldService {
     new Section2FieldService(FieldFactoryImpl, translators)
   }
 }
-
