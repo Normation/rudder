@@ -47,6 +47,8 @@ import com.normation.utils.Control. _
 
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
+import net.liftweb.common.EmptyBox
+import net.liftweb.common.Full
 
 /**
  * This class allow to return a list of Rudder object given a string.
@@ -78,7 +80,12 @@ class FullQuickSearchService(implicit
                  s"'${query.objectClass.mkString(", ")}' and attributes '${query.attributes.mkString(", ")}'")
       results <- sequence(QSBackend.all.toSeq) { b =>
                    val res = b.search(query)
-                   logger.debug(s"  - [${b}] found ${res.size} results")
+                   res match {
+                     case eb: EmptyBox =>
+                       logger.error((eb ?~! s"Error with quicksearch bachend ${b}").messageChain)
+                     case Full(results) =>
+                       logger.debug(s"  - [${b}] found ${results.size} results")
+                   }
                    res
                  }
     } yield {
