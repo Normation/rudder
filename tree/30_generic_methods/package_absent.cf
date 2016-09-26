@@ -1,0 +1,39 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name Package absent
+# @agent_version >=3.7
+# @description Enforce the absence of a package
+# @documentation See [package_present](#package_present) for documentation.
+# @parameter            name Name of the package
+# @parameter            version Version of the package or "any" for any version (defaults to "any")
+# @parameter_constraint version "allow_empty_string" : true
+# @parameter            architecture Architecture of the package, can be an architecture name  or "default" (defaults to "default")
+# @parameter_constraint architecture "allow_empty_string" : true
+# @parameter            provider Package provider to use, can be "yum", "apt", "pkg" or "default" for system default package manager (defaults to "default")
+# @parameter_constraint provider "allow_empty_string" : true
+# @parameter_constraint provider "select" : [ "", "default", "yum", "apt", "zypper", "pkg" ]
+# 
+# @class_prefix package_absent
+# @class_parameter name
+
+bundle agent package_absent(name, version, architecture, provider)
+{
+  methods:
+    "enforce absence" usebundle => _package_state("${name}", "${version}", "${architecture}", "${provider}", "absent");
+}
