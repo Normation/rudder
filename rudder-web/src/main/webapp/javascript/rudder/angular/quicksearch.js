@@ -20,6 +20,7 @@ quicksearch.filter("getResults", function(){
     return scope.results;
   }
 });
+
 quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $rootScope) {
   $scope.strBaseSearch='';
   $scope.results;
@@ -35,7 +36,6 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
   };
   $scope.docinfo = [];
   $scope.selectedObject = function(selected) {
-    console.log(selected);
     if(selected && selected.url) {
       window.location = selected.url;
     } else {
@@ -48,7 +48,7 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
     $scope.autoCompleteScope = angular.element("#searchInput").scope();
     $scope.autoCompleteScope.searchStr=value;
     $('#searchInput').val(value);
-    $scope.setFocus('strBaseSearch#searchInput');
+    $scope.setFocus('#searchInput');
     $('#searchInput').trigger('keyup');
   }
   $scope.getValueSearchInput = function (){
@@ -98,7 +98,6 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
         $scope.desactiveFilter(filter);
       }
     }
-
   }
   $scope.checkFilter =function(event, isAll,isChecked,filterName){
     if(isAll){
@@ -111,6 +110,7 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
         }
       }
       var properties = Object.getOwnPropertyNames($scope.filter);
+      properties.shift();
       $scope.removeFilters(properties);
     }else{
       $('.group-all .active').removeClass('active');
@@ -122,35 +122,41 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
       }
     }
   }
-  $scope.getNumResults = function(){
-    var num;
-    var result;
-    var strRegExp = '((\\s*in:\\s*((directive)|(group)|(node)|(parameter)|(rule))+\\s*,*\\s*)|(,\\s*((directive)|(group)|(node)|(parameter)|(rule))+\\s*))';
-    var regexp = new RegExp(strRegExp , "gi");
-    var baseSearch = $('#searchInput').val().replace(regexp, '');
-
-    //Si il n'y a pas de filtre
-    if((($('#searchInput').val().match(regexp))&&(baseSearch.toUpperCase()!==$scope.strBaseSearch.toUpperCase()))||(!$('#searchInput').val().match(regexp))){
-      $scope.strBaseSearch = baseSearch;
-      $scope.filter.all.nbResults = 0;
-      for(filter in $scope.filter){
-        result = $scope.results.hasOwnProperty(filter) ? $scope.results[filter] : false;
-        if(result){
-          num = result[0].originalObject.numbers;
-        }else{
-          num = 0;
+  $scope.getNumResults = function(filter, results){
+	var res=0;
+	if((results)&&(results.length>0)){
+      for(var i=0 ; i<results.length ; i++){
+        if(filter.toUpperCase()=="ALL"){
+          res += results[i].originalObject.header.numbers;
+        }else if(results[i].originalObject.header.type.toUpperCase() == filter.toUpperCase()){
+          res = results[i].originalObject.header.numbers;
         }
-        $scope.filter.all.nbResults += num;
-        $scope.filter[filter].nbResults = num;
       }
-    //Si il y a des filtres
     }
+	return res;
   }
 
   $scope.noSearch = function() {
     return $scope.searchStr.length<1;
   }
-} );
+
+  $scope.checkSearch = function(searching){
+    return !searching || (searching && ($scope.autoCompleteScope.searchStr.length <= 2));
+  }
+
+  $scope.checkParentFilter = function(filter){
+    return $scope.noFilterActivated() || (!$scope.filter.all.activated && $scope.filter[filter].activated)
+  }
+  $scope.checkActivatedFilter = function(searching, filter){
+    return $scope.checkSearch(searching) && $scope.checkParentFilter(filter);
+  }
+  $scope.checkRefresh = function(searching, filter){
+    return !$scope.checkSearch(searching) && $scope.checkParentFilter(filter);
+  }
+  $scope.noFilterActivated = function(){
+    return $scope.filter.all.activated || (!$scope.filter.directive.activated && !$scope.filter.group.activated && !$scope.filter.node.activated && !$scope.filter.parameter.activated && !$scope.filter.rule.activated)
+  }
+});
 
 // Helper function to access from outside angular scope
 function initQuicksearchDocinfo(json) {
@@ -158,18 +164,16 @@ function initQuicksearchDocinfo(json) {
   scope.$apply(function() {
     scope.docinfo = JSON.parse(json);
   });
-  (function () {
-    if($('.angucomplete-holder .input-group').offset().left==15){
-      $('.dropdown-search.help').offset({left : $('.angucomplete-holder .input-group').offset().left});
-    }else{
-      $('.dropdown-search.help').css('left','');
-    }
-  })();
-  $(window).resize(function(){
-    if($('.angucomplete-holder .input-group').offset().left==15){
-      $('.dropdown-search.help').offset({left : $('.angucomplete-holder .input-group').offset().left});
-    }else{
-      $('.dropdown-search.help').css('left','');
+};
+
+$(document).ready(function(){
+  $('.nav.navbar-nav > li.dropdown').on('show.bs.dropdown', function () {
+    $('.group-search').removeClass('open');
+  });
+  $(document).on('click', function (e) {
+    var el = $('.group-search .dropdown-menu.dropdown-search');
+    if(((!el.is(e.target))&&(el.has(e.target).length === 0)&&($('.open').has(e.target).length === 0))||($('#background-fade-quicksearch').is(e.target))){
+      $('.group-search').removeClass('open');
     }
   });
   $('#searchInput').on('focus', function (event) {
@@ -181,10 +185,4 @@ function initQuicksearchDocinfo(json) {
     $('#search-tab').toggleClass('hidden');
     $('#info-tab').toggleClass('hidden');
   })
-  $(document).on('click', function (e) {
-    var el = $('.group-search .dropdown-menu.dropdown-search');
-    if((!el.is(e.target))&&(el.has(e.target).length === 0)&&($('.open').has(e.target).length === 0)){
-      $('.group-search').removeClass('open');
-    }
-  });
-};
+});
