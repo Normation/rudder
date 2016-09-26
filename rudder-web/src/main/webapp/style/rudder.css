@@ -806,7 +806,7 @@ table.noMarginGrid {
 .variableDefinition input {
   font-size: 12px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
-  vertical-align: baseline;
+  vertical-align: middle;
 }
 
 .variableDefinition sup {
@@ -895,25 +895,18 @@ div.foldedSection div.section-title:before {
   text-align: right;
 }
 
-div.directiveDeleteGroup {
-  float:left;
-}
-
-div.directiveAddGroup {
-  float:right;
-}
 
 
 td.directiveVarLabel {
   width:25%;
   margin-right:2px;
   text-align: left;
-  font-size: 12px;
+  font-size: 14px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
 td.directiveVarLabel span {
-  font-size: 12px;
+  font-size: 14px;
   font-family: Trebuchet MS,Tahoma,Verdana,Arial,sans-serif;
 }
 
@@ -2804,7 +2797,9 @@ li.excluded a{
 
 table.directiveGroupDef, table.directiveVarDef, table.directiveSectionDef {
   width:100%;
+  padding-left: 15px;
 }
+
 
 form .tw-bs input {
   width: auto;

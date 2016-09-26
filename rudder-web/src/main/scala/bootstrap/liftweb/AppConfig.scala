@@ -1696,14 +1696,14 @@ object RudderConfig extends Loggable {
         case selectOne: SelectOneVariableSpec => new SelectOneField(id, selectOne.valueslabels)
         case select: SelectVariableSpec => new SelectField(id, select.valueslabels)
         case input: InputVariableSpec => v.constraint.typeName match {
-          case str: SizeVType => new InputSizeField(id, str.name.substring(prefixSize.size))
+          case str: SizeVType => new InputSizeField(id, configService.rudder_featureSwitch_directiveScriptEngine, str.name.substring(prefixSize.size))
           case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
           case DestinationPathVType => default(id)
           case DateVType(r) => new DateField(frenchDateFormatter)(id)
           case TimeVType(r) => new TimeField(frenchTimeFormatter)(id)
           case PermVType => new FilePermsField(id)
           case BooleanVType => new CheckboxField(id)
-          case TextareaVType(r) => new TextareaField(id)
+          case TextareaVType(r) => new TextareaField(id,configService.rudder_featureSwitch_directiveScriptEngine)
           // Same field type for password and MasterPassword, difference is that master will have slave/used derived passwords, and password will not have any slave/used field
           case PasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty , configService.rudder_featureSwitch_directiveScriptEngine)
           case MasterPasswordVType(algos) => new PasswordField(id, algos, input.constraint.mayBeEmpty, configService.rudder_featureSwitch_directiveScriptEngine)
@@ -1719,7 +1719,7 @@ object RudderConfig extends Loggable {
       }
     }
 
-    override def default(id: String) = new TextField(id)
+    override def default(id: String) = new TextField(id,configService.rudder_featureSwitch_directiveScriptEngine)
   }
 
   private[this] lazy val section2FieldService: Section2FieldService = {
