@@ -5,24 +5,58 @@ set -e
 # Need at least 3 parameters
 if [ "$#" -lt 3 ]
 then
-  echo "Usage $0 <CFEngine_version> <ncf_framework_path> [common|local]/<nn_directory> [<nn_directory ...]"
-  echo "  Finds all *.cf files in <ncf_framework>/[common|local]<nn_directory> that are compatible with the given CFEngine version"
+  echo "Usage: $0 [--capability-file <capability_file_path>] [--agent-version <CFEngine_version>] --ncf-path <ncf_framework_path> [common|local]/<nn_directory> [<nn_directory ...]"
+  echo "Deprecated usage: $0 <CFEngine_version> <ncf_framework_path> [common|local]/<nn_directory> [<nn_directory ...]"
+  echo "  Finds all *.cf files in <ncf_framework>/[common|local]<nn_directory> that are compatible with the given CFEngine version and the capability list"
   exit 1
 fi
-
-cfengine_version="$1"
-framework_path="$2"
-# see comment below on the last parameters
-shift 2
 
 # add a default path since it is emptied by cfengine, and busybox for android
 PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/locan/sbin:/usr/local/bin:/system/xbin:${PATH}"
 export PATH
 
-# split version numbers
-version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
-cfengine_major=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\1/"`
-cfengine_minor=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\2/"`
+if [ `printf "%.1s" "$1"` = "-" ]
+then
+  # standard parsing
+  while true
+  do
+    if [ "$1" = "--capability-file" ]
+    then
+      capability_file="$2"
+      shift 2
+    elif [ "$1" = "--agent-version" ]
+    then
+      cfengine_version="$2"
+      shift 2
+    elif [ "$1" = "--ncf-path" ]
+    then
+      framework_path="$2"
+      shift 2
+    else
+      break
+    fi
+  done
+else
+  cfengine_version="$1"
+  framework_path="$2"
+  # see comment below on the last parameters
+  shift 2
+fi
+
+if [ -n "${cfengine_version}" ]
+then
+  # split version numbers
+  version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
+  cfengine_major=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\1/"`
+  cfengine_minor=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\2/"`
+fi
+
+# list capabilities
+capabilities=""
+if [ -e "${capability_file}" ]
+then
+  capabilities=`cat "${capability_file}"`
+fi
 
 # move into framework path
 cd "${framework_path}"
@@ -48,7 +82,9 @@ do
   # first remove obsolete cache for exclude list
   if [ -f "${exclude_file}" ]
   then
-    newer_files=`find "${directory}" -type f -newer "${exclude_file}"`
+    # Include capability_file in the search list, if it doesn't exist it will be ignored
+    # If it has been changed the cache will be considered obsolete
+    newer_files=`find "${directory}" ${capability_file} -type f -newer "${exclude_file}"`
     if [ "${newer_files}" != "" ]
     then
       rm -f "${exclude_file}"
@@ -62,31 +98,70 @@ do
   else
     # sed -ne '/regex/F' prints file name when regex matches
     tag_regex='^#[ \t]*@agent_version[ \t]*'
-    for file in `find "${directory}" -name '*.cf' -exec grep -l "${tag_regex}" '{}' \;`
+    reqs_regex='^#[ \t]*@agent_requirements[ \t]*'
+    for file in `find "${directory}" -name '*.cf' -exec grep -l -e "${tag_regex}" -e "${reqs_regex}" '{}' \;`
     do
+      operator=""
+
+      # @agent_version
       if grep -q "${tag_regex}>=" "${file}"; then operator=">="; fi
       if grep -q "${tag_regex}<" "${file}"; then operator="<"; fi
-      major=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\1/p" "${file}"`
-      minor=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\2/p" "${file}"`
-      file_name=`basename ${file}`
-      if [ "${operator}" = ">=" ]
+      if [ -z "${operator}" ] || [ -z "${cfengine_version}" ]
       then
-        # keep if cfengine_version >= required_version
-        # exclude if cfengine_version < required_version
-        if [ "${cfengine_major}" -lt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -a "${cfengine_minor}" -lt "${minor}" ]
+        include_version=0 # true for a shell
+      else
+        major=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\1/p" "${file}"`
+        minor=`sed -ne "s/${tag_regex}${operator}[ \\t]*${version_regex}/\\2/p" "${file}"`
+        set +e
+        if [ "${operator}" = ">=" ]
         then
-          # posix compliant syntax to exclude a file
-          excludes="${excludes} -name ${file_name} -prune -o"
+          [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -a "${cfengine_minor}" -ge "${minor}" ]
+          include_version=$?
+        else # <
+          [ "${cfengine_major}" -lt "${major}" ] || [ "${cfengine_major}" -eq "${major}"  -a "${cfengine_minor}" -lt "${minor}" ]
+          include_version=$?
         fi
-      elif [ "${operator}" = "<" ]
+        set -e
+      fi
+
+      # @agent_requirements
+      if grep -q "${reqs_regex}" "${file}"
       then
-        # keep if cfengine_version < required_version
-        # exclude if cfengine_version >= required_version
-        if [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}"  -a "${cfengine_minor}" -ge "${minor}" ]
-        then
-          # posix compliant syntax to exclude a file
-          excludes="${excludes} -name ${file_name} -prune -o"
-        fi
+        # extract capabilities from the expression
+        cap_regex='"capabilities"[ \t]*:[ \t]*\[\(.*\)\]'
+        caps=`sed -ne "s/${reqs_regex}[ \\t]*${cap_regex}[ \\t]*/\\1/p" "${file}" | tr -d '" \t' | tr ',' ' '`
+        include_reqs=0 # true for a shell
+        # for all required capability
+        for cap in ${caps}
+        do
+          count=0
+          # check if there is a matching agent capability
+          for c in ${capabilities}
+          do
+            if [ "${cap}" = "${c}" ]
+            then
+              count=1
+            fi
+          done
+          # exclue if there is no match
+          if [ ${count} -eq 0 ]
+          then
+            include_reqs=1 # false in shell
+          fi
+        done
+      else
+        # no capabilities required = accept
+        include_reqs=0 # true for a shell
+      fi
+
+      # if exclude because of version or exclude because of requirements
+      # if (include_version == false) || (include_reqs == false)
+      if [ ${include_version} -ne 0 ] || [ ${include_reqs} -ne 0 ]
+      then
+        # exclude
+        file_name=`basename ${file}`
+        # posix compliant syntax to exclude a file
+        excludes="${excludes} -name ${file_name} -prune -o"
       fi
     done  
     printf "${excludes}" > "${exclude_file}"
