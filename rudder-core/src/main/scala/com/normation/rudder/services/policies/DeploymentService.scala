@@ -143,7 +143,7 @@ trait PromiseGenerationService extends Loggable {
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
       nodeContextsTime =  System.currentTimeMillis
-      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
+      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, nodePropFeature) ?~! "Could not get node interpolation context"
       timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
       _                =  logger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
@@ -271,6 +271,7 @@ trait PromiseGenerationService extends Loggable {
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
+    , nodePropFeature       : FeatureSwitch
   ): Box[Map[NodeId, InterpolationContext]]
 
   /**
@@ -470,6 +471,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
+    , nodePropFeature       : FeatureSwitch
   ): Box[Map[NodeId, InterpolationContext]] = {
 
     /*
@@ -485,9 +487,9 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
      *   - to parameters : hello loops!
      */
     def buildParams(parameters: Seq[GlobalParameter]): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
-      sequence(parameters) { param =>
+      bestEffort(parameters) { param =>
         for {
-          p <- interpolatedValueCompiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+          p <- interpolatedValueCompiler.compile(param.value, nodePropFeature) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
         } yield {
           (param.name, p)
         }
@@ -562,83 +564,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , directiveOrder : BundleOrder
   ) extends HashcodeCaching
 
-
-
-  /*
-   * parameters have to be taken appart:
-   *
-   * - they can be overriden by node - not handled here, it will be in the resolution of node
-   *   when implemented. Most likelly, we will have the information in the node info. And
-   *   in that case, we could just use an interpolation variable
-   *
-   * - they can be plain string => nothing to do
-   * - they can contains interpolated strings:
-   *   - to node info parameters: ok
-   *   - to parameters : hello loops!
-   */
-  private[this] def buildParams(parameters: Seq[GlobalParameter], nodePropFeature: FeatureSwitch): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
-    bestEffort(parameters) { param =>
-      for {
-        p <- interpolatedValueCompiler.compile(param.value, nodePropFeature) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
-      } yield {
-        (param.name, p)
-      }
-    }.map( _.toMap)
-  }
-
-  /**
-   * Build interpolation contexts.
-   *
-   * An interpolation context is a node-dependant
-   * context for resolving ("expdanding", "binding")
-   * interpolation variable in directive values.
-   *
-   * It's also the place where parameters are looked for
-   * local overrides.
-   */
-  private[this] def buildInterpolationContext(
-      nodeIds               : Set[NodeId]
-    , allNodeInfos          : Map[NodeId, NodeInfo]
-    , parameters            : Map[ParameterName, InterpolationContext => Box[String]]
-    , globalSystemVariables : Map[String, Variable]
-    , globalAgentRun        : AgentRunInterval
-    , globalComplianceMode  : ComplianceMode
-  ): Map[NodeId, InterpolationContext] = {
-
-    (nodeIds.flatMap { nodeId:NodeId =>
-      (for {
-        nodeInfo     <- Box(allNodeInfos.get(nodeId)) ?~! s"Node with ID '${nodeId.value}' was not found in the list of known nodes"
-        policyServer <- Box(allNodeInfos.get(nodeInfo.policyServerId)) ?~! s"Policy server with ID '${nodeInfo.policyServerId.value}' was not found (mandatory for building promises for the node)"
-        nodeContext  <- systemVarService.getSystemVariables(nodeInfo, allNodeInfos, globalSystemVariables, globalAgentRun, globalComplianceMode  : ComplianceMode)
-      } yield {
-        (nodeId, InterpolationContext(
-                      nodeInfo
-                    , policyServer
-                    , nodeContext
-                    , parameters
-                  )
-        )
-      }) match {
-        case eb:EmptyBox =>
-          val e = eb ?~! s"Error while building target configuration node for node ${nodeId.value} which is one of the target of rules. Ignoring it for the rest of the process"
-          logger.error(e.messageChain)
-          None
-
-        case x => x
-      }
-    }).toMap
-    }
-
-
-
-  /**
-   * really, simply fetch all the global system variables
-   */
-  override def buildGlobalSystemVariables() : Box[Map[String, Variable]] = {
-    systemVarService.getGlobalSystemVariables()
-  }
-
-  /**
+   /**
    * From a list of ruleVal, find the list of all impacted nodes
    * with the actual Cf3PolicyDraft they will have.
    * Replace all ${rudder.node.varName} vars, returns the nodes ready to be configured, and expanded RuleVal
@@ -653,12 +579,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , scriptEngineEnabled  : FeatureSwitch
     , nodePropFeature      : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
-
-
-    val interpolatedParameters = buildParams(parameters, nodePropFeature) match {
-      case Full(x) => x
-      case eb: EmptyBox => return eb ?~! "Can not parsed global parameter (looking for interpolated variables)"
-    }
 
     //step 1: from RuleVals to expanded rules vals
     //1.1: group by nodes (because parameter expansion is node sensitive
@@ -731,8 +651,9 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     //1.3: build node config, binding ${rudder./node.properties} parameters
     // open a scope for the JsEngine, because its init is long.
     JsEngineProvider.withNewEngine(scriptEngineEnabled) { jsEngine =>
-      for {
-        nodeConfigs <- bestEffort(interpolationContexts.toSeq) { case (nodeId, context) =>
+
+      val nodeConfigs = bestEffort(nodeContexts.toSeq) { case (nodeId, context) =>
+
           (for {
             drafts          <- Box(policyDraftByNode.get(nodeId)) ?~! "Promise generation algorithme error: cannot find back the configuration information for a node"
             /*
@@ -767,9 +688,8 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                                          }
                                   } yield {
 
-                                    RuleWithCf3PolicyDraft(
-                                        ruleId = draft.ruleId
-                                      , directiveId = draft.directiveId
+                                    Cf3PolicyDraft(
+                                        id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
                                       , technique = draft.technique
                                       , variableMap = evaluatedVars.toMap
                                       , trackerVariable = draft.trackerVariable
@@ -777,6 +697,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                       , serial = draft.serial
                                       , ruleOrder = draft.ruleOrder
                                       , directiveOrder = draft.directiveOrder
+                                      , overrides = Set()
                                     )
                                   }).dedupFailures(s"When processing directive '${draft.directiveOrder.value}'")
                                 }
@@ -792,7 +713,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                 s"Error with parameters expansion for node '${context.nodeInfo.hostname}' (${context.nodeInfo.id.value})"
               , _.replaceAll("on node .*", "")
             )
-        }
       }
     nodeConfigs
     }

@@ -37,26 +37,16 @@
 
 package com.normation.rudder.services.policies
 
-import com.normation.cfclerk.domain.Variable
-import com.normation.cfclerk.domain.VariableSpec
-import com.normation.cfclerk.exceptions.VariableException
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.utils.Control._
-
+import com.normation.rudder.domain.policies.Rule
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.DirectiveVal
 import com.normation.cfclerk.domain._
 import com.normation.cfclerk.exceptions._
 import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequenceEmptyable
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.rudder.domain.policies.InterpolationContext
-import com.normation.cfclerk.domain.BundleOrder
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 
 trait RuleValService {
