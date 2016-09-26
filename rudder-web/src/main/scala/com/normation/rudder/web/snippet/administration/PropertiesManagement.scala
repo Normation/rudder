@@ -851,8 +851,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ( configService.rudder_featureSwitch_directiveScriptEngine() match {
       case Full(initialValue) =>
 
+        var currentSavedValued = initialValue
         var x = initialValue
-        def noModif() = x == initialValue
+        def noModif() = x == currentSavedValued
         def check() = {
           S.notice("directiveScriptEngineMsg","")
           Run(s"""$$("#directiveScriptEngineSubmit").button( "option", "disabled",${noModif()});""")
@@ -862,10 +863,16 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           val save = configService.set_rudder_featureSwitch_directiveScriptEngine(x)
           S.notice("directiveScriptEngineMsg", save match {
             case Full(_)  =>
+              currentSavedValued = x
+              // If we disable this feature we want to start policy generation because some data may be invalid
+              if (x == Disabled) {
+                startNewPolicyGeneration
+              }
               "'directive script engine' property updated. The feature will be loaded as soon as you go to another page or reload this one."
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'directive script engine' property"
           } )
+          check()
         }
 
         ( "#directiveScriptEngineCheckbox" #> {

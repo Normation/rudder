@@ -459,6 +459,7 @@ case class MultivaluedSectionField(
             <div  id={sectionId} class={classes}>
               <div class="section-title" onClick={methodName}>{ "%s #%s".format(name, i + 1) }</div>
               { showFormEntry(section, i) }
+              <hr class="spacer"/>
               { // showAddAnother under the last element
                 if ((i + 1) == size) {
                   showAddAnother()
@@ -480,11 +481,15 @@ case class MultivaluedSectionField(
   private def showAddAnother(): NodeSeq = {
     if (!readOnlySection) {
       <div class="directiveAddGroup">{
-        SHtml.ajaxSubmit("Add another", { () =>
-          add()
-          //refresh UI - all item of that group
-          SetHtml(htmlId, this.content) & postModificationJS()
-        })
+        SHtml.ajaxSubmit(
+            s"Add another '${name}'"
+          , { () =>
+              add()
+              //refresh UI - all item of that group
+              SetHtml(htmlId, this.content) & postModificationJS()
+            }
+          , ("class" -> "autoWidthButton")
+        )
       }</div>
     } else {
       NodeSeq.Empty
@@ -499,13 +504,13 @@ case class MultivaluedSectionField(
     </table>
     <div class="textright directiveDeleteGroup">{
       if (!readOnlySection) {
-        val attr = if (size > 1) ("" -> "") else ("disabled" -> "true")
-        SHtml.ajaxSubmit("Delete", { () =>
+        val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "autoWidthButton") :: Nil
+        SHtml.ajaxSubmit(s"Delete '${name} #${i+1}'", { () =>
           logError(delete(i))
           //refresh UI - all item of that group
           SetHtml(htmlId, this.content) & postModificationJS()
         },
-          attr)
+          attr:_*)
       }
     }</div>
   }
