@@ -725,6 +725,7 @@ object RudderConfig extends Loggable {
         , nodeInfoService
         , roNodeGroupRepository
         , reportingService
+        , roDirectiveRepository
       )
   )
 
