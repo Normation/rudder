@@ -786,6 +786,7 @@ object RudderConfig extends Loggable {
         , nodeInfoService
         , roNodeGroupRepository
         , reportingService
+        , roDirectiveRepository
         , globalComplianceModeService.getGlobalComplianceMode _
       )
 

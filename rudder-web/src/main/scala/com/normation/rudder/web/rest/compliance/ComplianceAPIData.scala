@@ -47,8 +47,6 @@ import net.liftweb.json.JDouble
 import net.liftweb.json.JsonAST
 import com.normation.rudder.reports.ComplianceModeName
 
-
-
 /**
  * Here, we want to present two view of compliance:
  * - by node
@@ -67,7 +65,6 @@ import com.normation.rudder.reports.ComplianceModeName
  * starting by "ByRule" or "ByNode".
  */
 
-
 /**
  * Compliance for a rules.
  * It lists:
@@ -77,7 +74,9 @@ import com.normation.rudder.reports.ComplianceModeName
  * - nodeCompliance: the list of compliance for each node, for that that rule
  */
 case class ByRuleRuleCompliance(
+
     id             : RuleId
+  , name           : String
     //compliance by nodes
   , compliance     : ComplianceLevel
   , mode           : ComplianceModeName
@@ -86,6 +85,7 @@ case class ByRuleRuleCompliance(
 
 case class ByRuleDirectiveCompliance(
     id        : DirectiveId
+  , name      : String
   , compliance: ComplianceLevel
   , components: Seq[ByRuleComponentCompliance]
 )
@@ -97,8 +97,9 @@ case class ByRuleComponentCompliance(
 )
 
 case class ByRuleNodeCompliance(
-    id        : NodeId
-  , values    : Seq[ComponentValueStatusReport]
+    id    : NodeId
+  , name  : String
+  , values: Seq[ComponentValueStatusReport]
 )
 
 /**
@@ -112,6 +113,7 @@ case class ByRuleNodeCompliance(
 case class ByNodeNodeCompliance(
     id             : NodeId
     //compliance by nodes
+  , name  : String
   , compliance     : ComplianceLevel
   , mode           : ComplianceModeName
   , nodeCompliances: Seq[ByNodeRuleCompliance]
@@ -128,6 +130,7 @@ case class ByNodeNodeCompliance(
  */
 case class ByNodeRuleCompliance(
     id        : RuleId
+  , name      : String
     //compliance by directive (by nodes)
   , compliance: ComplianceLevel
   , directives: Seq[ByNodeDirectiveCompliance]
@@ -135,23 +138,24 @@ case class ByNodeRuleCompliance(
 
 case class ByNodeDirectiveCompliance(
     id        : DirectiveId
+  , name      : String
   , compliance: ComplianceLevel
   , components: Map[String, ComponentStatusReport]
 )
 
 object ByNodeDirectiveCompliance {
 
-  def apply(d: DirectiveStatusReport): ByNodeDirectiveCompliance = {
-    new ByNodeDirectiveCompliance(d.directiveId, d.compliance, d.components)
+  def apply(d: DirectiveStatusReport, directiveName : String): ByNodeDirectiveCompliance = {
+    new ByNodeDirectiveCompliance(d.directiveId, directiveName, d.compliance, d.components)
   }
 }
 
 object JsonCompliance {
 
-
   implicit class JsonbyRuleCompliance(rule: ByRuleRuleCompliance) {
     def toJsonV6 = (
         ("id" -> rule.id.value)
+      ~ ("name" -> rule.name)
       ~ ("compliance" -> rule.compliance.complianceWithoutPending)
       ~ ("complianceDetails" -> percents(rule.compliance))
       ~ ("directives" -> directives(rule.directives, 10) )
@@ -173,12 +177,12 @@ object JsonCompliance {
       ~ ("directives" -> directives(rule.directives, level) )
     )
 
-
     private[this] def directives(directives: Seq[ByRuleDirectiveCompliance], level: Int): Option[JsonAST.JValue] = {
       if(level < 2) None
       else Some( directives.map { directive =>
         (
             ("id" -> directive.id.value)
+          ~ ("name" -> directive.name)
           ~ ("compliance" -> directive.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(directive.compliance))
           ~ ("components" -> components(directive.components, level))
@@ -203,6 +207,7 @@ object JsonCompliance {
       else Some(nodes.map { node =>
         (
             ("id" -> node.id.value)
+          ~ ("name" -> node.name)
           ~ ("values" -> node.values.map { value =>
               (
                 ("value" -> value.componentValue)
@@ -239,6 +244,7 @@ object JsonCompliance {
 
     def toJson(level: Int) = (
         ("id" -> n.id.value)
+      ~ ("name" -> n.name)
       ~ ("compliance" -> n.compliance.complianceWithoutPending)
       ~ ("mode" -> n.mode.name)
       ~ ("complianceDetails" -> percents(n.compliance))
@@ -250,6 +256,7 @@ object JsonCompliance {
       else Some(rules.map { rule =>
         (
             ("id" -> rule.id.value)
+          ~ ("name" -> rule.name)
           ~ ("compliance" -> rule.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(rule.compliance))
           ~ ("directives" -> directives(rule.directives, level))
@@ -262,6 +269,7 @@ object JsonCompliance {
       else Some(directives.map { directive =>
         (
             ("id" -> directive.id.value)
+          ~ ("name" -> directive.name)
           ~ ("compliance" -> directive.compliance.complianceWithoutPending)
           ~ ("complianceDetails" -> percents(directive.compliance))
           ~ ("components" -> components(directive.components, level))
