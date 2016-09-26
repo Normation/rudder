@@ -163,6 +163,10 @@ trait ReadConfigService {
    * Should we display the new quicksearch everything bar ?
    */
   def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch]
+  /*
+   * Should we allow ${node.properties[key]} in directive
+   */
+  def rudder_featureSwitch_directiveNodeProperties(): Box[FeatureSwitch]
 }
 
 /**
@@ -255,6 +259,10 @@ trait UpdateConfigService {
    * Should we display the new quicksearch everything bar ?
    */
   def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit]
+  /**
+   * Should we allow ${node.properties[key]} in directive
+   */
+  def set_rudder_featureSwitch_directiveNodeProperties(status: FeatureSwitch): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -288,6 +296,7 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        api.compatibility.mode=false
        rudder.featureSwitch.directiveScriptEngine=disabled
        rudder.featureSwitch.quicksearchEverything=enabled
+       rudder.featureSwitch.directiveNodeProperties=disabled
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -502,4 +511,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
    */
   def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch] = get("rudder_featureSwitch_quicksearchEverything")
   def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_quicksearchEverything", status)
+  /*
+   * Should we allow ${node.properties[key]} in directive
+   */
+  def rudder_featureSwitch_directiveNodeProperties(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveNodeProperties")
+  def set_rudder_featureSwitch_directiveNodeProperties(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveNodeProperties", status)
 }

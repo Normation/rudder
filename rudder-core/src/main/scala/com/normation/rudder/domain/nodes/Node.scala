@@ -46,6 +46,8 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.domain.policies.SimpleDiff
 import com.normation.inventory.domain.FullInventory
+import net.liftweb.json.JsonAST.JValue
+import net.liftweb.json.JsonAST.JString
 
 /**
  * The entry point for a REGISTERED node in Rudder.
@@ -81,7 +83,12 @@ case object Node {
   }
 }
 
-case class NodeProperty(name: String, value: String)
+case class NodeProperty(name: String, value: JValue) {
+  def renderValue: String = value match {
+    case JString(s) => s
+    case v          => net.liftweb.json.compactRender(v)
+  }
+}
 
 /**
  * Node diff for event logs:
