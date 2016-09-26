@@ -1,0 +1,33 @@
+<xml:group>
+
+<input:text>
+  <div class="tw-bs">
+    <div class="input-group input-group-sm text-section col-xs-12" ng-controller="textController">
+      <span class="input-group-btn" ng-show="feature">
+        <button class="btn btn-default  dropdown-toggle" data-toggle="dropdown" type="button">{{prefixName()}} <span class="caret"></span></button>
+        <ul class="dropdown-menu">
+          <li><a  ng-click="current.prefix = ''"  href="#">Text</a></li>
+          <li><a ng-click="current.prefix = 'evaljs:'" href="#">JS</a></li>
+        </ul>
+      </span>
+        <input class="form-control " ng-model="current.value" type="text" />
+    </div>
+  </div>
+</input:text>
+
+<input:textarea>
+  <div class="tw-bs">
+    <div class="text-section col-xs-12 row" ng-controller="textController">
+    <div class="btn-group-sm btn-group"  ng-show="feature" >
+      <button class="btn btn-default dropdown-toggle" data-toggle="dropdown" type="button">{{prefixName()}} <span class="caret"></span></button>
+      <ul class="dropdown-menu">
+        <li><a ng-click="current.prefix = ''"  href="#">Text</a></li>
+        <li><a ng-click="current.prefix = 'evaljs:'" href="#">JS</a></li>
+      </ul>
+    </div>
+    <textarea class="form-control textarea" ng-model="current.value"  />
+    </div>
+  </div>
+</input:textarea>
+
+</xml:group>

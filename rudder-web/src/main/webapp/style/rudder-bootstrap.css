@@ -433,7 +433,12 @@
 .tw-bs .password-section .input-group-btn .btn{
   margin-left: -3px
 }
-.tw-bs .password-section textarea{
+
+.tw-bs .text-section.input-group input{
+  margin-left: -3px
+}
+
+.tw-bs .password-section textarea, .tw-bs .text-section textarea, .tw-bs .textarea {
     resize: vertical;
     border-radius: 4px !important;
 }
@@ -481,4 +486,17 @@ body .tw-bs {
 
 .tw-bs .btn.btn-default.reveal-password {
 	padding : 5px 12px;
+}
+
+.tw-bs .text-section.row {
+	margin-left: -13px
+}
+
+
+.tw-bs .text-section.row .btn-group .btn {
+  margin-bottom : 2px;
+}
+
+.tw-bs .text-section .btn {
+  background-color: #eee;
 }
