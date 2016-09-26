@@ -109,8 +109,6 @@ object QSDirectiveBackend {
   implicit class QSAttributeFilter(a: QSAttribute) {
     def find(at: FullActiveTechnique, dir: Directive, token: String): Option[QuickSearchResult] = {
 
-      val pattern = s"""(?i).*${Pattern.quote(token)}.*""".r.pattern
-
       val toMatch: Option[Set[(String,String)]] = a match {
         case QSDirectiveId     => Some(Set((dir.id.value,dir.id.value)))
         case DirectiveVarName  => Some(dir.parameters.flatMap(param => param._2.map(value => (param._1, param._1+":"+ value))).toSet)
@@ -144,6 +142,8 @@ object QSDirectiveBackend {
         case DirectiveIds      => None
         case Targets           => None
       }
+    
+      val pattern = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
 
       toMatch.flatMap { set => set.find{case (s,value) => pattern.matcher(s).matches } }.map{ case (_,s) =>
         QuickSearchResult(
