@@ -86,6 +86,7 @@ OUR_DIR=`dirname "$0"`
 NCF_TREE=`cd "${OUR_DIR}" && pwd`/../../tree
 NCF_TESTS_ACCEPTANCE=`cd "${OUR_DIR}" && pwd`
 NCF_COMPATIBLE_INPUTS="${NCF_TREE}/10_ncf_internals/list-compatible-inputs"
+CAPABILITY_FILE="/opt/rudder/etc/agent-capabilities"
 #
 # Many older platforms don't support date +%s, so check for compatibility
 # and find Perl for the unix_seconds() routine below. (Mantis #1254)
@@ -467,7 +468,7 @@ if [ $# -gt 0 ]; then
     if [ -f $test ]; then
       TESTS="$TESTS${TESTS:+ }$test"
     elif [ -d $test ]; then
-      ADDTESTS=`"${NCF_COMPATIBLE_INPUTS}" ${AGENT_VERSION} "${NCF_TESTS_ACCEPTANCE}/${test}" . | awk -v path="${test}" '{ print path"/"$0 }' | sort`
+      ADDTESTS=`${NCF_COMPATIBLE_INPUTS} --capability-file ${CAPABILITY_FILE} --agent-version ${AGENT_VERSION} --ncf-path "${NCF_TESTS_ACCEPTANCE}/${test}" . | awk -v path="${test}" '{ print path"/"$0 }' | sort`
       TESTS="$TESTS${TESTS:+ }$ADDTESTS"
     else
       echo "Unable to open test file/directory: $test"
@@ -475,7 +476,7 @@ if [ $# -gt 0 ]; then
   done
 else
   MYDIR=`dirname $0`
-  TESTS=`"${NCF_COMPATIBLE_INPUTS}" ${AGENT_VERSION} "${MYDIR}" . | sort`
+  TESTS=`${NCF_COMPATIBLE_INPUTS} --capability-file ${CAPABILITY_FILE} --agent-version ${AGENT_VERSION} --ncf-path "${MYDIR}" . | sort`
 fi
 
 #

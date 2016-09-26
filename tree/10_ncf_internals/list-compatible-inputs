@@ -56,6 +56,10 @@ capabilities=""
 if [ -e "${capability_file}" ]
 then
   capabilities=`cat "${capability_file}"`
+else
+  # Empty the variable if the file does not exist
+  # This allows passing the file path everytime and not failing when it is not there
+  capability_file=""
 fi
 
 # move into framework path

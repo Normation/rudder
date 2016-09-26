@@ -7,8 +7,9 @@ bundle common ncf_inputs
 
       # Almost same as promises.cf, but only load necessary parts
       "list_compatible_inputs" string => "/bin/sh ${ncf_tree}/10_ncf_internals/list-compatible-inputs";
+      "capability_file"        string => "/opt/rudder/etc/agent-capabilities";
 
-      "generic_framework"      string => execresult("${list_compatible_inputs} ${sys.cf_version} ${ncf_tree} 10_ncf_internals 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "useshell");
+      "generic_framework"      string => execresult("${list_compatible_inputs} --capability-file ${capability_file} --agent-version ${sys.cf_version} --ncf-path ${ncf_tree} 10_ncf_internals 20_cfe_basics 30_generic_methods 40_it_ops_knowledge", "useshell");
 
       "default_files_relative" slist => splitstring("${generic_framework}", "\n", 10000);
       "default_files"         slist => maplist("${ncf_tree}/${this}", default_files_relative);
