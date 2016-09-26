@@ -44,7 +44,6 @@ import net.liftweb.common._
 import net.liftweb.http.js.JsCmds.Script
 import net.liftweb.http.DispatchSnippet
 import bootstrap.liftweb.RudderConfig
-import org.joda.time.DateTime
 
 class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val repos     = RudderConfig.eventLogRepository
@@ -53,7 +52,7 @@ class EventLogsViewer extends DispatchSnippet with Loggable {
   private[this] val gridName = "eventLogsGrid"
 
   def getLastEvents : Box[Seq[EventLog]] = {
-    repos.getEventAfterDate(DateTime.now().minusMonths(3).withHourOfDay(0).withMinuteOfHour(0))
+    repos.getEventLogByCriteria(None, Some(1000), Some("id DESC"))
   }
 
   def dispatch = {
