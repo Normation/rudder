@@ -66,21 +66,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
   private[this] val config = RudderConfig.configService
 
   def dispatch = {
-    case "render" => chooseSearch
-  }
-
-  def chooseSearch(html: NodeSeq): NodeSeq = {
-
-    config.rudder_featureSwitch_quicksearchEverything() match {
-      case Full(FeatureSwitch.Enabled ) => quickSearchEveryting(html)
-      case Full(FeatureSwitch.Disabled) => quickSearchNode(html)
-      case eb: EmptyBox                 =>
-        val e = eb ?~! "Error when trying to know what quicksearch bar should be displayed, defaulting to the default one"
-        logger.warn(e.messageChain)
-        //default to node quicksearch
-        quickSearchNode(html)
-    }
-
+    case "render" => quickSearchEveryting
   }
 
   def quickSearchEveryting(html: NodeSeq) : NodeSeq = {
@@ -111,53 +97,4 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
     "'" + compact(render(objs)) + "'"
   }
 
-
-
-  def quickSearchNode(html:NodeSeq) : NodeSeq = {
-    def buildQuery(current: String, limit: Int): Seq[String] = {
-      quickSearchService.lookup(current,100) match {
-        case Full(seq) => seq.map(nodeInfo => "%s [%s]".format(nodeInfo.hostname, nodeInfo.id.value))
-        case e:EmptyBox => {
-          logger.error("Error in quick search request",e)
-          Seq()
-        }
-      }
-    }
-
-    /*
-     * parse the return of the text show in autocomplete, build
-     * in buildQuery ( hostname name [uuuid] )
-     */
-    def parse(s:String) : JsCmd = {
-      val regex = """.+\[(.+)\]""".r
-      s match {
-        case regex(id) =>
-          JsInitContextLinkUtil.redirectToNodeLink(NodeId(id)) &
-          Run(s"if(window.location.href.indexOf('nodeManager/searchNodes') > -1) { forceParseHashtag(); }")
-        case _ =>
-          Alert("No node was selected")
-      }
-    }
-
-
-    //actual XML returned by the method
-    <lift:form class="navbar-form navbar-left">
-      <div class="form-group">
-      {AutoCompleteAutoSubmit (
-          ""
-        , buildQuery _
-        , { s:String => parse(s) }
-          //json option, see: https://code.google.com/p/jquery-autocomplete/wiki/Options
-        , ("resultsClass", "'topQuickSearchResults ac_results '") :: Nil
-        , ("placeholder" -> "Search nodes")
-        , ("class" -> "form-control")
-      )
-
-
-    <lift:form class="sidebar-form topbar-search-form">
-      <div class="input-group">
-        {searchInput}
-      </div>
-    </lift:form>
-  }
 }

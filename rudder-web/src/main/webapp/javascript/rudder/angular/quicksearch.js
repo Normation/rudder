@@ -1,4 +1,4 @@
-var quicksearch = angular.module('quicksearch', ["angucomplete-ie8"]);
+var quicksearch = angular.module('quicksearch', ["angucomplete-alt"]);
 
 quicksearch.filter("getResults", function(){
   return function(results,scope){
