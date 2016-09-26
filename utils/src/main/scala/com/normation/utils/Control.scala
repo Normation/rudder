@@ -110,15 +110,15 @@ object Control {
     var errors = Option.empty[Failure]
     seq.foreach { u => f(u) match {
       case e:EmptyBox =>
-        val msg = e match {
-          case f:Failure => f.messageChain
+        val fail = e match {
+          case f:Failure => f
           // these case should never happen, because Empty is verbotten, so took a
           // not to bad solution - u.toString can be very ugly, so limit size.
-          case Empty => s"An error occured while processing: ${u.toString().take(20)}"
+          case Empty => Failure(s"An error occured while processing: ${u.toString().take(20)}")
         }
         errors match {
-          case None => errors = Some(e ?~! msg)
-          case Some(f) => errors = Some(Failure(msg, Empty, Full(f)))
+          case None => errors = Some(fail)
+          case Some(f) => errors = Some(Failure(fail.msg, Empty, Full(f)))
         }
       case Full(x) => buf += x
     } }
