@@ -37,6 +37,11 @@
 
 package com.normation.rudder.services.policies
 
+import org.joda.time.DateTime
+import org.junit.runner._
+import org.specs2.runner._
+import org.specs2.mutable._
+import org.specs2.specification._
 import com.normation.cfclerk.domain.InputVariableSpec
 import com.normation.cfclerk.domain.Variable
 import com.normation.inventory.domain._
@@ -57,15 +62,15 @@ import net.liftweb.common.Empty
 import net.liftweb.common.EmptyBox
 import net.liftweb.common.Failure
 import net.liftweb.common.Full
-import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.domain.appconfig.FeatureSwitch
-import net.liftweb.json.parse
-import net.liftweb.json.JsonAST.JString
-import net.liftweb.json.JsonAST.JValue
-import scala.util.matching.Regex
-import org.specs2.matcher.Matcher
 import org.specs2.matcher.Expectable
 import java.util.regex.Pattern
+import net.liftweb.json.JsonAST.JString
+import net.liftweb.json.JsonAST.JValue
+import com.normation.rudder.domain.nodes.NodeProperty
+import com.normation.rudder.domain.appconfig.FeatureSwitch
+import scala.util.matching.Regex
+import org.specs2.matcher.Matcher
+import net.liftweb.json._
 
 /**
  * Test how parametrized variables are replaced for
@@ -93,7 +98,6 @@ class TestNodeAndParameterLookup extends Specification {
 
 
   import NodeConfigData._
-
   //null is for RuleValService, only used in
   //rule lookup, node tested here.
   val compiler = new InterpolatedValueCompilerImpl()
@@ -111,7 +115,7 @@ class TestNodeAndParameterLookup extends Specification {
       variables     : Seq[Variable]
     , context       : InterpolationContext
     , nodePropSwitch: FeatureSwitch = FeatureSwitch.Enabled
-  )(test:Seq[Seq[String]] => Example) : Example  = {
+  )(test:Seq[Seq[String]] => org.specs2.execute.Result) : org.specs2.execute.Result  = {
     lookupService.lookupNodeParameterization(variables, nodePropSwitch)(context) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error in test"
