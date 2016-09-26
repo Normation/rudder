@@ -153,7 +153,8 @@ limitations under the License.
             <arg>${basedir}/.scala_dependencies</arg>
           </args>
           <jvmArgs>
-            <jvmArg>-server</jvmArg>
+            <jvmArg>-Xmx1G</jvmArg>
+            <jvmArg>-Xss32m</jvmArg>
           </jvmArgs>
         </configuration>
       </plugin>
