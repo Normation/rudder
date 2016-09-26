@@ -74,7 +74,7 @@ class NodeApiService5 (
       reason   <- restExtractor.extractReason(req)
       node     <- nodeInfoService.getNode(nodeId)
       restNode <- boxRestNode
-      updated  =  node.copy(properties = updateProperties(node.properties, restNode.properties))
+      updated  =  node.copy(properties = CompareProperties.updateProperties(node.properties, restNode.properties))
       saved    <- if(updated == node) Full(node)
                   else nodeRepository.updateNode(updated, modId, actor, reason)
     } yield {
@@ -89,31 +89,5 @@ class NodeApiService5 (
           val message = (eb ?~ s"Could not update properties of node '${nodeId.value}'").messageChain
           toJsonError(Some(nodeId.value), message)
       }
-  }
-
-  /**
-   * Update a set of properties with the map:
-   * - if a key of the map matches a property name,
-   *   use the map value for the key as value for
-   *   the property
-   * - if the value is the emtpy string, remove
-   *   the property
-   */
-  private[this] def updateProperties(props: Seq[NodeProperty], updates: Option[Seq[NodeProperty]]) = {
-    updates match {
-      case None => props
-      case Some(u) =>
-        val values = u.map { case NodeProperty(k, v) => (k, v)}.toMap
-        val existings = props.map(_.name).toSet
-        //for news values, don't keep empty
-        val news = (values -- existings).collect { case(k,v) if(v.nonEmpty) => NodeProperty(k,v) }
-        props.flatMap { case p@NodeProperty(name, value)  =>
-          values.get(name) match {
-            case None => Some(p)
-            case Some("") => None
-            case Some(x)  => Some(NodeProperty(name, x))
-          }
-        } ++ news
-    }
   }
 }

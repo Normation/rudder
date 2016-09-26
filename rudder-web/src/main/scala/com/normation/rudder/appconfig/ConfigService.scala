@@ -177,6 +177,14 @@ trait ReadConfigService {
    */
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch]
 
+  /*
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch]
+  /*
+   * Should we allow ${node.properties[key]} in directive
+   */
+  def rudder_featureSwitch_directiveNodeProperties(): Box[FeatureSwitch]
 }
 
 /**
@@ -282,6 +290,11 @@ trait UpdateConfigService {
 
   def set_rudder_policy_overridable(overridable : Boolean, actor: EventActor, reason: Option[String]) : Box[Unit]
 
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit]
+  /**
+   * Should we allow ${node.properties[key]} in directive
+   */
+  def set_rudder_featureSwitch_directiveNodeProperties(status: FeatureSwitch): Box[Unit]
 }
 
 class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workflowUpdate: AsyncWorkflowInfo) extends ReadConfigService with UpdateConfigService with Loggable {
@@ -314,8 +327,13 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        display.changes.graph=true
        api.compatibility.mode=false
        rudder.featureSwitch.directiveScriptEngine=disabled
+<<<<<<< HEAD
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=false
+=======
+       rudder.featureSwitch.quicksearchEverything=enabled
+       rudder.featureSwitch.directiveNodeProperties=disabled
+>>>>>>> branches/rudder/3.2
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
@@ -537,4 +555,14 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def rudder_featureSwitch_directiveScriptEngine(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveScriptEngine")
   def set_rudder_featureSwitch_directiveScriptEngine(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveScriptEngine", status)
 
+  /**
+   * Should we display the new quicksearch everything bar ?
+   */
+  def rudder_featureSwitch_quicksearchEverything(): Box[FeatureSwitch] = get("rudder_featureSwitch_quicksearchEverything")
+  def set_rudder_featureSwitch_quicksearchEverything(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_quicksearchEverything", status)
+  /*
+   * Should we allow ${node.properties[key]} in directive
+   */
+  def rudder_featureSwitch_directiveNodeProperties(): Box[FeatureSwitch] = get("rudder_featureSwitch_directiveNodeProperties")
+  def set_rudder_featureSwitch_directiveNodeProperties(status: FeatureSwitch): Box[Unit] = save("rudder_featureSwitch_directiveNodeProperties", status)
 }
