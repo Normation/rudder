@@ -130,7 +130,7 @@ class ComplianceAPIService(
                               byNode.map { case (nodeId, components) =>
                                 ByRuleNodeCompliance(
                                     nodeId
-                                  , nodeInfos.get(nodeId).map(_.name).getOrElse("Unknown node")
+                                  , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
                                   , components.toSeq.sortBy(_._2.componentName).flatMap(_._2.componentValues.values)
                                 )
                               }.toSeq
@@ -204,7 +204,7 @@ class ComplianceAPIService(
 
           (nodeId, ByNodeNodeCompliance(
               nodeId
-            , nodeInfos.get(nodeId).map(_.name).getOrElse("Unknown node")
+            , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
             , ComplianceLevel(noAnswer = rulesForNode.size)
             , compliance.mode
             , (rulesForNode.map { rule =>
@@ -226,7 +226,7 @@ class ComplianceAPIService(
           nodeId,
           ByNodeNodeCompliance(
               nodeId
-            , nodeInfos.get(nodeId).map(_.name).getOrElse("Unknown node")
+            , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
             , ComplianceLevel.sum(ruleNodeStatusReports.map(_.compliance))
             , compliance.mode
             , ruleNodeStatusReports.toSeq.map(r =>
