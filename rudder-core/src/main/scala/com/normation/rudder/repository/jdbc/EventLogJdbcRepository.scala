@@ -141,6 +141,7 @@ class EventLogJdbcRepository(
      }
   }
 
+
   def getEventLog(id : Int) : Box[EventLog] = {
     val list = jdbcTemplate.query(SELECT_SQL + " and id = ?" ,
         Array[AnyRef](id.asInstanceOf[AnyRef]),
@@ -151,6 +152,7 @@ class EventLogJdbcRepository(
       case _ => Failure("Too many event log for this id")
     }
   }
+
 
   def getEventLogByChangeRequest(
       changeRequest   : ChangeRequestId
@@ -242,19 +244,6 @@ class EventLogJdbcRepository(
     val select = s"${SELECT_SQL} ${where} ${order} ${limit}"
     Try {
       Full(jdbcTemplate.query(select, EventLogReportsMapper).toSeq)
-    } match {
-      case Success(events) => events
-      case Catch(e) => val msg = s"could not find event log with request ${select} cause: ${e}"
-        logger.error(msg)
-        Failure(msg)
-    }
-  }
-
-  def getEventAfterDate( after : DateTime) : Box[Seq[EventLog]] = {
-    val select = s"${SELECT_SQL} and creationDate >= ?"
-    val params = Array[AnyRef](new Timestamp(after.getMillis))
-    Try {
-      Full(jdbcTemplate.query(select,params, EventLogReportsMapper).toSeq)
     } match {
       case Success(events) => events
       case Catch(e) => val msg = s"could not find event log with request ${select} cause: ${e}"
@@ -359,6 +348,7 @@ object EventLogReportsMapper extends RowMapper[EventLog] with Loggable {
         TechniqueEventLogsFilter.eventList :::
         ParameterEventsLogsFilter.eventList :::
         ModifyGlobalPropertyEventLogsFilter.eventList
+
 
   private[this] def mapEventLog(
       eventType     : EventLogType
