@@ -66,6 +66,8 @@ import com.normation.rudder.repository.RoDirectiveRepository
 import com.normation.rudder.repository.RoRuleRepository
 import org.joda.time.DateTime
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
+import net.liftweb.json.JsonAST.JString
+import org.joda.time.format.DateTimeFormat
 
 /**
  * Show the reports from cfengine (raw data)
@@ -74,7 +76,7 @@ class LogDisplayer(
     reportRepository   : ReportsRepository
   , directiveRepository: RoDirectiveRepository
   , ruleRepository     : RoRuleRepository
-) {
+) extends Loggable {
 
   private val templatePath = List("templates-hidden", "node_logs_tabs")
   private def template() =  Templates(templatePath) match {
@@ -90,14 +92,54 @@ class LogDisplayer(
 
   def asyncDisplay(nodeId : NodeId) : NodeSeq = {
     val id = JsNodeId(nodeId)
-    val ajaxRefresh =  SHtml.ajaxInvoke( () => refreshData(nodeId))
+    val ajaxRefresh =  SHtml.ajaxInvoke( () => refreshData(nodeId, reportRepository.findReportsByNode(nodeId)))
+
+    def getEventsInterval(jsonInterval: String): JsCmd = {
+      import net.liftweb.util.Helpers.tryo
+      import net.liftweb.json.parse
+
+      val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
+
+      println("**** got string: " + jsonInterval)
+
+      (for {
+        parsed   <- tryo(parse(jsonInterval)) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
+        startStr <- parsed \ "start" match {
+                      case JString(startStr) => tryo(DateTime.parse(startStr, format)) ?~! s"Bad format for start date, was execpting '${format.toString}' and got '${startStr}'"
+                      case x => Failure("Error: missing start date and time")
+                    }
+        endStr   <- parsed \ "end" match {
+                      case JString(endStr) => tryo(DateTime.parse(endStr, format)) ?~! s"Bad format for end date, was execpting '${format.toString}' and got '${endStr}'"
+                      case x => Failure("Error: missing end date and time")
+                    }
+      } yield {
+        if(startStr.isBefore(endStr)) {
+          reportRepository.findReportsByNodeOnInterval(nodeId, startStr, endStr)
+        } else {
+          reportRepository.findReportsByNodeOnInterval(nodeId, endStr, startStr)
+        }
+      }) match {
+        case Full(reports) =>
+          refreshData(nodeId, reports)
+        case eb : EmptyBox =>
+          val fail = eb ?~! "Could not get latest event logs"
+          logger.error(fail.messageChain)
+          val xml = <div class="error">Error when trying to get last event logs. Error message was: {fail.messageChain}</div>
+          SetHtml("eventLogsError",xml)
+      }
+    }
 
     Script(
       OnLoad(
         // set static content
         SetHtml("logsDetails",content) &
         // Create empty table
-        JsRaw(s"""createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh.toJsCmd}});""") &
+        JsRaw(s"""
+         var pickEventLogsInInterval = ${AnonFunc(SHtml.ajaxCall(JsRaw(
+           """'{"start":"'+$(".pickStartInput").val()+'", "end":"'+$(".pickEndInput").val()+'"}'"""
+         ), getEventsInterval)._2).toJsCmd}
+
+          createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh.toJsCmd}}, pickEventLogsInInterval);""") &
         // Load data asynchronously
         JsRaw(
       s"""
@@ -111,7 +153,7 @@ class LogDisplayer(
   /**
    * find all reports for node passed as parameter and transform them into table data
    */
-  def getReportsLineForNode (nodeId : NodeId) = {
+  def getReportsLineForNode (nodeId : NodeId, reports: Seq[Reports]) = {
     val directiveMap = mutable.Map[DirectiveId, String]()
     val ruleMap = mutable.Map[RuleId, String]()
 
@@ -125,7 +167,7 @@ class LogDisplayer(
 
     val lines = {
       for {
-        report <- reportRepository.findReportsByNode(nodeId)
+        report <- reports
       } yield {
 
         val ruleName = getRuleName(report.ruleId)
@@ -150,9 +192,9 @@ class LogDisplayer(
 
   }
 
-  def refreshData(nodeId : NodeId) : JsCmd = {
+  def refreshData(nodeId : NodeId, reports: => Seq[Reports]) : JsCmd = {
 
-    val data = getReportsLineForNode(nodeId).json.toJsCmd
+    val data = getReportsLineForNode(nodeId, reports).json.toJsCmd
 
     OnLoad(JsRaw(s"""refreshTable("${gridName}",${data});""")
     )
