@@ -14,7 +14,10 @@ import net.liftweb.json.JsonAST._
 import net.liftweb.json.JsonDSL._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.services.quicksearch.QuickSearchResult
+import com.normation.rudder.services.quicksearch.QuickSearchResultId
 import com.normation.rudder.services.quicksearch.QSObject
+import com.normation.rudder.web.model.CurrentUser
+import com.normation.rudder.authorization.Read
 
 /**
  * A class for the Quicksearch rest endpoint.
@@ -46,7 +49,6 @@ class RestQuicksearch (
     case Get("secure" :: "api" :: "quicksearch" :: token :: Nil, req) => {
 
       quicksearch.search(token) match {
-
         case eb: EmptyBox  =>
           val e = eb ?~! s"Error when looking for object containing ${token}"
           toJsonError(None, e.messageChain)("quicksearch", false)
@@ -59,6 +61,26 @@ class RestQuicksearch (
 
   }
 
+  private[this] def filter (results : Set[QuickSearchResult]) = {
+    val user = CurrentUser
+
+    val nodeOK      = user.checkRights(Read("node"))
+    val groupOK     = user.checkRights(Read("group"))
+    val ruleOK      = user.checkRights(Read("configuration")) || user.checkRights(Read("rule"))
+    // directive and parameters
+    val directiveOK = user.checkRights(Read("configuration")) || user.checkRights(Read("directive"))
+
+    import QuickSearchResultId._
+    results.filter { _.id match {
+      case _: QRNodeId      => nodeOK
+      case _: QRGroupId     => groupOK
+      case _: QRRuleId      => ruleOK
+      case _: QRParameterId |
+           _: QRDirectiveId => directiveOK
+      }
+    }
+  }
+
   /**
    * A function that will prepare results to be transfered to the browser:
    * - split them by kind, so that we can add a summary by number for each
@@ -67,10 +89,11 @@ class RestQuicksearch (
    *   The user will be able to make more precises search if needed, and we avoid
    *   crunching the browser with thousands of answers
    */
-  private[this] def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
 
+  private[this] def prepare(results: Set[QuickSearchResult], maxByKind: Int): JValue = {
+    val filteredResult = filter(results)
     // group by kind, and build the summary for each
-    val map = results.groupBy( _.id.tpe ).map { case (tpe, set) =>
+    val map = filteredResult.groupBy( _.id.tpe ).map { case (tpe, set) =>
       //distinct by id:
       val unique   = set.map(x => (x.id, x) ).toMap.values.toSeq.sortBy(_.name)
       //on take the nth first, sorted by name
