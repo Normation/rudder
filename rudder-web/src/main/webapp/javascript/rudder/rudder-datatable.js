@@ -1608,25 +1608,10 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
   $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
 
   if (!( typeof pickEventLogsInInterval === 'undefined')) {
-
-    //add the two input fields for add, and a submit
-    var pickStartInput = $('<input type="text">');
-    pickStartInput.datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
-    pickStartInput.addClass("pickStartInput");
-    $("#"+gridId+"_wrapper .dataTables_pickstart").append(pickStartInput);
-
-    var pickEndInput = $('<input type="text">');
-    pickEndInput.datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
-    pickEndInput.addClass("pickEndInput");
-    $("#"+gridId+"_wrapper .dataTables_pickend").append(pickEndInput);
-
-    var pickDatesButton = $("<button>Get Events Between Dates</button>");
-    pickDatesButton.button();
-    pickDatesButton.attr("title","Get Events Between Date");
-    pickDatesButton.click( function() { pickEventLogsInInterval(); } );
-    pickDatesButton.addClass("pickDatesButton");
-    $("#"+gridId+"_wrapper .dataTables_pickdates").append(pickDatesButton);
-
+    $('#filterLogs').removeClass('hide');
+    //Initialize the two datepickers
+    $('#filterLogs .pickStartInput, #filterLogs .pickEndInput').datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
+    $('#filterLogsButton').click(pickEventLogsInInterval);
   }
 
   return $('#'+gridId).DataTable();
