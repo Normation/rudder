@@ -1,0 +1,106 @@
+#####################################################################################
+# Copyright 2016 Normation SAS
+#####################################################################################
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, Version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#####################################################################################
+
+# @name File from a jinja2 template
+# @description This is a bundle to build a file from a jinja2 template
+# @agent_requirements capabilities: [ "dumpdatastate" ]
+# @documentation This generic method will build a file from a jinja2 template
+# using data (classes and variables) found in the execution context.
+#
+# It requires to have the jinja2 python module installed on the node.
+#
+# You can use the following syntax in your jinja file to use CFEngine data:
+#
+# ```
+# # Display the value of a variable
+# {{ vars.my_bundle.my_variable }}
+#
+# # Iterate on arrays or dicts
+# {% for item in vars.my_bundle.my_list_variable %}
+# display {{ item }}
+# {% endfor %}
+# 
+# # Display content based on classes
+# {% if classes.exists is defined  %}
+#    display this
+# {% endif %}
+# {% if classes.does_not_exist is defined %}
+#    do not diplay this
+# {% endif %}
+# ```
+#
+# @parameter source_template Source file containing a template to be expanded
+# @parameter destination     Destination file
+#
+# @class_prefix file_from_template
+# @class_parameter destination
+
+bundle agent file_from_template_jinja2(source_template, destination)
+{
+
+  vars:
+      "promisers"         slist  => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
+      "old_class_prefix"  string => canonify("file_from_template_${destination}");
+      "class_prefix"      string => canonify(join("_", "promisers"));
+      "args"              slist  => { "${source_template}", "${destination}" };
+
+      "jinja2_script"     string => "${sys.workdir}/modules/templates/jinja2-templating.py";
+      "datastate_file"    string => "${source_template}.datastate.${this.promiser_pid}.json";
+      "destination_canon" string => canonify("${destination}");
+      "destination_tmp"   string => "${source_template}.${this.promiser_pid}.new";
+    state_dumped::
+      # Here we put the output into the errors variable. As the stdout is sent to a file, the output is only stderr,
+      # and can be used to check for errors.
+      "errors" string => execresult("/usr/bin/python \"${jinja2_script}\" --strict \"${source_template}\" \"${datastate_file}\" > \"${destination_tmp}\"", "useshell");
+
+  classes:
+      # This class may not be set when we cannot write the datastate file.
+      "state_dumped" expression => dumpdatastate("${datastate_file}");
+      # If the stderr of the python templating command was empty, we consider that the templating succeeeded.
+      "templating_ok" expression => strcmp("${errors}", "");
+
+      "pass3" expression => "pass2";
+      "pass2" expression => "pass1";
+      "pass1" expression => "any";
+
+  methods:
+    pass2.templating_ok::
+      # Use a file copy to avoid any file size limitations of CFEngine variables.
+      "copy file"    usebundle => file_copy_from_local_source("${destination_tmp}", "${destination}");
+      "copy classes" usebundle => _classes_copy("file_copy_from_local_source_${destination_canon}", "${old_class_prefix}");
+
+    pass3.state_dumped::
+      "clean data file"     usebundle => file_remove("${datastate_file}");
+      "clean template file" usebundle => file_remove("${destination_tmp}");
+
+    pass3::
+      "failure" usebundle  => _classes_failure("${old_class_prefix}"),
+                ifvarclass => "!${old_class_prefix}_reached";
+      "failure" usebundle  => _classes_failure("${class_prefix}"),
+                ifvarclass => "!${old_class_prefix}_reached";
+
+      "new result classes"  usebundle  => _classes_copy("${old_class_prefix}", "${class_prefix}"),
+                            ifvarclass => "${old_class_prefix}_reached";
+      "report"              usebundle  => _log("Build file ${destination} from template ${source_template}", "${old_class_prefix}", "${class_prefix}", @{args});
+
+   reports:
+     # Display templating errors in case of failure.
+     "Templating error: ${errors}" ifvarclass => "state_dumped.!templating_ok";
+
+}
+
