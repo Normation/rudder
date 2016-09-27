@@ -2972,3 +2972,42 @@ button.buttonMargin {
   padding: 10px 15px;
   margin: 10px;
 }
+#filterLogs.reportsHeader{
+  margin:15px 0 0px 0;
+}
+#filterLogs.space-top{
+  margin-top: 10px;
+}
+#filterLogs button{
+  width: auto;
+  outline:none;
+}
+#filterLogs .form-control.input-xs{
+  display:inline;
+  height: 25px;
+  margin: 0 5px;
+  width: 140px !important;
+}
+#filterLogs .form-control.input-xs:focus {
+    border-color: #c1c1c1;
+    outline: 0;
+    -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgba(208, 208, 208, 0.6);
+    box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 6px rgb(208, 208, 208);
+}
+.ui-timepicker-div a.ui-slider-handle{
+  border: 1px solid #aaaaaa;
+  background: #ffffff;
+  transition-duration:.2s;
+}
+.ui-timepicker-div a.ui-slider-handle:hover{
+  border: 1px solid #777777;
+}
+.ui-timepicker-div a.ui-slider-handle:active{
+  border: 1px solid #777777;
+  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 4px rgba(152, 152, 152, 0.6);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 4px rgb(152, 152, 152);
+}
+.ui-timepicker-div .ui-slider.ui-slider-horizontal{
+  border: 1px solid #aaaaaa;
+  background-color: #f1f1f1;
+}

@@ -45,8 +45,8 @@
     <script type="text/javascript" src="/javascript/rudder/rudder-datatable.js"></script>
     <script type="text/javascript" src="/javascript/rudder/tree.js" id="tree"></script>
     <link type="text/css" rel="stylesheet" href="/javascript/jquery/jquery-timepicker/jquery-ui-timepicker-addon.min.css" media="screen" />
-    <script type="text/javascript" src="/javascript/jquery/jquery-timepicker/jquery-ui-timepicker-addon.min.js" id="tree"></script>
-
+    <script type="text/javascript" src="/javascript/jquery/jquery-timepicker/jquery-ui-timepicker-addon.min.js" id="timepicker"></script>
+    <script type="text/javascript" src="/javascript/jquery/jquery-timepicker/jquery-ui-timepicker-addon-en.js" id="timepicker-en"></script>
 
     <script type="text/javascript" src="/javascript/angular/angular.min.js" ></script>
     <script type="text/javascript" src="/javascript/angular/angular-animate.min.js" ></script>
@@ -73,7 +73,7 @@
         createTooltip();
         roundTabs();
 
-        //don't let the browser tell, it may end-up with chinese if jquery doesn't know the variation :/
+        //don't let the browser tell, it may end-up with japanese if jquery doesn't know the variation :/
         $.datepicker.setDefaults($.datepicker.regional['en']);
         $.timepicker.setDefaults($.timepicker.regional['en']);
       });
