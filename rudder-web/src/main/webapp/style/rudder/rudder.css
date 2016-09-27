@@ -555,11 +555,26 @@ table.dataTable td img, table.dataTable th img {
   float:left;
 }
 
-.dataTables_refresh{
+.dataTables_{
   float:right;
   width:50%;
   text-align:right
 }
+
+.dataTables_pickstart, .dataTables_pickend, .dataTables_pickdates{
+  float:right;
+}
+input.pickStartInput, input.pickEndInput {
+  width: 135px !important;
+  margin: 5px;
+}
+
+.dataTables_refresh{
+  float:right;
+  width:15%;
+  text-align:right
+}
+
 .recentChange_refresh {
     float: right;
     width: 10%;

@@ -12,6 +12,7 @@
     <link type="text/css" rel="stylesheet" href="/style/jquery-ui/jquery-ui.min.css" />
     <link type="text/css" rel="stylesheet" href="/style/jquery-ui/jquery-ui.structure.min.css" />
     <link type="text/css" rel="stylesheet" href="/style/jquery-ui/jquery-ui.theme.min.css" />
+    <link type="text/css" rel="stylesheet" href="/style/timepicker/jquery-ui-timepicker-addon.min.css" media="screen" />
     <link type="text/css" rel="stylesheet" href="/style/jstree/style.css" media="screen" />
     <link type="text/css" rel="stylesheet" href="/style/rudder/rudder-jquery-ui.css" />
     
@@ -37,6 +38,8 @@
     <script type="text/javascript" src="/javascript/jquery/jquery-ui.min.js"></script>
     <script type="text/javascript" src="/javascript/jquery/jstree/jquery.jstree.min.js"></script>
     <script type="text/javascript" src="/javascript/jquery/datatables/datatables.min.js"></script>
+    <script type="text/javascript" src="/javascript/jquery/timepicker/jquery-ui-timepicker-addon.min.js" id="datepicker"></script>
+
 
     <script type="text/javascript" src="/javascript/bootstrap/bootstrap-3.3.7.min.js"></script>
 
@@ -78,6 +81,21 @@
     </script>
 
     <script data-lift="SendMetricsPopup.display" ></script>
+    <script type="text/javascript">
+      // <![CDATA[
+      $(document).ready(function() {
+        correctButtons();
+        $("a", "form").click(function() { return false; });
+        createTooltip();
+        roundTabs();
+
+        //don't let the browser tell, it may end-up with chinese if jquery doesn't know the variation :/
+        $.datepicker.setDefaults($.datepicker.regional['en']);
+        $.timepicker.setDefaults($.timepicker.regional['en']);
+      });
+      // ]]>
+    </script>
+
     <!--[if lt IE 7.]>
     <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
     <![endif]-->
