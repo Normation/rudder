@@ -122,6 +122,18 @@ class ReportsJdbcRepository(jdbcTemplate : JdbcTemplate) extends ReportsReposito
     ).asScala
   }
 
+  override def findReportsByNodeOnInterval(
+      nodeId: NodeId
+    , start : DateTime
+    , end   : DateTime
+  ) : Seq[Reports] = {
+    jdbcTemplate.query(
+        baseQuery + " and nodeId = ? and executionTimeStamp >= ?  and executionTimeStamp < ? ORDER BY executionTimeStamp asc"
+      , Array[AnyRef](nodeId.value, new Timestamp(start.getMillis), new Timestamp(end.getMillis))
+      , ReportsMapper
+    ).asScala
+  }
+
   override def findReportsByNode(
       nodeId   : NodeId
     , ruleId   : RuleId

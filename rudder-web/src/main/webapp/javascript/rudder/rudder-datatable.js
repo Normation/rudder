@@ -1147,7 +1147,7 @@ function createChangeRequestTable(gridId, data, contextPath, refresh) {
  *   , "message" : Report message [String]
  *   }
  */
-function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
+function createTechnicalLogsTable(gridId, data, contextPath, refresh, pickEventLogsInInterval) {
 
   var columns = [ {
       "sWidth": "10%"
@@ -1188,10 +1188,11 @@ function createTechnicalLogsTable(gridId, data, contextPath, refresh) {
         "sSearch": ""
     }
     , "aaSorting": [[ 0, "desc" ]]
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
+      '>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh, "technical_logs");
+  createTable(gridId,data, columns, params, contextPath, refresh, "technical_logs", pickEventLogsInInterval);
 
 }
 
@@ -1260,7 +1261,7 @@ function createChangesTable(gridId, data, contextPath, refresh) {
  *   , "hasDetails" : do our event needs to display details (do we need to be able to open the row [Boolean]
  *   }
  */
-function createEventLogTable(gridId, data, contextPath, refresh) {
+function createEventLogTable(gridId, data, contextPath, refresh, pickEventLogsInInterval) {
 
   var columns = [ {
       "sWidth": "10%"
@@ -1339,15 +1340,12 @@ function createEventLogTable(gridId, data, contextPath, refresh) {
           }
         } );
       }
-    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
+    , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh"><"dataTables_pickdates"><"dataTables_pickend"><"dataTables_pickstart">'+
+      '>rt<"dataTables_wrapper_bottom"lip>'
   };
 
-  createTable(gridId,data, columns, params, contextPath, refresh, "event_logs");
-
-
-
+  createTable(gridId,data, columns, params, contextPath, refresh, "event_logs", pickEventLogsInInterval);
 }
-
 
 /*
  * A function that build a compliance bar with colored zone for compliance
@@ -1562,7 +1560,7 @@ function createInnerTable(myTable,  createFunction, contextPath, kind) {
 }
 
 // Create a table from its id, data, columns, custom params, context patch and refresh function
-function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId) {
+function createTable(gridId,data,columns, customParams, contextPath, refresh, storageId, pickEventLogsInInterval) {
 
   var defaultParams = {
       "asStripeClasses": [ 'color1', 'color2' ]
@@ -1608,6 +1606,28 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
   $('.dataTables_filter input').css("background","white url("+contextPath+"/images/icMagnify.png) left center no-repeat");
+
+  if (!( typeof pickEventLogsInInterval === 'undefined')) {
+
+    //add the two input fields for add, and a submit
+    var pickStartInput = $('<input type="text">');
+    pickStartInput.datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
+    pickStartInput.addClass("pickStartInput");
+    $("#"+gridId+"_wrapper .dataTables_pickstart").append(pickStartInput);
+
+    var pickEndInput = $('<input type="text">');
+    pickEndInput.datetimepicker({dateFormat:'yy-mm-dd', timeFormat: 'HH:mm:ss', timeInput: true});
+    pickEndInput.addClass("pickEndInput");
+    $("#"+gridId+"_wrapper .dataTables_pickend").append(pickEndInput);
+
+    var pickDatesButton = $("<button>Get Events Between Dates</button>");
+    pickDatesButton.button();
+    pickDatesButton.attr("title","Get Events Between Date");
+    pickDatesButton.click( function() { pickEventLogsInInterval(); } );
+    pickDatesButton.addClass("pickDatesButton");
+    $("#"+gridId+"_wrapper .dataTables_pickdates").append(pickDatesButton);
+
+  }
 
   return $('#'+gridId).DataTable();
 }
