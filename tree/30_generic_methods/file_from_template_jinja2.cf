@@ -18,7 +18,7 @@
 
 # @name File from a jinja2 template
 # @description This is a bundle to build a file from a jinja2 template
-# @agent_requirements capabilities: [ "dumpdatastate" ]
+# @agent_requirements "capabilities": [ "dumpdatastate" ]
 # @documentation This generic method will build a file from a jinja2 template
 # using data (classes and variables) found in the execution context.
 #

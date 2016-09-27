@@ -34,6 +34,8 @@ bundle agent file_from_template_type(source_template, destination, template_type
     "promisers"          slist => { @{this.callers_promisers}, cf_null }, policy => "ifdefined";
     "class_prefix"      string => canonify(join("_", "promisers"));
     "args"              slist => { "${source_template}", "${destination}", "${template_type}" };
+    # allow to avoid resolving the jinja2 bundle when not using jinja2, because of the special requirements
+    "jinja2_bundle_name" string => "file_from_template_jinja2";
 
   classes:
     "template_exists" expression => fileexists("${source_template}");
@@ -50,13 +52,13 @@ bundle agent file_from_template_type(source_template, destination, template_type
 
   methods:
     is_jinja2.template_exists::
-      "template" usebundle => file_from_template_jinja2("${source_template}", "${destination}");
+      "template" usebundle => ${jinja2_bundle_name}("${source_template}", "${destination}");
 
     !template_exists::
       "template_absent" usebundle => _classes_failure("${old_class_prefix}");
       "template_absent" usebundle => _classes_failure("${class_prefix}");
 
-    is_jinja2.template_exists:
+    is_jinja2.template_exists::
       "new result classes" usebundle => _classes_copy("${class_prefix}_file_from_template_jinja2", "${class_prefix}");
       "report" usebundle => _log("Build file ${destination} from ${template_type} template ${source_template}", "", "${class_prefix}", @{args});
 
