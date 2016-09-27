@@ -951,7 +951,7 @@ object ExecutionBatch extends Loggable {
     }
 
     // Regroup all None value into None component Value
-    // There should only one None report per component and
+    // There should only one None report per component
     val (noneValue, noneReports) = {
       if(valueKind.none.isEmpty) {
       (None, Seq())
@@ -1251,14 +1251,13 @@ object ExecutionBatch extends Loggable {
               /* Nothing was received at all for that component so : No Answer or Pending */
               case 0 if noUnexpectedReports =>
                 MessageStatusReport(noAnswerType, None) :: Nil
-              /* Reports were received for that component, but not for that key, that's a missing report */
-              case x if(x < cardinality) =>
-                (0 until cardinality).map( _ => MessageStatusReport(MissingReportType, None)).toList
+              case x if(x <= cardinality) =>
+                filteredReports.map { r => MessageStatusReport(ReportType(r), r.message) }.toList ++
+                /* We need to complete the list of correct with missing, if some are missing */
+                (x until cardinality).map( i => MessageStatusReport(MissingReportType, s"[Missing report #${i}]")).toList
               //check if cardinality is ok
               case x if(x > cardinality) =>
                 filteredReports.map { r => MessageStatusReport(UnexpectedReportType, r.message) }.toList
-              case x => //correct cardinality
-                filteredReports.map { r => MessageStatusReport(ReportType(r), r.message) }.toList
             }
           }
         }
