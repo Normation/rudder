@@ -39,6 +39,7 @@
     <script type="text/javascript" src="/javascript/jquery/jstree/jquery.jstree.min.js"></script>
     <script type="text/javascript" src="/javascript/jquery/datatables/datatables.min.js"></script>
     <script type="text/javascript" src="/javascript/jquery/timepicker/jquery-ui-timepicker-addon.min.js" id="datepicker"></script>
+    <script type="text/javascript" src="/javascript/jquery/timepicker/jquery-ui-timepicker-addon-en.js" id="timepicker-en"></script>
 
 
     <script type="text/javascript" src="/javascript/bootstrap/bootstrap-3.3.7.min.js"></script>
@@ -89,7 +90,7 @@
         createTooltip();
         roundTabs();
 
-        //don't let the browser tell, it may end-up with chinese if jquery doesn't know the variation :/
+        //don't let the browser tell, it may end-up with japanese if jquery doesn't know the variation :/
         $.datepicker.setDefaults($.datepicker.regional['en']);
         $.timepicker.setDefaults($.timepicker.regional['en']);
       });
