@@ -76,13 +76,14 @@ import com.normation.rudder.domain.eventlog.WorkflowStepChanged
 import com.normation.rudder.domain.workflows.WorkflowStepChange
 import com.normation.rudder.domain.parameters._
 import com.normation.rudder.api._
-import net.liftweb.json.JString
+import net.liftweb.json._
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.reports.HeartbeatConfiguration
 import com.normation.rudder.rule.category.RuleCategory
 import com.normation.rudder.rule.category.RoRuleCategoryRepository
+import org.joda.time.format.DateTimeFormat
 
 /**
  * Used to display the event list, in the pending modification (AsyncDeployment),
@@ -104,9 +105,9 @@ class EventListDisplayer(
   private[this] val gridName = "eventLogsGrid"
 
   def display(refreshEvents:() => Box[Seq[EventLog]]) : NodeSeq  = {
-
-    def getLastEvents : JsCmd = {
-      refreshEvents() match {
+    //common part between last events and interval
+    def displayEvents(events: Box[Seq[EventLog]]) :JsCmd = {
+      events match {
         case Full(events) =>
           val lines = JsTableData(events.map(EventLogLine(_)).toList)
             JsRaw(s"refreshTable('${gridName}',${lines.json.toJsCmd})")
@@ -117,10 +118,40 @@ class EventListDisplayer(
           SetHtml("eventLogsError",xml)
       }
     }
+
+    def getLastEvents : JsCmd = {
+      displayEvents(refreshEvents())
+    }
+
+    def getEventsInterval(jsonInterval: String): JsCmd = {
+      import java.sql.Timestamp
+      val format = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss")
+
+      displayEvents(for {
+        parsed   <- tryo(parse(jsonInterval)) ?~! s"Error when trying to parse '${jsonInterval}' as a JSON datastructure with fields 'start' and 'end'"
+        startStr <- parsed \ "start" match {
+                      case JString(startStr) => tryo(new Timestamp(DateTime.parse(startStr, format).getMillis)) ?~! s"Bad format for start date, was execpting '${format.toString}' and got '${startStr}'"
+                      case x => Failure("Error: missing start date and time")
+                    }
+        endStr   <- parsed \ "end" match {
+                      case JString(endStr) => tryo(new Timestamp(DateTime.parse(endStr, format).getMillis)) ?~! s"Bad format for end date, was execpting '${format.toString}' and got '${endStr}'"
+                      case x => Failure("Error: missing end date and time")
+                    }
+        (start, end) = if(startStr.before(endStr)) (startStr, endStr) else (endStr, startStr)
+        logs     <- repos.getEventLogByCriteria(Some(s"creationdate >= '${start}' and creationdate < '${end}'"), None, Some("id DESC"))
+      } yield {
+        logs
+      })
+    }
+
     val refresh = AnonFunc(SHtml.ajaxInvoke( () => getLastEvents))
+
     Script(OnLoad(JsRaw(s"""
+     var pickEventLogsInInterval = ${AnonFunc(SHtml.ajaxCall(JsRaw(
+       """'{"start":"'+$(".pickStartInput").val()+'", "end":"'+$(".pickEndInput").val()+'"}'"""
+     ), getEventsInterval)._2).toJsCmd}
      var refreshEventLogs = ${refresh.toJsCmd};
-     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs)
+     createEventLogTable('${gridName}',[], '${S.contextPath}', refreshEventLogs, pickEventLogsInInterval)
      refreshEventLogs();
     """)))
   }
@@ -1049,7 +1080,7 @@ class EventListDisplayer(
               <ul class="evlogviewpad">
                 <li><b>Node ID:</b> { modDiff.id.value }</li>
               </ul>
-							{
+              {
                 mapComplexDiff(modDiff.modAgentRun){ (optAr:Option[AgentRunInterval]) =>
                   optAr match {
                     case None => <span>No value</span>
@@ -1075,7 +1106,7 @@ class EventListDisplayer(
               <ul class="evlogviewpad">
                 <li><b>Node ID:</b> { modDiff.id.value }</li>
               </ul>
-							{
+              {
                 mapComplexDiff(modDiff.modHeartbeat){ (optHb:Option[HeartbeatConfiguration]) =>
                   optHb match {
                     case None => <span>No value</span>
@@ -1101,7 +1132,7 @@ class EventListDisplayer(
               <ul class="evlogviewpad">
                 <li><b>Node ID:</b> { modDiff.id.value }</li>
               </ul>
-							{
+              {
                 mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
                   nodePropertiesDetails(props)
                 }
@@ -1134,7 +1165,7 @@ class EventListDisplayer(
         <li><b>Start at minute: </b><value id="startMinute"/></li>
         <li><b>Start at hour: </b><value id="startHour"/></li>
         <li><b>Splay time: </b><value id="splaytime"/></li>
-			</ul>
+      </ul>
     )
   }
 

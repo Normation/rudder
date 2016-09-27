@@ -592,11 +592,26 @@ div#Detail {
   float:left;
 }
 
-.dataTables_refresh{
+.dataTables_{
   float:right;
   width:50%;
   text-align:right
 }
+
+.dataTables_pickstart, .dataTables_pickend, .dataTables_pickdates{
+  float:right;
+}
+input.pickStartInput, input.pickEndInput {
+  width: 135px !important;
+  margin: 5px;
+}
+
+.dataTables_refresh{
+  float:right;
+  width:15%;
+  text-align:right
+}
+
 .recentChange_refresh {
     float: right;
     width: 10%;
@@ -2912,23 +2927,23 @@ input[type="number"] {
   min-height: 300px;
 }
 #recentChanges .alert-info{
-	font-size:14px;
+  font-size:14px;
 }
 #recentChanges .alert-info .glyphicon{
-	font-size:16px;
+  font-size:16px;
 }
 #selectedPeriod{
-	font-size:14px;
+  font-size:14px;
 }
 body.cursorPointer{
-	cursor:pointer;
+  cursor:pointer;
 }
 path.c3-bar.c3-shape.c3-bar-highlighted{
   stroke: rgb(63, 185, 243) !important;
   fill: rgb(63, 185, 243) !important;
 }
 button.recentChangeGraph{
-	position: relative;
+  position: relative;
     top: -8px;
     right: -10px;
 }

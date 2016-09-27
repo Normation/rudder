@@ -86,6 +86,12 @@ trait ReportsRepository {
       nodeId   : NodeId
   ) : Seq[Reports]
 
+  def findReportsByNodeOnInterval(
+      nodeId: NodeId
+    , start : DateTime
+    , end   : DateTime
+  ) : Seq[Reports]
+
   /**
    * All reports for a node and rule/serial, between two date, ordered by date
    */
