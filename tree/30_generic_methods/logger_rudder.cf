@@ -73,6 +73,7 @@ bundle agent logger_rudder(message, class_prefix)
     !logger_rudder_temp_resfile_repaired::
       "${expected_reports_temp}"
         create        => "true",
+        edit_defaults => no_backup,
         edit_template => "${expected_reports_source}",
         classes       => classes_generic("logger_rudder_temp_resfile");
 
@@ -80,13 +81,15 @@ bundle agent logger_rudder(message, class_prefix)
       # (can't use edit_default empty, as we are iterating over a list)
     (!final_resfile_exists|logger_rudder_temp_resfile_repaired).!logger_rudder_final_resfile_repaired.keys_defined::
      "${expected_reports_file}"
-        create => "true",
-        edit_line => delete_lines_matching(".*");
+        create        => "true",
+        edit_defaults => no_backup,
+        edit_line     => delete_lines_matching(".*");
 
       "${expected_reports_file}"
-        create    => "true",
-        edit_line => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
-        classes   => classes_generic("logger_rudder_final_resfile");
+        create        => "true",
+        edit_defaults => no_backup,
+        edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
+        classes       => classes_generic("logger_rudder_final_resfile");
 
   methods:
     # no need to avoid normal ordering since this class is set when report is ready
