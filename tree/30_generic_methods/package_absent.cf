@@ -19,7 +19,7 @@
 # @name Package absent
 # @agent_version >=3.7
 # @description Enforce the absence of a package
-# @documentation See [package_present](#package_present) for documentation.
+# @documentation See [package_state](#package_state) for documentation.
 # @parameter            name Name of the package
 # @parameter            version Version of the package or "any" for any version (defaults to "any")
 # @parameter_constraint version "allow_empty_string" : true
@@ -35,5 +35,5 @@
 bundle agent package_absent(name, version, architecture, provider)
 {
   methods:
-    "enforce absence" usebundle => _package_state("${name}", "${version}", "${architecture}", "${provider}", "absent");
+    "enforce absence" usebundle => package_state("${name}", "${version}", "${architecture}", "${provider}", "absent");
 }

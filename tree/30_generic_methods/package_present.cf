@@ -19,87 +19,7 @@
 # @name Package present
 # @agent_version >=3.7
 # @description Enforce the presence of a package
-# @documentation These methods manage packages using a package manager on the system.
-#
-# `package_present` and `package_absent` use a new package implementation, different from `package_install_*`,
-# `package_remove_*` and `package_verify_*`. It should be more reliable, and handle upgrades better.
-# It is compatible though, and you can call generic methods from both implementations on the same host.
-# The only drawback is that the agent will have to maintain double caches for package lists, which
-# may cause a little unneeded overhead.
-# 
-# #### Setup
-#
-# If you are using ncf inside Rudder, no specific setup is necessary.
-#
-# If your are using ncf without Rudder, you need to call the `initialization` bundle
-# before using package methods.
-# 
-# #### Package parameters
-# 
-# There is only one mandatory parameter, which is the package name to install.
-# When it should be installed from a local package, you need to specify the full path to the package as name.
-# 
-# The version parameter allows specifying a version you want installed.
-# It should be the complete versions string as used by the used package manager.
-# This parameter allows two special values:
-# 
-# * *any* which is the default value, and is satisfied by any version of the given package
-# * *latest* which will ensure, at each run, that the package is at the latest available version.
-# 
-# The last parameter is the provider, which is documented in the next section.
-#
-# #### Package providers
-# 
-# This method supports several package managers. You can specify the package manager
-# you want to use or let the method choose the default for the local system.
-# 
-# The package providers include a caching system for package information.
-# The package lists (installed, available and available updates) are only updated
-# when the cache expires, or when an operation is made by the agent on packages.
-#
-# *Note*: The implementation of package operations is done in scripts called modules,
-# which you can find in `${sys.workdir}/modules/packages/`.
-# 
-# ##### apt
-# 
-# This package provider uses *apt*/*dpkg* to manage packages on the system.
-# *dpkg* will be used for all local actions, and *apt* is only needed to manage update and
-# installation from a repository.
-# 
-# ##### rpm
-# 
-# This package provider uses *yum*/*rpm* to manage packages on the system. *rpm* will 
-# be used for all local actions, and *yum* is only needed to manage update and
-# installation from a repository.
-# 
-# It is able to downgrade packages when specifying an older version.
-#
-# ##### zypper
-# 
-# This package provider uses *zypper*/*rpm* to manage packages on the system.
-# *rpm* will be used for all local actions, and *zypper* is only needed to manage update and
-# installation from a repository.
-# 
-# ##### pkg
-# 
-# This package provider uses FreeBSD's *pkg* to manage packages on the system.
-# 
-# #### Examples
-# 
-# ```
-# # To install postgresql in version 9.1 for x86_64 atchitecture
-# package_present("postgresql", "9.1", "x86_64", "");
-# # To ensure postgresql is always in the latest available version
-# package_present("postgresql", "latest", "", "");
-# # To ensure installing postgresql in any version
-# package_present("postgresql", "", "", "");
-# # To ensure installing postgresql in any version, forcing the yum provider
-# package_present("postgresql", "", "", "yum");
-# # To ensure installing postgresql from a local package
-# package_present("/tmp/postgresql-9.1-1.x86_64.rpm", "", "", "");
-# ```
-# 
-# See also : [package_absent](#package_absent)
+# @documentation See [package_state](#package_state) for documentation.
 # @parameter            name Name of the package, or path to a local package
 # @parameter            version Version of the package, can be "latest" for latest version or "any" for any version (defaults to "any")
 # @parameter_constraint version "allow_empty_string" : true
@@ -115,5 +35,5 @@
 bundle agent package_present(name, version, architecture, provider)
 {
   methods:
-    "enforce presence" usebundle => _package_state("${name}", "${version}", "${architecture}", "${provider}", "present");
+    "enforce presence" usebundle => package_state("${name}", "${version}", "${architecture}", "${provider}", "present");
 }
