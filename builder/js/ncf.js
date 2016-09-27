@@ -11,6 +11,20 @@ function swapTwoArrayItems(array, index1, index2) {
     return array;
 };
 
+function initScroll(){
+  var categories, categoriesPosition;
+  window.addEventListener('scroll', function() {
+    if(!categories){
+      categories = $('#categories-list').get(0);
+      categoriesPosition = categories.getBoundingClientRect().top;
+    }
+    if (window.pageYOffset >= categoriesPosition) {
+      $(categories).addClass('fixed');
+    } else {
+      $(categories).removeClass('fixed');
+    }
+  });
+}
 // Find index of an element in an array
 function findIndex(array, elem) {
     for (var index in array) {
@@ -156,7 +170,7 @@ return {
 
 // Declare controller ncf-builder
 app.controller('ncf-builder', function ($scope, $modal, $http, $log, $location, $anchorScroll, ngToast, $timeout, focus) {
-
+  initScroll();
   // Variable we use in the whole application
 
   // Path of ncf files, defined as a url parameter    

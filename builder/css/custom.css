@@ -78,7 +78,6 @@ hr {
 }
 
 .panel-ncf > .panel-body {
-    
     background-image: linear-gradient(#FFA033, #EE7F00 50%, #B86200);
 }
 
@@ -91,23 +90,9 @@ a:hover {
     cursor: pointer;
 }
 
-.editForm.ncf_col {
-}
-
-.editForm .fixed-footer {
-  left: 16.66666667%
-}
-
 .right-panel {
   padding-left: 0;
   padding-right: 30px;
-}
-
-.affix{
-    position: fixed;
-    top: 10px;
-    width:16.6667%;
-    padding-right:25px;
 }
 
 .panel-body > .form-group:first-of-type {
@@ -151,10 +136,10 @@ a:hover {
     padding: 0;
 }
 
-html, body, .Override.container, .Override .ncf_col
-{
+html, body, .Override.container{
     height: 100%;
 }
+
 
 .Override.container {
     width: 100%;
@@ -190,13 +175,6 @@ html, body, .Override.container, .Override .ncf_col
     position: absolute;
     width: 100%;
     height: 100%;
-}
-
-.Override .ncf_col
-{
-    float: left;
-    position: static;
-    overflow: auto;
 }
 
 .Override .ncf_col2
@@ -240,9 +218,9 @@ textarea.form-control {
     text-align: center;
     background-color: white;
     position: fixed;
+    z-index: 100;
     bottom: 0px;
     padding-top: 10px;
-    margin-left: 0px;
     padding-bottom: 10px;
 }
 
@@ -328,7 +306,8 @@ ul[dnd-list] {
 }
 
 .jumbotron {
-  background-color : #fff
+  background-color : #fff;
+  padding-bottom: 10px;
 }
 
 .panel-heading .ng-invalid {
@@ -376,4 +355,54 @@ body.iframe .Override.container {
 
 .sm-space-top{
     margin-top: 10px !important;
+}
+.generic-methods, #categories-list{
+    padding-bottom: 55px;
+}
+#categories{
+  padding-left: 5px;
+}
+#categories-list li a{
+  padding-left: 5px;
+}
+@media screen and (min-width: 992px) {
+    .container > .ncf_col{
+        max-height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+    .generic-methods, #categories-list{
+        padding-bottom: 20px;
+    }
+    #categories-list{
+        margin-top: 38px;
+    }
+}
+.ncf_col.no-padding{
+  padding: 0;
+}
+#categories-list{
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+#categories-list.fixed{
+    position: fixed;
+    top:0;
+    right: 15px;
+}
+#categories-list.fixed li{
+    padding-right: 20px;
+}
+#categories-list.fixed li a{
+  padding: 10px;
+}
+@media screen and (max-width: 992px) {
+    #categories-list{
+        position:static;
+        margin-top: 38px;
+        max-height: 100vh;
+    }
+    #categories-list.fixed{
+        margin-top: 0;
+    }
 }

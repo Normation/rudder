@@ -119,7 +119,7 @@
         </div>
             
         <div  class="container Override row fill" ng-show="authenticated" >
-          <div class="col-md-2 ncf_col"> 
+          <div class="col-lg-2 col-md-2 col-sm-4 col-xs-12 ncf_col">
                 <div class="title">Library</div>
                 <h3 >Techniques</h3>
                 <table class="table table-hover table-condensed table-ncf" >
@@ -147,7 +147,7 @@
                 </table>
             </div>
 
-            <form class="form-horizontal editForm col-md-5 ncf_col" name="editForm" novalidate >
+            <form class="form-horizontal editForm col-lg-5 col-md-5 col-sm-8 col-xs-12 ncf_col" name="editForm" novalidate >
             <div class="jumbotron" ng-if="selectedTechnique === undefined" >
                 <h1>Technique editor</h1>
                 <p>Create a new technique or edit one  from the list on the left.</p>
@@ -158,7 +158,7 @@
                   </a>
                </p>
              </div>
-            <div ng-if="selectedTechnique" > 
+            <div ng-if="selectedTechnique" >
               <div id="editform-container">
                     <div class="title">Technique</div>
                     <h3 >{{originalTechnique.name}} <span ng-hide="originalTechnique.name">New Technique</span>
@@ -207,7 +207,7 @@
                         </accordion-group>
                     </accordion>
                     <div style="position: relative"><div ng-if="selectedTechnique.method_calls.length === 0" class="btn btn-block btn-default text-center" id="no-methods" >
-                      <div class="panel-heading" style="overflow:hidden">  
+                      <div class="panel-heading" style="overflow:hidden">
                         Drag and drop generic methods here from the list on the right to build target configuration for this technique. </div>
                       </div>
                     </div>
@@ -237,8 +237,9 @@
                               </h4>
                               <br style="clear:both"/>
                               <div ng-form="arg_method" ng-repeat="parameter in method_call.parameters  track by $index">
-                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter"/>
-                                <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple >
+
+                                <input ng-hide="true" type="text" name="param" ng-model="parameter.value" constraint parameter="parameter" >
+                                <ng-messages ng-if="parameter.$errors.length > 0" for="arg_method.param.$error" multiple>
                                   <div class="text-danger" ng-message="constraint">
                                     Invalid constraint for parameter: '{{parameter.name}}'
                                   </div>
@@ -251,19 +252,17 @@
                         </div>
                       </li>
                   </ul>
-            </div>
-
-                <div class="col-md-5 col-md-offset-2 fixed-footer">
-                    <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': selectedMethod === undefined }">
-                        <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
-                        Add methods
-                    </div>
-                    <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique() || CForm.versionForm.$invalid" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
-                    <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
-                </div>
+              </div>
             </div>
             </form>
-
+            <div ng-if="selectedTechnique" class="col-md-5 col-md-offset-2 col-xs-12 col-xs-offset-0 fixed-footer">
+                <div ng-click="openMethods()"  class="btn btn-default pull-left" ng-class="{'active': selectedMethod === undefined }">
+                    <span class="glyphicon glyphicon-plus-sign" style="margin-right:5px"></span>
+                    Add methods
+                </div>
+                <button ng-disabled="editForm.$pending || editForm.$invalid || CForm.form.$invalid || checkSelectedTechnique()" class="btn btn-default pull-right" ng-click="saveTechnique()">Save</button>
+                <button ng-disabled="isUnchanged(selectedTechnique)" class="btn btn-default pull-right right-margin" ng-click="resetTechnique()">Reset</button>
+            </div>
             <div class="col-md-5 ncf_col" style="vertical-align:top; padding-left:0px;" ng-if="selectedMethod !== undefined">
                 <div style="padding-left:15px;margin-bottom:95px;">
                     <div class="title">Method</div>
@@ -377,9 +376,7 @@
                 </div>
             </div>
 
-            <div class="col-md-5 ncf_col" ng-if="selectedMethod === undefined" >
-                <div class="row">
-                    <div class="col-md-9">
+                    <div class="col-lg-4 col-md-4 col-sm-10 col-xs-8 generic-methods ncf_col" ng-if="selectedMethod === undefined">
                         <div class="title">Library</div>
                         <h3 >Generic methods</h3>
                         <ul class="list-unstyled" ng-repeat="(kind,methods) in methodsByCategory"  >
@@ -404,16 +401,15 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="col-md-3" class="bs-sidebar navbar" >
-                        <ul class="nav bs-sidenav" style="position:fixed; margin-top:68px;">
+                    <div class="col-lg-1 col-md-1 col-sm-2 col-xs-4 ncf_col no-padding" class="bs-sidebar navbar" ng-if="selectedMethod === undefined">
+                        <ul class="nav bs-sidenav" id="categories-list">
                           <h4 id="categories">Categories</h4>
                             <li ng-repeat="(kind,methods) in methodsByCategory" class="active">
                                 <a href="" ng-click="scroll(kind)">{{capitaliseFirstLetter(kind)}} </a>
                             </li>
                         </ul>
                     </div>
-                </div>
-            </div>
+
         </div>
     </body>
 </html>
