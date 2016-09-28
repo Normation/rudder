@@ -900,7 +900,11 @@ function createNodeComponentValueTable(contextPath) {
         var list = $("<ul></ul>");
         for (index in sData) {
           var elem = $("<li></li>");
-          elem.text(sData[index]);
+          if(sData.length > 1) {
+            elem.text('['+ sData[index].status+'] '+ sData[index].value);
+          } else {
+            elem.text(sData[index].value);
+          }
           list.append(elem);
         }
         $(nTd).empty();

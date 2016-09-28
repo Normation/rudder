@@ -263,13 +263,13 @@ case class ComponentComplianceLine (
  *   , "compliancePercent" : Compliance percentage [Float]
  *   , "status" : Worst status of the Directive [String]
  *   , "statusClass" : Class to use on status cell [String]
- *   , "messages" : Message linked to that value, only used in message popup [ Array[String] ]
+ *   , "messages" : (Status, Message) linked to that value, only used in message popup [ Array[(status:String,value:String)] ]
  *   , "jsid"    : unique identifier for the line [String]
  *   }
  */
 case class ValueComplianceLine (
     value       : String
-  , messages    : List[String]
+  , messages    : List[(String, String)]
   , compliance  : ComplianceLevel
   , status      : String
   , statusClass : String
@@ -280,7 +280,7 @@ case class ValueComplianceLine (
         ( "value"       -> value )
       , ( "status"      -> status )
       , ( "statusClass" -> statusClass )
-      , ( "messages"    -> JsArray(messages.map(Str)))
+      , ( "messages"    -> JsArray(messages.map{ case(s, m) => JsObj(("status" -> s), ("value" -> m))}))
       , ( "compliance"  -> jsCompliance(compliance))
       , ( "compliancePercent"       -> compliance.compliance)
       //unique id, usable as DOM id - rules, directives, etc can
@@ -438,7 +438,7 @@ object ComplianceData extends Loggable {
       val severity = ReportType.getWorseType(value.messages.map( _.reportType))
       val status = getDisplayStatusFromSeverity(severity)
       val key = value.unexpandedComponentValue
-      val messages = value.messages.flatMap( _.message)
+      val messages = value.messages.map(x => (x.reportType.severity, x.message.getOrElse("")))
 
       ValueComplianceLine(
           key
