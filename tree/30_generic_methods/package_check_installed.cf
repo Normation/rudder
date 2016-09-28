@@ -34,15 +34,9 @@ bundle agent package_check_installed(package_name)
       "called_class_prefix" string => canonify("package_install_${package_name}");
 
   methods:
-      "placeholder"      usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
+      "placeholder"  usebundle => package_install_version_cmp_update("${package_name}", "==", "latest", "verify", "false");
 
-      "success"
-        usebundle  => _classes_success("${class_prefix}"),
-        ifvarclass => "${called_class_prefix}_kept";
+      "copy classes" usebundle => _classes_copy("${called_class_prefix}", "${class_prefix}");
 
-      "failed"
-        usebundle  => _classes_failure("${class_prefix}"),
-        ifvarclass => "${called_class_prefix}_repaired";
-
-      "report"           usebundle => _logger("Check that package ${package_name} is installed", "${class_prefix}");
+      "report"       usebundle => _logger("Check that package ${package_name} is installed", "${class_prefix}");
 }
