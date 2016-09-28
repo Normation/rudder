@@ -29,9 +29,9 @@ dirs = [ "10_ncf_internals", "20_cfe_basics", "30_generic_methods", "40_it_ops_k
 
 tags = {}
 tags["common"] = ["bundle_name", "bundle_args"]
-tags["generic_method"] = [ "name", "description", "documentation", "parameter", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "parameter_constraint" ]
+tags["generic_method"] = [ "name", "description", "documentation", "parameter", "class_prefix", "class_parameter", "class_parameter_id", "deprecated", "agent_version", "agent_requirements", "parameter_constraint" ]
 tags["technique"] = [ "name", "description", "version" ]
-optionnal_tags = [ "deprecated", "documentation", "parameter_constraint" ]
+optionnal_tags = [ "deprecated", "documentation", "parameter_constraint", "agent_requirements" ]
 multiline_tags = [ "description", "documentation" ]
 
 class NcfError(Exception):
