@@ -262,3 +262,7 @@ $scope.popupDeletion = function(account, index, action, actionName) {
 
   $scope.getAccounts();
 } );
+
+$( document ).ready(function() {
+  angular.bootstrap(document.getElementById('accountManagement'), ['accountManagement']);
+});
