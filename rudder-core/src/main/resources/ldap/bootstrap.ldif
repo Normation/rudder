@@ -342,3 +342,21 @@ objectClass: property
 objectClass: top
 propertyName: api_compatibility_mode
 propertyValue: false
+
+dn: propertyName=rudder_featureSwitch_directiveScriptEngine,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_featureSwitch_directiveScriptEngine
+propertyValue: enabled
+
+dn: propertyName=rudder_featureSwitch_directiveNodeProperties,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_featureSwitch_directiveNodeProperties
+propertyValue: enabled
+
+dn: propertyName=rudder_featureSwitch_quicksearchEverything,ou=Application Properties,cn=rudder-configuration
+objectClass: property
+objectClass: top
+propertyName: rudder_featureSwitch_quicksearchEverything
+propertyValue: enabled
