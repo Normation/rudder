@@ -1019,25 +1019,11 @@ object ExecutionBatch extends Loggable {
     }
 
     /*
-     * Here, we want to merge values BUT also to ballon to report type to the worst in
-     * a list of messages, so that a component value partially in repaired and success
-     * is view in repaired.
-     * This is ok to do so here, because we are looking for the messages of a
-     * same component value (for a node, for a rule, for a directive), so only
-     * for component value with a cardinality > 1, which quite rare.
+     * And now, merge all values into a component.
      */
-    val componentValues = {
-      val cv = ComponentValueStatusReport.merge(unexpectedStatusReports ++ noneValue ++ simpleValues ++ cfeVarValues ++ lastUnexpected)
-      cv.mapValues { x =>
-        val worst = ReportType.getWorseType(x.messages.map(_.reportType))
-        val messages = x.messages.map(m => m.copy(reportType = worst))
-        x.copy(messages = messages)
-      }
-    }
-
     ComponentStatusReport(
         expectedComponent.componentName
-      , componentValues
+      , ComponentValueStatusReport.merge(unexpectedStatusReports ++ noneValue ++ simpleValues ++ cfeVarValues ++ lastUnexpected)
     )
   }
 
