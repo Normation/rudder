@@ -296,9 +296,9 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.syslog.protocol=UDP
        display.changes.graph=true
        api.compatibility.mode=false
-       rudder.featureSwitch.directiveScriptEngine=disabled
+       rudder.featureSwitch.directiveScriptEngine=enabled
        rudder.featureSwitch.quicksearchEverything=enabled
-       rudder.featureSwitch.directiveNodeProperties=disabled
+       rudder.featureSwitch.directiveNodeProperties=enabled
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
