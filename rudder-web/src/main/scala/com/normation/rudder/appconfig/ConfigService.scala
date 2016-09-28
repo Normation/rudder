@@ -326,14 +326,10 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
        rudder.syslog.protocol=UDP
        display.changes.graph=true
        api.compatibility.mode=false
-       rudder.featureSwitch.directiveScriptEngine=disabled
-<<<<<<< HEAD
        rudder.policy.mode.name=${Enforce.name}
        rudder.policy.mode.overridable=false
-=======
-       rudder.featureSwitch.quicksearchEverything=enabled
-       rudder.featureSwitch.directiveNodeProperties=disabled
->>>>>>> branches/rudder/3.2
+       rudder.featureSwitch.directiveScriptEngine=enabled
+       rudder.featureSwitch.directiveNodeProperties=enabled
     """
 
   val configWithFallback = configFile.withFallback(ConfigFactory.parseString(defaultConfig))
