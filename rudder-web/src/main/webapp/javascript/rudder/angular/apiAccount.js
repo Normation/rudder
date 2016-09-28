@@ -278,4 +278,6 @@ $scope.popupDeletion = function(account, index, action, actionName) {
   }  
 } );
 
-
+$( document ).ready(function() {
+  angular.bootstrap(document.getElementById('accountManagement'), ['accountManagement']);
+});
