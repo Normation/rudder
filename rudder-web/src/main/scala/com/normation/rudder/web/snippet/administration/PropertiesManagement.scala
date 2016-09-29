@@ -891,14 +891,14 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     } ) apply xml
   }
 
-
   def quickSearchConfiguration = { xml : NodeSeq =>
 
     ( configService.rudder_featureSwitch_quicksearchEverything() match {
       case Full(initialValue) =>
 
+        var currentSavedValued = initialValue
         var x = initialValue
-        def noModif() = x == initialValue
+        def noModif() = x == currentSavedValued
         def check() = {
           S.notice("quickSearchEverythingMsg","")
           Run(s"""$$("#quickSearchEverythingSubmit").button( "option", "disabled",${noModif()});""")
@@ -908,6 +908,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           val save = configService.set_rudder_featureSwitch_quicksearchEverything(x)
           S.notice("quickSearchEverythingMsg", save match {
             case Full(_)  =>
+              currentSavedValued = x
               "'quick search everything' property updated. The feature will be loaded as soon as you go to another page or reload this one."
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'quick search everything' property"
@@ -944,8 +945,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     ( configService.rudder_featureSwitch_directiveNodeProperties() match {
       case Full(initialValue) =>
 
+        var currentSavedValued = initialValue
         var x = initialValue
-        def noModif() = x == initialValue
+        def noModif() = x == currentSavedValued
         def check() = {
           S.notice("directiveNodePropertiesMsg","")
           Run(s"""$$("#directiveNodePropertiesSubmit").button( "option", "disabled",${noModif()});""")
@@ -955,6 +957,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           val save = configService.set_rudder_featureSwitch_directiveNodeProperties(x)
           S.notice("directiveNodePropertiesMsg", save match {
             case Full(_)  =>
+              currentSavedValued = x
               "'directive node properties' property updated. The feature will be loaded as soon as you go to another page or reload this one."
             case eb: EmptyBox =>
               "There was an error when updating the value of the 'directive node properties' property"
