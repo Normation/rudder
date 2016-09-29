@@ -201,8 +201,8 @@ bundle agent _log_rudder_v2(expected_reports_source, message, class_prefix, args
 bundle agent _clean_current_expected_reports_file {
 
   vars:
-      "files_to_remove" slist => { "${logger_rudder.expected_reports_temp}",
-                                   "${logger_rudder.expected_reports_file}" };
+      "files_to_remove" slist => { "${log_rudder.expected_reports_temp}",
+                                   "${log_rudder.expected_reports_file}" };
 
   files:
       "${files_to_remove}"
