@@ -59,7 +59,7 @@ bundle agent logger_rudder(message, class_prefix)
 
       "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
 
-    final_resfile_exists::
+    logger_rudder_final_resfile_repaired::
       "c_class_prefix" string => canonify("${class_prefix}");
 
       # 4/ Once the final expected reports file has been expanded, read in our array
@@ -67,7 +67,7 @@ bundle agent logger_rudder(message, class_prefix)
         int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
-    final_resfile_exists::
+    logger_rudder_final_resfile_repaired::
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
 
     any::
