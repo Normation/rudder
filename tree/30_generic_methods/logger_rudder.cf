@@ -27,6 +27,21 @@
 
 bundle agent logger_rudder(message, class_prefix)
 {
+  # The different files used for reporting are:
+  # * expected_reports_source: part of the promises, generated on the server
+  # * expected_reports_temp: temporary file templated from expected_reports_source
+  # * expected_reports_file: final file, generated from the content of expected_reports_temp
+  #
+  # The general workflow during the first call to logger_rudder of each run is:
+  # 1/ Read the report file present in the promises (expected_reports_source),
+  #    and expand it into the temporary report file (expected_reports_temp)
+  # 2/ Read the content of the temporary file into a variable (reports)
+  # 3/ Using the content of the read variable, write the content of the final file
+  # 4/ Read the content of the final file into another variable (report_data), and use it for actual reporting
+  #
+  # The workflow for the other calls is only:
+  #  4/ Read the content of the final file into another variable (report_data), and use it for actual reporting
+
   vars:
 
       "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
@@ -37,14 +52,14 @@ bundle agent logger_rudder(message, class_prefix)
       "expected_reports_temp"   string => "${expected_reports_destination}.tmp";
       "expected_reports_file"   string => "${expected_reports_destination}.res";
 
-    pass1.(!final_resfile_exists.logger_rudder_temp_resfile_reached|logger_rudder_temp_resfile_repaired)::
-      # 2/ If the temporary file has been updated, read it to get all values in an array, and canonify the first entry
+    pass1.logger_rudder_temp_resfile_repaired.!final_resfile_exists::
+      # 2/ If the temporary file has been created, and final resfile does not exist, read temp file to get all values in an array, and canonify the first entry
       "dim" int => readstringarrayidx("reports", "${expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
       "keys" slist => getindices("reports");
 
       "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
 
-    (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept.!logger_rudder_temp_resfile_repaired.final_resfile_exists)::
+    final_resfile_exists::
       "c_class_prefix" string => canonify("${class_prefix}");
 
       # 4/ Once the final expected reports file has been expanded, read in our array
@@ -52,7 +67,7 @@ bundle agent logger_rudder(message, class_prefix)
         int        => getfields("^${current_technique_report_info.technique_name};;${c_class_prefix};;.*", "${expected_reports_file}", ";;", "report_data");
 
   classes:
-    (logger_rudder_final_resfile_repaired|logger_rudder_temp_resfile_kept.!logger_rudder_temp_resfile_repaired.final_resfile_exists)::
+    final_resfile_exists::
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
 
     any::
@@ -79,7 +94,7 @@ bundle agent logger_rudder(message, class_prefix)
 
       # 3/ Write the final expected reports, expanded. First, empty it, then fill it
       # (can't use edit_default empty, as we are iterating over a list)
-    (!final_resfile_exists|logger_rudder_temp_resfile_repaired).!logger_rudder_final_resfile_repaired.keys_defined::
+    !final_resfile_exists.logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
      "${expected_reports_file}"
         create        => "true",
         edit_defaults => no_backup,
@@ -93,7 +108,7 @@ bundle agent logger_rudder(message, class_prefix)
 
   methods:
     # no need to avoid normal ordering since this class is set when report is ready
-    report_data_read::
+    report_data_read.pass3::
 
       # 4/ Array is ready, reporting time !!!
       "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${c_class_prefix}", "${report_data[3]}", "${report_data[4]}", "${report_data[5]}", "${message}"),
