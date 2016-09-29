@@ -90,30 +90,36 @@ class RuleValServiceImpl(
    * From a sequence of variable, look at the variable's value (because it's where
    * interpolation is) and build the function that, given an interpolation context,
    * give (on success) the string with expansion done.
+   *
+   * We must exclude variable from ncf technique, that are processed differently, because
+   * the provided value is not managed by rudder (it is on a cfengine file elsewhere).
    */
   def lookupNodeParameterization(variables:Seq[Variable], nodePropFeature: FeatureSwitch): InterpolationContext => Box[Map[String, Variable]] = {
     (context:InterpolationContext) =>
-      bestEffort(variables) { variable =>
-        (bestEffort(variable.values) { value =>
-          for {
-            parsed <- interpolatedValueCompiler.compile(value, nodePropFeature)
-            //can lead to stack overflow, no ?
-            applied <- parsed(context)
-          } yield {
-            applied
-          }
-        }) match {
-          case eb:EmptyBox =>
-            val msg = eb match {
-              case Empty => ""
-              case f:Failure => //make the error message somehow readable!
-                ": " + f.failureChain.map(_.msg).toSet.mkString("; ")
+      bestEffort(variables) { variable => variable.spec match {
+        //do not touch ncf variables
+        case _: PredefinedValuesVariableSpec => Full(variable)
+        case _                               =>
+          (bestEffort(variable.values) { value =>
+            for {
+              parsed <- interpolatedValueCompiler.compile(value, nodePropFeature)
+              //can lead to stack overflow, no ?
+              applied <- parsed(context)
+            } yield {
+              applied
             }
-            Failure(s"On variable '${variable.spec.name}'" + msg)
+          }) match {
+            case eb:EmptyBox =>
+              val msg = eb match {
+                case Empty => ""
+                case f:Failure => //make the error message somehow readable!
+                  ": " + f.failureChain.map(_.msg).toSet.mkString("; ")
+              }
+              Failure(s"On variable '${variable.spec.name}'" + msg)
 
-          case Full(seq) => Full(Variable.matchCopy(variable, seq))
-        }
-      }.map(seqVar => seqVar.map(v => (v.spec.name, v)).toMap)
+            case Full(seq) => Full(Variable.matchCopy(variable, seq))
+          }
+      } }.map(seqVar => seqVar.map(v => (v.spec.name, v)).toMap)
   }
 
 
