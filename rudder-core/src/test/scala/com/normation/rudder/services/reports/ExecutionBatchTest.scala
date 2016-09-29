@@ -236,15 +236,15 @@ class ExecutionBatchTest extends Specification {
     val withGood = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, reports, NoAnswerReportType)
     val withBad  = ExecutionBatch.checkExpectedComponentWithReports(expectedComponent, badReports, NoAnswerReportType)
 
-    "return a component globally repaired " in {
-      withGood.compliance === ComplianceLevel(repaired = 2)
+    "return a component with exact reporting" in {
+      withGood.compliance === ComplianceLevel(repaired = 1, success = 1)
     }
     "return a component with one key value " in {
       withGood.componentValues.size === 1
     }
-    "return a component with both None key repaired " in {
+    "return a component with exact reporting in None key" in {
       withGood.componentValues("None").messages.size === 2 and
-      withGood.componentValues("None").compliance === ComplianceLevel(repaired = 2)
+      withGood.componentValues("None").compliance === ComplianceLevel(repaired = 1, success = 1)
     }
 
     "with bad reports return a component globally unexpected " in {
@@ -290,18 +290,18 @@ class ExecutionBatchTest extends Specification {
 
     "return a component with the correct number of success and repaired" in {
       //be carefull, here the second success is for the same unexpanded as the repaire,
-      //so we actually have 1 success (bar) and 2 repaired (${rudder.node.hostname})
-      withGood.compliance === ComplianceLevel(success = 1, repaired = 2)
+      withGood.compliance === ComplianceLevel(success = 2, repaired = 1)
     }
 
     "return a component with two key values " in {
       withGood.componentValues.size === 2
     }
 
-    "return an unexpanded component key with both key repaired" in {
+    "return an unexpanded component key with one key repaired and one success" in {
       val reportType = withGood.componentValues("${rudder.node.hostname}").messages.map(_.reportType)
       reportType.size === 2 and
-      (reportType.forall( _ === RepairedReportType))
+      (reportType.exists( _ == RepairedReportType)) and
+      (reportType.exists( _ == SuccessReportType))
     }
 
     "return a component with the bar key success " in {
