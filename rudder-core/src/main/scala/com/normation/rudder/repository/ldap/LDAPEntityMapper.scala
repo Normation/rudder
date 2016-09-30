@@ -277,7 +277,10 @@ class LDAPEntityMapper(
         , osDetails
         , inventoryEntry.valuesFor(A_LIST_OF_IP).toList
         , dateTime
-        , inventoryEntry(A_PKEYS).getOrElse("")
+        , inventoryEntry(A_PKEYS).flatMap { s => s.trim match {
+                                            case "" => None
+                                            case x  => Some(PublicKey(x))
+                                          } }
         , keyStatus
         , scala.collection.mutable.Seq() ++ agentsName
         , NodeId(policyServerId)

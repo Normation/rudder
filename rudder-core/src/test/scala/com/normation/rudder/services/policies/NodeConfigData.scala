@@ -96,7 +96,7 @@ object NodeConfigData {
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.now
-    , "", UndefinedKey
+    , None, UndefinedKey
     , Seq(COMMUNITY_AGENT)
     , rootId
     , rootAdmin
@@ -134,7 +134,7 @@ object NodeConfigData {
     , Linux(Debian, "Jessie", new Version("7.0"), None, new Version("3.2"))
     , List("192.168.0.10")
     , DateTime.now
-    , "", UndefinedKey
+    , None, UndefinedKey
     , Seq(COMMUNITY_AGENT)
     , rootId
     , admin1
