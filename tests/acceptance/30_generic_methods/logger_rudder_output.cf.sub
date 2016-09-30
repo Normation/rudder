@@ -1,0 +1,55 @@
+#######################################################
+#
+# Sub cf file that simply generates reporting
+#
+#######################################################
+
+bundle common acc_path
+{
+  vars:
+    "root" string => getenv("NCF_TESTS_ACCEPTANCE", 1024);
+}
+
+body common control
+{
+      inputs => { "${acc_path.root}/default.cf.sub", "${acc_path.root}/default_ncf.cf.sub", "@{ncf_inputs.default_files}" };
+      bundlesequence  => { configuration, default("${this.promise_filename}") };
+      version => "1.0";
+}
+
+#######################################################
+
+bundle agent init
+{
+  vars:
+    "tmp"            string => getenv("TEMP", 1024);
+
+    "message"         string => "the expected report message";
+    "class_prefix"    string => "file_create__tmp_1";
+    "class_condition" string => "${class_prefix}_repaired";
+
+    "current_technique_report_info.technique_name" string => "Test_logging_in_ncf";
+
+    "g.uuid"          string => "123456";
+    "g.execRun"       string => "12-11-54";
+}
+
+#######################################################
+
+bundle agent test
+{
+  methods:
+    "class" usebundle => _classes_repaired("${init.class_prefix}");
+    "ph1"   usebundle => logger_rudder("${init.message}", "${init.class_prefix}");
+}
+
+#######################################################
+
+bundle agent check
+{
+  reports:
+    logger_rudder_final_resfile_repaired::
+      "$(this.promise_filename) Pass";
+    !logger_rudder_final_resfile_repaired::
+      "$(this.promise_filename) FAIL";
+}
