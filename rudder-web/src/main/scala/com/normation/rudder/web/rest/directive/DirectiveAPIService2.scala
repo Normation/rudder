@@ -131,7 +131,7 @@ case class DirectiveAPIService2 (
           serialize(technique,directive,None)
         } )
     } yield {
-      ( "directives" -> JArray(serializedDirectives.toList))
+      JArray(serializedDirectives.toList)
     }
   }
 
@@ -161,7 +161,7 @@ case class DirectiveAPIService2 (
         asyncDeploymentAgent ! AutomaticStartDeployment(modId,actor)
       }
       val jsonDirective = List(serialize(technique,newDirective, None))
-      ("directives" -> JArray(jsonDirective))
+      JArray(jsonDirective)
     }
   }
 
@@ -194,7 +194,7 @@ case class DirectiveAPIService2 (
       (technique,activeTechnique,directive) <- readDirective.getDirectiveWithContext(id) ?~! s"Could not find Directive ${id.value}"
       jsonDirective = JArray(List(serialize(technique,directive, None)))
     } yield {
-      ("directives" -> jsonDirective)
+      jsonDirective
     }
   }
 
@@ -261,7 +261,7 @@ case class DirectiveAPIService2 (
       val updatedTechnique = directiveUpdate.after.technique
       val updatedDirective = directiveUpdate.after.directive
       val jsonDirective = List(serialize(updatedTechnique,updatedDirective, None))
-      ("directives" -> JArray(jsonDirective))
+      JArray(jsonDirective)
     }
   }
 
