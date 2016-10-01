@@ -96,6 +96,7 @@ object QSDirectiveBackend {
       } yield {
         (for {
           (at, dir) <- directiveLib.allDirectives.values
+                       if(!at.isSystem && !dir.isSystem)
           attribute <- attributes
         } yield {
           attribute.find(at, dir, query.userToken)
@@ -187,7 +188,8 @@ object QSLdapBackend {
       } else {
         val filter = AND(
             OR(ocFilter: _*)
-        ,   OR(attrFilter: _*)
+          , OR(attrFilter: _*)
+          , EQ(A_IS_SYSTEM, LDAPBoolean(false).toLDAPString)
         )
         // the ldap query part. It should be in a box, but the person who implemented ldap backend was
         // not really strict on the semantic
