@@ -37,7 +37,14 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
   $scope.docinfo = [];
   $scope.selectedObject = function(selected) {
     if(selected && selected.url) {
+      var previousPath = window.location.pathname;
+      var previousHash = window.location.hash;
       window.location = selected.url;
+      if(window.location.pathname == previousPath && 
+         window.location.hash != previousHash
+      ) { // force reload if only the hash change to have the correct page
+        window.location.reload(true);
+      } //if same path and same hash, does nothing. 
     } else {
       return "";
     }
