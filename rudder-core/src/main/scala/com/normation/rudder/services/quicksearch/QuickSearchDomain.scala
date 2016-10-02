@@ -199,22 +199,22 @@ object QSObject {
   }
 
   final case object Node      extends QSObject { override val name = "node"
-                                                 override val attributes : Set[QSAttribute] = Set(NodeId, Fqdn, OsType, OsName
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(NodeId, Fqdn, OsType, OsName
                                                    , OsVersion, OsFullName, OsKernelVersion, OsServicePack, Arch, Ram
                                                    , IpAddresses, PolicyServerId, Properties, RudderRoles)
   }
   final case object Group     extends QSObject { override val name = "group"
-                                                 override val attributes : Set[QSAttribute] = Set(GroupId, IsDynamic)
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(GroupId, IsDynamic)
   }
   final case object Directive extends QSObject { override val name = "directive"
-                                                 override val attributes : Set[QSAttribute] = Set(DirectiveId, DirectiveVarName
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(DirectiveId, DirectiveVarName
                                                    , DirectiveVarValue, TechniqueName, TechniqueId, TechniqueVersion)
   }
   final case object Parameter extends QSObject { override val name = "parameter"
-                                                 override val attributes : Set[QSAttribute] = Set(ParameterName, ParameterValue)
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(ParameterName, ParameterValue)
   }
   final case object Rule      extends QSObject { override val name = "rule"
-                                                 override val attributes : Set[QSAttribute] = Set(RuleId, DirectiveIds, Targets)
+                                                 override val attributes : Set[QSAttribute] = Common.attributes ++ Set(RuleId, DirectiveIds, Targets)
   }
 
   final val all: Set[QSObject] = sealerate.values[QSObject]
