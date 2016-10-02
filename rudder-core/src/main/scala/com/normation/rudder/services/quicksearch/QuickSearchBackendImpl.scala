@@ -55,6 +55,16 @@ import com.unboundid.ldap.sdk.Filter
 
 import net.liftweb.common.Box
 import net.liftweb.common.Full
+import com.normation.ldap.sdk.LDAPBoolean
+import com.unboundid.ldap.sdk.Attribute
+
+/**
+ * Correctly quote a token
+ */
+object QSPattern {
+
+  def apply(token: String) = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
+}
 
 /**
  * This file contains the differents possible implementation of
@@ -110,6 +120,16 @@ object QSDirectiveBackend {
   implicit class QSAttributeFilter(a: QSAttribute) {
     def find(at: FullActiveTechnique, dir: Directive, token: String): Option[QuickSearchResult] = {
 
+      val enableToken  = Set("true" , "enable" , "enabled" , "isenable" , "isenabled" )
+      val disableToken = Set("false", "disable", "disabled", "isdisable", "isdisabled")
+
+      def isEnabled =
+        (if(at.isEnabled ) enableToken.map(t => (t, "Technique is enabled")) else disableToken.map(t => (t, "Technique is disabled"))) ++
+        (if(dir.isEnabled) enableToken.map(t => (t, "Directive is enabled")) else disableToken.map(t => (t, "Directive is disabled")))
+
+      /*
+       * A set of value to check against / value to return to the user
+       */
       val toMatch: Option[Set[(String,String)]] = a match {
         case QSDirectiveId     => Some(Set((dir.id.value,dir.id.value)))
         case DirectiveVarName  => Some(dir.parameters.flatMap(param => param._2.map(value => (param._1, param._1+":"+ value))).toSet)
@@ -120,7 +140,7 @@ object QSDirectiveBackend {
         case Description       => Some(Set((dir.shortDescription,dir.shortDescription), (dir.longDescription,dir.longDescription)))
         case LongDescription   => Some(Set((dir.longDescription,dir.longDescription)))
         case Name              => Some(Set((dir.name,dir.name)))
-        case IsEnabled         => None
+        case IsEnabled         => Some(isEnabled)
         case NodeId            => None
         case Fqdn              => None
         case OsType            => None
@@ -143,15 +163,13 @@ object QSDirectiveBackend {
         case DirectiveIds      => None
         case Targets           => None
       }
-    
-      val pattern = s"""(?iums).*${Pattern.quote(token)}.*""".r.pattern
 
-      toMatch.flatMap { set => set.find{case (s,value) => pattern.matcher(s).matches } }.map{ case (_,s) =>
+      toMatch.flatMap { set => set.find{case (s,value) => QSPattern(token).matcher(s).matches } }.map{ case (_, value) =>
         QuickSearchResult(
             QRDirectiveId(dir.id.value)
           , dir.name
           , Some(a)
-          , s
+          , value
         )
       }
     }
@@ -198,8 +216,7 @@ object QSLdapBackend {
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result
-        val keepAttribute = s"""(?i).*${Pattern.quote(query.userToken)}.*""".r.pattern
-        entries.flatMap( _.toResult(keepAttribute))
+        entries.flatMap( _.toResult(query.userToken))
       }
     }
   }
@@ -259,41 +276,90 @@ object QSLdapBackend {
   /**
    * Mapping between attributes and their filter in the backend
    */
+  object QSAttributeLdapFilter {
+    def sub(a: QSAttribute, token: String) = Some(SUB(a.ldapName, null, Array(token), null ))
+
+    //use val to compile only one time these patterns
+    val boolEnablePattern = {
+      List("true", "enable", "enabled", "isenabled").map(QSPattern.apply)
+    }
+
+    //use val to compile only one time these patterns
+    val boolDisablePattern = {
+      List("false", "disable", "disabled", "isdisabled").map(QSPattern.apply)
+    }
+
+    val boolDynamicPattern = {
+      List("true", "dynamic", "isdynamic").map(QSPattern.apply)
+    }
+
+    //use val to compile only one time these patterns
+    val boolStaticPattern = {
+      List("false", "static", "isstatic").map(QSPattern.apply)
+    }
+
+    trait Matcher {
+      val isTrue :  String => Boolean
+      val isFalse: String => Boolean
+    }
+
+    object MatchEnable extends Matcher {
+        val isTrue  = (token: String) => boolEnablePattern.exists(_.matcher(token).matches)
+        val isFalse = (token: String) => boolDisablePattern.exists(_.matcher(token).matches)
+    }
+
+    object MatchDynamic extends Matcher {
+        val isTrue  = (token: String) => boolDynamicPattern.exists(_.matcher(token).matches)
+        val isFalse = (token: String) => boolStaticPattern.exists(_.matcher(token).matches)
+    }
+
+    def bool(matcher: Matcher, a: QSAttribute, token: String) = {
+      if(matcher.isTrue(token)) {
+        Some(EQ(a.ldapName, LDAPBoolean(true ).toLDAPString))
+      } else if(matcher.isFalse(token)) {
+        Some(EQ(a.ldapName, LDAPBoolean(false).toLDAPString))
+      } else {
+        None
+      }
+    }
+  }
+
   implicit class QSAttributeLdapFilter(a: QSAttribute) {
+    import QSAttributeLdapFilter._
+
     def filter(token: String): Option[Filter] = {
-      def sub() = Some(SUB(a.ldapName, null, Array(token), null ))
       a match {
-        case Name              => sub
-        case Description       => sub
-        case LongDescription   => sub
-        case IsEnabled         => sub
-        case NodeId            => sub
-        case Fqdn              => sub
-        case OsType            => Some(EQ(a.ldapName, token+"Node")) // objectClass=linuxNode etc
-        case OsName            => sub
-        case OsVersion         => sub
-        case OsFullName        => sub
-        case OsKernelVersion   => sub
-        case OsServicePack     => sub
-        case Arch              => sub
-        case Ram               => sub
-        case IpAddresses       => sub
-        case PolicyServerId    => sub
-        case Properties        => sub
-        case RudderRoles       => sub
-        case GroupId           => sub
-        case IsDynamic         => sub
+        case Name              => sub(a, token)
+        case Description       => sub(a, token)
+        case LongDescription   => sub(a, token)
+        case NodeId            => sub(a, token)
+        case Fqdn              => sub(a, token)
+        case OsType            => sub(a, token)
+        case OsName            => sub(a, token)
+        case OsVersion         => sub(a, token)
+        case OsFullName        => sub(a, token)
+        case OsKernelVersion   => sub(a, token)
+        case OsServicePack     => sub(a, token)
+        case Arch              => sub(a, token)
+        case Ram               => Some(EQ(a.ldapName, token)) //int doesn't have substring match - and its in kb :/
+        case IpAddresses       => Some(EQ(a.ldapName, token)) //ipHostNumber doesn't have substring match :/
+        case PolicyServerId    => sub(a, token)
+        case Properties        => sub(a, token)
+        case RudderRoles       => sub(a, token)
+        case GroupId           => sub(a, token)
+        case IsEnabled         => bool(MatchEnable, a, token)
+        case IsDynamic         => bool(MatchDynamic, a, token)
         case DirectiveId       => None
         case DirectiveVarName  => None
         case DirectiveVarValue => None
         case TechniqueName     => None
         case TechniqueId       => None
         case TechniqueVersion  => None
-        case ParameterName     => sub
-        case ParameterValue    => sub
-        case RuleId            => sub
-        case DirectiveIds      => sub
-        case Targets           => sub
+        case ParameterName     => sub(a, token)
+        case ParameterValue    => sub(a, token)
+        case RuleId            => sub(a, token)
+        case DirectiveIds      => sub(a, token)
+        case Targets           => sub(a, token)
       }
     }
   }
@@ -305,12 +371,12 @@ object QSLdapBackend {
 
     def filter() = obj match {
       case Common    => Nil
-      case Node      => (  AND(IS(OC_NODE)             , Filter.create(s"entryDN:dnOneLevelMatch:=${ inventoryDit.NODES.dn.toString                }"))
-                        :: AND(IS(OC_RUDDER_NODE)      , Filter.create(s"entryDN:dnOneLevelMatch:=${ nodeDit.     NODES.dn.toString                }")) :: Nil )
-      case Group     =>    AND(IS(OC_RUDDER_NODE_GROUP), Filter.create(s"entryDN:dnSubtreeMatch:=${  rudderDit.   GROUP.dn.toString                }")) :: Nil
+      case Node      => (  AND(IS(OC_NODE)             , Filter.create(s"entryDN:dnOneLevelMatch:=${ inventoryDit.NODES.dn.toString      }"))
+                        :: AND(IS(OC_RUDDER_NODE)      , Filter.create(s"entryDN:dnOneLevelMatch:=${ nodeDit.     NODES.dn.toString      }")) :: Nil )
+      case Group     =>    AND(IS(OC_RUDDER_NODE_GROUP), Filter.create(s"entryDN:dnSubtreeMatch:=${  rudderDit.   GROUP.dn.toString      }")) :: Nil
       case Directive =>    Nil
-      case Parameter =>    AND(IS(OC_PARAMETER        ), Filter.create(s"entryDN:dnOneLevelMatch:=${ rudderDit.   PARAMETERS.dn.toString           }")) :: Nil
-      case Rule      =>    AND(IS(OC_RULE)             , Filter.create(s"entryDN:dnSubtreeMatch:=${  rudderDit.   RULES.dn.toString                }")) :: Nil
+      case Parameter =>    AND(IS(OC_PARAMETER        ), Filter.create(s"entryDN:dnOneLevelMatch:=${ rudderDit.   PARAMETERS.dn.toString }")) :: Nil
+      case Rule      =>    AND(IS(OC_RULE)             , Filter.create(s"entryDN:dnSubtreeMatch:=${  rudderDit.   RULES.dn.toString      }")) :: Nil
     }
   }
 
@@ -319,9 +385,11 @@ object QSLdapBackend {
    */
   final implicit class EntryToSearchResult(e: LDAPEntry) {
     import QuickSearchResultId._
-    def toResult(pattern: Pattern): Option[QuickSearchResult] = {
+    import QSAttributeLdapFilter._
+
+    def toResult(token: String): Option[QuickSearchResult] = {
       def getId(e: LDAPEntry): Option[QuickSearchResultId] = {
-        if       (e.isA(OC_NODE             )) { e(A_NODE_UUID      ).map( QRNodeId(_)      )
+        if       (e.isA(OC_NODE             )) { e(A_NODE_UUID      ).map( QRNodeId      )
         } else if(e.isA(OC_RUDDER_NODE      )) { e(A_NODE_UUID      ).map( QRNodeId      )
         } else if(e.isA(OC_RULE             )) { e(A_RULE_UUID      ).map( QRRuleId      )
         } else if(e.isA(OC_RUDDER_NODE_GROUP)) { e(A_NODE_GROUP_UUID).map( QRGroupId     )
@@ -331,17 +399,42 @@ object QSLdapBackend {
         }
       }
 
-      // get the attribute value matching patters
+      /*
+       * Depending of the attribute type, we must use a different
+       * match methods.
+       * Returns Option[(attribute name, matching value)]
+       */
+      def matchValue(a: Attribute, token: String, pattern: Pattern): Option[(String, String)] = {
+        //test a matcher against values
+        def findValue(test: String => Boolean): Option[(String, String)] = {
+          a.getValues.find(test).map(v => (a.getName, v))
+        }
+        //test a list of pattern matcher against values
+        def testAndFindValue(testers: List[String => Boolean]): Option[(String, String)] = {
+          testers.find(f => f(token)).flatMap(findValue)
+        }
+
+        if(a.getName == A_OC) {
+          None
+        } else if(a.getName == A_IS_ENABLED) { // boolean "isEnabled"
+          //we must be sure that it is the same matcher that maches the token and the
+          //value, else we get a value for "disable" when ENABLE="true"
+          testAndFindValue(MatchEnable.isTrue :: MatchEnable.isFalse :: Nil)
+        } else if(a.getName == A_IS_DYNAMIC) { // boolean "isDynamic"
+          testAndFindValue(MatchDynamic.isTrue :: MatchDynamic.isFalse :: Nil)
+        } else {
+          findValue(s => pattern.matcher(s).matches)
+        }
+      }
+
+      // get the attribute value matching patterns
       // if several, take only one at random. If none, that's strange, reject entry
       // also, don't look in objectClass to find the pattern
+      val pattern = QSPattern(token)
       for {
         (attr, desc) <- (Option.empty[(String, String)] /: e.attributes) { (current, next) => (current, next ) match {
                           case (Some(x), _) => Some(x)
-                          case (None   , a) => if(a.getName == A_OC) {
-                                              None
-                                            } else {
-                                              a.getValues.find(v => pattern.matcher(v).matches).map(v => (a.getName, v))
-                                            }
+                          case (None   , a) => matchValue(a, token, pattern)
                         } }
         id           <- getId(e)
       } yield {
