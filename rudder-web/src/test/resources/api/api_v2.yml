@@ -1,0 +1,16 @@
+---
+description: Simple test of api/status - just "ok"
+method: GET
+url: /api/status
+response: 
+  type: text #optionnal, by default json
+  code: 200
+  content: 'OK'
+# example of a bad spec, because type "plop" is not known
+# ---
+# method: GET
+# url: /api/techniqueLibrary/reload
+# response:
+#  type: plop
+#  code: 200
+#  content: 'OK'
