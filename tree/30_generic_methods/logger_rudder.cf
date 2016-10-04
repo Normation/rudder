@@ -89,18 +89,10 @@ bundle agent logger_rudder(message, class_prefix)
 # it is supposed to be called once by logger_rudder, to generate the data
 bundle agent _create_current_expected_reports_file {
   vars:
-      "expected_reports_source" string => "${sys.workdir}/inputs/rudder_expected_reports.csv";
-      "expected_reports_destination" string => "${sys.workdir}/state/rudder_expected_reports.${this.promiser_pid}.csv";
-
-      # We put those files into the state directory to avoid purging them during each update
-      # (which would break the current run's reporting).
-      # We add the PID to the file name to be able to handle cuncurrent agent runs with separate expected reports
-      "expected_reports_temp"   string => "${expected_reports_destination}.tmp";
-      "expected_reports_file"   string => "${expected_reports_destination}.res";
 
     logger_rudder_temp_resfile_repaired::
       # 2/ If the temporary file has been created, read temp file to get all values in an array, and canonify the first entry
-      "dim" int => readstringarrayidx("reports", "${expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
+      "dim" int => readstringarrayidx("reports", "${logger_rudder.expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
       "keys" slist => getindices("reports");
 
       "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
@@ -114,16 +106,19 @@ bundle agent _create_current_expected_reports_file {
       # 1/ First, create the temporary file by expanding the variables
       # in it into a temporary file.
     !logger_rudder_temp_resfile_repaired::
-      "${expected_reports_temp}"
+      "${logger_rudder.expected_reports_temp}"
         create        => "true",
         edit_defaults => no_backup,
-        edit_template => "${expected_reports_source}",
+        edit_template => "${logger_rudder.expected_reports_source}",
         classes       => classes_generic("logger_rudder_temp_resfile");
 
-      # 3/ Write the final expected reports, expanded. First, empty it, then fill it
+      # 3/ Write the final expected reports, expanded. First, delete it, then fill it
       # (can't use edit_default empty, as we are iterating over a list)
     logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
-      "${expected_reports_file}"
+      "${logger_rudder.expected_reports_file}"
+        delete        => tidy;
+
+      "${logger_rudder.expected_reports_file}"
         create        => "true",
         edit_defaults => no_backup,
         edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
