@@ -207,15 +207,14 @@ object QSLdapBackend {
         val filter = AND(
             OR(ocFilter: _*)
           , OR(attrFilter: _*)
-          , EQ(A_IS_SYSTEM, LDAPBoolean(false).toLDAPString)
         )
         // the ldap query part. It should be in a box, but the person who implemented ldap backend was
         // not really strict on the semantic
-        val returnedAttributes = query.attributes.map( _.ldapName).toSeq ++ Seq(A_OC, A_UUID, A_PARAMETER_NAME) // the second group is always needed (id)
+        val returnedAttributes = query.attributes.map( _.ldapName).toSeq ++ Seq(A_OC, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM) // the second group is always needed (id+test system)
         val entries = connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes:_*)
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
-        // that matches the query on the result
+        // that matches the query on the result and no system entries but nodes.
         entries.flatMap( _.toResult(query.userToken))
       }
     }
@@ -427,6 +426,14 @@ object QSLdapBackend {
         }
       }
 
+      def isNodeOrNotSystem(e: LDAPEntry): Boolean = {
+        //if isSystem is absent, then the object is not system
+        val isSystem = e.getAsBoolean(A_IS_SYSTEM).getOrElse(false)
+
+        if(isSystem && (e.isA(OC_RULE) || e.isA(OC_RUDDER_NODE_GROUP) || e.isA(OC_PARAMETER))) false
+        else true
+      }
+
       // get the attribute value matching patterns
       // if several, take only one at random. If none, that's strange, reject entry
       // also, don't look in objectClass to find the pattern
@@ -437,6 +444,7 @@ object QSLdapBackend {
                           case (None   , a) => matchValue(a, token, pattern)
                         } }
         id           <- getId(e)
+       if(isNodeOrNotSystem(e))
       } yield {
         //prefer hostname for nodes
         val name = e(A_HOSTNAME).orElse(e(A_NAME)).getOrElse(id.value)
