@@ -46,42 +46,6 @@ import com.normation.utils.HashcodeCaching
 
 sealed trait NodeEventLog extends EventLog { override final val eventLogCategory = NodeLogCategory }
 
-final case class ModifyNodeHeartbeat(
-    override val eventDetails : EventLogDetails
-) extends NodeEventLog with HashcodeCaching {
-  override val eventType = ModifyNodeHeartbeat.eventType
-}
-
-object ModifyNodeHeartbeat extends EventLogFilter {
-  override val eventType = ModifyHeartbeatNodeEventType
-
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeHeartbeat = ModifyNodeHeartbeat(x._2)
-}
-
-final case class ModifyNodeAgentRun(
-    override val eventDetails : EventLogDetails
-) extends NodeEventLog with HashcodeCaching {
-  override val eventType = ModifyNodeAgentRun.eventType
-}
-
-object ModifyNodeAgentRun extends EventLogFilter {
-  override val eventType = ModifyAgentRunIntervalNodeEventType
-
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeAgentRun = ModifyNodeAgentRun(x._2)
-}
-
-final case class ModifyNodeProperties(
-    override val eventDetails : EventLogDetails
-) extends NodeEventLog with HashcodeCaching {
-  override val eventType = ModifyNodeProperties.eventType
-}
-
-object ModifyNodeProperties extends EventLogFilter {
-  override val eventType = ModifyPropertiesNodeEventType
-
-  override def apply(x : (EventLogType, EventLogDetails)) : ModifyNodeProperties = ModifyNodeProperties(x._2)
-}
-
 final case class ModifyNode(
     override val eventDetails : EventLogDetails
 ) extends NodeEventLog with HashcodeCaching {
@@ -96,9 +60,7 @@ object ModifyNode extends EventLogFilter {
 
 object NodeEventLogsFilter {
   final val eventList : List[EventLogFilter] = List(
-      ModifyNodeHeartbeat
-    , ModifyNodeAgentRun
-    , ModifyNodeProperties
-    , ModifyNode
+      ModifyNode
+      //one day: create, delete
     )
 }
