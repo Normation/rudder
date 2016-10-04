@@ -165,12 +165,6 @@ trait EventLogDetailsService {
   def getModifyGlobalPropertyDetails(xml:NodeSeq) : Box[(RudderWebProperty,RudderWebProperty)]
 
   // Node modifiction
-  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
-
-  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
-
-  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
-
   def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff]
 }
 
@@ -877,7 +871,7 @@ class EventLogDetailsServiceImpl(
   }
 
   // Node modification
-  private[this] def getModifyNodeDetails[T, U](xml:NodeSeq, tag: String, details: NodeSeq => Box[T], build: (NodeId, Option[SimpleDiff[T]]) => U) : Box[U] = {
+  private[this] def getSubModifyNodeDetails[T, U](xml:NodeSeq, tag: String, details: NodeSeq => Box[T], build: (NodeId, Option[SimpleDiff[T]]) => U) : Box[U] = {
     for {
       entry        <- getEntryContent(xml)
       node         <- (entry \ "node" ).headOption ?~!
@@ -895,14 +889,13 @@ class EventLogDetailsServiceImpl(
   }
 
   private[this] def extractAgentRun(xml : NodeSeq)( details : NodeSeq ) = {
-    val children = (details \ "_")
-    if(children.isEmpty){
+    if((details \ "_").isEmpty) { //no children
       Full(None)
     } else {
       for {
         overrides   <- (details \ "override").headOption match {
                          case None => Full(None)
-                         case Some(elt) => tryo(Some(elt.text.toBoolean))
+                         case Some(elt) => if(elt.child.isEmpty) Full(None) else tryo(Some(elt.text.toBoolean))
                        }
         interval    <- (details \ "interval").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'interval' in entry type node : '${xml}'"
         startMinute <- (details \ "startMinute").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'startMinute' in entry type node : '${xml}'"
@@ -921,8 +914,9 @@ class EventLogDetailsServiceImpl(
   }
 
    private[this] def extractHeartbeatConfiguration(xml : NodeSeq)(details: NodeSeq) = {
-      if((details\"_").isEmpty) Full(None)
-      else for {
+      if((details\"_").isEmpty) { //no children
+        Full(None)
+      } else for {
         overrides <- (details \ "override").headOption.flatMap(x => tryo(x.text.toBoolean )) ?~! s"Missing attribute 'override' in entry type node : '${xml}'"
         period    <- (details \ "period").headOption.flatMap(x => tryo(x.text.toInt )) ?~! s"Missing attribute 'period' in entry type node : '${xml}'"
       } yield {
@@ -939,38 +933,17 @@ class EventLogDetailsServiceImpl(
                            name  <- (prop \ "name" ).headOption.map( _.text ) ?~! s"Missing attribute 'name' in entry type node : '${xml}'"
                            value <- (prop \ "value").headOption.map( _.text ) ?~! s"Missing attribute 'value' in entry type node : '${xml}'"
                          } yield {
-                           val json = tryo { jparse(value) }.openOr(JString(value))
-                           NodeProperty(name, json)
+                           val json = tryo { jparse(value) }
+                           val x = json.openOr(JString(value))
+                           NodeProperty(name, x)
                          }
                        }
       } yield {
         properties
       }
   }
-  
-  def getModifyNodeAgentRunDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
 
-    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[AgentRunInterval]]]) : ModifyNodeDiff = {
-      ModifyNodeAgentRunDiff(nodeId, details)
-    }
-    getModifyNodeDetails(xml, "agentRun", (extractAgentRun(xml)), build)
-  }
 
-  def getModifyNodeHeartbeatDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
-
-    def build(nodeId: NodeId, details: Option[SimpleDiff[Option[HeartbeatConfiguration]]]): ModifyNodeDiff = {
-      ModifyNodeHeartbeatDiff(nodeId, details)
-    }
-    getModifyNodeDetails(xml, "heartbeat", extractHeartbeatConfiguration(xml), build)
-  }
-
-  def getModifyNodePropertiesDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
-
-    def build(nodeId: NodeId, details: Option[SimpleDiff[Seq[NodeProperty]]]) : ModifyNodeDiff = {
-      ModifyNodePropertiesDiff(nodeId, details)
-    }
-    getModifyNodeDetails(xml, "properties", extractNodeProperties(xml), build)
-  }
 
   def getModifyNodeDetails(xml:NodeSeq) : Box[ModifyNodeDiff] = {
     for {

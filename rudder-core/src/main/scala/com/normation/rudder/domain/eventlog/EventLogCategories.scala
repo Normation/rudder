@@ -227,21 +227,16 @@ final case object ModifyGlobalParameterEventType extends RollbackEventLogType {
   def serialize = "GlobalParameterModified"
 }
 
-// node properties: properties, heartbeat, agent run.
-final case object ModifyHeartbeatNodeEventType extends RollbackEventLogType {
-  def serialize = "NodeHeartbeatModified"
-}
-
-final case object ModifyAgentRunIntervalNodeEventType extends RollbackEventLogType {
-  def serialize = "NodeAgentRunPeriodModified"
-}
-
-final case object ModifyPropertiesNodeEventType extends RollbackEventLogType {
-  def serialize = "NodePropertiesModified"
-}
-
+// node: only modify for now
 final case object ModifyNodeEventType extends RollbackEventLogType {
   def serialize = "NodeModified"
+
+  //for node, we have more "is defined at", because till 3.2,
+  //we had several node events that we merged together in 4.0
+  override def isDefinedAt(x : String) : Boolean = {
+    "NodeHeartbeatModified" == x || "NodePropertiesModified" == x ||
+    "NodeAgentRunPeriodModified" == x || "NodeModified" == x
+  }
 }
 
 sealed trait ModifyGlobalPropertyEventType extends NoRollbackEventLogType {
@@ -325,9 +320,6 @@ object ModificationWatchList {
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
 
-    , ModifyHeartbeatNodeEventType
-    , ModifyAgentRunIntervalNodeEventType
-    , ModifyPropertiesNodeEventType
     , ModifyNodeEventType
 
   ) ++ ModifyGlobalPropertyEventLogsFilter.eventTypes
@@ -395,9 +387,6 @@ object EventTypeFactory {
     , DeleteGlobalParameterEventType
     , ModifyGlobalParameterEventType
 
-    , ModifyHeartbeatNodeEventType
-    , ModifyAgentRunIntervalNodeEventType
-    , ModifyPropertiesNodeEventType
     , ModifyNodeEventType
 
   ) ::: ModifyGlobalPropertyEventLogsFilter.eventTypes
