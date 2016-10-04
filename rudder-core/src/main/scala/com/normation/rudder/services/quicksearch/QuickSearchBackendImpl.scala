@@ -286,6 +286,14 @@ object QSLdapBackend {
    * Mapping between attributes and their filter in the backend
    */
   object QSAttributeLdapFilter {
+    //
+    val NODE_POSTFIX = "Node"
+
+    //the list of value to avoid in OC for matching
+    val ocRudderTypes = Set("top", OC_RUDDER_NODE, OC_POLICY_SERVER_NODE, OC_NODE
+                            , OC_RULE, OC_PARAMETER, OC_RUDDER_NODE_GROUP)
+
+    // Find a substring in a LDAP attribute, i.e 'token' becomes "*token*"
     def sub(a: QSAttribute, token: String) = Some(SUB(a.ldapName, null, Array(token), null ))
 
     //use val to compile only one time these patterns
@@ -343,7 +351,7 @@ object QSLdapBackend {
         case LongDescription   => sub(a, token)
         case NodeId            => sub(a, token)
         case Fqdn              => sub(a, token)
-        case OsType            => sub(a, token)
+        case OsType            => Some(EQ(a.ldapName, token+NODE_POSTFIX)) // // objectClass=linuxNode, and only EQ is supported
         case OsName            => sub(a, token)
         case OsVersion         => sub(a, token)
         case OsFullName        => sub(a, token)
@@ -414,17 +422,23 @@ object QSLdapBackend {
        * Returns Option[(attribute name, matching value)]
        */
       def matchValue(a: Attribute, token: String, pattern: Pattern): Option[(String, String)] = {
+
         //test a matcher against values
-        def findValue(test: String => Boolean): Option[(String, String)] = {
-          a.getValues.find(test).map(v => (a.getName, v))
+        def findValue(values: Array[String], test: String => Boolean): Option[(String, String)] = {
+          values.find(test).map(v => (a.getName, v))
         }
         //test a list of pattern matcher against values
         def testAndFindValue(testers: List[String => Boolean]): Option[(String, String)] = {
-          testers.find(f => f(token)).flatMap(findValue)
+          testers.find(f => f(token)).flatMap(findValue(a.getValues, _))
         }
 
         if(a.getName == A_OC) {
-          None
+          //here we must just avoid "top" and "kind" object class
+          //and also remove the "node" part for "linuxNode", etc
+          val values = a.getValues.flatMap(s =>
+            if(ocRudderTypes.contains(s)) None else Some(s.replace(NODE_POSTFIX, ""))
+          )
+          findValue(values, s => pattern.matcher(s).matches)
         } else if(a.getName == A_IS_ENABLED) { // boolean "isEnabled"
           //we must be sure that it is the same matcher that maches the token and the
           //value, else we get a value for "disable" when ENABLE="true"
@@ -432,7 +446,7 @@ object QSLdapBackend {
         } else if(a.getName == A_IS_DYNAMIC) { // boolean "isDynamic"
           testAndFindValue(MatchDynamic.isTrue :: MatchDynamic.isFalse :: Nil)
         } else {
-          findValue(s => pattern.matcher(s).matches)
+          findValue(a.getValues, s => pattern.matcher(s).matches)
         }
       }
 
