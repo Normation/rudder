@@ -210,12 +210,22 @@ object QSLdapBackend {
         )
         // the ldap query part. It should be in a box, but the person who implemented ldap backend was
         // not really strict on the semantic
-        val returnedAttributes = query.attributes.map( _.ldapName).toSeq ++ Seq(A_OC, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM) // the second group is always needed (id+test system)
+        // the second group is always needed (displayed name, id+test system)
+        val returnedAttributes = (query.attributes.map( _.ldapName).toSeq ++ Seq(A_OC, A_HOSTNAME, A_NAME, A_UUID, A_PARAMETER_NAME, A_IS_SYSTEM)).distinct
         val entries = connection.search(nodeDit.BASE_DN, Sub, filter, returnedAttributes:_*)
+
+        //here, we must merge "nodes" so that we don't report in log two times too many results,
+        //and we get node always with a hostname
+        val (nodes, others) = entries.partition { x => x.isA(OC_NODE) || x.isA(OC_RUDDER_NODE) }
+        // merge node attribute for node entries with same node id
+        val merged = nodes.groupBy( _.value_!(A_NODE_UUID)).map { case (_, samenodes) => samenodes.reduce[LDAPEntry] { case (n1, n2) =>
+          n2.attributes.foreach( a => n1 += a)
+          n1
+        } }
 
         // transformat LDAPEntries to quicksearch results, keeping only the attribute
         // that matches the query on the result and no system entries but nodes.
-        entries.flatMap( _.toResult(query.userToken))
+        (others ++ merged).flatMap( _.toResult(query.userToken))
       }
     }
   }
