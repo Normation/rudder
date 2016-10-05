@@ -76,6 +76,9 @@ body agent control {
     # Repository where to put the copy of modified files
     default_repository => "${sys.workdir}/modified-files";
 
+    # Standard abort class usable in ncf
+    # The agent will stop execution with a fatal error as soon as it is defined
+    abortclasses => { "abort_agent_run" };
 }
 
 ##############################################################################
