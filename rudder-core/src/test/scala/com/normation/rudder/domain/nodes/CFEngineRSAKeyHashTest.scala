@@ -35,55 +35,34 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.domain.policies
+package com.normation.rudder.domain.nodes
 
 import org.junit.runner.RunWith
 import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyMode.Verify
+import com.normation.inventory.domain.PublicKey
 
 @RunWith(classOf[JUnitRunner])
-class PolicyModeTest extends Specification with Loggable {
+class CFEngineRSAKeyHashTest extends Specification with Loggable {
 
+  val key = PublicKey("""
+-----BEGIN RSA PUBLIC KEY-----
+MIIBCAKCAQEAv76gYG9OaFpc0eBeUXDM3WsRWyuHco3DpWnKrrpqQwylpEH26gRb
+cu/L5KWc1ihj1Rv/AU3dkQL5KdXatSrWOLUMmYcQc5DYSnZacbdHIGLn11w1PHsw
+9P2pivwQyIF3k4zqANtlZ3iZN4AXZpURI4VVhiBYPwZ4XgHPibcuJHiyNyymiHpT
+HX9H0iaEIwyJMPjzRH+piFRmSeUylHfQLqb6AkD3Dg3Nxe9pbxNbk1saqgHFF4kd
+Yh3O5rVto12XqisGWIbsmsT0XFr6V9+/sde/lpjI4AEcHR8oFYX5JP9/SXPuRJfQ
+lEl8vn5PHTY0mMrNAcM7+rzpkOW2c7b8bwIBIw==
+-----END RSA PUBLIC KEY-----
+""")
 
-  "Chekin rules on policy mode" should {
-    "show that global policy mode wins when not overridable" in {
-      PolicyMode.computeMode(
-          GlobalPolicyMode(Enforce, PolicyModeOverrides.Unoverridable)
-        , Some(Verify), Some(Verify) :: Nil
-      ) must equalTo(Enforce)
+  val expected = "8d3270d42486e8d6436d06ed5cc5034f"
+
+  "Producing the magic MD5 hash" should {
+    "give the same result has CFEngine" in {
+
+      CFEngineKey.getHash(key) must beEqualTo(Full(expected))
     }
-    "show that global policy mode wins when not overridable" in {
-      PolicyMode.computeMode(
-          GlobalPolicyMode(Enforce, PolicyModeOverrides.Unoverridable)
-        , Some(Enforce), Some(Verify) :: Nil
-      ) must equalTo(Enforce)
     }
-    "and loose when overridable" in {
-      PolicyMode.computeMode(
-          GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
-        , Some(Enforce), Some(Verify) :: Nil
-      ) must equalTo(Verify)
-    }
-    "and loose when overridable" in {
-      PolicyMode.computeMode(
-          GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
-        , Some(Verify), Some(Enforce) :: Nil
-      ) must equalTo(Verify)
-    }
-    "EVEN if global is on verify" in {
-      PolicyMode.computeMode(
-          GlobalPolicyMode(Verify, PolicyModeOverrides.Always)
-        , Some(Enforce), Some(Enforce) :: Nil
-      ) must equalTo(Enforce)
-    }
-    "But is chosen if nothign else defined" in {
-      PolicyMode.computeMode(
-          GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
-        , None, None :: Nil
-      ) must equalTo(Enforce)
-    }
-  }
 }
