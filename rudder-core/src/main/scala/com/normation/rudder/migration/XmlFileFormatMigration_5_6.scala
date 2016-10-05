@@ -37,11 +37,8 @@
 
 package com.normation.rudder.migration
 
-import java.sql.PreparedStatement
-
 import scala.xml.Elem
 
-import org.springframework.jdbc.core.BatchPreparedStatementSetter
 import org.springframework.jdbc.core.JdbcTemplate
 
 import com.normation.rudder.domain.Constants
@@ -50,9 +47,6 @@ import com.normation.rudder.services.marshalling.TestFileFormat
 import net.liftweb.common.Box
 import net.liftweb.util.Helpers.strToCssBindPromoter
 import net.liftweb.util.Helpers.tryo
-
-
-
 
 /**
  * General information about that migration
@@ -64,71 +58,12 @@ trait Migration_5_6_Definition extends XmlFileFormatMigration {
 
 }
 
-
-class ControlXmlFileFormatMigration_5_6(
-    override val migrationEventLogRepository: MigrationEventLogRepository
-  , override val batchMigrators             : Seq[BatchElementMigration[_]]
-  , override val previousMigrationController: Option[ControlXmlFileFormatMigration]
-) extends ControlXmlFileFormatMigration with Migration_5_6_Definition
-
-/**
- * The class that handle the processing of the list of all event logs
- * logic.
- * Each individual eventlog is processed in EventLogMigration_5_6
- *
- */
-class EventLogsMigration_5_6(
-    override val jdbcTemplate       : JdbcTemplate
-  , override val individualMigration: EventLogMigration_5_6
-  , val eventLogsMigration_4_5      : EventLogsMigration_4_5
-  , override val batchSize          : Int = 1000
-) extends EventLogsMigration with Migration_5_6_Definition
-
-
-/**
- * Migrate an event log from fileFormat 5 to 6
- * Also take care of categories, etc.
- */
-class EventLogMigration_5_6(
-    xmlMigration:XmlMigration_5_6
-) extends IndividualElementMigration[MigrationEventLog] with Migration_5_6_Definition {
-
-  def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
-    val MigrationEventLog(id,eventType,data) = eventLog
-
-
-    /*
-     * -- Important--
-     * The <entry></entry> part is tested here, then removed
-     * for migration, then added back in create.
-     * That is to have XmlMigration rule be independant of
-     * <entry>.
-     */
-
-
-
-    //utility to factor common code
-    //notice the addition of <entry> tag in the result
-    def create(optElem:Box[Elem], name:String) = {
-       optElem.map { xml => MigrationEventLog(id, name, <entry>{xml}</entry>) }
-    }
-
-    for {
-      xml      <- TestIsEntry(data)
-      migrated <- eventType.toLowerCase match {
-                    case _    => create(xmlMigration.other(xml), eventType)
-                  }
-    } yield {
-      migrated
-    }
-  }
-}
-
 /**
  * That class handle migration of XML eventLog and change request
  * from format 5 to a 6.
+ * All the remaining is not very intersting and just plumbing
  */
-class XmlMigration_5_6 extends Migration_5_6_Definition {
+object XmlMigration_5_6 extends Migration_5_6_Definition {
 
   def changeRequest(xml:Elem) : Box[Elem] = {
     for {
@@ -137,7 +72,7 @@ class XmlMigration_5_6 extends Migration_5_6_Definition {
       migrated     <-
                       TestIsElem(
                         ( // We need to get all 'rule' tags from each rule modified in a change request
-                          "rule rule *+" #> <category>rootRuleCategory</category>&
+                          "rule fileFormat=5 *+" #> <category>rootRuleCategory</category> andThen
                           "* fileFormat=5 [fileFormat]" #> toVersion
                         ).apply(xml)
                       )
@@ -160,50 +95,92 @@ class XmlMigration_5_6 extends Migration_5_6_Definition {
 
 }
 
+class ControlXmlFileFormatMigration_5_6(
+    override val migrationEventLogRepository: MigrationEventLogRepository
+  ,          val jdbcTemplate               : JdbcTemplate
+  , override val previousMigrationController: Option[ControlXmlFileFormatMigration]
+  ,          val batchSize                  : Int = 1000
+) extends ControlXmlFileFormatMigration with Migration_5_6_Definition {
+  override val batchMigrators = (
+       new EventLogsMigration_5_6(jdbcTemplate, batchSize)
+    :: new ChangeRequestsMigration_5_6(jdbcTemplate, batchSize)
+    :: Nil
+  )
+}
+
+/**
+ * The class that handle the processing of the list of all event logs
+ * logic.
+ * Each individual eventlog is processed in EventLogMigration_5_6
+ *
+ */
+class EventLogsMigration_5_6(
+    override val jdbcTemplate: JdbcTemplate
+  , override val batchSize   : Int = 1000
+) extends EventLogsMigration with Migration_5_6_Definition {
+  override val individualMigration = new IndividualElementMigration[MigrationEventLog] with Migration_5_6_Definition {
+
+    def migrate(eventLog:MigrationEventLog) : Box[MigrationEventLog] = {
+      val MigrationEventLog(id,eventType,data) = eventLog
+
+
+      /*
+       * -- Important--
+       * The <entry></entry> part is tested here, then removed
+       * for migration, then added back in create.
+       * That is to have XmlMigration rule be independant of
+       * <entry>.
+       */
+
+
+
+      //utility to factor common code
+      //notice the addition of <entry> tag in the result
+      def create(optElem:Box[Elem], name:String) = {
+         optElem.map { xml => MigrationEventLog(id, name, <entry>{xml}</entry>) }
+      }
+
+      for {
+        xml      <- TestIsEntry(data)
+        migrated <- eventType.toLowerCase match {
+                      case _    => create(XmlMigration_5_6.other(xml), eventType)
+                    }
+      } yield {
+        migrated
+      }
+    }
+  }
+}
 
 
 
 /**
  * The class that handle the processing of the list of all event logs
  * logic.
- * Each individual eventlog is processed in EventLogMigration_4_5
+ * Each individual eventlog is processed in EventLogMigration_5_6
  *
  */
 class ChangeRequestsMigration_5_6(
-    override val jdbcTemplate       : JdbcTemplate
-  , override val individualMigration: ChangeRequestMigration_5_6
-  , override val batchSize          : Int = 1000
-) extends ChangeRequestsMigration with Migration_5_6_Definition
+    override val jdbcTemplate: JdbcTemplate
+  , override val batchSize   : Int = 1000
+) extends ChangeRequestsMigration with Migration_5_6_Definition {
+  override val individualMigration = new IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {
+    def migrate(cr:MigrationChangeRequest) : Box[MigrationChangeRequest] = {
 
-/**
- * Migrate change requests fileFormat 4 to 5
- */
-class ChangeRequestMigration_5_6(
-    xmlMigration:XmlMigration_5_6
-) extends IndividualElementMigration[MigrationChangeRequest] with Migration_5_6_Definition {
+      val MigrationChangeRequest(id,name, content) = cr
 
-  def migrate(cr:MigrationChangeRequest) : Box[MigrationChangeRequest] = {
-    /*
-     * We don't use values from
-     * com.normation.rudder.domain.eventlog.*EventType
-     * so that if they change in the future, the migration
-     * from 2.3 to 2.5 is still OK.
-     */
-    val MigrationChangeRequest(id,name, content) = cr
+      //utility to factor common code
+      def create(optElem:Box[Elem], name:String) = {
+         optElem.map { xml => MigrationChangeRequest(id, name, xml) }
+      }
 
-
-    //utility to factor common code
-    def create(optElem:Box[Elem], name:String) = {
-       optElem.map { xml => MigrationChangeRequest(id, name, xml) }
-    }
-
-    for {
-      migrated <- create(xmlMigration.changeRequest(content), name)
-    } yield {
-      migrated
+      for {
+        migrated <- create(XmlMigration_5_6.changeRequest(content), name)
+      } yield {
+        migrated
+      }
     }
   }
 }
-
 
 
