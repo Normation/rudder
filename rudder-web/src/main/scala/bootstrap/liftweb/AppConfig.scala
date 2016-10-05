@@ -349,7 +349,6 @@ object RudderConfig extends Loggable {
   val reportingService: ReportingService = reportingServiceImpl
   lazy val asyncComplianceService : AsyncComplianceService = new AsyncComplianceService(reportingService)
   val stringUuidGenerator: StringUuidGenerator = uuidGen
-  val quickSearchService: QuickSearchService = quickSearchServiceImpl
   val cmdbQueryParser: CmdbQueryParser = queryParser
   val getBaseUrlService: GetBaseUrlService = baseUrlService
   val fileManager: FileManager = fileManagerImpl
@@ -1435,7 +1434,6 @@ object RudderConfig extends Loggable {
         , configService.agent_run_start_minute
         , configService.rudder_featureSwitch_directiveScriptEngine
         , configService.rudder_global_policy_mode
-        , configService.rudder_featureSwitch_directiveNodeProperties
     )}
     val agent = new AsyncDeploymentAgent(
         deploymentService
@@ -1583,24 +1581,7 @@ object RudderConfig extends Loggable {
       , woLdapNodeGroupRepository
       , ldapEntityMapper
   )
-  private[this] lazy val quickSearchServiceImpl = new QuickSearchServiceImpl(
-    roLdap, nodeDitImpl, acceptedNodesDitImpl, ldapEntityMapper,
-    //nodeAttributes
-    Seq(
-        LDAPConstants.A_NAME
-      , LDAPConstants.A_NODE_UUID
-      , LDAPConstants.A_MANUFACTURER
-      , LDAPConstants.A_LIST_OF_IP
-    ),
-    //serverAttributes
-    Seq(
-        LDAPConstants.A_HOSTNAME
-      , LDAPConstants.A_OS_NAME
-      , LDAPConstants.A_OS_FULL_NAME
-      , LDAPConstants.A_OS_VERSION
-      , LDAPConstants.A_OS_SERVICE_PACK
-      , LDAPConstants.A_OS_KERNEL_VERSION
-    ))
+
   private[this] lazy val logDisplayerImpl: LogDisplayer = new LogDisplayer(reportsRepositoryImpl, roLdapDirectiveRepository, roLdapRuleRepository)
   private[this] lazy val categoryHierarchyDisplayerImpl: CategoryHierarchyDisplayer = new CategoryHierarchyDisplayer()
   private[this] lazy val dyngroupUpdaterBatch: UpdateDynamicGroups = new UpdateDynamicGroups(

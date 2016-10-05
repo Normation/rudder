@@ -55,7 +55,6 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.GroupTarget
 import com.normation.rudder.domain.nodes.NodeGroupId
 import com.normation.rudder.rule.category.RuleCategoryId
-import com.normation.rudder.domain.appconfig.FeatureSwitch
 
 /**
  * Test how RuleVal and DirectiveVal are constructed, and if they
@@ -184,7 +183,7 @@ class RuleValServiceTest extends Specification {
     // Ok, now I can test
     "The RuleValService, with one directive, one Meta-technique " should {
 
-      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, FeatureSwitch.Enabled)
+      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
 
       "return a Full(RuleVal)" in {
         ruleVal.isDefined == true
@@ -223,7 +222,7 @@ class RuleValServiceTest extends Specification {
     }
 
     "The cardinality computed " should {
-      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory, FeatureSwitch.Enabled)
+      val ruleVal = ruleValService.buildRuleVal(rule, fullActiveTechniqueCategory)
       val directivesVals = ruleVal.openOrThrowException("Should have been full for test").directiveVals
 
       val cardinality = directivesVals.head.toExpandedDirectiveVal(null).map { x =>
