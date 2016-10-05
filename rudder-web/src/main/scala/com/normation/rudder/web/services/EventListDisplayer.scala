@@ -328,9 +328,6 @@ class EventListDisplayer(
       case x:ModifyAPIAccountEventLog      => apiAccountDesc(x, Text(" modified"))
       case x:DeleteAPIAccountEventLog      => apiAccountDesc(x, Text(" deleted"))
       case x:ModifyGlobalProperty          => Text(s"Modify '${x.propertyName}' global property")
-      case x:ModifyNodeAgentRun            => nodeDesc(x, Text(" modified"))
-      case x:ModifyNodeHeartbeat           => nodeDesc(x, Text(" modified"))
-      case x:ModifyNodeProperties          => nodeDesc(x, Text(" modified"))
       case x:ModifyNode                    => nodeDesc(x, Text(" modified"))
       case _ => Text("Unknow event type")
     }
@@ -1070,83 +1067,7 @@ class EventListDisplayer(
         }
 
       // Node modifiction
-      case mod:ModifyNodeAgentRun =>
-        "*" #> { logDetailsService.getModifyNodeAgentRunDetails(mod.details) match {
-        case Full(modDiff) =>
-            <div class="evloglmargin">
-              { addRestoreAction }
-              { generatedByChangeRequest }
-              <h4>Node agent run modified:</h4>
-              <ul class="evlogviewpad">
-                <li><b>Node ID:</b> { modDiff.id.value }</li>
-              </ul>
-              {
-                mapComplexDiff(modDiff.modAgentRun){ (optAr:Option[AgentRunInterval]) =>
-                  optAr match {
-                    case None => <span>No value</span>
-                    case Some(ar) => agentRunDetails(ar)
-                  }
-                }
-              }
-              { reasonHtml }
-              { xmlParameters(event.id) }
-            </div>
-          case e:EmptyBox => logger.warn(e)
-          errorMessage(e)
-        }
-      }
-
-      case mod:ModifyNodeHeartbeat =>
-        "*" #> { logDetailsService.getModifyNodeHeartbeatDetails(mod.details) match {
-        case Full(modDiff) =>
-            <div class="evloglmargin">
-              { addRestoreAction }
-              { generatedByChangeRequest }
-              <h4>Node heartbeat modified:</h4>
-              <ul class="evlogviewpad">
-                <li><b>Node ID:</b> { modDiff.id.value }</li>
-              </ul>
-              {
-                mapComplexDiff(modDiff.modHeartbeat){ (optHb:Option[HeartbeatConfiguration]) =>
-                  optHb match {
-                    case None => <span>No value</span>
-                    case Some(hb) => heartbeatDetails(hb)
-                  }
-                }
-              }
-              { reasonHtml }
-              { xmlParameters(event.id) }
-            </div>
-          case e:EmptyBox => logger.warn(e)
-          errorMessage(e)
-        }
-      }
-
-      case mod:ModifyNodeProperties =>
-        "*" #> { logDetailsService.getModifyNodePropertiesDetails(mod.details) match {
-        case Full(modDiff) =>
-            <div class="evloglmargin">
-              { addRestoreAction }
-              { generatedByChangeRequest }
-              <h4>Node properties modified:</h4>
-              <ul class="evlogviewpad">
-                <li><b>Node ID:</b> { modDiff.id.value }</li>
-              </ul>
-              {
-                mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
-                  nodePropertiesDetails(props)
-                }
-              }
-              { reasonHtml }
-              { xmlParameters(event.id) }
-            </div>
-          case e:EmptyBox => logger.warn(e)
-          errorMessage(e)
-        }
-      }
-
       case mod:ModifyNode =>
-
         "*" #> { logDetailsService.getModifyNodeDetails(mod.details) match {
         case Full(modDiff) =>
             logger.info(modDiff.modAgentRun)
@@ -1157,7 +1078,7 @@ class EventListDisplayer(
               <ul class="evlogviewpad">
                 <li><b>Node ID:</b>{modDiff.id.value} </li>
               </ul>
-							{
+              {
                 mapComplexDiff(modDiff.modAgentRun){ (optAr:Option[AgentRunInterval]) =>
                   optAr match {
                     case None => <span>No value</span>
@@ -1165,7 +1086,7 @@ class EventListDisplayer(
                   }
                 }
               }
-							{
+              {
                 mapComplexDiff(modDiff.modHeartbeat){ (optHb:Option[HeartbeatConfiguration]) =>
                   optHb match {
                     case None => <span>No value</span>
@@ -1173,12 +1094,12 @@ class EventListDisplayer(
                   }
                 }
               }
-							{
+              {
                 mapComplexDiff(modDiff.modProperties){ (props:Seq[NodeProperty]) =>
                   nodePropertiesDetails(props)
                 }
               }
-							{
+              {
                 mapComplexDiff(modDiff.modPolicyMode){ (optMode:Option[PolicyMode]) =>
                   optMode match {
                     case None => <span>Use global policy mode</span>

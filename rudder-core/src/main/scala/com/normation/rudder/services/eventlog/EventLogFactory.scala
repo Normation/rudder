@@ -265,36 +265,6 @@ trait EventLogFactory {
     , eventLogType   : ModifyGlobalPropertyEventType
   ) : ModifyGlobalProperty
 
-  def getModifyNodePropertiesFromDiff(
-      id                 : Option[Int] = None
-    , modificationId     : Option[ModificationId] = None
-    , principal          : EventActor
-    , modifyDiff         : ModifyNodeDiff
-    , creationDate       : DateTime = DateTime.now()
-    , severity           : Int = 100
-    , reason             : Option[String]
-  ) : ModifyNodeProperties
-
-  def getModifyNodeAgentRunFromDiff(
-      id                 : Option[Int] = None
-    , modificationId     : Option[ModificationId] = None
-    , principal          : EventActor
-    , modifyDiff         : ModifyNodeDiff
-    , creationDate       : DateTime = DateTime.now()
-    , severity           : Int = 100
-    , reason             : Option[String]
-  ) : ModifyNodeAgentRun
-
-  def getModifyNodeHeartbeatFromDiff(
-      id                 : Option[Int] = None
-    , modificationId     : Option[ModificationId] = None
-    , principal          : EventActor
-    , modifyDiff         : ModifyNodeDiff
-    , creationDate       : DateTime = DateTime.now()
-    , severity           : Int = 100
-    , reason             : Option[String]
-  ) : ModifyNodeHeartbeat
-
   def getModifyNodeFromDiff(
       id                 : Option[Int] = None
     , modificationId     : Option[ModificationId] = None
@@ -862,37 +832,6 @@ class EventLogFactoryImpl(
     ModifyGlobalProperty(eventLogType,eventLogDetails)
   }
 
-  def getModifyNodePropertiesFromDiff(
-      id                 : Option[Int] = None
-    , modificationId     : Option[ModificationId] = None
-    , principal          : EventActor
-    , modifyDiff         : ModifyNodeDiff
-    , creationDate       : DateTime = DateTime.now()
-    , severity           : Int = 100
-    , reason             : Option[String]
-  ) : ModifyNodeProperties = {
-    val details = EventLog.withContent{
-      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-        <id>{modifyDiff.id.value}</id>{
-          modifyDiff.modProperties match {
-            case None => <properties/>
-            case Some(x) => SimpleDiff.toXml(<properties/>, x) { props =>
-              props.flatMap { p => <property><name>{ p.name }</name><value>{ p.value }</value></property> }
-            } }
-        }
-      </node>)
-    }
-
-    ModifyNodeProperties(EventLogDetails(
-        id = id
-      , modificationId = modificationId
-      , principal = principal
-      , details = details
-      , creationDate = creationDate
-      , reason = reason
-      , severity = severity
-    ) )
-  }
 
   def getModifyNodeFromDiff(
       id                 : Option[Int] = None
@@ -958,83 +897,6 @@ class EventLogFactoryImpl(
       , reason = reason
       , severity = severity
     ) )
-  }
-
-  def getModifyNodeAgentRunFromDiff(
-      id                 : Option[Int] = None
-    , modificationId     : Option[ModificationId] = None
-    , principal          : EventActor
-    , modifyDiff         : ModifyNodeDiff
-    , creationDate       : DateTime = DateTime.now()
-    , severity           : Int = 100
-    , reason             : Option[String]
-  ) : ModifyNodeAgentRun = {
-    val details = EventLog.withContent{
-      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-        <id>{modifyDiff.id.value}</id>{
-          modifyDiff.modAgentRun match {
-            case None => <agentRun/>
-            case Some(x) => SimpleDiff.toXml(<agentRun/>, x) { _ match {
-              case None      => NodeSeq.Empty
-              case Some(run) => (
-                                  <override>{run.overrides.map(_.toString).getOrElse("")}</override>
-                                  <interval>{run.interval}</interval>
-                                  <startMinute>{run.startMinute}</startMinute>
-                                  <startHour>{run.startHour}</startHour>
-                                  <splaytime>{run.splaytime}</splaytime>
-                                )
-            } }
-          }
-        }
-      </node>)
-    }
-
-    ModifyNodeAgentRun(EventLogDetails(
-        id = id
-      , modificationId = modificationId
-      , principal = principal
-      , details = details
-      , creationDate = creationDate
-      , reason = reason
-      , severity = severity
-    ) )
-  }
-
-  def getModifyNodeHeartbeatFromDiff(
-      id                 : Option[Int] = None
-    , modificationId     : Option[ModificationId] = None
-    , principal          : EventActor
-    , modifyDiff         : ModifyNodeDiff
-    , creationDate       : DateTime = DateTime.now()
-    , severity           : Int = 100
-    , reason             : Option[String]
-  ) : ModifyNodeHeartbeat = {
-    val details = EventLog.withContent{
-      scala.xml.Utility.trim(<node changeType="modify" fileFormat={Constants.XML_CURRENT_FILE_FORMAT.toString}>
-        <id>{modifyDiff.id.value}</id>{
-          modifyDiff.modHeartbeat match {
-            case None => <heartbeat/>
-            case Some(x) => SimpleDiff.toXml(<heartbeat/>, x) { _ match {
-              case None     => NodeSeq.Empty
-              case Some(hb) => (
-                                  <override>{hb.overrides}</override>
-                                  <period>{hb.heartbeatPeriod}</period>
-                                )
-            } }
-          }
-        }
-      </node>)
-    }
-
-    ModifyNodeHeartbeat(EventLogDetails(
-        id = id
-      , modificationId = modificationId
-      , principal = principal
-      , details = details
-      , creationDate = creationDate
-      , reason = reason
-      , severity = severity
-     ) )
   }
 
 }
