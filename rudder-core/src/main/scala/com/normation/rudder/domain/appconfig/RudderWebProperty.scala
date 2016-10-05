@@ -37,12 +37,16 @@
 
 package com.normation.rudder.domain.appconfig
 
-import com.normation.utils.HashcodeCaching
 import java.util.regex.Pattern
-import net.liftweb.common.Full
-import net.liftweb.common.Failure
-import net.liftweb.common.Box
+
+
+
+import com.normation.utils.HashcodeCaching
+
 import ca.mrvisser.sealerate
+import net.liftweb.common.Box
+import net.liftweb.common.Failure
+import net.liftweb.common.Full
 
 case class RudderWebPropertyName(value:String) extends HashcodeCaching
 

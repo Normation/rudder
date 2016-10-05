@@ -45,7 +45,6 @@ import net.liftweb.common.{Failure => FailedBox, _}
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.domain.appconfig.FeatureSwitch
 import net.liftweb.json.JsonAST.JValue
 
 /**
@@ -129,7 +128,7 @@ trait InterpolatedValueCompiler {
    * Return a Box, where Full denotes a successful
    * parsing of all values, and EmptyBox. an error.
    */
-  def compile(value: String, switch: FeatureSwitch): Box[InterpolationContext => Box[String]]
+  def compile(value: String): Box[InterpolationContext => Box[String]]
 
 }
 
@@ -198,13 +197,8 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
    * just call the parser on a value, and in case of successful parsing, interprete
    * the resulting AST (seq of token)
    */
-  def compile(value: String, switch: FeatureSwitch): Box[InterpolationContext => Box[String]] = {
-    val parsed = switch match {
-      case FeatureSwitch.Enabled  => parseAll(all       , value)
-      case FeatureSwitch.Disabled => parseAll(noNodeProp, value)
-    }
-
-    parsed match {
+  def compile(value: String): Box[InterpolationContext => Box[String]] = {
+    parseAll(all, value) match {
       case NoSuccess(msg, remaining)  => FailedBox(s"""Error when parsing value "${value}", error message is: ${msg}""")
       case Success(tokens, remaining) => Full(parseToken(tokens))
     }
@@ -350,7 +344,6 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   def id(s: String) = ("""(?iu)\Q""" + s + """\E""").r
 
   def all       : Parser[List[Token]] = (rep1(interpol   | plainString ) | emptyVar)
-  def noNodeProp: Parser[List[Token]] = (rep1(rudderProp | oldString   ) | emptyVar)
 
   def space = """\s*""".r
 
@@ -361,9 +354,6 @@ class InterpolatedValueCompilerImpl extends RegexParsers with InterpolatedValueC
   // plain string must not match our identifier, ${rudder.* and ${node.properties.*}
   // here we defined a function to build them, with the possibility to
   def plainString : Parser[CharSeq] = ("""(?iums)((?!(\Q${\E\s*rudder\s*\.|\Q${\E\s*node\s*\.\s*properties)).)+""").r  ^^ { CharSeq(_) }
-
-  // plain string old must not match our identifier, ${rudder.*
-  def oldString   : Parser[CharSeq] = ("""(?iums)((?!(\Q${rudder.\E)).)+""").r  ^^ { CharSeq(_) }
 
   //identifier for step in the path or param names
   def propId      : Parser[String] = """[\-_a-zA-Z0-9]+""".r

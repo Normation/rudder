@@ -62,9 +62,6 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
  */
 class QuickSearchNode extends DispatchSnippet with Loggable {
 
-  private[this] val quickSearchService = RudderConfig.quickSearchService
-  private[this] val config = RudderConfig.configService
-
   def dispatch = {
     case "render" => quickSearchEveryting
   }

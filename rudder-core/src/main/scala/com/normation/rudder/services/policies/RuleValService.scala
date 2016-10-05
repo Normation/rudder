@@ -47,12 +47,11 @@ import com.normation.utils.Control.sequence
 import com.normation.utils.Control.bestEffort
 import com.normation.utils.Control.sequenceEmptyable
 import com.normation.rudder.repository.FullActiveTechniqueCategory
-import com.normation.rudder.domain.appconfig.FeatureSwitch
 
 trait RuleValService {
-  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, nodePropFeature: FeatureSwitch) : Box[RuleVal]
+  def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal]
 
-  def lookupNodeParameterization(variables:Seq[Variable], nodePropFeature: FeatureSwitch): InterpolationContext => Box[Map[String, Variable]]
+  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]]
 }
 
 
@@ -94,7 +93,7 @@ class RuleValServiceImpl(
    * We must exclude variable from ncf technique, that are processed differently, because
    * the provided value is not managed by rudder (it is on a cfengine file elsewhere).
    */
-  def lookupNodeParameterization(variables:Seq[Variable], nodePropFeature: FeatureSwitch): InterpolationContext => Box[Map[String, Variable]] = {
+  def lookupNodeParameterization(variables:Seq[Variable]): InterpolationContext => Box[Map[String, Variable]] = {
     (context:InterpolationContext) =>
       bestEffort(variables) { variable => variable.spec match {
         //do not touch ncf variables
@@ -102,7 +101,7 @@ class RuleValServiceImpl(
         case _                               =>
           (bestEffort(variable.values) { value =>
             for {
-              parsed <- interpolatedValueCompiler.compile(value, nodePropFeature)
+              parsed <- interpolatedValueCompiler.compile(value)
               //can lead to stack overflow, no ?
               applied <- parsed(context)
             } yield {
@@ -123,7 +122,7 @@ class RuleValServiceImpl(
   }
 
 
-  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory, nodePropFeature: FeatureSwitch) : Box[Option[DirectiveVal]]= {
+  private[this] def getContainer(piId : DirectiveId, ruleId:RuleId, directiveLib: FullActiveTechniqueCategory) : Box[Option[DirectiveVal]]= {
     directiveLib.allDirectives.get(piId) match {
       case None => Failure("Cannot find Directive with id %s when building Rule %s".format(piId.value, ruleId.value))
       case Some((_, directive) ) if !(directive.isEnabled) =>
@@ -156,7 +155,7 @@ class RuleValServiceImpl(
               , directive.id
               , directive.priority
               , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
-              , lookupNodeParameterization(otherVars.values.toSeq, nodePropFeature)
+              , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
               , BundleOrder(directive.name)
               , directive.policyMode
@@ -165,12 +164,12 @@ class RuleValServiceImpl(
     }
   }
 
-  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory, nodePropFeature: FeatureSwitch) : Box[RuleVal] = {
+  override def buildRuleVal(rule: Rule, directiveLib: FullActiveTechniqueCategory) : Box[RuleVal] = {
     val targets      = rule.targets
     val directiveIds = rule.directiveIds.toSeq
 
     for {
-      containers   <- bestEffort(directiveIds) { getContainer(_, rule.id, directiveLib, nodePropFeature) }
+      containers   <- bestEffort(directiveIds) { getContainer(_, rule.id, directiveLib) }
     } yield {
       RuleVal(
         rule.id,

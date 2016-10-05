@@ -67,7 +67,6 @@ import java.util.regex.Pattern
 import net.liftweb.json.JsonAST.JString
 import net.liftweb.json.JsonAST.JValue
 import com.normation.rudder.domain.nodes.NodeProperty
-import com.normation.rudder.domain.appconfig.FeatureSwitch
 import scala.util.matching.Regex
 import org.specs2.matcher.Matcher
 import net.liftweb.json._
@@ -114,9 +113,8 @@ class TestNodeAndParameterLookup extends Specification {
   def lookup(
       variables     : Seq[Variable]
     , context       : InterpolationContext
-    , nodePropSwitch: FeatureSwitch = FeatureSwitch.Enabled
   )(test:Seq[Seq[String]] => org.specs2.execute.Result) : org.specs2.execute.Result  = {
-    lookupService.lookupNodeParameterization(variables, nodePropSwitch)(context) match {
+    lookupService.lookupNodeParameterization(variables)(context) match {
       case eb:EmptyBox =>
         val e = eb ?~! "Error in test"
         val ex = e ?~! e.rootExceptionCause.map( _.getMessage ).openOr("(not caused by an other exception)")
@@ -166,7 +164,7 @@ class TestNodeAndParameterLookup extends Specification {
   def p(params: ParameterForConfiguration*): Map[ParameterName, InterpolationContext => Box[String]] = {
     sequence(params.toSeq) { param =>
       for {
-        p <- compiler.compile(param.value, FeatureSwitch.Enabled) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+        p <- compiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
       } yield {
         (param.name, p)
       }
@@ -386,7 +384,7 @@ class TestNodeAndParameterLookup extends Specification {
       test(parseAll(all, s), List(CharSeq("some text and "), Property("datacenter" :: "Europe" :: Nil, Some(DefaultValue(NodeAccessor(List("hostname"))::Nil))), CharSeq("  and some more text")))
     }
   }
-  def compileAndGet(s:String) = compiler.compile(s, FeatureSwitch.Enabled).openOrThrowException("Initialisation test error")
+  def compileAndGet(s:String) = compiler.compile(s).openOrThrowException("Initialisation test error")
 
   /**
    * Test that the interpretation of an AST is
@@ -425,7 +423,7 @@ class TestNodeAndParameterLookup extends Specification {
 
     "raise an error for an unknow accessor" in {
       val badAccessor = "rudder.node.foo"
-      compiler.compile("${"+badAccessor+"}", FeatureSwitch.Enabled) match {
+      compiler.compile("${"+badAccessor+"}") match {
         case eb:EmptyBox => ko((eb?~!"Error when parsing interpolated value").messageChain)
         case Full(i) => i(context) match {
           case Full(res) => ko(s"When interpreted, an unkown accessor '${badAccessor}' should yield an error")
@@ -553,28 +551,20 @@ class TestNodeAndParameterLookup extends Specification {
       )
     }
 
-    "don't replace anything if the node properties is disabled" in {
-      val node = context.nodeInfo.node.copy(properties = Seq(NodeProperty("datacenter", jparse("""{"Europe": "Paris"}"""))))
-      val c = context.copy(nodeInfo = context.nodeInfo.copy(node = node))
-      lookup(Seq(multilineNodePropVariable), c.copy(parameters = p(fooParam)), FeatureSwitch.Disabled )( values =>
-        values must containTheSameElementsAs(Seq(Seq("=\r= \n${node.properties[datacenter][Europe]} =\n=")))
-      )
-    }
-
     "fails when the curly brace after ${rudder. is not closed" in {
-      lookupService.lookupNodeParameterization(Seq(badUnclosed), FeatureSwitch.Enabled)(context) must beFailure(
+      lookupService.lookupNodeParameterization(Seq(badUnclosed))(context) must beFailure(
         """On variable 'empty'.* `}' expected but `=' found.*""".r
       )
     }
 
     "fails when the part after ${rudder.} is empty" in {
-      lookupService.lookupNodeParameterization(Seq(badEmptyRudder), FeatureSwitch.Enabled)(context) must beFailure(
+      lookupService.lookupNodeParameterization(Seq(badEmptyRudder))(context) must beFailure(
         (".*" + Pattern.quote("""string matching regex `(?iu)\Qparam\E' expected but `}' found""")+".*"). r
       )
     }
 
     "fails when the part after ${rudder.} is not recognised" in {
-      lookupService.lookupNodeParameterization(Seq(badUnknown), FeatureSwitch.Enabled)(context.copy(parameters = p(fooParam))) must beFailure(
+      lookupService.lookupNodeParameterization(Seq(badUnknown))(context.copy(parameters = p(fooParam))) must beFailure(
         (".*" + Pattern.quote("""string matching regex `(?iu)\Qparam\E' expected but `f' found""")+".*"). r
       )
     }
@@ -688,7 +678,7 @@ class TestNodeAndParameterLookup extends Specification {
     }
 
     "matter for parameter names" in {
-      lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive), FeatureSwitch.Enabled)(context) must beFailure(
+      lookupService.lookupNodeParameterization(Seq(paramNameCaseSensitive))(context) must beFailure(
         ".*Rudder parameter not found: 'Foo'".r
       )
     }

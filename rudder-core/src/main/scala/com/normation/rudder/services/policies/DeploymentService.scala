@@ -129,7 +129,6 @@ trait PromiseGenerationService extends Loggable {
       fetch6Time          =  System.currentTimeMillis
       _                   =  logger.trace(s"Fetched run infos in ${fetch6Time-fetch5Time} ms")
       scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
-      nodePropFeature     <- getNodePropEnabled() ?~! "Could not get if we should allow ${node.properties[key]} in directive parameters"
       globalComplianceMode <- getGlobalComplianceMode
       globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
       nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
@@ -144,7 +143,7 @@ trait PromiseGenerationService extends Loggable {
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
       nodeContextsTime =  System.currentTimeMillis
-      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode, nodePropFeature) ?~! "Could not get node interpolation context"
+      nodeContexts     <- getNodeContexts(activeNodeIds, allNodeInfos, groupLib, allLicenses, allParameters, globalAgentRun, globalComplianceMode) ?~! "Could not get node interpolation context"
       timeNodeContexts =  (System.currentTimeMillis - nodeContextsTime)
       _                =  logger.debug(s"Node contexts built in ${timeNodeContexts} ms, start to build new node configurations.")
 
@@ -160,12 +159,12 @@ trait PromiseGenerationService extends Loggable {
 
       ruleValTime   =  System.currentTimeMillis
                        //only keep actually applied rules in a format where parameter analysis on directive is done.
-      ruleVals      <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos, nodePropFeature) ?~! "Cannot build Rule vals"
+      ruleVals      <- buildRuleVals(activeRuleIds, allRules, directiveLib, groupLib, allNodeInfos) ?~! "Cannot build Rule vals"
       timeRuleVal   =  (System.currentTimeMillis - ruleValTime)
       _             =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos, scriptEngineEnabled, nodePropFeature) ?~! "Cannot build target configuration node"
+      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos, scriptEngineEnabled) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
@@ -239,7 +238,6 @@ trait PromiseGenerationService extends Loggable {
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
-  def getNodePropEnabled     : () => Box[FeatureSwitch]
 
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
@@ -263,7 +261,7 @@ trait PromiseGenerationService extends Loggable {
    * on directive done, so that we will be able to bind them
    * to a context latter.
    */
-  def buildRuleVals(activesRules: Set[RuleId], rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], nodePropFeature: FeatureSwitch) : Box[Seq[RuleVal]]
+  def buildRuleVals(activesRules: Set[RuleId], rules: Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]]
 
   def getNodeContexts(
       nodeIds               : Set[NodeId]
@@ -273,7 +271,6 @@ trait PromiseGenerationService extends Loggable {
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
-    , nodePropFeature       : FeatureSwitch
   ): Box[Map[NodeId, InterpolationContext]]
 
   /**
@@ -288,7 +285,6 @@ trait PromiseGenerationService extends Loggable {
     , groupLib     : FullNodeGroupCategory
     , allNodeInfos : Map[NodeId, NodeInfo]
     , scriptEngineEnabled  : FeatureSwitch
-    , nodePropFeature      : FeatureSwitch
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -407,7 +403,6 @@ class PromiseGenerationServiceImpl (
   , override val getAgentRunStartMinute: () => Box[Int]
   , override val getScriptEngineEnabled: () => Box[FeatureSwitch]
   , override val getGlobalPolicyMode: () => Box[GlobalPolicyMode]
-  , override val getNodePropEnabled    : () => Box[FeatureSwitch]
 ) extends PromiseGenerationService with
   PromiseGeneration_performeIO with
   PromiseGeneration_buildRuleVals with
@@ -483,7 +478,6 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     , globalParameters      : Seq[GlobalParameter]
     , globalAgentRun        : AgentRunInterval
     , globalComplianceMode  : ComplianceMode
-    , nodePropFeature       : FeatureSwitch
   ): Box[Map[NodeId, InterpolationContext]] = {
 
     /*
@@ -501,7 +495,7 @@ trait PromiseGeneration_performeIO extends PromiseGenerationService {
     def buildParams(parameters: Seq[GlobalParameter]): Box[Map[ParameterName, InterpolationContext => Box[String]]] = {
       bestEffort(parameters) { param =>
         for {
-          p <- interpolatedValueCompiler.compile(param.value, nodePropFeature) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
+          p <- interpolatedValueCompiler.compile(param.value) ?~! s"Error when looking for interpolation variable in global parameter '${param.name}'"
         } yield {
           (param.name, p)
         }
@@ -546,11 +540,11 @@ trait PromiseGeneration_buildRuleVals extends PromiseGenerationService {
 
   def ruleValService              : RuleValService
 
-  override def buildRuleVals(activeRuleIds: Set[RuleId], rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo], nodePropFeature: FeatureSwitch) : Box[Seq[RuleVal]] = {
+  override def buildRuleVals(activeRuleIds: Set[RuleId], rules:Seq[Rule], directiveLib: FullActiveTechniqueCategory, groupLib: FullNodeGroupCategory, allNodeInfos: Map[NodeId, NodeInfo]) : Box[Seq[RuleVal]] = {
     val appliedRules = rules.filter(r => activeRuleIds.contains(r.id))
 
     for {
-      rawRuleVals <- bestEffort(appliedRules) { rule => ruleValService.buildRuleVal(rule, directiveLib, nodePropFeature) } ?~! "Could not find configuration vals"
+      rawRuleVals <- bestEffort(appliedRules) { rule => ruleValService.buildRuleVal(rule, directiveLib) } ?~! "Could not find configuration vals"
     } yield rawRuleVals
   }
 
@@ -590,7 +584,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , groupLib     : FullNodeGroupCategory
     , allNodeInfos : Map[NodeId, NodeInfo]
     , scriptEngineEnabled  : FeatureSwitch
-    , nodePropFeature      : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
 
     //step 1: from RuleVals to expanded rules vals
