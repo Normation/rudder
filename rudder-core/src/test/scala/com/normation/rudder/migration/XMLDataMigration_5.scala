@@ -39,6 +39,31 @@ package com.normation.rudder.migration
 
 import scala.xml.Elem
 
+object DATA_5 {
+  import Migration_5_DATA_Rule._
+  import Migration_5_DATA_ChangeRequest._
+  
+  def e(xml:Elem) = <entry>{xml}</entry>
+
+  val data_5 = Map(
+      "rule_add"    -> MigrationTestLog(
+            eventType = "RuleAdded"
+          , data      = e(rule_add_5)
+      )
+    , "rule_modify" -> MigrationTestLog(
+            eventType = "RuleModified"
+          , data      =  e(rule_modify_5)
+      )
+    , "rule_delete" -> MigrationTestLog(
+            eventType = "RuleDeleted"
+          , data      = e(rule_delete_5)
+      )
+    , "cr_rule_change" -> MigrationTestLog(
+            eventType = "RuleDeleted"
+          , data      = e(rule_delete_5)
+      )        
+  )
+}
 
 object Migration_5_DATA_Rule {
 
@@ -136,7 +161,6 @@ object Migration_5_DATA_ChangeRequest {
             <longDescription></longDescription>
             <isEnabled>true</isEnabled>
             <isSystem>false</isSystem>
-            <category>rootRuleCategory</category>
           </rule>
         </initialState>
         <firstChange>
@@ -158,7 +182,6 @@ object Migration_5_DATA_ChangeRequest {
               <longDescription></longDescription>
               <isEnabled>true</isEnabled>
               <isSystem>false</isSystem>
-              <category>rootRuleCategory</category>
             </rule>
           </modifyTo>
           </change>

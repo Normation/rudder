@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2012 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -39,12 +39,37 @@ package com.normation.rudder.migration
 
 import scala.xml.Elem
 
+object DATA_6 {
+  import Migration_6_DATA_Rule._
+  import Migration_6_DATA_ChangeRequest._
 
-object Migration_4_DATA_Rule {
+  def e(xml:Elem) = <entry>{xml}</entry>
 
-  val rule_add_4 =
+  val data_6 = Map(
+      "rule_add"    -> MigrationTestLog(
+            eventType = "RuleAdded"
+          , data      = e(rule_add_6)
+      )
+    , "rule_modify" -> MigrationTestLog(
+            eventType = "RuleModified"
+          , data      =  e(rule_modify_6)
+      )
+    , "rule_delete" -> MigrationTestLog(
+            eventType = "RuleDeleted"
+          , data      = e(rule_delete_6)
+      )
+    , "cr_rule_change" -> MigrationTestLog(
+            eventType = "RuleDeleted"
+          , data      = e(rule_delete_6)
+      )
+  )
+}
 
-    <rule fileFormat="4" changeType="add">
+object Migration_6_DATA_Rule {
+
+  val rule_add_6 =
+
+    <rule fileFormat="6" changeType="add">
       <id>e7c21276-d2b5-4fff-9924-96b67db9bd1c</id>
       <displayName>configuration</displayName>
       <serial>0</serial>
@@ -57,11 +82,12 @@ object Migration_4_DATA_Rule {
       <longDescription></longDescription>
       <isEnabled>true</isEnabled>
       <isSystem>false</isSystem>
+      <category>rootRuleCategory</category>
     </rule>
 
 
-  val rule_modify_4 =
-    <rule fileFormat="4" changeType="modify">
+  val rule_modify_6 =
+    <rule fileFormat="6" changeType="modify">
       <id>39720027-952c-4e28-b774-9d5ce63f7a1e</id>
       <displayName>Eutelsat CR Test</displayName>
       <name>
@@ -92,10 +118,11 @@ object Migration_4_DATA_Rule {
         <from>false</from>
         <to>true</to>
       </isEnabled>
+      <category>rootRuleCategory</category>
     </rule>
 
-  val rule_delete_4 =
-    <rule fileFormat="4" changeType="delete">
+  val rule_delete_6 =
+    <rule fileFormat="6" changeType="delete">
       <id>ad8c48f7-b278-4f0c-83d7-f9cb28e0d440</id>
       <displayName>zada on SLES10</displayName>
       <serial>2</serial>
@@ -107,39 +134,13 @@ object Migration_4_DATA_Rule {
       <longDescription></longDescription>
       <isEnabled>true</isEnabled>
       <isSystem>false</isSystem>
+      <category>rootRuleCategory</category>
     </rule>
 }
 
-object Migration_4_DATA_ChangeRequest {
-  val cr_directive_change_4 =
-    <changeRequest fileFormat="4">
-      <groups>
-      </groups>
-      <directives>
-        <directive id="790a3f8a-72e9-47e8-8b61-ee89be2bcf68">
-            <initialState>
-              <directive fileFormat="4"><id>790a3f8a-72e9-47e8-8b61-ee89be2bcf68</id><displayName>aaaaaaaaaaaaaaaaaaa</displayName><techniqueName>aptPackageInstallation</techniqueName><techniqueVersion>1.0</techniqueVersion><section name="sections"><section name="Debian/Ubuntu packages"><var name="APT_PACKAGE_DEBACTION">add</var><var name="APT_PACKAGE_DEBLIST">f</var></section></section><shortDescription/><longDescription/><priority>5</priority><isEnabled>true</isEnabled><isSystem>false</isSystem></directive>
-            </initialState>
-              <firstChange>
-                <change>
-                  <actor>jon.doe</actor>
-                  <date>2013-04-04T11:21:14.691+02:00</date>
-                  <reason/>
-                  <modifyTo><directive fileFormat="4"><id>790a3f8a-72e9-47e8-8b61-ee89be2bcf68</id><displayName>aaaaaaaaaaaaaaaaaaa</displayName><techniqueName>aptPackageInstallation</techniqueName><techniqueVersion>1.0</techniqueVersion><section name="sections"><section name="Debian/Ubuntu packages"><var name="APT_PACKAGE_DEBACTION">add</var><var name="APT_PACKAGE_DEBLIST">f</var></section></section><shortDescription/><longDescription/><priority>5</priority><isEnabled>true</isEnabled><isSystem>false</isSystem></directive></modifyTo>
-                </change>
-              </firstChange>
-            <nextChanges>
-            </nextChanges>
-          </directive>
-      </directives>
-      <rules>
-      </rules>
-      <globalParameters>
-      </globalParameters>
-      </changeRequest>
-
-   val cr_rule_change_4 =
-    <changeRequest fileFormat="4">
+object Migration_6_DATA_ChangeRequest {
+  val cr_rule_change_6 =
+    <changeRequest fileFormat="6">
       <groups>
       </groups>
       <directives>
@@ -147,7 +148,7 @@ object Migration_4_DATA_ChangeRequest {
       <rules>
       <rule id="790a3f8a-72e9-47e8-8b61-ee89be2bcf69">
         <initialState>
-          <rule fileFormat="4">
+          <rule fileFormat="6">
             <id>790a3f8a-72e9-47e8-8b61-ee89be2bcf69</id>
             <name>My Rule</name>
             <serial>42</serial>
@@ -169,7 +170,7 @@ object Migration_4_DATA_ChangeRequest {
           <date>2013-04-04T11:21:14.691+02:00</date>
           <reason/>
           <modifyTo>
-            <rule fileFormat="4">
+            <rule fileFormat="6">
               <id>790a3f8a-72e9-47e8-8b61-ee89be2bcf69</id>
               <name>My little Rule</name>
               <serial>42</serial>
