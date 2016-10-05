@@ -61,11 +61,13 @@ function createTooltip() {
   $(".tooltipable").tooltip({
     show: {
       effect: "none",
-            delay: 0
+            delay: 0,
+            duration: 300
         },
         hide: {
       effect: "none",
-            delay: 0
+            delay: 0,
+            duration: 300
         },
       content: function() {
           return $("#"+$(this).attr("tooltipid")).html();
@@ -82,11 +84,13 @@ function createTooltiptr() {
     $(".tooltipabletr").tooltip({
         show: {
           effect: "none",
-                  delay: 100
+                  delay: 100,
+                  duration: 300
               },
               hide: {
                     effect: "none",
-                  delay: 0
+                  delay: 0,
+                  duration: 300
               },
         content: function() {
             return $("#"+$(this).attr("tooltipid")).html();
@@ -609,6 +613,7 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   return badge;
 }
 
+
 function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var labelType  = "label-"+policyMode;
@@ -646,4 +651,28 @@ function createBadgeAgentPolicyModeMixed(data){
   var tooltip = policyModeTooltip('policy', badgePolicyMode, '');
   badge.setAttribute("title", tooltip);
   return badge;
+}
+
+function showFileManager(idField){
+  var filemanager = $("<angular-filemanager></angular-filemanager>");
+  // The parent of the new element
+  var fileManagerApp = $("#"+idField);
+  angular.element(fileManagerApp).injector().invoke(function($compile) {
+    var $scope = angular.element(fileManagerApp).scope();
+    fileManagerApp.append($compile(filemanager)($scope));
+    
+    $scope.directiveId = idField;
+    // Finally, refresh the watch expressions in the new element
+    $scope.$apply();
+  });
+  //allow user to close the window pressing Escape
+  $(document).on('keydown.closeWindow',function(e){
+    if (e.which == 27) {
+      hideFileManager();
+    }
+  });
+}
+function hideFileManager(){
+  $(document).off('keydown.closeWindow');
+  $("angular-filemanager").remove();
 }

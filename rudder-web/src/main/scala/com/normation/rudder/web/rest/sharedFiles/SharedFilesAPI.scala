@@ -95,8 +95,8 @@ class SharedFilesAPI(
       ( ("name"  -> file.getName)
       ~ ("size"  -> file.length())
       ~ ("type"  -> (if (file.isFile) "file" else "dir"))
-      ~ ("date"  -> DateFormaterService.getFormatedDate(date))
-      ~ ("perms" ->  PosixFilePermissions.toString(Files.getPosixFilePermissions(Paths.get(file.getPath))))
+      ~ ("date"  -> date.toString("yyyy-MM-dd HH:mm:ss"))
+      ~ ("rights" ->  PosixFilePermissions.toString(Files.getPosixFilePermissions(Paths.get(file.getPath))))
       )
     }
   }
@@ -135,7 +135,7 @@ class SharedFilesAPI(
       if (directory.isDirectory()) {
         val jsonFiles =  com.normation.utils.Control.sequence(directory.listFiles().toSeq)(serialize)
         jsonFiles.map{files =>
-          val result = JObject(List(JField("results",JArray(files.toList))))
+          val result = JObject(List(JField("result",JArray(files.toList))))
           JsonResponse(result,List(),List(), 200)
         }
       } else {

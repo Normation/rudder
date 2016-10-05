@@ -918,3 +918,63 @@ class DerivedPasswordField(val id: String, val derivedType : HashAlgoConstraint.
   override def displayValue  = <span></span>
   override def displayHtml   = Text("")
 }
+
+object FileField {
+
+  def fileInput(kind : String)(id : String) = {
+      // Html template
+    def templatePath = List("templates-hidden", "components", "directiveInput")
+    def template() =  Templates(templatePath) match {
+       case eb : EmptyBox =>
+         val failure = eb ?~ s"Template for file input configuration not found. I was looking for ${templatePath.mkString("/")}.html"
+         sys.error(failure.messageChain)
+       case Full(n) => n
+    }
+    def xml = chooseTemplate("input", kind, template)
+    val css: CssSel =  ".tw-bs [id]" #> id  &
+    "#fileInput [id]" #>  (id+"-fileInput") &
+    "#browserFile [onclick]" #> ("showFileManager('"+id+"')") &
+    "#browserFile [id]"  #> (id+"-browserFile")
+    css(xml)
+  }
+}
+
+class FileField(
+  val id : String
+) extends DirectiveField {
+  self =>
+  type ValueType = String
+  protected var _x: String = getDefaultValue
+
+  def get = _x
+  def set(x: String) = { if (null == x) _x = "" else _x = x; _x }
+
+  def toForm() = display(FileField.fileInput("shared"))
+
+  def display( xml: String => NodeSeq) = {
+    val formId = Helpers.nextFuncName
+    val valueInput = SHtml.text(toClient, {s =>  parseClient(s)}, ("class","form-control input-sm col-xs-12") , ("id",formId+"-fileInput") )
+    val initScript = {
+      Script(OnLoad( JsRaw(s"""
+        fileManager.constant('contextPath', '${S.contextPath}');
+        angular.bootstrap("#${formId}", ['fileManager']);
+      """)))
+    }
+
+    val form = (".input-group -*" #> valueInput).apply(xml(formId)) ++ initScript
+    Full(form)
+
+  }
+  def manifest = manifestOf[String]
+
+  override val uniqueFieldId = Full(id)
+  def name = id
+  def validate = Nil
+  def validations = Nil
+  def setFilter = Nil
+  def parseClient(s: String): Unit = if (null == s) _x = "" else _x = s
+  def toClient: String = if (null == _x) "" else _x
+
+  def getPossibleValues(filters: (ValueType => Boolean)*): Option[Set[ValueType]] = None // not supported in the general cases
+  def getDefaultValue = ""
+}
