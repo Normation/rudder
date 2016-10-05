@@ -343,6 +343,7 @@ class SystemVariableServiceImpl(
 
       val varManagedNodes = systemVariableSpecService.get("MANAGED_NODES_NAME").toVariable(children.map(_.hostname))
       val varManagedNodesId = systemVariableSpecService.get("MANAGED_NODES_ID").toVariable(children.map(_.id.value))
+      val varManagedNodesKey = systemVariableSpecService.get("MANAGED_NODES_KEY").toVariable(children.map(n => s"MD5=${n.cfengineKeyHash}"))
       //IT IS VERY IMPORTANT TO SORT SYSTEM VARIABLE HERE: see ticket #4859
       val varManagedNodesAdmin = systemVariableSpecService.get("MANAGED_NODES_ADMIN").toVariable(children.map(_.localAdministratorAccountName).distinct.sorted)
 

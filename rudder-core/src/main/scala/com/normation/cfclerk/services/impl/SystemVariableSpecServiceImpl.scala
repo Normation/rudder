@@ -123,6 +123,10 @@ class SystemVariableSpecServiceImpl extends SystemVariableSpecService {
                                            , constraint = Constraint(mayBeEmpty=true)
                         )
     , SystemVariableSpec(
+                       "MANAGED_NODES_KEY" , "CFEngine KEY (modulus with transformation) of nodes managed by the policy server"
+                                           , constraint = Constraint(mayBeEmpty=true)
+                        )
+    , SystemVariableSpec(
                      "AUTHORIZED_NETWORKS" , "Networks authorized to connect to the policy server"
                                            , constraint = Constraint(mayBeEmpty=true)
                         )

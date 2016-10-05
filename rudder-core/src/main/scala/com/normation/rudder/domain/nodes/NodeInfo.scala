@@ -37,18 +37,23 @@
 
 package com.normation.rudder.domain.nodes
 
-import com.normation.inventory.domain.AgentType
-import org.joda.time.DateTime
-import com.normation.inventory.domain.NodeId
+import java.io.StringReader
+import java.security.KeyFactory
+import java.security.MessageDigest
+import java.security.interfaces.RSAPublicKey
+import java.security.spec.X509EncodedKeySpec
+
+import com.normation.inventory.domain._
 import com.normation.utils.HashcodeCaching
-import com.normation.inventory.domain.ServerRole
-import com.normation.rudder.reports.ReportingConfiguration
-import com.normation.inventory.domain.MachineType
-import com.normation.inventory.domain.Manufacturer
-import com.normation.inventory.domain.MemorySize
-import com.normation.inventory.domain.OsDetails
-import com.normation.inventory.domain.MachineUuid
-import com.normation.inventory.domain.KeyStatus
+
+import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers
+import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo
+import org.bouncycastle.openssl.PEMParser
+import org.bouncycastle.util.encoders.Hex
+import org.joda.time.DateTime
+
+import net.liftweb.common._
+import net.liftweb.util.Helpers.tryo
 
 final case class MachineInfo(
     id          : MachineUuid
@@ -68,7 +73,7 @@ final case class NodeInfo(
   , osDetails      : OsDetails
   , ips            : List[String]
   , inventoryDate  : DateTime
-  , publicKey      : String
+  , publicKey      : Option[PublicKey]
   , keyStatus      : KeyStatus
   , agentsName     : Seq[AgentType]
   , policyServerId : NodeId
@@ -80,7 +85,7 @@ final case class NodeInfo(
   , serverRoles    : Set[ServerRole]
   , archDescription: Option[String]
   , ram            : Option[MemorySize]
-) extends HashcodeCaching {
+) extends HashcodeCaching with Loggable{
 
   val id                         = node.id
   val name                       = node.name
@@ -93,4 +98,100 @@ final case class NodeInfo(
   val properties                 = node.properties
   val policyMode                 = node.policyMode
 
+  lazy val cfengineKeyHash: String = {
+    publicKey.map(CFEngineKey.getHash) match {
+      case None =>
+        logger.info(s"Node '${hostname}' (${id.value}) doens't have a register public key")
+        ""
+      case Some(Full(hash)) =>
+        hash
+      case Some(eb:EmptyBox) =>
+        val e = eb ?~! s"Error when trying to get CFEngine public key hash of node '${hostname}' (${id.value})"
+        logger.error(e.messageChain)
+        ""
+    }
+  }
 }
+
+/*
+ * An object to deal with the specificities of CFEngine keys.
+ */
+object CFEngineKey {
+
+  /*
+   * CFengine public keys are store on the server in
+   * /var/rudder/cfengine-community/ppkeys/node-MD5-hash.pub .
+   *
+   * The content of these file is an RSA encoded key, something
+   * looking like:
+   *
+   *   -----BEGIN RSA PUBLIC KEY-----
+   *   MIIBCAKCAQEAv76gYG9OaFpc0eBeUXDM3WsRWyuHco3DpWnKrrpqQwylpEH26gRb
+   *   cu/L5KWc1ihj1Rv/AU3dkQL5KdXatSrWOLUMmYcQc5DYSnZacbdHIGLn11w1PHsw
+   *   9P2pivwQyIF3k4zqANtlZ3iZN4AXZpURI4VVhiBYPwZ4XgHPibcuJHiyNyymiHpT
+   *   HX9H0iaEIwyJMPjzRH+piFRmSeUylHfQLqb6AkD3Dg3Nxe9pbxNbk1saqgHFF4kd
+   *   Yh3O5rVto12XqisGWIbsmsT0XFr6V9+/sde/lpjI4AEcHR8oFYX5JP9/SXPuRJfQ
+   *   lEl8vn5PHTY0mMrNAcM7+rzpkOW2c7b8bwIBIw==
+   *   -----END RSA PUBLIC KEY-----
+   *
+   * You can see details with the following command:
+   *
+   * openssl rsa -RSAPublicKey_in -in /var/rudder/cfengine-community/ppkeys/node-MD5-hash.pub -text
+   *
+   * The hash by itself is the MD5 sum of the byte array
+   * of the modulus concatenated with the byte array of
+   * the exponent, both taken in big endian binary form.
+   * The corresponding openssl C code used in CFEngine for
+   * that is:
+   *   parse the key then
+   *   EVP_DigestInit(&context, md); # extract modulus in big endian binary form
+   *   actlen = BN_bn2bin(key->n, buffer);
+   *   EVP_DigestUpdate(&context, buffer, actlen); # extract exponent in big endian binary form
+   *   actlen = BN_bn2bin(key->e, buffer);
+   *   EVP_DigestUpdate(&context, buffer, actlen);
+   *   EVP_DigestFinal(&context, digest, &md_len);
+   *
+   * In Scala, we need to use bouncy castle, because nothing
+   * native read PEM / RSA file, and I don't like parsing
+   * ASN.1 that much.
+   *
+   * Oh, and Java Security API force a lot of casting.
+   * This is insane.
+   */
+  def getHash(key: PublicKey): Box[String] = {
+
+    //the parser able to read PEM files
+    val parser = new PEMParser(new StringReader(key.value))
+
+    for {
+                    // read the PEM b64 pubkey string
+      pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
+                    // check that the pubkey info is the one of an RSA key,
+                    // retrieve corresponding Key factory.
+      keyFactory <- pubkeyInfo.getAlgorithm.getAlgorithm match {
+                      case PKCSObjectIdentifiers.rsaEncryption =>
+                        Full(KeyFactory.getInstance("RSA"))
+                      case algo => //not supported
+                        Failure(s"The CFEngine public key used an unsupported algorithm '${algo}'. Only RSA is supported")
+                    }
+                    // actually decode the key...
+      keyspec    <- tryo { new X509EncodedKeySpec(pubkeyInfo.getEncoded) }
+                    // into an RSA public key.
+      rsaPubkey  <- tryo { keyFactory.generatePublic(keyspec).asInstanceOf[RSAPublicKey] }
+      md5        <- tryo { MessageDigest.getInstance("MD5") }
+    } yield {
+      // here, we must use the hexa-string representation,
+      // because if we directly use ".toByteArray", a leading
+      // 0x00 is happened if the modulus is positif. It should
+      // be, so we could also just take the tail. And it is node
+      // if we directly hex-dump it. Strange, but better be sure.
+      // We can note that the leading 0x00 is displayed in the
+      // openssl command above, but that if we use it in the
+      // md5 hash, we don't get the same result than CFEngine.
+      md5.update(Hex.decode(rsaPubkey.getModulus.toString(16)))
+      md5.update(rsaPubkey.getPublicExponent.toByteArray)
+      Hex.toHexString(md5.digest)
+    }
+  }
+}
+
