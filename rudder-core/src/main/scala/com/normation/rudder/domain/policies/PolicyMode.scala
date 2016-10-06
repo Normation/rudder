@@ -67,29 +67,45 @@ final object PolicyMode {
   }
 
   /*
-   * Combine different modes and get the resulting one. Typically used when we
-   * want to know what is the policy mode on a given node, for a given directive,
+   * Compute the mode for directives,typically in a Technique.
+   *
+   * This method ensure that all directives have compatible policy mode, and
+   * overwhise return an error.
+   *
+   * Typically used when we want to know what is the policy mode on a given node, for a given directive,
    * and we know from the context the default global value and the value of
    * other directives for the same technique also on that node.
    */
-  def computeMode(globalValue : GlobalPolicyMode, nodeMode : Option[PolicyMode], directiveMode : Seq[Option[PolicyMode]]) = {
+  def computeMode(globalValue : GlobalPolicyMode, nodeMode : Option[PolicyMode], directiveMode : Seq[Option[PolicyMode]]) : Box[PolicyMode] = {
     globalValue.overridable match {
       case PolicyModeOverrides.Always =>
         nodeMode match {
-          case Some(Verify) => Verify
+          case Some(Verify) => Full(Verify)
           case _ =>
-            (((None : Option[PolicyMode]) /: directiveMode) {
-              case (None,current) => current
-              case (Some(Verify),_) | (_,Some(Verify)) => Some(Verify)
-              case _ => Some(Enforce)
-            }).getOrElse(globalValue.mode)
 
+            // Here, we must ensure that all the directive have consistant policy mode - i.e the same.
+            // For that, we start by calculating what is the mode for directives that don't have a
+            // dedicated mode, and then we check homogeneity.
+            val default = nodeMode.getOrElse(globalValue.mode)
+            val finalMode = directiveMode.map { _.getOrElse(default) }.toList.distinct
+
+
+            finalMode match {
+              case Nil =>
+                //here, we didn't passed any directive in the call, so we just get the node|global computed mode
+                Full(default)
+              case mode :: Nil => //ok
+                Full(mode)
+              case _ => // too many modes, verboten
+                Failure(s"Inconsistant policy mode: both audit and enforce applied")
+            }
         }
 
       case PolicyModeOverrides.Unoverridable =>
-        globalValue.mode
+        Full(globalValue.mode)
     }
   }
+
 }
 
 /*

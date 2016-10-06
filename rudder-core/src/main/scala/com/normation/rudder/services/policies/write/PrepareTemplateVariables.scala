@@ -90,7 +90,7 @@ trait PrepareTemplateVariables {
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
-  ): AgentNodeWritableConfiguration
+  ): Box[AgentNodeWritableConfiguration]
 
 }
 
@@ -111,7 +111,7 @@ class PrepareTemplateVariablesImpl(
     , allNodeConfigs   : Map[NodeId, NodeConfiguration]
     , rudderIdCsvTag   : String
     , globalPolicyMode : GlobalPolicyMode
-  ): AgentNodeWritableConfiguration = {
+  ): Box[AgentNodeWritableConfiguration] = {
 
    logger.debug(s"Writting promises for node '${agentNodeConfig.config.nodeInfo.hostname}' (${agentNodeConfig.config.nodeInfo.id.value})")
 
@@ -123,29 +123,29 @@ class PrepareTemplateVariablesImpl(
     //Generate for each node an unique timestamp.
     val generationTimestamp = DateTime.now().getMillis
 
-    val preparedTemplate = {
-      val systemVariables = agentNodeConfig.config.nodeContext ++ List(
-          systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
-        , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
-        , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
-      ).map(x => (x.spec.name, x)).toMap
+    val systemVariables = agentNodeConfig.config.nodeContext ++ List(
+        systemVariableSpecService.get("NOVA"     ).toVariable(if(agentNodeConfig.agentType == NOVA_AGENT     ) Seq("true") else Seq())
+      , systemVariableSpecService.get("COMMUNITY").toVariable(if(agentNodeConfig.agentType == COMMUNITY_AGENT) Seq("true") else Seq())
+      , systemVariableSpecService.get("RUDDER_NODE_CONFIG_ID").toVariable(Seq(nodeConfigVersion.value))
+    ).map(x => (x.spec.name, x)).toMap
 
-      prepareTechniqueTemplate(
-          agentNodeConfig.config.nodeInfo.id, agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode
-        , container, systemVariables.toMap, templates, generationTimestamp
+    for {
+      bundleVars <- prepareBundleVars(agentNodeConfig.config.nodeInfo.id, agentNodeConfig.config.nodeInfo.policyMode, globalPolicyMode, container)
+    } yield {
+      val allSystemVars = systemVariables.toMap ++ bundleVars
+      val preparedTemplate = prepareTechniqueTemplate(
+          agentNodeConfig.config.nodeInfo.id, container, allSystemVars, templates, generationTimestamp
       )
+
+      logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
+      val csv = ExpectedReportsCsv(prepareReportingDataForMetaTechnique(container, rudderIdCsvTag))
+
+      AgentNodeWritableConfiguration(agentNodeConfig.paths, preparedTemplate.values.toSeq, csv)
     }
-
-    logger.trace(s"${agentNodeConfig.config.nodeInfo.id.value}: creating lines for expected reports CSV files")
-    val csv = ExpectedReportsCsv(prepareReportingDataForMetaTechnique(container, rudderIdCsvTag))
-
-    AgentNodeWritableConfiguration(agentNodeConfig.paths, preparedTemplate.values.toSeq, csv)
   }
 
   private[this] def prepareTechniqueTemplate(
       nodeId              : NodeId // for log message
-    , nodePolicyMode      : Option[PolicyMode]
-    , globalPolicyMode    : GlobalPolicyMode
     , container           : Cf3PolicyDraftContainer
     , extraSystemVariables: Map[String, Variable]
     , allTemplates        : Map[TechniqueResourceId, TechniqueTemplateCopyInfo]
@@ -153,10 +153,7 @@ class PrepareTemplateVariablesImpl(
   ) : Map[TechniqueId, PreparedTechnique] = {
 
     val techniques = container.getTechniques().values.toList
-    val variablesByTechnique = (
-        prepareVariables(nodeId, container, prepareBundleVars(nodeId, nodePolicyMode, globalPolicyMode, container)
-        ++ extraSystemVariables, techniques)
-    )
+    val variablesByTechnique = prepareVariables(nodeId, container, extraSystemVariables, techniques)
 
     /*
      * From the container, convert the parameter into StringTemplate variable, that contains a list of
@@ -268,19 +265,19 @@ class PrepareTemplateVariablesImpl(
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , container       : Cf3PolicyDraftContainer
-  ) : Map[String,Variable] = {
+  ) : Box[Map[String,Variable]] = {
 
-    val bundleVars = BuildBundleSequence.prepareBundleVars(nodeId, nodePolicyMode, globalPolicyMode, container)
+    BuildBundleSequence.prepareBundleVars(nodeId, nodePolicyMode, globalPolicyMode, container).map { bundleVars =>
 
-    List(
-      SystemVariable(systemVariableSpecService.get("INPUTLIST") , bundleVars.inputlist  :: Nil)
-    , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), bundleVars.bundlelist :: Nil)
-    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputs    :: Nil)
-    , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle :: Nil)
-    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , bundleVars.directivesInputs    :: Nil)
-    , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), bundleVars.directivesUsebundle :: Nil)
-    ).map(x => (x.spec.name, x)).toMap
-
+      List(
+        SystemVariable(systemVariableSpecService.get("INPUTLIST") , bundleVars.inputlist  :: Nil)
+      , SystemVariable(systemVariableSpecService.get("BUNDLELIST"), bundleVars.bundlelist :: Nil)
+      , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_INPUTS")  , bundleVars.systemDirectivesInputs    :: Nil)
+      , SystemVariable(systemVariableSpecService.get("RUDDER_SYSTEM_DIRECTIVES_SEQUENCE"), bundleVars.systemDirectivesUsebundle :: Nil)
+      , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_INPUTS")  , bundleVars.directivesInputs    :: Nil)
+      , SystemVariable(systemVariableSpecService.get("RUDDER_DIRECTIVES_SEQUENCE"), bundleVars.directivesUsebundle :: Nil)
+      ).map(x => (x.spec.name, x)).toMap
+    }
   }
 
   /**
