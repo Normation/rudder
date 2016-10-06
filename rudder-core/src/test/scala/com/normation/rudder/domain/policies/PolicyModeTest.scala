@@ -52,31 +52,36 @@ class PolicyModeTest extends Specification with Loggable {
     "show that global policy mode wins when not overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Unoverridable)
-        , Some(Verify), Some(Verify) :: Nil
+        , Some(Verify)
+        , Some(Verify) :: Nil
       ) must equalTo(Enforce)
     }
     "show that global policy mode wins when not overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Unoverridable)
-        , Some(Enforce), Some(Verify) :: Nil
+        , Some(Enforce)
+        , Some(Verify) :: Nil
       ) must equalTo(Enforce)
     }
     "and loose when overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
-        , Some(Enforce), Some(Verify) :: Nil
+        , Some(Enforce)
+        , Some(Verify) :: Nil
       ) must equalTo(Verify)
     }
     "and loose when overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
-        , Some(Verify), Some(Enforce) :: Nil
+        , Some(Verify)
+        , Some(Enforce) :: Nil
       ) must equalTo(Verify)
     }
     "EVEN if global is on verify" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Verify, PolicyModeOverrides.Always)
-        , Some(Enforce), Some(Enforce) :: Nil
+        , Some(Enforce)
+        , Some(Enforce) :: Nil
       ) must equalTo(Enforce)
     }
     "But is chosen if nothign else defined" in {
@@ -85,5 +90,34 @@ class PolicyModeTest extends Specification with Loggable {
         , None, None :: Nil
       ) must equalTo(Enforce)
     }
+  }
+
+  "Check consistancy for multi-instance Technique" should {
+    /*
+     * Here we are testing the truth table for:
+     * - global: audit, overidable
+     * - node  : enforce, overiable
+     * - { d1 , d2 } in { audit, enforne, not overriden }
+     * (so when not overriden, the detault is enforce)
+     */
+
+    def mode(d1: Option[PolicyMode], d2: Option[PolicyMode]) = {
+      PolicyMode.computeMode(
+          GlobalPolicyMode(Verify, PolicyModeOverrides.Always)
+        , Some(Enforce)
+        , d1 :: d2 :: Nil
+      )
+    }
+    val enforce = Some(Enforce)
+    val audit   = Some(Verify)
+    val none    = None
+
+    "d1 == enforce, d2 == enforce => enforce" in { mode(enforce, enforce) must beEqualTo(Enforce) }
+    "d1 == enforce, d2 == none    => enforce" in { mode(enforce, none   ) must beEqualTo(Enforce) }
+    "d1 == enforce, d2 == audit   => failure" in { mode(enforce, audit  ) must haveClass[Failure] }
+    "d1 == audit  , d2 == enforce => failure" in { mode(audit  , enforce) must haveClass[Failure] }
+    "d1 == audit  , d2 == audit   => audit"   in { mode(audit  , audit  ) must beEqualTo(Verify ) }
+    "d1 == audit  , d2 == none    => failure" in { mode(audit  , none   ) must haveClass[Failure] }
+    "d1 == none   , d2 == none    => enforce" in { mode(none   , none   ) must beEqualTo(Enforce) }
   }
 }

@@ -156,49 +156,55 @@ final object BuildBundleSequence extends Loggable {
   /*
    * The main entry point of the object: for each variable related to
    * bundle sequence, compute the corresponding values.
+   *
+   * This may fail if the policy modes are not consistant for directives
+   * declined from the same (multi-instance) technique.
    */
   def prepareBundleVars(
       nodeId          : NodeId
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , container       : Cf3PolicyDraftContainer
-  ): BundleSequenceVariables = {
+  ): Box[BundleSequenceVariables] = {
 
     logger.trace(s"Preparing bundle list and input list for node : ${nodeId.value}")
 
     // Fetch the policies configured and sort them according to rules and with the system policies first
-    val sortedTechniques = sortTechniques(nodeId, nodePolicyMode, globalPolicyMode, container)
+    sortTechniques(nodeId, nodePolicyMode, globalPolicyMode, container) match {
+      case eb: EmptyBox => eb ?~! "plop"
+      case Full(sortedTechniques) =>
 
-    // Then builds bundles and inputs:
+        // Then builds bundles and inputs:
 
-    // - build techniques bundles from the sorted list of techniques
-    val techniquesBundles = sortedTechniques.toList.map(buildTechniqueBundles(nodeId)).removeEmptyBundle.addNcfReporting
+        // - build techniques bundles from the sorted list of techniques
+        val techniquesBundles = sortedTechniques.toList.map(buildTechniqueBundles(nodeId)).removeEmptyBundle.addNcfReporting
 
-    // - build list of inputs file to include: all the outPath of templates that should be "included".
-    //   (returns the pair of (outpath, isSystem) )
-    val inputs: Seq[Input] = sortedTechniques.flatMap {case (technique, _, _) =>
-        technique.templates.collect { case template if(template.included) => Input(template.outPath, technique.isSystem) } ++
-        technique.files.collect { case file if(file.included) => Input(file.outPath, technique.isSystem) }
-    }
+        // - build list of inputs file to include: all the outPath of templates that should be "included".
+        //   (returns the pair of (outpath, isSystem) )
 
-    //split system and user directive (technique)
-    val (systemInputs, userInputs) = inputs.partition( _.isSystem )
-    val (systemBundle, userBundle) = techniquesBundles.partition( _.isSystem )
+        val inputs: Seq[Input] = sortedTechniques.flatMap {case (technique, _, _) =>
+            technique.templates.collect { case template if(template.included) => Input(template.outPath, technique.isSystem) } ++
+            technique.files.collect { case file if(file.included) => Input(file.outPath, technique.isSystem) }
+        }
 
-    //only user bundle may be set on PolicyMode = Verify
-    val userBundleWithDryMode = userBundle.addDryRunManagement
+        //split system and user directive (technique)
+        val (systemInputs, userInputs) = inputs.partition( _.isSystem )
+        val (systemBundle, userBundle) = techniquesBundles.partition( _.isSystem )
 
-    // All done, return all the correctly formatted system variables
-    BundleSequenceVariables(
-        inputlist                 = formatBundleFileInputs(inputs.map(_.path))
-      , bundlelist                = techniquesBundles.flatMap( _.bundleSequence).mkString(", ", ", ", "")
-      , systemDirectivesInputs    = formatBundleFileInputs(systemInputs.map(_.path))
-      , systemDirectivesUsebundle = formatMethodsUsebundle(systemBundle)
-      , directivesInputs          = formatBundleFileInputs(userInputs.map(_.path))
-      , directivesUsebundle       = formatMethodsUsebundle(userBundleWithDryMode)
-    )
+        //only user bundle may be set on PolicyMode = Verify
+        val userBundleWithDryMode = userBundle.addDryRunManagement
+
+        // All done, return all the correctly formatted system variables
+        Full(BundleSequenceVariables(
+            inputlist                 = formatBundleFileInputs(inputs.map(_.path))
+          , bundlelist                = techniquesBundles.flatMap( _.bundleSequence).mkString(", ", ", ", "")
+          , systemDirectivesInputs    = formatBundleFileInputs(systemInputs.map(_.path))
+          , systemDirectivesUsebundle = formatMethodsUsebundle(systemBundle)
+          , directivesInputs          = formatBundleFileInputs(userInputs.map(_.path))
+          , directivesUsebundle       = formatMethodsUsebundle(userBundleWithDryMode)
+        ))
+      }
   }
-
 
   ////////////////////////////////////////////
   ////////// Implementation details //////////
@@ -334,7 +340,7 @@ final object BuildBundleSequence extends Loggable {
     , nodePolicyMode  : Option[PolicyMode]
     , globalPolicyMode: GlobalPolicyMode
     , container       : Cf3PolicyDraftContainer
-  ): Seq[(Technique, List[BundleOrder], PolicyMode)] = {
+  ): Box[Seq[(Technique, List[BundleOrder], PolicyMode)]] = {
 
     val techniques = container.getTechniques().values.toList
 
@@ -344,30 +350,34 @@ final object BuildBundleSequence extends Loggable {
 
     val drafts = container.cf3PolicyDrafts.values.toSeq
 
-    //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
-    val triples = techniques.map { t =>
-      val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
+    for {
+      //for each technique, get it's best order from draft (if several directive use it) and return a pair (technique, List(order))
+      triples <- bestEffort(techniques) { t =>
 
-      //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
-      val order = tDrafts.map( t => List(t.ruleOrder, t.directiveOrder)).headOption.getOrElse(List(BundleOrder.default))
+                   val tDrafts = drafts.filter { _.technique.id == t.id }.sortWith( compareBundleOrder )
 
-      // until we have a directive-level granularity for policy mode, we have to define a technique-level policy mode
-      val policyMode = PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, tDrafts.map(_.policyMode))
+                   //the order we want is the one with the lowest draft order, or the default one if no draft found (but that should not happen by construction)
+                   val order = tDrafts.map( t => List(t.ruleOrder, t.directiveOrder)).headOption.getOrElse(List(BundleOrder.default))
 
-      (t, order, policyMode)
+                   // until we have a directive-level granularity for policy mode, we have to define a technique-level policy mode
+                   // if directives don't have a consistant policy mode, we fail (and report it)
+                   PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, tDrafts.map(_.policyMode)).map { policyMode =>
+                     (t, order, policyMode)
+                   }
+                 }
+    } yield {
+
+      //now just sort the pair by order and keep only techniques
+      val ordered = triples.sortWith { case ((_, o1, _), (_, o2, _)) => BundleOrder.compareList(o1, o2) <= 0 }
+
+      //some debug info to understand what order was used for each node:
+      if(logger.isDebugEnabled) {
+        val sorted = ordered.map(p => s"${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
+        logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
+      }
+
+      ordered
     }
-
-    //now just sort the pair by order and keep only techniques
-    val ordered = triples.sortWith { case ((_, o1, _), (_, o2, _)) => BundleOrder.compareList(o1, o2) <= 0 }
-
-    //some debug info to understand what order was used for each node:
-    if(logger.isDebugEnabled) {
-      val sorted = ordered.map(p => s"${p._1.name}: [${p._2.map(_.value).mkString(" | ")}]").mkString("[","][", "]")
-      logger.debug(s"Sorted Technique (and their Rules and Directives used to sort): ${sorted}")
-    }
-
-    ordered
-
   }
 }
 
