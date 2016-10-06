@@ -195,7 +195,7 @@ class Cf3PromisesFileWriterServiceImpl(
       templates        <- readTemplateFromFileSystem(techniqueIds)
       preparedPromises <- sequencePar(configAndPaths) { case agentNodeConfig =>
                            val nodeConfigId = versions(agentNodeConfig.config.nodeInfo.id)
-                           Full(prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode))
+                           prepareTemplate.prepareTemplateForAgentNodeConfiguration(agentNodeConfig, nodeConfigId, rootNodeId, templates, allNodeConfigs, TAG_OF_RUDDER_ID, globalPolicyMode)
                          }
       promiseWritten   <- sequencePar(preparedPromises) { prepared =>
                             for {
