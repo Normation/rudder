@@ -185,7 +185,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                 values (${r.id}, ${r.serial}, ${r.categoryId}, ${r.name}, ${r.shortDescription}, ${r.longDescription}, ${r.isEnabled}, ${now})
                """.update.withUniqueGeneratedKeys[Long]("rulepkeyid")
         _  <- Update[DB.SerializedRuleDirectives]("""
-                 insert into rulesdirectivesjoin (rulepkeyid, rulesdirectivesjoin)
+                 insert into rulesdirectivesjoin (rulepkeyid, directiveid)
                  values (?, ?)
                """).updateMany(r.directiveIds.map(d => DB.SerializedRuleDirectives(pk, d.value)))
         _  <- Update[DB.SerializedRuleGroups]("""
