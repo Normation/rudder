@@ -64,6 +64,8 @@ import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.domain.policies.SerialedRuleId
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import java.util.regex.Pattern
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.reports.ReportType.BadPolicyMode
 
 /*
  *  we want to retrieve for each node the expected reports that matches it LAST
@@ -261,7 +263,12 @@ object ExecutionBatch extends Loggable {
    * containers to store common information about "what are we
    * talking about in that merge ?"
    */
-  private[this] final case class MergeInfo(nodeId: NodeId, run: Option[DateTime], configId: Option[NodeConfigId], expirationTime: DateTime)
+  private[this] final case class MergeInfo(
+      nodeId: NodeId
+    , run: Option[DateTime]
+    , configId: Option[NodeConfigId]
+    , expirationTime: DateTime
+  )
 
   /**
    * The time that we are going to give to the agent as a grace period to get
@@ -321,9 +328,9 @@ object ExecutionBatch extends Loggable {
   ): Map[NodeId, RunAndConfigInfo] = {
 
     val missingReportType = complianceMode.mode match {
-      case FullCompliance => MissingReportType
-      case ChangesOnly => SuccessReportType
-      case ReportsDisabled => DisabledReportType
+      case FullCompliance  => ReportType.Missing
+      case ChangesOnly     => ReportType.EnforceSuccess
+      case ReportsDisabled => ReportType.Disabled
     }
 
     /*
@@ -543,6 +550,7 @@ object ExecutionBatch extends Loggable {
    */
   def getNodeStatusReports(
       nodeId               : NodeId
+    , nodePolicyMode       : PolicyMode //this is the computed mode, so if global not overribable, it's global value.
       // run info: if we have a run, we have a datetime for it
       // and perhaps a configId
     , runInfo              : RunAndConfigInfo
@@ -569,7 +577,7 @@ object ExecutionBatch extends Loggable {
         buildRuleNodeStatusReport(
             MergeInfo(nodeId, Some(runTime), Some(expectedVersion.configId), expectedExpiration)
           , getExpectedReports(expectedVersion.configId)
-          , MissingReportType
+          , ReportType.Missing
         ) ++
         buildUnexpectedReports(MergeInfo(nodeId, Some(runTime), runVersion.map(_.configId), runExpiration), nodeStatusReports)
     }
@@ -588,7 +596,7 @@ object ExecutionBatch extends Loggable {
             //always be the same.
             MergeInfo(nodeId, None, Some(expectedConfig.configId), END_OF_TIME)
           , getExpectedReports(expectedConfig.configId)
-          , DisabledReportType
+          , ReportType.Disabled
         )
 
       case ComputeCompliance(lastRunDateTime, expectedConfigId, expirationTime, missingReportStatus) =>
@@ -599,6 +607,7 @@ object ExecutionBatch extends Loggable {
           , getExpectedReports(expectedConfigId.configId)
           , getExpectedReports(expectedConfigId.configId)
           , missingReportStatus
+          , nodePolicyMode
         )
 
       case Pending(expectedConfig, optLastRun, expirationTime, missingReportStatus) =>
@@ -609,7 +618,7 @@ object ExecutionBatch extends Loggable {
             buildRuleNodeStatusReport(
                 MergeInfo(nodeId, None, Some(expectedConfig.configId), expirationTime)
               , getExpectedReports(expectedConfig.configId)
-              , PendingReportType
+              , ReportType.Pending
             )
 
           case Some((runTime, runConfigId)) =>
@@ -626,6 +635,7 @@ object ExecutionBatch extends Loggable {
               , getExpectedReports(runConfigId.configId)
               , getExpectedReports(expectedConfig.configId)
               , missingReportStatus
+              , nodePolicyMode
             )
         }
 
@@ -636,7 +646,7 @@ object ExecutionBatch extends Loggable {
             //always be the same.
             MergeInfo(nodeId, None, Some(expectedConfigId.configId), END_OF_TIME)
           , getExpectedReports(expectedConfigId.configId)
-          , NoAnswerReportType
+          , ReportType.NoAnswer
         )
 
       case UnexpectedVersion(runTime, Some(runVersion), runExpiration, expectedVersion, expectedExpiration) =>
@@ -706,6 +716,7 @@ object ExecutionBatch extends Loggable {
       // we have a run but are not here. Basically, it's "missing" when on
       // full compliance and "success" when on changes only.
     , missingReportStatus            : ReportType
+    , nodePolicyMode                 : PolicyMode
   ): Set[RuleNodeStatusReport] = {
 
     val complianceForRun: Map[SerialedRuleId, RuleNodeStatusReport] = (for {
@@ -724,7 +735,8 @@ object ExecutionBatch extends Loggable {
                                      directive <- expectedReport.directives
                                      component <- directive.components
                                    } yield {
-                                     ((directive.directiveId, component.componentName), component)
+                                     val policyMode = directive.policyMode.getOrElse(nodePolicyMode)
+                                     ((directive.directiveId, component.componentName), (policyMode, component))
                                    }).toMap
 
                                    /*
@@ -737,7 +749,7 @@ object ExecutionBatch extends Loggable {
                                    val expectedKeys = expectedComponents.keySet
                                    val okKeys = reportKeys.intersect(expectedKeys)
 
-                                   val missing = expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), c) =>
+                                   val missing = expectedComponents.filterKeys(k => !reportKeys.contains(k)).map { case ((d,_), (m,c)) =>
                                      DirectiveStatusReport(d, Map(c.componentName ->
                                        /*
                                         * Here, we group by unexpanded component value, not expanded one. We want in the end:
@@ -765,8 +777,9 @@ object ExecutionBatch extends Loggable {
                                    )
 
                                    val expected = okKeys.map { k =>
+                                     val (policyMode, components) = expectedComponents(k)
                                      DirectiveStatusReport(k._1, Map(k._2 ->
-                                       checkExpectedComponentWithReports(expectedComponents(k), reports(k), missingReportStatus)
+                                       checkExpectedComponentWithReports(components, reports(k), missingReportStatus, policyMode)
                                      ))
                                    }
 
@@ -796,7 +809,7 @@ object ExecutionBatch extends Loggable {
       complianceForRun.get(k) match {
         case None => //the whole rule is new!
           //here, the reports are ACTUALLY pending, not missing.
-          val x = buildRuleNodeStatusReport(mergeInfo, Map(k -> expectedReport), PendingReportType)
+          val x = buildRuleNodeStatusReport(mergeInfo, Map(k -> expectedReport), ReportType.Pending)
           (c, n++x)
         case Some(complianceReport) => //use the already computed compliance
           (c:+complianceReport, n)
@@ -841,7 +854,7 @@ object ExecutionBatch extends Loggable {
     reports.map { r =>
       DirectiveStatusReport(r.directiveId, Map(r.component ->
         ComponentStatusReport(r.component, Map(r.keyValue ->
-          ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(UnexpectedReportType, r.message) :: Nil)
+          ComponentValueStatusReport(r.keyValue, r.keyValue, MessageStatusReport(ReportType.Unexpected, r.message) :: Nil)
         )))
       )
     }
@@ -902,6 +915,7 @@ object ExecutionBatch extends Loggable {
       expectedComponent: ComponentExpectedReport
     , filteredReports  : Seq[Reports]
     , noAnswerType     : ReportType
+    , policyMode       : PolicyMode //the one of the directive, or node, or global
   ) : ComponentStatusReport = {
 
     // First, filter out all the not interesting reports
@@ -926,7 +940,7 @@ object ExecutionBatch extends Loggable {
         ComponentValueStatusReport(
            unexpectedReport.keyValue
          , unexpectedReport.keyValue
-         , List(MessageStatusReport(UnexpectedReportType, unexpectedReport.message))
+         , List(MessageStatusReport(ReportType.Unexpected, unexpectedReport.message))
         )
       }
 
@@ -972,6 +986,7 @@ object ExecutionBatch extends Loggable {
             , unexpectedStatusReports.isEmpty
             , valueKind.none.size
             , noAnswerType
+            , policyMode
           ))
         , reports
         )
@@ -1000,6 +1015,7 @@ object ExecutionBatch extends Loggable {
           , unexpectedStatusReports.isEmpty
           , values.size
           , noAnswerType
+          , policyMode
         )
         (status, reports)
       }
@@ -1012,7 +1028,7 @@ object ExecutionBatch extends Loggable {
 
     // Find what reports matche what cfengine variables
 
-    val (cfeVarValues, lastReports) = extractCFVarsFromReports(valueKind.cfeVar, remainingReports.toList, noAnswerType)
+    val (cfeVarValues, lastReports) = extractCFVarsFromReports(valueKind.cfeVar, remainingReports.toList, noAnswerType, policyMode)
 
     // Finally, if we still got some reports, generate an unexpected report.
     /*
@@ -1022,7 +1038,7 @@ object ExecutionBatch extends Loggable {
      */
     val lastUnexpected = lastReports.groupBy(_.keyValue).map{
       case (value, reports) =>
-        val messageReports = reports.map(r => MessageStatusReport(UnexpectedReportType, r.message)).toList
+        val messageReports = reports.map(r => MessageStatusReport(ReportType.Unexpected, r.message)).toList
         ComponentValueStatusReport(value, value, messageReports)
     }
 
@@ -1054,6 +1070,7 @@ object ExecutionBatch extends Loggable {
       cfengineVars: List[(String, Pattern)]
     , allReports  : List[Reports]
     , noAnswerType: ReportType
+    , policyMode  : PolicyMode
   ) : (Seq[ComponentValueStatusReport], Seq[Reports]) = {
 
     /*
@@ -1112,7 +1129,7 @@ object ExecutionBatch extends Loggable {
            case ((unexpanded, _), optReport) :: tail =>
              optReport match {
                case Some(report) if(!usedReports.contains(report)) => //youhou, a new value
-                 val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(ReportType(report), report.message)))
+                 val v = ComponentValueStatusReport(unexpanded, unexpanded, List(report.toMessageStatusReport(policyMode)))
                  recPruneSimple(tail, usedReports + report, v :: builtValues)
                case _ =>
                  //here, either we don't have any reports matching the pattern, or the only possible reports was previously used => missing value for pattern
@@ -1164,7 +1181,7 @@ object ExecutionBatch extends Loggable {
             case report :: Nil =>
               // we have exactly one report for the pattern, best matches possible => we are sure to take that one,
               // so remove report from both available reports and multiMatches possible case
-              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(ReportType(report), report.message)))
+              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(report.toMessageStatusReport(policyMode)))
               val (newUsedReports, newMulti, newValues) = if(multiMatches.size > 0) {
                 recPruneMulti(List(report), multiMatches, List(), List())
               } else {
@@ -1201,7 +1218,7 @@ object ExecutionBatch extends Loggable {
               val v =  ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(noAnswerType, None)))
               recProcessMulti(tail, usedReports, v :: values)
             case report :: _ =>
-              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(MessageStatusReport(ReportType(report), report.message)))
+              val v = ComponentValueStatusReport(unexpanded, unexpanded, List(report.toMessageStatusReport(policyMode)))
               recProcessMulti(tail, report :: usedReports, v :: values)
           }
       }
@@ -1220,6 +1237,18 @@ object ExecutionBatch extends Loggable {
     }
   }
 
+
+  implicit class ToMessageStatusReport(r: Reports) {
+    // build the resulting reportType from a report, checking that the
+    // policy mode is the one expected
+    def toMessageStatusReport(mode: PolicyMode) = {
+      ReportType(r, mode) match {
+        case BadPolicyMode => MessageStatusReport(BadPolicyMode, s"PolicyMode is configured to ${mode.name} but we get: '${r.severity}': ${r.message}")
+        case x             => MessageStatusReport(x, r.message)
+      }
+    }
+  }
+
   /*
    * An utility method that fetches the proper status and messages
    * of a component value.
@@ -1234,27 +1263,22 @@ object ExecutionBatch extends Loggable {
     , noUnexpectedReports : Boolean
     , cardinality         : Int
     , noAnswerType        : ReportType
+    , policyMode          : PolicyMode
   ) : ComponentValueStatusReport = {
 
     val messageStatusReports = {
-       filteredReports.filter( x => x.isInstanceOf[ResultErrorReport]).size match {
-          case i if i > 0 =>
-            filteredReports.map(r => MessageStatusReport(ErrorReportType, r.message)).toList
-          case _ => {
-            filteredReports.size match {
-              /* Nothing was received at all for that component so : No Answer or Pending */
-              case 0 if noUnexpectedReports =>
-                MessageStatusReport(noAnswerType, None) :: Nil
-              case x if(x <= cardinality) =>
-                filteredReports.map { r => MessageStatusReport(ReportType(r), r.message) }.toList ++
-                /* We need to complete the list of correct with missing, if some are missing */
-                (x until cardinality).map( i => MessageStatusReport(MissingReportType, s"[Missing report #${i}]")).toList
-              //check if cardinality is ok
-              case x if(x > cardinality) =>
-                filteredReports.map { r => MessageStatusReport(UnexpectedReportType, r.message) }.toList
-            }
-          }
-        }
+      filteredReports.size match {
+        /* Nothing was received at all for that component so : No Answer or Pending */
+        case 0 if noUnexpectedReports =>
+          MessageStatusReport(noAnswerType, None) :: Nil
+        case x if(x <= cardinality) =>
+          filteredReports.map(_.toMessageStatusReport(policyMode)).toList ++
+          /* We need to complete the list of correct with missing, if some are missing */
+          (x until cardinality).map( i => MessageStatusReport(ReportType.Missing, s"[Missing report #${i}]")).toList
+        //check if cardinality is ok
+        case x if(x > cardinality) =>
+          filteredReports.map { r => MessageStatusReport(ReportType.Unexpected, r.message) }.toList
+      }
     }
 
     /*

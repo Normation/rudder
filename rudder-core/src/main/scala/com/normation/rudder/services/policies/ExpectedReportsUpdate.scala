@@ -60,6 +60,7 @@ import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 
 /**
  * The purpose of that service is to handle the update of
@@ -81,6 +82,7 @@ trait ExpectedReportsUpdate {
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
     , overrides         : Set[UniqueOverrides]
+    , directivesLib     : FullActiveTechniqueCategory
   ) : Box[Seq[RuleExpectedReports]]
 
 }
@@ -144,6 +146,7 @@ class ExpectedReportsUpdateImpl(
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
     , overrides         : Set[UniqueOverrides]
+    , directivesLib     : FullActiveTechniqueCategory
 ) : Box[Seq[RuleExpectedReports]] = {
 
 
@@ -201,7 +204,7 @@ class ExpectedReportsUpdateImpl(
     logger.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
 
     for (closable <- allClosable) {
-      confExpectedRepo.closeExpectedReport(closable, generationTime)
+      confExpectedRepo.closeExpectedReport(directivesLib, closable, generationTime)
     }
 
     // Now I need to unfold the configuration to create, so that I get for a given
@@ -216,6 +219,7 @@ class ExpectedReportsUpdateImpl(
                seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
                           DirectiveExpectedReports(
                               directive.directiveId
+                            , directivesLib.allDirectives.get(directive.directiveId).flatMap(_._2.policyMode)
                             , Seq(
                                 ComponentExpectedReport(
                                     componentName
@@ -251,7 +255,7 @@ class ExpectedReportsUpdateImpl(
 
     for {
       createdExpectedReports   <- sequence(groupedContent) { case ((ruleId, serial, nodeConfigIds), directives) =>
-                                    confExpectedRepo.saveExpectedReports(ruleId, serial, generationTime, directives, nodeConfigIds)
+                                    confExpectedRepo.saveExpectedReports(ruleId, serial, generationTime, directives, nodeConfigIds, directivesLib)
                                   }
       //we want to save updatedNodeConfiguration that were not already saved
       //in expected reports.

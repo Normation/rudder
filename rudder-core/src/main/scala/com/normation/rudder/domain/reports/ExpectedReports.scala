@@ -44,6 +44,7 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.reports.execution.AgentRunId
 import com.normation.utils.HashcodeCaching
 import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.PolicyMode
 
 
 /**
@@ -97,6 +98,7 @@ case class DirectivesOnNodes(
  */
 final case class DirectiveExpectedReports (
     directiveId: DirectiveId
+  , policyMode : Option[PolicyMode]
   , components : Seq[ComponentExpectedReport]
 ) extends HashcodeCaching
 

@@ -1397,19 +1397,27 @@ function buildComplianceBar(compliance, minPxSize) {
     compliance[index] = compliance[index] - toRemove;
   }
 
-  var reportsDisabled = compliance[0];
-  var notApplicable   = compliance[1];
-  var success         = compliance[2];
-  var repaired        = compliance[3];
-  var error           = compliance[4];
-  var pending         = compliance[5];
-  var noreport        = compliance[6];
-  var missing         = compliance[7];
-  var unknown         = compliance[8];
+  var reportsDisabled      = compliance[0];
+  var enforceNotApplicable = compliance[1];
+  var enforceSuccess       = compliance[2];
+  var repaired             = compliance[3];
+  var enforceError         = compliance[4];
+  var pending              = compliance[5];
+  var noreport             = compliance[6];
+  var missing              = compliance[7];
+  var unknown              = compliance[8];
+  var auditNotApplicable   = compliance[9];
+  var compliant            = compliance[10];
+  var nonCompliant         = compliance[11];
+  var auditError           = compliance[12];
+  var badPolicyMode        = compliance[13];
 
+  var notApplicable = enforceNotApplicable + auditNotApplicable;
+  var success = enforceSuccess + compliant;
   var okStatus = success + repaired + notApplicable;
-  var unexpected = missing + unknown;
-
+  var unexpected = missing + unknown + badPolicyMode;
+  var error = enforceError + auditError + nonCompliant;
+  
   var widthArr = getWidthProgressBar([
                      /*0*/ okStatus
                    , /*1*/ pending
@@ -1421,14 +1429,20 @@ function buildComplianceBar(compliance, minPxSize) {
 
   if(okStatus != 0) {
     var text = []
-    if (success != 0) {
-      text.push("Success: "+success+"%");
+    if (enforceSuccess != 0) {
+      text.push("Success (enforce): "+enforceSuccess+"%");
+    }
+    if (compliant != 0) {
+      text.push("Compliant: "+compliant+"%");
     }
     if (repaired != 0) {
       text.push("Repaired: "+repaired+"%");
     }
-    if (notApplicable != 0) {
-      text.push("Not applicable: "+notApplicable+"%");
+    if (enforceNotApplicable != 0) {
+      text.push("Not applicable (enforce): "+enforceNotApplicable+"%");
+    }
+    if (auditNotApplicable != 0) {
+      text.push("Not applicable (audit): "+auditNotApplicable+"%");
     }
     var value = compliancePercentValue(okStatus);
     content.append('<div class="progress-bar progress-bar-success" style="width:'+widthArr[0]+'" title="'+text.join("\n")+'">'+value+'%</div>');
@@ -1452,13 +1466,23 @@ function buildComplianceBar(compliance, minPxSize) {
     if (unknown != 0) {
       text.push("Unknown reports: "+unknown+"%");
     }
+    if (badPolicyMode != 0) {
+      text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode+"%");
+    }
     var value = compliancePercentValue(unexpected);
     content.append('<div class="progress-bar progress-bar-unknown" style="width:'+widthArr[3]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
 
   if(error != 0) {
+    var text = []
+    if (enforceError != 0) {
+      text.push("Errors (enforce): "+enforceError+"%");
+    }
+    if (unknown != 0) {
+      text.push("Errors (audit) and non compliance: "+(auditError+nonCompliant)+"%");
+    }
     var value = compliancePercentValue(error);
-    content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[4]+'" title="Error: '+error+'%">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[4]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
 
   if(reportsDisabled != 0) {
