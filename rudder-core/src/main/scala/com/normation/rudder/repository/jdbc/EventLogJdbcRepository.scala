@@ -224,7 +224,8 @@ class EventLogJdbcRepository(
     val limit = optLimit.map(l => s" limit ${l}").getOrElse("")
 
     val q = s"""
-      select crid, eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      select eventtype, id, modificationid, principal, creationdate, causeid, severity, reason, data
+      from eventlog
       ${where} ${order} ${limit}
     """
 

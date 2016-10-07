@@ -259,7 +259,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       val queryForMaxId = "select max(id) as id from RudderSysEvents where id > ? and executionTimeStamp < ?"
 
       (for {
-        res <- Query[(Long, DateTime), Long](queryForMaxId, None).toQuery0((fromId, endDate)).option
+        res <- Query[(Long, DateTime), Option[Long]](queryForMaxId, None).toQuery0((fromId, endDate)).unique
       } yield {
         //sometimes, max on postgres return 0
         scala.math.max(fromId, res.getOrElse(0L))
