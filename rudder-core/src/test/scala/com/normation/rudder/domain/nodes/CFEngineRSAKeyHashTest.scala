@@ -46,15 +46,14 @@ import com.normation.inventory.domain.PublicKey
 @RunWith(classOf[JUnitRunner])
 class CFEngineRSAKeyHashTest extends Specification with Loggable {
 
+  // Keys are sanitized in LDAP, we remove header and footer
   val key = PublicKey("""
------BEGIN RSA PUBLIC KEY-----
 MIIBCAKCAQEAv76gYG9OaFpc0eBeUXDM3WsRWyuHco3DpWnKrrpqQwylpEH26gRb
 cu/L5KWc1ihj1Rv/AU3dkQL5KdXatSrWOLUMmYcQc5DYSnZacbdHIGLn11w1PHsw
 9P2pivwQyIF3k4zqANtlZ3iZN4AXZpURI4VVhiBYPwZ4XgHPibcuJHiyNyymiHpT
 HX9H0iaEIwyJMPjzRH+piFRmSeUylHfQLqb6AkD3Dg3Nxe9pbxNbk1saqgHFF4kd
 Yh3O5rVto12XqisGWIbsmsT0XFr6V9+/sde/lpjI4AEcHR8oFYX5JP9/SXPuRJfQ
 lEl8vn5PHTY0mMrNAcM7+rzpkOW2c7b8bwIBIw==
------END RSA PUBLIC KEY-----
 """)
 
   val expected = "8d3270d42486e8d6436d06ed5cc5034f"
