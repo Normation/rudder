@@ -516,7 +516,7 @@ object ComplianceData extends Loggable {
     val valuesComplianceData = for {
       value <- values
     } yield {
-      val severity = ReportType.getWorseType(value.messages.map( _.reportType))
+      val severity = ReportType.getWorseType(value.messages.map( _.reportType)).severity
       val status = getDisplayStatusFromSeverity(severity)
       val key = value.unexpandedComponentValue
       val messages = value.messages.map(x => (x.reportType.severity, x.message.getOrElse("")))

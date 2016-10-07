@@ -307,16 +307,22 @@ object JsonCompliance {
   }
 
   private[this] def statusDisplayName(r: ReportType): String = {
+    import ReportType._
+
     r match {
-      case NotApplicableReportType => "successNotApplicable"
-      case SuccessReportType => "successAlreadyOK"
-      case RepairedReportType => "successRepaired"
-      case ErrorReportType => "error"
-      case UnexpectedReportType => "unexpectedUnknownComponent"
-      case MissingReportType => "unexpectedMissingComponent"
-      case NoAnswerReportType => "noReport"
-      case DisabledReportType => "reportsDisabled"
-      case PendingReportType => "applying"
+      case EnforceNotApplicable => "successNotApplicable"
+      case EnforceSuccess => "successAlreadyOK"
+      case EnforceRepaired => "successRepaired"
+      case EnforceError => "error"
+      case AuditCompliant => "auditCompliant"
+      case AuditNonCompliant => "auditNonCompliant"
+      case AuditError => "auditError"
+      case AuditNotApplicable => "auditNotApplicable"
+      case Unexpected => "unexpectedUnknownComponent"
+      case Missing => "unexpectedMissingComponent"
+      case NoAnswer => "noReport"
+      case Disabled => "reportsDisabled"
+      case Pending => "applying"
     }
   }
 
@@ -328,17 +334,19 @@ object JsonCompliance {
    *
    */
   private[this] def percents(c: ComplianceLevel): Map[String, Double] = {
+    import ReportType._
+
     //we want at most two decimals
     Map(
-        statusDisplayName(NotApplicableReportType) -> c.pc_notApplicable
-      , statusDisplayName(SuccessReportType) -> c.pc_success
-      , statusDisplayName(RepairedReportType) -> c.pc_repaired
-      , statusDisplayName(ErrorReportType) -> c.pc_error
-      , statusDisplayName(UnexpectedReportType) -> c.pc_unexpected
-      , statusDisplayName(MissingReportType) -> c.pc_missing
-      , statusDisplayName(NoAnswerReportType) -> c.pc_noAnswer
-      , statusDisplayName(DisabledReportType) -> c.pc_reportsDisabled
-      , statusDisplayName(PendingReportType) -> c.pc_pending
+        statusDisplayName(EnforceNotApplicable) -> c.pc_notApplicable
+      , statusDisplayName(EnforceSuccess) -> c.pc_success
+      , statusDisplayName(EnforceRepaired) -> c.pc_repaired
+      , statusDisplayName(EnforceError) -> c.pc_error
+      , statusDisplayName(Unexpected) -> c.pc_unexpected
+      , statusDisplayName(Missing) -> c.pc_missing
+      , statusDisplayName(NoAnswer) -> c.pc_noAnswer
+      , statusDisplayName(Disabled) -> c.pc_reportsDisabled
+      , statusDisplayName(Pending) -> c.pc_pending
     ).filter { case(k, v) => v > 0 }.mapValues(percent => percent )
   }
 }

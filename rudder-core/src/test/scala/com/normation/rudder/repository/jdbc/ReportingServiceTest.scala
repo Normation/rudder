@@ -94,6 +94,7 @@ import com.normation.BoxSpecMatcher
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
+  import ReportType._
   import doobie._
 
   //clean data base
@@ -387,8 +388,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -399,8 +400,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -409,8 +410,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -420,16 +421,16 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
 
           //here, it just works as expected
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
       )
@@ -457,7 +458,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
           nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -467,7 +468,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -475,7 +476,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -483,12 +484,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
 
@@ -518,8 +519,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -529,8 +530,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -539,8 +540,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -550,14 +551,14 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
       )
@@ -579,7 +580,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       val expected = Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -587,22 +588,22 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
 
@@ -634,13 +635,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
         , nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
       ))
@@ -653,8 +654,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.byRules("r0").reports, Seq(
           nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -668,8 +669,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -683,8 +684,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -698,13 +699,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
       ))
@@ -724,8 +725,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -738,13 +739,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
       ))
@@ -768,8 +769,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -783,8 +784,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -797,13 +798,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
       ))
@@ -857,7 +858,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     val v = values.map { case(value, tpe, msgs) =>
       val messages = msgs.map(m => MessageStatusReport(tpe, m))
       tpe match {
-        case UnexpectedReportType => ComponentValueStatusReport(value, "None", messages)
+        case Unexpected => ComponentValueStatusReport(value, "None", messages)
         case _ => ComponentValueStatusReport(value, value, messages)
       }
     }
