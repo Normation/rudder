@@ -63,6 +63,7 @@ import com.normation.rudder.reports.SyslogProtocol
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.web.components.popup.ModificationValidationPopup.Enable
 import com.normation.rudder.domain.appconfig.FeatureSwitch._
+import com.normation.rudder.web.components.AgentPolicyModeEditForm
 
 /**
  * This class manage the displaying of user configured properties.
@@ -87,6 +88,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
     case "workflow"      => workflowConfiguration
     case "denyBadClocks" => cfserverNetworkConfiguration
     case "cfagentSchedule" => (xml) => cfagentScheduleConfiguration
+    case "agentPolicyMode" => (xml) => agentPolicyModeConfiguration
     case "complianceMode" => (xml) => complianceModeConfiguration
     case "cfengineGlobalProps" => cfengineGlobalProps
     case "loggingConfiguration" => loggingConfiguration
@@ -557,7 +559,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       , globalMode
     )
   }
-
+  val agentPolicyModeEditForm = {
+    new AgentPolicyModeEditForm()
+  }
   def getSchedule() : Box[AgentRunInterval] = {
     for {
       starthour <- configService.agent_run_start_hour
@@ -589,6 +593,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
   }
 
   def cfagentScheduleConfiguration = agentScheduleEditForm.cfagentScheduleConfiguration
+  def agentPolicyModeConfiguration = agentPolicyModeEditForm.cfagentPolicyModeConfiguration
   def complianceModeConfiguration = complianceModeEditForm.complianceModeConfiguration
 
   def cfengineGlobalProps = { xml : NodeSeq =>

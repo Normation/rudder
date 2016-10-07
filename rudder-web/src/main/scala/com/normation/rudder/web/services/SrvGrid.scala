@@ -65,6 +65,10 @@ import com.normation.inventory.domain.VirtualMachineType
 import com.normation.inventory.domain.PhysicalMachineType
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides._
+import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.rudder.domain.policies.PolicyMode._
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -87,7 +91,8 @@ object SrvGrid {
  */
 class SrvGrid(
     roAgentRunsRepository : RoReportsExecutionRepository
-  , asyncComplianceService : AsyncComplianceService
+  , asyncComplianceService: AsyncComplianceService
+  , configService         : ReadConfigService
 ) extends Loggable {
 
   private def templatePath = List("templates-hidden", "srv_grid")
@@ -113,7 +118,16 @@ class SrvGrid(
     , callback : Option[(String, Boolean) => JsCmd] = None
     , refreshNodes : Option[ () => Seq[NodeInfo]] = None
    ) : NodeSeq = {
-    tableXml( tableId) ++ Script(OnLoad(initJs(tableId,nodes,callback,refreshNodes)))
+    val script = {
+      configService.rudder_global_policy_mode() match {
+        case Full(globalPolicyMode) => Script(OnLoad(initJs(tableId,nodes,globalPolicyMode,callback,refreshNodes)))
+        case eb : EmptyBox =>
+          val fail = eb ?~! "Could not find global policy Mode"
+          logger.error(fail.messageChain)
+          NodeSeq.Empty
+      }
+    }
+    tableXml(tableId) ++ script
   }
 
   /**
@@ -125,16 +139,21 @@ class SrvGrid(
   def initJs(
       tableId  : String
     , nodes    : Seq[NodeInfo]
+    , globalPolicyMode : GlobalPolicyMode
     , callback : Option[(String, Boolean) => JsCmd]
     , refreshNodes : Option[ () => Seq[NodeInfo]]
   ) : JsCmd = {
 
     val data = getTableData(nodes,callback)
 
+    val globalOverride = globalPolicyMode.overridable match {
+      case Always => true
+      case Unoverridable => false
+    }
+    val objGlobalPolicyMode = JsObj(("override"->globalOverride), ("policyMode"->globalPolicyMode.mode.name))
     val refresh = refreshNodes.map(refreshData(_,callback,tableId).toJsCmd).getOrElse("undefined")
 
-    JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh});""")
-
+    JsRaw(s"""createNodeTable("${tableId}",${data.json.toJsCmd},"${S.contextPath}",${refresh}, ${objGlobalPolicyMode});""")
   }
 
   def getTableData (
@@ -151,8 +170,9 @@ class SrvGrid(
 
     val lines = (for {
       lastReports <- runs
+      globalMode  <- configService.rudder_global_policy_mode()
     } yield {
-      nodes.map(node => NodeLine(node,lastReports.get(node.id), callback))
+      nodes.map(node => NodeLine(node,lastReports.get(node.id), callback, globalMode))
     }) match {
       case eb: EmptyBox =>
         val msg = "Error when trying to get nodes info"
@@ -211,7 +231,19 @@ case class NodeLine (
     node       : NodeInfo
   , lastReport : Box[Option[AgentRun]]
   , callback   : Option[(String, Boolean) => JsCmd]
+  , globalMode : GlobalPolicyMode
 ) extends JsTableLine {
+
+  val (policyMode,explanation) =
+      (globalMode.overridable,node.policyMode) match {
+        case (Always,Some(Enforce)) | (Always,Some(Verify)) =>
+          (node.policyMode.getOrElse(globalMode.mode),"<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>")
+        case (Always,_) =>
+          val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
+          (node.policyMode.getOrElse(globalMode.mode), expl)
+        case (Unoverridable,_) =>
+          (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+      }
 
   val optCallback = {
     callback.map(cb => ("callback", AnonFunc("displayCompliance", ajaxCall(JsVar("displayCompliance"), s =>
@@ -248,6 +280,8 @@ case class NodeLine (
      , ( "osName") -> S.?(s"os.name.${node.osDetails.os.name}")
      , ( "osVersion" -> node.osDetails.version.value)
      , ( "servicePack" -> node.osDetails.servicePack.getOrElse("N/A"))
+     , ( "agentPolicyMode" -> policyMode.toString)
+     , ( "explanation" -> explanation.toString)
      , ( "lastReport" ->  lastReportValue )
      )
   }

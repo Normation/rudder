@@ -93,6 +93,9 @@ div.innerDetails {
  width:50%;
  padding:10px;
 }
+#node_parameters{
+  padding: 10px;
+}
 
 table.nomargin {
  margin: 0px;
@@ -421,7 +424,9 @@ Tableau
 #grid_rules_grid_zone {
   width:100%;
 }
-
+#grid_rules_grid_zone .tw-bs a{
+  color:#333;
+}
 #acceptNodeGrid_wrapper {
   margin: 10px;
 }
@@ -506,7 +511,7 @@ table.dataTable td img, table.dataTable th img {
 }
 
 .field_errors, .error, .errors {
-  color: red;
+  color: #c00800;
 }
 
 .field_errors {
@@ -2150,10 +2155,17 @@ div.topQuickSearchResults.ac_results {
 }
 
 .treeActiveTechniqueName , .treeActiveTechniqueCategoryName , .treeGroupCategoryName, .treeRuleCategoryName {
-  font-weight: 600;
   color: #555
 }
 
+span.treeDirective.tooltipable {
+  color: #555;
+  font-weight: 600;
+}
+
+i.jstree-icon.jstree-themeicon.fa.fa-file-text.jstree-themeicon-custom {
+  color: #555;
+}
 
 li.disableTreeNode > a.jstree-anchor {
   color: #999;

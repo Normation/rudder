@@ -70,6 +70,7 @@ import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.NodeComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 object ShowNodeDetailsFromNode {
 
@@ -148,12 +149,14 @@ class ShowNodeDetailsFromNode(
     }
   }
 
-   def agentScheduleEditForm = new AgentScheduleEditForm(
-        () => getSchedule
-      , saveSchedule
-      , () => Unit
-      , () => Some(getGlobalSchedule)
-    )
+  def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
+
+  def agentScheduleEditForm = new AgentScheduleEditForm(
+     () => getSchedule
+     , saveSchedule
+     , () => Unit
+     , () => Some(getGlobalSchedule)
+   )
 
   def getGlobalSchedule() : Box[AgentRunInterval] = {
     for {
@@ -224,11 +227,19 @@ class ShowNodeDetailsFromNode(
             val jsId = JsNodeId(nodeId,"")
             def htmlId(jsId:JsNodeId, prefix:String="") : String = prefix + jsId.toString
             val detailsId = htmlId(jsId,"details_")
-            bindNode(node, sm, withinPopup,displayCompliance) ++ Script(OnLoad(
-              DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
-              OnLoad(buildJsTree(groupTreeId) &
-              JsRaw(s"""$$( "#${detailsId}" ).tabs({ active : ${tab} } )"""))
-            ))
+            configService.rudder_global_policy_mode() match {
+              case Full(globalMode) =>
+
+                bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(OnLoad(
+                  DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
+                  OnLoad(buildJsTree(groupTreeId) &
+                  JsRaw(s"""$$( "#${detailsId}" ).tabs({ active : ${tab} } )"""))
+                ))
+              case e:EmptyBox =>
+                val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
+                logger.error(msg, e)
+                <div class="error">{msg}</div>
+            }
           case e:EmptyBox =>
             val msg = "Can not find inventory details for node with ID %s".format(node.id.value)
             logger.error(msg, e)
@@ -242,17 +253,18 @@ class ShowNodeDetailsFromNode(
    * @param server
    * @return
    */
-  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean) : NodeSeq = {
+  private def bindNode(node : NodeInfo, inventory: FullInventory, withinPopup : Boolean , displayCompliance: Boolean, globalMode : GlobalPolicyMode) : NodeSeq = {
     val id = JsNodeId(node.id)
     ( "#node_name " #> s"${inventory.node.main.hostname} (last updated ${ inventory.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")})" &
       "#node_groupTree" #>
         <div id={groupTreeId} class="tw-bs">
           <ul>{DisplayNodeGroupTree.buildTreeKeepingGroupWithNode(groupLib, node, None, None, Map(("info", _ => Noop)))}</ul>
         </div> &
-      "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some(node.creationDate), AcceptedInventory, isDisplayingInPopup = withinPopup) &
+      "#nodeDetails" #> DisplayNode.showNodeDetails(inventory, Some((node, globalMode)), Some(node.creationDate),  AcceptedInventory, isDisplayingInPopup = withinPopup) &
       "#nodeInventory *" #> DisplayNode.show(inventory, false) &
       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
       "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
+      "#node_parameters -*" #>  agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
       "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
       "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
       "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &

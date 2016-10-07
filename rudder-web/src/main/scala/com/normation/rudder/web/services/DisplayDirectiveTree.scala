@@ -65,6 +65,14 @@ import net.liftweb.http.js.JE.JsRaw
 import net.liftweb.http.S
 import com.normation.cfclerk.domain.Technique
 import com.normation.rudder.web.model.JsInitContextLinkUtil._
+import bootstrap.liftweb.RudderConfig
+import net.liftweb.common.Full
+import net.liftweb.common.EmptyBox
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode.Verify
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
 
 /**
  *
@@ -80,6 +88,7 @@ object DisplayDirectiveTree extends Loggable {
    */
   def displayTree(
       directiveLib    : FullActiveTechniqueCategory
+    , globalMode      : GlobalPolicyMode
       //set of all directives at least used by one rule
       //the int is the number of rule which used it
     , usedDirectiveIds: Seq[(DirectiveId, Int)]
@@ -193,10 +202,12 @@ object DisplayDirectiveTree extends Loggable {
     }
 
     def displayDirective(
-        directive : Directive
-      , technique : Option[Technique]
-      , onClickDirective: Option[Directive => JsCmd]
+        directive        : Directive
+      , technique        : Option[Technique]
+      , onClickDirective : Option[Directive => JsCmd]
     ) : JsTreeNode = new JsTreeNode {
+
+      private[this] val configService  = RudderConfig.configService
 
       val isAssignedTo = usedDirectiveIds.find{ case(id,_) => id == directive.id }.map(_._2).getOrElse(0)
 
@@ -213,7 +224,6 @@ object DisplayDirectiveTree extends Loggable {
                   ( "id" -> htmlId) ::
                   ("class" -> classes ) ::
                   Nil
-
       )
 
       override def body = {
@@ -241,9 +251,21 @@ object DisplayDirectiveTree extends Loggable {
         }
 
         val xml  = {
+          val (policyMode,explanation) =
+              (globalMode.overridable,directive.policyMode) match {
+                case (Always,Some(mode)) =>
+                  (mode,"<p>This mode is an override applied to this directive. You can change it in the <i><b>directive's settings</b></i>.</p>")
+                case (Always,None) =>
+                  val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this directive in the <i><b>directive's settings</b></i>.</p>"""
+                  (globalMode.mode, expl)
+                case (Unoverridable,_) =>
+                  (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+              }
+
           val tooltipId = Helpers.nextFuncName
-          <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" >[{directive.techniqueVersion.toString}] {directive.name}
+          <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" ><span id={"badge-apm-"+tooltipId}>[BADGE]</span>[{directive.techniqueVersion.toString}] {directive.name}
           {
+          	  
               if(isAssignedTo <= 0) {
                 <span style="padding-left:5px" class="fa fa-warning text-warning-rudder"></span>
               } else {
@@ -251,6 +273,7 @@ object DisplayDirectiveTree extends Loggable {
               }
           }
           </span>  ++
+          Script(JsRaw(s"""$$('#badge-apm-${tooltipId}').replaceWith(createBadgeAgentPolicyMode('directive',"${policyMode}", "${explanation.toString()}"))""")) ++
           deprecated ++
           editButton ++
           <div class="tooltipContent" id={tooltipId}>
@@ -260,8 +283,9 @@ object DisplayDirectiveTree extends Loggable {
             <div>{s"Used in ${isAssignedTo} rules" }</div>
               { if(!directive.isEnabled) <div>Disable</div> }
             </div>
+            
         }
-
+        
         onClickDirective match {
           case None                     => <a style="cursor:default">{xml}</a>
           case _ if(directive.isSystem) => <a style="cursor:default">{xml}</a>
@@ -271,7 +295,6 @@ object DisplayDirectiveTree extends Loggable {
     }
 
     displayCategory(directiveLib, "jstn_0").toXml
-
   }
 
 }
