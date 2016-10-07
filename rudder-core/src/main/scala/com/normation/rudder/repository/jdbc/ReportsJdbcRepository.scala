@@ -66,7 +66,6 @@ import com.normation.rudder.db.Doobie._
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.DB
 
-
 class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Loggable {
   import doobie._
 
@@ -385,7 +384,6 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
     }
   }
 
-
   override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
     query[ResultRepairedReport](s"""
       ${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
@@ -404,7 +402,6 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}
     """).vector.attempt.transact(xa).run
   }
-
 
   override def getReportsByKindBeetween(lower: Long, upper: Long, limit: Int, kinds: List[String]) : Box[Seq[(Long,Reports)]] = {
     if (lower>=upper)

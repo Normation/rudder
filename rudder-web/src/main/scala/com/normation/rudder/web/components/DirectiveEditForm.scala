@@ -70,8 +70,9 @@ import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
 import com.normation.rudder.web.rest.node.SettingsAPI8
 import com.normation.rudder.web.rest.node.SettingsApi
-import com.normation.rudder.domain.policies.PolicyMode.Verify
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
 
 object DirectiveEditForm {
 
@@ -431,26 +432,26 @@ class DirectiveEditForm(
     }
     s"${version} ${deprecationInfo}"
   }
-  private[this] val globalOverrideText = configService.rudder_policy_overridable().getOrElse("") match {
-    case true  =>
+  private[this] val globalOverrideText = globalMode.overridable match {
+    case Always  =>
       <div>
         You may override the agent policy mode on this directive.
         If set to <b>Audit</b> this directive will never be enforced.
         If set to <b>Enforce</b> this directive will appply necessary changes except on Nodes with a <b>Verify</b> override setting.
       </div>
-    case false =>
+    case Unoverridable =>
       <p>
         Currrent global settings do not allow this mode to be overriden on a per-directive bases. You may change this in <b>Settings</b>,
         or contact your Rudder administrator about this.
       </p>
   }
     private[this] val policyModes = {
-      val globalPolicyModeName = configService.rudder_policy_mode_name().getOrElse("error").toString
-      val policyName = directive.policyMode match {
-        case None => globalPolicyModeName
-        case _ => directive.policyMode.getOrElse("error").toString
-      }
-      val l = Seq(None -> s"Use global default mode (currently ${globalPolicyModeName})", Some(Enforce) -> "Override to Enforce", Some(Verify) -> "Override to Audit")
+      val policyName = directive.policyMode.getOrElse(globalMode.mode).name
+      val l = Seq(
+          None -> s"Use global default mode (currently ${globalMode.mode.name})"
+        , Some(Enforce) -> "Override to Enforce"
+        , Some(Audit) -> "Override to Audit"
+      )
       new WBSelectObjField(
         "Policy mode"
       , l
@@ -470,7 +471,7 @@ class DirectiveEditForm(
               </ol>
               <p>
                 By default all nodes and all directives operate in the global default mode defined in
-                <b> Settings</b>, which is currently <b>{globalPolicyModeName}</b>.
+                <b> Settings</b>, which is currently <b>{globalMode.mode.name}</b>.
               </p>
               {globalOverrideText}
             </div>

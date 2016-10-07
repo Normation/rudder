@@ -638,33 +638,44 @@ case class RestExtractorService (
    * ,  {"name":"plop", "value":"plop" }
    * ] }
    */
+
+  private[this] def extractNodeProperty(json : JValue) : Box[NodeProperty] = {
+    json match {
+      case JObject(JField("name", JString(nameValue)):: JField("value", value) :: Nil) =>
+        Full(NodeProperty(nameValue, value))
+      case _  =>
+        Failure(s"""Error when trying to parse new property: '${compact(render(json))}'. The awaited format is: {"name": string, "value": json}""")
+    }
+
+  }
   def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNodeProperties] = {
     import com.normation.utils.Control.sequence
-
     for {
       props <- json \ "properties" match {
         case JArray(props) => Full(props)
         case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
       }
-      seq   <- sequence(props) { p =>
-                 p match {
-                   case JObject(JField("name", JString(nameValue)):: JField("value", value) :: Nil) =>
-                     Full(NodeProperty(nameValue, value))
-                   case _  => Failure(s"""Error when trying to parse new property: '${compact(render(p))
-                                          }'. The awaited format is: {"name": string, "value": json}""")
-                 }
-               }
+      seq   <- sequence(props) { extractNodeProperty}
     } yield {
       RestNodeProperties(Some(seq))
     }
   }
 
+  def extractNodePropertiesFromJSON (json : JValue) : Box[Option[Seq[NodeProperty]]] = {
+    import com.normation.utils.Control.sequence
+    json \ "properties" match {
+        case JArray(props) => sequence(props){extractNodeProperty}.map(Some(_))
+        case JNothing      => Full(None)
+        case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
+    }
+  }
+
   def extractNodeFromJSON (json : JValue) : Box[RestNode] = {
     for {
-      properties <- extractNodePropertiesrFromJSON(json)
+      properties <- extractNodePropertiesFromJSON(json)
       mode       <- extractOneValueJson(json, "policyMode")(PolicyMode.parseDefault)
     } yield {
-      RestNode(properties.properties,mode)
+      RestNode(properties,mode)
     }
   }
 

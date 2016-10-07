@@ -81,6 +81,7 @@ class NodeAPI8 (
           response
         case eb : EmptyBox =>
           val fail = eb ?~! s"An error occured while updating Node '${id}'"
+          logger.error(fail.messageChain)
           toJsonError(Some(id), fail.messageChain)
       }
     }
