@@ -361,6 +361,7 @@ class SystemVariableServiceImpl(
         , varManagedNodesId
         , varManagedNodesAdmin
         , varManagedNodesIp
+        , varManagedNodesKey
         , varReportsDBname
         , varReportsDBuser
       ) map (x => (x.spec.name, x))
