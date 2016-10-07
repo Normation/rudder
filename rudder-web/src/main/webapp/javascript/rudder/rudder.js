@@ -602,10 +602,9 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var nodeOrDirective = isNode ? "node" : "directive";
   var labelType = "label-"+policyMode;
-  var policyName = policyMode == "verify" ? "audit" : policyMode
   var span = "<span class='label-text " + labelType + " glyphicon glyphicon-question-sign' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>"
   var badge = $(span).get(0);
-  var tooltip = policyModeTooltip(nodeOrDirective, policyName, explanation);
+  var tooltip = policyModeTooltip(nodeOrDirective, policyMode, explanation);
   badge.setAttribute("title", tooltip);
   return badge;
 }
@@ -613,10 +612,9 @@ function createTextAgentPolicyMode(isNode, currentPolicyMode, explanation){
 function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
   var policyMode = currentPolicyMode.toLowerCase();
   var labelType  = "label-"+policyMode;
-  var policyName = policyMode == "verify" ? "audit" : policyMode;
   var span = "<span class='rudder-label label-sm "+ labelType +"' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>";
   var badge = $(span).get(0);
-  var tooltip = policyModeTooltip(elmnt, policyName, explanation);
+  var tooltip = policyModeTooltip(elmnt, policyMode, explanation);
   badge.setAttribute("title", tooltip);
   return badge;
 }
@@ -624,7 +622,7 @@ function createBadgeAgentPolicyMode(elmnt, currentPolicyMode, explanation){
 function getBadgePolicyMode(data){
   var enforce = audit = false;
   for (rule in data){
-    if((data[rule].policyMode=="verify")&&(!audit)){
+    if((data[rule].policyMode=="audit")&&(!audit)){
       audit = true;
     }else if((data[rule].policyMode=="enforce")&&(!enforce)){
       enforce = true;
@@ -642,12 +640,7 @@ function getBadgePolicyMode(data){
 function createBadgeAgentPolicyModeMixed(data){
   var rules = data.details;
   var badgePolicyMode = getBadgePolicyMode(rules);
-  var labelType = "label-";
-  if(badgePolicyMode == "audit"){
-    labelType += "verify";
-  }else{
-    labelType += badgePolicyMode;
-  }
+  var labelType = "label-"+badgePolicyMode;
   var span = "<span class='rudder-label "+ labelType +" label-sm' data-toggle='tooltip' data-placement='top' data-html='true' title=''></span>"
   var badge = $(span).get(0);
   var tooltip = policyModeTooltip('policy', badgePolicyMode, '');

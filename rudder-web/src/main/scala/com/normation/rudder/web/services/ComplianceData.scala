@@ -58,10 +58,7 @@ import com.normation.rudder.web.components.DateFormaterService
 import org.joda.time.Interval
 import com.normation.rudder.services.reports.NodeChanges
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyMode.Verify
-
-
+import com.normation.rudder.domain.policies.PolicyMode._
 
 object RulePolicyMode {
   def compute(globalMode : GlobalPolicyMode, directives : Set[Directive]) = {
@@ -164,7 +161,6 @@ object ChangeLine {
   }
 }
 
-
 /*
  *   Javascript object containing all data to create a line in the DataTable
  *   { "rule" : Rule name [String]
@@ -244,7 +240,6 @@ case class DirectiveComplianceLine (
     )
   }
 }
-
 
 /*
  *   Javascript object containing all data to create a line in the DataTable
@@ -345,7 +340,6 @@ case class ValueComplianceLine (
 
 }
 
-
 object ComplianceData extends Loggable {
 
   /*
@@ -387,7 +381,6 @@ object ComplianceData extends Loggable {
     JsTableData(nodeComplianceLine.toList)
   }
 
-
   /*
    * For a given unique node, create the "by rule"
    * tree structure of compliance elements.
@@ -422,7 +415,6 @@ object ComplianceData extends Loggable {
 
     JsTableData(ruleComplianceLine.toList)
   }
-
 
   //////////////// Directive Report ///////////////
 
@@ -478,7 +470,6 @@ object ComplianceData extends Loggable {
   }
   //////////////// Component Report ///////////////
 
-
   // From Node Point of view
   private[this] def getComponentsComplianceDetails (
       components    : Set[ComponentStatusReport]
@@ -507,7 +498,6 @@ object ComplianceData extends Loggable {
   }
 
   //////////////// Value Report ///////////////
-
 
   // From Node Point of view
   private[this] def getValuesComplianceDetails (

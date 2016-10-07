@@ -69,10 +69,8 @@ import bootstrap.liftweb.RudderConfig
 import net.liftweb.common.Full
 import net.liftweb.common.EmptyBox
 import com.normation.rudder.domain.policies.GlobalPolicyMode
-import com.normation.rudder.domain.policies.PolicyMode.Verify
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.PolicyModeOverrides._
 
 /**
  *
@@ -265,7 +263,7 @@ object DisplayDirectiveTree extends Loggable {
           val tooltipId = Helpers.nextFuncName
           <span class="treeDirective tooltipable" tooltipid={tooltipId} title="" ><span id={"badge-apm-"+tooltipId}>[BADGE]</span>[{directive.techniqueVersion.toString}] {directive.name}
           {
-          	  
+
               if(isAssignedTo <= 0) {
                 <span style="padding-left:5px" class="fa fa-warning text-warning-rudder"></span>
               } else {
@@ -283,9 +281,9 @@ object DisplayDirectiveTree extends Loggable {
             <div>{s"Used in ${isAssignedTo} rules" }</div>
               { if(!directive.isEnabled) <div>Disable</div> }
             </div>
-            
+
         }
-        
+
         onClickDirective match {
           case None                     => <a style="cursor:default">{xml}</a>
           case _ if(directive.isSystem) => <a style="cursor:default">{xml}</a>
