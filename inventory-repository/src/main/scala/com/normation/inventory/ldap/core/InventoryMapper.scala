@@ -387,6 +387,7 @@ class InventoryMapper(
       case VirtualMachineType(SolarisZone) => OC(OC_VM_SOLARIS_ZONE)
       case VirtualMachineType(QEmu) => OC(OC_VM_QEMU)
       case VirtualMachineType(AixLPAR) => OC(OC_VM_AIX_LPAR)
+      case VirtualMachineType(HyperV) => OC(OC_VM_HYPERV)
       case VirtualMachineType(BSDJail) => OC(OC_VM_BSDJAIL)
       case PhysicalMachineType => OC(OC_PM)
     }
@@ -402,6 +403,7 @@ class InventoryMapper(
         case LDAPObjectClass(OC_VM_SOLARIS_ZONE,_,_,_) => Some(VirtualMachineType(SolarisZone))
         case LDAPObjectClass(OC_VM_QEMU,_,_,_)         => Some(VirtualMachineType(QEmu))
         case LDAPObjectClass(OC_VM_AIX_LPAR,_,_,_)     => Some(VirtualMachineType(AixLPAR))
+        case LDAPObjectClass(OC_VM_HYPERV,_,_,_)       => Some(VirtualMachineType(HyperV))
         case LDAPObjectClass(OC_VM_BSDJAIL,_,_,_)     => Some(VirtualMachineType(BSDJail))
         case LDAPObjectClass(OC_PM,_,_,_)              => Some(PhysicalMachineType)
         case _ => None
