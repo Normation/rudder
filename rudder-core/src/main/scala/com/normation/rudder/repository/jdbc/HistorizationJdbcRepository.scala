@@ -189,7 +189,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
                  values (?, ?)
                """).updateMany(r.directiveIds.map(d => DB.SerializedRuleDirectives(pk, d.value)))
         _  <- Update[DB.SerializedRuleGroups]("""
-                 insert into rulesgroupsjoin (rulepkeyid, targets)
+                 insert into rulesgroupjoin (rulepkeyid, targetserialisation)
                  values (?, ?)
                """).updateMany(r.targets.map(t => DB.SerializedRuleGroups(pk, t.target)))
       } yield {
@@ -213,7 +213,7 @@ class HistorizationJdbcRepository(db: Doobie) extends HistorizationRepository wi
   }
 
   def getOpenedGlobalSchedule() : Option[DB.SerializedGlobalSchedule[Long]] = {
-    sql"select id, interval, splaytime, start_hour, start_minute, starttime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).run
+    sql"select id, interval, splaytime, start_hour, start_minute, starttime, endtime from globalschedule where endtime is null".query[DB.SerializedGlobalSchedule[Long]].option.transact(xa).run
   }
 
   def updateGlobalSchedule(interval: Int, splaytime: Int, start_hour: Int, start_minute: Int  ) : Unit = {
