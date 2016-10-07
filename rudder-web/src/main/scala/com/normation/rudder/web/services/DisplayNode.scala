@@ -68,10 +68,8 @@ import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.{Node => RudderNode}
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.nodes.NodeInfo
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
-import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
-import com.normation.rudder.domain.policies.PolicyMode.Verify
+import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 /**

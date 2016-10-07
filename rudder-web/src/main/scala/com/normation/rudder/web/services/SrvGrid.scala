@@ -236,11 +236,11 @@ case class NodeLine (
 
   val (policyMode,explanation) =
       (globalMode.overridable,node.policyMode) match {
-        case (Always,Some(Enforce)) | (Always,Some(Verify)) =>
-          (node.policyMode.getOrElse(globalMode.mode),"<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>")
-        case (Always,_) =>
+        case (Always,Some(mode)) =>
+          (mode,"<p>This mode is an override applied to this node. You can change it in the <i><b>node's settings</b></i>.</p>")
+        case (Always,None) =>
           val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
-          (node.policyMode.getOrElse(globalMode.mode), expl)
+          (globalMode.mode, expl)
         case (Unoverridable,_) =>
           (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
       }

@@ -152,7 +152,6 @@ final object BuildBundleSequence extends Loggable {
     def bundleSequence = pre ::: main ::: post
   }
 
-
   /*
    * The main entry point of the object: for each variable related to
    * bundle sequence, compute the corresponding values.
@@ -209,8 +208,6 @@ final object BuildBundleSequence extends Loggable {
   ////////////////////////////////////////////
   ////////// Implementation details //////////
   ////////////////////////////////////////////
-
-
 
   /*
    * For each techniques, build:
@@ -281,7 +278,7 @@ final object BuildBundleSequence extends Loggable {
       case Nil  => Nil
       case list => list.map { tb =>
                        val pre = tb.policyMode match {
-                         case PolicyMode.Verify  => verify
+                         case PolicyMode.Audit  => audit
                          case PolicyMode.Enforce => enforce
                        }
                        tb.copy(pre = pre :: Nil)
@@ -290,7 +287,7 @@ final object BuildBundleSequence extends Loggable {
     }
 
     //before each technique, set the correct mode
-    private[this] val verify  = Bundle("""set_dry_run_mode("true")""")
+    private[this] val audit  = Bundle("""set_dry_run_mode("true")""")
     private[this] val enforce = Bundle("""set_dry_run_mode("false")""")
     private[this] val cleanup = TechniqueBundles(Promiser("remove_dry_run_mode"), Nil, enforce :: Nil, Nil, false, false, PolicyMode.Enforce)
   }
@@ -380,4 +377,3 @@ final object BuildBundleSequence extends Loggable {
     }
   }
 }
-
