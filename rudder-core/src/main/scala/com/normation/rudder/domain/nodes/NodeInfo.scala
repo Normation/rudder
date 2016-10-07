@@ -157,13 +157,14 @@ object CFEngineKey {
    *
    * Oh, and Java Security API force a lot of casting.
    * This is insane.
+   *
+   * Caution: to use the complete key, with header and footer, you need to use key.key
    */
   def getHash(key: PublicKey): Box[String] = {
-
-    //the parser able to read PEM files
-    val parser = new PEMParser(new StringReader(key.value))
-
     for {
+                    // the parser able to read PEM files
+                    // Parser may be null is the key is invalid
+      parser     <- Box(Option(new PEMParser(new StringReader(key.key))))
                     // read the PEM b64 pubkey string
       pubkeyInfo <- tryo { parser.readObject.asInstanceOf[SubjectPublicKeyInfo] }
                     // check that the pubkey info is the one of an RSA key,
