@@ -51,6 +51,7 @@ import org.specs2.runner.JUnitRunner
 import com.normation.rudder.services.reports.Pending
 import com.normation.rudder.repository.NodeConfigIdInfo
 import org.joda.time.DateTime
+import com.normation.rudder.domain.reports.ReportType._
 
 /**
  * Test properties about status reports,
@@ -224,7 +225,7 @@ class StatusReportTest extends Specification {
         NodeId("n1")
       , Pending(
             NodeConfigIdInfo(NodeConfigId("plop"), DateTime.now(), None)
-          , None, DateTime.now.plusMinutes(15), MissingReportType
+          , None, DateTime.now.plusMinutes(15), Missing
         )
     , parse("""
        n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
@@ -304,15 +305,15 @@ class StatusReportTest extends Specification {
 
 
   private[this] def toRT(s: String): ReportType = s.toLowerCase match {
-    case "success"    => SuccessReportType
-    case "error"      => ErrorReportType
-    case "noanswer"   => NoAnswerReportType
-    case "unexpected" => UnexpectedReportType
-    case "missing"    => MissingReportType
-    case "n/a" | "na" => NotApplicableReportType
-    case "repaired"   => RepairedReportType
+    case "success"    => EnforceSuccess
+    case "error"      => EnforceError
+    case "noanswer"   => NoAnswer
+    case "unexpected" => Unexpected
+    case "missing"    => Missing
+    case "n/a" | "na" => EnforceNotApplicable
+    case "repaired"   => EnforceRepaired
     case "applying" |
-          "pending"   => PendingReportType
+          "pending"   => ReportType.Pending
     case s => throw new IllegalArgumentException(s)
   }
 

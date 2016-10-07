@@ -61,6 +61,7 @@ import doobie.imports._
 import scalaz.concurrent.Task
 import doobie.contrib.postgresql.pgtypes._
 import com.normation.rudder.db.DB
+import com.normation.rudder.repository.FullActiveTechniqueCategory
 
 
 class PostgresqlInClause(
@@ -141,7 +142,11 @@ class FindExpectedReportsJdbcRepository(
    * The current version seems highly inefficient.
    *
    */
-  override def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]] = {
+  override def getExpectedReports(
+      nodeConfigIds: Set[NodeAndConfigId]
+    , filterByRules: Set[RuleId]
+    , directivesLib: FullActiveTechniqueCategory
+  ): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]] = {
     if(nodeConfigIds.isEmpty) Full(Map())
     else {
 
@@ -186,7 +191,7 @@ class FindExpectedReportsJdbcRepository(
 
         val t4 =  System.currentTimeMillis
 
-        val res= toNodeExpectedReports(nodeConfigIds, reportsAndConfigIds, expectedReports)
+        val res= toNodeExpectedReports(nodeConfigIds, reportsAndConfigIds, expectedReports, directivesLib)
 
         val t5 =  System.currentTimeMillis
         TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: ${t5-t4}ms")
@@ -204,6 +209,7 @@ class FindExpectedReportsJdbcRepository(
       nodeConfigIds      : Set[NodeAndConfigId]
     , reportsAndConfigIds: Vector[(Long, NodeId, Option[List[String]])]
     , expectedReports    : Vector[DB.ExpectedReports[Long]]
+    , directivesLib      : FullActiveTechniqueCategory
   ) : Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]] = {
     /*
      * It's a simple grouping by nodeId, then by nodeConfigId, then by
@@ -251,7 +257,10 @@ class FindExpectedReportsJdbcRepository(
           val directives = dirReports.groupBy(x => x.directiveId).map { case (directiveId, lines) =>
             // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are
             // for the same directive, and must be put together
-            DirectiveExpectedReports(directiveId, lines.map( x =>
+            // also, get policy mode from lib - if the directive is missing, we don't know what to do, but it's
+            // not more false than if the value changed since expected reports were written.
+            val mode = directivesLib.allDirectives.get(directiveId).flatMap( _._2.policyMode)
+            DirectiveExpectedReports(directiveId, mode, lines.map( x =>
               ComponentExpectedReport(x.component, x.cardinality, x.componentsValues, x.unexpandedCptsValues)
             ).distinct /* because we have the cardinality to deals with mutltiplicity */ )
           }
@@ -294,9 +303,9 @@ class FindExpectedReportsJdbcRepository(
    *
    * Only used in UpdateExpectedReportsJdbcRepository
    */
-  private[jdbc] def findCurrentExpectedReports(ruleId : RuleId) : ConnectionIO[Option[RuleExpectedReports]] = {
+  private[jdbc] def findCurrentExpectedReports(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId) : ConnectionIO[Option[RuleExpectedReports]] = {
     for {
-      seq <- getRuleExpectedReports("where enddate is null and ruleid = ?", ruleId.value)
+      seq <- getRuleExpectedReports(directivesLib, "where enddate is null and ruleid = ?", ruleId.value)
     } yield {
       seq.size match {
           case 0 => None
@@ -309,11 +318,13 @@ class FindExpectedReportsJdbcRepository(
   /**
    * Return all the expected reports between the two dates
    */
-  override def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]] = {
-    getRuleExpectedReports("where beginDate < ? and coalesce(endDate, ?) >= ? ", (endDate, beginDate, beginDate)).attempt.transact(xa).run
+  override def findExpectedReports(directivesLib: FullActiveTechniqueCategory, beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]] = {
+    getRuleExpectedReports(directivesLib, "where beginDate < ? and coalesce(endDate, ?) >= ? ", (endDate, beginDate, beginDate)).attempt.transact(xa).run
   }
 
-  private[this] def getRuleExpectedReports[T](whereClause: String, param: T)(implicit comp: Composite[T]): ConnectionIO[Vector[RuleExpectedReports]] = {
+  private[this] def getRuleExpectedReports[T](
+      directivesLib: FullActiveTechniqueCategory
+    , whereClause  : String, param: T)(implicit comp: Composite[T]): ConnectionIO[Vector[RuleExpectedReports]] = {
     type EXNR = (DB.ExpectedReports[Long], NodeId, Option[List[String]])
     val expectedReportsQuery ="""select
           E.pkid, E.nodejoinkey, E.ruleid, E.serial, E.directiveid, E.component, E.cardinality
@@ -326,11 +337,14 @@ class FindExpectedReportsJdbcRepository(
     (for {
       entries <- Query[T, EXNR](expectedReportsQuery, None).toQuery0(param).vector
     } yield {
-      toExpectedReports(entries)
+      toExpectedReports(entries, directivesLib)
     })
   }
 
-  private[this] def toExpectedReports(entries: Vector[(DB.ExpectedReports[Long], NodeId, Option[List[String]])]) : Vector[RuleExpectedReports] = {
+  private[this] def toExpectedReports(
+      entries      : Vector[(DB.ExpectedReports[Long], NodeId, Option[List[String]])]
+    , directivesLib: FullActiveTechniqueCategory
+  ) : Vector[RuleExpectedReports] = {
     //just an alias
     val toseq =  ComponentsValuesSerialiser.unserializeComponents _
 
@@ -341,7 +355,10 @@ class FindExpectedReportsJdbcRepository(
         val directiveExpectedReports = mappedEntries.groupBy(x => x._1.directiveId).map { case (directiveId, lines) =>
           // here I am on the directiveId level, all lines that have the same RuleId, Serial, NodeJoinKey, DirectiveId are
           // for the same directive, and must be put together
-          DirectiveExpectedReports(directiveId, lines.map{ case(x, _, _)  =>
+          // also, get policy mode from lib - if the directive is missing, we don't know what to do, but it's
+          // not more false than if the value changed since expected reports were written.
+          val mode = directivesLib.allDirectives.get(directiveId).flatMap( _._2.policyMode)
+          DirectiveExpectedReports(directiveId, mode, lines.map{ case(x, _, _)  =>
             ComponentExpectedReport(x.component, x.cardinality, toseq(x.componentsValues), toseq(x.unexpandedComponentsValues))
           }.distinct /* because we have the cardinality for that */ )
         }
@@ -441,10 +458,10 @@ class UpdateExpectedReportsJdbcRepository(
    * Simply set the endDate for the expected report for this conf rule
    * @param ruleId
    */
-  override def closeExpectedReport(ruleId : RuleId, generationTime: DateTime) : Box[Unit] = {
+  override def closeExpectedReport(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId, generationTime: DateTime) : Box[Unit] = {
     logger.debug(s"Closing expected report for rules '${ruleId.value}'")
     (for {
-      optExpected <- findReports.findCurrentExpectedReports(ruleId)
+      optExpected <- findReports.findCurrentExpectedReports(directivesLib, ruleId)
       results     <- optExpected match {
                        case None =>
                          logger.warn(s"Cannot close a non existing entry '${ruleId.value}'")
@@ -483,21 +500,22 @@ class UpdateExpectedReportsJdbcRepository(
     , generationTime          : DateTime
     , directiveExpectedReports: Seq[DirectiveExpectedReports]
     , nodeConfigIds           : Seq[NodeAndConfigId]
+    , directivesLib           : FullActiveTechniqueCategory
   ) : Box[RuleExpectedReports] = {
      logger.debug(s"Saving expected report for rule '${ruleId.value}'")
 // TODO : store also the unexpanded
-     findReports.findCurrentExpectedReports(ruleId).flatMap {
+     findReports.findCurrentExpectedReports(directivesLib, ruleId).flatMap {
        case Some(x) =>
          // I need to check I'm not having duplicates
          // easiest way : unfold all, and check intersect
-         val toInsert = directiveExpectedReports.flatMap { case DirectiveExpectedReports(dir, comp) =>
+         val toInsert = directiveExpectedReports.flatMap { case DirectiveExpectedReports(dir, mode, comp) =>
            comp.map(x => (dir, x.componentName))
          }.flatMap { case (dir, compName) =>
            nodeConfigIds.map(id => Comparator((id.nodeId, Some(id.version)), dir, compName))
          }
 
          val comparator = x.directivesOnNodes.flatMap { case DirectivesOnNodes(_, configs, dirExp) =>
-           dirExp.flatMap { case DirectiveExpectedReports(dir, comp) =>
+           dirExp.flatMap { case DirectiveExpectedReports(dir, mode, comp) =>
              comp.map(x => (dir, x.componentName))
            }.flatMap { case (dir, compName) =>
              configs.map(id => Comparator(id, dir, compName))
@@ -512,11 +530,11 @@ class UpdateExpectedReportsJdbcRepository(
              throw new RuntimeException(msg)
 
            case _ => // Ok
-             createExpectedReports(ruleId, serial, generationTime, directiveExpectedReports, nodeConfigIds)
+             createExpectedReports(ruleId, serial, generationTime, directiveExpectedReports, nodeConfigIds, directivesLib)
          }
 
       case None =>
-          createExpectedReports(ruleId, serial, generationTime, directiveExpectedReports, nodeConfigIds)
+          createExpectedReports(ruleId, serial, generationTime, directiveExpectedReports, nodeConfigIds, directivesLib)
      }.attempt.transact(xa).run
   }
 
@@ -526,6 +544,8 @@ class UpdateExpectedReportsJdbcRepository(
     , generationTime          : DateTime
     , directiveExpectedReports: Seq[DirectiveExpectedReports]
     , nodeConfigIds           : Seq[NodeAndConfigId]
+    , directivesLib           : FullActiveTechniqueCategory
+
   ) : ConnectionIO[RuleExpectedReports] = {
 
     //all expectedReports
@@ -556,7 +576,7 @@ class UpdateExpectedReportsJdbcRepository(
       // save new nodeconfiguration - no need to check for existing version for them
       expNodes    <- DB.insertExpectedReportsNode(expectedReportsNodes(nodeJoinKey))
       // check for the consistancy of the insert, and return the build expected report for use
-      ruleReport  <- findReports.findCurrentExpectedReports(ruleId)
+      ruleReport  <- findReports.findCurrentExpectedReports(directivesLib, ruleId)
     } yield {
       ruleReport match {
           case Some(x) => x

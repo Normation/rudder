@@ -89,6 +89,7 @@ import com.normation.rudder.domain.policies.Rule
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.PublicKey
+import com.normation.rudder.domain.policies.PolicyMode
 
 
 /*
@@ -318,7 +319,8 @@ object NodeConfigData {
   implicit def toRCID(id: String) = RuleCategoryId(id)
   val t1 = Technique(("t1", "1.0"), "t1", "t1", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("root"), None)
   val d1 = Directive("d1", "1.0", Map("foo1" -> Seq("bar1")), "d1", "d1", None)
-  val d2 = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", None)
+  val d2 = Directive("d2", "1.0", Map("foo2" -> Seq("bar2")), "d2", "d2", Some(PolicyMode.Enforce))
+  val d3 = Directive("d3", "1.0", Map("foo3" -> Seq("bar3")), "d3", "d3", Some(PolicyMode.Audit))
   val fat1 = FullActiveTechnique("d1", "t1"
     , SortedMap(toTV("1.0") -> DateTime.parse("2016-01-01T12:00:00.000+00:00") )
     , SortedMap(toTV("1.0") -> t1)

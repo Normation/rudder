@@ -38,6 +38,7 @@
 
 package com.normation.rudder.domain.reports
 import scala.language.implicitConversions
+import com.normation.rudder.domain.policies.PolicyMode
 
 
 
@@ -49,66 +50,88 @@ sealed trait ReportType {
   val severity :String
 }
 
-case object NotApplicableReportType extends ReportType {
-  val severity = "NotApplicable"
-}
-case object SuccessReportType extends ReportType {
-  val severity = "Success"
-}
-case object RepairedReportType extends ReportType{
-  val severity = "Repaired"
-}
-case object ErrorReportType extends ReportType{
-  val severity = "Error"
-}
-case object UnexpectedReportType extends ReportType{
-  val severity = "Unexpected"
-}
-case object NoAnswerReportType extends ReportType{
-  val severity = "NoAnswer"
-}
-case object DisabledReportType extends ReportType{
-  val severity = "ReportsDisabled"
-}
-case object PendingReportType extends ReportType{
-  val severity = "Applying"
-}
-case object MissingReportType extends ReportType{
-  val severity = "Missing"
-}
 
 object ReportType {
+  case object EnforceNotApplicable extends ReportType {
+    val severity = "NotApplicable"
+  }
+  case object EnforceSuccess extends ReportType {
+    val severity = "Success"
+  }
+  case object EnforceRepaired extends ReportType{
+    val severity = "Repaired"
+  }
+  case object EnforceError extends ReportType{
+    val severity = "Error"
+  }
+
+  case object AuditNotApplicable extends ReportType {
+    val severity = "AuditNotApplicable"
+  }
+  case object AuditCompliant extends ReportType {
+    val severity = "Compliant"
+  }
+  case object AuditNonCompliant extends ReportType{
+    val severity = "NonCompliant"
+  }
+  case object AuditError extends ReportType{
+    val severity = "AuditError"
+  }
+  case object BadPolicyMode extends ReportType{
+    val severity = "BadPolicyMode"
+  }
+  case object Unexpected extends ReportType{
+    val severity = "Unexpected"
+  }
+  case object NoAnswer extends ReportType{
+    val severity = "NoAnswer"
+  }
+  case object Disabled extends ReportType{
+    val severity = "ReportsDisabled"
+  }
+  case object Pending extends ReportType{
+    val severity = "Applying"
+  }
+  case object Missing extends ReportType{
+    val severity = "Missing"
+  }
 
   def getWorseType(reportTypes : Iterable[ReportType]) : ReportType = {
     if (reportTypes.isEmpty) {
-      NoAnswerReportType
+      NoAnswer
     } else {
-      ( reportTypes :\ (NotApplicableReportType : ReportType) ) {
-        case (_, UnexpectedReportType)     | (UnexpectedReportType, _)    => UnexpectedReportType
-        case (_, ErrorReportType)          | (ErrorReportType, _)         => ErrorReportType
-        case (_, RepairedReportType)       | (RepairedReportType, _)      => RepairedReportType
-        case (_, MissingReportType)        | (MissingReportType, _)       => MissingReportType
-        case (_, NoAnswerReportType)       | (NoAnswerReportType, _)      => NoAnswerReportType
-        case (_, DisabledReportType)| (DisabledReportType, _)      => DisabledReportType
-        case (_, PendingReportType)        | (PendingReportType, _)       => PendingReportType
-        case (_, SuccessReportType)        | (SuccessReportType, _)       => SuccessReportType
-        case (_, NotApplicableReportType)  | (NotApplicableReportType, _) => NotApplicableReportType
-        case _ => UnexpectedReportType
+      ( reportTypes :\ (EnforceNotApplicable : ReportType) ) {
+        case (_, BadPolicyMode)       | (BadPolicyMode, _)        => BadPolicyMode
+        case (_, Unexpected)          | (Unexpected, _)           => Unexpected
+        case (_, EnforceError)        | (EnforceError, _)         => EnforceError
+        case (_, EnforceRepaired)     | (EnforceRepaired, _)      => EnforceRepaired
+        case (_, Missing)             | (Missing, _)              => Missing
+        case (_, NoAnswer)            | (NoAnswer, _)             => NoAnswer
+        case (_, Disabled)            | (Disabled, _)             => Disabled
+        case (_, Pending)             | (Pending, _)              => Pending
+        case (_, EnforceSuccess)      | (EnforceSuccess, _)       => EnforceSuccess
+        case (_, EnforceNotApplicable)| (EnforceNotApplicable, _) => EnforceNotApplicable
+        case _ => Unexpected
       }
     }
   }
 
-  def apply(report : Reports) : ReportType = {
-    report match {
-      case _ : ResultSuccessReport       => SuccessReportType
-      case _ : ResultErrorReport         => ErrorReportType
-      case _ : ResultRepairedReport      => RepairedReportType
-      case _ : ResultNotApplicableReport => NotApplicableReportType
-      case _                             => UnexpectedReportType
+  def apply(report : Reports, policyMode: PolicyMode) : ReportType = {
+    import PolicyMode._
+    (report, policyMode) match {
+      case (_ : AuditReports             , Enforce) => BadPolicyMode
+      case (_ : EnforceReports           , Audit  ) => BadPolicyMode
+      case (_ : ResultErrorReport        , _      ) => EnforceError
+      case (_ : ResultRepairedReport     , _      ) => EnforceRepaired
+      case (_ : ResultNotApplicableReport, _      ) => EnforceNotApplicable
+      case (_ : ResultSuccessReport      , _      ) => EnforceSuccess
+      case (_ : AuditErrorReport         , _      ) => AuditError
+      case (_ : AuditCompliantReport     , _      ) => AuditCompliant
+      case (_ : AuditNotApplicableReport , _      ) => AuditNotApplicable
+      case (_ : AuditNonCompliantReport  , _      ) => AuditNonCompliant
+      case (_                            ,_       ) => Unexpected
     }
   }
-
-  implicit def reportTypeSeverity(reportType:ReportType):String = reportType.severity
 }
 
 /**
