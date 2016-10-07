@@ -42,44 +42,43 @@ import org.specs2.mutable._
 import org.specs2.runner._
 import net.liftweb.common._
 import com.normation.rudder.domain.policies.PolicyMode.Enforce
-import com.normation.rudder.domain.policies.PolicyMode.Verify
+import com.normation.rudder.domain.policies.PolicyMode.Audit
 
 @RunWith(classOf[JUnitRunner])
 class PolicyModeTest extends Specification with Loggable {
-
 
   "Chekin rules on policy mode" should {
     "show that global policy mode wins when not overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Unoverridable)
-        , Some(Verify)
-        , Some(Verify) :: Nil
+        , Some(Audit)
+        , Some(Audit) :: Nil
       ) must equalTo(Enforce)
     }
     "show that global policy mode wins when not overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Unoverridable)
         , Some(Enforce)
-        , Some(Verify) :: Nil
+        , Some(Audit) :: Nil
       ) must equalTo(Enforce)
     }
     "and loose when overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
         , Some(Enforce)
-        , Some(Verify) :: Nil
-      ) must equalTo(Verify)
+        , Some(Audit) :: Nil
+      ) must equalTo(Audit)
     }
     "and loose when overridable" in {
       PolicyMode.computeMode(
           GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
-        , Some(Verify)
+        , Some(Audit)
         , Some(Enforce) :: Nil
-      ) must equalTo(Verify)
+      ) must equalTo(Audit)
     }
-    "EVEN if global is on verify" in {
+    "EVEN if global is on audit" in {
       PolicyMode.computeMode(
-          GlobalPolicyMode(Verify, PolicyModeOverrides.Always)
+          GlobalPolicyMode(Audit, PolicyModeOverrides.Always)
         , Some(Enforce)
         , Some(Enforce) :: Nil
       ) must equalTo(Enforce)
@@ -103,20 +102,20 @@ class PolicyModeTest extends Specification with Loggable {
 
     def mode(d1: Option[PolicyMode], d2: Option[PolicyMode]) = {
       PolicyMode.computeMode(
-          GlobalPolicyMode(Verify, PolicyModeOverrides.Always)
+          GlobalPolicyMode(Audit, PolicyModeOverrides.Always)
         , Some(Enforce)
         , d1 :: d2 :: Nil
       )
     }
     val enforce = Some(Enforce)
-    val audit   = Some(Verify)
+    val audit   = Some(Audit)
     val none    = None
 
     "d1 == enforce, d2 == enforce => enforce" in { mode(enforce, enforce) must beEqualTo(Enforce) }
     "d1 == enforce, d2 == none    => enforce" in { mode(enforce, none   ) must beEqualTo(Enforce) }
     "d1 == enforce, d2 == audit   => failure" in { mode(enforce, audit  ) must haveClass[Failure] }
     "d1 == audit  , d2 == enforce => failure" in { mode(audit  , enforce) must haveClass[Failure] }
-    "d1 == audit  , d2 == audit   => audit"   in { mode(audit  , audit  ) must beEqualTo(Verify ) }
+    "d1 == audit  , d2 == audit   => audit"   in { mode(audit  , audit  ) must beEqualTo(Audit  ) }
     "d1 == audit  , d2 == none    => failure" in { mode(audit  , none   ) must haveClass[Failure] }
     "d1 == none   , d2 == none    => enforce" in { mode(none   , none   ) must beEqualTo(Enforce) }
   }

@@ -35,7 +35,7 @@
 	         Global mode
 	         <span class="mode"  ng-class="{'enforce':globalConfiguration.policyMode=='enforce'}">{{globalConfiguration.policyMode}}</span>
 	       </label>
-           <label class="btn btn-default btn-sm audit" ng-class="{'active':$parent.conf.policyMode=='verify'}" ng-click="$parent.conf.policyMode='verify'">
+           <label class="btn btn-default btn-sm audit" ng-class="{'active':$parent.conf.policyMode=='audit'}" ng-click="$parent.conf.policyMode='audit'">
 	         <input type="radio" name="options" id="option2" autocomplete="off">
 	         Audit
 	       </label>
@@ -48,7 +48,7 @@
 	       <span ng-show="$parent.conf.policyMode=='default'">
 	         This may be overriden on a per-Directive basis.
 	       </span>
-	       <span ng-show="$parent.conf.policyMode=='verify'">
+	       <span ng-show="$parent.conf.policyMode=='audit'">
 	         Directives will never be enforced on this node, regardless of their policy mode.
 	       </span>
 	       <span ng-show="$parent.conf.policyMode=='enforce'">

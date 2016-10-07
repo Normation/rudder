@@ -101,9 +101,6 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import java.security.Policy.PolicyDelegate
 
-
-
-
 /**
  * Details of tests executed in each instances of
  * the test.
@@ -130,7 +127,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   //initialize config-repo content from our test/resources source
   FileUtils.copyDirectory( new File("src/test/resources/configuration-repository") , configurationRepositoryRoot)
   val repo = new GitRepositoryProviderImpl(configurationRepositoryRoot.getAbsolutePath)
-
 
   val EXPECTED_SHARE = configurationRepositoryRoot/"expected-share"
 
@@ -219,7 +215,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , "/bin/true", "/bin/true", "/bin/true"
   )
 
-
   //////////// end init ////////////
 
   //////////// set-up auto test cleaning ////////////
@@ -234,7 +229,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
 
   //////////// end set-up ////////////
 
-
   //utility to assert the content of a resource equals some string
   def assertResourceContent(id: TechniqueResourceId, isTemplate: Boolean, expectedContent: String) = {
     val ext = if(isTemplate) Some(TechniqueTemplate.templateExtension) else None
@@ -243,8 +237,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
         case Some(is) => IOUtils.toString(is) === expectedContent
       }
   }
-
-
 
   //an utility class for filtering file lines given a regex,
   //used in the file content matcher
@@ -273,7 +265,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
 
   // only root in our "all nodes"
   val allNodesInfo = Map(root.id -> root)
-
 
   //the group lib
   val emptyGroupLib = FullNodeGroupCategory(
@@ -430,7 +421,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , policyMode      = None
   )
 
-
   //
   // Two user directives: clock management and rpm
   //
@@ -459,7 +449,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , policyMode      = Some(PolicyMode.Enforce)
   )
 
-
   val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
   val rpmVariables = {
      val spec = rpmTechnique.getAllVariableSpecs.map(s => (s.name, s)).toMap
@@ -485,12 +474,11 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , ruleOrder       = BundleOrder("50. Deploy PLOP STACK")
     , directiveOrder  = BundleOrder("20. Install PLOP STACK main rpm")
     , overrides       = Set()
-    , policyMode      = Some(PolicyMode.Verify)
+    , policyMode      = Some(PolicyMode.Audit)
   )
 
-
-  // Allows override in policy mode, but default to verify
-  val globalPolicyMode = GlobalPolicyMode(PolicyMode.Verify, PolicyModeOverrides.Always)
+  // Allows override in policy mode, but default to audit
+  val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
 
   /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // actual tests
@@ -539,7 +527,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
         ))
     }
 
-
     "correctly write the expected promises files with defauls installation" in {
       writeRootNodeConfigWithUserDirectives()
       compareWith("root-default-install")
@@ -571,7 +558,6 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
         , nodeContext  = systemVariables
         , parameters   = Set(ParameterForConfiguration(ParameterName("rudder_file_edit_header"), "### Managed by Rudder, edit with care ###"))
       )
-
 
       // Actually write the promise files for the root node
       promiseWritter.writeTemplate(root.id, Set(root.id), Map(root.id -> rnc), Map(root.id -> NodeConfigId("root-cfg-id")), Map(), globalPolicyMode)
@@ -605,4 +591,3 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     }
   }
 }
-

@@ -300,7 +300,7 @@ a.sidebar-toggle{
     margin: 15px;
     font-size: 18px;
 }
-.inner-portlet #verifyMode h3 {
+.inner-portlet #auditMode h3 {
   width: 100%;
 }
 
@@ -864,14 +864,14 @@ form .tooltip-content p {
   padding: 3px 8px;
   min-width: 50px;
 }
-.tw-bs .rudder-label.label-verify{
+.tw-bs .rudder-label.label-audit{
   background-color: #3694d1;
 }
 
-.tw-bs .rudder-label.label-verify:before,.tw-bs .label-text.label-verify:after{
+.tw-bs .rudder-label.label-audit:before,.tw-bs .label-text.label-audit:after{
   content: "Audit";
 }
-.tw-bs .rudder-label.label-verify + .tooltip b, .tw-bs .label-text.label-verify:after, .tw-bs .label-text.label-verify  + .tooltip b, .text-Audit{
+.tw-bs .rudder-label.label-audit + .tooltip b, .tw-bs .label-text.label-audit:after, .tw-bs .label-text.label-audit  + .tooltip b, .text-Audit{
   color: #3694d1;
 }
 .tw-bs .rudder-label.label-enforce{
@@ -1346,7 +1346,7 @@ form.rudder-form .policymode-group .btn-group .btn.enforce.active{
   background-color:#C50000;
 }
 .button-group-success .button-success.error:before{
-  border-top-color: #C50000;
+  border-right: 12px solid #C50000;
 }
 .button-group-success .button-success:before{
   visibility:hidden;

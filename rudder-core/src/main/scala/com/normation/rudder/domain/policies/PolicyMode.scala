@@ -43,7 +43,7 @@ sealed trait PolicyMode {                        def name : String    }
 
 final object PolicyMode {
 
-  final case object Verify  extends PolicyMode { val name = "verify"  }
+  final case object Audit  extends PolicyMode { val name = "audit"  }
   final case object Enforce extends PolicyMode { val name = "enforce" }
 
   def allModes: Set[PolicyMode] = values[PolicyMode]
@@ -80,7 +80,7 @@ final object PolicyMode {
     globalValue.overridable match {
       case PolicyModeOverrides.Always =>
         nodeMode match {
-          case Some(Verify) => Full(Verify)
+          case Some(Audit) => Full(Audit)
           case _ =>
 
             // Here, we must ensure that all the directive have consistant policy mode - i.e the same.
@@ -88,7 +88,6 @@ final object PolicyMode {
             // dedicated mode, and then we check homogeneity.
             val default = nodeMode.getOrElse(globalValue.mode)
             val finalMode = directiveMode.map { _.getOrElse(default) }.toList.distinct
-
 
             finalMode match {
               case Nil =>
