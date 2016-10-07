@@ -385,7 +385,7 @@ object RudderConfig extends Loggable {
   val reportsRepository : ReportsRepository = reportsRepositoryImpl
   val eventLogDeploymentService: EventLogDeploymentService = eventLogDeploymentServiceImpl
   val allBootstrapChecks : BootstrapChecks = allChecks
-  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService)
+  lazy val srvGrid = new SrvGrid(roAgentRunsRepository, asyncComplianceService, configService)
   val findExpectedReportRepository : FindExpectedReportRepository = findExpectedRepo
   val historizationRepository : HistorizationRepository =  historizationJdbcRepository
   val roApiAccountRepository : RoApiAccountRepository = roLDAPApiAccountRepository
@@ -1116,7 +1116,7 @@ object RudderConfig extends Loggable {
     , diffRepos
     , PendingInventory
   )
-  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl)
+  private[this] lazy val nodeGridImpl = new NodeGrid(ldapFullInventoryRepository, nodeInfoServiceImpl, configService)
 
   private[this] lazy val modificationService = new ModificationService(logRepository,gitModificationRepository,itemArchiveManagerImpl,uuidGen)
   private[this] lazy val eventListDisplayerImpl = new EventListDisplayer(
@@ -1748,7 +1748,9 @@ object RudderConfig extends Loggable {
       roLdapRuleRepository
     , roLdapDirectiveRepository
     , reportingServiceImpl
-    , techniqueRepositoryImpl)
+    , techniqueRepositoryImpl
+    , configService
+  )
   private[this] lazy val propertyRepository = new RudderPropertiesRepositoryImpl(doobie)
   private[this] lazy val autoReportLogger = new AutomaticReportLogger(
       propertyRepository

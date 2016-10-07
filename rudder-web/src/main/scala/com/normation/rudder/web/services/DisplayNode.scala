@@ -68,6 +68,11 @@ import com.normation.rudder.domain.nodes.NodeProperty
 import com.normation.rudder.domain.nodes.{Node => RudderNode}
 import com.normation.cfclerk.xmlparsers.CfclerkXmlConstants.DEFAULT_COMPONENT_KEY
 import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.policies.PolicyMode.Verify
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 /**
  * A service used to display details about a server
@@ -88,7 +93,7 @@ object DisplayNode extends Loggable {
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeInfoService      = RudderConfig.nodeInfoService
-
+  private[this] val configService        = RudderConfig.configService
   private[this] val deleteNodePopupHtmlId = "deleteNodePopupHtmlId"
   private[this] val errorPopupHtmlId = "errorPopupHtmlId"
   private[this] val successPopupHtmlId = "successPopupHtmlId"
@@ -290,14 +295,18 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
     displayTabVM(jsId, sm) ++
     node.map(displayTabProperties(jsId, _)).getOrElse(Nil) ++
     displayTabSoftware(jsId)
-
   }
 
   /**
    * Show the details in a panned version, with Node Summary, Inventory, Network, Software
    * Should be used with jsInit(dn:String, softIds:Seq[SoftwareUuid], salt:String="")
    */
-  def showPannedContent(node: Option[NodeInfo], sm:FullInventory, inventoryStatus : InventoryStatus, salt:String = "") : NodeSeq = {
+  def showPannedContent(
+      nodeAndGlobalMode: Option[(NodeInfo,GlobalPolicyMode)]
+    , sm               : FullInventory
+    , inventoryStatus  : InventoryStatus
+    , salt             : String = ""
+  ) : NodeSeq = {
     val jsId = JsNodeId(sm.node.main.id,salt)
     val detailsId = htmlId(jsId,"details_")
     <div id={detailsId} class="tabs">
@@ -311,16 +320,39 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
            {show(sm, false, "")}
          </div>
        </div>
-       {showExtraContent(node, sm, salt)}
+       {showExtraContent(nodeAndGlobalMode.map(_._1), sm, salt)}
 
        <div id={htmlId(jsId,"node_summary_")}>
-         {showNodeDetails(sm, None, inventoryStatus, salt)}
+         {showNodeDetails(sm, nodeAndGlobalMode, None, inventoryStatus, salt)}
        </div>
     </div>
   }
 
   // mimic the content of server_details/ShowNodeDetailsFromNode
-  def showNodeDetails(sm:FullInventory, creationDate:Option[DateTime], inventoryStatus : InventoryStatus, salt:String = "", isDisplayingInPopup:Boolean = false) : NodeSeq = {
+  def showNodeDetails(
+      sm                 : FullInventory
+    , nodeAndGlobalMode  : Option[(NodeInfo,GlobalPolicyMode)]
+    , creationDate       : Option[DateTime]
+    , inventoryStatus    : InventoryStatus
+    , salt               : String = ""
+    , isDisplayingInPopup: Boolean = false
+  ) : NodeSeq = {
+    val nodePolicyMode = nodeAndGlobalMode match {
+      case Some((node,globalMode)) =>
+        Some((globalMode.overridable,node.policyMode) match {
+            case (Always, Some(mode)) =>
+              (mode,"<p>This mode is an override applied to this node. You can change it in the <i><b>node settings</b></i>.</p>")
+            case (Always,None) =>
+              val expl = """<p>This mode is the globally defined default. You can change it in <i><b>settings</b></i>.</p><p>You can also override it on this node in the <i><b>node's settings</b></i>.</p>"""
+              (globalMode.mode, expl)
+            case (Unoverridable,_) =>
+              (globalMode.mode, "<p>This mode is the globally defined default. You can change it in <i><b>Settings</b></i>.</p>")
+          }
+        )
+
+      case None =>
+        None
+    }
 
     val deleteButton : NodeSeq= {
        sm.node.main.status match {
@@ -366,6 +398,12 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
       <h4 class="tablemargin">Rudder information</h4>
         <div class="tablepadding">
+         { nodePolicyMode match {
+           case None => NodeSeq.Empty
+           case Some((mode,explanation)) =>
+            <b>Agent policy mode :</b><span id="badge-apm" class="tw-bs"></span><br/>  ++
+            Script(OnLoad(JsRaw(s"""$$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));$$('.rudder-label').bsTooltip();""")))
+         } }
           { displayServerRole(sm, inventoryStatus) }
           <b>Inventory date:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
           <b>Date inventory last received:</b>  {sm.node.receiveDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
@@ -393,10 +431,10 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
                                                             </span>
                   case _ => NodeSeq.Empty
                 }
-                val publicKeyId = s"publicKey-${sm.node.main.id.value}"
+                val publicKeyId          = s"publicKey-${sm.node.main.id.value}"
                 <b><a href="#" onclick={s"$$('#publicKey-${sm.node.main.id.value}').toggle(300); return false;"}>Display Node key {checked}</a></b>
                 <div style="width=100%; overflow:auto;"><pre id={s"publicKey-${sm.node.main.id.value}"} style="display:none;">{key.key}</pre></div> ++
-                Script(OnLoad(JsRaw("""createTooltip();""")))
+                Script(OnLoad(JsRaw(s"""createTooltip();""")))
               case None => NodeSeq.Empty
             }
           }
@@ -441,7 +479,6 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
                 }
               }
             }
-
             val roles = if (nodeInfo.serverRoles.isEmpty) {
               ""
             } else {

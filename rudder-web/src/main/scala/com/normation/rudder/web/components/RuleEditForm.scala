@@ -90,6 +90,8 @@ import com.normation.rudder.rule.category.RoRuleCategoryRepository
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.rudder.web.model.JsInitContextLinkUtil
 import com.normation.rudder.rule.category.RuleCategory
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 object RuleEditForm {
 
@@ -168,6 +170,7 @@ class RuleEditForm(
   private[this] val getFullDirectiveLib = RudderConfig.roDirectiveRepository.getFullDirectiveLibrary _
   private[this] val getAllNodeInfos     = RudderConfig.nodeInfoService.getAll _
   private[this] val getRootRuleCategory = RudderConfig.roRuleCategoryRepository.getRootCategory _
+  private[this] val configService       = RudderConfig.configService
 
   private[this] val usedDirectiveIds = roRuleRepository.getAll().getOrElse(Seq()).flatMap { case r =>
     r.directiveIds.map( id => (id -> r.id))
@@ -185,13 +188,13 @@ class RuleEditForm(
   private[this] val boxRootRuleCategory = getRootRuleCategory()
 
   private[this] def showForm(tab :Int = 0, idToScroll  : String = "editRuleZonePortlet") : NodeSeq = {
-    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory) match {
-      case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory)) =>
+    (getFullNodeGroupLib(), getFullDirectiveLib(), getAllNodeInfos(), boxRootRuleCategory, configService.rudder_global_policy_mode()) match {
+      case (Full(groupLib), Full(directiveLib), Full(nodeInfos), Full(rootRuleCategory), Full(globalMode)) =>
 
         val form = {
           if(CurrentUser.checkRights(Read("rule"))) {
             val formContent = if (CurrentUser.checkRights(Read("rule"))) {
-              showCrForm(groupLib, directiveLib)
+              showCrForm(groupLib, directiveLib, globalMode)
             } else {
               <div>You have no rights to see rules details, please contact your administrator</div>
             }
@@ -235,8 +238,8 @@ class RuleEditForm(
           )
         )
 
-      case (groupLib, directiveLib, allNodes, rootRuleCategory) =>
-        List(groupLib, directiveLib, allNodes, rootRuleCategory).collect{ case eb: EmptyBox =>
+      case (groupLib, directiveLib, allNodes, rootRuleCategory, globalMode) =>
+        List(groupLib, directiveLib, allNodes, rootRuleCategory, globalMode).collect{ case eb: EmptyBox =>
           val e = eb ?~! "An error happens when trying to get rule datas"
           logger.error(e.messageChain)
           <div class="error">{e.msg}</div>
@@ -261,7 +264,7 @@ class RuleEditForm(
 
   }
 
-  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory) : NodeSeq = {
+  private[this] def showCrForm(groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, globalMode : GlobalPolicyMode) : NodeSeq = {
 
     //is't there an other way to do that? We already have the target/name
     //in the tree, so there's just the existing id to find back
@@ -294,7 +297,8 @@ class RuleEditForm(
         <div id={htmlId_activeTechniquesTree} class="tw-bs">{
           <ul>{
             DisplayDirectiveTree.displayTree(
-                directiveLib = directiveLib
+                directiveLib
+              , globalMode
               , usedDirectiveIds = usedDirectiveIds
               , onClickCategory = None
               , onClickTechnique = None

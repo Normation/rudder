@@ -67,6 +67,7 @@ import com.normation.rudder.authorization.NoRights
 import org.joda.time.DateTime
 import net.liftweb.http.js.JE.JsArray
 import com.normation.rudder.web.model.JsInitContextLinkUtil
+import com.normation.rudder.domain.policies.GlobalPolicyMode
 
 /**
  * Snippet for managing the System and Active Technique libraries.
@@ -86,9 +87,10 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   val getRules            = () => RudderConfig.roRuleRepository.getAll()
   val uuidGen             = RudderConfig.stringUuidGenerator
   val treeUtilService     = RudderConfig.jsTreeUtilService
+  private[this] val configService = RudderConfig.configService
 
   def dispatch = {
-    RudderConfig.configService.rudder_workflow_enabled match {
+    configService.rudder_workflow_enabled match {
       case Full(workflowEnabled) =>
         {
           case "head" => { _ => head(workflowEnabled) }
@@ -171,8 +173,8 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   def displayDirectiveLibrary(workflowEnabled: Boolean): NodeSeq = {
     (
       <div id={htmlId_activeTechniquesTree} class="col-xs-12">{
-          (directiveLibrary,rules) match {
-            case (Full(activeTechLib), Full(allRules)) =>
+          (directiveLibrary,rules,configService.rudder_global_policy_mode()) match {
+            case (Full(activeTechLib), Full(allRules), Full(globalMode)) =>
               val usedDirectives = allRules.flatMap { case r =>
                   r.directiveIds.map( id => (id -> r.id))
                 }.groupBy( _._1 ).mapValues( _.size).toSeq
@@ -180,6 +182,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
               <ul>{
                 DisplayDirectiveTree.displayTree(
                     activeTechLib
+                  , globalMode
                   , usedDirectives
                   , None
                   , Some(onClickActiveTechnique)
@@ -187,9 +190,9 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
                   , false
                 )
               }</ul>
-            case (x, y) =>
+            case (x, y, z) =>
 
-              (x :: y :: Nil).foreach {
+              (x :: y :: z :: Nil).foreach {
                 case eb: EmptyBox =>
                   val f = eb ?~! "Error when trying to get the root category of Active Techniques"
                   logger.error(f.messageChain)
@@ -233,26 +236,34 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case None =>
         ".page-title *" #> "Usage" &
         "#details *" #> {
-        <div class="deca">
-          <p><em>Directives</em> are displayed in the tree of
-          <a href="/secure/administration/techniqueLibraryManagement">
-            <em>Active Techniques</em>
-          </a>,
-          grouped by categories.</p>
-          <ul>
-            <li>Fold/unfold category folders;</li>
-            <li>Click on the name of a <em>Technique</em> to see its description;</li>
-            <li>
-              Click on the name of a <em>Directive</em> to see its configuration items.
-              Details of the <em>Technique</em> it's based on will also be displayed.
-            </li>
-          </ul>
-          <p>Additional <em>Techniques</em> may be available through the
-            <a href="/secure/administration/techniqueLibraryManagement">
-              Techniques screen
-            </a>.
-          </p>
-        </div>
+          <div class="tw-bs">
+            <div class="col-lg-12">
+              <div class="col-lg-12 callout-fade callout-warning">
+                <div class="marker">
+                  <span class="glyphicon glyphicon-info-sign"></span>
+                </div>
+                <p>
+                  <em>Directives</em> are displayed in the tree of
+                  <a href="/secure/administration/techniqueLibraryManagement">
+                    <em>Active Techniques</em>
+                  </a>, grouped by categories.
+                </p>
+                <ul>
+                  <li>Fold/unfold category folders;</li>
+                  <li>Click on the name of a <em>Technique</em> to see its description;</li>
+                  <li>
+                    Click on the name of a <em>Directive</em> to see its configuration items.
+                    Details of the <em>Technique</em> it's based on will also be displayed.
+                  </li>
+                </ul>
+                <p>Additional <em>Techniques</em> may be available through the
+                  <a href="/secure/administration/techniqueLibraryManagement">
+                    <em>Techniques</em> screen
+                  </a>.
+                </p>
+              </div>
+            </div>
+          </div>
       }
 
       case Some((fullActiveTechnique,version)) =>
@@ -272,48 +283,49 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
             }
 
           case Some(technique) =>
-            /*
-             * We want to filter technique to only show the one
-             * with registered acceptation date time.
-             * Also sort by version, reverse
-             */
-            val validTechniqueVersions = fullActiveTechnique.techniques.map { case(v, t) =>
-              fullActiveTechnique.acceptationDatetimes.get(v) match {
-                case Some(timeStamp) => Some((v, t, timeStamp))
-                case None =>
-                  logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(fullActiveTechnique.techniqueName, v.toString) +
-                          "that version was not correctly registered into Rudder and can not be use for now.")
-                  logger.info("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
-                          "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
-                          "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
-                          "modification), and reload again the Technique Library.")
 
-                  None
-              }
-            }.toSeq.flatten.sortBy( _._1 )
+           /*
+            * We want to filter technique to only show the one
+            * with registered acceptation date time.
+            * Also sort by version, reverse
+            */
+           val validTechniqueVersions = fullActiveTechnique.techniques.map { case(v, t) =>
+             fullActiveTechnique.acceptationDatetimes.get(v) match {
+               case Some(timeStamp) => Some((v, t, timeStamp))
+               case None =>
+                 logger.error("Inconsistent Technique version state for Technique with ID '%s' and its version '%s': ".format(fullActiveTechnique.techniqueName, v.toString) +
+                         "that version was not correctly registered into Rudder and can not be use for now.")
+                 logger.info("A workaround is to remove that version manually from Rudder (move the directory for that version of the Technique out " +
+                         "of your configuration-repository directory (for example in /tmp) and 'git commit' the modification), " +
+                         "reload the Technique Library, then add back the version back (move it back at its place, 'git add' the directory, 'git commit' the" +
+                         "modification), and reload again the Technique Library.")
 
-            "#directiveIntro " #> {
-              currentDirectiveSettingForm.is.map { piForm =>
-                (".directive *" #> piForm.directive.name)
-              }
-            } &
-            "#techniqueName" #> technique.name &
-            "#compatibility" #> technique.compatible.map { comp =>
-              { if(comp.os.isEmpty) {
-                NodeSeq.Empty
-              } else {
-                <p><b>Supported operating systems: </b>{comp.os.mkString(", ")}</p>
-              } } ++ {
-              if (comp.agents.isEmpty) {
-                NodeSeq.Empty
-              } else {
-                <p><b>Supported agents: </b>{comp.agents.mkString(", ")}</p>
-              } }
-            } &
-            "#techniqueDescription" #>  technique.description &
-            "#techniqueLongDescription" #>  technique.longDescription &
-            "#isSingle *" #> showIsSingle(technique) &
-            "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled)
+                 None
+             }
+           }.toSeq.flatten.sortBy( _._1 )
+
+           "#directiveIntro " #> {
+             currentDirectiveSettingForm.is.map { piForm =>
+               (".directive *" #> piForm.directive.name)
+             }
+           } &
+           "#techniqueName" #> technique.name &
+           "#compatibility" #> technique.compatible.map { comp =>
+             { if(comp.os.isEmpty) {
+               NodeSeq.Empty
+             } else {
+               <p><b>Supported operating systems: </b>{comp.os.mkString(", ")}</p>
+             } } ++ {
+             if (comp.agents.isEmpty) {
+               NodeSeq.Empty
+             } else {
+               <p><b>Supported agents: </b>{comp.agents.mkString(", ")}</p>
+             } }
+           } &
+           "#techniqueDescription" #>  technique.description &
+           "#techniqueLongDescription" #>  technique.longDescription &
+           "#isSingle *" #> showIsSingle(technique) &
+           "#techniqueVersion *+" #> showVersions(fullActiveTechnique, validTechniqueVersions, workflowEnabled)
         }
     })
   }
@@ -391,25 +403,36 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
   }
 
   private[this] def newDirective(technique: Technique, activeTechnique: FullActiveTechnique, workflowEnabled: Boolean)  = {
-    val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
-    val directiveDefaultName = allDefaults.get(technique.id.toString).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
-    val directive =
-      Directive(
-          DirectiveId(uuidGen.newUuid)
-        , technique.id.version
-        , Map()
-        , directiveDefaultName
-        , ""
-        , None
-        , ""
-        , 5
-        , true
-      )
-    updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true)
-    //Update UI
-    Replace(htmlId_policyConf, showDirectiveDetails) &
-    SetHtml(html_techniqueDetails, NodeSeq.Empty) &
-    JsRaw("""createTooltip();""")
+    configService.rudder_global_policy_mode() match {
+      case Full(globalMode) =>
+        val allDefaults = techniqueRepository.getTechniquesInfo.directivesDefaultNames
+        val directiveDefaultName = allDefaults.get(technique.id.toString).orElse(allDefaults.get(technique.id.name.value)).getOrElse(technique.name)
+        val directive =
+          Directive(
+              DirectiveId(uuidGen.newUuid)
+            , technique.id.version
+            , Map()
+            , directiveDefaultName
+            , ""
+            , None
+            , ""
+            , 5
+            , true
+          )
+        updateDirectiveSettingForm(activeTechnique, directive,None, workflowEnabled, true, globalMode)
+        //Update UI
+        Replace(htmlId_policyConf, showDirectiveDetails) &
+        SetHtml(html_techniqueDetails, NodeSeq.Empty) &
+        JsRaw("""createTooltip();""")
+      case eb:EmptyBox =>
+        val fail = eb ?~! "Could not get global policy mode while creating new Directive"
+        logger.error(fail.messageChain)
+        val errorHtml =
+              <div class="deca">
+              <p class="error">{fail.messageChain}</p>
+              </div>
+        SetHtml(htmlId_policyConf, errorHtml)
+    }
   }
 
   /* Update Directive form,
@@ -424,15 +447,20 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
       case Left(directive) => directive.id
       case Right(directiveId) => directiveId
     }
-    directiveLibrary.flatMap( _.allDirectives.get(directiveId)) match {
-      // The directive exists, update directive form
-      case Full((activeTechnique, directive)) =>
-        // In priority, use the directive passed as parameter
-        val newDirective = directiveInfo match {
-          case Left(updatedDirective) => updatedDirective
-          case _ => directive // Only the id, get it from the library
+    configService.rudder_global_policy_mode() match {
+      case Full(globalMode) =>
+        directiveLibrary.flatMap( _.allDirectives.get(directiveId)) match {
+          // The directive exists, update directive form
+          case Full((activeTechnique, directive)) =>
+            // In priority, use the directive passed as parameter
+            val newDirective = directiveInfo match {
+              case Left(updatedDirective) => updatedDirective
+              case _ => directive // Only the id, get it from the library
+            }
+            updateDirectiveSettingForm(activeTechnique, newDirective, oldDirective, workflowEnabled, false, globalMode)
+          case eb:EmptyBox =>
+            currentDirectiveSettingForm.set(eb)
         }
-        updateDirectiveSettingForm(activeTechnique, newDirective, oldDirective, workflowEnabled, false)
       case eb:EmptyBox =>
         currentDirectiveSettingForm.set(eb)
     }
@@ -449,6 +477,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
     , oldDirective        : Option[Directive]
     , workflowEnabled     : Boolean
     , isADirectiveCreation: Boolean
+    , globalMode          : GlobalPolicyMode
   ) : Unit = {
 
     activeTechnique.techniques.get(directive.techniqueVersion) match {
@@ -461,6 +490,7 @@ class DirectiveManagement extends DispatchSnippet with Loggable {
           , directive
           , oldDirective
           , workflowEnabled
+          , globalMode
           , onSuccessCallback = directiveEditFormSuccessCallBack(workflowEnabled)
           , onMigrationCallback = (dir,optDir) => updateDirectiveForm(workflowEnabled)(Left(dir),optDir) & displayFinishMigrationPopup
           , isADirectiveCreation = isADirectiveCreation
