@@ -857,7 +857,7 @@ objectclass ( InventoryObjectClasses:80.6
   SUP VirtualMachine
   AUXILIARY )
 
-objectclass ( InventoryObjectClasses:80:7
+objectclass ( InventoryObjectClasses:80:8
   NAME 'hyperV'
   DESC 'A Hyper-V VM'
   SUP VirtualMachine
