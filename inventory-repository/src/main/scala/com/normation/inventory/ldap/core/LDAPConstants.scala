@@ -243,6 +243,7 @@ object LDAPConstants {
   val OC_VM_SOLARIS_ZONE = "solarisZone"
   val OC_VM_QEMU = "qemu"
   val OC_VM_AIX_LPAR = "aixLpar"
+  val OC_VM_HYPERV = "hyperV"
 
 
   implicit val OC = new LDAPSchema()
@@ -265,6 +266,7 @@ object LDAPConstants {
   OC +=(OC_VM_SOLARIS_ZONE, OC(OC_VM))
   OC +=(OC_VM_QEMU, OC(OC_VM))
   OC +=(OC_VM_AIX_LPAR, OC(OC_VM))
+  OC +=(OC_VM_HYPERV, OC(OC_VM))
 
   OC +=(OC_PE,
       must = Set(),
@@ -280,7 +282,8 @@ object LDAPConstants {
             OC_VM_VMWARE,
             OC_VM_SOLARIS_ZONE,
             OC_VM_QEMU,
-            OC_VM_AIX_LPAR
+            OC_VM_AIX_LPAR,
+            OC_VM_HYPERV
   )
 
   OC +=(OC_MEMORY, sup = OC(OC_PE),
