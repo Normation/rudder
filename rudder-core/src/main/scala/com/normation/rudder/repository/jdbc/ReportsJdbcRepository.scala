@@ -161,7 +161,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   }
 
   override def getDatabaseSize(databaseName:String) : Box[Long] = {
-    val q = sql"""select pg_total_relation_size('${databaseName}') as "size" """.query[Long].unique
+    val q = query[Long](s"""select pg_total_relation_size('${databaseName}') as "size" """).unique
     q.attempt.transact(xa).run ?~! "Could not compute the size of the database"
   }
 
