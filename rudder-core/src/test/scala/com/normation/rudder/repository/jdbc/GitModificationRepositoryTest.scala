@@ -62,7 +62,7 @@ import scalaz.concurrent.Task
 @RunWith(classOf[JUnitRunner])
 class GitModificationRepositoryTest extends DBCommon with BoxSpecMatcher {
 
-  val repos = new GitModificationRepositoryImpl(doobie)
+  lazy val repos = new GitModificationRepositoryImpl(doobie)
   import doobie._
 
   implicit def toCommitId(s: String) = GitCommitId(s)

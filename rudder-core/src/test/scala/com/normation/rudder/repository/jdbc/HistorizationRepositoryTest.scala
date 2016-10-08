@@ -59,8 +59,8 @@ import org.specs2.runner.JUnitRunner
 @RunWith(classOf[JUnitRunner])
 class HistorizationRepositoryTest extends DBCommon with BoxSpecMatcher  {
 
-  val repos = new HistorizationJdbcRepository(doobie)
-  val service = new HistorizationServiceImpl(repos)
+  lazy val repos = new HistorizationJdbcRepository(doobie)
+  lazy val service = new HistorizationServiceImpl(repos)
 
 
 

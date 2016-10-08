@@ -358,6 +358,8 @@ class FindExpectedReportsJdbcRepository(
 
         DirectivesOnNodes(nodeJoinKey, nodeConfigurationIds, directiveExpectedReports.toSeq)
       }
+
+
       RuleExpectedReports(
           key.ruleId
         , key.serial
@@ -400,37 +402,37 @@ class UpdateExpectedReportsJdbcRepository(
 
 
   override def findAllCurrentExpectedReportsWithNodesAndSerial(): Map[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])] = {
+    def getNodes(ruleId: RuleId, serial: Int, nodeJoin: Int) : ConnectionIO[(RuleId, (Int, Int, Map[NodeId, NodeConfigVersions]))] = {
+      for {
+        nodeList <- sql"""select nodejoinkey, nodeid, nodeconfigids
+                          from expectedreportsnodes
+                          where nodejoinkey = ${nodeJoin}
+                      """.query[(Int, NodeConfigVersions)].vector
+
+      } yield {
+        val nodeMap = nodeList.groupBy(_._2.nodeId).mapValues { seq => //seq cannot be empty due to groupBy
+          //merge version together based on nodejoin values
+          (seq.reduce[(Int, NodeConfigVersions)] { case ( (maxK, versions), (newK, newConfigVersions) ) =>
+            if(maxK >= newK) {
+              (maxK, versions.copy(versions = versions.versions ::: newConfigVersions.versions))
+            } else {
+              (newK, versions.copy(versions = newConfigVersions.versions ::: versions.versions))
+            }
+          })
+        }.values.groupBy(_._1).mapValues(_.map{case(_, NodeConfigVersions(id,v)) => (id,v)}.toMap)
+
+        (ruleId, (serial, nodeJoin, nodeMap(nodeJoin).map{ case(nodeId, versions) => (nodeId, NodeConfigVersions(nodeId, versions))}.toMap ))
+      }
+    }
+
     (for {
-      entries  <- sql"""
+      entries <- sql"""
                     select distinct ruleid, serial, nodejoinkey
                     from expectedreports where enddate is null
                   """.query[(RuleId, Int, Int)].vector
-      nodeList <- entries.toNel match {
-                      case None      => List.empty[(Int, NodeConfigVersions)].point[ConnectionIO]
-                      case Some(nel) =>
-                        val nodeJoin = nel.map(_._3)
-                        implicit val nodeJoinParam = Param.many(nodeJoin)
-                        sql"""
-                          select nodejoinkey, nodeid, nodeconfigids
-                          from expectedreportsnodes
-                          where nodejoinkey in (${nodeJoin: nodeJoin.type})
-                        """.query[(Int, NodeConfigVersions)].vector
-                  }
+      byRule  <- entries.traverse { case(ruleId, serial, nodeJoin) => getNodes(ruleId, serial, nodeJoin) }
     } yield {
-      val nodeMap = nodeList.groupBy(_._2.nodeId).mapValues { seq => //seq cannot be empty due to groupBy
-        //merge version together based on nodejoin values
-        (seq.reduce[(Int, NodeConfigVersions)] { case ( (maxK, versions), (newK, newConfigVersions) ) =>
-          if(maxK >= newK) {
-            (maxK, versions.copy(versions = versions.versions ::: newConfigVersions.versions))
-          } else {
-            (newK, versions.copy(versions = newConfigVersions.versions ::: versions.versions))
-          }
-        })
-      }.values.groupBy(_._1).mapValues(_.map{case(_, NodeConfigVersions(id,v)) => (id,v)}.toMap)
-
-      entries.map { case(ruleId, serial, nodeJoin) =>
-        (ruleId, (serial, nodeJoin, nodeMap(nodeJoin).map{ case(nodeId, versions) => (nodeId, NodeConfigVersions(nodeId, versions))}.toMap ))
-      }.toMap
+      byRule.toMap
     }).transact(xa).run //nobox ??
   }
 
