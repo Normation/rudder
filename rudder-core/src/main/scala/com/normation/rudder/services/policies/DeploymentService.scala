@@ -929,6 +929,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
   ) : Box[Seq[RuleExpectedReports]] = {
+
     val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, versions)
     val updatedRuleVal = updateRuleVal(expandedRuleVal, updatedCrs)
     val updatedConfigIds = updatedNodeConfig.flatMap(id =>

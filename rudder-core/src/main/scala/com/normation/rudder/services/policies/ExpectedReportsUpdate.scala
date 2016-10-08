@@ -146,6 +146,7 @@ class ExpectedReportsUpdateImpl(
     , overrides         : Set[UniqueOverrides]
 ) : Box[Seq[RuleExpectedReports]] = {
 
+
     val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
     val openExepectedReports = confExpectedRepo.findAllCurrentExpectedReportsWithNodesAndSerial()
 
