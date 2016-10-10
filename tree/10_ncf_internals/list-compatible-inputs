@@ -15,6 +15,14 @@ fi
 PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/locan/sbin:/usr/local/bin:/system/xbin:${PATH}"
 export PATH
 
+# tag matching
+# warning do not change regex without testing on aix
+tag_regex='^#[ \t]*@agent_version[ \t]*'
+reqs_regex='^#[ \t]*@agent_requirements[ \t]*'
+cap_regex='"capabilities"[ \t]*:[ \t]*\[\(.*\)\]'
+version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
+agent_regex='"agent_version"[ \t]*\([<>=]=*\)[ \t]*'${version_regex}
+
 if [ `printf "%.1s" "$1"` = "-" ]
 then
   # standard parsing
@@ -46,7 +54,6 @@ fi
 if [ -n "${cfengine_version}" ]
 then
   # split version numbers
-  version_regex='\([0-9][0-9]*\)\.\([0-9][0-9]*\).*'
   cfengine_major=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\1/"`
   cfengine_minor=`printf "${cfengine_version}\n" | sed -e "s/${version_regex}/\\2/"`
 fi
@@ -61,6 +68,95 @@ else
   # This allows passing the file path everytime and not failing when it is not there
   capability_file=""
 fi
+
+# requirement validation function
+validate_requirements() {
+  file="$1"
+  requirements=`sed -ne "s/${reqs_regex}//p" "${file}"`
+  # AIX's sed doesn't support '|' or '?' so we are limited to matching approximately valid expression
+  if [ -z `echo "${requirements}" | sed -ne "/\\(${cap_regex}\\)*[ \\t]*\\([|&][|&]\\)*[ \\t]*\\(${agent_regex}\\)*/p"` ]
+  then
+    echo "Invalid requirement ${requirements} in ${file}" 1>&2
+    exit 1
+  fi
+
+  # extract capabilities from the expression
+  caps=`echo "${requirements}" | sed -ne "s/${cap_regex}.*/\\1/p" | tr -d '" \t' | tr ',' ' '`
+  include_caps="x"
+  if [ -n "${caps}" ]
+  then
+    include_caps=0 # true for a shell
+    # for all required capability
+    for cap in ${caps}
+    do
+      # manage ! for negation
+      count_wanted=1
+      if [ `echo "${cap}" | cut -c 1` = '!' ]
+      then
+        count_wanted=0
+        cap=`echo "${cap}" | cut -c 2-`
+      fi
+  
+      count=0
+      # check if there is a matching agent capability
+      for c in ${capabilities}
+      do
+        if [ "${cap}" = "${c}" ]
+        then
+          count=1
+        fi
+      done
+  
+      # exclue if there is no match
+      if [ ${count} != ${count_wanted} ]
+      then
+        include_caps=1 # false in shell
+      fi
+    done
+  fi
+
+  # extract agent version from the expression
+  operator=`echo "${requirements}" | sed -ne "s/.*${agent_regex}[ \\t]*/\\1/p"`
+  major=`echo "${requirements}" | sed -ne "s/.*${agent_regex}[ \\t]*/\\2/p"`
+  minor=`echo "${requirements}" | sed -ne "s/.*${agent_regex}[ \\t]*/\\3/p"`
+  include_agent="x"
+  if [ -n "${operator}" ]
+  then
+    if [ "${operator}" = ">=" ]
+    then
+      [ "${cfengine_major}" -gt "${major}" ] || [ "${cfengine_major}" -eq "${major}" -a "${cfengine_minor}" -ge "${minor}" ]
+      include_agent=$?
+    elif [ "${operator}" = "<" ]
+    then
+      [ "${cfengine_major}" -lt "${major}" ] || [ "${cfengine_major}" -eq "${major}"  -a "${cfengine_minor}" -lt "${minor}" ]
+      include_agent=$?
+    else
+      echo "Unknown operator ${operator} in ${file}" 1>&2
+      exit 1
+    fi
+  fi
+
+  # extract binary operator
+  operator=`echo "${requirements}" | sed -ne "s/${cap_regex}[ \\t]*\\(..\\)[ \\t]*${agent_regex}/\\2/p"`
+  if [ "${operator}" == "&&" ]
+  then
+    [ ${include_caps} -eq 0 ] && [ ${include_agent} -eq 0 ]
+  elif [ "${operator}" == "||" ]
+  then
+    [ ${include_caps} -eq 0 ] || [ ${include_agent} -eq 0 ]
+  else
+    if [ "${include_caps}" == "x" ]
+    then
+      [ ${include_agent} -eq 0 ]
+    elif [ "${include_agent}" == "x" ]
+    then
+      [ ${include_caps} -eq 0 ]
+    else
+      echo "Evaluation error of ${requirements} in ${file}"
+      exit 1
+    fi
+  fi
+}
 
 # move into framework path
 cd "${framework_path}"
@@ -100,9 +196,6 @@ do
   then
     excludes=`cat "${exclude_file}"`
   else
-    # sed -ne '/regex/F' prints file name when regex matches
-    tag_regex='^#[ \t]*@agent_version[ \t]*'
-    reqs_regex='^#[ \t]*@agent_requirements[ \t]*'
     for file in `find "${directory}" -name '*.cf' -exec grep -l -e "${tag_regex}" -e "${reqs_regex}" '{}' \;`
     do
       operator=""
@@ -131,28 +224,10 @@ do
       # @agent_requirements
       if grep -q "${reqs_regex}" "${file}"
       then
-        # extract capabilities from the expression
-        cap_regex='"capabilities"[ \t]*:[ \t]*\[\(.*\)\]'
-        caps=`sed -ne "s/${reqs_regex}[ \\t]*${cap_regex}[ \\t]*/\\1/p" "${file}" | tr -d '" \t' | tr ',' ' '`
-        include_reqs=0 # true for a shell
-        # for all required capability
-        for cap in ${caps}
-        do
-          count=0
-          # check if there is a matching agent capability
-          for c in ${capabilities}
-          do
-            if [ "${cap}" = "${c}" ]
-            then
-              count=1
-            fi
-          done
-          # exclue if there is no match
-          if [ ${count} -eq 0 ]
-          then
-            include_reqs=1 # false in shell
-          fi
-        done
+        set +e
+        validate_requirements "${file}"
+        include_reqs="$?"
+        set -e
       else
         # no capabilities required = accept
         include_reqs=0 # true for a shell
