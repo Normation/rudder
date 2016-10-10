@@ -637,6 +637,8 @@ a.sidebar-toggle{
 }
 #generation-status{
   font-size: 14px;
+}
+#generation-status.label-success{
   background-color: #9bc832 !important;
 }
 .tw-bs .main-header .navbar .nav li.notifications-menu> a .fa-heartbeat{
