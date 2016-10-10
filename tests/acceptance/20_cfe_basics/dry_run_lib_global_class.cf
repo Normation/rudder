@@ -1,8 +1,10 @@
 #######################################################
 #
-# Test ncf dry-run using the files_dry_run specific class
+# Test ncf dry-run using the global_dry_run class
 #
 #######################################################
+
+# @agent_requirements "capabilities": [ "defaultbody" ] || "agent_version" >= 3.9
 
 bundle common acc_path
 {
@@ -37,12 +39,12 @@ bundle agent test
 {
 
   classes:
-      "files_dry_run" expression => "create_default_reached", scope => "namespace";
+      "global_dry_run" expression => "create_default_reached", scope => "namespace";
 
   methods:
       "default"
         usebundle => test_action("default");
-    files_dry_run::
+    global_dry_run::
       "dryrun"
         usebundle => test_action("dryrun");
 }
