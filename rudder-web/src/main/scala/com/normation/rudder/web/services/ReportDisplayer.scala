@@ -101,7 +101,13 @@ class ReportDisplayer(
   def asyncDisplay(node : NodeInfo) : NodeSeq = {
     val id = JsNodeId(node.id)
     val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
-    Script(OnLoad(JsRaw(s"""${callback.toJsCmd}""")))
+    Script(OnLoad(JsRaw(s"""
+      $$("#details_${id}").on( "tabsactivate", function(event, ui) {
+        if(ui.panel.id== 'node_reports') {
+          ${callback.toJsCmd}
+        }
+      });
+    """)))
   }
 
   /**
