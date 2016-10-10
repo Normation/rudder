@@ -47,7 +47,7 @@
                  <span id="errorInfo" class="help-block">
                      Login error, please try again.
                  </span>
-                <button class="btn btn-warning-rudder col-lg-12 col-md-12 col-sm-12 col-xs-12" id="valid" name="valid" type="button" onclick="checkForm();">
+                <button class="btn btn-warning-rudder col-lg-12 col-md-12 col-sm-12 col-xs-12" id="valid" name="valid" type="submit">
                   Sign in
                   <span class="ion ion-android-unlock"></span> 
                 </button>
@@ -89,35 +89,40 @@
     <script type="text/javascript" src="/javascript/login.min.js"></script>
     <script>
         $(document).ready(function(){
-            $('.welcome').fadeIn(1000);
-            (function(){
-                var urlVars = {};
-                var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-                    urlVars[key] = value;
-                });
-                if(urlVars["login_error"]) {
-                    $('#errorInfo').toggleClass('has-error');
-                }
-            })();
-        });
-        function checkForm(){
+          $('.welcome').fadeIn(1000);
+          (function(){
+              var urlVars = {};
+              var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+                  urlVars[key] = value;
+              });
+              if(urlVars["login_error"]) {
+                  $('#errorInfo').toggleClass('has-error');
+              }
+          })();
+          $('form.rudder-form').on('submit', function(e){
             var errors=false;
             if($('.group-user input').val().length===0){
-                $('.group-user').addClass('has-error');
-                errors=true;
+              $('.group-user').addClass('has-error');
+              errors=true;
             }else{
-                $('.group-user').removeClass('has-error');
+              $('.group-user').removeClass('has-error');
             }
             if($('.group-password input').val().length===0){
-                $('.group-password').addClass('has-error');
-                errors=true;
+              $('.group-password').addClass('has-error');
+              errors=true;
             }else{
-                $('.group-password').removeClass('has-error');
+              $('.group-password').removeClass('has-error');
             }
-            if(!errors){
-                $('form#contact').submit();
+            if(errors){
+              e.preventDefault();
             }
-        }
+          });
+          $(document).keypress(function(e) {
+            if(e.which == 13) {
+              $('form.rudder-form').submit();
+            }
+          });
+        });
     </script>
 </body>
 </html>
