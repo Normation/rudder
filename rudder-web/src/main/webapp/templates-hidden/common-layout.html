@@ -88,7 +88,6 @@
         correctButtons();
         $("a", "form").click(function() { return false; });
         createTooltip();
-        roundTabs();
 
         //don't let the browser tell, it may end-up with japanese if jquery doesn't know the variation :/
         $.datepicker.setDefaults($.datepicker.regional['en']);
@@ -97,9 +96,6 @@
       // ]]>
     </script>
 
-    <!--[if lt IE 7.]>
-    <script defer type="text/javascript" src="/javascript/rudder/rudder.js"></script>
-    <![endif]-->
   </head>
 <body class="skin-yellow sidebar-mini">
 
