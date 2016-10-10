@@ -60,7 +60,7 @@ trait UpdateExpectedReportsRepository {
    * Simply set the endDate for the expected report for this conf rule
    */
   //only for update logic
-  def closeExpectedReport(ruleId : RuleId, generationTime: DateTime) : Box[Unit]
+  def closeExpectedReport(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId, generationTime: DateTime) : Box[Unit]
 
   /**
    * Insert new expectedReports in base.
@@ -74,6 +74,7 @@ trait UpdateExpectedReportsRepository {
     , generationTime           : DateTime
     , directiveExpectedReports : Seq[DirectiveExpectedReports]
     , nodeConfigurationVersions: Seq[NodeAndConfigId]
+    , directivesLib            : FullActiveTechniqueCategory
   ) : Box[RuleExpectedReports]
 
 
@@ -104,7 +105,7 @@ trait FindExpectedReportRepository {
    * Return all the expected reports between the two dates
    * ## used by the advanced reporting module ##
    */
-  def findExpectedReports(beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]]
+  def findExpectedReports(directivesLib: FullActiveTechniqueCategory, beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]]
 
   /**
    * Return node ids associated to the rule (based on expectedreports (the one still pending)) for this Rule
@@ -115,7 +116,11 @@ trait FindExpectedReportRepository {
    * Retrieve the expected reports by config version of the nodes.
    * Here, for a given node, we can have several configId asked for.
    */
-  def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId], filterByRules: Set[RuleId]): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]]
+  def getExpectedReports(
+      nodeConfigIds: Set[NodeAndConfigId]
+    , filterByRules: Set[RuleId]
+    , directivesLib: FullActiveTechniqueCategory
+  ): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]]
 }
 
 

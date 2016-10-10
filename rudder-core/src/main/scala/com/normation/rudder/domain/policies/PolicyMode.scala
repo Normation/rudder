@@ -40,10 +40,8 @@ import net.liftweb.common.{Box,Full,Failure}
 import ca.mrvisser.sealerate.values
 
 sealed trait PolicyMode {                        def name : String    }
-
 final object PolicyMode {
-
-  final case object Audit  extends PolicyMode { val name = "audit"  }
+  final case object Audit  extends PolicyMode  { val name = "audit"  }
   final case object Enforce extends PolicyMode { val name = "enforce" }
 
   def allModes: Set[PolicyMode] = values[PolicyMode]

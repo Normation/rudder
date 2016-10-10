@@ -59,6 +59,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.ComplianceModeName
 import com.normation.rudder.reports.ReportsDisabled
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 /**
  * Defaults non-cached version of the reporting service.
@@ -70,7 +73,10 @@ class ReportingServiceImpl(
   , val agentRunRepository  : RoReportsExecutionRepository
   , val nodeConfigInfoRepo  : RoNodeConfigIdInfoRepository
   , val runIntervalService  : AgentRunIntervalService
-  , val getGlobalComplianceMode   : () => Box[GlobalComplianceMode]
+  , val nodeInfoService     : NodeInfoService
+  , val directivesRepo      : RoDirectiveRepository
+  , val getGlobalComplianceMode : () => Box[GlobalComplianceMode]
+  , val getGlobalPolicyMode     : () => Box[GlobalPolicyMode]
 ) extends ReportingService with RuleOrNodeReportingServiceImpl with DefaultFindRuleNodeStatusReports
 
 class CachedReportingServiceImpl(
@@ -234,6 +240,9 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def nodeConfigInfoRepo: RoNodeConfigIdInfoRepository
   def runIntervalService: AgentRunIntervalService
   def getGlobalComplianceMode : () => Box[GlobalComplianceMode]
+  def getGlobalPolicyMode     : () => Box[GlobalPolicyMode]
+  def nodeInfoService         : NodeInfoService
+  def directivesRepo          : RoDirectiveRepository
 
   override def findRuleNodeStatusReports(nodeIds: Set[NodeId], ruleIds: Set[RuleId]) : Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
     /*
@@ -270,25 +279,36 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       complianceMode      <- getGlobalComplianceMode()
       // we want compliance on these nodes
       runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
+      globalPolicyMode    <- getGlobalPolicyMode()
+      nodePolicyModes     <- globalPolicyMode.overridable match {
+                               case PolicyModeOverrides.Unoverridable => Full(nodeIds.map(id => (id, globalPolicyMode.mode)))
+                               case PolicyModeOverrides.Always        =>
+                                 for {
+                                   nodes <- nodeInfoService.getAll()
+                                 } yield {
+                                   nodeIds.map(id => (id, nodes.get(id).flatMap(_.policyMode).getOrElse(globalPolicyMode.mode)))
+                                 }
+                             }
 
       // that gives us configId for runs, and expected configId (some may be in both set)
       expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigInfo.configId) }
       lastrunConfigId     =  runInfos.collect {
+      case (nodeId, Pending(_, Some(run), _, _)) => NodeAndConfigId(nodeId, run._2.configId)
                                case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
-                               case (nodeId, Pending(_, Some(run), _, _)) => NodeAndConfigId(nodeId, run._2.configId)
                              }
 
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t1-t0}ms")
 
       // so now, get all expected reports for these config id
-      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigIds.toSet++lastrunConfigId, ruleIds)
+      directivesLib       <- directivesRepo.getFullDirectiveLibrary() // this should not be done, unecessary I/O - wainting for policy modes in expected reports
+      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigIds.toSet++lastrunConfigId, ruleIds, directivesLib)
 
       t2                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: get expected reports: ${t2-t1}ms")
 
       // compute the status
-      nodeStatusReports   <- buildNodeStatusReports(runInfos, allExpectedReports, ruleIds, complianceMode.mode)
+      nodeStatusReports   <- buildNodeStatusReports(runInfos, nodePolicyModes.toMap, allExpectedReports, ruleIds, complianceMode.mode)
 
       t3                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
@@ -334,6 +354,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    */
   private[this] def buildNodeStatusReports(
       runInfos          : Map[NodeId, RunAndConfigInfo]
+    , nodePolicyMode    : Map[NodeId, PolicyMode]
     , allExpectedReports: Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , ruleIds           : Set[RuleId]
     , complianceModeName: ComplianceModeName
@@ -366,8 +387,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                                     }
     } yield {
       //we want to have nodeStatus for all asked node, not only the ones with reports
-      runInfos.map { case(nodeId, runInfo) =>
-        ExecutionBatch.getNodeStatusReports(nodeId, runInfo
+      runInfos.map { case (nodeId, runInfo) =>
+        ExecutionBatch.getNodeStatusReports(nodeId, nodePolicyMode(nodeId), runInfo
             , allExpectedReports.getOrElse(nodeId, Map())
             , reports.getOrElse(nodeId, Seq())
         )
