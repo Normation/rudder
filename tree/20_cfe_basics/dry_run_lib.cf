@@ -16,13 +16,33 @@
 #
 #####################################################################################
 
-# There is 3 ways to have a promise dry-runned:
-#  - set the global_dry_run class (this one is not set by ncf)
-#  - call set_dry_run_mode()
+# The dry-run lib is based on classes, so you need to control the environment of promises to
+# set the dry-run mode.
+# To enable the dry-run mode after some point in the execution flow, call set_dry_run_mode("true")
+# and to reset the dry-run mode to the default (which is disabled), call
+# set_dry_run_mode("false"). This is best used within a methods section,
+# because you can control execution flow easily.
+#
+# A real example should look like:
+#
+# ```
+# methods:
+#   "enable dry-run"  usebundle => set_dry_run_mode("true");
+#   "dry-run part"    usebundle => package_present("htop");
+#   "disable dry-run" usebundle => set_dry_run_mode("false");
+# ```
+#
+# When trying to enable dry-run on systems that do not support the dry-run lib,
+# the agent will abort execution to avoid making unwanted changes.
+#
+# There are alternate ways to control the dry-run mode, but they are less safe
+# and should be used with caution.
+#  - set the global_dry_run class (this one is never set by ncf)
 #  - set a <promise_type>_dry_run class to make only this promise type to be dry-runned
-
-# @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
-# 
+# If you use one of those and not call the set_dry_run_mode bundle,
+# the dry-run mode will be ignore on incompatible systems and will lead to enforce
+# policies supposed to only be in dry-run mode.
+#
 # WARNING:
 # WARNING: Be carefull to have a different promiser content for each call to this method!
 # WARNING:
@@ -34,6 +54,11 @@
 # WARNING: * promise type specific dry-run is NOT considered by action bodies, and will be overriden
 # WARNING:   when using any action body.
 # WARNING:
+#
+# @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
+# @agent_requirements "capabilities": [ "defaultbody" ] || "agent_version"" >= 3.9
+# 
+
 bundle agent set_dry_run_mode(mode)
 {
   vars:
@@ -49,6 +74,12 @@ bundle agent set_dry_run_mode(mode)
 
     pass2.!unset_mode::
       "dry_run" expression => "any", scope => "namespace";
+  
+  reports:
+    pass2.debug.unset_mode::
+      "${configuration.debug} Disabling dry-run mode";
+    pass2.debug.!unset_mode::
+      "${configuration.debug} Enabling dry-run mode";
 }
 
 ###############################################################################

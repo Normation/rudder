@@ -48,8 +48,9 @@ bundle agent configuration
       "cfengine_port"              string => "${ncf_config[cfengine_port][1]}";
 
       # Constants
+      "fatal"                     string => "[FATAL]";
       "error"                     string => "[ERROR]";
-      "info"                      string => "[INFO] ";
+      "info"                      string => "[INFO]";
       "debug"                     string => "[DEBUG]";
       "trace"                     string => "[TRACE]";
 
