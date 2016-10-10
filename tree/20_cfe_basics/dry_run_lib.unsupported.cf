@@ -38,7 +38,7 @@ bundle agent set_dry_run_mode(mode)
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-    pass3.!unset_mode
+    pass3.!unset_mode::
       # wait for pass3 to be able to display the report before
       # then abort agent execution
       "abort_agent_run" expression => "any";
