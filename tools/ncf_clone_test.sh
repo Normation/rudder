@@ -16,7 +16,7 @@ unset LANG
 
 # Configuration
 TEST_WORKDIR=/tmp
-TEST_DEPENDENCIES="curl lsb-release htop"
+TEST_DEPENDENCIES="curl lsb-release htop python-jinja2"
 
 # Default values
 BRANCH="master"
