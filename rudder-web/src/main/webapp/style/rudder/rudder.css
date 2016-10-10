@@ -2712,3 +2712,39 @@ label span.text-fit{
   border: 1px solid #aaaaaa;
   background-color: #f1f1f1;
 }
+
+#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a:hover{
+  color: #c77405;
+}
+#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a {
+  color: #f78f1f;
+  transition-duration:.2s;
+  text-decoration: none;
+  padding: .5em 1em;
+  position: relative;
+  left: -0.25px;
+}
+#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a.active {
+  background-color: #f6f6f6;
+  border-radius: 4px;
+  color: #333;
+}
+#serverDetails .sInventory, #nodeInventory, #node_inventory{
+  border : none !important;
+}
+#nodeInventory .ui-tabs-nav{
+	margin-top: 5px;
+}
+#node_inventory{
+	padding : 0 !important;
+}
+#node_inventory .sInventory .sInventory{
+  padding:5px 0 5px 5px;
+  border: none !important;
+}
+#serverDetails .dataTables_filter input {
+  padding: 8px 5px 8px 30px;
+}
+#serverDetails .dataTables_wrapper_top .dataTables_length{
+  padding: 5px;
+}

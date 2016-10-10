@@ -233,7 +233,17 @@ class ShowNodeDetailsFromNode(
                 bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(OnLoad(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
                   OnLoad(buildJsTree(groupTreeId) &
-                  JsRaw(s"""$$( "#${detailsId}" ).tabs({ active : ${tab} } )"""))
+                  JsRaw(s"""
+                    $$( "#${detailsId}" ).tabs({ active : ${tab} } );
+                    $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
+                      var tab = $$(this).attr('href');
+                      $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a.active').removeClass('active');
+                      $$(this).addClass('active');
+                      $$('#nodeInventory > .sInventory > .sInventory').hide();
+                      $$(tab).show();
+                    });
+                    $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a')[0].click();
+                    """))
                 ))
               case e:EmptyBox =>
                 val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
