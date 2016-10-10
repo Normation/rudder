@@ -309,7 +309,7 @@ case class SectionFieldImp(
     val classes = "sectionFieldset foldableSection " + visibilityClasses
     if(childrenXml.isEmpty) NodeSeq.Empty
     else
-      <tr><td colspan="2">
+      <tr><td colspan="3">
         <div  id={sectionId} class={classes}>
          <div class="section-title" onClick={methodName}>Section: { name }</div>
           <table class="directiveSectionDef">
@@ -323,7 +323,7 @@ case class SectionFieldImp(
     val childrenXml = childFields map (f => f.toHtmlNodeSeq)
     if(childrenXml.isEmpty) NodeSeq.Empty
     else
-      <tr><td colspan="2">
+      <tr><td colspan="3">
         <div>
         <div class="section-title">Section: { name }</div>
           <table class="directiveSectionDisplay">
