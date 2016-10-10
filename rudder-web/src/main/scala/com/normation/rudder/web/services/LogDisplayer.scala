@@ -140,10 +140,12 @@ class LogDisplayer(
         // Load data asynchronously
         JsRaw(
       s"""
-        $$("#details_${id}").bind( "show", function(event, ui) {
-          if(ui.panel.id== 'node_logs') { ${ajaxRefresh.toJsCmd} }
+        $$("#details_${id}").on( "tabsactivate", function(event, ui) {
+          if(ui.panel.id== 'node_logs') {
+            ${ajaxRefresh.toJsCmd}
+          }
         });
-       """
+      """
     )))
   }
 
