@@ -70,8 +70,10 @@ sealed trait Reports {
 }
 
 //two marker trait to split between result and log reports
-sealed trait ResultReports extends Reports
-sealed trait LogReports extends Reports
+sealed trait LogReports     extends Reports
+sealed trait ResultReports  extends Reports
+sealed trait EnforceReports extends ResultReports
+sealed trait AuditReports   extends ResultReports
 
 final case class ResultSuccessReport(
     executionDate      : DateTime
@@ -83,7 +85,7 @@ final case class ResultSuccessReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends ResultReports with HashcodeCaching {
+) extends EnforceReports with HashcodeCaching {
   val severity = Reports.RESULT_SUCCESS
 }
 
@@ -97,7 +99,7 @@ final case class ResultNotApplicableReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends ResultReports with HashcodeCaching {
+) extends EnforceReports with HashcodeCaching {
   val severity = Reports.RESULT_NOTAPPLICABLE
 }
 
@@ -111,7 +113,7 @@ final case class ResultRepairedReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends ResultReports with HashcodeCaching {
+) extends EnforceReports with HashcodeCaching {
   val severity = Reports.RESULT_REPAIRED
 }
 
@@ -125,8 +127,64 @@ final case class ResultErrorReport(
   , keyValue           : String
   , executionTimestamp : DateTime
   , message            : String
-) extends ResultReports with HashcodeCaching {
+) extends EnforceReports with HashcodeCaching {
   val severity = Reports.RESULT_ERROR
+}
+
+final case class AuditCompliantReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends AuditReports with HashcodeCaching {
+  val severity = Reports.AUDIT_COMPLIANT
+}
+
+final case class AuditNonCompliantReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends AuditReports with HashcodeCaching {
+  val severity = Reports.AUDIT_NONCOMPLIANT
+}
+
+final case class AuditErrorReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends AuditReports with HashcodeCaching {
+  val severity = Reports.AUDIT_ERROR
+}
+
+final case class AuditNotApplicableReport(
+    executionDate      : DateTime
+  , ruleId             : RuleId
+  , directiveId        : DirectiveId
+  , nodeId             : NodeId
+  , serial             : Int
+  , component          : String
+  , keyValue           : String
+  , executionTimestamp : DateTime
+  , message            : String
+) extends AuditReports with HashcodeCaching {
+  val severity = Reports.AUDIT_NOTAPPLICABLE
 }
 
 final case class UnknownReport(
@@ -242,6 +300,19 @@ object Reports {
       case RESULT_NOTAPPLICABLE => new ResultNotApplicableReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, componentValue, executionTimestamp, message )
 
+      case AUDIT_COMPLIANT => new AuditCompliantReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, componentValue, executionTimestamp, message )
+
+      case AUDIT_NONCOMPLIANT => new AuditNonCompliantReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, componentValue, executionTimestamp, message )
+
+      case AUDIT_NOTAPPLICABLE => new AuditNotApplicableReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, componentValue, executionTimestamp, message )
+
+      case AUDIT_ERROR => new AuditErrorReport(executionDate, ruleId, directiveId, nodeId,
+              serial, component, componentValue, executionTimestamp, message )
+
+
       case LOG_REPAIRED => new LogRepairedReport(executionDate, ruleId, directiveId, nodeId,
               serial, component, componentValue, executionTimestamp, message )
 
@@ -291,9 +362,18 @@ object Reports {
   val LOG_WARNING     = "log_warning"
   val LOG_REPAIRED    = "log_repaired"
 
+  // these ones are for enforce mode
   val RESULT_SUCCESS       = "result_success"
   val RESULT_NOTAPPLICABLE = "result_na"
   val RESULT_REPAIRED      = "result_repaired"
   val RESULT_ERROR         = "result_error"
+
+
+  // these ones are for audit mode
+  val AUDIT_COMPLIANT     = "audit_compliant"
+  val AUDIT_NOTAPPLICABLE = "audit_na"
+  val AUDIT_NONCOMPLIANT  = "audit_noncompliant"
+  val AUDIT_ERROR         = "audit_error"
+
   val RESULT_UNKNOWN       = "Unknown"
 }

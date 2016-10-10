@@ -69,7 +69,6 @@ import net.liftweb.common.Empty
 import com.normation.rudder.services.reports.CachedFindRuleNodeStatusReports
 import com.normation.rudder.services.reports.DefaultFindRuleNodeStatusReports
 import com.normation.rudder.services.nodes.NodeInfoService
-import com.normation.rudder.services.reports.RuleOrNodeReportingServiceImpl
 import com.normation.rudder.reports.ComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.reports.GlobalComplianceMode
@@ -84,6 +83,21 @@ import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import scalaz.concurrent.Task
 import com.normation.BoxSpecMatcher
+import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.services.nodes.LDAPNodeInfo
+import com.normation.rudder.domain.nodes.NodeInfo
+import com.normation.rudder.services.reports.Unexpected
+import com.normation.rudder.services.reports.{Pending => RPending}
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.nodes.Node
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.repository.RoDirectiveRepository
+import com.normation.rudder.domain.policies._
+import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.repository.CategoryWithActiveTechniques
+import com.normation.cfclerk.domain.TechniqueName
+import com.normation.cfclerk.domain.Technique
+import scala.collection.SortedMap
 
 
 /**
@@ -94,6 +108,7 @@ import com.normation.BoxSpecMatcher
 @RunWith(classOf[JUnitRunner])
 class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
 
+  import ReportType._
   import doobie._
 
   //clean data base
@@ -101,9 +116,58 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     sql"DELETE FROM ReportsExecution; DELETE FROM RudderSysEvents;".update.run.transact(xa).run
   }
 
+  val nodeInfoService = new NodeInfoService {
+    def getLDAPNodeInfo(nodeIds: Set[NodeId]) : Box[Set[LDAPNodeInfo]] = ???
+    def getNodeInfo(nodeId: NodeId) : Box[Option[NodeInfo]] = ???
+    def getNode(nodeId: NodeId): Box[Node] = ???
+    def getAllNodes() : Box[Map[NodeId, Node]] = ???
+    def getAllSystemNodeIds() : Box[Seq[NodeId]] = ???
+    def getPendingNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
+    def getPendingNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = ???
+    def getDeletedNodeInfos(): Box[Map[NodeId, NodeInfo]] = ???
+    def getDeletedNodeInfo(nodeId: NodeId): Box[Option[NodeInfo]] = ???
+    val getAll : Box[Map[NodeId, NodeInfo]] = {
+      def build(id: String, mode: Option[PolicyMode]) = {
+        val node1 = NodeConfigData.node1.node
+        NodeConfigData.node1.copy(node = node1.copy(
+            id = NodeId(id)
+          , policyMode = mode
+        ))
+      }
+      Full(Seq(
+          build("n0", None)
+        , build("n1", Some(PolicyMode.Enforce))
+        , build("n2", Some(PolicyMode.Audit))
+        , build("n3", Some(PolicyMode.Enforce))
+        , build("n4", Some(PolicyMode.Audit))
+      ).map(n => (n.id, n)).toMap)
+    }
+  }
+
+  val directivesLib = NodeConfigData.directives
+  val directivesRepos = new RoDirectiveRepository() {
+    def getFullDirectiveLibrary() : Box[FullActiveTechniqueCategory] = Full(directivesLib)
+    def getDirective(directiveId:DirectiveId) : Box[Directive] = ???
+    def getDirectiveWithContext(directiveId:DirectiveId) : Box[(Technique, ActiveTechnique, Directive)] = ???
+    def getActiveTechniqueAndDirective(id:DirectiveId) : Box[(ActiveTechnique, Directive)] = ???
+    def getDirectives(activeTechniqueId:ActiveTechniqueId, includeSystem:Boolean = false) : Box[Seq[Directive]] = ???
+    def getActiveTechniqueByCategory(includeSystem:Boolean = false) : Box[SortedMap[List[ActiveTechniqueCategoryId], CategoryWithActiveTechniques]] = ???
+    def getActiveTechnique(id:ActiveTechniqueId) : Box[Option[ActiveTechnique]] = ???
+    def getActiveTechnique(techniqueName: TechniqueName) : Box[Option[ActiveTechnique]] = ???
+    def activeTechniqueBreadCrump(id:ActiveTechniqueId) : Box[List[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueLibrary : Box[ActiveTechniqueCategory] = ???
+    def getAllActiveTechniqueCategories(includeSystem:Boolean = false) : Box[Seq[ActiveTechniqueCategory]] = ???
+    def getActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = ???
+    def getParentActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[ActiveTechniqueCategory] = ???
+    def getParentsForActiveTechniqueCategory(id:ActiveTechniqueCategoryId) : Box[List[ActiveTechniqueCategory]] = ???
+    def getParentsForActiveTechnique(id:ActiveTechniqueId) : Box[ActiveTechniqueCategory] = ???
+    def containsDirective(id: ActiveTechniqueCategoryId) : Boolean = ???
+
+  }
+
   val dummyComplianceCache = new CachedFindRuleNodeStatusReports {
     def defaultFindRuleNodeStatusReports: DefaultFindRuleNodeStatusReports = null
-    def nodeInfoService: NodeInfoService = null
+    def nodeInfoService: NodeInfoService = nodeInfoService
     def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = null
     def findNodeStatusReport(nodeId: NodeId) : Box[NodeStatusReport] = null
     override def invalidate(nodeIds: Set[NodeId]) = Full(Map())
@@ -122,7 +186,6 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     def getNodeReportingConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, ResolvedAgentRunInterval]] = {
       Full(nodes.filterKeys { x => nodeIds.contains(x) })
     }
-
   }
 
   lazy val roAgentRun = new RoReportsExecutionRepositoryImpl(doobie, pgIn)
@@ -249,6 +312,19 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     )
   )
 
+
+  def buildReportingService(compliance: GlobalComplianceMode) = new ReportingServiceImpl(
+      findExpected
+    , reportsRepo
+    , roAgentRun
+    , findExpected
+    , agentRunService
+    , nodeInfoService
+    , directivesRepos
+    , () => Full(compliance)
+    , () => Full(GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always))
+  )
+
   sequential
 
   "Init data" should {
@@ -287,12 +363,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     //essentially test the combination of in/in(values clause
 
     "be correct for in(tuple) clause" in {
-      val res = findExpected.getExpectedReports(configs(("n1","n1_t1")), Set()).openOrThrowException("'Test failed'")
+      val res = findExpected.getExpectedReports(configs(("n1","n1_t1")), Set(), directivesLib).openOrThrowException("'Test failed'")
       (res.size must beEqualTo(1)) and (res("n1")("n1_t1").size must beEqualTo(2))
     }
 
     "be correct for in(value(tuple)) clause" in {
-      val res = findExpected.getExpectedReports(configs(("n1","n1_t1"),("n2","n2_t1")), Set()).openOrThrowException("'Test failed'")
+      val res = findExpected.getExpectedReports(configs(("n1","n1_t1"),("n2","n2_t1")), Set(), directivesLib).openOrThrowException("'Test failed'")
       (res.size must beEqualTo(2)) and (
        res("n1")("n1_t1").size must beEqualTo(2)
       ) and (
@@ -321,14 +397,16 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
         , NodeAndConfigId(NodeId("n3"),NodeConfigId("n3_t1"))
         , NodeAndConfigId(NodeId("n1"),NodeConfigId("n1_t1"))
         , NodeAndConfigId(NodeId("n2"),NodeConfigId("n2_t1"))
-      ), Set(RuleId("r2")) ).openOrThrowException("Failed test, should be a full box")
+      ), Set(RuleId("r2")), directivesLib ).openOrThrowException("Failed test, should be a full box")
 
       val r = Map(
           SerialedRuleId(RuleId("r2"), 1) ->
           RuleNodeExpectedReports(
                 RuleId("r2")
               , 1
-              , List(DirectiveExpectedReports(DirectiveId("r2_d2"), Seq(ComponentExpectedReport("r2_d2_c0",1,Seq("r2_d2_c0_v0"),List("r2_d2_c0_v0")))))
+              , List(DirectiveExpectedReports(DirectiveId("r2_d2"), Some(PolicyMode.Audit),
+                  Seq(ComponentExpectedReport("r2_d2_c0",1,Seq("r2_d2_c0_v0"),List("r2_d2_c0_v0"))))
+                )
               , gen2
               , None
       ))
@@ -362,15 +440,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   ///////////////////////////////// changes only mode /////////////////////////////////
 
   "Finding rule status reports for the change only mode" should {
-    lazy val errorOnlyReportingService =
-      new ReportingServiceImpl(
-          findExpected
-        , reportsRepo
-        , roAgentRun
-        , findExpected
-        , agentRunService
-        , () => Full(GlobalComplianceMode(ChangesOnly,1))
-      )
+    lazy val errorOnlyReportingService = buildReportingService(GlobalComplianceMode(ChangesOnly,1))
 
     "get r0" in {
 
@@ -387,8 +457,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -399,8 +469,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -409,8 +479,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -420,16 +490,16 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
 
           //here, it just works as expected
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
       )
@@ -457,7 +527,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
           nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -467,7 +537,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -475,7 +545,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -483,12 +553,12 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
 
@@ -501,7 +571,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   ///////////////////////////////// full compliance mode /////////////////////////////////
 
   "Finding rule status reports for the compliance mode" should {
-    lazy val complianceReportingService = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(fullCompliance))
+    lazy val complianceReportingService = buildReportingService(fullCompliance)
 
     "get r0" in {
 
@@ -518,8 +588,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -529,8 +599,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -539,8 +609,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
           /*
@@ -550,14 +620,14 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
       )
@@ -579,7 +649,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       val expected = Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
           /*
@@ -587,22 +657,22 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
            */
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n2", Some(run1), Some("n2_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n3", Some(run2), Some("n3_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
 
@@ -618,14 +688,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   ///////////////////////////////// error only mode /////////////////////////////////
 
   "Finding node status reports for the changes only mode" should {
-    lazy val errorOnlyReportingService =
-      new ReportingServiceImpl(
-          findExpected
-        , reportsRepo
-        , roAgentRun
-        , findExpected
-        , agentRunService
-        , () => Full(GlobalComplianceMode(ChangesOnly,1)))
+    lazy val errorOnlyReportingService =buildReportingService(GlobalComplianceMode(ChangesOnly,1))
 
     "get pending for node 0 on gen2 data" in {
       ComplianceDebugLogger.info("changes only / node0")
@@ -634,13 +697,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
         , nodeStatus("n0", None, Some("n0_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
       ))
@@ -653,8 +716,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.byRules("r0").reports, Seq(
           nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -668,8 +731,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -683,8 +746,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -698,13 +761,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
       ))
@@ -714,7 +777,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
   ///////////////////////////////// full compliance mode /////////////////////////////////
 
   "Finding node status reports for the compliance mode" should {
-    lazy val complianceReportingService:ReportingServiceImpl = new ReportingServiceImpl(findExpected, reportsRepo, roAgentRun, findExpected, agentRunService, () => Full(fullCompliance))
+    lazy val complianceReportingService:ReportingServiceImpl = buildReportingService(fullCompliance)
 
     "get pending for node 0 on gen2 data (without msg)" in {
       ComplianceDebugLogger.info("compliance / node0")
@@ -724,8 +787,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n0", None, Some("n0_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -738,13 +801,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n1", Some(run1), Some("n1_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
         , nodeStatus("n1", Some(run1), Some("n1_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", PendingReportType, List("")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", Pending, List("")))
               )
           ))
       ))
@@ -768,8 +831,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n2", Some(run1), Some("n2_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -783,8 +846,8 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(all, Seq(
           nodeStatus("n3", Some(run2), Some("n3_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", PendingReportType, List("")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", PendingReportType, List("")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", Pending, List("")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", Pending, List("")))
               )
           ))
       ))
@@ -797,13 +860,13 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
       compareNodeStatus(result.report.reports, Seq(
           nodeStatus("n4", Some(run2), Some("n4_t2"), "r0", 2,
               ("r0_d0", Seq(
-                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", SuccessReportType, List("msg")))
-                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", SuccessReportType, List("msg")))
+                  compStatus("r0_d0_c0", ("r0_d0_c0_v1", EnforceSuccess, List("msg")))
+                , compStatus("r0_d0_c1", ("r0_d0_c1_v1", EnforceSuccess, List("msg")))
               )
           ))
         , nodeStatus("n4", Some(run2), Some("n4_t2"), "r2", 1,
               ("r2_d2", Seq(
-                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", SuccessReportType, List("msg")))
+                  compStatus("r2_d2_c0", ("r2_d2_c0_v0", EnforceSuccess, List("msg")))
               )
           ))
       ))
@@ -857,7 +920,7 @@ class ReportingServiceTest extends DBCommon with BoxSpecMatcher {
     val v = values.map { case(value, tpe, msgs) =>
       val messages = msgs.map(m => MessageStatusReport(tpe, m))
       tpe match {
-        case UnexpectedReportType => ComponentValueStatusReport(value, "None", messages)
+        case Unexpected => ComponentValueStatusReport(value, "None", messages)
         case _ => ComponentValueStatusReport(value, value, messages)
       }
     }

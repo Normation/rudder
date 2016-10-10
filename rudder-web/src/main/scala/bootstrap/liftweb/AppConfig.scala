@@ -1488,7 +1488,10 @@ object RudderConfig extends Loggable {
         , roAgentRunsRepository
         , findExpectedRepo
         , globalAgentRunService
+        , nodeInfoServiceImpl
+        , roDirectiveRepository
         , globalComplianceModeService.getGlobalComplianceMode _
+        , configService.rudder_global_policy_mode _
       )
     , nodeInfoServiceImpl
   )

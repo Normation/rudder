@@ -193,7 +193,7 @@ trait PromiseGenerationService extends Loggable {
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
       updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
-      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime())  ?~! "Cannot build expected reports"
+      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime(), directiveLib)  ?~! "Cannot build expected reports"
       // now, invalidate cache
       _                     =  invalidateComplianceCache(updatedNodeConfig)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
@@ -346,6 +346,7 @@ trait PromiseGenerationService extends Loggable {
     , deletedCrs       : Seq[RuleId]
     , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
+    , directivesLib    : FullActiveTechniqueCategory
   ) : Box[Seq[RuleExpectedReports]]
 
   /**
@@ -928,6 +929,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     , deletedCrs       : Seq[RuleId]
     , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
+    , directivesLib    : FullActiveTechniqueCategory
   ) : Box[Seq[RuleExpectedReports]] = {
 
     val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, versions)
@@ -948,7 +950,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
       })
     }.toSet
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden)
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden, directivesLib)
   }
 
   override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {

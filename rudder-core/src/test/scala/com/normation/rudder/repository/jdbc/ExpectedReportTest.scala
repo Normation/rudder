@@ -67,6 +67,7 @@ import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import scalaz.concurrent.Task
+import com.normation.rudder.services.policies.NodeConfigData
 
 
 /**
@@ -214,7 +215,7 @@ class ExpectedReportsTest extends DBCommon {
     val serial = 42
     val nodeConfigIds = Seq( ("n1", "n1_v1"), ("n2", "n2_v1") )
     val c1 = ComponentExpectedReport("c1", 1, Seq("c1_v1"), Seq())
-    val d1 = DirectiveExpectedReports(DirectiveId("d1"),Seq(c1))
+    val d1 = DirectiveExpectedReports(DirectiveId("d1"), None, Seq(c1))
     val directiveExpectedReports = Seq(d1)
 
     val expected = DB.ExpectedReports[Long](100, 100, r1, serial, d1.directiveId
@@ -225,7 +226,7 @@ class ExpectedReportsTest extends DBCommon {
 
     "the first time, just insert" in {
       val genTime = DateTime.now
-      val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
+      val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds, NodeConfigData.directives)
 
       val reports = DB.getExpectedReports().transact(xa).run
       val nodes   = DB.getExpectedReportsNode().transact(xa).run
@@ -242,7 +243,7 @@ class ExpectedReportsTest extends DBCommon {
     "saving the same exactly, nothing change" in {
       val genTime = DateTime.now
 
-      val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds)
+      val inserted = expectedReportsRepo.saveExpectedReports(r1, serial, genTime, directiveExpectedReports, nodeConfigIds, NodeConfigData.directives)
 
       val reports = DB.getExpectedReports().transact(xa).run
       val nodes   = DB.getExpectedReportsNode().transact(xa).run
@@ -322,8 +323,8 @@ class ExpectedReportsTest extends DBCommon {
      * And now, for the expectations
      */
     val genTime = DateTime.now
-    val d1_exp = DirectiveExpectedReports(DirectiveId("d1"),Seq(ComponentExpectedReport("root", 1, Seq("d1_value"), Seq("d1_value"))))
-    val d2_exp = DirectiveExpectedReports(DirectiveId("d2"),Seq(ComponentExpectedReport("root", 1, Seq("d2_value"), Seq("d2_value"))))
+    val d1_exp = DirectiveExpectedReports(DirectiveId("d1"), None, Seq(ComponentExpectedReport("root", 1, Seq("d1_value"), Seq("d1_value"))))
+    val d2_exp = DirectiveExpectedReports(DirectiveId("d2"), None, Seq(ComponentExpectedReport("root", 1, Seq("d2_value"), Seq("d2_value"))))
     val expectedRule = RuleExpectedReports(r1, serial, Seq(
         DirectivesOnNodes(100, Map(n1.nodeId -> Some(n1.version)), Seq(d1_exp) )
       , DirectivesOnNodes(101, Map(n2.nodeId -> Some(n2.version)), Seq(d2_exp) )
@@ -343,6 +344,7 @@ class ExpectedReportsTest extends DBCommon {
         , Seq()
         , Map(n1.nodeId -> n1.version, n2.nodeId -> n2.version)
         , genTime, Set(n1_overrides)
+        , NodeConfigData.directives
       )
 
       val reports = DB.getExpectedReports().transact(xa).run

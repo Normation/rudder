@@ -310,7 +310,7 @@ class ReportDisplayer(
                   _ => true   //keep all (non empty) directives
                 , _ => true   //keep all (non empty) component values
                 , { value =>  //filter values based on the message type - we don't want Unexpected values
-                    value.messages.forall { m => m.reportType != UnexpectedReportType }
+                    value.messages.forall { m => m.reportType != ReportType.Unexpected }
                   }
               )
             } )
@@ -324,8 +324,8 @@ class ReportDisplayer(
 
           case  _:Pending | _:ComputeCompliance =>
 
-            val missing    = getComponents(MissingReportType   , report, directiveLib).toSet
-            val unexpected = getComponents(UnexpectedReportType, report, directiveLib).toSet
+            val missing    = getComponents(ReportType.Missing   , report, directiveLib).toSet
+            val unexpected = getComponents(ReportType.Unexpected, report, directiveLib).toSet
 
             bind("lastreportgrid", reportByNodeTemplate
               , "intro"      -> intro

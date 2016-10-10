@@ -66,4 +66,16 @@
 .tw-bs .progress-bar-missing {
   background-color: #FF9147;
 }
+.tw-bs .progress-bar-audit-compliant {
+  background-color: #9bc832;
+}
+.tw-bs .progress-bar-audit-noncompliant {
+  background-color: #ff47bc;
+}
+.tw-bs .progress-bar-audit-notapplicable {
+  background-color: #8dcd8d;
+}
+.tw-bs .progress-bar-audit-error {
+  background-color: #d9534f;
+}
 
