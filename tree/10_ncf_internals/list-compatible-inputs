@@ -74,7 +74,8 @@ validate_requirements() {
   file="$1"
   requirements=`sed -ne "s/${reqs_regex}//p" "${file}"`
   # AIX's sed doesn't support '|' or '?' so we are limited to matching approximately valid expression
-  if [ -z `echo "${requirements}" | sed -ne "/\\(${cap_regex}\\)*[ \\t]*\\([|&][|&]\\)*[ \\t]*\\(${agent_regex}\\)*/p"` ]
+  validity=`echo "${requirements}" | sed -ne "/\\(${cap_regex}\\)*[ \\t]*\\([|&][|&]\\)*[ \\t]*\\(${agent_regex}\\)*/p"`
+  if [ -z "${validity}" ]
   then
     echo "Invalid requirement ${requirements} in ${file}" 1>&2
     exit 1
@@ -138,17 +139,17 @@ validate_requirements() {
 
   # extract binary operator
   operator=`echo "${requirements}" | sed -ne "s/${cap_regex}[ \\t]*\\(..\\)[ \\t]*${agent_regex}/\\2/p"`
-  if [ "${operator}" == "&&" ]
+  if [ "${operator}" = "&&" ]
   then
     [ ${include_caps} -eq 0 ] && [ ${include_agent} -eq 0 ]
-  elif [ "${operator}" == "||" ]
+  elif [ "${operator}" = "||" ]
   then
     [ ${include_caps} -eq 0 ] || [ ${include_agent} -eq 0 ]
   else
-    if [ "${include_caps}" == "x" ]
+    if [ "${include_caps}" = "x" ]
     then
       [ ${include_agent} -eq 0 ]
-    elif [ "${include_agent}" == "x" ]
+    elif [ "${include_agent}" = "x" ]
     then
       [ ${include_caps} -eq 0 ]
     else
