@@ -211,10 +211,12 @@ object DisplayNode extends Loggable {
       // for the software tab, we check for the panel id, and the firstChild id
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
-$$("#${detailsId}").bind( "show", function(event, ui) {
-  if(ui.panel.id== '${softPanelId}' && ui.panel.firstChild.id == '${softGridId}') { ${  SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd}; }
-});
-""")
+        $$("#${detailsId}").on( "tabsactivate", function(event, ui) {
+          if(ui.panel.id== '${softPanelId}' && ui.panel.firstChild.id == '${softGridId}'){
+            ${  SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd}
+          }
+        });
+        """)
     )
   }
 
@@ -258,8 +260,8 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
       displayTabVideos(jsId, sm) ::
       Nil
 
-      <div id={htmlId(jsId,"details_")} class="sInventory tabsv">
-        <ul>{mainTabDeclaration}</ul>
+      <div id={htmlId(jsId,"details_")} class="sInventory tabsv ui-tabs ui-widget ui-widget-content ui-corner-all ui-tabs-vertical ui-helper-clearfix arrondis">
+        <ul class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all arrondisleft">{mainTabDeclaration}</ul>
         {tabContent.flatten}
       </div>
   }
@@ -400,7 +402,10 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
            case None => NodeSeq.Empty
            case Some((mode,explanation)) =>
             <b>Agent policy mode :</b><span id="badge-apm" class="tw-bs"></span><br/>  ++
-            Script(OnLoad(JsRaw(s"""$$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));$$('.rudder-label').bsTooltip();""")))
+            Script(OnLoad(JsRaw(s"""
+              $$('#badge-apm').append(createBadgeAgentPolicyMode('node',"${mode}","${explanation}"));
+              $$('.rudder-label').bsTooltip();
+            """)))
          } }
           { displayServerRole(sm, inventoryStatus) }
           <b>Inventory date:</b>  {sm.node.inventoryDate.map(DateFormaterService.getFormatedDate(_)).getOrElse("Unknown")}<br/>
@@ -562,11 +567,21 @@ $$("#${detailsId}").bind( "show", function(event, ui) {
 
   private def displayTabGrid[T](jsId:JsNodeId)(eltName:String, optSeq:Box[Seq[T]],title:Option[String]=None)(columns:List[(String, T => NodeSeq)]) = {
 
-    <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory, overflow_auto">{
+    <div id={htmlId(jsId,"sd_"+eltName +"_")} class="sInventory overflow_auto" style="display:none;">{
       optSeq match {
-        case Empty => <span>No matching components detected on this node</span>
+        case Empty =>
+          <div class="tw-bs">
+            <div class="col-xs-12 alert alert-warning">
+              <span>No matching components detected on this node</span>
+            </div>
+          </div>
         case Failure(m,_,_) => <span class="error">Error when trying to fetch file systems. Reported message: {m}</span>
-        case Full(seq) if (seq.isEmpty && eltName != "soft") => <span>No matching components detected on this node</span>
+        case Full(seq) if (seq.isEmpty && eltName != "soft") =>
+          <div class="tw-bs">
+            <div class="col-xs-12 alert alert-warning">
+              <span>No matching components detected on this node</span>
+            </div>
+          </div>
         case Full(seq) =>
           <table cellspacing="0" id={htmlId(jsId,eltName+"_")} class="tablewidth">
           { title match {
