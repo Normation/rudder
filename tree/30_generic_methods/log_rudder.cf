@@ -287,7 +287,7 @@ bundle agent _rudder_common_reports_generic(technique_name, class_prefix, identi
     pass2::
       # This case should NEVER happen. If it ever happens, it is a bug in CFEngine or ncf that lead to changing something in dry-run mode.
       # Hence, as we are facing a severe bug and we want to avoid changing more things, we define an abort class after displaying an error message .
-      "abort_agent_run" => expression "(dry_run|global_dry_run).${class_prefix}_repaired"
+      "abort_agent_run" expression => "(dry_run|global_dry_run).${class_prefix}_repaired";
 
   methods:
 
