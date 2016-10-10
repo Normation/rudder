@@ -53,8 +53,6 @@ import bootstrap.liftweb.RudderConfig
  */
 class BaseUrl {
 
-  private[this] val urlService = RudderConfig.getBaseUrlService
-
   /*
    * We still need to have a base url for some javascript
    * But now we use it as a javascript variable
