@@ -26,6 +26,8 @@ from optparse import OptionParser
 import jinja2
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
+from distutils.version import StrictVersion
+
 try:
     import simplejson as json
 except ImportError:
@@ -50,10 +52,17 @@ def render(opts, args):
         sys.stderr.write(err)
         sys.exit(1)
 
-    env = Environment(
-        loader=FileSystemLoader(os.path.dirname(template_path)),
-        keep_trailing_newline=True,
-    )
+    # keep_trailing_newline appeared in jinja 2.7, see http://jinja.pocoo.org/docs/dev/api/
+    # we add a case for this as it can be really important in configuration management context
+    if StrictVersion(jinja2.__version__) >= StrictVersion("2.7"):
+        env = Environment(
+            loader=FileSystemLoader(os.path.dirname(template_path)),
+            keep_trailing_newline=True
+        )
+    else:
+        env = Environment(
+            loader=FileSystemLoader(os.path.dirname(template_path)),
+        )
 
     if opts.strict:
         env.undefined = StrictUndefined

@@ -44,6 +44,10 @@
 # {% endif %}
 # ```
 #
+# WARNING: If you are using a jinja2 version older than 2.7
+#          trailing spaces will not be preserved in the destination file.
+#
+#
 # @parameter source_template Source file containing a template to be expanded
 # @parameter destination     Destination file
 #
