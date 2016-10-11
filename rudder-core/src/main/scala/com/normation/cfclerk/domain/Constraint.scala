@@ -43,7 +43,6 @@ import net.liftweb.common._
 
 class ConstraintException(val msg: String) extends Exception(msg)
 
-
 trait VTypeWithRegex {
   def regex:Option[RegexConstraint]
 }
@@ -80,7 +79,7 @@ object VTypeConstraint {
     Nil ::: regexTypes ::: sizeTypes
   def validTypes(r: Option[RegexConstraint], algos:Seq[HashAlgoConstraint]) : List[VTypeConstraint] =
     PermVType :: PasswordVType(algos) :: AixDerivedPasswordVType :: LinuxDerivedPasswordVType :: MasterPasswordVType(algos) ::
-    UploadedFileVType :: DestinationPathVType ::
+    UploadedFileVType :: DestinationPathVType :: SharedFileVType ::
     BooleanVType :: RawVType :: Nil ::: stringTypes(r)
 
   def getRegexConstraint(vType : VTypeConstraint) : Option[RegexConstraint] =
@@ -158,7 +157,6 @@ case class DateTimeVType(regex: Option[RegexConstraint] = None) extends VTypeCon
 case class DateVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex { override val name = "date" }
 case class TimeVType(regex: Option[RegexConstraint] = None) extends VTypeConstraint with VTypeWithRegex { override val name = "time" }
 
-
 //other types
 
 // passwords
@@ -194,10 +192,11 @@ case object BooleanVType extends VTypeConstraint {
       }
   }
 }
-case object UploadedFileVType extends VTypeConstraint { override val name = "uploadedfile" }
+case object UploadedFileVType    extends VTypeConstraint { override val name = "uploadedfile" }
+case object SharedFileVType      extends VTypeConstraint { override val name = "sharedfile" }
 case object DestinationPathVType extends VTypeConstraint { override val name = "destinationfullpath" }
-case object PermVType extends VTypeConstraint { override val name = "perm" }
-case object RawVType extends VTypeConstraint {
+case object PermVType            extends VTypeConstraint { override val name = "perm" }
+case object RawVType             extends VTypeConstraint {
   override val name = "raw"
    // no escaping for raw types
   override def getTypedValue(value:String, forField:String) : Box[Any] = Full(value)
