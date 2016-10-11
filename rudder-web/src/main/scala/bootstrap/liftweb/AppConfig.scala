@@ -137,7 +137,8 @@ import com.normation.templates.FillTemplatesService
 import com.normation.rudder.web.rest.technique._
 import com.normation.rudder.services.quicksearch.FullQuickSearchService
 import com.normation.rudder.db.Doobie
-import java.nio.file.Files
+import com.normation.rudder.web.rest.settings.SettingsAPI8
+import com.normation.rudder.web.rest.sharedFiles.SharedFilesAPI
 
 /**
  * Define a resource for configuration.
@@ -525,6 +526,7 @@ object RudderConfig extends Loggable {
 
   val tokenGenerator = new TokenGeneratorImpl(32)
 
+  // REST API
   val restDeploy = new RestDeploy(asyncDeploymentAgentImpl, uuidGen)
   val restDyngroupReload = new RestDyngroupReload(dyngroupUpdaterBatch)
   val restTechniqueReload = new RestTechniqueReload(techniqueRepositoryImpl, uuidGen)
@@ -817,6 +819,9 @@ object RudderConfig extends Loggable {
   }
 
   val apiDispatcher = APIDispatcher(apis, restExtractorService)
+
+  // Internal APIs
+  val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
 
   lazy val configService: ReadConfigService with UpdateConfigService =
     new LDAPBasedConfigService(

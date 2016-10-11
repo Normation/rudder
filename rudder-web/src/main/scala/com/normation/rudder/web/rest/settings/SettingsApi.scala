@@ -35,7 +35,7 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.web.rest.node
+package com.normation.rudder.web.rest.settings
 
 import net.liftweb.common.Box
 import net.liftweb.common.Loggable
