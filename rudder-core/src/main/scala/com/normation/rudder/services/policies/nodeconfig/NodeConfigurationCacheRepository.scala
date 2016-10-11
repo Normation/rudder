@@ -134,6 +134,7 @@ object NodeConfigurationCache {
             + r.technique.id.hashCode
             + r.priority
             + r.ruleOrder.hashCode + r.directiveOrder.hashCode
+            + r.policyMode.hashCode()
             + variablesToHash(r.variableMap.values)
             )
         )
