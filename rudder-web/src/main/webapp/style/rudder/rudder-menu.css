@@ -34,6 +34,17 @@
 *
 *************************************************************************************
 */
+/*LOGO RUDDER*/
+header.main-header .logo-mini img{
+  width:35px;
+  position: relative;
+  left: -2px;
+  top: -1px;
+}
+header.main-header .logo-lg img{
+  position: relative;
+  top: -2px;
+}
 .tw-bs h1,.tw-bs h2,.tw-bs h3,.tw-bs h4,.tw-bs h5,.tw-bs h6,.tw-bs .page-title,.tw-bs .rudder-form{
   font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
