@@ -129,7 +129,13 @@ object NodeConfigurationCache {
         //ignored things must not impact the cache computation
         PolicyCache(
             r.id
-          , r.serial + r.technique.id.hashCode + variablesToHash(r.variableMap.values)
+          , (
+              r.serial
+            + r.technique.id.hashCode
+            + r.priority
+            + r.ruleOrder.hashCode + r.directiveOrder.hashCode
+            + variablesToHash(r.variableMap.values)
+            )
         )
       }.toSet
     }
