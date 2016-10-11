@@ -37,7 +37,6 @@
 
 package com.normation.rudder.web.services
 
-
 import com.normation.rudder.services.reports.ReportingService
 import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.policies.RuleId
@@ -88,7 +87,6 @@ class LogDisplayer(
 
   private val gridName = "logsGrid"
 
-
   def asyncDisplay(nodeId : NodeId) : NodeSeq = {
     val id = JsNodeId(nodeId)
     val ajaxRefresh =  SHtml.ajaxInvoke( () => refreshData(nodeId, reportRepository.findReportsByNode(nodeId)))
@@ -138,10 +136,11 @@ class LogDisplayer(
 
           createTechnicalLogsTable("${gridName}",[], "${S.contextPath}",function() {${ajaxRefresh.toJsCmd}}, pickEventLogsInInterval);""") &
         // Load data asynchronously
+
         JsRaw(
       s"""
         $$("#details_${id}").on( "tabsactivate", function(event, ui) {
-          if(ui.panel.id== 'node_logs') {
+          if(ui.newPanel.attr('id')== 'node_logs') {
             ${ajaxRefresh.toJsCmd}
           }
         });
