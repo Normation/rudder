@@ -38,9 +38,12 @@ bundle agent init
 
 bundle agent test
 {
+  vars:
+      "empty_slist" slist => { cf_null };
+
   methods:
     "class" usebundle => _classes_repaired("${init.class_prefix}");
-    "ph1"   usebundle => logger_rudder("${init.message}", "${init.class_prefix}");
+    "ph1"   usebundle => log_rudder("${init.message}", "${init.class_prefix}", "", @{empty_slist});
 }
 
 #######################################################

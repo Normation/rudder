@@ -56,15 +56,16 @@ Test_logging_in_ncf;;file_create_/tmp/4;;32377fd7-02fd-43d0-aab7-28460a91347b@@1
 Test_logging_in_ncf;;file_create_/tmp/5;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/5";
 
     "reference_res_file"     string => "${tmp}/rudder_expected_reports.res";
-    "reference_res_reports"  string => "Test_logging_in_ncf;;command_execution__bin_true;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/true
-Test_logging_in_ncf;;command_execution__bin_false;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/false
-Test_logging_in_ncf;;directory_create__tmp_bar;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/bar
-Test_logging_in_ncf;;directory_create__tmp_foo;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/foo
-Test_logging_in_ncf;;file_create__tmp_1;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/1
-Test_logging_in_ncf;;file_create__tmp_2;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/2
-Test_logging_in_ncf;;file_create__tmp_3;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/3
-Test_logging_in_ncf;;file_create__tmp_4;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/4
-Test_logging_in_ncf;;file_create__tmp_5;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/5";
+    # With an agent that doesn't have the promiser stack, the res file contains unexpanded variables
+    "reference_res_reports"  string => "Test_logging_in_ncf;;command_execution__bin_true;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/true;;${const.dollar}{reports[0][5]};;${const.dollar}{reports[0][6]}
+Test_logging_in_ncf;;command_execution__bin_false;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Command execution;;/bin/false;;${const.dollar}{reports[1][5]};;${const.dollar}{reports[1][6]}
+Test_logging_in_ncf;;directory_create__tmp_bar;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/bar;;${const.dollar}{reports[2][5]};;${const.dollar}{reports[2][6]}
+Test_logging_in_ncf;;directory_create__tmp_foo;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;Directory create;;/tmp/foo;;${const.dollar}{reports[3][5]};;${const.dollar}{reports[3][6]}
+Test_logging_in_ncf;;file_create__tmp_1;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/1;;${const.dollar}{reports[4][5]};;${const.dollar}{reports[4][6]}
+Test_logging_in_ncf;;file_create__tmp_2;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/2;;${const.dollar}{reports[5][5]};;${const.dollar}{reports[5][6]}
+Test_logging_in_ncf;;file_create__tmp_3;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/3;;${const.dollar}{reports[6][5]};;${const.dollar}{reports[6][6]}
+Test_logging_in_ncf;;file_create__tmp_4;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/4;;${const.dollar}{reports[7][5]};;${const.dollar}{reports[7][6]}
+Test_logging_in_ncf;;file_create__tmp_5;;32377fd7-02fd-43d0-aab7-28460a91347b@@15645b8f-4606-4549-9f62-1b99a7594d54@@10;;File create;;/tmp/5;;${const.dollar}{reports[8][5]};;${const.dollar}{reports[8][6]}";
 
     "message"         string => "is the expected report message";
     "class_prefix"    string => "file_create__tmp_1";
@@ -88,7 +89,7 @@ Test_logging_in_ncf;;file_create__tmp_5;;32377fd7-02fd-43d0-aab7-28460a91347b@@1
 
     # Create the res file to compare to
     "/bin/echo"
-      args    => "\"${reference_res_reports}\" > \"${reference_res_file}\"",
+      args    => "\'${reference_res_reports}\' > \"${reference_res_file}\"",
       contain => in_shell;
 
 }
@@ -97,9 +98,6 @@ Test_logging_in_ncf;;file_create__tmp_5;;32377fd7-02fd-43d0-aab7-28460a91347b@@1
 
 bundle agent test
 {
-#  methods:
- #   "class" usebundle => _classes_repaired("${init.class_prefix}");
-#    "ph1"   usebundle => logger_rudder("${init.message}", "${init.class_prefix}");
 }
 
 #######################################################
@@ -109,7 +107,7 @@ bundle agent check
   vars:
     pass1::
       # execute the agent, and get its output in 'output' variable
-      "reporting_output_cmd" string => "${sys.workdir}/bin/cf-agent -Kf \"${this.promise_dirname}/logger_rudder_output.cf.sub\" -D AUTO";
+      "reporting_output_cmd" string => "${sys.workdir}/bin/cf-agent -Kf \"${this.promise_dirname}/log_rudder_output.cf.sub\" -D AUTO";
 
       "output" string => execresult("${reporting_output_cmd}", "noshell");
 
