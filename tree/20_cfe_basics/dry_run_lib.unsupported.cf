@@ -17,7 +17,7 @@
 #####################################################################################
 
 # @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
-# @agent_requirements "capabilities": [ "!defaultbody" ] && "agent_version"" < 3.9
+# @agent_requirements "capabilities": [ "!bodydefault" ] && "agent_version"" < 3.9
 # 
 # See dry_run_lib.supported.cf for documentation.
 #
