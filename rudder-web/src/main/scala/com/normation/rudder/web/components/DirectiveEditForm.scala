@@ -68,8 +68,7 @@ import com.normation.cfclerk.domain.TechniqueName
 import com.normation.rudder.web.components.popup.ModificationValidationPopup
 import com.normation.cfclerk.domain.TechniqueId
 import com.normation.cfclerk.domain.TechniqueVersion
-import com.normation.rudder.web.rest.node.SettingsAPI8
-import com.normation.rudder.web.rest.node.SettingsApi
+import com.normation.rudder.web.rest.settings._
 import com.normation.rudder.domain.policies.PolicyMode._
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
 import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable

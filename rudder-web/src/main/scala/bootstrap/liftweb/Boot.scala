@@ -111,8 +111,10 @@ class Boot extends Loggable {
     LiftRules.statelessDispatch.append(RudderConfig.restGetGitCommitAsZip)
     LiftRules.statelessDispatch.append(RudderConfig.restApiAccounts)
     LiftRules.statelessDispatch.append(RudderConfig.restQuicksearch)
-    // Rule APIs
     LiftRules.statelessDispatch.append(RudderConfig.apiDispatcher)
+
+    // Intern API
+    LiftRules.statelessDispatch.append(RudderConfig.sharedFileApi)
 
     // URL rewrites
     LiftRules.statefulRewrite.append {
