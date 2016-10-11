@@ -103,7 +103,7 @@ class TextField(
 
   def display( xml: String => NodeSeq) = {
     val formId = Helpers.nextFuncName
-    val valueInput = SHtml.text("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
+    val valueInput = SHtml.textarea("", {s =>  parseClient(s)}, ("ng-model","result"), ("ng-hide", "true") )
     val (scriptEnabled, currentPrefix, currentValue) = scriptSwitch().getOrElse(Disabled) match {
       case Disabled => (JsFalse, "",toClient)
       case Enabled  =>
