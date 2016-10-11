@@ -106,6 +106,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , Map()
     , TrackerVariableSpec().toVariable()
     , priority = 0
+    , isSystem = false
     , serial = 0
     , ruleOrder = BundleOrder("10")
     , directiveOrder = BundleOrder("10")
@@ -120,6 +121,7 @@ class NodeConfigurationChangeDetectServiceTest extends Specification {
     , Map("one" -> InputVariable(InputVariableSpec("one", ""), Seq("one")))
     , TrackerVariableSpec().toVariable()
     , priority = 0
+    , isSystem = false
     , serial = 0
     // one variable
     , ruleOrder = BundleOrder("10")

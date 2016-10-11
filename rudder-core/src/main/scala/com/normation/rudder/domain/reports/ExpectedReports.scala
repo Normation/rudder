@@ -37,15 +37,35 @@
 
 package com.normation.rudder.domain.reports
 
+import com.normation.inventory.domain.NodeId
+import com.normation.rudder.domain.policies.DirectiveId
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.RuleId
+import com.normation.utils.HashcodeCaching
+
+
+
 import org.joda.time.DateTime
 import org.joda.time.Interval
-import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.policies.RuleId
-import com.normation.rudder.reports.execution.AgentRunId
-import com.normation.utils.HashcodeCaching
-import com.normation.inventory.domain.NodeId
-import com.normation.rudder.domain.policies.PolicyMode
-
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Unoverridable
+import com.normation.rudder.domain.policies.PolicyModeOverrides.Always
+import com.normation.rudder.domain.policies.PolicyMode.Enforce
+import net.liftweb.common.Full
+import net.liftweb.common.Failure
+import net.liftweb.common.Box
+import com.normation.utils.Control.sequence
+import com.normation.rudder.reports.ComplianceMode
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.ComplianceModeName
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.ChangesOnly
+import com.normation.rudder.reports.ReportsDisabled
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.reports.ResolvedAgentRunInterval
+import org.joda.time.Duration
+import com.normation.rudder.domain.Constants
+import com.sun.xml.internal.txw2.EndDocument
 
 /**
  * The main class helping maps expected
@@ -69,7 +89,7 @@ case class RuleNodeExpectedReports(
  * Its use is discouraged in favor of RuleNodeExpectedReports
  *
  */
-case class RuleExpectedReports(
+case class OldRuleExpectedReports(
     ruleId                  : RuleId
   , serial                  : Int // the serial of the rule
   , directivesOnNodes       : Seq[DirectivesOnNodes]
@@ -91,7 +111,52 @@ case class DirectivesOnNodes(
   , directiveExpectedReports: Seq[DirectiveExpectedReports]
 ) extends HashcodeCaching
 
+final case class NodeModeConfig(
+    globalComplianceMode: ComplianceMode
+  , nodeHeartbeatPeriod : Option[Int] // if it is defined, then it does override (ie if override = false => None)
+  , globalAgentRun      : AgentRunInterval
+  , nodeAgentRun        : Option[AgentRunInterval] // if Some and overrides = false, behave like none.
+  , globalPolicyMode    : GlobalPolicyMode
+  , nodePolicyMode      : Option[PolicyMode]
+)
 
+final case class NodeExpectedReports(
+    nodeId             : NodeId
+  , nodeConfigId       : NodeConfigId
+  , beginDate          : DateTime
+  , endDate            : Option[DateTime]
+  , modes              : NodeModeConfig
+  , ruleExpectedReports: List[RuleExpectedReports]
+) {
+
+  def configInfo = NodeConfigIdInfo(nodeConfigId, beginDate, endDate)
+
+  //for now, nodes don't override compliance mode
+  def complianceMode = modes.globalComplianceMode
+
+  def policyMode = PolicyMode.computeMode(modes.globalPolicyMode, modes.nodePolicyMode)
+
+  def agentRun: ResolvedAgentRunInterval = {
+    if (nodeId == Constants.ROOT_POLICY_SERVER_ID) {
+      //special case. The root policy server always run each 5 minutes
+      ResolvedAgentRunInterval(Duration.standardMinutes(5), 1)
+    } else {
+      val run: Int = modes.nodeAgentRun.flatMap(x =>
+          if (x.overrides.getOrElse(false)) Some(x.interval) else None
+      ).getOrElse(modes.globalAgentRun.interval)
+
+      val heartbeat = modes.nodeHeartbeatPeriod.getOrElse(modes.globalComplianceMode.heartbeatPeriod)
+
+      ResolvedAgentRunInterval(Duration.standardMinutes(run), heartbeat)
+    }
+  }
+}
+
+final case class RuleExpectedReports(
+    ruleId    : RuleId
+  , serial    : Int
+  , directives: List[DirectiveExpectedReports]
+)
 
 /**
  * A Directive may have several components
@@ -99,13 +164,9 @@ case class DirectivesOnNodes(
 final case class DirectiveExpectedReports (
     directiveId: DirectiveId
   , policyMode : Option[PolicyMode]
-  , components : Seq[ComponentExpectedReport]
+  , isSystem   : Boolean
+  , components : List[ComponentExpectedReport]
 ) extends HashcodeCaching
-
-final case class NodeAndConfigId(
-    nodeId : NodeId
-  , version: NodeConfigId
-)
 
 /**
  * The Cardinality is per Component
@@ -116,8 +177,8 @@ case class ComponentExpectedReport(
 
   //TODO: change that to have a Seq[(String, String).
   //or even better, un Seq[ExpectedValue] where expectedValue is the pair
-  , componentsValues          : Seq[String]
-  , unexpandedComponentsValues: Seq[String]
+  , componentsValues          : List[String]
+  , unexpandedComponentsValues: List[String]
 ) extends HashcodeCaching {
   /**
    * Get a normalized list of pair of (value, unexpandedvalue).
@@ -145,9 +206,327 @@ case class ComponentExpectedReport(
 
 final case class NodeConfigId(value: String)
 
+final case class NodeAndConfigId(
+    nodeId : NodeId
+  , version: NodeConfigId
+)
+
 final case class NodeConfigVersions(
      nodeId  : NodeId
      //the most recent version is the head
      //and the list can be empty
    , versions: List[NodeConfigId]
  )
+
+
+final case class NodeConfigIdInfo(
+    configId : NodeConfigId
+  , creation : DateTime
+  , endOfLife: Option[DateTime]
+)
+
+object ExpectedReportsSerialisation {
+  import net.liftweb.json._
+  import net.liftweb.json.JsonDSL._
+
+
+  /*
+   * This object will be used for the JSON serialisation
+   * to / from database
+   */
+  final case class JsonNodeExpectedReports(
+      modes              : NodeModeConfig
+    , ruleExpectedReports: List[RuleExpectedReports]
+  )
+
+  def jsonNodeExpectedReports(n: JsonNodeExpectedReports): JValue = {
+    (
+        ( "modes" ->
+          ( "globalPolicyMode"       -> (
+              ("mode"                  -> n.modes.globalPolicyMode.mode.name)
+            ~ ("overridable"           -> (n.modes.globalPolicyMode.overridable match {
+                                            case Unoverridable => false
+                                            case Always        => true
+                                          })
+              )
+          ) )
+        ~ ( "nodePolicyMode"         -> n.modes.nodePolicyMode.map(_.name) )
+        ~ ( "globalComplianceMode"   -> n.modes.globalComplianceMode.name )
+        ~ ( "globalHeartbeatPeriod"  -> n.modes.globalComplianceMode.heartbeatPeriod )
+        ~ ( "nodeHeartbeatPeriod"    -> n.modes.nodeHeartbeatPeriod )
+        ~ ( "globalAgentRunInterval" ->
+                   (
+                       ( "interval"    -> n.modes.globalAgentRun.interval )
+                     ~ ( "startMinute" -> n.modes.globalAgentRun.startMinute )
+                     ~ ( "splayHour"   -> n.modes.globalAgentRun.startHour )
+                     ~ ( "splaytime"   -> n.modes.globalAgentRun.splaytime )
+                   )
+          )
+        ~ ( "nodeAgentRunInterval"   -> (n.modes.nodeAgentRun.flatMap { run =>
+            if(run.overrides.getOrElse(false)) {
+                   Some(
+                       ( "interval"    -> run.interval )
+                     ~ ( "startMinute" -> run.startMinute )
+                     ~ ( "splayHour"   -> run.startHour )
+                     ~ ( "splaytime"   -> run.splaytime )
+                   )
+            } else {
+              None
+            }
+          } ) )
+        )
+     ~  ("rules" -> (n.ruleExpectedReports.map { r =>
+           (
+             ("ruleId"     -> r.ruleId.value)
+           ~ ("serial"     -> r.serial)
+           ~ ("directives" -> (r.directives.map { d =>
+               (
+                 ("directiveId" -> d.directiveId.value)
+               ~ ("policyMode"  -> d.policyMode.map( _.name))
+               ~ ("isSystem"    -> d.isSystem )
+               ~ ("components"  -> (d.components.map { c =>
+                   (
+                     ("componentName" -> c.componentName)
+                   ~ ("cardinality"   -> c.cardinality)
+                   ~ ("values"        -> c.componentsValues)
+                   ~ ("unexpanded"    -> c.unexpandedComponentsValues)
+                   )
+                 }))
+               )
+             }))
+           )
+        }))
+    )
+  }
+
+  def parseJsonNodeExpectedReports(s: String): Box[JsonNodeExpectedReports] = {
+    import PolicyMode.{Audit, Enforce}
+    import net.liftweb.util.Helpers.tryo
+
+    implicit val formats = DefaultFormats
+
+    implicit class ToValidInt(b: BigInt) {
+      def toValidInt = if(b.isValidInt) b.toInt else throw new NumberFormatException(s"${b.toString} is not a valid integer")
+    }
+
+    def modes(json: JValue): Box[NodeModeConfig] = {
+      def fail = Failure(s"Cannot parse JSON as modes parameters for expected node configuration: ${compactRender(json)}")
+      (
+          complianceMode( json \ "globalComplianceMode")
+        , json \ "globalHeartbeatPeriod"
+        , agentRun( json \ "globalAgentRunInterval", None)
+        , policyMode( json \ "globalPolicyMode" \ "mode")
+        , json \ "globalPolicyMode" \ "overridable"
+        , policyMode(json \ "nodePolicyMode")
+      ) match {
+        case (Some(gcm), JInt(ghp), Some(gari), Some(gpm), JBool(gpo), npm) =>
+          try {
+            Full(NodeModeConfig(
+                GlobalComplianceMode(gcm, ghp.toValidInt)
+              , heartbeat( json \ "nodeHeartbeatPeriod")
+              , gari
+              , agentRun( json \ "nodeAgentRunInterval", Some(true) )
+              , GlobalPolicyMode(gpm, if(gpo) Always else Unoverridable)
+              , npm
+            ))
+          } catch {
+            case ex: NumberFormatException => fail
+          }
+        case _ => fail
+      }
+    }
+
+    def heartbeat(json: JValue) = json match {
+      case JInt(i) => try {
+          Some(i.toValidInt)
+        } catch {
+          case ex: NumberFormatException => None
+        }
+      case _ => None
+    }
+
+    def policyMode(json: JValue): Option[PolicyMode] = json match {
+      case JString(Audit.name)   => Some(Audit)
+      case JString(Enforce.name) => Some(Enforce)
+      case _ => None
+    }
+
+    def complianceMode(json: JValue): Option[ComplianceModeName] = json match {
+      case JString(name)  => ComplianceModeName.parse(name).toOption
+      case _              => None
+    }
+
+    def agentRun(json: JValue, overrides: Option[Boolean]): Option[AgentRunInterval] = {
+      (
+          json \ "interval"
+        , json \ "startMinute"
+        , json \ "splayHour"
+        , json \ "splaytime"
+      ) match {
+        case (JInt(i), JInt(sm), JInt(sph), JInt(spt)) =>
+          try {
+            Some(AgentRunInterval(overrides, i.toValidInt, sm.toValidInt, spt.toValidInt, spt.toValidInt))
+          } catch {
+            case ex: NumberFormatException => None
+          }
+        case _ => None
+      }
+    }
+
+    def globalPolicyMode(json: JValue): Box[GlobalPolicyMode] = {
+      (policyMode(json \ "mode" ), (json \ "overridable") ) match {
+        case (Some(mode), JBool(overridable)) =>
+          Full(GlobalPolicyMode(mode, if(overridable) Always else Unoverridable) )
+        case _ =>
+          Failure(s"Error when parsing mandatory global policy mode from json: '${compactRender(json)}'")
+      }
+    }
+
+    def rule(json: JValue): Box[RuleExpectedReports] = {
+      (
+          (json \ "ruleId" )
+        , (json \ "serial")
+        , (json \ "directives")
+     ) match {
+        case (JString(id), JInt(bigSerial), jsonDirectives) =>
+          for {
+            serial     <- tryo(bigSerial.toValidInt)
+            directives <- jsonDirectives match {
+                            case JArray(directives) => sequence(directives)(directive)
+                            case x                  => Failure(s"Error when parsing the list of directives from expected rule report: '${compactRender(x)}'")
+                          }
+          } yield {
+            RuleExpectedReports(RuleId(id), serial, directives.toList)
+          }
+        case _ =>
+          Failure(s"Error when parsing rule expected reports from json: '${compactRender(json)}'")
+      }
+    }
+
+    def directive(json: JValue): Box[DirectiveExpectedReports] = {
+      (
+          (json \ "directiveId" )
+        , (json \ "policyMode"  )
+        , (json \ "components"  )
+     ) match {
+        case (JString(id), jsonMode, jsonComponents ) =>
+          for {
+            components <- jsonComponents match {
+                            case JArray(components) => sequence(components)(component)
+                            case x                  => Failure(s"Error when parsing the list of components from expected directive report: '${compactRender(x)}'")
+                          }
+          } yield {
+            //if isSystem is not defined => false
+            val isSystem = (json \ "isSystem"  ) match {
+              case JBool(true) => true
+              case _           => false
+            }
+
+            DirectiveExpectedReports(DirectiveId(id), policyMode(jsonMode), isSystem, components.toList)
+          }
+        case _ =>
+          Failure(s"Error when parsing directive expected reports from json: '${compactRender(json)}'")
+      }
+    }
+
+
+    def component(json: JValue): Box[ComponentExpectedReport] = {
+      (
+          (json \ "componentName" )
+        , (json \ "cardinality")
+        , (json \ "values").extractOpt[List[String]]
+        , (json \ "unexpanded").extractOpt[List[String]]
+     ) match {
+        case (JString(name), JInt(card), Some(values), Some(unexpandeds) ) =>
+          tryo(ComponentExpectedReport(name, card.toValidInt, values, unexpandeds))
+        case _ =>
+          Failure(s"Error when parsing component expected reports from json: '${compactRender(json)}'")
+      }
+    }
+
+    for {
+      json  <- tryo { parse(s) }
+      modes <- (json \ "modes" ) match {
+                 case JNothing => Failure(s"Error, missing mandatory 'modes' definition when parsing expected node configuration: '${compactRender(json)}'")
+                 case x        => modes(x)
+               }
+      rules <- (json \ "rules") match {
+                 case JArray(rules) => sequence(rules)(rule)
+                 case x             => Failure(s"Error when parsing the list of rules from expected node configuration: '${compactRender(x)}'")
+               }
+    } yield {
+      JsonNodeExpectedReports(modes, rules.toList)
+    }
+  }
+
+  implicit class NodeToJson(n: NodeExpectedReports) {
+    def toJValue() = {
+      jsonNodeExpectedReports(JsonNodeExpectedReports(n.modes, n.ruleExpectedReports))
+    }
+    def toJson() = pretty(render(toJValue))
+    def toCompactJson = compactRender(toJValue)
+  }
+}
+
+
+object NodeConfigIdSerializer {
+
+  import net.liftweb.json._
+  import org.joda.time.format.ISODateTimeFormat
+
+  //date are ISO format
+  private[this] val isoDateTime = ISODateTimeFormat.dateTime
+
+  /*
+   * In the database, we only keep creation time.
+   * Interval are build with the previous/next.
+   *
+   * The format is :
+   * { "configId1":"creationDate1", "configId2":"creationDate2", ... }
+   */
+
+  def serialize(ids: Vector[NodeConfigIdInfo]) : String = {
+    implicit val formats = Serialization.formats(NoTypeHints)
+
+    val m = ids.map { case NodeConfigIdInfo(NodeConfigId(id), creation, _) =>
+      (id, creation.toString(isoDateTime))
+    }.toMap
+
+    Serialization.write(m)
+  }
+
+  /*
+   * from a JSON object: { "id1":"date1", "id2":"date2", ...}, get the list of
+   * components values Ids.
+   * May return an empty object
+   */
+  def unserialize(ids:String) : Vector[NodeConfigIdInfo] = {
+
+    if(null == ids || ids.trim == "") Vector()
+    else {
+      implicit val formats = DefaultFormats
+      val configs = parse(ids).extract[Map[String, String]].toList.flatMap { case (id, date) =>
+        try {
+          Some((NodeConfigId(id), isoDateTime.parseDateTime(date)))
+        } catch {
+          case e:Exception => None
+        }
+      }.sortBy( _._2.getMillis )
+
+      //build interval
+      configs match {
+        case Nil    => Vector()
+        case x::Nil => Vector(NodeConfigIdInfo(x._1, x._2, None))
+        case t      => t.sliding(2).map {
+            //we know the size of the list is 2
+            case _::Nil | Nil => throw new IllegalArgumentException("An impossible state was reached, please contact the dev about it!")
+            case x::y::t      => NodeConfigIdInfo(x._1, x._2, Some(y._2))
+          }.toVector :+ {
+            val x = t.last
+            NodeConfigIdInfo(x._1, x._2, None)
+          }
+      }
+    }
+ }
+}
+

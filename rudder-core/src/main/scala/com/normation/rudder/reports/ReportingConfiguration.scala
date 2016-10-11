@@ -82,11 +82,11 @@ extends HashcodeCaching {
     val splayMinute = splaytime % 60
 
     s"""{ 'overrides'   : ${overrideValue}
-       , 'interval'    : ${interval}
-       , 'startHour'   : ${startHour}
-       , 'startMinute' : ${startMinute}
-       , 'splayHour'   : ${splayHour}
-       , 'splayMinute' : ${splayMinute}
+        , 'interval'    : ${interval}
+        , 'startHour'   : ${startHour}
+        , 'startMinute' : ${startMinute}
+        , 'splayHour'   : ${splayHour}
+        , 'splayMinute' : ${splayMinute}
        }"""
   }
 }

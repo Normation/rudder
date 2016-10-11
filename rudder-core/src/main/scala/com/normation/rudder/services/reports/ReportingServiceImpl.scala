@@ -98,8 +98,11 @@ trait RuleOrNodeReportingServiceImpl extends ReportingService {
   override def findDirectiveRuleStatusReportsByRule(ruleId: RuleId): Box[RuleStatusReport] = {
     //here, the logic is ONLY to get the node for which that rule applies and then step back
     //on the other method
+    val time_0 = System.currentTimeMillis
     for {
       nodeIds <- confExpectedRepo.findCurrentNodeIds(ruleId)
+      time_1  =  System.currentTimeMillis
+      _       =  TimingDebugLogger.debug(s"findCurrentNodeIds: Getting node IDs for rule '${ruleId.value}' took ${time_1-time_0}ms")
       reports <- findRuleNodeStatusReports(nodeIds, Set(ruleId))
     } yield {
       val toKeep = reports.values.flatMap( _._2 )
@@ -279,39 +282,21 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
       complianceMode      <- getGlobalComplianceMode()
       // we want compliance on these nodes
       runInfos            <- getNodeRunInfos(nodeIds, complianceMode)
-      globalPolicyMode    <- getGlobalPolicyMode()
-      nodePolicyModes     <- globalPolicyMode.overridable match {
-                               case PolicyModeOverrides.Unoverridable => Full(nodeIds.map(id => (id, globalPolicyMode.mode)))
-                               case PolicyModeOverrides.Always        =>
-                                 for {
-                                   nodes <- nodeInfoService.getAll()
-                                 } yield {
-                                   nodeIds.map(id => (id, nodes.get(id).flatMap(_.policyMode).getOrElse(globalPolicyMode.mode)))
-                                 }
-                             }
-
       // that gives us configId for runs, and expected configId (some may be in both set)
-      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfigInfo.configId) }
+      expectedConfigIds   =  runInfos.collect { case (nodeId, x:ExpectedConfigAvailable) => NodeAndConfigId(nodeId, x.expectedConfig.nodeConfigId) }
       lastrunConfigId     =  runInfos.collect {
-      case (nodeId, Pending(_, Some(run), _, _)) => NodeAndConfigId(nodeId, run._2.configId)
+                               case (nodeId, Pending(_, Some(run), _)) => NodeAndConfigId(nodeId, run._2.nodeConfigId)
                                case (nodeId, x:LastRunAvailable) => NodeAndConfigId(nodeId, x.lastRunConfigId)
                              }
 
       t1                  =  System.currentTimeMillis
       _                   =  TimingDebugLogger.debug(s"Compliance: get run infos: ${t1-t0}ms")
 
-      // so now, get all expected reports for these config id
-      directivesLib       <- directivesRepo.getFullDirectiveLibrary() // this should not be done, unecessary I/O - wainting for policy modes in expected reports
-      allExpectedReports  <- confExpectedRepo.getExpectedReports(expectedConfigIds.toSet++lastrunConfigId, ruleIds, directivesLib)
+      // compute the status
+      nodeStatusReports   <- buildNodeStatusReports(runInfos, ruleIds, complianceMode.mode)
 
       t2                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: get expected reports: ${t2-t1}ms")
-
-      // compute the status
-      nodeStatusReports   <- buildNodeStatusReports(runInfos, nodePolicyModes.toMap, allExpectedReports, ruleIds, complianceMode.mode)
-
-      t3                  =  System.currentTimeMillis
-      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t3-t2}ms")
+      _                   =  TimingDebugLogger.debug(s"Compliance: compute compliance reports: ${t2-t1}ms")
     } yield {
       nodeStatusReports
     }
@@ -332,14 +317,10 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
+      currentConfigs    <- confExpectedRepo.getCurrentNodeConfigurations(nodeIds)
       nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
-      runIntervals      <- runIntervalService.getNodeReportingConfigurations(nodeIds)
-      //just a validation that we have all nodes interval
-      _                 <- if(runIntervals.keySet == nodeIds) Full("OK") else {
-                             Failure(s"We weren't able to get agent run interval configuration (even using default values) for some node: ${(nodeIds -- runIntervals.keySet).map(_.value).mkString(", ")}")
-                           }
     } yield {
-      ExecutionBatch.computeNodesRunInfo(runIntervals, runs, nodeConfigIdInfos, complianceMode)
+      ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
   }
 
@@ -354,8 +335,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
    */
   private[this] def buildNodeStatusReports(
       runInfos          : Map[NodeId, RunAndConfigInfo]
-    , nodePolicyMode    : Map[NodeId, PolicyMode]
-    , allExpectedReports: Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]
     , ruleIds           : Set[RuleId]
     , complianceModeName: ComplianceModeName
   ): Box[Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])]] = {
@@ -368,7 +347,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
      */
     val agentRunIds = (runInfos.collect { case(nodeId, run:LastRunAvailable) =>
        AgentRunId(nodeId, run.lastRunDateTime)
-    }).toSet ++ (runInfos.collect { case(nodeId, Pending(_, Some(run), _, _)) =>
+    }).toSet ++ (runInfos.collect { case(nodeId, Pending(_, Some(run), _)) =>
        AgentRunId(nodeId, run._1)
     }).toSet
 
@@ -388,10 +367,7 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
     } yield {
       //we want to have nodeStatus for all asked node, not only the ones with reports
       runInfos.map { case (nodeId, runInfo) =>
-        ExecutionBatch.getNodeStatusReports(nodeId, nodePolicyMode(nodeId), runInfo
-            , allExpectedReports.getOrElse(nodeId, Map())
-            , reports.getOrElse(nodeId, Seq())
-        )
+        ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reports.getOrElse(nodeId, Seq()))
       }
     }
   }

@@ -40,7 +40,6 @@ package com.normation.rudder.services.policies
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeAndConfigId
-import com.normation.rudder.domain.reports.RuleExpectedReports
 import net.liftweb.common.Box
 import com.normation.rudder.domain.reports.NodeConfigId
 import net.liftweb.common.Loggable
@@ -58,9 +57,25 @@ import com.normation.rudder.domain.reports.ComponentExpectedReport
 import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.DirectiveId
-import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
+import com.normation.rudder.db.Doobie
+import com.normation.rudder.domain.reports.RuleExpectedReports
+import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyMode
+import scalaz.{Failure => _, _}, Scalaz._
+import doobie.imports._
+import scalaz.concurrent.Task
+import net.liftweb.common.Full
+import net.liftweb.common.Failure
+import net.liftweb.common.Empty
+import com.normation.rudder.domain.reports.NodeConfigIdInfo
+import com.normation.rudder.domain.reports.NodeConfigIdSerializer
+import com.normation.rudder.domain.logger.TimingDebugLogger
+import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.reports.AgentRunInterval
 
 /**
  * The purpose of that service is to handle the update of
@@ -82,8 +97,8 @@ trait ExpectedReportsUpdate {
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
     , overrides         : Set[UniqueOverrides]
-    , directivesLib     : FullActiveTechniqueCategory
-  ) : Box[Seq[RuleExpectedReports]]
+    , allNodeModes      : Map[NodeId, NodeModeConfig]
+  ) : Box[List[NodeExpectedReports]]
 
 }
 
@@ -103,6 +118,7 @@ case class UniqueOverrides(
 class ExpectedReportsUpdateImpl(
     confExpectedRepo: UpdateExpectedReportsRepository
   , nodeConfigRepo  : WoNodeConfigIdInfoRepository
+  , doobie          : Doobie
 ) extends ExpectedReportsUpdate with Loggable {
 
   /**
@@ -132,7 +148,122 @@ class ExpectedReportsUpdateImpl(
     }
   }
 
-  /**
+
+
+  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[List[NodeExpectedReports]] = {
+    import Doobie._
+    import doobie.xa
+
+    configs.map(_.nodeId).toNel match {
+      case None          => Full(Nil)
+      case Some(nodeIds) =>
+
+        implicit val nodeIdsParam = Param.many(nodeIds)
+
+        type A = \/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
+        val getConfigs: \/[Throwable, List[A]] = sql"""
+                           select nodeid, nodeconfigid, begindate, enddate, configuration
+                           from nodeconfigurations
+                           where nodeid in (${nodeIds: nodeIds.type}) and enddate is NULL
+                        """.query[A].list.attempt.transact(xa).run
+
+        type B = (NodeId, Vector[NodeConfigIdInfo])
+        val getInfos: \/[Throwable, List[B]] = sql"""
+                            select node_id, config_ids from nodes_info where node_id in (${nodeIds: nodeIds.type})
+                          """.query[B].list.attempt.transact(xa).run
+
+        // common part: find old configs and node config info for all config to update
+        val time_0 = System.currentTimeMillis
+        for {
+          oldConfigs  <- getConfigs
+          time_1      =  System.currentTimeMillis
+          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: find old nodes config in ${time_1-time_0}ms")
+          configInfos <- getInfos
+          time_2      =  System.currentTimeMillis
+          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: find old config info ${time_2-time_1}ms")
+          updated     <- doUpdateNodeExpectedReports(configs, oldConfigs, configInfos.toMap)
+          time_3      =  System.currentTimeMillis
+          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: save configs etc in ${time_3-time_2}ms")
+        } yield {
+          configs
+        }
+    }
+  }
+
+  /*
+   * Save a nodeExpectedReport, closing the previous one is
+   * opened for that node (and a different nodeConfigId)
+   */
+  def doUpdateNodeExpectedReports(
+      configs    : List[NodeExpectedReports]
+    , oldConfigs : List[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]]
+    , configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]
+  ): \/[Throwable, List[NodeExpectedReports]] = {
+
+    import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
+    import Doobie._
+    import doobie.xa
+
+    val currentConfigs = configs.map( c => (c.nodeId, (c.nodeConfigId, c.beginDate)) ).toMap
+
+
+    // we want to close all error nodeexpectedreports, and all non current
+    // we keep valid current identified by nodeId, we won't have to save them afterward.
+    val (toClose, okConfigs) = ( (List[(DateTime, NodeId, NodeConfigId, DateTime)](), List[NodeId]() ) /: oldConfigs) { case ((nok, ok), next) =>
+      next match {
+        case -\/(n) => ((currentConfigs(n._1)._2, n._1, n._2, n._3)::nok, ok)
+        case \/-(r) =>
+          if(currentConfigs(r.nodeId)._1 == r.nodeConfigId) { //config didn't change
+            (nok, r.nodeId :: ok)
+          } else { // config changed, we need to close it
+            ( (currentConfigs(r.nodeId)._2, r.nodeId, r.nodeConfigId, r.beginDate) :: nok, ok)
+          }
+      }
+    }
+
+    //same reasoning for config info: only update the ones for witch the last id is not the correct one
+    //we use configs because we must know if a nodeInfo is completly missing and add it
+    type T = (Vector[NodeConfigIdInfo], NodeId)
+    val (toAdd, toUpdate, okInfos) = ( (List[T](), List[T](), List[NodeId]() ) /: configs ) { case ((add, update, ok), next) =>
+      configInfos.get(next.nodeId) match {
+        case None => // add it
+          ( (Vector(NodeConfigIdInfo(next.nodeConfigId, next.beginDate, None)), next.nodeId) :: add, update, ok)
+        case Some(infos) =>
+          infos.find(i => i.configId == next.nodeConfigId && i.endOfLife.nonEmpty) match {
+            case Some(info) => //no update
+              (add, update, next.nodeId :: ok)
+            case None => // update
+              (add, (NodeConfigIdInfo(next.nodeConfigId, next.beginDate, None)+: infos, next.nodeId) :: update, ok)
+          }
+      }
+    }
+
+
+    // filter out node expected reports up to date
+    val toSave = configs.filterNot(okConfigs.contains)
+
+    //now, mass update
+    (for {
+      closedConfigs <- Update[(DateTime, NodeId, NodeConfigId, DateTime)]("""
+                          update nodeconfigurations set enddate = ?
+                          where nodeid = ? and nodeconfigid = ? and begindate = ?
+                       """).updateMany(toClose)
+      savedConfigs  <- Update[NodeExpectedReports]("""
+                         insert into nodeconfigurations (nodeid, nodeconfigid, begindate, enddate, configuration)
+                         values ( ?, ?, ?, ?, ? )
+                       """).updateMany(toSave)
+      updatedInfo   <- Update[(Vector[NodeConfigIdInfo], NodeId)]("""
+                         update nodes_info set config_ids = ? where node_id = ?
+                       """).updateMany(toUpdate)
+      addedInfo     <- Update[(Vector[NodeConfigIdInfo], NodeId)]("""
+                         insert into nodes_info (config_ids, node_id) values (?, ?)
+                       """).updateMany(toAdd)
+    } yield {
+      configs
+    }).attempt.transact(xa).run
+  }
+
+  /*
    * Update the list of expected reports when we do a deployment
    * For each RuleVal, we check if it was present or it serial changed
    *
@@ -146,71 +277,14 @@ class ExpectedReportsUpdateImpl(
     , updatedNodeConfigs: Map[NodeId, NodeConfigId]
     , generationTime    : DateTime
     , overrides         : Set[UniqueOverrides]
-    , directivesLib     : FullActiveTechniqueCategory
-) : Box[Seq[RuleExpectedReports]] = {
+    , allNodeModes      : Map[NodeId, NodeModeConfig]
+  ) : Box[List[NodeExpectedReports]] = {
 
 
     val filteredExpandedRuleVals = filterOverridenDirectives(expandedRuleVals, overrides)
-    val openExepectedReports = confExpectedRepo.findAllCurrentExpectedReportsWithNodesAndSerial()
 
-    // All the rule and serial. Used to know which one are to be removed
-    val currentConfigurationsToRemove =  MutMap[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])]() ++ openExepectedReports
-
-    val confToClose = MutSet[RuleId]()
-    val confToCreate = Buffer[ExpandedRuleVal]()
-
-    // Then we need to compare each of them with the one stored
-    for (conf@ExpandedRuleVal(ruleId, newSerial, configs) <- filteredExpandedRuleVals) {
-      currentConfigurationsToRemove.get(ruleId) match {
-        // non existant, add it
-        case None =>
-          logger.debug("New rule %s".format(ruleId))
-          confToCreate += conf
-
-        case Some((serial, nodeJoinKey, nodeConfigMap)) if ((serial == newSerial)&&(configs.size > 0)) =>
-            // no change if same serial and some config applicable, that's ok, trace level
-            logger.trace(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed and cache up-to-date: nothing to do")
-            // must check that their are no differents nodes in the DB than in the new reports
-            // it can happen if we delete nodes in some corner case (detectUpdates(nodes) cannot detect it
-            // And it's actually nodes, not node version because version may change and still use the
-            // same expected report
-            if (configs.keySet.map( _.nodeId) != nodeConfigMap.keySet) {
-              logger.debug("Same serial %s for ruleId %s, but not same node set, it need to be closed and created".format(serial, ruleId))
-              confToCreate += conf
-              confToClose += ruleId
-            } else
-
-            currentConfigurationsToRemove.remove(ruleId)
-
-        case Some((serial, nodeJoinKey, nodeSet)) if ((serial == newSerial)&&(configs.size == 0)) => // same serial, but no targets
-            // if there is not target, then it need to be closed
-          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was not changed BUT no previous configuration known: update expected reports for that rule")
-          confToClose += ruleId
-
-        case Some((serial, _, nodeSet)) => // not the same serial
-          logger.debug(s"Serial number (${serial}) for expected reports for rule '${ruleId.value}' was changed: update expected reports for that rule")
-            confToCreate += conf
-            confToClose += ruleId
-
-            currentConfigurationsToRemove.remove(ruleId)
-      }
-    }
-
-    // close the expected reports that don't exist anymore
-    // and the ones that need to be changed
-    //all closable = expected reports that don't exist anymore + expected reports that need to be changed
-    val allClosable = (currentConfigurationsToRemove.keys ++ confToClose).toSet
-
-    logger.debug(s"Closing expected reports for rules: ${if(allClosable.isEmpty) "none" else s"[${allClosable.map(_.value).mkString(", ")}]" }" )
-
-    for (closable <- allClosable) {
-      confExpectedRepo.closeExpectedReport(directivesLib, closable, generationTime)
-    }
-
-    // Now I need to unfold the configuration to create, so that I get for a given
-    // set of ruleId, serial, DirectiveExpectedReports we have the list of  corresponding nodes
-
-    val expanded = confToCreate.map { case ExpandedRuleVal(ruleId, serial, configs) =>
+    // transform to rule expected reports by node
+    val directivesExpectedReports = filteredExpandedRuleVals.map { case ExpandedRuleVal(ruleId, serial, configs) =>
       configs.toSeq.map { case (nodeConfigId, directives) =>
         // each directive is converted into Seq[DirectiveExpectedReports]
         val directiveExpected = directives.map { directive =>
@@ -219,71 +293,53 @@ class ExpectedReportsUpdateImpl(
                seq.map { case(componentName, componentsValues, unexpandedCompValues) =>
                           DirectiveExpectedReports(
                               directive.directiveId
-                            , directivesLib.allDirectives.get(directive.directiveId).flatMap(_._2.policyMode)
-                            , Seq(
+                            , directive.policyMode
+                            , directive.isSystem
+                            , List(
                                 ComponentExpectedReport(
                                     componentName
                                   , componentsValues.size
-                                  , componentsValues
-                                  , unexpandedCompValues
+                                  , componentsValues.toList
+                                  , unexpandedCompValues.toList
                                 )
                               )
                           )
                }
         }
 
-        (ruleId, serial, nodeConfigId, directiveExpected.flatten)
+        (nodeConfigId, ruleId, serial, directiveExpected.flatten)
+      }
+    }.flatten.toList
+
+    //now group back by nodeConfigId and transorm to ruleExpectedReport
+    val ruleExepectedByNode = directivesExpectedReports.groupBy( _._1 ).mapValues { seq =>
+      // build ruleExpected
+      // we're grouping by (ruleId, serial) even if we should have an homogeneous set here
+      seq.groupBy( t => (t._2, t._3) ).map { case ( (ruleId, serial), directives ) =>
+        RuleExpectedReports(ruleId, serial, directives.flatMap(_._4).toList)
       }
     }
 
-    // we need to group by DirectiveExpectedReports, RuleId, Serial
-    val flatten = expanded.flatten.flatMap { case (ruleId, serial, nodeConfigId, directives) =>
-      directives.map (x => (ruleId, serial, nodeConfigId, x))
-    }
+    // and finally add what is missing for NodeExpectedReports
 
-    val preparedValues = flatten.groupBy[(RuleId, Int, DirectiveExpectedReports)]{ case (ruleId, serial, nodeConfigId, directive) =>
-      (ruleId, serial, directive) }.map { case (key, value) => (key -> value.map(x=> x._3))}.toSeq
+    val nodeExpectedReports = ruleExepectedByNode.map { case (nodeAndConfigId, rules) =>
+      val nodeId = nodeAndConfigId.nodeId
+      NodeExpectedReports(
+          nodeId
+        , nodeAndConfigId.version
+        , generationTime
+        , None
+        , allNodeModes(nodeId) //that shall not throw, because we have all nodes here
+        , rules.toList
+      )
+    }.toList
 
-    // here we group them by rule/serial/seq of node, so that we have the list of all DirectiveExpectedReports that apply to them
-    val groupedContent = preparedValues.toSeq.map { case ((ruleId, serial, directive), nodeConfigIds) => (ruleId, serial, directive, nodeConfigIds) }.
-       groupBy[(RuleId, Int, Seq[NodeAndConfigId])]{ case (ruleId, serial, directive, nodeConfigIds) => (ruleId, serial, nodeConfigIds.toSeq)}.map {
-         case (key, value) => (key -> value.map(x => x._3))
-       }.toSeq
-    // now we save them
-
-    logger.debug(s"Updating expected reports for rules: ${if(groupedContent.isEmpty) "none" else s"[${groupedContent.map {case ((RuleId(v), _, _), _) => v}.mkString(", ")}]" }")
-
-    for {
-      createdExpectedReports   <- sequence(groupedContent) { case ((ruleId, serial, nodeConfigIds), directives) =>
-                                    confExpectedRepo.saveExpectedReports(ruleId, serial, generationTime, directives, nodeConfigIds, directivesLib)
-                                  }
-      //we want to save updatedNodeConfiguration that were not already saved
-      //in expected reports.
-      newConfigId              =  filteredExpandedRuleVals.flatMap { case ExpandedRuleVal(_, _, configs) => configs.keySet.map{case NodeAndConfigId(id,v) => (id,v)}}.toMap
-      notUpdateNodeJoinKey     =  openExepectedReports.filterKeys(k => !allClosable.contains(k)).toSeq.flatMap{ case(ruleId, (serial, nodeJoinKey, mapNodes)) =>
-                                    mapNodes.values.map { case NodeConfigVersions(nodeId, versions) =>
-                                      val lastVersion = newConfigId(nodeId)
-                                      val newVersions = if(versions.contains(lastVersion)) versions else lastVersion :: versions
-                                      (nodeJoinKey, NodeConfigVersions(nodeId, newVersions))
-                                    }
-                                  }
-      _                        <- confExpectedRepo.updateNodeConfigVersion(notUpdateNodeJoinKey)
-      savedNodesInfos          <- nodeConfigRepo.addNodeConfigIdInfo(updatedNodeConfigs, generationTime)
-    } yield {
-
-      /*
-       * Here, we may have several expected rule for an unique rule id/serial, so we want to merge them back
-       * into sensible data
-       */
-      createdExpectedReports.groupBy( x => (x.ruleId, x.serial) ).map { case (_, seqRule) =>
-        //the only thing that may be different is the directiveOnNodes because startdate/enddate are the same for same serial
-        val don = seqRule.flatMap( _.directivesOnNodes ).distinct
-
-        seqRule(0).copy(directivesOnNodes = don)
-      }.toSeq
-    }
+    // now, we just need to go node by node, and for each:
+    val time_0 = System.currentTimeMillis
+    val res = saveNodeExpectedReports(nodeExpectedReports)
+    TimingDebugLogger.warn(s"updating expected node configuration in base took: ${System.currentTimeMillis-time_0}ms")
+    res
   }
-
 }
 
   /*
@@ -396,3 +452,6 @@ object ComputeCardinalityOfDirectiveVal extends Loggable {
   }
 
 }
+
+
+

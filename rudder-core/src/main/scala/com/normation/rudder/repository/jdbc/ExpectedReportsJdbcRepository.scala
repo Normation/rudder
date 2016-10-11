@@ -48,11 +48,8 @@ import net.liftweb.common._
 import net.liftweb.json._
 import org.joda.time.DateTime
 import org.joda.time.format.ISODateTimeFormat
-import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.repository.RoNodeConfigIdInfoRepository
 import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
-import com.normation.rudder.repository.NodeConfigIdInfo
-import com.normation.rudder.repository.NodeConfigIdInfo
 import com.normation.rudder.domain.logger.TimingDebugLogger
 import com.normation.rudder.db.Doobie
 import com.normation.rudder.db.Doobie._
@@ -110,20 +107,112 @@ class FindExpectedReportsJdbcRepository(
   import pgInClause._
   import doobie._
 
+
+  /*
+   * Retrieve the expected reports by config version of the nodes.
+   *
+   * The property "returnedMap.keySet == nodeConfigIds" holds.
+   */
+  override def getExpectedReports(
+      nodeConfigIds: Set[NodeAndConfigId]
+  ): Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]] = {
+
+    nodeConfigIds.toList match { //"in" param can't be empty
+      case Nil        => Full(Map())
+      case nodeAndIds =>
+
+        (for {
+          configs <- query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]](s"""
+                       select nodeid, nodeconfigid, begindate, enddate, configuration
+                       from nodeconfigurations
+                       where (nodeid, nodeconfigid) in (${nodeAndIds.map(x => s"('${x.nodeId.value}','${x.version.value}')").mkString(",")} )
+                     """).vector
+        }yield {
+          val configsMap = (configs.flatMap {
+            case -\/((id, c, _)) =>
+              logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
+              None
+            case \/-(x) => Some((NodeAndConfigId(x.nodeId, x.nodeConfigId), x))
+          }).toMap
+          nodeConfigIds.map(id => (id, configsMap.get(id))).toMap
+        }).attempt.transact(xa).run
+    }
+  }
+
+  /*
+   * Retrieve the current expected report for the list of nodes.
+   *
+   * The property "returnedMam.keySet = nodeIds" holds.
+   */
+  override def getCurrentNodeConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[NodeExpectedReports]]] = {
+    nodeIds.toList.toNel match {
+      case None => Full(Map())
+      case Some(ids) =>
+
+        implicit val idsParam = Param.many(ids)
+
+        (for {
+          configs <- sql"""
+                       select nodeid, nodeconfigid, begindate, enddate, configuration
+                       from nodeconfigurations
+                       where enddate is null and nodeid in (${ids: ids.type})
+                     """.query[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]].vector
+        } yield {
+          val configsMap = (configs.flatMap {
+            case -\/((id, c, _)) =>
+              logger.error(s"Error when deserializing JSON for expected node configuration ${id.value} (${c.value})")
+              None
+            case \/-(x) => Some((x.nodeId, x))
+          }).toMap
+          nodeIds.map(id => (id, configsMap.get(id))).toMap
+        }).attempt.transact(xa).run
+    }
+  }
+
+
+  override def findCurrentNodeIds(ruleId : RuleId) : Box[Set[NodeId]] = {
+    sql"""
+      select distinct nodeid from nodeconfigurations
+      where enddate is null and configuration like ${"%"+ruleId.value+"%"}
+    """.query[NodeId].to[Set].attempt.transact(xa).run
+  }
+
+
   /*
    * Retrieve the list of node config ids
    */
-  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]] = {
-    getNodeConfigIdInfosIO(nodeIds).attempt.transact(xa).run
+  override def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
+    if(nodeIds.isEmpty) Full(Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]])
+    else {
+      (for {
+        entries <-query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
+                                              where ${in("node_id", nodeIds.map(_.value))}""").vector
+      } yield {
+        val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
+        nodeIds.map(n => (n, res.get(n))).toMap
+      }).attempt.transact(xa).run
+    }
   }
+}
+
+
+
+
+class UpdateExpectedReportsJdbcRepository(
+    doobie     : Doobie
+  , pgInClause: PostgresqlInClause
+) extends UpdateExpectedReportsRepository with Loggable with WoNodeConfigIdInfoRepository {
+
+  import doobie._
+  import pgInClause._
 
 
   /**
    * This is the implementation of getNodeConfigIdInfos but without commiting the
    * transaction so that it can be used in a sequence of queries.
    */
-  def getNodeConfigIdInfosIO(nodeIds: Set[NodeId]): ConnectionIO[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]] = {
-    if(nodeIds.isEmpty) Map.empty[NodeId, Option[Seq[NodeConfigIdInfo]]].point[ConnectionIO]
+  def getNodeConfigIdInfosIO(nodeIds: Set[NodeId]): ConnectionIO[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]] = {
+    if(nodeIds.isEmpty) Map.empty[NodeId, Option[Vector[NodeConfigIdInfo]]].point[ConnectionIO]
     else {
       (for {
         entries <-query[(NodeId, String)](s"""select node_id, config_ids from nodes_info
@@ -132,73 +221,6 @@ class FindExpectedReportsJdbcRepository(
         val res = entries.map{ case(nodeId, config) => (nodeId, NodeConfigIdSerializer.unserialize(config)) }.toMap
         nodeIds.map(n => (n, res.get(n))).toMap
       })
-    }
-  }
-
-
-  /*
-   * Retrieve the expected reports by config version of the nodes
-   *
-   * The current version seems highly inefficient.
-   *
-   */
-  override def getExpectedReports(
-      nodeConfigIds: Set[NodeAndConfigId]
-    , filterByRules: Set[RuleId]
-    , directivesLib: FullActiveTechniqueCategory
-  ): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]] = {
-    if(nodeConfigIds.isEmpty) Full(Map())
-    else {
-
-      val rulePredicate = if(filterByRules.isEmpty) "" else " where " + in("ruleid", filterByRules.map(_.value))
-
-      val query_subscript_configids = query[(Long, NodeId, Option[List[String]])](s"""
-        select E.pkid, NNN.nodeid, NNN.nodeconfigids
-        from expectedreports E
-        inner join (
-            select N.nodejoinkey, N.nodeid, N.nodeconfigids
-            from expectedreportsnodes N
-            where (N.nodeconfigids && '{ ${nodeConfigIds.map("\""+ _.version.value + "\"").mkString(", ") } }')
-        ) as NNN
-        on E.nodejoinkey = NNN.nodejoinkey
-        ${rulePredicate}
-      """)
-
-      def getReportsByIds(reportIds: Set[Long]): ConnectionIO[Vector[DB.ExpectedReports[Long]]] = {
-        if(reportIds.isEmpty) {
-          Vector.empty[DB.ExpectedReports[Long]].point[ConnectionIO]
-        } else {
-          query[DB.ExpectedReports[Long]](s"""
-            select E.pkid, E.nodejoinkey, E.ruleid, E.serial, E.directiveid, E.component, E.cardinality
-                 , E.componentsvalues, E.unexpandedComponentsValues, E.begindate, E.enddate
-            from expectedreports E
-            where ${inNumber("E.pkid", reportIds) }
-          """).vector
-        }
-      }
-
-      val t0 = System.currentTimeMillis()
-      val action = for {
-        reportsAndConfigIds <- query_subscript_configids.vector
-        t1                  =  System.currentTimeMillis
-        _                   =  TimingDebugLogger.debug(s"GetExpectedReports: configIds: ${t1-t0}ms")
-        reportIds           =  reportsAndConfigIds.map( _._1 ).toSet
-        t2                  =  System.currentTimeMillis
-        expectedReports     <- getReportsByIds(reportIds)
-        t3                  =  System.currentTimeMillis
-        _                   =  TimingDebugLogger.debug(s"GetExpectedReports: expectedreports: ${t3-t2}ms")
-      } yield {
-
-        val t4 =  System.currentTimeMillis
-
-        val res= toNodeExpectedReports(nodeConfigIds, reportsAndConfigIds, expectedReports, directivesLib)
-
-        val t5 =  System.currentTimeMillis
-        TimingDebugLogger.debug(s"GetExpectedReports: toNodeExpectedReports: ${t5-t4}ms")
-
-        res
-      }
-      action.attempt.transact(xa).run
     }
   }
 
@@ -259,16 +281,18 @@ class FindExpectedReportsJdbcRepository(
             // for the same directive, and must be put together
             // also, get policy mode from lib - if the directive is missing, we don't know what to do, but it's
             // not more false than if the value changed since expected reports were written.
-            val mode = directivesLib.allDirectives.get(directiveId).flatMap( _._2.policyMode)
-            DirectiveExpectedReports(directiveId, mode, lines.map( x =>
-              ComponentExpectedReport(x.component, x.cardinality, x.componentsValues, x.unexpandedCptsValues)
-            ).distinct /* because we have the cardinality to deals with mutltiplicity */ )
+            val directive = directivesLib.allDirectives.get(directiveId)
+            val mode = directive.flatMap( _._2.policyMode)
+            val system = directive.map( _._2.isSystem ).getOrElse(false)
+            DirectiveExpectedReports(directiveId, mode, system, lines.map( x =>
+              ComponentExpectedReport(x.component, x.cardinality, x.componentsValues.toList, x.unexpandedCptsValues.toList)
+            ).distinct.toList /* because we have the cardinality to deals with mutltiplicity */ )
           }
           ( ruleId ->
             RuleNodeExpectedReports(
                 ruleId.ruleId
               , ruleId.serial
-              , directives.toSeq
+              , directives.toList
               , dirReports.head.beginDate // ".head" ok because of groupBy
               , dirReports.head.endDate
             )
@@ -288,22 +312,12 @@ class FindExpectedReportsJdbcRepository(
     res
   }
 
-
-  override def findCurrentNodeIds(ruleId : RuleId) : Box[Set[NodeId]] = {
-    sql"""
-      select distinct N.nodeid from expectedreports E
-      inner join expectedreportsnodes N
-      on E.nodejoinkey = N.nodejoinkey
-      where E.enddate is null and E.ruleid = ${ruleId.value}
-    """.query[NodeId].to[Set].attempt.transact(xa).run
-  }
-
   /**
    * Return current expected reports (the one still pending) for this Rule
    *
    * Only used in UpdateExpectedReportsJdbcRepository
    */
-  private[jdbc] def findCurrentExpectedReports(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId) : ConnectionIO[Option[RuleExpectedReports]] = {
+  private[jdbc] def findCurrentExpectedReports(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId) : ConnectionIO[Option[OldRuleExpectedReports]] = {
     for {
       seq <- getRuleExpectedReports(directivesLib, "where enddate is null and ruleid = ?", ruleId.value)
     } yield {
@@ -315,16 +329,9 @@ class FindExpectedReportsJdbcRepository(
     }
   }
 
-  /**
-   * Return all the expected reports between the two dates
-   */
-  override def findExpectedReports(directivesLib: FullActiveTechniqueCategory, beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]] = {
-    getRuleExpectedReports(directivesLib, "where beginDate < ? and coalesce(endDate, ?) >= ? ", (endDate, beginDate, beginDate)).attempt.transact(xa).run
-  }
-
   private[this] def getRuleExpectedReports[T](
       directivesLib: FullActiveTechniqueCategory
-    , whereClause  : String, param: T)(implicit comp: Composite[T]): ConnectionIO[Vector[RuleExpectedReports]] = {
+    , whereClause  : String, param: T)(implicit comp: Composite[T]): ConnectionIO[Vector[OldRuleExpectedReports]] = {
     type EXNR = (DB.ExpectedReports[Long], NodeId, Option[List[String]])
     val expectedReportsQuery ="""select
           E.pkid, E.nodejoinkey, E.ruleid, E.serial, E.directiveid, E.component, E.cardinality
@@ -344,7 +351,7 @@ class FindExpectedReportsJdbcRepository(
   private[this] def toExpectedReports(
       entries      : Vector[(DB.ExpectedReports[Long], NodeId, Option[List[String]])]
     , directivesLib: FullActiveTechniqueCategory
-  ) : Vector[RuleExpectedReports] = {
+  ) : Vector[OldRuleExpectedReports] = {
     //just an alias
     val toseq =  ComponentsValuesSerialiser.unserializeComponents _
 
@@ -358,9 +365,9 @@ class FindExpectedReportsJdbcRepository(
           // also, get policy mode from lib - if the directive is missing, we don't know what to do, but it's
           // not more false than if the value changed since expected reports were written.
           val mode = directivesLib.allDirectives.get(directiveId).flatMap( _._2.policyMode)
-          DirectiveExpectedReports(directiveId, mode, lines.map{ case(x, _, _)  =>
+          DirectiveExpectedReports(directiveId, mode, false, lines.map{ case(x, _, _)  =>
             ComponentExpectedReport(x.component, x.cardinality, toseq(x.componentsValues), toseq(x.unexpandedComponentsValues))
-          }.distinct /* because we have the cardinality for that */ )
+          }.distinct.toList /* because we have the cardinality for that */ )
         }
         val nodeConfigurationIds = mappedEntries.groupBy( _._2).mapValues { lines =>
           //we should have only one line at that level, but else, merger versions
@@ -377,7 +384,7 @@ class FindExpectedReportsJdbcRepository(
       }
 
 
-      RuleExpectedReports(
+      OldRuleExpectedReports(
           key.ruleId
         , key.serial
         , directivesOnNode.toSeq
@@ -386,15 +393,6 @@ class FindExpectedReportsJdbcRepository(
       )
     }.toVector
   }
-}
-
-
-class UpdateExpectedReportsJdbcRepository(
-    doobie     : Doobie
-  , findReports: FindExpectedReportsJdbcRepository
-) extends UpdateExpectedReportsRepository with Loggable with WoNodeConfigIdInfoRepository {
-
-  import doobie._
 
   /**
    * Delete all expected reports closed before a date
@@ -461,7 +459,7 @@ class UpdateExpectedReportsJdbcRepository(
   override def closeExpectedReport(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId, generationTime: DateTime) : Box[Unit] = {
     logger.debug(s"Closing expected report for rules '${ruleId.value}'")
     (for {
-      optExpected <- findReports.findCurrentExpectedReports(directivesLib, ruleId)
+      optExpected <- findCurrentExpectedReports(directivesLib, ruleId)
       results     <- optExpected match {
                        case None =>
                          logger.warn(s"Cannot close a non existing entry '${ruleId.value}'")
@@ -501,21 +499,21 @@ class UpdateExpectedReportsJdbcRepository(
     , directiveExpectedReports: Seq[DirectiveExpectedReports]
     , nodeConfigIds           : Seq[NodeAndConfigId]
     , directivesLib           : FullActiveTechniqueCategory
-  ) : Box[RuleExpectedReports] = {
+  ) : Box[OldRuleExpectedReports] = {
      logger.debug(s"Saving expected report for rule '${ruleId.value}'")
 // TODO : store also the unexpanded
-     findReports.findCurrentExpectedReports(directivesLib, ruleId).flatMap {
+     findCurrentExpectedReports(directivesLib, ruleId).flatMap {
        case Some(x) =>
          // I need to check I'm not having duplicates
          // easiest way : unfold all, and check intersect
-         val toInsert = directiveExpectedReports.flatMap { case DirectiveExpectedReports(dir, mode, comp) =>
+         val toInsert = directiveExpectedReports.flatMap { case DirectiveExpectedReports(dir, mode, isSystem, comp) =>
            comp.map(x => (dir, x.componentName))
          }.flatMap { case (dir, compName) =>
            nodeConfigIds.map(id => Comparator((id.nodeId, Some(id.version)), dir, compName))
          }
 
          val comparator = x.directivesOnNodes.flatMap { case DirectivesOnNodes(_, configs, dirExp) =>
-           dirExp.flatMap { case DirectiveExpectedReports(dir, mode, comp) =>
+           dirExp.flatMap { case DirectiveExpectedReports(dir, mode, isSystem, comp) =>
              comp.map(x => (dir, x.componentName))
            }.flatMap { case (dir, compName) =>
              configs.map(id => Comparator(id, dir, compName))
@@ -546,7 +544,7 @@ class UpdateExpectedReportsJdbcRepository(
     , nodeConfigIds           : Seq[NodeAndConfigId]
     , directivesLib           : FullActiveTechniqueCategory
 
-  ) : ConnectionIO[RuleExpectedReports] = {
+  ) : ConnectionIO[OldRuleExpectedReports] = {
 
     //all expectedReports
     val expectedReports = (nodeJoinKey: Int) => (for {
@@ -576,7 +574,7 @@ class UpdateExpectedReportsJdbcRepository(
       // save new nodeconfiguration - no need to check for existing version for them
       expNodes    <- DB.insertExpectedReportsNode(expectedReportsNodes(nodeJoinKey))
       // check for the consistancy of the insert, and return the build expected report for use
-      ruleReport  <- findReports.findCurrentExpectedReports(directivesLib, ruleId)
+      ruleReport  <- findCurrentExpectedReports(directivesLib, ruleId)
     } yield {
       ruleReport match {
           case Some(x) => x
@@ -587,13 +585,13 @@ class UpdateExpectedReportsJdbcRepository(
 
   override def addNodeConfigIdInfo(updatedNodeConfigs: Map[NodeId, NodeConfigId], generationTime: DateTime): Box[Set[NodeId]] = {
     (for {
-      configs  <- findReports.getNodeConfigIdInfosIO(updatedNodeConfigs.keySet)
+      configs  <- getNodeConfigIdInfosIO(updatedNodeConfigs.keySet)
       olds     =  configs.collect { case (id, Some(seq)) =>
                     val next = updatedNodeConfigs(id) //can't fail because updatedNodeConfigs#keySet is a superset of configs#keySet
                     (id, seq :+ NodeConfigIdInfo(next, generationTime, None))
                   }.toMap
       savedOld <- updateNodeConfigIdInfo(olds)
-      news     =  (configs.keySet--olds.keySet).map { id => (id, Seq(NodeConfigIdInfo(updatedNodeConfigs(id), generationTime, None)))}.toMap
+      news     =  (configs.keySet--olds.keySet).map { id => (id, Vector(NodeConfigIdInfo(updatedNodeConfigs(id), generationTime, None)))}.toMap
       savedNew <- createNodeConfigIdInfo(news)
     } yield {
       savedOld ++ savedNew
@@ -604,7 +602,7 @@ class UpdateExpectedReportsJdbcRepository(
    * Handle node config id update
    */
 
-  private[this] def createNodeConfigIdInfo(configInfos: Map[NodeId, Seq[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
+  private[this] def createNodeConfigIdInfo(configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
     if(configInfos.isEmpty) {
       Set.empty[NodeId].point[ConnectionIO]
     } else {
@@ -618,7 +616,7 @@ class UpdateExpectedReportsJdbcRepository(
     }
   }
 
-  private[this] def updateNodeConfigIdInfo(configInfos: Map[NodeId, Seq[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
+  private[this] def updateNodeConfigIdInfo(configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]): ConnectionIO[Set[NodeId]] = {
     if(configInfos.isEmpty) {
       Set.empty[NodeId].point[ConnectionIO]
     } else {
@@ -753,8 +751,8 @@ object ComponentsValuesSerialiser {
    * components values Ids.
    * Never fails, but returned an empty list.
    */
-  def unserializeComponents(ids:String) : Seq[String] = {
-    if(null == ids || ids.trim == "") Seq()
+  def unserializeComponents(ids:String) : List[String] = {
+    if(null == ids || ids.trim == "") List()
     else {
       implicit val formats = DefaultFormats
       parse(ids).extract[List[String]]
@@ -789,7 +787,7 @@ object NodeConfigIdSerializer {
    * { "configId1":"creationDate1", "configId2":"creationDate2", ... }
    */
 
-  def serialize(ids:Seq[NodeConfigIdInfo]) : String = {
+  def serialize(ids: Vector[NodeConfigIdInfo]) : String = {
     implicit val formats = Serialization.formats(NoTypeHints)
 
     val m = ids.map { case NodeConfigIdInfo(NodeConfigId(id), creation, _) =>
@@ -804,9 +802,9 @@ object NodeConfigIdSerializer {
    * components values Ids.
    * May return an empty object
    */
-  def unserialize(ids:String) : Seq[NodeConfigIdInfo] = {
+  def unserialize(ids:String) : Vector[NodeConfigIdInfo] = {
 
-    if(null == ids || ids.trim == "") Seq()
+    if(null == ids || ids.trim == "") Vector()
     else {
       implicit val formats = DefaultFormats
       val configs = parse(ids).extract[Map[String, String]].toList.flatMap { case (id, date) =>
@@ -819,8 +817,8 @@ object NodeConfigIdSerializer {
 
       //build interval
       configs match {
-        case Nil    => Seq()
-        case x::Nil => Seq(NodeConfigIdInfo(x._1, x._2, None))
+        case Nil    => Vector()
+        case x::Nil => Vector(NodeConfigIdInfo(x._1, x._2, None))
         case t      => t.sliding(2).map {
             //we know the size of the list is 2
             case _::Nil | Nil => throw new IllegalArgumentException("An impossible state was reached, please contact the dev about it!")

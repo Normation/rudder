@@ -49,15 +49,41 @@ import com.normation.rudder.db.Doobie._
 import scalaz.{Failure => _, _}, Scalaz._
 import doobie.imports._
 import scalaz.concurrent.Task
+import com.normation.rudder.domain.reports.NodeExpectedReports
+import com.normation.rudder.domain.reports.NodeConfigId
+import org.joda.time.DateTime
+import com.normation.rudder.domain.reports.ExpectedReportsSerialisation
 
 case class RoReportsExecutionRepositoryImpl (
     db: Doobie
   , pgInClause : PostgresqlInClause
 ) extends RoReportsExecutionRepository with Loggable {
 
+  import Doobie._
   import db._
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]] = {
+  /**
+   * Retrieve last agent runs for the given nodes.
+   * If none is known for a node, then returned None, so that the property
+   * "nodeIds == returnedMap.keySet" holds.
+   */
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = {
+    //deserialization of nodeConfig from the outer join: just report the error + None
+    def unserNodeConfig(opt1: Option[String], opt2: Option[String], opt3: Option[DateTime], opt4: Option[DateTime], opt5: Option[String]) = {
+      (opt1, opt2, opt3, opt4, opt5) match {
+        case (Some(id), Some(config), Some(begin), end, Some(json)) =>
+          ExpectedReportsSerialisation.parseJsonNodeExpectedReports(json) match {
+            case Full(x)      =>
+              Some(NodeExpectedReports(NodeId(id), NodeConfigId(config), begin, end, x.modes, x.ruleExpectedReports))
+            case eb: EmptyBox =>
+              val e = eb ?~! s"Error when deserialising node configuration for node with ID: ${id}, configId: ${config}"
+              logger.error(e.messageChain)
+              None
+          }
+        case _ => None
+      }
+    }
+
     nodeIds.map( _.value).toList.toNel match {
       case None => Full(Map())
       case Some(nodes) =>
@@ -68,20 +94,34 @@ case class RoReportsExecutionRepositoryImpl (
         // notice that we can't use pgInClause because we don't have any way
         // to interpolate the actual value of in - sql""" """ is more
         // than just interpolation. Need to check perfomances.
-        val sql = sql"""select distinct on (nodeid)
-                            nodeid, date, nodeconfigid, complete, insertionid
-                        from  reportsexecution
-                        where complete = true and nodeid in (${nodes : nodes.type})
-                        order by nodeid, insertionid desc""".query[DB.AgentRun].vector
-
-        val errorMSg = s"Error when trying to get report executions for nodes with Id '${nodeIds.map( _.value).mkString(",")}'"
-
-        sql.attempt.transact(xa).run match {
-          case \/-(entries)  =>
-            val runs = entries.map(x => (NodeId(x.nodeId), x.toAgentRun)).toMap
-            Full(nodeIds.map(n => (n, runs.get(n))).toMap)
-          case -\/(ex) => Failure(errorMSg + ": " + ex.getMessage, Full(ex), Empty)
-        }
+        (for {
+          runs <- sql"""select distinct on (r.nodeid)
+                         r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid
+                       , c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration
+                       from  reportsexecution r
+                       left outer join nodeconfigurations c
+                         on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
+                       where r.complete = true and r.nodeid in (${nodes : nodes.type})
+                       order by r.nodeid, r.insertionid desc
+                     """.query[
+                          //
+                          // For some reason unknown of me, if we use Option[NodeId] for the parameter,
+                          // we are getting the assertion fail from NodeId: "An UUID can not have a null or empty value (value: null)"
+                          // But somehow, the null value is correctly transformed to None latter.
+                          // So we have to use string, and tranform it node in unserNodeConfig. Strange.
+                          //
+                          (DB.AgentRun, Option[String], Option[String], Option[DateTime], Option[DateTime], Option[String])
+                        ].map {
+                          case tuple@(r, t1, t2, t3, t4, t5) => (r, unserNodeConfig(t1, t2, t3, t4, t5))
+                        }.vector
+        } yield {
+          val runsMap = (runs.map { case (r, optConfig) =>
+            val run = r.toAgentRun
+            val config = run.nodeConfigVersion.map(c => (c, optConfig))
+            (run.agentRunId.nodeId, AgentRunWithNodeConfig(run.agentRunId, config, run.isCompleted, run.insertionId))
+          }).toMap
+          nodeIds.map(id => (id, runsMap.get(id))).toMap
+        }).attempt.transact(xa).run
     }
   }
 }

@@ -126,6 +126,7 @@ CREATE TABLE ReportsExecution (
 
 CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
+CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
 
 /* 
  *************************************************************************************
@@ -139,7 +140,6 @@ CREATE SEQUENCE ruleSerialId START 1;
 
 -- that sequence is used for nodeJoinKey value
 CREATE SEQUENCE ruleVersionId START 1;
-
 
 -- Create the table for the reports information
 CREATE TABLE expectedReports (
@@ -197,7 +197,28 @@ CREATE TABLE nodes_info (
 , config_ids text
 );
 
+-- Create the table for the node configuration
+CREATE TABLE nodeConfigurations (
+  nodeId            text NOT NULL CHECK (nodeId <> '')  
+, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
+, beginDate         timestamp with time zone NOT NULL
+, endDate           timestamp with time zone
 
+-- here, I'm using text but with valid JSON in it, because for now we can't impose postgres > 9.2, 
+-- and interesting function are on 9.3/9.4.  we will be able to migrate with:
+-- ALTER TABLE table1 ALTER COLUMN col1 TYPE JSON USING col1::JSON;
+
+, configuration     text NOT NULL CHECK (nodeId <> '' )
+
+-- Primary key is a little complexe because each of nodeId, nodeConfigId, (nodeId, nodeConfigId)
+-- can appears several times. We need to also add begin date (and that can broke on a server with
+-- time coming back in the past)
+
+, PRIMARY KEY (nodeId, nodeConfigId, beginDate)
+);
+
+CREATE INDEX nodeConfigurations_nodeId ON nodeConfigurations (nodeId);
+CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId);
 
 /* 
  *************************************************************************************
