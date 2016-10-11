@@ -185,7 +185,13 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                  | ${copy}
                  |]]""".stripMargin)
 
-    (copy :: delete :: vacuum :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run match {
+    (for {
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+            // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
+       _ <- (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).run
+    } yield {
+       i
+    }) match {
       case -\/(ex) =>
         val msg ="Could not archive entries in the database, cause is " + ex.getMessage()
         logger.error(msg)
@@ -197,9 +203,9 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
   override def deleteEntries(date : DateTime) : Box[Int] = {
 
     val dateAt_0000 = date.toString("yyyy-MM-dd")
-    val d1 = s"delete from ${reports} where executionTimeStamp < ${dateAt_0000}"
-    val d2 = s"delete from ${archiveTable} where executionTimeStamp < ${dateAt_0000}"
-    val d3 = s"delete from ${reportsExecutionTable} where date < ${dateAt_0000}"
+    val d1 = s"delete from ${reports} where executionTimeStamp < '${dateAt_0000}'"
+    val d2 = s"delete from ${archiveTable} where executionTimeStamp < '${dateAt_0000}'"
+    val d3 = s"delete from ${reportsExecutionTable} where date < '${dateAt_0000}'"
 
     val v1 = s"vacuum ${reports}"
     val v2 = s"vacuum full ${archiveTable}"
@@ -213,7 +219,15 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
                    | ${d3}
                    |]]""".stripMargin)
 
-    (d1 :: d2 :: d3 :: v1 :: v2 :: v3 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run match  {
+    (for {
+      i <- (d1 :: d2 :: d3 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+           // Vacuum cannot be run in a transaction block, it has to be in an autoCommit block
+      _ <- { (v1 :: v2 :: v3 :: Nil).map { vacuum =>
+                (FC.setAutoCommit(true) *> Update0(vacuum, None).run <* FC.setAutoCommit(false)).attempt.transact(xa).run }.sequenceU
+           }
+    } yield {
+      i
+    }) match  {
       case -\/(ex) =>
         val msg ="Could not delete entries in the database, cause is " + ex.getMessage()
         logger.error(msg)
