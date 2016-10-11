@@ -103,7 +103,7 @@ class ReportDisplayer(
     val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
     Script(OnLoad(JsRaw(s"""
       $$("#details_${id}").on( "tabsactivate", function(event, ui) {
-        if(ui.panel.id== 'node_reports') {
+        if(ui.newPanel.attr('id')== 'node_reports') {
           ${callback.toJsCmd}
         }
       });

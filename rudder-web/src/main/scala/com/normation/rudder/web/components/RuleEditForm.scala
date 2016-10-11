@@ -229,8 +229,8 @@ class RuleEditForm(
             $$("#editRuleZonePortlet").removeClass("nodisplay");
             ${Replace("details", new RuleCompliance(rule, rootRuleCategory).display).toJsCmd};
             scrollToElement("${idToScroll}", ".rudder_col");
-            $$("#editRuleZone").bind( "show", function(event, ui) {
-              if((ui.panel.id== 'ruleComplianceTab')&&(recentChart !== undefined)) {
+            $$("#editRuleZone").bind( "tabsactivate", function(event, ui) {
+              if((ui.newPanel.attr('id')== 'ruleComplianceTab')&&(recentChart !== undefined)) {
                 recentChart.flush();
               }
             });

@@ -212,7 +212,7 @@ object DisplayNode extends Loggable {
       // if the firstChild.id == softGridId, then it hasn't been loaded, otherwise it is softGridId_wrapper
       JsRaw(s"""
         $$("#${detailsId}").on( "tabsactivate", function(event, ui) {
-          if(ui.panel.id== '${softPanelId}' && ui.panel.firstChild.id == '${softGridId}'){
+          if(ui.newPanel.attr('id')== '${softPanelId}' ){
             ${  SHtml.ajaxCall(JsRaw("'"+nodeId.value+"'"), loadSoftware(jsId, softIds) )._2.toJsCmd}
           }
         });
