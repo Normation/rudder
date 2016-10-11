@@ -49,9 +49,15 @@ import org.junit.runner.RunWith
 import org.specs2.mutable.Specification
 import org.specs2.runner.JUnitRunner
 import com.normation.rudder.services.reports.Pending
-import com.normation.rudder.repository.NodeConfigIdInfo
 import org.joda.time.DateTime
 import com.normation.rudder.domain.reports.ReportType._
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.domain.policies.PolicyMode.Audit
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 /**
  * Test properties about status reports,
@@ -221,11 +227,19 @@ class StatusReportTest extends Specification {
   }
 
   "Node status reports" should {
+    val modes = NodeModeConfig(
+        globalComplianceMode = GlobalComplianceMode(FullCompliance, 30)
+      , nodeHeartbeatPeriod  = None
+      , globalAgentRun       = AgentRunInterval(None, 5, 0, 0, 0)
+      , nodeAgentRun         = None
+      , globalPolicyMode     = GlobalPolicyMode(Audit, PolicyModeOverrides.Always)
+      , nodePolicyMode       = None
+    )
     val report = NodeStatusReport(
         NodeId("n1")
       , Pending(
-            NodeConfigIdInfo(NodeConfigId("plop"), DateTime.now(), None)
-          , None, DateTime.now.plusMinutes(15), Missing
+            NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modes, List()) // TODO : correct that test
+          , None, DateTime.now.plusMinutes(15)
         )
     , parse("""
        n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg

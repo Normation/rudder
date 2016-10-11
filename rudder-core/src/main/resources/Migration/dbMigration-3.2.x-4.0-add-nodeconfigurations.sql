@@ -1,6 +1,6 @@
 /*
 *************************************************************************************
-* Copyright 2013 Normation SAS
+* Copyright 2016 Normation SAS
 *************************************************************************************
 *
 * This file is part of Rudder.
@@ -35,36 +35,28 @@
 *************************************************************************************
 */
 
-package com.normation.rudder.reports.execution
+-- Create the table for the node configuration
+CREATE TABLE nodeConfigurations (
+  nodeId            text NOT NULL CHECK (nodeId <> '')  
+, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
+, beginDate         timestamp with time zone NOT NULL
+, endDate           timestamp with time zone
 
-import com.normation.inventory.domain.NodeId
-import org.joda.time.DateTime
-import com.normation.rudder.domain.reports.NodeConfigId
-import com.normation.rudder.domain.reports.NodeExpectedReports
+-- here, I'm using text but with valid JSON in it, because for now we can't impose postgres > 9.2, 
+-- and interesting function are on 9.3/9.4.  we will be able to migrate with:
+-- ALTER TABLE table1 ALTER COLUMN col1 TYPE JSON USING col1::JSON;
 
+, configuration     text NOT NULL CHECK (nodeId <> '' )
 
-final case class AgentRunId(
-    nodeId: NodeId
-  , date  : DateTime
-)
+-- Primary key is a little complexe because each of nodeId, nodeConfigId, (nodeId, nodeConfigId)
+-- can appears several times. We need to also add begin date (and that can broke on a server with
+-- time coming back in the past)
 
-/**
- * a mapping of reports executions
- */
-final case class AgentRun (
-    agentRunId       : AgentRunId
-  , nodeConfigVersion: Option[NodeConfigId]
-  , isCompleted      : Boolean
-  , insertionId      : Long
-)
+, PRIMARY KEY (nodeId, nodeConfigId, beginDate)
+);
 
-/**
- * The run, mapped with the expected node configuration
- * for the NodeConfigId (or None if none is found)
- */
-final case class AgentRunWithNodeConfig (
-    agentRunId       : AgentRunId
-  , nodeConfigVersion: Option[(NodeConfigId, Option[NodeExpectedReports])]
-  , isCompleted      : Boolean
-  , insertionId      : Long
-)
+CREATE INDEX nodeConfigurations_nodeId ON nodeConfigurations (nodeId);
+CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId);
+
+-- Add a new index on reportsExecution to allows an outer join between them and nodeConfigurations.
+CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);

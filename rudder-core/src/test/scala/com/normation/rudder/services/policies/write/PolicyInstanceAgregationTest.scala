@@ -111,7 +111,7 @@ class DirectiveAgregationTest {
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
     val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get,
-        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
+        Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val variable = new InputVariable(InputVariableSpec("card", "varDescription1"), Seq("value" + i))
     instance.copyWithAddedVariable(variable)
@@ -119,7 +119,7 @@ class DirectiveAgregationTest {
 
   def createDirectiveWithArrayBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
     val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, Map(), trackerVariable, priority = 0, serial = 0,
-        ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
+        ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val variable = InputVariable(
           InputVariableSpec("card", "varDescription1", multivalued = true)
@@ -131,7 +131,7 @@ class DirectiveAgregationTest {
 
   def createDirectiveWithArrayBindingAndNullValues(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
     val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, Map(), trackerVariable, priority = 0, serial = 0,
-        ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
+        ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val values = (0 until i).map(j =>
       if (j > 0) "value" + i
@@ -174,7 +174,7 @@ class DirectiveAgregationTest {
     def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
 
     val instance = new Cf3PolicyDraft("id", newTechnique, Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"),
-        directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None)
+        directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val machineA = new Cf3PolicyDraftContainer(Set(), Set(
         createDirectiveWithArrayBinding(activeTechniqueId1,1)

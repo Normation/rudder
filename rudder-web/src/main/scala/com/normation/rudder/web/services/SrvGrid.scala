@@ -69,6 +69,7 @@ import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides._
 import com.normation.rudder.appconfig.ReadConfigService
 import com.normation.rudder.domain.policies.PolicyMode._
+import com.normation.rudder.reports.execution.AgentRunWithNodeConfig
 
 /**
  * Very much like the NodeGrid, but with the new WB and without ldap information
@@ -229,7 +230,7 @@ class SrvGrid(
  */
 case class NodeLine (
     node       : NodeInfo
-  , lastReport : Box[Option[AgentRun]]
+  , lastReport : Box[Option[AgentRunWithNodeConfig]]
   , callback   : Option[(String, Boolean) => JsCmd]
   , globalMode : GlobalPolicyMode
 ) extends JsTableLine {

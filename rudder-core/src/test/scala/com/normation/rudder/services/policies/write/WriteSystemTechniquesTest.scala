@@ -355,6 +355,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , directiveOrder  = BundleOrder("Common")
     , overrides       = Set()
     , policyMode      = None
+    , isSystem        = true
   )
 
   val rolesTechnique = techniqueRepository.get(TechniqueId(TechniqueName("server-roles"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -377,6 +378,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , directiveOrder  = BundleOrder("Server Roles")
     , overrides       = Set()
     , policyMode      = None
+    , isSystem        = true
   )
 
   val distributeTechnique = techniqueRepository.get(TechniqueId(TechniqueName("distributePolicy"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -398,6 +400,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , directiveOrder  = BundleOrder("Distribute Policy")
     , overrides       = Set()
     , policyMode      = None
+    , isSystem        = true
   )
 
   val inventoryTechnique = techniqueRepository.get(TechniqueId(TechniqueName("inventory"), TechniqueVersion("1.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -419,6 +422,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , directiveOrder  = BundleOrder("Inventory")
     , overrides       = Set()
     , policyMode      = None
+    , isSystem        = true
   )
 
   //
@@ -447,6 +451,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , directiveOrder  = BundleOrder("10. Clock Configuration")
     , overrides       = Set()
     , policyMode      = Some(PolicyMode.Enforce)
+    , isSystem        = false
   )
 
   val rpmTechnique = techniqueRepository.get(TechniqueId(TechniqueName("rpmPackageInstallation"), TechniqueVersion("7.0"))).getOrElse(throw new RuntimeException("Bad init for test"))
@@ -475,6 +480,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
     , directiveOrder  = BundleOrder("20. Install PLOP STACK main rpm")
     , overrides       = Set()
     , policyMode      = Some(PolicyMode.Audit)
+    , isSystem        = false
   )
 
   // Allows override in policy mode, but default to audit

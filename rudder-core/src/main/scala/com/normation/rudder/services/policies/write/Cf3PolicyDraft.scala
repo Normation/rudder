@@ -79,18 +79,21 @@ final case class Cf3PolicyDraft(
   , variableMap     : Map[String, Variable]
   , trackerVariable : TrackerVariable
   , priority        : Int
+  , isSystem        : Boolean
+  , policyMode      : Option[PolicyMode]
   , serial          : Int
   , modificationDate: DateTime = DateTime.now
   , ruleOrder       : BundleOrder
   , directiveOrder  : BundleOrder
   , overrides       : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
-  , policyMode      : Option[PolicyMode]
 ) extends Loggable {
 
   def toDirectiveVal(originalVariables: Map[String, Variable]) = ExpandedDirectiveVal(
     technique         = technique
   , directiveId       = id.directiveId
   , priority          = priority
+  , isSystem          = isSystem
+  , policyMode        = policyMode
   , trackerVariable   = trackerVariable
   , variables         = variableMap
   , originalVariables = originalVariables

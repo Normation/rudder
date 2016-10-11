@@ -148,11 +148,12 @@ case class DirectiveVal(
     technique        : Technique
   , directiveId      : DirectiveId
   , priority         : Int
+  , isSystem         : Boolean
+  , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
   , variables        : InterpolationContext => Box[Map[String, Variable]]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded
   , directiveOrder   : BundleOrder
-  , policyMode       : Option[PolicyMode]
 ) extends HashcodeCaching {
 
   def toExpandedDirectiveVal(context: InterpolationContext) = {
@@ -162,6 +163,8 @@ case class DirectiveVal(
           technique
         , directiveId
         , priority
+        , isSystem
+        , policyMode
         , trackerVariable
         , vars
         , originalVariables
@@ -186,6 +189,8 @@ case class ExpandedDirectiveVal(
     technique        : Technique
   , directiveId      : DirectiveId
   , priority         : Int
+  , isSystem         : Boolean
+  , policyMode       : Option[PolicyMode]
   , trackerVariable  : TrackerVariable
   , variables        : Map[String, Variable]
   , originalVariables: Map[String, Variable] // the original variable, unexpanded

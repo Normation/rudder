@@ -1505,11 +1505,12 @@ object RudderConfig extends Loggable {
   private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(
       updateExpectedRepo
     , updateExpectedRepo
+    , doobie
   )
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn)
-  private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, findExpectedRepo)
+  private[this] lazy val updateExpectedRepo = new UpdateExpectedReportsJdbcRepository(doobie, pgIn)
   private[this] lazy val reportsRepositoryImpl = new ReportsJdbcRepository(doobie)
   private[this] lazy val dataSourceProvider = new RudderDatasourceProvider(RUDDER_JDBC_DRIVER, RUDDER_JDBC_URL, RUDDER_JDBC_USERNAME, RUDDER_JDBC_PASSWORD, RUDDER_JDBC_MAX_POOL_SIZE)
   private[this] lazy val doobie = new Doobie(dataSourceProvider.datasource)
@@ -1782,6 +1783,7 @@ object RudderConfig extends Loggable {
     new CachedReportsExecutionRepository(
         roRepo
       , new WoReportsExecutionRepositoryImpl(doobie, roRepo )
+      , findExpectedRepo
     )
   }
 

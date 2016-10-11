@@ -44,18 +44,15 @@ import doobie.contrib.postgresql.pgtypes._
 import scalaz.{Failure => _, _}, Scalaz._
 import scalaz.concurrent.Task
 import org.joda.time.DateTime
-import org.postgresql.util.PGobject
 import scala.xml.XML
 import java.sql.SQLXML
 import scala.xml.Elem
-import com.normation.rudder.domain.reports.Reports
+import com.normation.rudder.domain.reports._
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.inventory.domain.NodeId
 import net.liftweb.common._
 import scala.language.implicitConversions
-import com.normation.rudder.domain.reports.NodeConfigVersions
-import com.normation.rudder.domain.reports.NodeConfigId
 
 /**
  *
@@ -108,6 +105,43 @@ object Doobie {
     Composite[(NodeId, Option[List[String]])].xmap(
         tuple => NodeConfigVersions(tuple._1, tuple._2.getOrElse(Nil).map(NodeConfigId))
      ,  ncv   => (ncv.nodeId, Some(ncv.versions.map(_.value)))
+    )
+  }
+
+  implicit val NodeConfigIdComposite: Atom[Vector[NodeConfigIdInfo]] = {
+    Atom[String].xmap(
+        tuple => NodeConfigIdSerializer.unserialize(tuple)
+      , obj   => NodeConfigIdSerializer.serialize(obj)
+    )
+  }
+
+  /*
+   * Do not use that one for extraction, only to save NodeExpectedReports
+   */
+  implicit val SerializeNodeExpectedReportsComposite: Composite[NodeExpectedReports] = {
+    import ExpectedReportsSerialisation._
+    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].xmap(
+        tuple => throw new RuntimeException(s"Error: that method should not be used to deserialize NodeExpectedReports")
+      , ner   => (ner.nodeId, ner.nodeConfigId, ner.beginDate, ner.endDate, ner.toJson)
+    )
+  }
+
+  /*
+   * As we have some json in NodeExpectedReports, it is expected to fail somewhen like
+   * at each format update. We need to enforce that.
+   */
+  implicit val DeserializeNodeExpectedReportsComposite: Composite[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]] = {
+    import ExpectedReportsSerialisation._
+    Composite[(NodeId, NodeConfigId, DateTime, Option[DateTime], String)].xmap(
+        tuple => {
+              parseJsonNodeExpectedReports(tuple._5) match {
+                case Full(x)      =>
+                  \/-(NodeExpectedReports(tuple._1, tuple._2, tuple._3, tuple._4, x.modes, x.ruleExpectedReports))
+                case eb: EmptyBox =>
+                  -\/((tuple._1, tuple._2, tuple._3))
+              }
+          }
+      , ner   => throw new RuntimeException(s"Error: that method should not be used to serialize NodeExpectedReports")
     )
   }
 

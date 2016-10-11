@@ -75,7 +75,7 @@ trait UpdateExpectedReportsRepository {
     , directiveExpectedReports : Seq[DirectiveExpectedReports]
     , nodeConfigurationVersions: Seq[NodeAndConfigId]
     , directivesLib            : FullActiveTechniqueCategory
-  ) : Box[RuleExpectedReports]
+  ) : Box[OldRuleExpectedReports]
 
 
   /**
@@ -102,42 +102,32 @@ trait UpdateExpectedReportsRepository {
 trait FindExpectedReportRepository {
 
   /**
-   * Return all the expected reports between the two dates
-   * ## used by the advanced reporting module ##
-   */
-  def findExpectedReports(directivesLib: FullActiveTechniqueCategory, beginDate : DateTime, endDate : DateTime) : Box[Seq[RuleExpectedReports]]
-
-  /**
    * Return node ids associated to the rule (based on expectedreports (the one still pending)) for this Rule
    */
   def findCurrentNodeIds(rule : RuleId) : Box[Set[NodeId]]
 
   /*
    * Retrieve the expected reports by config version of the nodes.
-   * Here, for a given node, we can have several configId asked for.
+   *
+   * The property "returnedMap.keySet == nodeConfigIds" holds.
    */
   def getExpectedReports(
       nodeConfigIds: Set[NodeAndConfigId]
-    , filterByRules: Set[RuleId]
-    , directivesLib: FullActiveTechniqueCategory
-  ): Box[Map[NodeId, Map[NodeConfigId, Map[SerialedRuleId, RuleNodeExpectedReports]]]]
+  ): Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]]
+
+
+  /*
+   * Retrieve the current expected report for the list of nodes.
+   *
+   * The property "returnedMam.keySet = nodeIds" holds.
+   */
+  def getCurrentNodeConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[NodeExpectedReports]]]
+
 }
 
 
-case class NodeConfigIdInfo(
-    configId : NodeConfigId
-  , creation : DateTime
-  , endOfLife: Option[DateTime]
-
-// that would be very cool to be able to directly link here from nodeConfigId to the list of expectedvalue
-// and so we could directly query for a list of node/version the list of expected values
-// , expectedReportLines: Set[Long]
-)
-
 trait RoNodeConfigIdInfoRepository {
-
-  def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Seq[NodeConfigIdInfo]]]]
-
+  def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]]
 }
 
 trait WoNodeConfigIdInfoRepository {

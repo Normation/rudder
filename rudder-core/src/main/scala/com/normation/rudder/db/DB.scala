@@ -200,7 +200,7 @@ final object DB {
     , date        : DateTime
     , nodeConfigId: Option[String]
     , isCompleted : Boolean
-    , insertionId : Long // PURPOSE ?
+    , insertionId : Long
   ) {
     def toAgentRun = RudderAgentRun(AgentRunId(NodeId(nodeId), date), nodeConfigId.map(NodeConfigId), isCompleted, insertionId)
   }

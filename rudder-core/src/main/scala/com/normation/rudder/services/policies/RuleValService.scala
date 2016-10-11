@@ -154,11 +154,12 @@ class RuleValServiceImpl(
                 policyPackage
               , directive.id
               , directive.priority
+              , directive.isSystem
+              , directive.policyMode
               , policyPackage.trackerVariableSpec.toVariable(trackerVariable.values)
               , lookupNodeParameterization(otherVars.values.toSeq)
               , vared
               , BundleOrder(directive.name)
-              , directive.policyMode
             ))
         }
     }

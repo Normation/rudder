@@ -48,7 +48,6 @@ import com.normation.rudder.domain.nodes.NodeInfo
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.domain.parameters.ParameterName
 import com.normation.rudder.domain.policies._
-import com.normation.rudder.domain.reports.RuleExpectedReports
 import com.normation.rudder.repository._
 import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.rudder.services.nodes.NodeInfoService
@@ -69,6 +68,7 @@ import com.normation.inventory.domain.NodeInventory
 import com.normation.rudder.domain.parameters.GlobalParameter
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
 import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.rudder.domain.reports.NodeExpectedReports
 import com.normation.inventory.domain.NodeId
 import com.normation.rudder.domain.reports.NodeConfigId
 import com.normation.rudder.reports.ComplianceMode
@@ -86,6 +86,8 @@ import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
+import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.reports.HeartbeatConfiguration
 
 /**
  * The main service which deploy modified rules and
@@ -139,6 +141,9 @@ trait PromiseGenerationService extends Loggable {
       // - number of rules: any rule without target or with only target with no node can be skipped
       activeRuleIds = getAppliedRuleIds(allRules, groupLib, directiveLib, allNodeInfos)
       activeNodeIds = groupLib.getNodeIds(allRules.flatMap(_.targets).toSet, allNodeInfos)
+
+      allNodeModes     =  buildNodeModes(allNodeInfos, globalComplianceMode, globalAgentRun, globalPolicyMode)
+
       timeFetchAll    =  (System.currentTimeMillis - initialTime)
       _               =  logger.debug(s"All relevant information fetched in ${timeFetchAll} ms, start names historization.")
 
@@ -193,7 +198,8 @@ trait PromiseGenerationService extends Loggable {
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
       updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
-      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs, updatedNodeConfig, new DateTime(), directiveLib)  ?~! "Cannot build expected reports"
+      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs
+                                , updatedNodeConfig, new DateTime(), allNodeModes)  ?~! "Cannot build expected reports"
       // now, invalidate cache
       _                     =  invalidateComplianceCache(updatedNodeConfig)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
@@ -229,7 +235,7 @@ trait PromiseGenerationService extends Loggable {
   def getGroupLibrary(): Box[FullNodeGroupCategory]
   def getAllGlobalParameters: Box[Seq[GlobalParameter]]
   def getAllInventories(): Box[Map[NodeId, NodeInventory]]
-  def getGlobalComplianceMode(): Box[ComplianceMode]
+  def getGlobalComplianceMode(): Box[GlobalComplianceMode]
   def getGlobalAgentRun() : Box[AgentRunInterval]
   def getAllLicenses(): Box[Map[NodeId, NovaLicense]]
   def getAgentRunInterval    : () => Int
@@ -238,6 +244,27 @@ trait PromiseGenerationService extends Loggable {
   def getAgentRunStartMinute : () => Box[Int]
   def getScriptEngineEnabled : () => Box[FeatureSwitch]
   def getGlobalPolicyMode    : () => Box[GlobalPolicyMode]
+
+
+  /*
+   * From global configuration and node modes, build node modes
+   */
+  def buildNodeModes(nodes: Map[NodeId, NodeInfo], globalComplianceMode: GlobalComplianceMode, globalAgentRun: AgentRunInterval, globalPolicyMode: GlobalPolicyMode) = {
+    nodes.map { case (id, info) =>
+      (id, NodeModeConfig(
+          globalComplianceMode
+        , info.nodeReportingConfiguration.heartbeatConfiguration match {
+            case Some(HeartbeatConfiguration(true, i)) => Some(i)
+            case _                                     => None
+          }
+        , globalAgentRun
+        , info.nodeReportingConfiguration.agentRunInterval
+        , globalPolicyMode
+        , info.policyMode
+      ) )
+    }.toMap
+  }
+
 
   def getAppliedRuleIds(rules:Seq[Rule], groupLib: FullNodeGroupCategory, directiveLib: FullActiveTechniqueCategory, allNodeInfos: Map[NodeId, NodeInfo]): Set[RuleId]
 
@@ -346,8 +373,8 @@ trait PromiseGenerationService extends Loggable {
     , deletedCrs       : Seq[RuleId]
     , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
-    , directivesLib    : FullActiveTechniqueCategory
-  ) : Box[Seq[RuleExpectedReports]]
+    , allNodeModes     : Map[NodeId, NodeModeConfig]
+  ) : Box[Seq[NodeExpectedReports]]
 
   /**
    * After updates of everything, notify compliace cache
@@ -367,7 +394,8 @@ trait PromiseGenerationService extends Loggable {
   ) : Box[Unit]
 
   protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
-    NodeConfigId(config.hashCode.toString)
+    //make it looks like a string, not an int.
+    NodeConfigId(config.hashCode.toHexString)
   }
   def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
     configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationCache(x)))).toMap
@@ -566,10 +594,11 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , variableMap    : InterpolationContext => Box[Map[String, Variable]]
     , trackerVariable: TrackerVariable
     , priority       : Int
+    , isSystem       : Boolean
+    , policyMode     : Option[PolicyMode]
     , serial         : Int
     , ruleOrder      : BundleOrder
     , directiveOrder : BundleOrder
-    , policyMode     : Option[PolicyMode]
   ) extends HashcodeCaching
 
    /**
@@ -611,10 +640,11 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
           , variableMap    = directive.variables
           , trackerVariable= directive.trackerVariable
           , priority       = directive.priority
+          , isSystem       = directive.isSystem
+          , policyMode     = directive.policyMode
           , serial         = ruleVal.serial
           , ruleOrder      = ruleVal.ruleOrder
           , directiveOrder = directive.directiveOrder
-          , policyMode     = directive.policyMode
         )
       }
 
@@ -702,11 +732,12 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                       , variableMap = evaluatedVars.toMap
                                       , trackerVariable = draft.trackerVariable
                                       , priority = draft.priority
+                                      , isSystem = draft.isSystem
+                                      , policyMode = draft.policyMode
                                       , serial = draft.serial
                                       , ruleOrder = draft.ruleOrder
                                       , directiveOrder = draft.directiveOrder
                                       , overrides = Set()
-                                      , policyMode = draft.policyMode
                                     )
                                   }).dedupFailures(s"When processing directive '${draft.directiveOrder.value}'")
                                 }
@@ -929,8 +960,8 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
     , deletedCrs       : Seq[RuleId]
     , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
-    , directivesLib    : FullActiveTechniqueCategory
-  ) : Box[Seq[RuleExpectedReports]] = {
+    , allNodeModes     : Map[NodeId, NodeModeConfig]
+  ) : Box[Seq[NodeExpectedReports]] = {
 
     val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, versions)
     val updatedRuleVal = updateRuleVal(expandedRuleVal, updatedCrs)
@@ -950,7 +981,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
       })
     }.toSet
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden, directivesLib)
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden, allNodeModes)
   }
 
   override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {

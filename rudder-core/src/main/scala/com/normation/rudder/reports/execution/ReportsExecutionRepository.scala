@@ -42,6 +42,8 @@ import net.liftweb.common._
 import org.joda.time.DateTime
 import com.normation.rudder.repository.CachedRepository
 import com.normation.rudder.domain.logger.ReportLogger
+import com.normation.rudder.domain.reports.NodeAndConfigId
+import com.normation.rudder.repository.FindExpectedReportRepository
 
 /**
  * Service for reading or storing execution of Nodes
@@ -57,7 +59,7 @@ trait RoReportsExecutionRepository {
    * So the last run are the last run inserted in the reports database
    * See ticket http://www.rudder-project.org/redmine/issues/6005
    */
-  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]]
+  def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]]
 }
 
 
@@ -84,6 +86,7 @@ trait WoReportsExecutionRepository {
 class CachedReportsExecutionRepository(
     readBackend : RoReportsExecutionRepository
   , writeBackend: WoReportsExecutionRepository
+  , findConfigs : FindExpectedReportRepository
 ) extends RoReportsExecutionRepository with WoReportsExecutionRepository with CachedRepository {
 
   val logger = ReportLogger
@@ -108,14 +111,14 @@ class CachedReportsExecutionRepository(
    * can be used for a given node) is given by the presence of the
    * nodeid in map's keys.
    */
-  private[this] var cache = Map[NodeId, Option[AgentRun]]()
+  private[this] var cache = Map[NodeId, Option[AgentRunWithNodeConfig]]()
 
 
   override def clearCache(): Unit = this.synchronized {
     cache = Map()
   }
 
-  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRun]]] = this.synchronized {
+  override def getNodesLastRun(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[AgentRunWithNodeConfig]]] = this.synchronized {
     (for {
       runs <- readBackend.getNodesLastRun(nodeIds.diff(cache.keySet))
     } yield {
@@ -131,7 +134,55 @@ class CachedReportsExecutionRepository(
     //update complete runs
     val completed = runs.collect { case Full(x) if(x.isCompleted) => x }
     logger.debug(s"Updating agent runs cache: [${completed.map(x => s"'${x.agentRunId.nodeId.value}' at '${x.agentRunId.date.toString()}'").mkString("," )}]")
-    cache = cache ++ completed.map(x => (x.agentRunId.nodeId, Some(x))).toMap
+
+    // log errors
+    runs.foreach {
+      case Full(x) => //
+      case eb:EmptyBox =>
+        val e = eb ?~! "Error when updating node run information"
+        logger.error(e.messageChain)
+        e.rootExceptionCause.foreach(ex => logger.error(s"Exception was: ${ex.getMessage}"))
+    }
+
+    //we need to get NodeExpectedReports for new runs or runs with a different nodeConfigId
+    //so we complete run with existing node config in cache, and
+    //separate between the one completed and the one to query
+    // the one to query are on left, the one completed on right
+    val runWithConfigs = completed.map { x =>
+      x.nodeConfigVersion match {
+        case None            => //no need to try more things
+          Right(AgentRunWithNodeConfig(x.agentRunId, None, x.isCompleted, x.insertionId))
+        case Some(newConfig) =>
+          cache.get(x.agentRunId.nodeId) match {
+            case Some(Some(AgentRunWithNodeConfig(_, Some((oldConfig, Some(expected))), _, _))) if(oldConfig == newConfig) =>
+                Right(AgentRunWithNodeConfig(x.agentRunId, Some((oldConfig, Some(expected))), x.isCompleted, x.insertionId))
+            case _ =>
+                Left(AgentRunWithNodeConfig(x.agentRunId, x.nodeConfigVersion.map(c => (c, None)), x.isCompleted, x.insertionId))
+          }
+      }
+    }
+    //now, get back the one in left, and query for node config
+    val nodeAndConfigs = runWithConfigs.collect { case Left(AgentRunWithNodeConfig(id, Some((config, None)), _, _)) => NodeAndConfigId(id.nodeId, config)}
+
+    val results = (findConfigs.getExpectedReports(nodeAndConfigs.toSet) match {
+      case eb: EmptyBox =>
+        val e = eb ?~! s"Error when trying to find node configuration matching new runs for node/configId: ${nodeAndConfigs.map(x=> s"${x.nodeId.value}/${x.version.value}").mkString(", ")}"
+        logger.error(e.messageChain)
+        //return the whole list of runs unmodified
+        runWithConfigs.map {
+          case Left(x)  => (x.agentRunId.nodeId, Some(x))
+          case Right(x) => (x.agentRunId.nodeId, Some(x))
+        }
+      case Full(map) =>
+        runWithConfigs.map {
+          case Left(x)  =>
+            val configVersion = x.nodeConfigVersion.map(c => c.copy(_2 = map.get(NodeAndConfigId(x.agentRunId.nodeId, c._1)).flatten))
+            (x.agentRunId.nodeId, Some(x.copy(nodeConfigVersion = configVersion)))
+          case Right(x) => (x.agentRunId.nodeId, Some(x))
+        }
+    }).toMap
+
+    cache = cache ++ results
     runs
   }
 }

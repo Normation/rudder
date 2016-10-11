@@ -103,6 +103,40 @@ final object PolicyMode {
     }
   }
 
+  /*
+   * Compute policy mode for only one directive, taking into account the fact that it is system
+   * (and in that case, it's always "Enforce")
+   */
+  def directivePolicyMode(globalValue : GlobalPolicyMode, nodeMode : Option[PolicyMode], directiveMode : Option[PolicyMode], isSystem: Boolean): PolicyMode = {
+    if(isSystem) Enforce
+    else globalValue.overridable match {
+      case PolicyModeOverrides.Always =>
+        nodeMode match {
+          case Some(Audit) => Audit
+          case _           => directiveMode match {
+            case Some(Audit) => Audit
+            case _           => directiveMode.getOrElse(nodeMode.getOrElse(globalValue.mode))
+          }
+        }
+
+      case PolicyModeOverrides.Unoverridable =>
+        globalValue.mode
+    }
+  }
+
+  def computeMode(globalValue : GlobalPolicyMode, nodeMode : Option[PolicyMode]): PolicyMode = {
+    globalValue.overridable match {
+      case PolicyModeOverrides.Always =>
+        nodeMode match {
+          case Some(Audit) => Audit
+          case _           => nodeMode.getOrElse(globalValue.mode)
+        }
+
+      case PolicyModeOverrides.Unoverridable =>
+        globalValue.mode
+    }
+  }
+
 }
 
 /*
