@@ -131,7 +131,12 @@ object NodeConfigurationCache {
         PolicyCache(
             r.ruleId
           , r.draftId
-          , r.cf3PolicyDraft.serial + r.cf3PolicyDraft.technique.id.hashCode + variablesToHash(r.cf3PolicyDraft.variableMap.values)
+          , (   r.cf3PolicyDraft.serial
+              + r.cf3PolicyDraft.technique.id.hashCode
+              + r.cf3PolicyDraft.priority
+              + r.ruleOrder.hashCode + r.directiveOrder.hashCode
+              + variablesToHash(r.cf3PolicyDraft.variableMap.values)
+            )
         )
       }.toSet
     }
