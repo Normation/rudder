@@ -119,7 +119,9 @@
             <script type="text/ng-template" id="quicksearch.html">
               <div class="angucomplete-holder" ng-class="{'angucomplete-dropdown-visible': showDropdown};">
                 <div class="input-group group-search" ng-class="{'open':searchStr.length>0}">
-                  
+                  <label class="input-group-addon" for="searchInput">
+                    <span class="glyphicon glyphicon-search"></span>
+                  </label>
                   <input ng-model="searchStr"
                     ng-disabled="disableInput"
                     type="text"
@@ -132,9 +134,11 @@
                     autocorrect="off"
                     autocomplete="off"
                     ng-change="inputChangeHandler(searchStr);$parent.refreshFilterSearch(searchStr)"/>
-          <div class="input-group-btn">
-                  <span ng-class="{noRemove:!searchStr}" class="input-group-addon" id="help-search"><span ng-click="$parent.setValueSearchInput('');$parent.refreshFilterSearch(searchStr);" class="glyphicon glyphicon-remove"></span></span>
-                </div>
+
+                  <label ng-class="{noRemove:!searchStr}" class="input-group-addon" id="help-search" for="searchInput">
+                    <span ng-click="$parent.setValueSearchInput('');$parent.refreshFilterSearch(searchStr);" class="glyphicon glyphicon-remove"></span>
+                  </label>
+                <div id="background-fade-quicksearch"></div>
                 <ul class="dropdown-menu dropdown-search dropdown-menu-right">
                   <li class="dropdown-header">
                     <div class="row no-margin">
@@ -230,7 +234,6 @@
                                   <div class="angucomplete-searching" ng-show="searching && searchStr.length > 2; " ng-bind="textSearching"></div>
                                   <div class="angucomplete-searching text-danger" ng-show="!searching && (!results || results.length == 0) && (searchStr.length > 2);"><span class="glyphicon glyphicon-exclamation-sign text-danger"></span>{{textNoResults}}</div>
                                 </div>
-                                <button class="btn btn-default" id="toggleDoc">Help <span class="glyphicon glyphicon-question-sign"></span></button>
                               </div>
                               <div class="panel-group" ng-hide="!searching && (!results || results.length == 0) && (searchStr.length > 2);">
                                 <div class="angucomplete-dropdown dropdown-search " role="tablist">
@@ -256,7 +259,6 @@
                                           </li>
                                         </ul>
                                       </div>
-
                                     </div>
                                   </div>
                                 </div>
@@ -264,6 +266,10 @@
                             </div>
                           </div>
                         </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
           </script>
   
               <div id="angucomplete-ie8-quicksearch"
