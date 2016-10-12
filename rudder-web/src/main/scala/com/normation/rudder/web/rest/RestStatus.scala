@@ -40,7 +40,6 @@ package com.normation.rudder.web.rest
 import net.liftweb.http._
 import net.liftweb.http.rest._
 
-
 /**
  * A rest api that handle url /api/status
  * and just return "ok" in plain text.
