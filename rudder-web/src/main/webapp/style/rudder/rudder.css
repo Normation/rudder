@@ -1651,6 +1651,7 @@ td.complianceTd, td.parametersTd {
 .mediumButton {
   width: 65px !important;
   height: 22px !important;
+  line-height: 10px;
 }
 
 .mediumButton span {
