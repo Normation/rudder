@@ -640,14 +640,14 @@ case class RestExtractorService (
    */
 
   private[this] def extractNodeProperty(json : JValue) : Box[NodeProperty] = {
-    json match {
-      case JObject(JField("name", JString(nameValue)):: JField("value", value) :: Nil) =>
+    ( (json \ "name"), (json \ "value") ) match {
+      case ( JString(nameValue), value ) =>
         Full(NodeProperty(nameValue, value))
-      case _  =>
+      case (a, b)  =>
         Failure(s"""Error when trying to parse new property: '${compact(render(json))}'. The awaited format is: {"name": string, "value": json}""")
     }
-
   }
+
   def extractNodePropertiesrFromJSON (json : JValue) : Box[RestNodeProperties] = {
     import com.normation.utils.Control.sequence
     for {
