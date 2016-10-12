@@ -358,7 +358,7 @@ input .ui-button {
    border: none;
 }
 
-.ui-widget-header .ui-icon {background-image: url(../images/themes/ui-lightness/images/ui-icons_222222_256x240.png); }
+.ui-widget-header .ui-icon {background-image: url(../jquery-ui/images/ui-icons_222222_256x240.png); }
 
 
 .ui-widget-overlay {
