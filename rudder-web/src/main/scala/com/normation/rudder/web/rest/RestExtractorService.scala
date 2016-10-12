@@ -637,11 +637,11 @@ case class RestExtractorService (
         case x             => Failure(s"""Error: the given parameter is not a JSON object with a 'properties' key""")
       }
       seq   <- sequence(props) { p =>
-                 p match {
-                   case JObject(JField("name", JString(nameValue)):: JField("value", value) :: Nil) =>
+                 ( (p \ "name"), (p \ "value") ) match {
+                   case ( JString(nameValue), value ) =>
                      Full(NodeProperty(nameValue, value))
-                   case _  => Failure(s"""Error when trying to parse new property: '${compact(render(p))
-                                          }'. The awaited format is: {"name": string, "value": json}""")
+                   case (a, b)  =>
+                     Failure(s"""Error when trying to parse new property: '${compact(render(p))}'. The awaited format is: {"name": string, "value": json}""")
                  }
                }
     } yield {
