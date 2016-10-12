@@ -51,6 +51,7 @@ import com.normation.rudder.web.rest.RestUtils
 import com.normation.rudder.web.rest.ApiVersion
 import com.normation.rudder.web.rest.RestDataSerializer
 import com.normation.rudder.domain.nodes.Node
+import net.liftweb.http.OutputStreamResponse
 
 class NodeAPI8 (
     apiV6        : NodeAPI6
@@ -102,6 +103,25 @@ class NodeAPI8 (
         case eb : EmptyBox =>
           val fail = eb ?~! s"An error occured while updating Node '${id}'"
           toJsonError(Some(id), fail.messageChain)
+      }
+    }
+
+    case Post(id :: "applyPolicy" ::Nil, req) => {
+
+      (for {
+        classes <- extractor.extractList("classes")(req)(json => Full(json))
+        response <- apiV8service.runNode(NodeId(id),classes)
+      } yield {
+        OutputStreamResponse(response)
+      }) match {
+        case Full(response) => response
+        case eb : EmptyBox => {
+          implicit val prettify = extractor.extractPrettify(req.params)
+          implicit val action = "applyPolicy"
+          val fail = eb ?~! s"An error occured when applying policy on Node '${id}'"
+          toJsonError(Some(id), fail.messageChain)
+
+        }
       }
     }
   }
