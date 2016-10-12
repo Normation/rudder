@@ -1714,7 +1714,7 @@ object RudderConfig extends Loggable {
         case input: InputVariableSpec => v.constraint.typeName match {
           case str: SizeVType => new InputSizeField(id, configService.rudder_featureSwitch_directiveScriptEngine, str.name.substring(prefixSize.size))
           case UploadedFileVType => new UploadedFileField(UPLOAD_ROOT_DIRECTORY)(id)
-          case SharedFileVType => default(id)
+          case SharedFileVType => new FileField(id)
           case DestinationPathVType => default(id)
           case DateVType(r) => new DateField(frenchDateFormatter)(id)
           case TimeVType(r) => new TimeField(frenchTimeFormatter)(id)

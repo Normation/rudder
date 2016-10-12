@@ -103,6 +103,7 @@ class Boot extends Loggable {
 
     // REST API
     LiftRules.statelessDispatch.append(RestStatus)
+    LiftRules.statelessDispatch.append(RestSharedFolder)
     LiftRules.statelessDispatch.append(RestAuthentication)
     LiftRules.statelessDispatch.append(RudderConfig.restDeploy)
     LiftRules.statelessDispatch.append(RudderConfig.restDyngroupReload)
@@ -297,6 +298,7 @@ class Boot extends Loggable {
     val rootMenu = List(
         Menu("Dashboard", <i class="fa fa-dashboard"></i> ++ <span>Dashboard</span>) / "secure" / "index"
       , Menu("Login") / "index" >> Hidden
+      , Menu("Templates") / "templates" / ** >> Hidden //allows access to html file use by js
       , nodeManagerMenu
       , buildManagerMenu("configuration")
       , utilitiesMenu

@@ -1,0 +1,288 @@
+/*
+*************************************************************************************
+* Copyright 2016 Normation SAS
+*************************************************************************************
+*
+* This file is part of Rudder.
+* 
+* Rudder is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+* 
+* In accordance with the terms of section 7 (7. Additional Terms.) of
+* the GNU General Public License version 3, the copyright holders add
+* the following Additional permissions:
+* Notwithstanding to the terms of section 5 (5. Conveying Modified Source
+* Versions) and 6 (6. Conveying Non-Source Forms.) of the GNU General
+* Public License version 3, when you create a Related Module, this
+* Related Module is not considered as a part of the work and may be
+* distributed under the license agreement of your choice.
+* A "Related Module" means a set of sources files including their
+* documentation that, without modification of the Source Code, enables
+* supplementary functions or services in addition to those offered by
+* the Software.
+* 
+* Rudder is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+* 
+* You should have received a copy of the GNU General Public License
+* along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
+
+*
+*************************************************************************************
+*/
+.btn:focus{
+ outline : none !important; 
+}
+angular-filemanager .background-fade{
+  background-color: rgba(20,20,20,.7);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  z-index: 9999;
+  animation: fade-anim .2s linear forwards;
+}
+
+angular-filemanager .filemanager-window{
+	margin-top: 80px;
+  background: #fff;
+  padding-left:0 !important;
+  padding-right:0 !important;
+  -webkit-box-shadow: 0 3px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 3px 15px rgba(0,0,0,0.5);
+}
+angular-filemanager .filemanager-window #bg-fade{
+  background-color: #fff;
+}
+angular-filemanager .filemanager-window #bg-fade > .main{
+  padding-top: 15px;
+  background-color: #fff;
+}
+
+angular-filemanager .filemanager-window #bg-fade > div{
+  height: 65vh;
+  overflow: auto;
+}
+angular-filemanager .filemanager-window .item-list{
+  padding-bottom:30px; 
+}
+angular-filemanager .filemanager-window .navbar{
+  border-radius: 0;
+  border: none;
+  background-color: #f08004;
+  margin-bottom: 0;
+}
+angular-filemanager .btn.btn-flat>i.glyphicon-remove{
+  color: #944e00;
+  font-size: 14px;
+}
+angular-filemanager .filemanager-window .file-tree-root li{
+	padding: 8px 0 0 0;
+}
+angular-filemanager .filemanager-window .navbar ol.breadcrumb{
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  color: #fff;
+  height: 50px;
+  line-height: 50px;
+  max-height: 50px !important;
+}
+angular-filemanager .filemanager-window .breadcrumb > .active {
+    color: #fff;
+    font-weight: 600;
+}
+angular-filemanager .filemanager-window .navbar ol.breadcrumb a, angular-filemanager .filemanager-window .navbar-form .btn{
+  color: #fff;
+  opacity: .8;
+  transition-duration:.1s;
+  text-decoration: none !important;
+}
+angular-filemanager .filemanager-window .navbar ol.breadcrumb a:hover,angular-filemanager .filemanager-window .navbar-form .btn:hover{
+  opacity: 1;
+}
+angular-filemanager .iconset .thumbnail, .table-files{
+  color:#929292;
+  transition:initial;
+  transition-duration:.2s;
+  border-radius: 0px;
+  border:1px solid transparent;
+}
+angular-filemanager .iconset .thumbnail:hover, .table-files:hover{
+  color:#797979;
+  box-shadow: none;
+  border-color: #e2e2e2;
+  text-decoration:none;
+  border-color:transparent;
+}
+angular-filemanager .iconset .thumbnail.selected, .table-files.selected{
+  color:#797979;
+  background-color:#f2f2f2;
+  border-color:#c8c8c8;
+  text-decoration:none;
+}
+.tw-bs .filemanager-window .table-files a{
+	color:#555;
+}
+.tw-bs .filemanager-window .table-files .sortorder:after{
+	color: #f08004;
+}
+.table-files .selected, angular-filemanager .iconset .thumbnail.selected{
+	background-color:#ececec;
+}
+.table-files tbody > tr:hover{
+  background-color:#f5f5f5;
+}
+.table-files .selected td, .table-files .selected td a, angular-filemanager .iconset .thumbnail.selected {
+  color: #777;
+}
+angular-filemanager .selected .item-extension::after {
+  color: #ffffff;
+}
+
+angular-filemanager .modal .modal-header .modal-title,angular-filemanager .modal .modal-header .close{
+	color:#fff;
+}
+angular-filemanager .modal .modal-header .close{
+  text-shadow: none;
+  opacity: .75;
+  transition-duration:.2s;
+}
+angular-filemanager .modal .modal-header .close:hover{
+  opacity: 1
+}
+/* Searchbar */
+.tw-bs .filemanager-window .navbar-form input.form-control {
+  border-right-color: #d0d0d0;
+  margin: 0px 4px;
+}
+/* dropdown menu item icon */ 
+.tw-bs .filemanager-window .dropdown-menu>li>a>.glyphicon {
+  top: 2px;
+  color: #555;
+}
+/* file tree */
+.tw-bs a .sidebar.file-tree{
+  padding: 10px 15px 10px 0px;
+  margin-top: 0;
+  background-color: #f5f5f5;
+  border:none;
+  border-right: 1px solid #dddddd;
+}
+.tw-bs .filemanager-window .nav-sidebar>li.active>a,.tw-bs .filemanager-window .nav-sidebar>li.active>a > .glyphicon,.tw-bs .filemanager-window .nav > li > a:focus .glyphicon {
+  color: #333;
+}
+.tw-bs .filemanager-window .nav-sidebar>li>a, .tw-bs .filemanager-window .nav-sidebar>li.active>a > .glyphicon {
+    color: #555;
+    transition-duration: .2s;
+}
+.tw-bs .filemanager-window .nav-sidebar>li.active>a:hover,.tw-bs .filemanager-window .nav-sidebar>li.active>a:hover .glyphicon {
+  color: #333;
+}
+.tw-bs .filemanager-window .nav-sidebar>li.active>a:hover > .glyphicon:nth-child(2) {
+  top : -2px;
+}
+.tw-bs .filemanager-window .modal .modal-body{
+  background-color: #f5f5f5;
+}
+.tw-bs .filemanager-window .modal .modal-footer{
+  background-color: #fff;
+}
+/* table */
+.tw-bs .filemanager-window table a{
+  text-decoration:none;
+}
+/* toolbar */
+.tw-bs .filemanager-window .fileManager-actions{
+  border-top: 1px solid #dddddd;
+  padding: 7px;
+  text-align: right;
+  position: absolute;
+  width: 100%;
+  height: auto;
+  bottom: 0;
+}
+.tw-bs .filemanager-window .fileManager-actions > .btn{
+    margin-left: 20px;
+}
+.tw-bs .filemanager-window .fileManager-actions .currentPath{
+  color:#555;
+}
+
+/* DIRECTIVE PAGE */
+.tw-bs .input-group-btn:last-child > .btn.browserFile{
+	margin-left: -3px;
+	transition-duration : .2s;
+  background-color: #f0f0f0;
+}
+
+.tw-bs .input-group-btn:last-child > .btn.browserFile > .glyphicon{
+  color : #555;
+  top: -1px;
+  transition-duration : .2s;
+}
+.tw-bs .input-group-btn:last-child > .btn.browserFile:hover > .glyphicon{
+  color : #333;
+}
+/* FILE TREE */
+.tw-bs .filemanager-window .nav-sidebar>li>div>a {
+  color: #7a7a7a;
+  padding: 7px 0 7px 16px;
+  text-decoration : none;
+}
+.tw-bs .filemanager-window .nav-sidebar>li.active>div>a {
+  color: #f08004;
+}
+
+.tw-bs .filemanager-window .navbar-inverse .navbar-collapse, .tw-bs .filemanager-window .navbar-inverse .navbar-form{
+  border: none;
+  box-shadow: none;
+}
+/* FIX BOOTSTRAP AFTER-BEFORE ELEMENTS */
+.tw-bs .filemanager-window .clearfix:before,
+.tw-bs .filemanager-window .clearfix:after,
+.tw-bs .filemanager-window .dl-horizontal dd:before,
+.tw-bs .filemanager-window .dl-horizontal dd:after,
+.tw-bs .filemanager-window .container:before,
+.tw-bs .filemanager-window .container:after,
+.tw-bs .filemanager-window .container-fluid:before,
+.tw-bs .filemanager-window .container-fluid:after,
+.tw-bs .filemanager-window .row:before,
+.tw-bs .filemanager-window .row:after,
+.tw-bs .filemanager-window .form-horizontal .form-group:before,
+.tw-bs .filemanager-window .form-horizontal .form-group:after,
+.tw-bs .filemanager-window .btn-toolbar:before,
+.tw-bs .filemanager-window .btn-toolbar:after,
+.tw-bs .filemanager-window .btn-group-vertical > .btn-group:before,
+.tw-bs .filemanager-window .btn-group-vertical > .btn-group:after,
+.tw-bs .filemanager-window .nav:before, .tw-bs .nav:after,
+.tw-bs .filemanager-window .navbar:before,
+.tw-bs .filemanager-window .navbar:after,
+.tw-bs .filemanager-window .navbar-header:before,
+.tw-bs .filemanager-window .navbar-header:after,
+.tw-bs .filemanager-window .navbar-collapse:before,
+.tw-bs .filemanager-window .navbar-collapse:after,
+.tw-bs .filemanager-window .pager:before,
+.tw-bs .filemanager-window .pager:after,
+.tw-bs .filemanager-window .panel-body:before,
+.tw-bs .filemanager-window .panel-body:after,
+.tw-bs .filemanager-window .modal-header:before,
+.tw-bs .filemanager-window .modal-header:after,
+.tw-bs .filemanager-window .modal-footer:before,
+.tw-bs .filemanager-window .modal-footer:after {
+    display: block;
+}
+/* ANIMATIONS */
+@-webkit-keyframes fade-anim {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}
+@keyframes fade-anim {
+    0%   {opacity: 0;}
+    100% {opacity: 1;}
+}

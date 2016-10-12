@@ -294,9 +294,9 @@ class DirectiveEditForm(
     Script(OnLoad(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
         .format(htmlId_policyConf, htmlId_save)) &
-      JsRaw("""
+      JsRaw(s"""
         correctButtons();
-       $('#technicalDetails').hide();
+       $$('#technicalDetails').hide();
       """) &
       JsRaw(s"""
           $$("input").not("#treeSearch").keydown( function(event) {

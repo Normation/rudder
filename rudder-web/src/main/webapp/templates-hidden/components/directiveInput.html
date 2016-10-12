@@ -25,9 +25,21 @@
         <li><a ng-click="current.prefix = 'evaljs:'" href="#">JS</a></li>
       </ul>
     </div>
-    <textarea class="form-control textarea" ng-model="current.value" ng-trim="false" />
+    <textarea class="form-control textarea" ng-model="current.value" ng-trim="false"></textarea>
     </div>
   </div>
 </input:textarea>
+
+<input:shared>
+  <div class="tw-bs">
+    <div class="input-group col-xs-12 rect-padding">
+      <span class="input-group-btn">
+        <button class="btn btn-default btn-sm browserFile" type="button" id="browserFile" onclick="">
+          <span class="glyphicon glyphicon-folder-open"></span>
+        </button>
+      </span>
+    </div>
+  </div>
+</input:shared>
 
 </xml:group>
