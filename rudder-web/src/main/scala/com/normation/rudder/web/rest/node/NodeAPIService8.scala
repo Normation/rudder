@@ -57,6 +57,15 @@ import net.liftweb.json._
 import net.liftweb.json.JsonDSL._
 import com.normation.eventlog.EventActor
 import com.normation.rudder.domain.nodes.Node
+import java.io.InputStream
+import java.io.OutputStream
+import java.io.IOException
+import com.zaxxer.nuprocess.NuAbstractProcessHandler
+import java.nio.ByteBuffer
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
+import com.zaxxer.nuprocess.NuProcessBuilder
+import java.util.Arrays
 
 class NodeApiService8 (
     nodeRepository : WoNodeRepository
@@ -79,6 +88,82 @@ class NodeApiService8 (
         asyncRegenerate ! AutomaticStartDeployment(ModificationId(uuidGen.newUuid), CurrentUser.getActor)
       }
       saved
+    }
+  }
+
+  // We use ressource on the local machine, so we can have a more important pipe
+  private[this] val pipeSize = 4096
+
+  def runResponse(in : InputStream)(out : OutputStream) = {
+    val bytes : Array[Byte] = new Array(pipeSize)
+    val zero = 0.toByte
+    var read = 0
+    try {
+      while (read != -1) {
+        Arrays.fill(bytes,zero)
+        read = in.read(bytes)
+        out.write(bytes)
+        out.flush()
+      }
+
+    } catch {
+      case e : IOException =>
+        // should we log ? Should we end ?
+        // No need to close output or inputs
+        // Output will be managed by  Lift / java servlet response
+        // Input is a Piped input stream and therefore, use only in memory ressources (no network, no database ...)
+        // And we already close the other side of the pipe, a case that PipedInputStream handles
+    }
+  }
+
+  private[this] class RunHandler (out : OutputStream) extends NuAbstractProcessHandler {
+
+    // set output (stdout or stderr) buffer to our stream
+    // Synchronized so outputs are not mixed
+    def onOut(buf: ByteBuffer, isClosed : Boolean) = {
+      val bytes : Array[Byte] = new Array(buf.remaining())
+      buf.get(bytes)
+      out.synchronized {
+        out.write(bytes)
+        out.flush()
+      }
+    }
+
+    // On exit will be called at the end of the process, or if any error/exception occurs, so we can close our outputstream here
+    override def onExit( statusCode : Int) = {
+      out.close()
+    }
+
+    override def onStdout(buf: ByteBuffer, isClosed : Boolean) = onOut(buf,isClosed)
+
+    override def onStderr(buf: ByteBuffer, isClosed : Boolean) = onOut(buf,isClosed)
+  }
+
+  def runNode(nodeId: NodeId, classes : List[String]) : Box[OutputStream => Unit] = {
+
+    import net.liftweb.util.Helpers.tryo
+    for {
+      node <- nodeInfoService.getNodeInfo(nodeId).flatMap {node => Box(node) ?~! s"Could not find node '${nodeId.value}' informations" }
+      in = new PipedInputStream(pipeSize)
+      out = new PipedOutputStream(in)
+      action = (if ( nodeId.value == "root" ) "agent" else "remote") :: "run" :: (if ( nodeId.value == "root" ) Nil else node.hostname :: Nil)
+      classOption = classes match {
+        case Nil => Nil
+        case classes => "-D" :: classes.mkString(",") :: Nil
+      }
+      _ <- try {
+             import scala.collection.JavaConversions._
+             val pb = new NuProcessBuilder("/usr/bin/rudder" :: action ::: classOption)
+             val handler = new RunHandler(out)
+             pb.setProcessListener(handler)
+             Full(pb.start())
+           } catch {
+             case e : Throwable =>
+               out.close()
+               Failure(s"An error occured when applying policy on Node '${node.id.value}', cause is: ${e.getMessage}")
+           }
+    } yield {
+      runResponse(in)
     }
   }
 }
