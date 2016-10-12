@@ -339,7 +339,7 @@ input .ui-button {
 }
 .ui-state-active, .ui-widget-content .ui-state-active {
    border: 1px solid #ababab;
-   background: #fff url(../images/themes/ui-lightness/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x;
+   background: #fff url(../jquery-ui/images/ui-bg_glass_65_ffffff_1x400.png) 50% 50% repeat-x;
    font-weight: bold;
    color: #f79d10;
 }
@@ -353,12 +353,12 @@ input .ui-button {
 
 /* Interaction Cues -*/
 .ui-state-highlight, .ui-widget-content .ui-state-highlight {
-   background: #ffe45c url(../images/themes/ui-lightness/images/ui-bg_highlight-soft_75_ffe45c_1x100.png) 50% top repeat-x;
+   background: #ffe45c url(../jquery-ui/images/ui-bg_highlight-soft_75_ffe45c_1x100.png) 50% top repeat-x;
    color: #363636;
    border: none;
 }
 
-.ui-widget-header .ui-icon {background-image: url(../images/themes/ui-lightness/images/ui-icons_222222_256x240.png); }
+.ui-widget-header .ui-icon {background-image: url(../jquery-ui/images/ui-icons_222222_256x240.png); }
 
 
 .ui-widget-overlay {
