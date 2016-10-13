@@ -45,7 +45,7 @@ header.main-header .logo-lg img{
   position: relative;
   top: -2px;
 }
-.tw-bs h1,.tw-bs h2,.tw-bs h3,.tw-bs h4,.tw-bs h5,.tw-bs h6,.tw-bs .page-title,.tw-bs .rudder-form{
+.tw-bs h1,.tw-bs h2,.tw-bs h3,.tw-bs h4,.tw-bs h5,.tw-bs h6,.tw-bs .rudder-form{
   font-family: 'Source Sans Pro', 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 .text-align{
@@ -340,11 +340,6 @@ a.sidebar-toggle{
 }
 .ui-widget-content,.portlet-content{
   border-radius:4px;
-}
-.page-title{
-    border-bottom: 1px solid #f08004;
-    margin: 15px;
-    font-size: 18px;
 }
 .inner-portlet #auditMode h3 {
   width: 100%;
@@ -744,6 +739,10 @@ a.sidebar-toggle{
   overflow-x:hidden;
   padding-bottom: 20px;
 }
+.directiveTree {
+  padding-left: 10px;
+  padding-right: 10px;
+}
 .ui-widget.ui-tooltip h4{
   margin-bottom: 10px;
   font-size:16px;
@@ -766,7 +765,6 @@ a.sidebar-toggle{
   color : #f08004;
 }
 
-/* --- --- */
 .text-warning-rudder{
   color: #f08004;
 }
@@ -1156,15 +1154,20 @@ form .tooltip-content p {
 .column .inner-portlet {
     margin: 7px 10px 10px 10px;
 }
-.inner-portlet .page-title,.portlet-content .page-title {
-  color: #222D32;
-  border-bottom: 1px solid #f08004;
-  box-shadow: 0px 12px 10px -10px rgba(0, 0, 0, 0.1);
+.page-title {
+  color: #555;
+  border-bottom: 2px solid #f08004;
+  box-shadow: none;
   padding-bottom: 4px;
-  margin: 5px  0 25px;
-  font-size: 18px;
-  font-weight:500;
+  margin: 5px 0 20px;
+  font-size: 22px;
+  font-weight: 500;
+  text-transform: capitalize;
+  font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
+  line-height: 1.42857143;
+  cursor: default;
 }
+
 .page div.row{
   margin-right: 15px;
   margin-left: 15px;
