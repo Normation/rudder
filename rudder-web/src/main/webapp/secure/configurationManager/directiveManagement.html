@@ -121,7 +121,7 @@
                 </td>
                 <td>{{technique.acceptationDate}}</td>
                 <lift:authz role="directive_write">
-                  <td> <input type="button" ng-click="technique.action()" value="Create Directive" /></td>
+                  <td class="tw-bs"> <input type="button" ng-click="technique.action()" value="Create Directive"  class="btn btn-default btn-xs"/></td>
                 </lift:authz>
                </tr>
              </tbody>
@@ -129,7 +129,9 @@
            <input id="displayDeprecation" type="checkbox" ng-model="displayDeprecated" /> <label for="displayDeprecation">Display deprecated Technique versions</label>
          <div style="text-align: center;">
            <lift:authz role="directive_write">
-             <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version"/>
+             <span class="tw-bs">
+               <input type="button" id="addButton" ng-click="techniques[techniques.length-1].action()" value="Create with latest version" class="btn btn-default"/>
+             </span>
            </lift:authz>
          </div>
        </fieldset>

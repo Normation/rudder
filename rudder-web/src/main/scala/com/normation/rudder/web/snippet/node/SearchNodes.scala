@@ -178,7 +178,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
   def createGroup(html:NodeSeq) : NodeSeq = {
       SHtml.ajaxButton("Create node group from this query", {
        () =>   showPopup()  },
-       ("class", "largeButton"))
+       ("class", "btn btn-default"))
   }
 
   def queryForm(sc : SearchNodeComponent) = {
@@ -218,7 +218,7 @@ class SearchNodes extends StatefulSnippet with Loggable {
           Noop
         case Full(q)    =>
           Replace("SearchNodes", queryForm(sc)) &
-          JsRaw("correctButtons(); $('#SubmitSearch').click();")
+          JsRaw("$('#SubmitSearch').click();")
       }
     }
 

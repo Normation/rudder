@@ -366,10 +366,11 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     , "bSortable" : false
     , "sClass" : "parametersTd"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
+        $(nTd).addClass('tw-bs');
         var data = oData;
         var elem = $("<buton></button>");
         elem.button();
-        elem.addClass("smallButton");
+        elem.addClass("btn btn-default btn-xs");
         elem.click( function() {
           data.callback("showEditForm");
         } );

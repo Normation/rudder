@@ -108,12 +108,12 @@ class ParameterManagement extends DispatchSnippet with Loggable {
         ".description *" #> <span><ul class="evlogviewpad"><li><b>Description:</b> {Text(param.description)}</li></ul></span> &
         ".description [id]" #> ("description-" + lineHtmlId) &
         ".overridable *" #> param.overridable &
-        ".change *" #> <div >{
-                       ajaxButton("Edit", () => showPopup("save", Some(param), workflowEnabled), ("class", "mediumButton"), ("align", "left")) ++
-                       ajaxButton("Delete", () => showPopup("delete", Some(param), workflowEnabled), ("class", "mediumButton dangerButton"), ("style", "margin-left:5px;"))
+        ".change *" #> <div class="tw-bs">{
+                       ajaxButton("Edit", () => showPopup("save", Some(param), workflowEnabled), ("class", "btn btn-default btn-xs"), ("style", "min-width:50px;")) ++
+                       ajaxButton("Delete", () => showPopup("delete", Some(param), workflowEnabled), ("class", "btn btn-danger btn-xs"), ("style", "margin-left:5px;min-width:0px;"))
                        }</div>
       }) &
-      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None, workflowEnabled))
+      ".createParameter *" #> ajaxButton("Add Parameter", () => showPopup("create", None, workflowEnabled) , ("class","btn btn-default"))
      ).apply(dataTableXml(gridName)) ++ Script(initJs)
   }
 
@@ -122,7 +122,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
   private[this] def dataTableXml(gridName:String) = {
     <div id={gridContainer}>
       <div id="actions_zone">
-        <div class="createParameter"/>
+        <div class="createParameter tw-bs"/>
       </div>
       <table id={gridName} class="display" cellspacing="0">
         <thead>
@@ -272,7 +272,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
 
   private[this] def updateGrid(workflowEnabled: Boolean) : JsCmd = {
-    Replace(gridContainer, display()) & OnLoad(JsRaw("""correctButtons();"""))
+    Replace(gridContainer, display())
   }
 
   ///////////// success pop-up ///////////////

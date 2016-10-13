@@ -156,7 +156,6 @@ class RuleCompliance (
       createDirectiveTable(true, false, "${S.contextPath}")("reportsGrid",[],refresh);
       createNodeComplianceTable("nodeReportsGrid",[],"${S.contextPath}", refresh);
       createChangesTable("changesGrid",[],"${S.contextPath}", refresh);
-      correctButtons();
       refresh();
     """)))
   }

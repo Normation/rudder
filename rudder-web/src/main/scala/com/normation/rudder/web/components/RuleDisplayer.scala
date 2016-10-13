@@ -128,14 +128,14 @@ class RuleDisplayer (
 
     val actionButton =
                  if (directive.isEmpty) {
-                  SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "newRule")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+                  SHtml.ajaxButton("New Category", () => showCategoryPopup(None), ("class" -> "newRule btn btn-default"))
                 } else {
                   NodeSeq.Empty
                 }
 
      <div>
        <lift:authz role="rule_write">
-         <div>
+         <div class="tw-bs">
            {actionButton}
          </div>
        </lift:authz>
@@ -190,13 +190,15 @@ class RuleDisplayer (
       if (directive.isDefined) {
         NodeSeq.Empty
       } else {
-        SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "newRule"),("style","float:left")) ++ Script(OnLoad(JsRaw("correctButtons();")))
+        SHtml.ajaxButton("New Rule", () => showRulePopup(None), ("class" -> "newRule btn btn-default"),("style","float:left"))
       }
     }
 
     <div>
       <lift:authz role="rule_write">
-        {actionButton}
+        <span class="tw-bs">
+          {actionButton}
+        </span>
       </lift:authz>
       <div style={s"margin:10px 0px 0px ${if (directive.isDefined) 0 else 50}px; float:left"}>{includeSubCategory} <span style="margin-left:10px;"> Display Rules from subcategories</span></div>
       <hr class="spacer"/>

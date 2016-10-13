@@ -141,7 +141,7 @@ class AcceptNode extends Loggable {
     newNodeManager.listNewNodes match {
       case Empty => <div>Error, no server found</div>
       case f@Failure(_,_,_) => <div>Error while retrieving pending nodes list</div>
-      case Full(seq) => display(html,seq) ++ Script(OnLoad(JsRaw("""correctButtons();""") ) )
+      case Full(seq) => display(html,seq)
     }
   }
 
@@ -375,12 +375,12 @@ class AcceptNode extends Loggable {
           SHtml.ajaxButton(
               "Accept"
             , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
-          ) % ("class", "pull-right buttonMargin")
+          ) % ("class", "btn btn-default")
       , "refuse" ->
           SHtml.ajaxButton(
               "Refuse"
             , { () => showConfirmPopup(refuseTemplate, "refusePopup" ) }
-          ) % ("class", "pull-right dangerButton buttonMargin")
+          ) % ("class", "pull-right btn btn-danger")
       , "errors" -> (errors match {
         case None => NodeSeq.Empty
         case Some(x) => <div>x</div>
