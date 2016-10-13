@@ -63,9 +63,11 @@
         <div ng-show="errorTable" style="width:100%; text-align:center; color:red" > {{errorTable.errorDetails}} </div>
 
           <lift:authz role="administration_write">
-            <button ng-click="addAccount();"   >
+          <span class="tw-bs">
+            <button ng-click="addAccount();" class="btn btn-default">
               Add API Account
             </button>
+          </span>
           </lift:authz>
           <table datatables="overrideOptions" ao-column-defs="columnDefs" aa-data="accounts" id="accountGrid" refresh="getAccounts">
             <thead><tr class="head tablewidth">

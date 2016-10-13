@@ -102,7 +102,7 @@ class ChangeRequestEditForm (
 
   private[this] def actionButton = {
     if (isEditable)
-      SHtml.ajaxSubmit("Update", () =>  submit)
+      SHtml.ajaxSubmit("Update", () =>  submit, ("class","btn btn-default"))
     else
       NodeSeq.Empty
   }
@@ -133,7 +133,7 @@ class ChangeRequestEditForm (
       "#CRStatusDetails *"   #>  step.map(wfId => Text(wfId.toString)).openOr(<div class="error">Cannot find the status of this change request</div>) &
       "#CRDescription *" #> CRDescription &
       "#CRSave *" #> actionButton
-    ) (form) ++ Script(JsRaw("correctButtons();"))
+    ) (form)
 
   def submit = {
     if (formTracker.hasErrors) {

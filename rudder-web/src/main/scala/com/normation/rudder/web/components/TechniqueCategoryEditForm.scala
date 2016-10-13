@@ -121,7 +121,7 @@ class TechniqueCategoryEditForm(
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                 {SHtml.ajaxButton(<span>Delete</span>, deleteCategory _) % ("class","btn btn-danger")}
-            </div>  
+            </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
     </div>
@@ -198,13 +198,12 @@ class TechniqueCategoryEditForm(
   private[this] def categoryDetailsForm : NodeSeq = {
     val html = SHtml.ajaxForm(
       <div id={htmlId_categoryDetailsForm}>
-        {Script(OnLoad(JsRaw("""correctButtons()""")))}
         <update:notifications />
         <update:name/>
         <hr class="spacer"/>
         <update:description />
         <hr class="spacer"/>
-        <div class="spacerscala">
+        <div class="spacerscala tw-bs">
           <update:submit />
           <update:delete/>
         </div>
@@ -244,18 +243,20 @@ class TechniqueCategoryEditForm(
              onSuccessCallback() //Replace(htmlId_activeTechniquesTree, <lift:configuration.TechniqueLibraryManagement.userLibrary />) & buildUserLibraryJsTree
            }
          }
-       } ),
+       }
+       , ("class","btn btn-default")
+       ),
        "delete" -> {
          if(currentCategory.id != rootCategoryId && currentCategory.children.isEmpty && currentCategory.items.isEmpty) {
               {Script(OnLoad(JsRaw("""$( "#deleteCategoryButton" ).click(function() {
                 $("#removeCategoryActionDialog").bsModal('show');
                 return false;
               })""")))} ++ {
-              <button id="deleteCategoryButton">Delete</button>
+              <button id="deleteCategoryButton" class="btn btn-danger">Delete</button>
               <span id="deleteCategoryMsg"/>
               }
             } else {
-              {<button id="deleteCategoryButton" disabled="disabled">Delete</button>
+              {<button id="deleteCategoryButton" disabled="disabled"  class="btn btn-danger">Delete</button>
               <br/><span class="catdelete">Only non root and empty category can be deleted</span>}
             }
        },

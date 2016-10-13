@@ -82,7 +82,7 @@ class DyngroupReloading extends DispatchSnippet with Loggable {
     val initJs = SetHtml("dynGroupUpdateInterval", <span>{updateDynamicGroupsInterval}</span>)
     //process the list of networks
     "#dyngroupReloadingButton" #> {
-      SHtml.ajaxSubmit("Reload dynamic groups now", process _) ++ Script(OnLoad(JsRaw(""" correctButtons(); """) & initJs))
+      SHtml.ajaxSubmit("Reload dynamic groups now", process _, ("class","btn btn-primary")) ++ Script(OnLoad(initJs))
     }
   }
 }

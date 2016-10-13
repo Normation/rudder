@@ -146,7 +146,7 @@ $.fn.dataTableExt.oStdClasses.sPageButtonStaticDisabled="paginate_button_disable
           }
         }
         """) &
-        OnLoad(JsRaw("""correctButtons();""") & parseJsArg(workflowEnabled, changeMsgEnabled))
+        OnLoad(parseJsArg(workflowEnabled, changeMsgEnabled))
       ) }
     </head>
     }

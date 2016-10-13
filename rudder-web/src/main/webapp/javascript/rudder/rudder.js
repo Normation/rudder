@@ -198,20 +198,6 @@ function jqCheckAll( id, name )
     });
   });
 
-/* button */
-
-function correctButtons() {
-  $("button, input:submit", "form").not(".tw-bs .btn").button();
-
-  $(":button").not(".tw-bs .btn").button();
-
-  $("button, input:submit, a", ".whoUser").not(".tw-bs .btn").button();
-
-  $("a", ".whoUser").not(".tw-bs .btn").click(function() { return false; });
-
-  $("#logout").click(function() { return false; });
-}
-
 function processKey(e , buttonId){
     if (null == e)
         e = window.event ;
@@ -535,9 +521,9 @@ $(document).ready(function() {
 function checkMigrationButton(currentVersion,selectId) {
   var selectedVersion = $("#"+selectId+" option:selected" ).text()
   if (currentVersion === selectedVersion) {
-    $('#migrationButton').button( "option", "disabled", true );
+    $('#migrationButton').prop("disabled", true );
   } else {
-    $('#migrationButton').button( "option", "disabled", false );
+    $('#migrationButton').prop("disabled", false );
   }
 }
 
@@ -587,7 +573,6 @@ function updateHashString(key, value) {
 }
 
 $(document).ready(function() {
-  correctButtons();
   $("a", "form").click(function() { return false; });
   createTooltip();
 });

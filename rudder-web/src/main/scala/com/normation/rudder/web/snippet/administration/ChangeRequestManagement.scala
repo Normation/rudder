@@ -214,9 +214,8 @@ class ChangeRequestManagement extends DispatchSnippet with Loggable {
           SHtml.ajaxSubmit(
               link
             , () => SetHtml("actualFilter",transform(value))
-            , ("class","expand")
-            , ("style","margin: 5px 10px; float:right; height:15px; width:18px;  padding: 0; border-radius:25px; display:none")
-         ) ++ Script(JsRaw("correctButtons()"))
+            , ("class","expand hide")
+         )
 
       SHtml.ajaxForm(
         <b style="float:left; margin: 5px 10px">Status:</b> ++
