@@ -712,3 +712,15 @@ form .tw-bs input {
 .tw-bs .text-section .btn {
   background-color: #eee;
 }
+/* TECHNIQUE EDITOR PAGE */
+#editor-iframe{
+  width: calc(100% + 30px);
+  border: none;
+  margin-left: -15px;
+  height:calc(100vh - 80px);
+}
+@media (max-width:768px) {
+  #editor-iframe{
+    height:calc(100vh - 130px);
+  }
+}
