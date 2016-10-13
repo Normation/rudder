@@ -839,14 +839,30 @@ div.foldableSection div.section-title {
   cursor: pointer;
 }
 
-div.unfoldedSection div.section-title:before {
-  content: url("../../images/tableau/flecheBasGris.png");
+div.unfoldedSection div.section-title:before,div.foldedSection div.section-title:before {
+  content: url("../../images/tableau/flecheDroiteGris.png");
   padding-right: 3px;
+  transition-duration:.2s;
+  display: inline-block;
+  margin-right: 6px;
+  position: relative;
+  top: 1px;
+}
+
+div.unfoldedSection div.section-title:before {
+  -webkit-transform:rotate(90deg);
+  -ms-transform:rotate(90deg);
+  -moz-transform:rotate(90deg);
+  -o-transform:rotate(90deg);
+  transform:rotate(90deg);
 }
 
 div.foldedSection div.section-title:before {
-  content: url("../../images/tableau/flecheDroiteGris.png");
-  padding-right: 3px;
+  -webkit-transform:rotate(0deg);
+  -ms-transform:rotate(0deg);
+  -moz-transform:rotate(0deg);
+  -o-transform:rotate(0deg);
+  transform:rotate(0deg);
 }
 #querySearchSection:hover{
     cursor: pointer;
@@ -1385,22 +1401,13 @@ p img {
    background: none;
 }
 
-.page-title {
-  font-size: 17px;
-  font-weight: bold;
-  cursor: default;
-  background: none;
-  border-bottom: 1px solid #F79D10;
-  padding: 5px 0 2px 5px;
-  text-transform:uppercase;
-}
-
 .section-title {
-  font-size: 15px;
+  font-size: 16px;
   cursor: default;
   background: none;
-  border-bottom: 1px solid #F79D10;
-  padding: 5px 0 2px 5px;
+  border-bottom: 1px solid #e2e2e2;
+  padding: 5px 0 5px 0px;
+  color: #333;
 }
 
 .inner-portlet-content {

@@ -215,7 +215,7 @@ class RuleDisplayer (
 
    ruleCategoryTree match {
      case Full(ruleCategoryTree) =>
-       <div style="padding:10px;">
+       <div>
          <div style="float:left; width: 20%; overflow:auto">
            <div class="page-title">Categories</div>
            <div class="inner-portlet-content" id="categoryTreeParent">
