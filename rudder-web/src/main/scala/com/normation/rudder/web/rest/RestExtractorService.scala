@@ -859,7 +859,7 @@ case class RestExtractorService (
     }
   }
 
-  def extractString[T](key : String) (req : Req)(fun : String => T)  = {
+  def extractString[T](key : String) (req : Req)(fun : String => T) : Box[Option[T]]  = {
     req.json match {
       case Full(json) => json \ key match {
         case JString(id) => Full(Some(fun(id)))
@@ -871,6 +871,30 @@ case class RestExtractorService (
           case None => Full(None)
           case Some(head :: Nil) => Full(Some(fun(head)))
           case Some(list) => Failure(s"${list.size} values defined for 'id' parameter, only one needs to be defined")
+        }
+    }
+  }
+
+  def extractList[T](key : String) (req : Req)(fun : String => Box[T]) : Box[List[T]]   = {
+    req.json match {
+      case Full(json) => json \ key match {
+        case JString(value) => fun(value).map(_ :: Nil)
+        case JArray(values) => com.normation.utils.Control.bestEffort(values){
+                                 value =>
+                                   value match {
+                                     case JString(value) => fun(value)
+                                     case x =>
+                                       Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+                                   }
+
+                               }.map(_.toList)
+        case JNothing => Full(Nil)
+        case x => Failure(s"Not a valid value for '${key}' parameter, current value is : ${x}")
+      }
+      case _ =>
+        req.params.get(key) match {
+          case None => Full(Nil)
+          case Some(list) =>com.normation.utils.Control.bestEffort(list)(fun(_)).map(_.toList)
         }
     }
   }
