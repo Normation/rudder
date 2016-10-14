@@ -66,6 +66,27 @@ class NodeAPI8 (
 
   val v8Dispatch : PartialFunction[Req, () => Box[LiftResponse]] = {
 
+    case Post( "applyPolicy" ::Nil, req) => {
+      implicit val prettify = extractor.extractPrettify(req.params)
+      implicit val action = "applyPolicyAllNodes"
+      val actor = RestUtils.getActor(req)
+
+      (for {
+        classes <- extractor.extractList("classes")(req)(json => Full(json))
+        response <- apiV8service.runAllNodes(classes)
+      } yield {
+        toJsonResponse(None, response)
+      }) match {
+        case Full(response) => response
+        case eb : EmptyBox => {
+          implicit val prettify = extractor.extractPrettify(req.params)
+          implicit val action = "applyPolicy"
+          val fail = eb ?~! s"An error occured when applying policy on all Nodes"
+          toJsonError(None, fail.messageChain)
+        }
+      }
+    }
+
     case id :: Nil JsonPost body -> req => {
       implicit val prettify = extractor.extractPrettify(req.params)
       implicit val action = "updateNode"
@@ -124,6 +145,7 @@ class NodeAPI8 (
         }
       }
     }
+
   }
 
   override def requestDispatch(apiVersion: ApiVersion) : PartialFunction[Req, () => Box[LiftResponse]] = {
