@@ -2664,7 +2664,10 @@ label span.text-fit{
 .jstree .fa.jstree-icon {
     color : #999
 }
-
+.jstree .fa.fa-gear, .jstree .fa.fa-folder {
+  position: relative;
+  top: 1px;
+}
 .jstree.tw-bs {
 	font-size : 12px;
 } 
