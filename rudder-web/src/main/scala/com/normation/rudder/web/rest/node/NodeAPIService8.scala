@@ -66,6 +66,7 @@ import java.io.PipedInputStream
 import java.io.PipedOutputStream
 import com.zaxxer.nuprocess.NuProcessBuilder
 import java.util.Arrays
+import com.normation.rudder.domain.nodes.NodeInfo
 
 class NodeApiService8 (
     nodeRepository : WoNodeRepository
@@ -94,6 +95,16 @@ class NodeApiService8 (
   // We use ressource on the local machine, so we can have a more important pipe
   private[this] val pipeSize = 4096
 
+  private[this] def classOption(classes : List[String]) : List[String] = {
+     classes match {
+        case Nil => Nil
+        case classes => "-D" :: classes.mkString(",") :: Nil
+      }
+  }
+
+  private[this] def runAction (node: NodeInfo) = {
+    (if ( node.id.value == "root" ) "agent" else "remote") :: "run" :: (if ( node.id.value == "root" ) Nil else node.hostname :: Nil)
+  }
   def runResponse(in : InputStream)(out : OutputStream) = {
     val bytes : Array[Byte] = new Array(pipeSize)
     val zero = 0.toByte
@@ -116,22 +127,26 @@ class NodeApiService8 (
     }
   }
 
-  private[this] class RunHandler (out : OutputStream) extends NuAbstractProcessHandler {
+  private[this] class RunHandler (out : Option[OutputStream]) extends NuAbstractProcessHandler {
 
     // set output (stdout or stderr) buffer to our stream
     // Synchronized so outputs are not mixed
     def onOut(buf: ByteBuffer, isClosed : Boolean) = {
-      val bytes : Array[Byte] = new Array(buf.remaining())
-      buf.get(bytes)
-      out.synchronized {
-        out.write(bytes)
-        out.flush()
+      out match {
+        case Some(out) =>
+          val bytes : Array[Byte] = new Array(buf.remaining())
+          buf.get(bytes)
+          out.synchronized {
+            out.write(bytes)
+            out.flush()
+          }
+        case None => // Nothing to do for now
       }
     }
 
     // On exit will be called at the end of the process, or if any error/exception occurs, so we can close our outputstream here
     override def onExit( statusCode : Int) = {
-      out.close()
+      out.map(_.close())
     }
 
     override def onStdout(buf: ByteBuffer, isClosed : Boolean) = onOut(buf,isClosed)
@@ -146,15 +161,10 @@ class NodeApiService8 (
       node <- nodeInfoService.getNodeInfo(nodeId).flatMap {node => Box(node) ?~! s"Could not find node '${nodeId.value}' informations" }
       in = new PipedInputStream(pipeSize)
       out = new PipedOutputStream(in)
-      action = (if ( nodeId.value == "root" ) "agent" else "remote") :: "run" :: (if ( nodeId.value == "root" ) Nil else node.hostname :: Nil)
-      classOption = classes match {
-        case Nil => Nil
-        case classes => "-D" :: classes.mkString(",") :: Nil
-      }
       _ <- try {
              import scala.collection.JavaConversions._
-             val pb = new NuProcessBuilder("/usr/bin/rudder" :: action ::: classOption)
-             val handler = new RunHandler(out)
+             val pb = new NuProcessBuilder("/usr/bin/rudder" :: runAction(node) ::: classOption(classes))
+             val handler = new RunHandler(Some(out))
              pb.setProcessListener(handler)
              Full(pb.start())
            } catch {
@@ -166,4 +176,44 @@ class NodeApiService8 (
       runResponse(in)
     }
   }
+
+  def runAllNodes(classes : List[String]) : Box[JValue] = {
+
+    import net.liftweb.util.Helpers.tryo
+    for {
+      nodes <- nodeInfoService.getAll() ?~! s"Could not find nodes informations"
+
+    } yield {
+
+      val res =
+      for {
+        node <- nodes.values.toList
+      } yield {
+        {
+         val commandRun = {
+           JString(
+             try {
+               import scala.collection.JavaConversions._
+               val pb = new NuProcessBuilder("/usr/bin/rudder" :: runAction(node) ::: classOption(classes))
+               val handler = new RunHandler(None)
+               pb.setProcessListener(handler)
+               pb.start()
+               "Started"
+             } catch {
+               case e : Throwable =>
+               s"An error occured when applying policy on Node '${node.id.value}', cause is: ${e.getMessage}"
+             }
+           )
+         }
+         ( ( "id" -> node.id.value)
+         ~ ( "hostname" -> node.hostname)
+         ~ ( "result"   -> commandRun)
+         )
+
+        }
+      }
+      JArray(res)
+    }
+  }
+
 }
