@@ -230,15 +230,15 @@ class TechniqueEditForm(
           ".reasonsFieldset" #> { crReasonsDisablePopup.map { f =>
             "#explanationMessage" #> <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Audit Log</h4> &
             "#reasonsField" #> f.toForm_!
-          } } 
+          } }
         )(xml)
       } } &
       ".groupedEditZone" #> ((div:NodeSeq) => technique match {
           case None =>
             <div class="groupedEditZone">
-						No technique were found in the file system for the selection.
-						This most likelly mean that the technique was deleted on the it.
-				  </div>
+            No technique were found in the file system for the selection.
+            This most likelly mean that the technique was deleted on the it.
+          </div>
           case Some(t) =>
             (
               "#techniqueName" #> t.name &
@@ -260,8 +260,6 @@ class TechniqueEditForm(
       "#editForm [id]" #> htmlId_technique
     )(crForm) ++
     Script(OnLoad(JsRaw("""
-      correctButtons();
-
       $('#deleteButton').click(function() {
         createPopup("deleteActionDialog");
         return false;
@@ -363,19 +361,13 @@ class TechniqueEditForm(
   private[this] def updateRemoveFormClientSide() : JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""$("#deleteActionDialog").bsModal('show')""")
     Replace("deleteActionDialog", this.showRemovePopupForm()) &
-    jsDisplayRemoveDiv &
-    initJs
+    jsDisplayRemoveDiv
   }
 
   private[this] def updateDisableFormClientSide() : JsCmd = {
     val jsDisplayRemoveDiv = JsRaw("""$("#disableActionDialog").bsModal('show')""")
     Replace("disableActionDialog", this.showDisactivatePopupForm()) &
-    jsDisplayRemoveDiv &
-    initJs
-  }
-
-  def initJs : JsCmd = {
-    JsRaw("correctButtons();")
+    jsDisplayRemoveDiv
   }
 
   ///////////// Delete /////////////

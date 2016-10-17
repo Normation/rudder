@@ -192,7 +192,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
           SHtml.ajaxButton(
               "Decline"
             , () => ChangeStepPopup("Decline", steps, cr)
-            , ("class" ,"dangerButton")
+            , ("class" ,"btn btn-danger")
           ) } }  &
       "#nextStep" #> {
         if(commitAndDeployChangeRequest.isMergeable(cr.id)) {
@@ -203,6 +203,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
               SHtml.ajaxButton(
                   actionName
                 , () => ChangeStepPopup(actionName,steps,cr)
+                , ("class" ,"btn btn-default")
               ) }
         } else NodeSeq.Empty
       }
@@ -272,8 +273,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
       SetHtml("changeRequestHeader", displayHeader(cr)) &
       SetHtml("CRStatusDetails",workflowService.findStep(cr.id).map(x => Text(x.value)).openOr(<div class="error">Cannot find the status of this change request</div>) ) &
       SetHtml("changeRequestChanges", new ChangeRequestChangesForm(cr).dispatch("changes")(NodeSeq.Empty)) &
-      JsRaw("""correctButtons();
-               $('#changeStatePopup').bsModal('hide');""")
+      JsRaw("""$('#changeStatePopup').bsModal('hide');""")
 
     var nextChosen = nextSteps.head
     def nextSelect(default:(WorkflowNodeId,stepChangeFunction)) =

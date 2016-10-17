@@ -146,10 +146,6 @@ class NodeGroupForm(
      } }
   )
 
-  def initJs : JsCmd = {
-    JsRaw("correctButtons();")
-  }
-
   val pendingChangeRequestXml =
     <div id="pendingChangeRequestNotification">
       <div>
@@ -165,7 +161,6 @@ class NodeGroupForm(
      val html = SHtml.ajaxForm(body) ++
      Script(
        OnLoad(JsRaw("$('#GroupTabs').tabs( {active : 0 });" ))
-       & initJs
      )
 
      bind("group", html,
@@ -173,13 +168,13 @@ class NodeGroupForm(
       "name" -> groupName.toForm_!,
       "rudderid" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
       "cfeclasses" -> <div>
-											  <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300); return false;"}>
-												<b class="threeCol">Display CFEngine classes</b>
-												</a>
-											  <span class="twoCol" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
-											    {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
-											    {RuleTarget.toCFEngineClassName(nodeGroup.name)}
-											  </span></div>,
+                        <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300); return false;"}>
+                        <b class="threeCol">Display CFEngine classes</b>
+                        </a>
+                        <span class="twoCol" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
+                          {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
+                          {RuleTarget.toCFEngineClassName(nodeGroup.name)}
+                        </span></div>,
       "description" -> groupDescription.toForm_!,
       "container" -> groupContainer.toForm_!,
       "static" -> groupStatic.toForm_!,
@@ -188,16 +183,16 @@ class NodeGroupForm(
                        case eb:EmptyBox => <span class="error">Error when retrieving the request, please try again</span>
       }),
       "clone" -> { if (CurrentUser.checkRights(Write("group")))
-                     SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id", "groupCloneButtonId")
+                     SHtml.ajaxButton("Clone", () => showCloneGroupPopup()) % ("id", "groupCloneButtonId") % ("class"," btn btn-default")
                    else NodeSeq.Empty
                  },
       "save" -> { if (CurrentUser.checkRights(Edit("group")))
                     <div  tooltipid="saveButtonToolTip" class="tooltipable" title=""> {
-                      SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId)
+                      SHtml.ajaxSubmit("Save", onSubmit _)  %  ("id", saveButtonId) % ("class"," btn btn-success")
                     } </div>
                    else NodeSeq.Empty
                 },
-      "delete" -> SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class" ,"dangerButton")),
+      "delete" -> SHtml.ajaxButton("Delete", () => onSubmitDelete(), ("class"," btn btn-danger")),
       "notifications" -> updateAndDisplayNotifications()
     )
    }
@@ -247,7 +242,7 @@ class NodeGroupForm(
   private[this] val formTracker = new FormTracker(List(groupName, groupDescription, groupContainer, groupStatic))
 
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlIdCategory, showForm()) & initJs
+    SetHtml(htmlIdCategory, showForm())
   }
 
   private[this] def error(msg:String) = <span class="error">{msg}</span>

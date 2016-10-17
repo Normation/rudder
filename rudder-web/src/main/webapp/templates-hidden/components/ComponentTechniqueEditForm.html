@@ -4,7 +4,6 @@
 <component:staticInit>
 <head>
   <style type="text/css">
-
     .topLevelAction .twoColumns {
       vertical-align: middle;
       max-width: 45%;
@@ -13,34 +12,21 @@
       display*: inline;
       zoom*: 1;
     }
-
     .topLevelAction .twoColumnsRight {
       margin-left:20px
     }
-
     .topLevelAction .twoColumns > * {
       display: inline-block;
       vertical-align: middle;
       margin-left: 50px;
     }
-
     .disableNotice {
       margin-top:10px;
       font-size:0.9em;
     }
-
-    #deleteActionDialog, #disableItemDependencies {
-/*       padding-left:20px; */
-    }
-
-    .reasonsFieldset {
-
-    }
-
     #explanationMessage {
       margin-bottom: 10px;
     }
-
   </style>
 </head>
 </component:staticInit>
@@ -77,15 +63,13 @@ All text that will be modified will be put in []
     </div>
   </div>
 	<lift:authz role="technique_edit">
-  <div class="topLevelAction" id="userTemplateAction">
-    <div id="deleteAction" class="twoColumns">
-      <button id="deleteButton">Delete</button>
-    </div>
-    <div id="disableAction" class="twoColumns twoColumnsRight">
-      <button id="disableButton"><span id="disableButtonLabel">[disable]</span></button>
-    </div>
-    <div class="disableNotice">
+  <div class="tw-bs" id="userTemplateAction">
+    <div id="Actions" class="col-xs-12">
+      <button id="deleteButton" class="btn btn-danger">Delete</button>
+      <button id="disableButton" class="btn btn-default"><span id="disableButtonLabel">[disable]</span></button>
+      <p class="disableNotice">
         Note: Disabling a Technique also globally disable all the Directive based on it.
+      </p>
     </div>
 
   </div>

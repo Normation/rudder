@@ -171,6 +171,7 @@ class DirectiveEditForm(
           onMigrationCallback(newDirective,Some(directive))
         }
       , ("id" -> id)
+      , ("class" -> "btn btn-default")
     )
   }
 
@@ -255,16 +256,17 @@ class DirectiveEditForm(
         if (directive.isEnabled) "Disable" else "Enable"
        } &
        "#removeAction *" #> {
-         SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"dangerButton"))
+         SHtml.ajaxSubmit("Delete", () => onSubmitDelete(),("class" ,"btn btn-danger"))
        } &
        "#desactivateAction *" #> {
          val status = directive.isEnabled ? ModificationValidationPopup.Disable | ModificationValidationPopup.Enable
-         SHtml.ajaxSubmit(status.displayName, () => onSubmitDisable(status))
+         SHtml.ajaxSubmit(status.displayName, () => onSubmitDisable(status), ("class" ,"btn btn-default"))
        } &
        "#clone" #> SHtml.ajaxButton(
             { Text("Clone") },
             { () =>  clone() },
-            ("class", "autoWidthButton twoColumns twoColumnsRight"),("type", "button")
+            {("class", "btn btn-default")},
+            {("type", "button")}
        ) &
        //form and form fields
       "#techniqueName" #>
@@ -283,7 +285,7 @@ class DirectiveEditForm(
       "#migrate" #> migrateButton(directiveVersion.is,"Migrate") &
       "#parameters" #> parameterEditor.toFormNodeSeq &
       "#directiveRulesTab *" #> ruleDisplayer &
-      "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) } &
+      "#save" #> { SHtml.ajaxSubmit("Save", onSubmitSave _) % ("id" -> htmlId_save) % ("class","btn btn-success") } &
       "#notifications *" #> updateAndDisplayNotifications() &
       "#showTechnical *" #> SHtml.a(() => JsRaw("$('#technicalDetails').show(400);") & showDetailsStatus(true), Text("Show technical details"), ("class","listopen")) &
       "#isSingle *" #> showIsSingle &
@@ -294,10 +296,7 @@ class DirectiveEditForm(
     Script(OnLoad(
       JsRaw("""activateButtonOnFormChange("%s", "%s");  """
         .format(htmlId_policyConf, htmlId_save)) &
-      JsRaw(s"""
-        correctButtons();
-       $$('#technicalDetails').hide();
-      """) &
+      JsRaw(s"""$$('#technicalDetails').hide();""") &
       JsRaw(s"""
           $$("input").not("#treeSearch").keydown( function(event) {
             processKey(event , '${htmlId_save}');
@@ -343,10 +342,6 @@ class DirectiveEditForm(
     onFailureCallback() & Replace("editForm", showDirectiveForm) &
     //restore user to the update parameter tab
     JsRaw("""scrollToElement("notifications", "#directiveDetails");""")
-  }
-
-  def initJs : JsCmd = {
-    JsRaw("correctButtons();")
   }
 
   private[this] def showIsSingle(): NodeSeq = {

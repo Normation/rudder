@@ -300,21 +300,19 @@ class Archives extends DispatchSnippet with Loggable {
     ////////// Template filling //////////
 
     ("#"+archiveButtonId) #> {
-      SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId)) ++ Script(OnLoad(JsRaw(""" correctButtons(); """)))
+      SHtml.ajaxSubmit(archiveButtonName, archive _ , ("id" -> archiveButtonId), ("class","btn btn-default"))
     } &
     ("#"+archiveDateSelectId) #> {
       //we have at least "Choose an archive to restore..." and "get archive from current Git HEAD"
-      SHtml.selectObj[Option[GitCommitId]](buildCommitIdList, Full(selectedCommitId), { id => selectedCommitId = id}, ("id" -> archiveDateSelectId) )
+      SHtml.selectObj[Option[GitCommitId]](buildCommitIdList, Full(selectedCommitId), { id => selectedCommitId = id}, ("id" -> archiveDateSelectId), ("class","form-control") )
     } &
     ("#"+restoreButtonId) #> {
-      SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId)) ++
-      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");
-          $("#%s").prop("disabled",true);""".format(archiveDateSelectId, restoreButtonId, restoreButtonId))))
+      SHtml.ajaxSubmit(restoreButtonName, restore _, ("id" -> restoreButtonId) , ("class","btn btn-default")) ++
+      Script(OnLoad(JsRaw("""enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);""".format(archiveDateSelectId, restoreButtonId, restoreButtonId))))
     } &
     ("#"+downloadButtonId) #> {
-      SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId) ) ++
-      Script(OnLoad(JsRaw(""" correctButtons(); enableIfNonEmpty("%s", "%s");
-          $("#%s").prop("disabled",true);""".format(archiveDateSelectId, downloadButtonId, downloadButtonId))))
+      SHtml.ajaxSubmit(downloadButtonName, download _, ("id" -> downloadButtonId) , ("class","btn btn-default")) ++
+      Script(OnLoad(JsRaw("""enableIfNonEmpty("%s", "%s");$("#%s").prop("disabled",true);""".format(archiveDateSelectId, downloadButtonId, downloadButtonId))))
     }
   }
 

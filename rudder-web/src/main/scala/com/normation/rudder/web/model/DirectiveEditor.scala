@@ -480,7 +480,7 @@ case class MultivaluedSectionField(
 
   private def showAddAnother(): NodeSeq = {
     if (!readOnlySection) {
-      <div class="directiveAddGroup">{
+      <div class="directiveAddGroup tw-bs">{
         SHtml.ajaxSubmit(
             s"Add another '${name}'"
           , { () =>
@@ -488,7 +488,7 @@ case class MultivaluedSectionField(
               //refresh UI - all item of that group
               SetHtml(htmlId, this.content) & postModificationJS()
             }
-          , ("class" -> "autoWidthButton")
+          , ("class" -> "btn btn-default")
         )
       }</div>
     } else {
@@ -502,9 +502,9 @@ case class MultivaluedSectionField(
         { section.childFields map (f => f.toFormNodeSeq) }
       </tbody>
     </table>
-    <div class="textright directiveDeleteGroup">{
+    <div class="textright directiveDeleteGroup tw-bs">{
       if (!readOnlySection) {
-        val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "autoWidthButton") :: Nil
+        val attr = (if (size > 1) ("" -> "") else ("disabled" -> "true")) :: ("class" -> "btn btn-danger") :: Nil
         SHtml.ajaxSubmit(s"Delete '${name} #${i+1}'", { () =>
           logError(delete(i))
           //refresh UI - all item of that group
@@ -519,7 +519,7 @@ case class MultivaluedSectionField(
    * Command to correct display and behaviour after modifying sections
    */
   private[this] def postModificationJS() : JsExp = {
-    JsRaw("""correctButtons(); createTooltip(); """)
+    JsRaw("""createTooltip(); """)
   }
 
   override def toHtmlNodeSeq = {

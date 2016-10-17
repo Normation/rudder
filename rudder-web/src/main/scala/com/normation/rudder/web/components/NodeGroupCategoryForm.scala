@@ -99,10 +99,6 @@ class NodeGroupCategoryForm(
     case "showForm" => { _ => showForm }
   }
 
-  def initJs : JsCmd = {
-    JsRaw("correctButtons();")
-  }
-
   def showForm() : NodeSeq = {
     val html = SHtml.ajaxForm(
       <div class="inner-portlet groupCategoryUpdateComponent">
@@ -123,10 +119,10 @@ class NodeGroupCategoryForm(
        </div>
         <hr class="spacer"/>
         <lift:authz role="node_write">
-        <div class="margins" align="right"><directive:save/> <directive:delete/></div>
+        <div class="margins tw-bs" align="right"><directive:save/> <directive:delete/></div>
         </lift:authz>
       </div>
-   ) ++ Script(JsRaw("correctButtons();"))
+   )
 
     if (_nodeGroupCategory.isSystem) {
       ("input" #> {(n:NodeSeq) => n match {
@@ -138,7 +134,7 @@ class NodeGroupCategoryForm(
         "name" -> name.toForm_! ,
         "description" -> description.toForm_!,
         "container" -> container.toForm_!,
-        "save" -> SHtml.ajaxSubmit("Update", onSubmit _),
+        "save" -> SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default")),
         "delete" -> deleteButton,
         "notifications" -> updateAndDisplayNotifications()
       ))
@@ -148,7 +144,7 @@ class NodeGroupCategoryForm(
         "description" -> description.toForm_!,
         "container" -> container.toForm_!,
         "save" -> { if (CurrentUser.checkRights(Edit("group")))
-                 SHtml.ajaxSubmit("Update", onSubmit _)
+                 SHtml.ajaxSubmit("Update", onSubmit _ , ("class","btn btn-default"))
               else NodeSeq.Empty
         },
         "delete" -> { if (CurrentUser.checkRights(Write("group")))
@@ -170,8 +166,8 @@ class NodeGroupCategoryForm(
 
     if(parentCategory.isDefined && _nodeGroupCategory.children.isEmpty && _nodeGroupCategory.items.isEmpty) {
       (
-       <button id="removeButton">Delete</button>
-        <div class="tw-bs">   
+       <button id="removeButton" class="btn btn-danger">Delete</button>
+        <div class="tw-bs">
             <div id="removeActionDialog" class="modal fade">
                 <div class="modal-backdrop fade in" style="height: 100%;"></div>
                 <div class="modal-dialog">
@@ -201,7 +197,7 @@ class NodeGroupCategoryForm(
                     </div><!-- /.modal-content -->
                 </div><!-- /.modal-dialog -->
             </div><!-- /.modal -->
-        </div> 
+        </div>
       ) ++
       Script(JsRaw("""
         $('#removeButton').click(function() {
@@ -210,7 +206,7 @@ class NodeGroupCategoryForm(
         });
         """))
     } else {
-      <button disabled="disabled">Delete</button><br/>
+      <button disabled="disabled" class="btn btn-danger">Delete</button><br/>
       <div class="note"><b>Note: </b>Only empty and non root categories can be deleted.</div>
     }
   }
@@ -218,7 +214,7 @@ class NodeGroupCategoryForm(
   private[this] def onDelete() : JsCmd = {
     woGroupCategoryRepository.delete(_nodeGroupCategory.id, ModificationId(uuidGen.newUuid), CurrentUser.getActor, Some("Node Group category deleted by user from UI")) match {
       case Full(id) =>
-        JsRaw("""$.modal.close();""") &
+        JsRaw("""$('#removeActionDialog').bsModal('hide');""") &
         SetHtml(htmlIdCategory, NodeSeq.Empty) &
         onSuccessCallback(nodeGroupCategory.id.value) &
         successPopup
@@ -274,8 +270,7 @@ class NodeGroupCategoryForm(
   private[this] var notifications = List.empty[NodeSeq]
 
   private[this] def updateFormClientSide : JsCmd = {
-    SetHtml(htmlIdCategory, showForm()) &
-    initJs
+    SetHtml(htmlIdCategory, showForm())
   }
 
   private[this] def error(msg:String) = <span class="col-lg-12 errors-container">{msg}</span>

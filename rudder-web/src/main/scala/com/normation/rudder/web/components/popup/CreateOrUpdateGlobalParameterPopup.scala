@@ -89,7 +89,7 @@ class CreateOrUpdateGlobalParameterPopup(
 
   private[this] val titleWorkflow = workflowEnabled match {
       case true =>
-            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4> 
+            <h4 class="col-lg-12 col-sm-12 col-xs-12 audit-title">Change Request</h4>
               <hr class="css-fix"/>
               <div class="text-center alert alert-info">
                 <span class="glyphicon glyphicon-info-sign"></span>
@@ -169,7 +169,7 @@ class CreateOrUpdateGlobalParameterPopup(
    * Update the form when something happened
    */
   private[this] def updateFormClientSide() : JsCmd = {
-    SetHtml(htmlId_popupContainer, popupContent()) & JsRaw("""correctButtons();""")
+    SetHtml(htmlId_popupContainer, popupContent())
   }
 
   private[this] def updateAndDisplayNotifications(formTracker : FormTracker) : NodeSeq = {
@@ -226,13 +226,13 @@ class CreateOrUpdateGlobalParameterPopup(
       , "create"  -> "Create"
       , "delete"  -> "Delete"
     )(action)
-  
+
   private[this] val defaultClassName = Map (
       "save"    -> "btn-success"
     , "create"  -> "btn-success"
     , "delete"  -> "btn-danger"
   )(action)
-  
+
   private[this] val defaultRequestName = s"${defaultActionName} Global Parameter " + parameter.map(_.name.value).getOrElse("")
   private[this] val changeRequestName = new WBTextField("Change request title", defaultRequestName) {
     override def setFilter = notNull _ :: trim _ :: Nil
@@ -309,7 +309,7 @@ class CreateOrUpdateGlobalParameterPopup(
         }
       } &
       ".itemReason *" #> {
-        //if (buttonName=="Delete") 
+        //if (buttonName=="Delete")
         paramReasons.map { f =>
         <div>
           {if (!workflowEnabled) {
@@ -318,12 +318,12 @@ class CreateOrUpdateGlobalParameterPopup(
             {f.toForm_!}
         </div>
       } } &
-      
+
       "#cancel"  #> (SHtml.ajaxButton("Cancel", { () => closePopup() })  % ("tabindex","6") % ("class","btn btn-default") ) &
       "#save" #> (SHtml.ajaxSubmit( buttonName, onSubmit _) % ("id","createParameterSaveButton")  % ("tabindex","5") % ("class", s"btn ${classForButton}")) andThen
       ".notifications *"  #> { updateAndDisplayNotifications(formTracker) }
     ).apply(formXml())
-      
+
   }
   private[this] def formXml() : NodeSeq = {
     SHtml.ajaxForm(
@@ -352,7 +352,7 @@ class CreateOrUpdateGlobalParameterPopup(
             <div class="modal-footer">
                 <div id="cancel"/>
                 <div id="save"/>
-            </div>  
+            </div>
         </div><!-- /.modal-content -->
     </div><!-- /.modal-dialog -->
     )

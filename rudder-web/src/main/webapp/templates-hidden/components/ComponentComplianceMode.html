@@ -1,7 +1,7 @@
 <property:complianceMode>
 
 <div  id="complianceMode">
-  <div class="inner-portlet"  id="complianceModeController" ng-controller="complianceModeController" ng-class="{'tw-bs': isNodePage}">
+  <div class="inner-portlet tw-bs"  id="complianceModeController" ng-controller="complianceModeController">
   <div class="page-title"  ng-hide="isNodePage">Compliance reporting mode</div>
   <div class="portlet-content">
     <div class="tw-bs" ng-hide="isNodePage">
@@ -30,7 +30,7 @@
         </ul>
       </div>
     </div>
-    <form role="form" name="complianceModeForm" class="form-horizontal" >
+    <form role="form" name="complianceModeForm" class="form-horizontal tw-bs" >
 
       <div class="deca"  ng-hide="isNodePage">
       <div class="tw-bs">
@@ -58,7 +58,7 @@
       <div ng-hide="complianceMode.name !== 'changes-only'" class="animate-hide">
         <div class="page-title">Agent run heartbeat</div>
         <div class="portlet-content" >
-          <div class="intro">
+          <div class="well">
           <!-- global run is defined on node page, so first section is displayed in global settings page -->
             <div ng-if="!isNodePage">
               In "changes only" compliance mode, the agent will, by default, report a "heartbeat" every time it runs.<br/>
@@ -108,7 +108,7 @@
       <lift:authz role="administration_write">
         <div class="form-group" ng-hide="isNodePage    &amp;&amp; complianceMode.name === 'full-compliance'">
           <div class="pull-left control-label">
-            <button type="submit" class="btn btn-xs btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
+            <button type="submit" class="btn btn-default" ng-click="save()" ng-disabled="complianceModeForm.$invalid || isUnchanged()" id="complianceModeSubmit">Save changes</button>
           </div>
           <div id="heartBeatMessage" class="pull-left control-label">
             <span class="lift:Msg?complianceModeMessage">[messages]</span>

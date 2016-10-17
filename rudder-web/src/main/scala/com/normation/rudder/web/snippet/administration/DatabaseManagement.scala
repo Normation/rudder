@@ -84,10 +84,10 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
               <label>{e.xhtml} <span class="radioTextLabel">{e.key.toString}</span></label>
             </li>) }
         </ul> &
-      "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _) &
+      "#archiveReports" #> SHtml.ajaxSubmit("Clean reports", process _, ("class","btn btn-default")) &
       "#reportFromDate" #> SHtml.text(from, {x => from = x } )
 
-    )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate"); correctButtons(); """)& updateValue))
+    )(xml) ++ Script(OnLoad(JsRaw("""initReportDatepickler("#reportFromDate");""")& updateValue))
   }
 
   def process(): JsCmd = {
@@ -192,7 +192,6 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
       JsRaw(""" $('#archiveReports').hide();
                 $('#cleanParam').hide();
                 $('#cleanResult').hide();
-                correctButtons();
                 $('#confirm').stop(true, true).slideDown(1000); """)
     }
 
