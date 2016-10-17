@@ -49,6 +49,7 @@ import com.normation.rudder.domain.parameters.Parameter
 import com.normation.rudder.services.policies.write.ParameterEntry
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.domain.reports.NodeModeConfig
 
 
 case class ParameterForConfiguration(
@@ -64,6 +65,7 @@ case object ParameterForConfiguration {
 
 case class NodeConfiguration(
     nodeInfo    : NodeInfo
+  , modesConfig : NodeModeConfig
   , policyDrafts: Set[Cf3PolicyDraft]
     //environment variable for that server
   , nodeContext : Map[String, Variable]

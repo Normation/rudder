@@ -58,6 +58,7 @@ import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.rudder.services.policies.NodeConfigData
 
 /**
  * Test properties about status reports,
@@ -227,18 +228,11 @@ class StatusReportTest extends Specification {
   }
 
   "Node status reports" should {
-    val modes = NodeModeConfig(
-        globalComplianceMode = GlobalComplianceMode(FullCompliance, 30)
-      , nodeHeartbeatPeriod  = None
-      , globalAgentRun       = AgentRunInterval(None, 5, 0, 0, 0)
-      , nodeAgentRun         = None
-      , globalPolicyMode     = GlobalPolicyMode(Audit, PolicyModeOverrides.Always)
-      , nodePolicyMode       = None
-    )
+    val modesConfig = NodeConfigData.defaultModesConfig
     val report = NodeStatusReport(
         NodeId("n1")
       , Pending(
-            NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modes, List()) // TODO : correct that test
+            NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modesConfig, List()) // TODO : correct that test
           , None, DateTime.now.plusMinutes(15)
         )
     , parse("""

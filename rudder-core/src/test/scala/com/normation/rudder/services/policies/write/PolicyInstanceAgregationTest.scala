@@ -51,6 +51,7 @@ import org.junit.runners.BlockJUnit4ClassRunner
 import com.normation.cfclerk.services.DummyTechniqueRepository
 import scala.collection.immutable.Set
 import scala.language.implicitConversions
+import org.joda.time.DateTime
 
 
 
@@ -110,7 +111,7 @@ class DirectiveAgregationTest {
   )
 
   def createDirectiveWithBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get,
+    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, DateTime.now,
         Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val variable = new InputVariable(InputVariableSpec("card", "varDescription1"), Seq("value" + i))
@@ -118,7 +119,7 @@ class DirectiveAgregationTest {
   }
 
   def createDirectiveWithArrayBinding(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, Map(), trackerVariable, priority = 0, serial = 0,
+    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, DateTime.now, Map(), trackerVariable, priority = 0, serial = 0,
         ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val variable = InputVariable(
@@ -130,7 +131,7 @@ class DirectiveAgregationTest {
   }
 
   def createDirectiveWithArrayBindingAndNullValues(activeTechniqueId:TechniqueId, i: Int): Cf3PolicyDraft = {
-    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, Map(), trackerVariable, priority = 0, serial = 0,
+    val instance = new Cf3PolicyDraft("id" + i, techniqueRepository.get(activeTechniqueId).get, DateTime.now, Map(), trackerVariable, priority = 0, serial = 0,
         ruleOrder = BundleOrder("r"), directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val values = (0 until i).map(j =>
@@ -173,7 +174,7 @@ class DirectiveAgregationTest {
     val newTechniqueId = TechniqueId(TechniqueName("name"), TechniqueVersion("1.0"))
     def newTechnique = Technique(newTechniqueId, "tech" + newTechniqueId, "", Seq(), Seq(), Seq(), TrackerVariableSpec(), SectionSpec("plop"), None, Set(), None)
 
-    val instance = new Cf3PolicyDraft("id", newTechnique, Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"),
+    val instance = new Cf3PolicyDraft("id", newTechnique, DateTime.now, Map(), trackerVariable, priority = 0, serial = 0, ruleOrder = BundleOrder("r"),
         directiveOrder = BundleOrder("d"), overrides = Set(), policyMode = None, isSystem = false)
 
     val machineA = new Cf3PolicyDraftContainer(Set(), Set(
