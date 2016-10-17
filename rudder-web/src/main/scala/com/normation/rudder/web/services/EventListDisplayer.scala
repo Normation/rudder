@@ -362,16 +362,19 @@ class EventListDisplayer(
       }
 
       val dialog =
-      <div>
+      <p>
           <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
             style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
           <b>{"Are you sure you want to restore configuration policy %s this change".format(action.name)}</b>
-      </div> ++
+      </p>
+      <span class="tw-bs"> {
         SHtml.ajaxButton(
           "Cancel"
         ,  () =>  cancel
-        , ("style","margin-right:10px")
-        ) ++
+        , ("class","btn btn-default")
+        )
+      }</span>
+      <span class="tw-bs"> {
         SHtml.ajaxButton(
           "Confirm"
         , () => {
@@ -392,13 +395,13 @@ class EventListDisplayer(
                 cancel
             }
           }
-        ,("class" ,"dangerButton")
+        ,("class" ,"btn btn-danger")
         )
+      }</span>
 
       def showDialog : JsCmd = {
         SetHtml("confirm%d".format(event.id.getOrElse(0)), dialog) &
         JsRaw(""" $('#rollback%d').hide();
-                  correctButtons();
                   $('#confirm%d').stop(true, true).slideDown(1000); """.format(event.id.getOrElse(0),event.id.getOrElse(0)))
       }
 
@@ -437,12 +440,15 @@ class EventListDisplayer(
             }
             </ul>
             <span class="alignRollback"> this change </span>
+            <span class="tw-bs">
             { SHtml.ajaxSubmit(
                   "Restore"
                 , () => showConfirmationDialog(rollbackAction,commiter)
-                , ("style","vertical-align:50%;width:75px;")
+                , ("style","vertical-align:50%;")
+                , ("class","btn btn-default btn-sm")
               )
              }
+            </span>
           </div>
           <span id={"confirm%d".format(event.id.getOrElse(0))}> </span>
           </fieldset>
@@ -1118,7 +1124,7 @@ class EventListDisplayer(
       // other case: do not display details at all
       case _ => "*" #> ""
 
-    })(event.details)++Script(JsRaw("correctButtons();"))} </td>
+    })(event.details)} </td>
   }
 
   private[this] def agentRunDetails(ar: AgentRunInterval): NodeSeq = {

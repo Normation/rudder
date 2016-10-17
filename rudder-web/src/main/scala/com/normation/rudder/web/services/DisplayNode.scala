@@ -365,10 +365,14 @@ object DisplayNode extends Loggable {
             <lift:authz role="node_write">
               {
                 if(!isRootNode(sm.node.main.id)) {
-                    showDeleteButton(sm.node.main.id)
+                  <div class="tw-bs">
+                    <div class="col-xs-12">
+                      { showDeleteButton(sm.node.main.id) }
+                    </div>
+                  </div>
                 } else {NodeSeq.Empty}
               }
-              </lift:authz> ++ {Script(OnLoad(JsRaw("""correctButtons();""") ) ) }
+              </lift:authz>
           case _ => NodeSeq.Empty
         } }
 
@@ -823,7 +827,7 @@ object DisplayNode extends Loggable {
         "Delete"
       , { () => {toggleDeletion() } }
       , ("id", "deleteButton")
-      , ("class", "dangerButton")
+      , ("class", "btn btn-danger")
     ) ++ <div style="display:none" id="confirmDeletion">
     <div style="margin:5px;">
      <div>
@@ -840,10 +844,10 @@ object DisplayNode extends Loggable {
       <div style="margin-top:7px">
         <span >
           {
-            SHtml.ajaxButton("Cancel", { () => { toggleDeletion } })
+            SHtml.ajaxButton("Cancel", { () => { toggleDeletion } } , ("class", "btn btn-default"))
           }
           {
-            SHtml.ajaxButton("Confirm", { () => {removeNode(nodeId) }}, ("class", "dangerButton") )
+            SHtml.ajaxButton("Confirm", { () => {removeNode(nodeId) }}, ("class", "btn btn-danger") )
           }
         </span>
       </div>

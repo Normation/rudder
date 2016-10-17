@@ -249,16 +249,17 @@ class RuleEditForm(
 
   private[this] def actionButtons () = {
     "#removeAction *" #> {
-         SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","dangerButton"))
+         SHtml.ajaxButton("Delete", () => onSubmitDelete(),("class","btn btn-danger"))
        } &
        "#desactivateAction *" #> {
          val status = rule.isEnabledStatus ? "disable" | "enable"
-         SHtml.ajaxButton(status.capitalize, () => onSubmitDisable(status))
+         SHtml.ajaxButton(status.capitalize, () => onSubmitDisable(status) ,("class","btn btn-default"))
        } &
       "#clone" #> SHtml.ajaxButton(
                       { Text("Clone") }
                     , { () =>  onCloneCallback(rule) }
                     , ("type", "button")
+                    ,("class","btn btn-default")
       ) &
       "#save" #> saveButton
 
@@ -326,10 +327,7 @@ class RuleEditForm(
           )}</ul>
         </div> } &
       "#notifications" #>  updateAndDisplayNotifications
-    )(crForm) ++
-    Script(OnLoad(JsRaw("""
-      correctButtons();
-    """)))++ Script(
+    )(crForm) ++ Script(
       OnLoad(
         // Initialize angular part of page and group tree
         JsRaw(s"""
@@ -424,7 +422,7 @@ class RuleEditForm(
    */
   private[this] def saveButton : NodeSeq = {
     // add an hidden field to hold the list of selected directives
-    val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save)
+    val save = SHtml.ajaxSubmit("Save", onSubmit _) % ("id" -> htmlId_save) % ("class","btn btn-success")
     // update onclick to get the list of directives and groups in the hidden
     // fields before submitting
 

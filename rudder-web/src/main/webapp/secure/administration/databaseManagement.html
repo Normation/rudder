@@ -131,8 +131,7 @@
               </tr>
                 <tr>
                 <td>Next run:</td>
-                <td><b><span id="nextRun">[Here
-                      comes the next run time for the archive cleaning job]</span></b></td>
+                <td><b><span id="nextRun">[Here comes the next run time for the archive cleaning job]</span></b></td>
               </tr>
             </table>
           </div>
@@ -166,7 +165,9 @@
                         id="reportFromDate" value="" />
 
                        <lift:authz role="administration_write">
-                        <button id="archiveReports">Start cleaning reports</button>
+                         <span class="tw-bs">
+                           <button id="archiveReports">Start cleaning reports</button>
+                         </span>
                         </lift:authz>
                       </span>
                         <span id="confirm"> </span>

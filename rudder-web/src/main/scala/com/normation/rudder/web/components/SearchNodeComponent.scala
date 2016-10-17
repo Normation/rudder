@@ -111,8 +111,8 @@ class SearchNodeComponent(
     <td class="attributeName"></td>
     <td class="comparator"></td>
     <td class="inputValue"></td>
-    <td class="removeLine"></td>
-    <td class="last addLine"></td>
+    <td class="removeLine tw-bs"></td>
+    <td class="last addLine tw-bs"></td>
   </tr>
   }
   private[this] def content = chooseTemplate("content","query",searchNodes)
@@ -209,7 +209,7 @@ class SearchNodeComponent(
      */
     def ajaxCriteriaRefresh : JsCmd = {
       lines.clear()
-      SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange & JsRaw("correctButtons();")
+      SetHtml("SearchForm", displayQuery(content))& activateButtonOnChange
     }
 
     def displayQueryLine(cl : CriterionLine, index:Int, addRemove:Boolean) : NodeSeq = {
@@ -221,11 +221,11 @@ class SearchNodeComponent(
      val input = cl.attribute.cType.toForm(cl.value, (x => lines(index) = lines(index).copy(value=x)), inputAttributes:_*)
      ( ".removeLine *" #> {
           if(addRemove)
-            SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "removeLineButton"))
+            SHtml.ajaxSubmit("-", () => removeLine(index), ("class", "removeLineButton btn btn-default btn-xs"))
           else
             NodeSeq.Empty
         } &
-       ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton")) &
+       ".addLine *" #> SHtml.ajaxSubmit("+", () => addLine(index), ("class", "removeLineButton btn btn-default btn-xs")) &
        ".objectType *" #> objectTypeSelect(cl.objectType,lines,index) &
        ".attributeName *" #> attributeNameSelect(cl.objectType,cl.attribute,lines,index) &
        ".comparator *" #> comparatorSelect(cl.objectType,cl.attribute,cl.comparator,lines,index) &
@@ -276,7 +276,7 @@ class SearchNodeComponent(
 
       ( "#typeQuery"   #> checkBox &
         "#composition" #> radio    &
-        "#submitSearch * " #> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton"))    &
+        "#submitSearch * " #> SHtml.ajaxSubmit("Search", processForm, ("id" -> "SubmitSearch"), ("class" -> "submitButton btn btn-default"))    &
         "#query_lines *" #> criteria.zipWithIndex.flatMap { case (cl,i) => displayQueryLine(cl,i, criteria.size > 1)}
       ).apply(html
         /*}:NodeSeq} ++ { if(criteria.size > 0) {

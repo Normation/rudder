@@ -114,7 +114,7 @@ class RuleCategoryTree(
     }
     Replace(htmlId_RuleCategoryTree, html)&
     selectCategory() &
-    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();correctButtons();""")))
+    OnLoad(After(TimeSpan(50), JsRaw("""createTooltip();""")))
   }
 
   // Update selected category and select it in the tree (trigger its function)

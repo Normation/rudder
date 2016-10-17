@@ -2273,9 +2273,8 @@ table thead th {
   border-top-right-radius: 0px !important;
 }
 
-
 #SearchNodes {
-  margin: 0px 0px 0px 0px;
+  margin: 0px 0px 10px 0px;
 }
 
 .dataTables_paginate .last {
@@ -2492,8 +2491,7 @@ input[type="number"] {
 
 #clone {
   margin-left:20px;
-  padding-right: 40px;
-  padding-left: 40px;
+  float:left;
 }
 
 * {

@@ -58,27 +58,25 @@ accountManagement.controller('AccountCtrl', function ($scope, $http) {
   }
 
 $scope.enableButton = function(account,index) {
-if (account.enabled) {
-  var button = $("<button style='width: 80px; margin: 0px 10px;'>Disable</button>");
-  button.button();
-  button.click( function(){
+  var button = $("<button class='btn btn-default'></button>");
+  if (account.enabled) {
+    button.text('Disabled');
+    button.click( function(){
       $scope.$apply(function() {
-      account.enabled = false;
-      $scope.saveAccount(account,index,false);
+        account.enabled = false;
+        $scope.saveAccount(account,index,false);
       });
     });
-  return button;
-} else {
-  var button = $("<button style='width: 80px; margin: 0px 10px;'>Enable</button>");
-    button.button();
+  } else {
+    button.text('Enabled');
     button.click( function() {
       $scope.$apply(function() {
-      account.enabled = true;
-      $scope.saveAccount(account,index,false);
+        account.enabled = true;
+        $scope.saveAccount(account,index,false);
       });
     })
-  return button;
   }
+  return button;
 }
 
 $scope.addAccount = function() {
@@ -96,12 +94,11 @@ $scope.columnDefs = [
       , 'bSortable': false
       , "sWidth": "40%", "sTitle" : "Token"
       , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-          var content  = $("<button style='margin-right:10px; float:left;' class='smallButton'><img style='width:20px; height:20px;' src='"+contextPath+"/images/refresh_reload.png' alt='Regenerate'  /> </button>")
-          content.button()
-          content.click( function() {
+          var content  = $("<span class='tw-bs'><button class='btn btn-default reload-token'><span class='glyphicon glyphicon-repeat'></span></button></span>")
+          content.find('.btn').click( function() {
             $scope.popupDeletion(oData,iRow,$scope.regenerateAccount,"Regenerate token of");
           });
-          var stringContent = $("<div style='padding-top:7px;' >"+sData+"</div>");
+          var stringContent = $("<span>"+sData+"</span>");
           $(nTd).empty();
           $(nTd).prepend(stringContent);
           $(nTd).prepend(content);
@@ -113,11 +110,11 @@ $scope.columnDefs = [
       , "sWidth": "10%"
         , "sTitle" : "Status"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-      var color = sData ? "#5cb85c" : "#d9534f";
-          var content  = $(" <b>"+$scope.accountDisabled(sData)+"</b>")
-      $(nTd).empty();
-          $(nTd).attr("style","text-align:center;  background-color:"+color);
-          $(nTd).prepend(content );
+        var color = sData ? "#5cb85c" : "#d9534f";
+        var content  = $(" <b>"+$scope.accountDisabled(sData)+"</b>")
+        $(nTd).empty();
+        $(nTd).attr("style","text-align:center;  background-color:"+color);
+        $(nTd).prepend(content);
       }
     }
   , {   "aTargets"      : [3]
@@ -126,45 +123,43 @@ $scope.columnDefs = [
       , "sWidth": "10%"
       
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-        var data = oData
-    var editButton  = $("<button style='width: 80px; margin: 0px 10px;'>Edit</button>")
-        editButton.button();
-        editButton.click( function() {
-            data.oldName = data.name;
-            $scope.popupCreation(data,iRow);
-        });
+      $(nTd).addClass("tw-bs action-left");
+      var data = oData
+      var editButton  = $("<button class='btn btn-default'>Edit</button>");
+      editButton.click( function() {
+        data.oldName = data.name;
+        $scope.popupCreation(data,iRow);
+      });
       $(nTd).empty();
-      $(nTd).attr("style","border-right:none");
-        $(nTd).prepend(editButton);
+      $(nTd).prepend(editButton);
     }
-    }
+  }
   , {   "aTargets"      : [4]
   , "mDataProp"     : "enabled"
   , 'bSortable': false
   , "sWidth": "10%"
   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-    var data = oData
-    var statusButton = $scope.enableButton(data,iRow);
-  $(nTd).empty();
-  $(nTd).attr("style","border-right:none;border-left:none;");
-  $(nTd).prepend(statusButton);
-  }
+      $(nTd).addClass("tw-bs action-center");
+      var data = oData
+      var statusButton = $scope.enableButton(data,iRow);
+      $(nTd).empty();
+      $(nTd).prepend(statusButton);
+    }
 }
   , {   "aTargets"      : [5]
   , "mDataProp"     : "enabled"
   , 'bSortable': false
   , "sWidth": "10%"
   , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
-    var data = oData
-    var deleteButton  = $("<button style='width: 80px; margin: 0px 10px;' class='dangerButton'>Delete</button>")
-    deleteButton.button()
-    deleteButton.click( function() {
-      $scope.popupDeletion(data,iRow,$scope.deleteAccount,"Delete");
-    });
-  $(nTd).empty();
-  $(nTd).prepend(deleteButton);
-  $(nTd).attr("style","border-left:none;");
-  }
+      $(nTd).addClass("tw-bs action-right");
+      var data = oData
+      var deleteButton  = $("<button class='btn btn-danger'>Delete</button>");
+      deleteButton.click( function() {
+        $scope.popupDeletion(data,iRow,$scope.deleteAccount,"Delete");
+      });
+      $(nTd).empty();
+      $(nTd).prepend(deleteButton);
+    }
 }
 ]
 

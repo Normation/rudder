@@ -143,7 +143,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           S.notice("updateChangeMsg","")
         }
       }
-      Run(s"""$$("#changeMessageSubmit").button( "option", "disabled",${noModif||emptyString});""")
+      Run(s"""$$("#changeMessageSubmit").prop("disabled",${noModif||emptyString});""")
     }
 
     // Initialisation of form
@@ -200,7 +200,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
                     )
            Run(s"""
              var noModif = $mod && ($$("#explanation").val() == "$initValue");
-             $$("#changeMessageSubmit").button( "option", "disabled",noModif);""")
+             $$("#changeMessageSubmit").prop("disabled",noModif);""")
         }
         initExplanation match {
           case Full(value) =>
@@ -224,7 +224,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           ajaxButton(<span>Reset to default</span>, () => { explanation = "Please enter a message explaining the reason for this change."
             Run("""$("#explanation").val("Please enter a message explaining the reason for this change.");""") & check()
 
-            }  ,("class","defaultButton"), ("id","restoreExplanation"))
+            }  ,("class","btn btn-default btn-xs"), ("id","restoreExplanation"))
         }.getOrElse(NodeSeq.Empty)
       } &
 
@@ -253,9 +253,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#changeMessageSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
-    ) apply (xml ++ Script(Run("correctButtons();") & initJs(enabled)))
+    ) apply (xml ++ Script(initJs(enabled)))
   }
 
   def workflowConfiguration = { xml : NodeSeq =>
@@ -287,7 +287,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       if(!noModif){
         S.notice("updateWorkflow","")
       }
-      Run(s"""$$("#workflowSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#workflowSubmit").prop("disabled",${noModif});""")
     }
     def initJs(newStatus :Boolean) = {
       enabled = newStatus
@@ -374,9 +374,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#workflowSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
-    ) apply (xml ++ Script(Run("correctButtons();") & initJs(enabled)))
+    ) apply (xml ++ Script(initJs(enabled)))
   }
 
   def cfserverNetworkConfiguration = { xml : NodeSeq =>
@@ -410,7 +410,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       if(!noModif){
         S.notice("updateCfserverNetwork","")
       }
-      Run(s"""$$("#cfserverNetworkSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#cfserverNetworkSubmit").prop('disabled', ${noModif});""")
     }
 
     ( "#denyBadClocks" #> {
@@ -480,9 +480,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#cfserverNetworkSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
-    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+    ) apply (xml ++ Script(check()))
   }
 
   def networkProtocolSection = { xml : NodeSeq =>
@@ -493,7 +493,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       def check = {
         val noChange = initReportsProtocol == reportProtocol
         S.notice("updateNetworkProtocol","")
-        Run(s"""$$("#networkProtocolSubmit").button( "option", "disabled",${noChange});""")
+        Run(s"""$$("#networkProtocolSubmit").prop("disabled",${noChange});""")
       }
 
       def submit = {
@@ -524,9 +524,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           )
        } &
        "#networkProtocolSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ ,("class","btn btn-default"))
        }
-      )(xml ++ Script(Run("correctButtons();") & check))
+      )(xml ++ Script(check))
 
     }
 
@@ -637,7 +637,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       if(!noModif){
         S.notice("updateCfengineGlobalProps","")
       }
-      Run(s"""$$("#cfengineGlobalPropsSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#cfengineGlobalPropsSubmit").prop("disabled",${noModif});""")
     }
 
     ( "#modifiedFilesTtl" #> {
@@ -669,9 +669,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       } &
 
       "#cfengineGlobalPropsSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
-    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+    ) apply (xml ++ Script(check()))
   }
 
   def loggingConfiguration = { xml : NodeSeq =>
@@ -702,7 +702,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       if(!noModif){
         S.notice("loggingConfiguration","")
       }
-      Run(s"""$$("#loggingConfigurationSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#loggingConfigurationSubmit").prop("disabled",${noModif});""")
     }
 
     ( "#storeAllLogsOnFile" #> {
@@ -719,9 +719,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       } &
       "#loggingConfigurationSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
-    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+    ) apply (xml ++ Script(check()))
   }
 
   def sendMetricsConfiguration = { xml : NodeSeq =>
@@ -749,7 +749,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             )
           } &
           "#sendMetricsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _)
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
           }
         )
       case eb: EmptyBox =>
@@ -758,7 +758,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           logger.error(fail.messageChain)
           <div class="error">{fail.messageChain}</div>
         } )
-    } ) apply (xml ++ Script(Run("correctButtons();")))
+    } ) apply (xml)
   }
 
   def displayGraphsConfiguration = { xml : NodeSeq =>
@@ -769,7 +769,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         def noModif() = displayGraphs == value
         def check() = {
           S.notice("displayGraphsMsg","")
-          Run(s"""$$("#displayGraphsSubmit").button( "option", "disabled",${noModif()});""")
+          Run(s"""$$("#displayGraphsSubmit").prop("disabled",${noModif()});""")
         }
 
         def submit() = {
@@ -790,10 +790,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             )
           } &
           "#displayGraphsSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _)
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
           } &
           "#displayGraphsSubmit *+" #> {
-            Script(Run("correctButtons();") & check())
+            Script(check())
           }
         )
       case eb: EmptyBox =>
@@ -828,7 +828,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       if(!noModif){
         S.notice("apiModeMsg","")
       }
-      Run(s"""$$("#apiModeSubmit").button( "option", "disabled",${noModif});""")
+      Run(s"""$$("#apiModeSubmit").prop("disabled",${noModif});""")
     }
 
     ( "#apiMode" #> {
@@ -845,9 +845,9 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         }
       } &
       "#apiModeSubmit " #> {
-         SHtml.ajaxSubmit("Save changes", submit _)
+         SHtml.ajaxSubmit("Save changes", submit _ , ("class","btn btn-default"))
       }
-    ) apply (xml ++ Script(Run("correctButtons();") & check()))
+    ) apply (xml ++ Script(check()))
   }
 
   def directiveScriptEngineConfiguration = { xml : NodeSeq =>
@@ -861,7 +861,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         def noModif() = x == currentSavedValued
         def check() = {
           S.notice("directiveScriptEngineMsg","")
-          Run(s"""$$("#directiveScriptEngineSubmit").button( "option", "disabled",${noModif()});""")
+          Run(s"""$$("#directiveScriptEngineSubmit").prop("disabled",${noModif()});""")
         }
 
         def submit() = {
@@ -888,10 +888,10 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             )
           } &
           "#directiveScriptEngineSubmit " #> {
-            SHtml.ajaxSubmit("Save changes", submit _)
+            SHtml.ajaxSubmit("Save changes", submit _, ("class","btn btn-default"))
           } &
           "#directiveScriptEngineSubmit *+" #> {
-            Script(Run("correctButtons();") & check())
+            Script(check())
           }
         )
 

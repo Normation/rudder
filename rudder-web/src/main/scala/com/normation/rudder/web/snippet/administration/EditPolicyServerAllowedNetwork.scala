@@ -218,9 +218,8 @@ class EditPolicyServerAllowedNetwork extends DispatchSnippet with Loggable {
     }  &
     "#addNetworkButton" #> SHtml.ajaxSubmit("Add a network", add _) &
     "#submitAllowedNetwork" #> {
-      SHtml.ajaxSubmit("Save changes", process _,("id","submitAllowedNetwork")) ++ Script(
+      SHtml.ajaxSubmit("Save changes", process _,("id","submitAllowedNetwork"), ("class","btn btn-default")) ++ Script(
           OnLoad (
-              JsRaw(""" correctButtons(); """) &
               JsRaw("""$(".networkField").keydown( function(event) {
             processKey(event , 'submitAllowedNetwork')
           } );
