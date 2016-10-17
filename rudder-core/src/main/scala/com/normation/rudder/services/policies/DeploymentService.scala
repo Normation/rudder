@@ -52,7 +52,7 @@ import com.normation.rudder.repository._
 import com.normation.rudder.services.eventlog.HistorizationService
 import com.normation.rudder.services.nodes.NodeInfoService
 import com.normation.rudder.services.policies.nodeconfig.NodeConfiguration
-import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationCache
+import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationHash
 import com.normation.rudder.services.policies.nodeconfig.NodeConfigurationService
 import com.normation.rudder.services.policies.nodeconfig.ParameterForConfiguration
 import com.normation.rudder.services.reports.ReportingService
@@ -133,7 +133,7 @@ trait PromiseGenerationService extends Loggable {
       scriptEngineEnabled <- getScriptEngineEnabled() ?~! "Could not get if we should use the script engine to evaluate directive parameters"
       globalComplianceMode <- getGlobalComplianceMode
       globalPolicyMode     <- getGlobalPolicyMode() ?~! "Cannot get the Global Policy Mode (Enforce or Verify)"
-      nodeConfigCaches     <- getNodeConfigurationCache() ?~! "Cannot get the Configuration Cache"
+      nodeConfigCaches     <- getNodeConfigurationHash() ?~! "Cannot get the Configuration Cache"
       allLicenses          <- getAllLicenses() ?~! "Cannont get licenses information"
 
       //from here, we can restrain the calcul on two axis:
@@ -169,7 +169,7 @@ trait PromiseGenerationService extends Loggable {
       _             =  logger.debug(s"RuleVals built in ${timeRuleVal} ms, start to expand their values.")
 
       buildConfigTime =  System.currentTimeMillis
-      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, allNodeInfos, scriptEngineEnabled) ?~! "Cannot build target configuration node"
+      config          <- buildNodeConfigurations(activeNodeIds, ruleVals, nodeContexts, groupLib, directiveLib, allNodeInfos, allNodeModes, scriptEngineEnabled) ?~! "Cannot build target configuration node"
       timeBuildConfig =  (System.currentTimeMillis - buildConfigTime)
       _               =  logger.debug(s"Node's target configuration built in ${timeBuildConfig} ms, start to update rule values.")
 
@@ -181,7 +181,7 @@ trait PromiseGenerationService extends Loggable {
 
       beginTime                =  System.currentTimeMillis
       //that's the first time we actually output something : new serial for updated rules
-      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCaches, directiveLib, allRules.map(x => (x.id, x)).toMap)?~! "Cannot detect the updates in the NodeConfiguration"
+      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCaches, allRules.map(x => (x.id, x)).toMap)?~! "Cannot detect the updates in the NodeConfiguration"
       uptodateSerialNodeconfig =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
       // Update the serial of ruleVals when there were modifications on Rules values
       // replace variables with what is really applied
@@ -310,8 +310,10 @@ trait PromiseGenerationService extends Loggable {
     , ruleVals     : Seq[RuleVal]
     , nodeContexts : Map[NodeId, InterpolationContext]
     , groupLib     : FullNodeGroupCategory
+    , directiveLib : FullActiveTechniqueCategory
     , allNodeInfos : Map[NodeId, NodeInfo]
-    , scriptEngineEnabled  : FeatureSwitch
+    , allNodeModes : Map[NodeId, NodeModeConfig]
+    , scriptEngineEnabled : FeatureSwitch
   ) : Box[(Seq[NodeConfiguration])]
 
   /**
@@ -328,7 +330,7 @@ trait PromiseGenerationService extends Loggable {
   /**
    * Get the actual cached values for NodeConfiguration
    */
-  def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]]
+  def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]]
 
   /**
    * Detect changes in the NodeConfiguration, to trigger an increment in the related CR
@@ -336,7 +338,7 @@ trait PromiseGenerationService extends Loggable {
    * Must have all the NodeConfiguration in nodes
    * Returns two seq : the updated rule, and the deleted rule
    */
-  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory, rules: Map[RuleId, Rule]) : Box[(Map[RuleId,Int], Seq[RuleId])]
+  def detectUpdatesAndIncrementRuleSerial(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationHash], rules: Map[RuleId, Rule]) : Box[(Map[RuleId,Int], Seq[RuleId])]
 
   /**
    * Set all the serial number when needed (a change in CR)
@@ -354,7 +356,7 @@ trait PromiseGenerationService extends Loggable {
       rootNodeId      : NodeId
     , allNodeConfig   : Map[NodeId, NodeConfiguration]
     , versions        : Map[NodeId, NodeConfigId]
-    , cache           : Map[NodeId, NodeConfigurationCache]
+    , cache           : Map[NodeId, NodeConfigurationHash]
     , allLicenses     : Map[NodeId, NovaLicense]
     , globalPolicyMode: GlobalPolicyMode
   ) : Box[Set[NodeConfiguration]]
@@ -393,12 +395,12 @@ trait PromiseGenerationService extends Loggable {
     , globalAgentRun   : AgentRunInterval
   ) : Box[Unit]
 
-  protected def computeNodeConfigIdFromCache(config: NodeConfigurationCache): NodeConfigId = {
+  protected def computeNodeConfigIdFromCache(config: NodeConfigurationHash): NodeConfigId = {
     //make it looks like a string, not an int.
     NodeConfigId(config.hashCode.toHexString)
   }
   def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
-    configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationCache(x)))).toMap
+    configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationHash(x)))).toMap
   }
 }
 
@@ -612,7 +614,9 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
     , ruleVals     : Seq[RuleVal]
     , nodeContexts : Map[NodeId, InterpolationContext]
     , groupLib     : FullNodeGroupCategory
+    , directiveLib : FullActiveTechniqueCategory
     , allNodeInfos : Map[NodeId, NodeInfo]
+    , allNodeModes : Map[NodeId, NodeModeConfig]
     , scriptEngineEnabled  : FeatureSwitch
   ) : Box[Seq[NodeConfiguration]] = {
 
@@ -729,6 +733,9 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
                                     Cf3PolicyDraft(
                                         id = Cf3PolicyDraftId(draft.ruleId, draft.directiveId)
                                       , technique = draft.technique
+                                        // if the technique don't have an acceptation date time, this is bad. Use "now",
+                                        // which mean that it will be considered as new every time.
+                                      , techniqueUpdateTime = directiveLib.allTechniques.get(draft.technique.id).flatMap( _._2 ).getOrElse(DateTime.now)
                                       , variableMap = evaluatedVars.toMap
                                       , trackerVariable = draft.trackerVariable
                                       , priority = draft.priority
@@ -744,6 +751,7 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
           } yield {
             NodeConfiguration(
                 nodeInfo = context.nodeInfo
+              , modesConfig = allNodeModes(context.nodeInfo.id)
               , policyDrafts = cf3PolicyDrafts.toSet
               , nodeContext = context.nodeContext
               , parameters = parameters.map { case (k,v) => ParameterForConfiguration(k, v) }.toSet
@@ -793,7 +801,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     nodeConfigurationService.onlyKeepNodeConfiguration(keep)
   }
 
-  def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]] = nodeConfigurationService.getNodeConfigurationCache()
+  def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = nodeConfigurationService.getNodeConfigurationHash()
 
   /**
    * Detect changes in rules and update their serial
@@ -801,13 +809,12 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    */
   def detectUpdatesAndIncrementRuleSerial(
       nodes       : Seq[NodeConfiguration]
-    , cache       : Map[NodeId, NodeConfigurationCache]
-    , directiveLib: FullActiveTechniqueCategory
+    , cache       : Map[NodeId, NodeConfigurationHash]
     , allRules    : Map[RuleId, Rule]
   ) : Box[(Map[RuleId,Int], Seq[RuleId])] = {
     val firstElt = (Map[RuleId,Int](), Seq[RuleId]())
     // First, fetch the updated CRs (which are either updated or deleted)
-    val res = (( Full(firstElt) )/:(nodeConfigurationService.detectChangeInNodes(nodes, cache, directiveLib)) ) { case (Full((updated, deleted)), ruleId) => {
+    val res = (( Full(firstElt) )/:(nodeConfigurationService.detectSerialIncrementRequest(nodes, cache.isEmpty)) ) { case (Full((updated, deleted)), ruleId) => {
       allRules.get(ruleId) match {
         case Some(rule) =>
           woRuleRepo.incrementSerial(rule.id) match {
@@ -855,7 +862,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
       rootNodeId      : NodeId
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
     , versions        : Map[NodeId, NodeConfigId]
-    , cache           : Map[NodeId, NodeConfigurationCache]
+    , cache           : Map[NodeId, NodeConfigurationHash]
     , allLicenses     : Map[NodeId, NovaLicense]
     , globalPolicyMode: GlobalPolicyMode
   ) : Box[Set[NodeConfiguration]] = {
@@ -868,7 +875,7 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
     val updated = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, cache)
 
     ComplianceDebugLogger.debug(s"Updated node configuration ids: ${updated.map {id =>
-      s"[${id.value}:${cache.get(id).fold("???")(x => computeNodeConfigIdFromCache(x).value)}->${computeNodeConfigIdFromCache(NodeConfigurationCache(allNodeConfigs(id))).value}]"
+      s"[${id.value}:${cache.get(id).fold("???")(x => computeNodeConfigIdFromCache(x).value)}->${computeNodeConfigIdFromCache(NodeConfigurationHash(allNodeConfigs(id))).value}]"
     }.mkString("") }")
 
     val writtingTime = Some(DateTime.now)

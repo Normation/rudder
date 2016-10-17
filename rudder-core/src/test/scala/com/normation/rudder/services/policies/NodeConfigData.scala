@@ -90,6 +90,12 @@ import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.rule.category.RuleCategoryId
 import com.normation.inventory.domain.PublicKey
 import com.normation.rudder.domain.policies.PolicyMode
+import com.normation.rudder.domain.reports.NodeModeConfig
+import com.normation.rudder.reports.FullCompliance
+import com.normation.rudder.reports.AgentRunInterval
+import com.normation.rudder.reports.GlobalComplianceMode
+import com.normation.rudder.domain.policies.GlobalPolicyMode
+import com.normation.rudder.domain.policies.PolicyModeOverrides
 
 
 /*
@@ -214,8 +220,18 @@ object NodeConfigData {
 
   val allNodesInfo = Map( rootId -> root, node1.id -> node1, node2.id -> node2)
 
+  val defaultModesConfig = NodeModeConfig(
+      globalComplianceMode = GlobalComplianceMode(FullCompliance, 30)
+    , nodeHeartbeatPeriod  = None
+    , globalAgentRun       = AgentRunInterval(None, 5, 0, 0, 0)
+    , nodeAgentRun         = None
+    , globalPolicyMode     = GlobalPolicyMode(Enforce, PolicyModeOverrides.Always)
+    , nodePolicyMode       = None
+  )
+
   val rootNodeConfig = NodeConfiguration(
       nodeInfo    = root
+    , modesConfig = defaultModesConfig
     , policyDrafts= Set[Cf3PolicyDraft]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
@@ -224,21 +240,23 @@ object NodeConfigData {
   )
 
   val node1NodeConfig = NodeConfiguration(
-    nodeInfo    = node1
-  , policyDrafts= Set[Cf3PolicyDraft]()
-  , nodeContext = Map[String, Variable]()
-  , parameters  = Set[ParameterForConfiguration]()
-  , writtenDate = None
-  , isRootServer= false
+      nodeInfo    = node1
+    , modesConfig = defaultModesConfig
+    , policyDrafts= Set[Cf3PolicyDraft]()
+    , nodeContext = Map[String, Variable]()
+    , parameters  = Set[ParameterForConfiguration]()
+    , writtenDate = None
+    , isRootServer= false
   )
 
   val node2NodeConfig = NodeConfiguration(
-    nodeInfo    = node2
-  , policyDrafts= Set[Cf3PolicyDraft]()
-  , nodeContext = Map[String, Variable]()
-  , parameters  = Set[ParameterForConfiguration]()
-  , writtenDate = None
-  , isRootServer= false
+      nodeInfo    = node2
+    , modesConfig = defaultModesConfig
+    , policyDrafts= Set[Cf3PolicyDraft]()
+    , nodeContext = Map[String, Variable]()
+    , parameters  = Set[ParameterForConfiguration]()
+    , writtenDate = None
+    , isRootServer= false
   )
 
 

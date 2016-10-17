@@ -52,86 +52,137 @@ import net.liftweb.common.Loggable
 import com.normation.cfclerk.domain.Variable
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraft
+import com.normation.rudder.domain.reports.NodeModeConfig
 
 
-case class PolicyCache(
+case class PolicyHash(
     draftId   : Cf3PolicyDraftId
   , cacheValue: Int
 )
 
-case class NodeConfigurationCache(
+/**
+ * NodeConfigurationHash keep a track of anything that would mean
+ * the node policies have changed and should be rewritten.
+ * We are at the node granularity check, because today, we don't
+ * know how to rewrite only some directives.
+ *
+ * Keep in mind that anything that is changing the related resources
+ * of policies that are written for the node during policy generation
+ * must be taken into account in the hash.
+ * Typically, the technique non-template resources, like pure CFEngine
+ * file or other configuration files, must be looked for change
+ * (for them, this is done with the technique "acceptation" (i.e commit)
+ * date.
+ *
+ */
+case class NodeConfigurationHash(
     id: NodeId
   , writtenDate: Option[DateTime]
-  , nodeInfoCache: Int
-  , parameterCache: Int
-  , nodeContextCache: Int
-  , policyCache: Set[PolicyCache]
-
+  , nodeInfoHash: Int
+  , parameterHash: Int
+  , nodeContextHash: Int
+  , policyHash: Set[PolicyHash]
 ) {
-  // We need a method to correctly compare a NodeConfigurationCache that was serialized
-  // from a NodeconfigurationCache created from a NodeConfiguration (so without writtenDate)
-  def equalWithoutWrittenDate(other: NodeConfigurationCache) : Boolean = {
+  // We need a method to correctly compare a NodeConfigurationHash that was serialized
+  // from a NodeConfigurationHash created from a NodeConfiguration (so without writtenDate)
+  def equalWithoutWrittenDate(other: NodeConfigurationHash) : Boolean = {
     id               == other.id &&
-    nodeInfoCache    == other.nodeInfoCache &&
-    parameterCache   == other.parameterCache &&
-    nodeContextCache == other.nodeContextCache &&
-    policyCache      == other.policyCache
+    nodeInfoHash    == other.nodeInfoHash &&
+    parameterHash   == other.parameterHash &&
+    nodeContextHash == other.nodeContextHash &&
+    policyHash      == other.policyHash
   }
 }
 
-/*
- * That object should be a service, no ?
- */
-object NodeConfigurationCache {
+object NodeConfigurationHash {
 
-  def apply(nodeConfig: NodeConfiguration): NodeConfigurationCache = {
+  /**
+   * Build the hash from a node configuration.
+   *
+   */
+  def apply(nodeConfig: NodeConfiguration): NodeConfigurationHash = {
 
 
     /*
-     * Compute the hash cash value for a set of variables:
-     * - the order does not matter
-     * - duplicate (same name) variable make no sense, so we remove them
-     * - only the ORDERED values matters
+     * A parameter update must lead to a regeneration of the node,
+     * because it could be used in pur CFEngine (when used in
+     * directive, we already tracked it with directives values).
      *
-     * Also, variable with no values are equivalent to no variable, so we
-     * remove them.
+     * So a modification in ANY parameter lead to a regeneration
+     * of ALL NODES (everything, yes).
+     *
+     * For parameters, do not consider:
+     * - overridable
+     * - description
+     * But as ParameterForConfiguration only has relevant information,
+     * we can simply take the hashcode.
+     * Also, don't depend of the datastructure used, nor
+     * of the order of the variables (so is set is good ?)
      */
-    def variablesToHash(variables: Iterable[Variable]): Int = {
-      val z = variables.map( x => (x.spec.name, x.values) ).filterNot( _._2.isEmpty ).toSet
-      z.hashCode
+    val parameterHash: Int = {
+      nodeConfig.parameters.hashCode
     }
 
 
     /*
-     * for node info, only consider:
-     * name, hostname, agentsName, policyServerId, localAdministratorAccountName
+     * Take into account anything that has influence on policies but
+     * without being only a directive parameter (that latter case will
+     * be handle directly at the directive level) or a system variable
+     * (which is already in nodeContext)
+     *
+     * - all ${rudder.node} params (because can be used in pure CFEngine)
+     * - node properties (because can be used in pure CFEngine)
+     * - isPolicyServer (for nodes becoming relay)
+     * - serverRoles (because not the same set of directives - but
+     *   perhaps it is already handle in the directives)
+     * - agentsName (because directly used in templates for if conditions)
+     * - any node modes config option (policy mode, compliance, agent run -
+     *   being node specific or global - because directly used by generation
+     *   process to modify things all around)
+     *
+     * - publicKey / keyStatus? (I don't see why it should be ?)
      */
-    val nodeInfoCacheValue = {
+    val nodeInfoHashValue = {
       val i = nodeConfig.nodeInfo
       List(
         i.name.hashCode
       , i.hostname.hashCode
-      , i.agentsName.hashCode
-      , i.policyServerId.hashCode
       , i.localAdministratorAccountName.hashCode
+      , i.policyServerId.hashCode
+      , i.properties
+      , i.isPolicyServer
+      , i.serverRoles
+      , i.agentsName.hashCode
+      , nodeConfig.modesConfig.hashCode
       ).hashCode
     }
 
     /*
      * For policy draft, we want to check
-     * - technique name / version
+     * - technique name, version, acceptation date
+     *   (for acceptation date, we don't need to keep the date:
+     *   either we don't have the technique in hash, and so we don't care of the date,
+     *   or we have it, so we used the date for the previous cache, and so if the date
+     *   is not the same it changed since the cache generation and we must regenerate)
      * - variables
-     * - seriale
+     * - serial
+     * - priority (may influence order of writting sequence of techniques)
+     * - rule/directive order (may influense order in bundle sequence)
+     * - policyMode (because influence call to "setDryMode")
+     *
+     * Ncf techniques update are taken into account thanks to the acceptation date.
+     * System variables are tracked throught the node context afterward.
      */
-    val policyCacheValue = {
+    val policyHashValue = {
       nodeConfig.policyDrafts.map { case r:Cf3PolicyDraft =>
         //don't take into account "overrides" in cache: having more or less
         //ignored things must not impact the cache computation
-        PolicyCache(
+        PolicyHash(
             r.id
           , (
               r.serial
             + r.technique.id.hashCode
+            + r.techniqueUpdateTime.hashCode
             + r.priority
             + r.ruleOrder.hashCode + r.directiveOrder.hashCode
             + r.policyMode.hashCode()
@@ -142,34 +193,41 @@ object NodeConfigurationCache {
     }
 
     /*
-     * For parameters, do not consider:
-     * - overridable
-     * - description
-     * But as ParameterForConfiguration only has relevant information,
-     * we can simply take the hashcode.
-     * Also, don't depend of the datastructure used, nor
-     * of the order of the variables (so is set is good ?)
-     */
-    val parameterCache: Int = {
-      nodeConfig.parameters.hashCode
-    }
-
-    /*
      * System variables are variables.
+     *
+     * Not that with that, we are taking into account
+     * node config modes several time, since any mode has
+     * a matching system variable.
      */
-    val nodeContextCache: Int = {
+    val nodeContextHash: Int = {
       variablesToHash(nodeConfig.nodeContext.values)
     }
 
-    new NodeConfigurationCache(
+    new NodeConfigurationHash(
         id = nodeConfig.nodeInfo.id
       , writtenDate = nodeConfig.writtenDate
-      , nodeInfoCache = nodeInfoCacheValue
-      , parameterCache = parameterCache
-      , nodeContextCache = nodeContextCache
-      , policyCache = policyCacheValue
+      , nodeInfoHash = nodeInfoHashValue
+      , parameterHash = parameterHash
+      , nodeContextHash = nodeContextHash
+      , policyHash = policyHashValue
     )
   }
+
+  /*
+   * Compute the hash cash value for a set of variables:
+   * - the order does not matter
+   * - duplicate (same name) variable make no sense, so we remove them
+   * - only the ORDERED values matters
+   *
+   * Also, variable with no values are equivalent to no variable, so we
+   * remove them.
+   */
+  private[this] def variablesToHash(variables: Iterable[Variable]): Int = {
+    val z = variables.map( x => (x.spec.name, x.values) ).filterNot( _._2.isEmpty ).toSet
+    z.hashCode
+  }
+
+
 }
 
 
@@ -177,7 +235,7 @@ object NodeConfigurationCache {
  * A class that keep minimum information
  * to track changement in node configuration.
  */
-trait NodeConfigurationCacheRepository {
+trait NodeConfigurationHashRepository {
 
   /**
    * Delete node config by its id
@@ -196,22 +254,22 @@ trait NodeConfigurationCacheRepository {
   def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]]
 
   /**
-   * Return all known NodeConfigurationCache
+   * Return all known NodeConfigurationHash
    */
-  def getAll() : Box[Map[NodeId, NodeConfigurationCache]]
+  def getAll() : Box[Map[NodeId, NodeConfigurationHash]]
 
   /**
-   * Update or add NodeConfigurationCache from parameters.
-   * No existing NodeConfigurationCache is deleted.
+   * Update or add NodeConfigurationHash from parameters.
+   * No existing NodeConfigurationHash is deleted.
    * Return newly cache node configuration.
    */
-  def save(nodeConfigurationCache: Set[NodeConfigurationCache]): Box[Set[NodeId]]
+  def save(NodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]]
 }
 
 
-class InMemoryNodeConfigurationCacheRepository extends NodeConfigurationCacheRepository {
+class InMemoryNodeConfigurationHashRepository extends NodeConfigurationHashRepository {
 
-  private[this] val repository = scala.collection.mutable.Map[NodeId, NodeConfigurationCache]()
+  private[this] val repository = scala.collection.mutable.Map[NodeId, NodeConfigurationHash]()
 
   /**
    * Delete a node by its id
@@ -241,10 +299,10 @@ class InMemoryNodeConfigurationCacheRepository extends NodeConfigurationCacheRep
     Full(nodeIds)
   }
 
-  def getAll() : Box[Map[NodeId, NodeConfigurationCache]] = Full(repository.toMap)
+  def getAll() : Box[Map[NodeId, NodeConfigurationHash]] = Full(repository.toMap)
 
-  def save(nodeConfigurationCache: Set[NodeConfigurationCache]): Box[Set[NodeId]] = {
-    val toAdd = nodeConfigurationCache.map(c => (c.id, c)).toMap
+  def save(NodeConfigurationHash: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
+    val toAdd = NodeConfigurationHash.map(c => (c.id, c)).toMap
     repository ++= toAdd
     Full(toAdd.keySet)
   }
@@ -253,10 +311,10 @@ class InMemoryNodeConfigurationCacheRepository extends NodeConfigurationCacheRep
 /**
  * An implementation into LDAP
  */
-class LdapNodeConfigurationCacheRepository(
+class LdapNodeConfigurationHashRepository(
     rudderDit: RudderDit
   , ldapCon  : LDAPConnectionProvider[RwLDAPConnection]
-) extends NodeConfigurationCacheRepository with Loggable {
+) extends NodeConfigurationHashRepository with Loggable {
 
   import net.liftweb.json._
   import net.liftweb.json.Serialization.{read, write}
@@ -275,7 +333,7 @@ class LdapNodeConfigurationCacheRepository(
    * "best effort" way. Bad config are logged as error.
    * We fail if the entry is not of the expected type
    */
-  private[this] def fromLdap(e:LDAPEntry): Box[Set[NodeConfigurationCache]] = {
+  private[this] def fromLdap(e:LDAPEntry): Box[Set[NodeConfigurationHash]] = {
      for {
        typeOk <- if(e.isA(OC_NODES_CONFIG)) {
                    Full("ok")
@@ -285,7 +343,7 @@ class LdapNodeConfigurationCacheRepository(
      } yield {
        e.valuesFor(A_NODE_CONFIG).flatMap { json =>
          try {
-           Some(read[NodeConfigurationCache](json))
+           Some(read[NodeConfigurationHash](json))
          } catch {
            case e: Exception =>
              //try to get the nodeid from what should be some json
@@ -308,7 +366,7 @@ class LdapNodeConfigurationCacheRepository(
      }
   }
 
-  private[this] def toLdap(nodeConfigs: Set[NodeConfigurationCache]): LDAPEntry = {
+  private[this] def toLdap(nodeConfigs: Set[NodeConfigurationHash]): LDAPEntry = {
     val caches = nodeConfigs.map{ x => write(x) }
     val entry = rudderDit.NODE_CONFIGS.model
     entry +=! (A_NODE_CONFIG, caches.toSeq:_*)
@@ -320,7 +378,7 @@ class LdapNodeConfigurationCacheRepository(
    * Delete node config matching predicate.
    * Return the list of remaining ids.
    */
-  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationCache => Boolean): Box[Set[NodeId]] = {
+  private[this] def deleteCacheMatching( shouldDeleteConfig: NodeConfigurationHash => Boolean): Box[Set[NodeId]] = {
      for {
        ldap         <- ldapCon
        currentEntry <- ldap.get(rudderDit.NODE_CONFIGS.dn)
@@ -371,7 +429,7 @@ class LdapNodeConfigurationCacheRepository(
   }
 
 
-  def getAll() : Box[Map[NodeId, NodeConfigurationCache]] = {
+  def getAll() : Box[Map[NodeId, NodeConfigurationHash]] = {
     for {
       ldap    <- ldapCon
       entry   <- ldap.get(rudderDit.NODE_CONFIGS.dn)
@@ -381,7 +439,7 @@ class LdapNodeConfigurationCacheRepository(
     }
   }
 
-  def save(caches: Set[NodeConfigurationCache]): Box[Set[NodeId]] = {
+  def save(caches: Set[NodeConfigurationHash]): Box[Set[NodeId]] = {
     val updatedIds = caches.map(_.id)
     for {
       ldap          <- ldapCon

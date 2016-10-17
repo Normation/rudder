@@ -346,6 +346,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   val common = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("hasPolicyServer-root"), DirectiveId("common-root"))
     , technique       = commonTechnique
+    , techniqueUpdateTime = DateTime.now
     , variableMap     = commonVariables
     , trackerVariable = commonTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 0
@@ -369,6 +370,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   val serverRole = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("server-roles"), DirectiveId("server-roles-directive"))
     , technique       = rolesTechnique
+    , techniqueUpdateTime = DateTime.now
     , variableMap     = rolesVariables
     , trackerVariable = rolesTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 0
@@ -391,6 +393,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   val distributePolicy = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("root-DP"), DirectiveId("root-distributePolicy"))
     , technique       = distributeTechnique
+    , techniqueUpdateTime = DateTime.now
     , variableMap     = distributeVariables
     , trackerVariable = distributeTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 0
@@ -413,6 +416,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   val inventoryAll = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("inventory-all"), DirectiveId("inventory-all"))
     , technique       = inventoryTechnique
+    , techniqueUpdateTime = DateTime.now
     , variableMap     = inventoryVariables
     , trackerVariable = inventoryTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 0
@@ -442,6 +446,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   val clock = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("rule1"), DirectiveId("directive1"))
     , technique       = clockTechnique
+    , techniqueUpdateTime = DateTime.now
     , variableMap     = clockVariables
     , trackerVariable = clockTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 5
@@ -471,6 +476,7 @@ class WriteSystemTechniqueTest extends Specification with Loggable with ContentM
   val rpm = Cf3PolicyDraft(
       id              = Cf3PolicyDraftId(RuleId("rule2"), DirectiveId("directive2"))
     , technique       = rpmTechnique
+    , techniqueUpdateTime = DateTime.now
     , variableMap     = rpmVariables
     , trackerVariable = rpmTechnique.trackerVariableSpec.toVariable(Seq())
     , priority        = 5

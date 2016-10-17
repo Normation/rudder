@@ -74,18 +74,19 @@ case class Cf3PolicyDraftId(ruleId: RuleId, directiveId: DirectiveId) extends Ha
  *
  */
 final case class Cf3PolicyDraft(
-    id              : Cf3PolicyDraftId
-  , technique       : Technique
-  , variableMap     : Map[String, Variable]
-  , trackerVariable : TrackerVariable
-  , priority        : Int
-  , isSystem        : Boolean
-  , policyMode      : Option[PolicyMode]
-  , serial          : Int
-  , modificationDate: DateTime = DateTime.now
-  , ruleOrder       : BundleOrder
-  , directiveOrder  : BundleOrder
-  , overrides       : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
+    id                 : Cf3PolicyDraftId
+  , technique          : Technique
+  , techniqueUpdateTime: DateTime
+  , variableMap        : Map[String, Variable]
+  , trackerVariable    : TrackerVariable
+  , priority           : Int
+  , isSystem           : Boolean
+  , policyMode         : Option[PolicyMode]
+  , serial             : Int
+  , modificationDate   : DateTime = DateTime.now
+  , ruleOrder          : BundleOrder
+  , directiveOrder     : BundleOrder
+  , overrides          : Set[(RuleId,DirectiveId)] //a set of other draft overriden by that one
 ) extends Loggable {
 
   def toDirectiveVal(originalVariables: Map[String, Variable]) = ExpandedDirectiveVal(

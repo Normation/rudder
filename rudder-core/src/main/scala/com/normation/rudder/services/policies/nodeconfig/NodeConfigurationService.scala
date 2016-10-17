@@ -49,7 +49,7 @@ trait NodeConfigurationService {
   /**
    * Get all NodeConfigurations cache
    */
-  def getNodeConfigurationCache(): Box[Map[NodeId, NodeConfigurationCache]]
+  def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]]
 
   /**
    * Update a node configuration using a NodeConfiguration :
@@ -60,7 +60,7 @@ trait NodeConfigurationService {
   def sanitize(targets : Seq[NodeConfiguration]): Box[Map[NodeId, NodeConfiguration]]
 
 
-  def detectChangeInNodes(nodes : Seq[NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache], directiveLib: FullActiveTechniqueCategory): Set[RuleId]
+  def detectSerialIncrementRequest(nodes : Seq[NodeConfiguration], cacheIsEmpty: Boolean): Set[RuleId]
 
 
   /**
@@ -88,8 +88,6 @@ trait NodeConfigurationService {
   /**
    * Look what are the node configuration updated compared to information in cache
    */
-  def selectUpdatedNodeConfiguration(nodeConfigurations: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationCache]): Set[NodeId]
-
-  def detectChangeInNode(currentOpt: Option[NodeConfigurationCache], targetConfig: NodeConfiguration, directiveLib: FullActiveTechniqueCategory, cacheDefined: Boolean): Set[RuleId]
+  def selectUpdatedNodeConfiguration(nodeConfigurations: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationHash]): Set[NodeId]
 
 }
