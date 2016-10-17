@@ -45,7 +45,7 @@ bundle agent set_dry_run_mode(mode)
 
   reports:
     pass2.!unset_mode::
-      "${configuration.fatal} Dry-run mode is not compatible with this agent. Stopping immediately not to prevent any unwanted change."
+      "${configuration.fatal} Dry-run mode is not compatible with this agent. Stopping immediately to prevent any unwanted change."
         action  => immediate;
     pass2.debug.unset_mode::
       "${configuration.debug} Dry-run mode is not compatible with this agent, but only a disabling of dry-run has been requested. Ignoring.";
