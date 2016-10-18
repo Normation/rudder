@@ -155,7 +155,10 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
 });
 
 app.config(function($locationProvider) {
-  $locationProvider.html5Mode(true);
+  $locationProvider.html5Mode({
+    enabled: true,
+    requireBase: false
+  });
 })
 
 function getNodeId(){
