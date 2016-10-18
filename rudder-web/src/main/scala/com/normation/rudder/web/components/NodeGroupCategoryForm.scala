@@ -168,7 +168,7 @@ class NodeGroupCategoryForm(
       (
        <button id="removeButton" class="btn btn-danger">Delete</button>
         <div class="tw-bs">
-            <div id="removeActionDialog" class="modal fade">
+            <div id="removeActionDialog" class="modal fade" data-keyboard="true" tabindex="-1">
                 <div class="modal-backdrop fade in" style="height: 100%;"></div>
                 <div class="modal-dialog">
                     <div class="modal-content">
