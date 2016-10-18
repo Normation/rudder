@@ -149,7 +149,7 @@ object NodeConfigurationHash {
       , i.hostname.hashCode
       , i.localAdministratorAccountName.hashCode
       , i.policyServerId.hashCode
-      , i.properties
+      , i.properties.hashCode
       , i.isPolicyServer
       , i.serverRoles
       , i.agentsName.hashCode
