@@ -369,19 +369,13 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
   if (select_limit > 0) {
     select_multiple_modifier = "ctrl"
   }
-  $(id).bind("loaded.jstree", function (event, data) {
+  var tree = $(id).bind("loaded.jstree", function (event, data) {
       data.instance.open_all();
       $(id+' .rudder-label').bsTooltip();
     }).jstree({
       "core" : { 
         "animation" : 300,
         "html_titles" : true
-      },
-      "ui" : { 
-        "select_limit" : select_limit,
-        "selected_parent_close" : false,
-        "select_multiple_modifier" : select_multiple_modifier,
-        "initially_select" : initially_select
       },
       // I set both options to -2, as I do not need depth and children count checking
       // Those two checks may slow jstree a lot, so use only when needed
@@ -424,8 +418,10 @@ var buildDirectiveTree = function(id, initially_select, appContext, select_limit
     	  "theme" : "rudder",
     	  "url" : appContext+"/javascript/jstree/themes/rudder/style.css"
       },
-      "plugins" : [ "themes", "html_data", "ui", "types", "search"]
+      "plugins" : [ "themes", "html_data", "types", "search"]
     });
+
+   tree.jstree().select_node(initially_select)
 }
 
 
