@@ -166,15 +166,20 @@ class NodeGroupForm(
      bind("group", html,
       "pendingchangerequest" ->  PendingChangeRequestDisplayer.checkByGroup(pendingChangeRequestXml,nodeGroup.id, workflowEnabled),
       "name" -> groupName.toForm_!,
-      "rudderid" -> <div><b class="threeCol">Rudder ID: </b>{nodeGroup.id.value}</div>,
-      "cfeclasses" -> <div>
-                        <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300); return false;"}>
-                        <b class="threeCol">Display CFEngine classes</b>
+      "rudderid" -> <div class="form-group row">
+                      <label class="wbBaseFieldLabel">Rudder ID</label>
+                      <input disabled="" class="form-control" value={nodeGroup.id.value}/>
+                    </div>,
+      "cfeclasses" -> <div class="form-group row">
+                        <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300);$$(this).toggleClass('open');return false;"} class="toggle-caret">
+                          <label class="wbBaseFieldLabel">Display CFEngine classes</label>
+                          <span class="caret"></span>
                         </a>
-                        <span class="twoCol" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
+                        <div class="well row" style="display: none" id={s"cfe-${nodeGroup.id.value}"}>
                           {RuleTarget.toCFEngineClassName(nodeGroup.id.value)}<br/>
                           {RuleTarget.toCFEngineClassName(nodeGroup.name)}
-                        </span></div>,
+                        </div>
+                      </div>,
       "description" -> groupDescription.toForm_!,
       "container" -> groupContainer.toForm_!,
       "static" -> groupStatic.toForm_!,
@@ -201,7 +206,9 @@ class NodeGroupForm(
   private[this] val groupName = {
     new WBTextField("Group name", nodeGroup.name) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "rudderBaseFieldClassName"
+      override def className = "form-control"
+      override def labelClassName = ""
+      override def subContainerClassName = ""
       override def inputField = super.inputField %("onkeydown" , "return processKey(event , '%s')".format(saveButtonId))
       override def validations =
         valMinLen(3, "The name must have at least 3 characters") _ :: Nil
@@ -211,7 +218,9 @@ class NodeGroupForm(
   private[this] val groupDescription = {
     new WBTextAreaField("Group description", nodeGroup.description) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def inputField = super.inputField  % ("style" -> "height:10em")
+      override def className = "form-control"
+      override def labelClassName = ""
+      override def subContainerClassName = ""
       override def validations =  Nil
       override def errorClassName = "field_errors paddscala"
     }
@@ -230,13 +239,18 @@ class NodeGroupForm(
        }
     ) {
       override def setFilter = notNull _ :: trim _ :: Nil
+      override def className = ""
+      override def labelClassName = ""
+      override def subContainerClassName = ""
     }
   }
 
   private[this] val groupContainer = new WBSelectField("Group container",
       (categoryHierarchyDisplayer.getCategoriesHierarchy(rootCategory, None).map { case (id, name) => (id.value -> name)}),
       parentCategoryId.value) {
-    override def className = "rudderBaseFieldSelectClassName"
+      override def className = "form-control"
+      override def labelClassName = ""
+      override def subContainerClassName = ""
   }
 
   private[this] val formTracker = new FormTracker(List(groupName, groupDescription, groupContainer, groupStatic))
