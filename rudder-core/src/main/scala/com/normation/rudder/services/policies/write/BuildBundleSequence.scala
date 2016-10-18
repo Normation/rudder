@@ -170,7 +170,14 @@ final object BuildBundleSequence extends Loggable {
 
     // Fetch the policies configured and sort them according to rules and with the system policies first
     sortTechniques(nodeId, nodePolicyMode, globalPolicyMode, container) match {
-      case eb: EmptyBox => eb ?~! "plop"
+      case eb: EmptyBox =>
+        val msg = eb match {
+          case Empty      => ""
+          case f: Failure => //here, dedup
+            ": " + f.failureChain.map(m => m.msg.trim).toSet.mkString("; ")
+        }
+        Failure(s"Error when trying to generate the list of directive to apply to node '${nodeId.value}' ${msg}")
+
       case Full(sortedTechniques) =>
 
         // Then builds bundles and inputs:
@@ -358,8 +365,18 @@ final object BuildBundleSequence extends Loggable {
 
                    // until we have a directive-level granularity for policy mode, we have to define a technique-level policy mode
                    // if directives don't have a consistant policy mode, we fail (and report it)
-                   PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, tDrafts.map(_.policyMode)).map { policyMode =>
+                   (PolicyMode.computeMode(globalPolicyMode, nodePolicyMode, tDrafts.map(_.policyMode)).map { policyMode =>
                      (t, order, policyMode)
+                   }) match {
+                     case Full(x)      => Full(x)
+                     case eb: EmptyBox =>
+                       val msg = eb match {
+                         case Empty            => ""
+                         case Failure(m, _, _) => ": " + m
+                       }
+                       Failure(s"Error with Technique ${t.name} and [Rule ID // Directives ID: Policy Mode] ${tDrafts.map { x =>
+                         s"[${x.id.ruleId.value} // ${x.id.directiveId.value}: ${x.policyMode.map(_.name).getOrElse("inherited")}]"
+                       }.mkString("; ") } ${msg}")
                    }
                  }
     } yield {
