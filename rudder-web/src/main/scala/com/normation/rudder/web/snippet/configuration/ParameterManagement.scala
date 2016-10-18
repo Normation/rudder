@@ -247,11 +247,11 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
   private[this] def workflowCallBack(action:String, workflowEnabled: Boolean)(returns : Either[GlobalParameter,ChangeRequestId]) : JsCmd = {
     if ((!workflowEnabled) & (action == "delete")) {
-      JsRaw("$.modal.close();") & onSuccessDeleteCallback(workflowEnabled)
+      closePopup() & onSuccessDeleteCallback(workflowEnabled)
     } else {
       returns match {
         case Left(param) => // ok, we've received a parameter, do as before
-          JsRaw("$.modal.close();") &  updateGrid(workflowEnabled) & successPopup
+          closePopup() &  updateGrid(workflowEnabled) & successPopup
         case Right(changeRequestId) => // oh, we have a change request, go to it
           JsInitContextLinkUtil.redirectToChangeRequestLink(changeRequestId)
       }
@@ -288,7 +288,7 @@ class ParameterManagement extends DispatchSnippet with Loggable {
 
 
   private[this] def closePopup() : JsCmd = {
-    JsRaw(""" $.modal.close();""")
+    JsRaw(""" $('.modal').bsModal('hide');""")
   }
 
 
