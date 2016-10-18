@@ -115,6 +115,7 @@ object NodeConfigurationCache {
       , i.agentsName.hashCode
       , i.policyServerId.hashCode
       , i.localAdministratorAccountName.hashCode
+      , i.properties.hashCode
       ).hashCode
     }
 
