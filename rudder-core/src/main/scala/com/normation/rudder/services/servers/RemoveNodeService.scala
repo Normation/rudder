@@ -29,6 +29,7 @@ import com.normation.ldap.sdk.RwLDAPConnection
 import com.normation.utils.Control.sequence
 import net.liftweb.util.Helpers.tryo
 import com.normation.rudder.repository.CachedRepository
+import com.normation.rudder.repository.UpdateExpectedReportsRepository
 
 
 trait RemoveNodeService {
@@ -56,6 +57,7 @@ class RemoveNodeServiceImpl(
     , actionLogger              : EventLogRepository
     , groupLibMutex             : ScalaReadWriteLock //that's a scala-level mutex to have some kind of consistency with LDAP
     , nodeInfoServiceCache      : NodeInfoService with CachedRepository
+    , nodeConfigurationsRepo    : UpdateExpectedReportsRepository
 ) extends RemoveNodeService with Loggable {
 
 
@@ -77,28 +79,28 @@ class RemoveNodeServiceImpl(
       case "root" => Failure("The root node cannot be deleted from the nodes list.")
       case _ => {
         for {
-          optNodeInfo <- nodeInfoService.getNodeInfo(nodeId)
-          nodeInfo    <- optNodeInfo match {
-                           case None    => Failure(s"The node with id ${nodeId.value} was not found and can not be deleted")
-                           case Some(x) => Full(x)
-                         }
+          optNodeInfo   <- nodeInfoService.getNodeInfo(nodeId)
+          nodeInfo      <- optNodeInfo match {
+                             case None    => Failure(s"The node with id ${nodeId.value} was not found and can not be deleted")
+                             case Some(x) => Full(x)
+                           }
 
-          moved <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~!
-                   "Error when archiving a node"
-
-          eventLogged <- {
-            val invLogDetails = InventoryLogDetails(
-                            nodeId           = nodeInfo.id
-                          , inventoryVersion = nodeInfo.inventoryDate
-                          , hostname         = nodeInfo.hostname
-                          , fullOsName       = nodeInfo.osDetails.fullName
-                          , actorIp          = actor.name
-                        )
-            val eventlog = DeleteNodeEventLog.fromInventoryLogDetails(
-                principal = actor
-              , inventoryDetails = invLogDetails )
-            actionLogger.saveEventLog(modId, eventlog)
-          }
+          moved         <- groupLibMutex.writeLock {atomicDelete(nodeId, modId, actor) } ?~! "Error when archiving a node"
+          closed        <- nodeConfigurationsRepo.closeNodeConfigurations(nodeId)
+          eventLogged   <- {
+                             val invLogDetails = InventoryLogDetails(
+                                                     nodeId           = nodeInfo.id
+                                                   , inventoryVersion = nodeInfo.inventoryDate
+                                                   , hostname         = nodeInfo.hostname
+                                                   , fullOsName       = nodeInfo.osDetails.fullName
+                                                   , actorIp          = actor.name
+                                                 )
+                              val eventlog = DeleteNodeEventLog.fromInventoryLogDetails(
+                                                principal = actor
+                                              , inventoryDetails = invLogDetails
+                                             )
+                              actionLogger.saveEventLog(modId, eventlog)
+                            }
         } yield {
           //clear node info cached
           nodeInfoServiceCache.clearCache
