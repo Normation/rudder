@@ -375,12 +375,12 @@ class AcceptNode extends Loggable {
           SHtml.ajaxButton(
               "Accept"
             , { () =>  showConfirmPopup(acceptTemplate, "confirmPopup") }
-          ) % ("class", "btn btn-default")
+          ) % ("class", "btn btn-success pull-right")
       , "refuse" ->
           SHtml.ajaxButton(
               "Refuse"
             , { () => showConfirmPopup(refuseTemplate, "refusePopup" ) }
-          ) % ("class", "pull-right btn btn-danger")
+          ) % ("class", "btn btn-danger")
       , "errors" -> (errors match {
         case None => NodeSeq.Empty
         case Some(x) => <div>x</div>
