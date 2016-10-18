@@ -649,7 +649,6 @@ form .tw-bs input {
     border-radius: 4px !important;
 }
 
-
 .animate-show {
   line-height: 20px;
   opacity: 1;
@@ -704,7 +703,6 @@ form .tw-bs input {
 	margin-left: -13px
 }
 
-
 .tw-bs .text-section.row .btn-group .btn {
   margin-bottom : 2px;
 }
@@ -717,10 +715,10 @@ form .tw-bs input {
   width: calc(100% + 30px);
   border: none;
   margin-left: -15px;
-  height:calc(100vh - 80px);
+  height:calc(100vh - 95px);
 }
 @media (max-width:768px) {
   #editor-iframe{
-    height:calc(100vh - 130px);
+    height:calc(100vh - 145px);
   }
 }
