@@ -260,10 +260,11 @@ object DisplayNode extends Loggable {
       displayTabVideos(jsId, sm) ::
       Nil
 
-      <div id={htmlId(jsId,"details_")} class="sInventory tabsv ui-tabs ui-widget ui-widget-content ui-corner-all ui-tabs-vertical ui-helper-clearfix arrondis">
-        <ul class="ui-tabs-nav ui-helper-reset ui-helper-clearfix ui-widget-header ui-corner-all arrondisleft">{mainTabDeclaration}</ul>
+      val tabId = htmlId(jsId,"hardware_details_")
+      <div id={tabId} class="sInventory tabsv ui-tabs-vertical">
+        <ul>{mainTabDeclaration}</ul>
         {tabContent.flatten}
-      </div>
+      </div> ++ Script(OnLoad(JsRaw(s"$$('#${tabId}').tabs()")))
   }
 
   /**
@@ -355,26 +356,27 @@ object DisplayNode extends Loggable {
     }
 
     val deleteButton : NodeSeq= {
-       sm.node.main.status match {
-          case AcceptedInventory =>
-            <div class="tw-bs">
-                <div id={deleteNodePopupHtmlId}  class="modal fade" />
-                <div id={errorPopupHtmlId}  class="modal fade" />
-                <div id={successPopupHtmlId}  class="modal fade" />
-            </div>
-            <lift:authz role="node_write">
-              {
-                if(!isRootNode(sm.node.main.id)) {
-                  <div class="tw-bs">
-                    <div class="col-xs-12">
-                      { showDeleteButton(sm.node.main.id) }
-                    </div>
+      sm.node.main.status match {
+        case AcceptedInventory =>
+          <div class="tw-bs">
+              <div id={deleteNodePopupHtmlId}  class="modal fade" />
+              <div id={errorPopupHtmlId}  class="modal fade" />
+              <div id={successPopupHtmlId}  class="modal fade" />
+          </div>
+          <lift:authz role="node_write">
+            {
+              if(!isRootNode(sm.node.main.id)) {
+                <div class="tw-bs">
+                  <div class="col-xs-12">
+                    { showDeleteButton(sm.node.main.id) }
                   </div>
-                } else {NodeSeq.Empty}
-              }
-              </lift:authz>
-          case _ => NodeSeq.Empty
-        } }
+                </div>
+              } else {NodeSeq.Empty}
+            }
+            </lift:authz>
+        case _ => NodeSeq.Empty
+      }
+    }
 
      <div  id="nodeDetails" >
      <h3> Node characteristics</h3>
@@ -926,8 +928,9 @@ object DisplayNode extends Loggable {
                 </button>
             </div>
         </div>
-    </div> ;
-
+    </div>
+    JsRaw(s"updateHashString('nodeId', undefined); forceParseHashtag()") &
+    SetHtml("serverDetails", NodeSeq.Empty) &
     JsRaw( """$('#successPopupHtmlId').bsModal('hide');""") &
     SetHtml(successPopupHtmlId, popupHtml) &
     JsRaw( s""" callPopupWithTimeout(200,"${successPopupHtmlId}") """)

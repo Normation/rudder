@@ -98,37 +98,28 @@ class ShowNodeDetailsFromNode(
   private[this] val uuidGen              = RudderConfig.stringUuidGenerator
   private[this] val nodeRepo             = RudderConfig.woNodeRepository
   private[this] val asyncDeploymentAgent = RudderConfig.asyncDeploymentAgent
-  private[this] val configService = RudderConfig.configService
-  private[this] var nodeInfo = nodeInfoService.getNodeInfo(nodeId) match {
-    case Full(Some(info)) => info
-    case eb : EmptyBox =>
-      val e = eb ?~! s"Could not get Node '${nodeId.value}' details"
-      logger.error(e.messageChain)
-      throw new Exception(e.messageChain)
-    case Full(None) =>
-      val error = s"Could not get Node '${nodeId.value}' details because it does not exist"
-      logger.error(error)
-      throw new Exception(error)
-  }
+  private[this] val configService        = RudderConfig.configService
+  private[this] var boxNodeInfo          = nodeInfoService.getNodeInfo(nodeId)
 
   def extendsAt = SnippetExtensionKey(classOf[ShowNodeDetailsFromNode].getSimpleName)
 
-   def complianceModeEditForm = {
+   def complianceModeEditForm(nodeInfo : NodeInfo) = {
     val (globalMode, nodeMode) = {
-      val modes = getHeartBeat
+      val modes = getHeartBeat(nodeInfo)
       (modes.map(_._1),modes.map(_._2))
     }
 
     new ComplianceModeEditForm(
         nodeMode
-      , saveHeart
+      , saveHeart(nodeInfo)
       , () => Unit
       , globalMode
     )
   }
-  def getHeartBeat : Box[(GlobalComplianceMode,NodeComplianceMode)] = {
+  def getHeartBeat(nodeInfo : NodeInfo) : Box[(GlobalComplianceMode,NodeComplianceMode)] = {
     for {
       globalMode  <- configService.rudder_compliance_mode()
+
     } yield {
       // If heartbeat is not overriden, we revert to the default one
       val defaultHeartBeat = HeartbeatConfiguration(false, globalMode.heartbeatPeriod)
@@ -138,10 +129,10 @@ class ShowNodeDetailsFromNode(
     }
   }
 
-  def saveHeart(complianceMode : NodeComplianceMode) : Box[Unit] = {
+  def saveHeart(nodeInfo : NodeInfo)( complianceMode : NodeComplianceMode) : Box[Unit] = {
     val heartbeatConfiguration = HeartbeatConfiguration(complianceMode.overrideGlobal, complianceMode.heartbeatPeriod)
     val modId = ModificationId(uuidGen.newUuid)
-    nodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))
+    boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(heartbeatConfiguration = Some(heartbeatConfiguration))))))
     for {
       result <- nodeRepo.updateNode(nodeInfo.node, modId, CurrentUser.getActor, None)
     } yield {
@@ -151,9 +142,9 @@ class ShowNodeDetailsFromNode(
 
   def agentPolicyModeEditForm = new AgentPolicyModeEditForm()
 
-  def agentScheduleEditForm = new AgentScheduleEditForm(
-     () => getSchedule
-     , saveSchedule
+  def agentScheduleEditForm(nodeInfo : NodeInfo) = new AgentScheduleEditForm(
+     () => getSchedule(nodeInfo)
+     , saveSchedule(nodeInfo)
      , () => Unit
      , () => Some(getGlobalSchedule)
    )
@@ -176,14 +167,14 @@ class ShowNodeDetailsFromNode(
   }
 
   val emptyInterval = AgentRunInterval(Some(false), 5, 0, 0, 0) // if everything fails, we fall back to the default entry
-  def getSchedule : Box[AgentRunInterval] = {
+  def getSchedule(nodeInfo : NodeInfo) : Box[AgentRunInterval] = {
      Full( nodeInfo.nodeReportingConfiguration.agentRunInterval.getOrElse(getGlobalSchedule.getOrElse(emptyInterval)))
   }
 
-  def saveSchedule(schedule: AgentRunInterval) : Box[Unit] = {
+  def saveSchedule(nodeInfo : NodeInfo)( schedule: AgentRunInterval) : Box[Unit] = {
     val modId =  ModificationId(uuidGen.newUuid)
     val user  =  CurrentUser.getActor
-    nodeInfo = nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))
+    boxNodeInfo = Full(Some(nodeInfo.copy( nodeInfo.node.copy( nodeReportingConfiguration = nodeInfo.node.nodeReportingConfiguration.copy(agentRunInterval = Some(schedule))))))
     for {
       oldNode <- nodeInfoService.getNode(nodeId)
       result  <- nodeRepo.updateNode(nodeInfo.node, modId, user, None)
@@ -210,7 +201,7 @@ class ShowNodeDetailsFromNode(
   }
 
   private[this] def privateDisplay(withinPopup : Boolean = false, displayCompliance : Boolean = false) : NodeSeq = {
-    nodeInfoService.getNodeInfo(nodeId) match {
+    boxNodeInfo match {
       case Full(None) =>
         <div class="error">Node with id {nodeId.value} was not found</div>
       case eb:EmptyBox =>
@@ -275,8 +266,8 @@ class ShowNodeDetailsFromNode(
       "#reportsDetails *" #> reportDisplayer.asyncDisplay(node) &
       "#logsDetails *" #> logDisplayer.asyncDisplay(node.id)&
       "#node_parameters -*" #>  agentPolicyModeEditForm.cfagentPolicyModeConfiguration &
-      "#node_parameters -*" #>  agentScheduleEditForm.cfagentScheduleConfiguration &
-      "#node_parameters *+" #> complianceModeEditForm.complianceModeConfiguration &
+      "#node_parameters -*" #>  agentScheduleEditForm(node).cfagentScheduleConfiguration&
+      "#node_parameters *+" #> complianceModeEditForm(node).complianceModeConfiguration &
       "#extraHeader" #> DisplayNode.showExtraHeader(inventory) &
       "#extraContent" #> DisplayNode.showExtraContent(Some(node), inventory) &
       "#node_tabs [id]" #> s"details_${id}"

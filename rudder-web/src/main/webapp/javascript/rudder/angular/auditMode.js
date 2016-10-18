@@ -153,6 +153,11 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
     }
   };
 });
+
+app.config(function($locationProvider) {
+  $locationProvider.html5Mode(true);
+})
+
 function getNodeId(){
   var nodeId;
   try {
