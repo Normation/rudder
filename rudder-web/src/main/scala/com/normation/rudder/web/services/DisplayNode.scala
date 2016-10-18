@@ -359,9 +359,9 @@ object DisplayNode extends Loggable {
       sm.node.main.status match {
         case AcceptedInventory =>
           <div class="tw-bs">
-              <div id={deleteNodePopupHtmlId}  class="modal fade" />
-              <div id={errorPopupHtmlId}  class="modal fade" />
-              <div id={successPopupHtmlId}  class="modal fade" />
+              <div id={deleteNodePopupHtmlId}  class="modal fade" data-keyboard="true" tabindex="-1" />
+              <div id={errorPopupHtmlId}  class="modal fade" data-keyboard="true" tabindex="-1" />
+              <div id={successPopupHtmlId}  class="modal fade" data-keyboard="true" tabindex="-1" />
           </div>
           <lift:authz role="node_write">
             {
