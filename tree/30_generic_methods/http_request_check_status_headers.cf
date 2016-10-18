@@ -24,7 +24,8 @@
 # @parameter url URL to query
 # @parameter expected_status Expected status code of the HTTP response
 # @parameter headers Headers to include in the HTTP request (as a string, without ')
-
+# @parameter_constraint headers "allow_empty_string" : true
+#
 # @class_prefix http_request_check_status_headers
 # @class_parameter url
 
