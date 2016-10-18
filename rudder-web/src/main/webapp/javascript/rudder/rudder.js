@@ -58,6 +58,13 @@ $.fn.bsTooltip = bootstrapTooltip;
  */
 
 function createTooltip() {
+  $.widget("ui.tooltip", $.ui.tooltip, {
+    options: {
+      content: function () {
+        return $(this).prop('title');
+      }
+    }
+  });
   $(".tooltipable").tooltip({
     show: {
       effect: "none",

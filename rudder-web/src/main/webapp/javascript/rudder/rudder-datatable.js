@@ -1432,36 +1432,36 @@ function buildComplianceBar(compliance, minPxSize) {
   if(okStatus != 0) {
     var text = []
     if (enforceSuccess != 0) {
-      text.push("Success (enforce): "+enforceSuccess+"%");
+      text.push("Success (enforce): "+enforceSuccess+"% <br> ");
     }
     if (compliant != 0) {
-      text.push("Compliant: "+compliant+"%");
+      text.push("Compliant: "+compliant+"% <br> ");
     }
     if (repaired != 0) {
-      text.push("Repaired: "+repaired+"%");
+      text.push("Repaired: "+repaired+"% <br> ");
     }
     if (enforceNotApplicable != 0) {
-      text.push("Not applicable (enforce): "+enforceNotApplicable+"%");
+      text.push("Not applicable (enforce): "+enforceNotApplicable+"% <br> ");
     }
     if (auditNotApplicable != 0) {
-      text.push("Not applicable (audit): "+auditNotApplicable+"%");
+      text.push("Not applicable (audit): "+auditNotApplicable+"% <br> ");
     }
     var value = compliancePercentValue(okStatus);
     content.append('<div class="progress-bar progress-bar-success" style="width:'+widthArr[0]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
   if(nonCompliant != 0) {
     var text = []
-    text.push("Non compliance: "+nonCompliant+"%");
+    text.push("Non compliance: "+nonCompliant+"% <br> ");
     var value = compliancePercentValue(nonCompliant);
     content.append('<div class="progress-bar progress-bar-audit-noncompliant" style="width:'+widthArr[1]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
   if(error != 0) {
     var text = []
     if (enforceError != 0) {
-      text.push("Errors (enforce): "+enforceError+"%");
+      text.push("Errors (enforce): "+enforceError+"% <br> ");
     }
     if (unknown != 0) {
-      text.push("Errors (audit): "+auditError+"%");
+      text.push("Errors (audit): "+auditError+"% <br> ");
     }
     var value = compliancePercentValue(error);
     content.append('<div class="progress-bar progress-bar-error" style="width:'+widthArr[2]+'" title="'+text.join("\n")+'">'+value+'%</div>');
@@ -1469,13 +1469,13 @@ function buildComplianceBar(compliance, minPxSize) {
   if(unexpected != 0) {
     var text = []
     if (missing != 0) {
-      text.push("Missing reports: "+missing+"%");
+      text.push("Missing reports: "+missing+"% <br> ");
     }
     if (unknown != 0) {
-      text.push("Unknown reports: "+unknown+"%");
+      text.push("Unknown reports: "+unknown+"% <br> ");
     }
     if (badPolicyMode != 0) {
-      text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode+"%");
+      text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode+"% <br> ");
     }
     var value = compliancePercentValue(unexpected);
     content.append('<div class="progress-bar progress-bar-unknown" style="width:'+widthArr[3]+'" title="'+text.join("\n")+'">'+value+'%</div>');
