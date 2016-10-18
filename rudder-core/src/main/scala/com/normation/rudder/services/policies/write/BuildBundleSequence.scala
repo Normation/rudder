@@ -196,7 +196,7 @@ final object BuildBundleSequence extends Loggable {
         // All done, return all the correctly formatted system variables
         Full(BundleSequenceVariables(
             inputlist                 = formatBundleFileInputs(inputs.map(_.path))
-          , bundlelist                = techniquesBundles.flatMap( _.bundleSequence).mkString(", ", ", ", "")
+          , bundlelist                = techniquesBundles.flatMap( _.bundleSequence.map(_.name)).mkString(", ", ", ", "")
           , systemDirectivesInputs    = formatBundleFileInputs(systemInputs.map(_.path))
           , systemDirectivesUsebundle = formatMethodsUsebundle(systemBundle)
           , directivesInputs          = formatBundleFileInputs(userInputs.map(_.path))
