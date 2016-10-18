@@ -205,6 +205,14 @@ class UpdateExpectedReportsJdbcRepository(
 
   import doobie._
   import pgInClause._
+  import Doobie._
+
+  override def closeNodeConfigurations(nodeId: NodeId): Box[NodeId] = {
+    sql"""
+      update nodeconfigurations set enddate = ${DateTime.now} where nodeid = ${nodeId} and enddate is null
+    """.update.run.attempt.transact(xa).run.map( _ => nodeId )
+  }
+
 
 
   /**

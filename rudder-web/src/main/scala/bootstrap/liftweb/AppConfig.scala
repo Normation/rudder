@@ -1641,6 +1641,7 @@ object RudderConfig extends Loggable {
       , logRepository
       , nodeReadWriteMutex
       , nodeInfoServiceImpl
+      , updateExpectedRepo
   )
 
   /**

@@ -45,6 +45,12 @@ import com.normation.rudder.domain.policies.SerialedRuleId
 
 
 trait UpdateExpectedReportsRepository {
+
+  /**
+   * Close opened expected node configurations for the given nodeID.
+   */
+  def closeNodeConfigurations(nodeId: NodeId): Box[NodeId]
+
   /**
    * Return the ruleId currently opened, and their serial and list of nodes
    * It is only used to know which conf expected report we should close
