@@ -98,7 +98,7 @@ class TechniqueCategoryEditForm(
         {categoryDetailsForm}
     </div>
     <div class="tw-bs">
-    <div id="removeCategoryActionDialog" class="modal fade">
+    <div id="removeCategoryActionDialog" class="modal fade" data-keyboard="true" tabindex="-1">
     <div class="modal-backdrop fade in" style="height: 100%;"></div>
     <div class="modal-dialog">
         <div class="modal-content">
