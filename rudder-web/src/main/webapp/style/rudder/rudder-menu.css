@@ -723,7 +723,60 @@ a.sidebar-toggle{
   color: #FFFFFF;
 }
 /* ----- </DROPDOWN MENU>  ----- */
-
+/* GROUP PAGE */
+#groupParametersTab .page-title{
+  margin-left: 12px;
+  margin-right: 12px;
+  margin-bottom: 5px;
+}
+#groupParametersTab .section-title{
+  margin: 15px 13px 8px 8px;
+}
+.toggle-caret,.tw-bs .toggle-caret,.tw-bs label.toggle-caret{
+	display:block;
+	text-decoration:none !important;
+}
+.toggle-caret label{
+  cursor: pointer;
+}
+.toggle-caret .caret{
+	transition-duration:.2s;
+	-webkit-transform: rotate(-90deg);
+  -ms-transform: rotate(-90deg);
+  -o-transform: rotate(-90deg);
+  transform: rotate(-90deg);
+  color:#333;
+}
+.toggle-caret.open .caret{
+  -webkit-transform: rotate(0deg);
+  -ms-transform: rotate(0deg);
+  -o-transform: rotate(0deg);
+  transform: rotate(0deg);
+}
+.toggle-caret + .well{
+  color:#555;
+  padding: 6px 12px;
+  background-color: #eeeeee;
+  border: 1px solid #d0d0d0;
+}
+#groupDetails .form-group.row{
+  padding: 0px 27px 0px 22px;
+}
+#groupDetails .well.row{
+	margin-left:auto;
+	margin-right:auto;
+}
+#groupDetails .radio-inline .radioTextLabel{
+  margin:0;
+}
+#groupDetails .radio-inline .tooltip{
+  position:relative;
+  opacity:1;
+}
+#groupDetails textarea.form-control{
+	resize:vertical;
+	min-height:6em;
+}
 /* RULE PAGE */
 #submitSearch #SubmitSearch{
   margin-left: 7px;
