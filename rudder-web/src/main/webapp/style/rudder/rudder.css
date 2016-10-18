@@ -695,6 +695,7 @@ table.noMarginGrid {
 }
 #reportsGrid tr>th:first-child,#reportsGrid tr>td:first-child{
   width:auto !important;
+  white-space: normal;
 }
 #reportsGrid td .tw-bs .progress-bar {
   float: inherit;
