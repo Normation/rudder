@@ -123,7 +123,7 @@
 
 
 /* autocomplete.css */
-.ui-autocomplete-loading { background: white url('../images/themes/ui-lightness/images/ui-anim_basic_16x16.gif') right center no-repeat; }
+.ui-autocomplete-loading { background: white url('../jquery-ui/images/ui-anim_basic_16x16.gif') right center no-repeat; }
 
 .ui-menu {
   float: none;
@@ -353,7 +353,7 @@ input .ui-button {
 
 /* Interaction Cues -*/
 .ui-state-highlight, .ui-widget-content .ui-state-highlight {
-   background: #ffe45c url(../jquery-ui/images/ui-bg_highlight-soft_75_ffe45c_1x100.png) 50% top repeat-x;
+   background: #cccccc url(../jquery-ui/images/ui-bg_highlight-soft_75_cccccc_1x100.png) 50% top repeat-x;
    color: #363636;
    border: none;
 }
