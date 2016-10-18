@@ -250,28 +250,27 @@ function dropFilterArea(tableId) {
 }
 
 function activateButtonOnFormChange(containerDivId, buttonId, status) {
-  $("#"+buttonId).button();
+  $('#'+buttonId).removeProp("disabled")
 
   if ("false"==status) {
-    $('#'+buttonId).button( "option", "disabled", true );
-  } else {
-    $('#'+buttonId).button( "option", "disabled", false );
+    disableButton(buttonId)
+  } else {  $('#'+buttonId).removeProp("disabled")
   }
 
   // all change on the form
-  $('#'+containerDivId+' > form').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  $('#'+containerDivId+' > form').change(function() { $('#'+buttonId).removeProp("disabled")});
   // This one is for all input (text, textarea, password... and yes, button)
-  $('#'+containerDivId+' :input').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  $('#'+containerDivId+' :input').change(function() { $('#'+buttonId).removeProp("disabled")});
   // this one is for the checkbox when using IE
   //if ($.browser.msie)
   //  $('#'+containerDivId+' > form :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).prop("disabled", false);}});
 
   // all change on not the form
-  $('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  $('#'+containerDivId+' :radio').change(function() { $('#'+buttonId).removeProp("disabled")});
   // This one is for all input (text, textarea, password... and yes, button)
-  $('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).button( "option", "disabled", false );});
+  $('#'+containerDivId+' :input').keyup(function() { $('#'+buttonId).removeProp("disabled")});
 
-  $('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).button( "option", "disabled", false );}});
+  $('#'+containerDivId+' :checkbox').bind('propertychange', function(e) {if (e.type == "change" || (e.type == "propertychange" && window.event.propertyName == "checked")) {  $('#'+buttonId).removeProp("disabled")}});
 
 }
 
@@ -279,8 +278,8 @@ function activateButtonOnFormChange(containerDivId, buttonId, status) {
  *
  */
 function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, gridId, saveButton) {
-  $("#"+buttonId).button();
-
+  $('#'+buttonId).removeProp("disabled")
+  
   // all change on the form
   $('#'+containerDivId+' > form').change(function() { disableButton(saveButton);});
   // This one is for all input (text, textarea, password... and yes, button)
@@ -303,7 +302,7 @@ function activateButtonDeactivateGridOnFormChange(containerDivId, buttonId, grid
  * @param buttonId
 */
 function disableButton(buttonId) {
-  $('#'+buttonId).button( "option", "disabled", true );
+  $('#'+buttonId).prop("disabled", true );
 }
 
 function scrollToElement(elementId, containerSelector) {

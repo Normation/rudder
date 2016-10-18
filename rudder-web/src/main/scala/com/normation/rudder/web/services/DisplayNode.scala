@@ -261,7 +261,7 @@ object DisplayNode extends Loggable {
       Nil
 
       val tabId = htmlId(jsId,"hardware_details_")
-      <div id={tabId} class="sInventory tabsv ui-tabs-vertical">
+      <div id={tabId} class="sInventory ui-tabs-vertical">
         <ul>{mainTabDeclaration}</ul>
         {tabContent.flatten}
       </div> ++ Script(OnLoad(JsRaw(s"$$('#${tabId}').tabs()")))
