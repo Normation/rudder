@@ -425,7 +425,8 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
   private[this] def displayCategory(workflowEnabled: Boolean)(category : NodeGroupCategory) : JsCmd = {
     selectedCategoryId = Full(category.id)
     //update UI - no modification here, so no refreshGroupLib
-    refreshRightPanel(CategoryForm(category), workflowEnabled)
+    refreshRightPanel(CategoryForm(category), workflowEnabled) &
+    JsRaw("""$('#groupDetails').show();""")
   }
 
   //adaptater
