@@ -34,19 +34,13 @@ bundle agent set_dry_run_mode(mode)
   classes:
       # double negation, so that the default is dry_run (in case of error)
       "unset_mode" expression => strcmp("${mode}", "false");
-      "pass3" expression => "pass2";
-      "pass2" expression => "pass1";
-      "pass1" expression => "any";
 
-    pass3.!unset_mode::
-      # wait for pass3 to be able to display the report before
-      # then abort agent execution
-      "abort_agent_run" expression => "any";
+  methods:
+    !unset_mode::
+      "abort" usebundle => _abort("unsupported_dryrun", "Dry-run mode is not compatible with this agent. Stopping immediately to prevent any unwanted change."),
+                action  => immediate;
 
   reports:
-    pass2.!unset_mode::
-      "${configuration.fatal} Dry-run mode is not compatible with this agent. Stopping immediately to prevent any unwanted change."
-        action  => immediate;
-    pass2.debug.unset_mode::
+    debug.unset_mode::
       "${configuration.debug} Dry-run mode is not compatible with this agent, but only a disabling of dry-run has been requested. Ignoring.";
 }
