@@ -203,7 +203,8 @@ class SearchNodes extends StatefulSnippet with Loggable {
           }
           val nodeDetails = new ShowNodeDetailsFromNode(new NodeId(nodeId), groupLibrary).display(false, displayCompliance)
           SetHtml("serverDetails", nodeDetails)
-        case _ => Noop
+        case _ =>
+          SetHtml("serverDetails", NodeSeq.Empty)
       }
     }
 
