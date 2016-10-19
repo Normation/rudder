@@ -229,7 +229,7 @@ class ExpectedReportsUpdateImpl(
         case None => // add it
           ( (Vector(NodeConfigIdInfo(next.nodeConfigId, next.beginDate, None)), next.nodeId) :: add, update, ok)
         case Some(infos) =>
-          infos.find(i => i.configId == next.nodeConfigId && i.endOfLife.nonEmpty) match {
+          infos.find(i => i.configId == next.nodeConfigId && i.endOfLife.isEmpty) match {
             case Some(info) => //no update
               (add, update, next.nodeId :: ok)
             case None => // update
@@ -240,7 +240,13 @@ class ExpectedReportsUpdateImpl(
 
 
     // filter out node expected reports up to date
-    val toSave = configs.filterNot(okConfigs.contains)
+    val toSave = configs.filterNot(c => okConfigs.contains(c.nodeId))
+
+    logger.trace(s"Nodes with up-to-date expected configuration: [${okConfigs.sortBy(_.value).map(r => s"${r.value}").mkString("][")}]")
+    logger.debug(s"Closing out of date expected node's configuration: [${toClose.sortBy(_._2.value).map(r => s"${r._2.value} : ${r._3.value}").mkString("][")}]")
+    logger.debug(s"Saving new expected node's configuration: [${toSave.sortBy(_.nodeId.value).map(r => s"${r.nodeId.value} : ${r.nodeConfigId.value}]").mkString("][")}]")
+    logger.trace(s"Adding node configuration timeline info: [${toAdd.sortBy(_._2.value).map{ case(i,n) => s"${n.value}:${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
+    logger.trace(s"Updating node configuration timeline info: [${toUpdate.sortBy(_._2.value).map{ case(i,n) => s"${n.value}(${i.size} entries):${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
 
     //now, mass update
     (for {

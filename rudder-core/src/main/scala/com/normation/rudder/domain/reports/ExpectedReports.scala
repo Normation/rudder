@@ -486,13 +486,15 @@ object NodeConfigIdSerializer {
    */
 
   def serialize(ids: Vector[NodeConfigIdInfo]) : String = {
-    implicit val formats = Serialization.formats(NoTypeHints)
+    import net.liftweb.json.JsonDSL._
 
-    val m = ids.map { case NodeConfigIdInfo(NodeConfigId(id), creation, _) =>
-      (id, creation.toString(isoDateTime))
-    }.toMap
+    //be careful, we can have several time the same id with different creation date
+    //we want an array of { begin : id }
+    val m: JValue = JArray(ids.toList.sortBy(_.creation.getMillis).map { case NodeConfigIdInfo(NodeConfigId(id), creation, _) =>
+      (creation.toString(isoDateTime) -> id):JObject
+    })
 
-    Serialization.write(m)
+    compactRender(m)
   }
 
   /*
@@ -505,13 +507,13 @@ object NodeConfigIdSerializer {
     if(null == ids || ids.trim == "") Vector()
     else {
       implicit val formats = DefaultFormats
-      val configs = parse(ids).extract[Map[String, String]].toList.flatMap { case (id, date) =>
+      val configs = parse(ids).extractOrElse[List[Map[String, String]]](List()).flatMap { case map =>
         try {
-          Some((NodeConfigId(id), isoDateTime.parseDateTime(date)))
+          Some(map.map { case (date, id) => (NodeConfigId(id), isoDateTime.parseDateTime(date))})
         } catch {
           case e:Exception => None
         }
-      }.sortBy( _._2.getMillis )
+      }.flatten.sortBy( _._2.getMillis )
 
       //build interval
       configs match {
