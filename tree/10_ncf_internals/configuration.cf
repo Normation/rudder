@@ -48,6 +48,19 @@ bundle agent configuration
       "enabled_abort_handlers"     slist => splitstring("${ncf_config[abort_handlers][1]}",",","10");
       "cfengine_port"              string => "${ncf_config[cfengine_port][1]}";
 
+      # Add a default empty list to allow skipping those handlers
+    pass3.enabled_loggers_empty::
+      "enabled_loggers"            slist => {};
+    pass3.enabled_abort_handlers_empty::
+      "enabled_abort_handlers"     slist => {};
+    pass3.!enabled_loggers_defined::
+      "enabled_loggers"            slist => { "_log_default" };
+    pass3.!enabled_abort_handlers_defined::
+      "enabled_abort_handlers"     slist => { "_abort_default" };
+    pass3.!cfengine_port_defined::
+      "cfengine_port"              string => "5308";
+
+    any::
       # Constants
       "fatal"                     string => "[FATAL]";
       "error"                     string => "[ERROR]";
@@ -62,8 +75,19 @@ bundle agent configuration
       "has_promiser_stack" expression => isvariable("this.callers_promisers"),
                            scope => "namespace";
 
+      "pass3" expression => "pass1";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
+
+    pass3::
+      # this line will not be evaluated by cfengine if destination_prefix contains a variable that does not exist
+      # and it will always be evaluated to true otherwise
+      # Using the source variable for empty check to allow trailing comma
+      "enabled_loggers_defined"        expression => strcmp("${enabled_loggers}", "${enabled_loggers}");
+      "enabled_loggers_empty"          expression => strcmp("${ncf_config[loggers][1]}", "");
+      "enabled_abort_handlers_defined" expression => strcmp("${enabled_abort_handlers}", "${enabled_abort_handlers}");
+      "enabled_abort_handlers_empty"   expression => strcmp("${ncf_config[abort_handlers][1]}", "");
+      "cfengine_port_defined"                 not => strcmp("${cfengine_port}", "${ncf_config[cfengine_port][1]}");
 
   # We cannot use the generic method to expand template, as it relies on the logger,
   # which is not yet defined
