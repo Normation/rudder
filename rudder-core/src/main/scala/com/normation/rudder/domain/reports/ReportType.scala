@@ -104,12 +104,16 @@ object ReportType {
         case (_, BadPolicyMode)       | (BadPolicyMode, _)        => BadPolicyMode
         case (_, Unexpected)          | (Unexpected, _)           => Unexpected
         case (_, EnforceError)        | (EnforceError, _)         => EnforceError
+        case (_, AuditError)          | (AuditError, _)           => AuditError
+        case (_, AuditNonCompliant)   | (AuditNonCompliant, _)    => AuditNonCompliant
         case (_, EnforceRepaired)     | (EnforceRepaired, _)      => EnforceRepaired
         case (_, Missing)             | (Missing, _)              => Missing
         case (_, NoAnswer)            | (NoAnswer, _)             => NoAnswer
         case (_, Disabled)            | (Disabled, _)             => Disabled
         case (_, Pending)             | (Pending, _)              => Pending
         case (_, EnforceSuccess)      | (EnforceSuccess, _)       => EnforceSuccess
+        case (_, AuditCompliant)      | (AuditCompliant, _)       => AuditCompliant
+        case (_, AuditNotApplicable)  | (AuditNotApplicable, _)   => AuditNotApplicable
         case (_, EnforceNotApplicable)| (EnforceNotApplicable, _) => EnforceNotApplicable
         case _ => Unexpected
       }
