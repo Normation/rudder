@@ -133,6 +133,32 @@ header.main-header .logo-lg img{
   font-size: 20px;
 }
 
+/* FAKE INPUT DISABLED */
+.tw-bs .well.well-disabled, .tw-bs .readonly-field > div > div{
+  cursor: no-drop;
+  padding: 6px 12px;
+  background-color: #eee;
+  border: 1px solid #d0d0d0;
+  box-shadow: none;
+  color: #555;
+  font-size: 12px;
+  margin-bottom: 0;
+}
+.tw-bs .readonly-field > div{
+  padding-left: 15px;
+  padding-right: 15px;
+  floart:left;
+}
+.tw-bs .readonly-field > div > div{
+  border-radius:4px;
+  min-height:31px;
+}
+/* TEXTAREA */
+.tw-bs textarea.form-control{
+  resize:vertical;
+  min-height:6em;
+}
+
 /* ----- <QUICK SEARCH>  ----- */
 /* FIX CSS BUGS */
 .main-header>.navbar {
@@ -276,11 +302,6 @@ aside.main-sidebar.fixed{
   height: calc(100vh - 110px);
   overflow-x: hidden;
   overflow-y: scroll;
-}
-#groupDetails{
-  height: calc(100vh - 110px);
-  overflow-x: hidden;
-  overflow-y: auto;
 }
 
 a.sidebar-toggle{
@@ -759,6 +780,11 @@ a.sidebar-toggle{
   background-color: #eeeeee;
   border: 1px solid #d0d0d0;
 }
+#groupDetails{
+  height: calc(100vh - 110px);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
 #groupDetails .form-group.row{
   padding: 0px 27px 0px 22px;
 }
@@ -772,10 +798,6 @@ a.sidebar-toggle{
 #groupDetails .radio-inline .tooltip{
   position:relative;
   opacity:1;
-}
-#groupDetails textarea.form-control{
-	resize:vertical;
-	min-height:6em;
 }
 /* RULE PAGE */
 #submitSearch #SubmitSearch{
@@ -809,6 +831,72 @@ a.sidebar-toggle{
 .skin-yellow.sidebar-collapse .directive-footer {
   width: 63.2%;
 }
+
+/* --- CHANGE REQUEST PAGE --- */
+#changeRequestHeader{
+  margin: 0 40px;
+  padding-bottom:5px;
+  border-bottom: 2px solid #f08004;
+}
+#nameTitle {
+  font-weight: bold;
+  font-size: 25px;
+  color:#555;
+}
+#CRLastAction {
+  font-size: 15px;
+  margin-bottom:5px;
+  font-style:italic;
+  color: #777;
+}
+#backButton > span{
+  margin-right: 5px;
+  position: relative;
+}
+#backButton:hover{
+  color: #23527c;
+}
+#backButton:hover > span{
+  -webkit-animation: bounceH .8s ease infinite;
+  -moz-animation:    bounceH .8s ease infinite;
+  -o-animation:      bounceH .8s ease infinite;
+  animation:         bounceH .8s ease infinite;
+}
+#CRStatus {
+  background-color: #eeeeee;
+  min-width: 160px;
+  line-height: 50px;
+  min-height: 50px;
+  text-align: center;
+  color: #555555;
+  float: right;
+  font-size: 15px;
+  font-weight: bold;
+  cursor: default;
+  text-align:center;
+  position:relative;
+}
+#CRStatus:before {
+  position: absolute;
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 80px solid transparent;
+  border-right: 80px solid transparent;
+  border-top: 20px solid #eeeeee;
+  left: 0;
+  top: 50px;
+}
+#CRSave{
+	margin-top: 10px;
+}
+#changeRequestDetails .alert.alert-danger {
+  margin-bottom: 0px;
+}
+#detailsForm,#warnOnUnmergeable{
+  margin:10px 40px 30px;
+}
+
 /* --- TECHNIQUES PAGE --- */
 #editForm table{
   width:100%;
@@ -1067,6 +1155,7 @@ form .tooltip-content p {
 */
 /* --- GENERAL --- */
 .callout-fade{
+  position: relative;
   padding-right: 30px !important;
   font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
   font-size:14px;
@@ -1868,4 +1957,24 @@ hr.separation{
 @keyframes loader {
   0%   {margin-left: 0px;}
   100% {margin-left: 25px;}
+}
+@-webkit-keyframes bounceH {
+  0%   {right: 0px;}
+  50%  {right: 4px;}
+  100%  {right: 0px;}
+}
+@-moz-keyframes bounceH {
+  0%   {right: 0px;}
+  50%  {right: 4px;}
+  100%  {right: 0px;}
+}
+@-o-keyframes bounceH {
+  0%   {right: 0px;}
+  50%  {right: 4px;}
+  100%  {right: 0px;}
+}
+@keyframes bounceH {
+  0%   {right: 0px;}
+  50%  {right: 4px;}
+  100%  {right: 0px;}
 }

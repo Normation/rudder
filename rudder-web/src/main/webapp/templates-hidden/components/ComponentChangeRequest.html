@@ -2,43 +2,42 @@
 
 
 <component:header>
-  <a id="backButton"> ← Back to change request list</a>
-  <div id="CRStatus" class="ui-corner-all ui-state-default" ></div>
-  <hr class="spacer"/>
+  <span class="tw-bs">
+    <a id="backButton" class="btn btn-sm">
+      <span class="fa fa-arrow-left"></span>
+      Back to change request list
+    </a>
+  </span>
+  <div id="CRStatus"></div>
   <div id="nameTitle" ></div>
-  <hr class="spacer"/>
   <div id="CRLastAction" ></div>
-
 </component:header>
 
 <component:details>
-  <div id="detailsForm" style="margin:10px 40px 30px;">
+  <div id="detailsForm">
     <div id="formError"></div>
-    <hr class="spacer"/>
     <div id="CRName"></div>
-    <hr class="spacer"/>
-    <div class="wbBaseField">
-      <b class="threeCol">State: </b>
-      <span id="CRStatusDetails">
-        Here comes change request status
-      </span>
+    <div class="row wbBaseField form-group">
+      <label class="col-xs-12">State</label>
+      <div class="col-xs-12">
+        <div id="CRStatusDetails" class="well well-disabled">
+          Here comes change request status
+        </div>
+      </div>
     </div>
-    <hr class="spacer"/>
-    <div class="wbBaseField">
-      <b class="threeCol">ID: </b>
-      <span id="CRId">
-        Here comes the rudder ID
-      </span>
+    <div class="row wbBaseField form-group">
+      <label class="col-xs-12">ID</label>
+      <div class="col-xs-12">
+        <div id="CRId" class="well well-disabled">
+          Here comes the rudder ID
+        </div>
+      </div>
     </div>
-    <hr class="spacer"/>
     <div id="CRDescription"></div>
-    <div class="wbBaseField">
-      <div class="threeCol">&nbsp; </div>
-      <div  class="twoCol" style="text-align:right; margin:10px 0px" >
-        <div  class="twoCol" style="padding-left:7px;" >
-          <div id="CRSave" class="tw-bs">
-            Here comes the rudder ID
-          </div>
+    <div class="row wbBaseField form-group">
+      <div class="col-xs-12">
+        <div id="CRSave" class="tw-bs">
+          Here comes the rudder ID
         </div>
       </div>
     </div>
@@ -47,13 +46,13 @@
 </component:details>
 
 <component:warnUnmergeable>
-  <div>
-    <div class="warn" style="margin-left: 20%; text-align: center; width: 60%; padding: 20px; font-style: italic; font-weight: bolder;">
-      <img src="/images/icWarn.png" alt="Warning!" height="32" width="32" class="warnicon"/>
-      <div>
-        This change request can not be accepted because configuration state
-        was modified since change request creation. Only "decline" action is available.
-      </div>
+  <div class="callout-fade callout-warning">
+    <div class="marker">
+      <span class="glyphicon glyphicon-info-sign"></span>
+    </div>
+    <div>
+      This change request can not be accepted because configuration state
+      was modified since change request creation. Only "decline" action is available.
     </div>
   </div>
 </component:warnUnmergeable>
