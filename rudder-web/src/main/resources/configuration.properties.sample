@@ -95,7 +95,7 @@ ldap.authpw=secret
 # LDAP DIT configuration
 #
 # You should not have to modify the following properties, used to 
-# configure the inernal structure of the LDAP Directory. 
+# configure the internal structure of the LDAP Directory. 
 #
 ldap.node.base=cn=rudder-configuration
 ldap.rudder.base=ou=Rudder, cn=rudder-configuration
