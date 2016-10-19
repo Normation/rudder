@@ -203,7 +203,7 @@ class ChangeRequestDetails extends DispatchSnippet with Loggable {
               SHtml.ajaxButton(
                   actionName
                 , () => ChangeStepPopup(actionName,steps,cr)
-                , ("class" ,"btn btn-default")
+                , ("class" ,"btn btn-success")
               ) }
         } else NodeSeq.Empty
       }
