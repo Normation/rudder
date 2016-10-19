@@ -95,14 +95,26 @@ case class RoReportsExecutionRepositoryImpl (
         // to interpolate the actual value of in - sql""" """ is more
         // than just interpolation. Need to check perfomances.
         (for {
-          runs <- sql"""select distinct on (r.nodeid)
-                         r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid
-                       , c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration
-                       from  reportsexecution r
-                       left outer join nodeconfigurations c
-                         on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
-                       where r.complete = true and r.nodeid in (${nodes : nodes.type})
-                       order by r.nodeid, r.insertionid desc
+          // Here to make the query faster, we distinct only on the reportexecution to get the last run
+          // but we need to get the matching last entry on nodeconfigurations.
+          // I didn't find any better solution than doing a distinct on the table
+          runs <- sql"""select r.nodeid, r.date, r.nodeconfigid, r.complete, r.insertionid,
+                         c.nodeid, c.nodeconfigid, c.begindate, c.enddate, c.configuration from
+                         (
+                           select distinct on (nodeid)
+                              nodeid, date, nodeconfigid, complete, insertionid
+                              from reportsexecution
+                              where complete = true
+                              and nodeid in (${nodes : nodes.type})
+                           order by nodeid, insertionid desc
+                         ) as r
+                         left outer join (
+                           select distinct on (nodeid)
+                             nodeid, nodeconfigid, begindate, enddate, configuration
+                             from nodeconfigurations
+                            order by nodeid, begindate desc
+                          ) as c
+                          on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
                      """.query[
                           //
                           // For some reason unknown of me, if we use Option[NodeId] for the parameter,
