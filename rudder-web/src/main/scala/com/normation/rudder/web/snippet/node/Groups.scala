@@ -180,7 +180,7 @@ class Groups extends StatefulSnippet with SpringExtendableSnippet[Groups] with L
           case Some(fullGroupTarget) => //so we also have its parent category
             //no modification, so no refreshGroupLib
             refreshTree(htmlTreeNodeId(groupId), workflowEnabled) &
-            refreshRightPanel(GroupForm(fullGroupTarget.nodeGroup, lib.categoryByGroupId(gid)), workflowEnabled) &
+            showGroupSection(workflowEnabled) (fullGroupTarget.nodeGroup, lib.categoryByGroupId(gid)) &
             JsRaw("createTooltip()")
         }
       }
