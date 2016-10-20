@@ -84,7 +84,7 @@ class ExecutionBatchTest extends Specification {
     , directives: List[DirectiveExpectedReports]
   ): Map[NodeId, NodeExpectedReports] = {
     val rid = SerialedRuleId(RuleId(ruleId), serial)
-    val exp = Map(rid -> RuleNodeExpectedReports(rid.ruleId, rid.serial, directives))
+//    val exp = Map(rid -> RuleNodeExpectedReports(rid.ruleId, rid.serial, directives))
     val globalPolicyMode = GlobalPolicyMode(PolicyMode.Audit, PolicyModeOverrides.Always)
     val now = DateTime.now
     val mode = NodeModeConfig(GlobalComplianceMode(FullCompliance, 30), None, AgentRunInterval(None, 5, 14, 5, 4), None, globalPolicyMode, Some(PolicyMode.Enforce))
