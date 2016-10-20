@@ -782,7 +782,7 @@ object RudderConfig extends Loggable {
   val complianceApi6 = new ComplianceAPI7(restExtractorService, complianceAPIService, v6compatibility = true)
   val complianceApi7 = new ComplianceAPI7(restExtractorService, complianceAPIService)
 
-  val settingsApi8 = new SettingsAPI8(restExtractorService, configService)
+  val settingsApi8 = new SettingsAPI8(restExtractorService, configService, asyncDeploymentAgent, stringUuidGenerator)
 
   // First working version with support for rules, directives, nodes and global parameters
   val apiV2 : List[RestAPI] = ruleApi2 :: directiveApi2 :: groupApi2 :: nodeApi2 :: parameterApi2 :: Nil

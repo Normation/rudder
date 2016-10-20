@@ -56,15 +56,25 @@ import net.liftweb.json.JsonAST.JString
 import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.utils.StringUuidGenerator
 import net.liftweb.json.JsonAST.JBool
+import com.normation.rudder.batch.AsyncDeploymentAgent
+import com.normation.eventlog.ModificationId
+import com.normation.rudder.batch.AutomaticStartDeployment
 
 trait SettingsApi extends RestAPI {
   val kind = "settings"
 }
 
 class SettingsAPI8(
-    restExtractor : RestExtractorService
-  , configService : ReadConfigService with UpdateConfigService
+    restExtractor        : RestExtractorService
+  , configService        : ReadConfigService with UpdateConfigService
+  , asyncDeploymentAgent : AsyncDeploymentAgent
+  , uuidGen              : StringUuidGenerator
 ) extends SettingsApi {
+
+  def startNewPolicyGeneration(actor : EventActor) = {
+    val modId = ModificationId(uuidGen.newUuid)
+    asyncDeploymentAgent ! AutomaticStartDeployment(modId, actor)
+  }
 
   def response ( function : Box[JValue], req : Req, errorMessage : String, id : Option[String])(implicit action : String) : LiftResponse = {
     RestUtils.response(restExtractor, kind, id)(function, req, errorMessage)
@@ -92,6 +102,7 @@ class SettingsAPI8(
         actor = RestUtils.getActor(req)
         saved <- configService.set_rudder_policy_mode_name(newMode, actor, None)
       } yield {
+         startNewPolicyGeneration(actor)
          import net.liftweb.json.JsonDSL._
         ("global_policy_mode" -> newMode.name)
       }
@@ -119,6 +130,7 @@ class SettingsAPI8(
         actor = RestUtils.getActor(req)
         saved <- configService.set_rudder_policy_overridable(requestValue, actor, None)
       } yield {
+         startNewPolicyGeneration(actor)
          import net.liftweb.json.JsonDSL._
         ("global_policy_mode_overridable" -> requestValue)
       }
