@@ -67,50 +67,6 @@ import org.joda.time.Duration
 import com.normation.rudder.domain.Constants
 import com.sun.xml.internal.txw2.EndDocument
 
-/**
- * The main class helping maps expected
- * reports for a node
- */
-case class RuleNodeExpectedReports(
-    ruleId    : RuleId
-  , serial    : Int // the serial of the rule
-  , directives: Seq[DirectiveExpectedReports]
-  // the period where the configuration is applied to the servers
-  , beginDate : DateTime = DateTime.now()
-  , endDate   : Option[DateTime] = None
-) extends HashcodeCaching {
-  val interval = new Interval(beginDate, endDate.getOrElse(DateTime.now))
-}
-
-/**
- * The representation of the database object for the expected reports for
- * a rule and a list of nodes.
- *
- * Its use is discouraged in favor of RuleNodeExpectedReports
- *
- */
-case class OldRuleExpectedReports(
-    ruleId                  : RuleId
-  , serial                  : Int // the serial of the rule
-  , directivesOnNodes       : Seq[DirectivesOnNodes]
-  // the period where the configuration is applied to the servers
-  , beginDate               : DateTime = DateTime.now()
-  , endDate                 : Option[DateTime] = None
-) extends HashcodeCaching {
-  val interval = new Interval(beginDate, endDate.getOrElse(DateTime.now))
-}
-
-/**
- * This class allow to have different directives for different nodes.
- * Actually, it is used in a constrainted way : same directiveId for all nodes,
- * but directives can have different components/componentValues per Nodes
- */
-case class DirectivesOnNodes(
-    nodeJoinKey             : Int// id following a sequence used to join to the list of nodes
-  , nodeConfigurationIds    : Map[NodeId, Option[NodeConfigId]]
-  , directiveExpectedReports: Seq[DirectiveExpectedReports]
-) extends HashcodeCaching
-
 final case class NodeModeConfig(
     globalComplianceMode: ComplianceMode
   , nodeHeartbeatPeriod : Option[Int] // if it is defined, then it does override (ie if override = false => None)
