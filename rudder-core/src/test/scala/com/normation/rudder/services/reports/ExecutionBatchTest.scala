@@ -101,7 +101,7 @@ class ExecutionBatchTest extends Specification {
     , reportsParam          : Seq[Reports]
     // this is the agent execution interval, in minutes
     , complianceMode        : ComplianceMode
-  ): Map[NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])] = {
+  ): Map[NodeId, NodeStatusReport] = {
 
     val res = (for {
       (nodeId, expected) <- nodeExpectedReports.toSeq
@@ -110,7 +110,7 @@ class ExecutionBatchTest extends Specification {
       val info = nodeExpectedReports(nodeId)
       val runInfo = ComputeCompliance(runTime, info, runTime.plusMinutes(5))
 
-      ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam)
+      (nodeId, ExecutionBatch.getNodeStatusReports(nodeId, runInfo, reportsParam))
     })
 
     res.toMap
@@ -542,7 +542,7 @@ class ExecutionBatchTest extends Specification {
     val nodeStatus = (getNodeStatusReportsByRule _).tupled(param)
 
     "have one detailed reports when we create it with one report" in {
-      nodeStatus(one)._2.size === 1
+      nodeStatus(one).report.reports.size === 1
     }
 
     "have one detailed success node when we create it with one success report" in {
@@ -550,11 +550,11 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have one detailed rule success directive when we create it with one success report" in {
-      nodeStatus(one)._2.head.directives.head._1 === DirectiveId("policy")
+      nodeStatus(one).report.reports.head.directives.head._1 === DirectiveId("policy")
     }
 
     "have no detailed rule non-success directive when we create it with one success report" in {
-      AggregatedStatusReport(nodeStatus(one)._2).compliance === ComplianceLevel(success = 1)
+      AggregatedStatusReport(nodeStatus(one).report.reports).compliance === ComplianceLevel(success = 1)
     }
   }
 
@@ -581,7 +581,7 @@ class ExecutionBatchTest extends Specification {
 
     "have a pending node when we create it with one wrong success report right now" in {
       (nodeStatus.keySet.head === one) and
-      AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet).compliance === ComplianceLevel(missing = 1)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet).compliance === ComplianceLevel(missing = 1)
     }
   }
 
@@ -611,7 +611,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one unexpected node when we create it with one success report" in {
       nodeStatus.head._1 === one and
-      AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet).compliance === ComplianceLevel(unexpected = 2)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet).compliance === ComplianceLevel(unexpected = 2)
     }
   }
 
@@ -637,7 +637,7 @@ class ExecutionBatchTest extends Specification {
     }
 
     "have one success, and one pending node, in the component detail of the rule" in {
-      AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet).compliance === ComplianceLevel(success = 1, missing = 1)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet).compliance === ComplianceLevel(success = 1, missing = 1)
     }
   }
 
@@ -664,7 +664,7 @@ class ExecutionBatchTest extends Specification {
       nodeStatus.size === 3
     }
     "have one detailed rule report with a 67% compliance" in {
-      AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet).compliance === ComplianceLevel(success = 2, missing = 1)
+      AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet).compliance === ComplianceLevel(success = 2, missing = 1)
     }
   }
 
@@ -696,7 +696,7 @@ class ExecutionBatchTest extends Specification {
       , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
-    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet)
+    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet)
 
     "have two detailed node rule report" in {
       nodeStatus.size === 3
@@ -738,7 +738,7 @@ class ExecutionBatchTest extends Specification {
       , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
-    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet)
+    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet)
 
     "have 3 detailed node rule report" in {
       nodeStatus.size === 3
@@ -783,7 +783,7 @@ class ExecutionBatchTest extends Specification {
       , fullCompliance
     )
     val nodeStatus = getNodeStatusByRule(param)
-    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_._2).toSet)
+    val aggregated = AggregatedStatusReport(nodeStatus.values.flatMap(_.report.reports).toSet)
 
     "have 3 detailed node rule report" in {
       nodeStatus.size === 3
@@ -828,7 +828,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
       nodeStatus.keySet.head === one and
-      nodeStatus.head._2._2.head.compliance.pc_success === 100
+      nodeStatus.head._2.report.reports.head.compliance.pc_success === 100
     }
 
   }
@@ -857,7 +857,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
      nodeStatus.keySet.head === NodeId("nodeId") and
-     nodeStatus.head._2._2.head.compliance.pc_success === 100
+     nodeStatus.head._2.report.reports.head.compliance.pc_success === 100
     }
   }
 
@@ -883,7 +883,7 @@ class ExecutionBatchTest extends Specification {
 
     "have one detailed success node when we create it with one success report" in {
      nodeStatus.keySet.head === NodeId("nodeId") and
-     nodeStatus.head._2._2.head.compliance.pc_success === 100
+     nodeStatus.head._2.report.reports.head.compliance.pc_success === 100
     }
   }
 
