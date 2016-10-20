@@ -54,7 +54,6 @@ import com.normation.rudder.domain.reports.NodeConfigVersions
 import com.normation.utils.Control.sequence
 import com.normation.rudder.repository.UpdateExpectedReportsRepository
 import com.normation.rudder.domain.reports.ComponentExpectedReport
-import com.normation.rudder.repository.WoNodeConfigIdInfoRepository
 import org.joda.time.DateTime
 import com.normation.rudder.domain.policies.DirectiveId
 import com.normation.rudder.services.policies.write.Cf3PolicyDraftId
@@ -115,11 +114,7 @@ case class UniqueOverrides(
   , overridenBy: Cf3PolicyDraftId
 )
 
-class ExpectedReportsUpdateImpl(
-    confExpectedRepo: UpdateExpectedReportsRepository
-  , nodeConfigRepo  : WoNodeConfigIdInfoRepository
-  , doobie          : Doobie
-) extends ExpectedReportsUpdate with Loggable {
+class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepository) extends ExpectedReportsUpdate with Loggable {
 
   /**
    * Utility method that filters overriden directive by node
@@ -146,127 +141,6 @@ class ExpectedReportsUpdateImpl(
           ExpandedRuleVal(ruleId, newSerial, filteredConfig)
       }
     }
-  }
-
-
-
-  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[List[NodeExpectedReports]] = {
-    import Doobie._
-    import doobie.xa
-
-    configs.map(_.nodeId).toNel match {
-      case None          => Full(Nil)
-      case Some(nodeIds) =>
-
-        implicit val nodeIdsParam = Param.many(nodeIds)
-
-        type A = \/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]
-        val getConfigs: \/[Throwable, List[A]] = sql"""
-                           select nodeid, nodeconfigid, begindate, enddate, configuration
-                           from nodeconfigurations
-                           where nodeid in (${nodeIds: nodeIds.type}) and enddate is NULL
-                        """.query[A].list.attempt.transact(xa).run
-
-        type B = (NodeId, Vector[NodeConfigIdInfo])
-        val getInfos: \/[Throwable, List[B]] = sql"""
-                            select node_id, config_ids from nodes_info where node_id in (${nodeIds: nodeIds.type})
-                          """.query[B].list.attempt.transact(xa).run
-
-        // common part: find old configs and node config info for all config to update
-        val time_0 = System.currentTimeMillis
-        for {
-          oldConfigs  <- getConfigs
-          time_1      =  System.currentTimeMillis
-          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: find old nodes config in ${time_1-time_0}ms")
-          configInfos <- getInfos
-          time_2      =  System.currentTimeMillis
-          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: find old config info ${time_2-time_1}ms")
-          updated     <- doUpdateNodeExpectedReports(configs, oldConfigs, configInfos.toMap)
-          time_3      =  System.currentTimeMillis
-          _           =  TimingDebugLogger.debug(s"saveNodeExpectedReports: save configs etc in ${time_3-time_2}ms")
-        } yield {
-          configs
-        }
-    }
-  }
-
-  /*
-   * Save a nodeExpectedReport, closing the previous one is
-   * opened for that node (and a different nodeConfigId)
-   */
-  def doUpdateNodeExpectedReports(
-      configs    : List[NodeExpectedReports]
-    , oldConfigs : List[\/[(NodeId, NodeConfigId, DateTime), NodeExpectedReports]]
-    , configInfos: Map[NodeId, Vector[NodeConfigIdInfo]]
-  ): \/[Throwable, List[NodeExpectedReports]] = {
-
-    import com.normation.rudder.domain.reports.ExpectedReportsSerialisation._
-    import Doobie._
-    import doobie.xa
-
-    val currentConfigs = configs.map( c => (c.nodeId, (c.nodeConfigId, c.beginDate)) ).toMap
-
-
-    // we want to close all error nodeexpectedreports, and all non current
-    // we keep valid current identified by nodeId, we won't have to save them afterward.
-    val (toClose, okConfigs) = ( (List[(DateTime, NodeId, NodeConfigId, DateTime)](), List[NodeId]() ) /: oldConfigs) { case ((nok, ok), next) =>
-      next match {
-        case -\/(n) => ((currentConfigs(n._1)._2, n._1, n._2, n._3)::nok, ok)
-        case \/-(r) =>
-          if(currentConfigs(r.nodeId)._1 == r.nodeConfigId) { //config didn't change
-            (nok, r.nodeId :: ok)
-          } else { // config changed, we need to close it
-            ( (currentConfigs(r.nodeId)._2, r.nodeId, r.nodeConfigId, r.beginDate) :: nok, ok)
-          }
-      }
-    }
-
-    //same reasoning for config info: only update the ones for witch the last id is not the correct one
-    //we use configs because we must know if a nodeInfo is completly missing and add it
-    type T = (Vector[NodeConfigIdInfo], NodeId)
-    val (toAdd, toUpdate, okInfos) = ( (List[T](), List[T](), List[NodeId]() ) /: configs ) { case ((add, update, ok), next) =>
-      configInfos.get(next.nodeId) match {
-        case None => // add it
-          ( (Vector(NodeConfigIdInfo(next.nodeConfigId, next.beginDate, None)), next.nodeId) :: add, update, ok)
-        case Some(infos) =>
-          infos.find(i => i.configId == next.nodeConfigId && i.endOfLife.isEmpty) match {
-            case Some(info) => //no update
-              (add, update, next.nodeId :: ok)
-            case None => // update
-              (add, (NodeConfigIdInfo(next.nodeConfigId, next.beginDate, None)+: infos, next.nodeId) :: update, ok)
-          }
-      }
-    }
-
-
-    // filter out node expected reports up to date
-    val toSave = configs.filterNot(c => okConfigs.contains(c.nodeId))
-
-    logger.trace(s"Nodes with up-to-date expected configuration: [${okConfigs.sortBy(_.value).map(r => s"${r.value}").mkString("][")}]")
-    logger.debug(s"Closing out of date expected node's configuration: [${toClose.sortBy(_._2.value).map(r => s"${r._2.value} : ${r._3.value}").mkString("][")}]")
-    logger.debug(s"Saving new expected node's configuration: [${toSave.sortBy(_.nodeId.value).map(r => s"${r.nodeId.value} : ${r.nodeConfigId.value}]").mkString("][")}]")
-    logger.trace(s"Adding node configuration timeline info: [${toAdd.sortBy(_._2.value).map{ case(i,n) => s"${n.value}:${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
-    logger.trace(s"Updating node configuration timeline info: [${toUpdate.sortBy(_._2.value).map{ case(i,n) => s"${n.value}(${i.size} entries):${i.map(_.configId.value).sorted.mkString(",")}"}.mkString("][")}]")
-
-    //now, mass update
-    (for {
-      closedConfigs <- Update[(DateTime, NodeId, NodeConfigId, DateTime)]("""
-                          update nodeconfigurations set enddate = ?
-                          where nodeid = ? and nodeconfigid = ? and begindate = ?
-                       """).updateMany(toClose)
-      savedConfigs  <- Update[NodeExpectedReports]("""
-                         insert into nodeconfigurations (nodeid, nodeconfigid, begindate, enddate, configuration)
-                         values ( ?, ?, ?, ?, ? )
-                       """).updateMany(toSave)
-      updatedInfo   <- Update[(Vector[NodeConfigIdInfo], NodeId)]("""
-                         update nodes_info set config_ids = ? where node_id = ?
-                       """).updateMany(toUpdate)
-      addedInfo     <- Update[(Vector[NodeConfigIdInfo], NodeId)]("""
-                         insert into nodes_info (config_ids, node_id) values (?, ?)
-                       """).updateMany(toAdd)
-    } yield {
-      configs
-    }).attempt.transact(xa).run
   }
 
   /*
@@ -342,7 +216,7 @@ class ExpectedReportsUpdateImpl(
 
     // now, we just need to go node by node, and for each:
     val time_0 = System.currentTimeMillis
-    val res = saveNodeExpectedReports(nodeExpectedReports)
+    val res = confExpectedRepo.saveNodeExpectedReports(nodeExpectedReports)
     TimingDebugLogger.warn(s"updating expected node configuration in base took: ${System.currentTimeMillis-time_0}ms")
     res
   }
