@@ -478,7 +478,7 @@ object RudderConfig extends Loggable {
       , xmlUnserializer
       , sectionSpecParser
     )
-  val asyncWorkflowInfo = new AsyncWorkflowInfo
+  lazy val asyncWorkflowInfo = new AsyncWorkflowInfo
   val workflowService: WorkflowService = {
     new EitherWorkflowService(
         configService.rudder_workflow_enabled
@@ -823,12 +823,13 @@ object RudderConfig extends Loggable {
   // Internal APIs
   val sharedFileApi = new SharedFilesAPI(restExtractorService,RUDDER_DIR_SHARED_FILES_FOLDER)
 
-  lazy val configService: ReadConfigService with UpdateConfigService =
+  lazy val configService: ReadConfigService with UpdateConfigService = {
     new LDAPBasedConfigService(
         config
       , new LdapConfigRepository(rudderDit, rwLdap, ldapEntityMapper, eventLogRepository, stringUuidGenerator)
       , asyncWorkflowInfo
   )
+  }
 
   lazy val recentChangesService = new CachedNodeChangesServiceImpl(new NodeChangesServiceImpl(reportsRepository))
 
