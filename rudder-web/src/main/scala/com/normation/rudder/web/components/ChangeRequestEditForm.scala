@@ -77,13 +77,17 @@ class ChangeRequestEditForm (
 
   private[this] val changeRequestName =new WBTextField("Change request title", info.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
+    override def className = "form-control"
+    override def labelClassName = "col-xs-12"
+    override def subContainerClassName = "col-xs-12"
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
   private[this] val changeRequestDescription= new WBTextAreaField("Description", info.description) {
-    override def className = "twoCol"
+    override def className = "form-control"
+    override def labelClassName = "col-xs-12"
+    override def subContainerClassName = "col-xs-12"
     override def setFilter = notNull _ :: trim _ :: Nil
     override val maxLen = 255
     override def validations = Nil
@@ -112,9 +116,9 @@ class ChangeRequestEditForm (
       if(notifications.isEmpty)
         NodeSeq.Empty
       else
-        <div id="notifications" class="notify"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
+        <div id="notifications" class="alert alert-danger"><ul>{notifications.map( n => <li>{n}</li>) }</ul></div>
     }
-  private[this]  def error(msg:String) = <span class="error">{msg}</span>
+  private[this]  def error(msg:String) = <span>{msg}</span>
   private[this] def crName = {
     if (isEditable) changeRequestName.toForm_! else changeRequestName.readOnlyValue
   }
