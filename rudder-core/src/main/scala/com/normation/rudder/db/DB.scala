@@ -97,60 +97,7 @@ final object DB {
     , description        : Option[String]
   )
 
-  //////////
 
-  final case class ExpectedReports[T](
-      pkId                      : T
-    , nodeJoinKey               : Int
-    , ruleId                    : RuleId
-    , serial                    : Int
-    , directiveId               : DirectiveId
-    , component                 : String
-    , cardinality               : Int
-    , componentsValues          : String
-    , unexpandedComponentsValues: String
-    , beginDate                 : DateTime
-    , endDate                   : Option[DateTime]
-  )
-
-  def insertExpectedReports(reports: List[DB.ExpectedReports[Unit]]): ConnectionIO[Int] = {
-    Update[DB.ExpectedReports[Unit]]("""
-      insert into expectedreports (nodejoinkey, ruleid, serial, directiveid, component, cardinality,
-                                   componentsvalues, unexpandedcomponentsvalues, begindate, enddate)
-      values (?,?,?, ?,?,?, ?,?,?, ?)
-      """).updateMany(reports)
-  }
-
-  def getExpectedReports() = {
-    sql"""
-      select pkid, nodejoinkey, ruleid, serial, directiveid, component, cardinality
-           , componentsvalues, unexpandedcomponentsvalues, begindate, enddate
-      from expectedreports
-    """.query[DB.ExpectedReports[Long]].vector
-  }
-
-  //////////
-
-  final case class ExpectedReportsNodes(
-      nodeJoinKey        : Int
-    , nodeId             : String
-    , nodeConfigVersions : List[String]
-  )
-
-  def insertExpectedReportsNode(nodes: List[DB.ExpectedReportsNodes]): ConnectionIO[Int] = {
-    Update[DB.ExpectedReportsNodes]("""
-      insert into expectedreportsnodes (nodejoinkey, nodeid, nodeconfigids)
-      values (?,?,?)
-    """).updateMany(nodes)
-  }
-
-  def getExpectedReportsNode() = {
-    sql"""
-      select nodejoinkey, nodeid, nodeconfigids from expectedreportsnodes
-    """.query[DB.ExpectedReportsNodes].vector
-  }
-
-  //////////
 
   final case class Reports[T](
       id                 : T
