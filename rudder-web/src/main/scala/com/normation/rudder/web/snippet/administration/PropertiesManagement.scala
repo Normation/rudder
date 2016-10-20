@@ -567,7 +567,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
       starthour <- configService.agent_run_start_hour
       startmin  <- configService.agent_run_start_minute
       splaytime <- configService.agent_run_splaytime
-      interval  = configService.agent_run_interval
+      interval  <- configService.agent_run_interval
     } yield {
       AgentRunInterval(
             None
