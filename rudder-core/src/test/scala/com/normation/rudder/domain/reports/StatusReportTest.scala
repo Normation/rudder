@@ -59,6 +59,7 @@ import com.normation.rudder.domain.policies.PolicyMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
 import com.normation.rudder.services.policies.NodeConfigData
+import com.normation.rudder.reports.NodeComplianceMode
 
 /**
  * Test properties about status reports,
@@ -235,6 +236,7 @@ class StatusReportTest extends Specification {
             NodeExpectedReports(NodeId("n1"), NodeConfigId("plop"), DateTime.now(), None, modesConfig, List()) // TODO : correct that test
           , None, DateTime.now.plusMinutes(15)
         )
+      , RunComplianceInfo.OK
     , parse("""
        n1, r1, 12, d1, c0  , v0  , "", pending   , pending msg
        n1, r1, 12, d1, c1  , v1  , "", pending   , pending msg
