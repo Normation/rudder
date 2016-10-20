@@ -52,7 +52,7 @@
   background-color: #FFFF66;
 }
 .tw-bs .progress-bar-error {
-  background-color: #d9534f;
+  background-color: #c9302c;
 }
 .tw-bs .progress-bar-pending {
   background-color: #5bc0de;
@@ -61,7 +61,7 @@
   background-color: #b4b4b4;
 }
 .tw-bs .progress-bar-unknown {
-  background-color: #3b2026;
+  background-color: #c9302c;
 }
 .tw-bs .progress-bar-missing {
   background-color: #FF9147;
@@ -76,6 +76,6 @@
   background-color: #8dcd8d;
 }
 .tw-bs .progress-bar-audit-error {
-  background-color: #d9534f;
+  background-color: #c9302c;
 }
 

@@ -90,7 +90,7 @@ object RuleGrid {
         #actions_zone , .dataTables_length , .dataTables_filter {{ display: inline-block; }}
         .greenCompliance {{ background-color: #5cb85c }}
         .orangeCompliance  {{ background-color: #FF6600 }}
-        .redCompliance  {{ background-color: #d9534f }}
+        .redCompliance  {{ background-color: #c9302c }}
         .noCompliance   {{ background-color:#b4b4b4; }}
         .applyingCompliance {{ background-color:#5bc0de; }}
         .compliance {{ text-align: center; }}
