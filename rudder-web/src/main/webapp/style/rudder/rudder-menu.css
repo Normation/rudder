@@ -813,6 +813,17 @@ a.sidebar-toggle{
 #editForm table{
   width:100%;
 }
+/* --- NODE PAGE --- */
+.node-tab-content{
+	float:left;
+	width:100%;
+	margin-bottom:15px;
+}
+#serverDetails > .ui-tabs.ui-widget.ui-widget-content{
+	margin:0;
+	padding:0;
+	border:none;
+}
 /* --- DIRECTIVE PAGE --- */
 #directiveDetails{
   border-left: 15px solid #ECF0F5;
