@@ -17,9 +17,9 @@
 #####################################################################################
 
 # @parameter mode   The dry-run mode, "true" to enable dry-run-mode and "false" to disable it
-# @agent_requirements "capabilities": [ "!bodydefault" ] && "agent_version"" < 3.9
+# @agent_requirements "capabilities": [ "!bodydefault" ] && "agent_version" < 3.9
 # 
-# See dry_run_lib.supported.cf for documentation.
+# See dry_run_lib.cf for documentation.
 #
 # WARNING:
 # WARNING: This bundles replaces the real dry-run lib when it is not supported, and
