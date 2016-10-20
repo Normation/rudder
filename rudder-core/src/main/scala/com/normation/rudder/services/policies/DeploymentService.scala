@@ -238,7 +238,7 @@ trait PromiseGenerationService extends Loggable {
   def getGlobalComplianceMode(): Box[GlobalComplianceMode]
   def getGlobalAgentRun() : Box[AgentRunInterval]
   def getAllLicenses(): Box[Map[NodeId, NovaLicense]]
-  def getAgentRunInterval    : () => Int
+  def getAgentRunInterval    : () => Box[Int]
   def getAgentRunSplaytime   : () => Box[Int]
   def getAgentRunStartHour   : () => Box[Int]
   def getAgentRunStartMinute : () => Box[Int]
@@ -428,7 +428,7 @@ class PromiseGenerationServiceImpl (
   , override val agentRunService : AgentRunIntervalService
   , override val complianceCache  : CachedFindRuleNodeStatusReports
   , override val promisesFileWriterService: Cf3PromisesFileWriterService
-  , override val getAgentRunInterval: () => Int
+  , override val getAgentRunInterval: () => Box[Int]
   , override val getAgentRunSplaytime: () => Box[Int]
   , override val getAgentRunStartHour: () => Box[Int]
   , override val getAgentRunStartMinute: () => Box[Int]
@@ -669,7 +669,6 @@ trait PromiseGeneration_buildNodeConfigurations extends PromiseGenerationService
       }
 
     }
-
 
     /*
      * Utility class that helps deduplicate same failures in a chain
