@@ -58,15 +58,14 @@ class RudderPropertiesRepositoryImpl(
 
   /**
    * Get the last report id processed by the non compliant report Logger.
-   * If there was no id processed, get the last report id in reports database
-   * and add it to the database.
+   * If there was no id processed, returns an Empty box so that the AutomaticReportLogger can update the value
    */
   def getReportLoggerLastId: Box[Long] = {
 
     val sql = sql"select value from rudderproperties where name=${PROP_REPORT_LAST_ID}".query[Long].option
     sql.attempt.transact(xa).run match {
       case \/-(None) =>
-          Failure(s"The property '${PROP_REPORT_LAST_ID}' was not found in table 'rudderproperties'")
+          Empty
       case \/-(Some(x)) =>
         try {
           Full(x.toLong)
