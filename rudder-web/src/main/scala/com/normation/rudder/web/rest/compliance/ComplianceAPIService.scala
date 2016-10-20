@@ -80,7 +80,7 @@ class ComplianceAPIService(
     } yield {
 
       //flatMap of Set is ok, since nodeRuleStatusReport are different for different nodeIds
-      val reportsByRule = reportsByNode.flatMap { case(nodeId, (runInfo, nodeRuleStatusReports)) => nodeRuleStatusReports }.groupBy( _.ruleId)
+      val reportsByRule = reportsByNode.flatMap { case(nodeId, status) => status.report.reports }.groupBy( _.ruleId)
 
       // get an empty-initialized array of compliances to be used
       // as defaults
@@ -221,15 +221,15 @@ class ComplianceAPIService(
 
       //for each rule for each node, we want to have a
       //directiveId -> reporttype map
-      val nonEmptyNodes = reports.map { case (nodeId, (runInfo, ruleNodeStatusReports)) =>
+      val nonEmptyNodes = reports.map { case (nodeId, status) =>
         (
           nodeId,
           ByNodeNodeCompliance(
               nodeId
             , nodeInfos.get(nodeId).map(_.hostname).getOrElse("Unknown node")
-            , ComplianceLevel.sum(ruleNodeStatusReports.map(_.compliance))
+            , ComplianceLevel.sum(status.report.reports.map(_.compliance))
             , compliance.mode
-            , ruleNodeStatusReports.toSeq.map(r =>
+            , status.report.reports.toSeq.map(r =>
                ByNodeRuleCompliance(
                     r.ruleId
                   , ruleMap.get(r.ruleId).map(_.name).getOrElse("Unknown rule")
