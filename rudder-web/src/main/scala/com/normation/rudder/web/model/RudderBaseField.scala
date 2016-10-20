@@ -208,10 +208,12 @@ abstract class RudderBaseField extends BaseField {
     }
   )
   def readOnlyValue =
-   <div class="wbBaseField">
+   <div class="row wbBaseField form-group readonly-field">
       <label class={labelClassName + " wbBaseFieldLabel"}>{displayHtml}</label>
-      <div class={subContainerClassName}>
-        {defaultValue}
+      <div>
+        <div class={subContainerClassName}>
+          {defaultValue}
+        </div>
       </div>
    </div>
 }
