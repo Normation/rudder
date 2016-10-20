@@ -227,6 +227,38 @@ div.topQuickSearchResults.ac_results li {
     width: 120px !important;
   }
 }
+.tw-bs #searchInput::-webkit-input-placeholder {
+ color: #964;
+ -webkit-transition-duration:.3s;
+ transition-duration:.3s;
+}
+.tw-bs #searchInput:-moz-placeholder {
+ color: #964;
+ -moz-transition-duration:.3s;
+ transition-duration:.3s;
+}
+.tw-bs #searchInput::-moz-placeholder {
+ color: #964;
+ -moz-transition-duration:.3s;
+ transition-duration:.3s;
+}
+.tw-bs #searchInput:-ms-input-placeholder {
+ color: #964;
+ -ms-transition-duration:.3s;
+ transition-duration:.3s;
+}
+.tw-bs #searchInput:focus::-webkit-input-placeholder {
+ color: #555;
+}
+.tw-bs #searchInput:focus:-moz-placeholder {
+ color: #555;
+}
+.tw-bs #searchInput:focus::-moz-placeholder {
+ color: #555;
+}
+.tw-bs #searchInput:focus:-ms-input-placeholder {
+ color: #555;
+}
 /* ----- </QUICK SEARCH>  ----- */
 
 /* MENU */
