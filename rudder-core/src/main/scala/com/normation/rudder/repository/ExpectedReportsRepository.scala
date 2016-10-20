@@ -47,48 +47,15 @@ import com.normation.rudder.domain.policies.SerialedRuleId
 trait UpdateExpectedReportsRepository {
 
   /**
+   * Save a list of NodeExpectedReports, correctly handling
+   * previous NodeExpectedReports for that node
+   */
+  def saveNodeExpectedReports(configs: List[NodeExpectedReports]): Box[List[NodeExpectedReports]]
+
+  /**
    * Close opened expected node configurations for the given nodeID.
    */
   def closeNodeConfigurations(nodeId: NodeId): Box[NodeId]
-
-  /**
-   * Return the ruleId currently opened, and their serial and list of nodes
-   * It is only used to know which conf expected report we should close
-   *
-   * For only the last version (and so only one NodeAndConfigId) is
-   * returned for each nodeJoinKey
-   */
-  //only for update logic
-  def findAllCurrentExpectedReportsWithNodesAndSerial(): Map[RuleId, (Int, Int, Map[NodeId, NodeConfigVersions])]
-
-
- /**
-   * Simply set the endDate for the expected report for this conf rule
-   */
-  //only for update logic
-  def closeExpectedReport(directivesLib: FullActiveTechniqueCategory, ruleId : RuleId, generationTime: DateTime) : Box[Unit]
-
-  /**
-   * Insert new expectedReports in base.
-   * Not that expectedReports are never "updated". Old
-   * one are closed and new one are created (aka saved')
-   */
-  //only for update logic
-  def saveExpectedReports(
-      ruleId                   : RuleId
-    , serial                   : Int
-    , generationTime           : DateTime
-    , directiveExpectedReports : Seq[DirectiveExpectedReports]
-    , nodeConfigurationVersions: Seq[NodeAndConfigId]
-    , directivesLib            : FullActiveTechniqueCategory
-  ) : Box[OldRuleExpectedReports]
-
-
-  /**
-   * Update the list of nodeConfigVersion for the given nodes
-   */
-  //only for update logic
-  def updateNodeConfigVersion(toUpdate: Seq[(Int, NodeConfigVersions)]): Box[Seq[(Int,NodeConfigVersions)]]
 
   /**
    * Delete all node config id info that finished before date
@@ -117,9 +84,7 @@ trait FindExpectedReportRepository {
    *
    * The property "returnedMap.keySet == nodeConfigIds" holds.
    */
-  def getExpectedReports(
-      nodeConfigIds: Set[NodeAndConfigId]
-  ): Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]]
+  def getExpectedReports(nodeConfigIds: Set[NodeAndConfigId]): Box[Map[NodeAndConfigId, Option[NodeExpectedReports]]]
 
 
   /*
@@ -127,15 +92,11 @@ trait FindExpectedReportRepository {
    *
    * The property "returnedMam.keySet = nodeIds" holds.
    */
-  def getCurrentNodeConfigurations(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[NodeExpectedReports]]]
+  def getCurrentExpectedsReports(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[NodeExpectedReports]]]
 
-}
-
-
-trait RoNodeConfigIdInfoRepository {
+  /**
+   * Retrieve all the nodeConfigIdInfo for the given list of nodes.
+   * The property "nodeIds == returnedResult.keySet" holds.
+   */
   def getNodeConfigIdInfos(nodeIds: Set[NodeId]): Box[Map[NodeId, Option[Vector[NodeConfigIdInfo]]]]
-}
-
-trait WoNodeConfigIdInfoRepository {
-  def addNodeConfigIdInfo(updatedNodeConfigs: Map[NodeId, NodeConfigId], generationTime: DateTime): Box[Set[NodeId]]
 }

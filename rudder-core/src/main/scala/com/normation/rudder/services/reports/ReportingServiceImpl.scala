@@ -71,7 +71,6 @@ class ReportingServiceImpl(
     val confExpectedRepo    : FindExpectedReportRepository
   , val reportsRepository   : ReportsRepository
   , val agentRunRepository  : RoReportsExecutionRepository
-  , val nodeConfigInfoRepo  : RoNodeConfigIdInfoRepository
   , val runIntervalService  : AgentRunIntervalService
   , val nodeInfoService     : NodeInfoService
   , val directivesRepo      : RoDirectiveRepository
@@ -245,7 +244,6 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
   def confExpectedRepo  : FindExpectedReportRepository
   def reportsRepository : ReportsRepository
   def agentRunRepository: RoReportsExecutionRepository
-  def nodeConfigInfoRepo: RoNodeConfigIdInfoRepository
   def runIntervalService: AgentRunIntervalService
   def getGlobalComplianceMode : () => Box[GlobalComplianceMode]
   def getGlobalPolicyMode     : () => Box[GlobalPolicyMode]
@@ -322,8 +320,8 @@ trait DefaultFindRuleNodeStatusReports extends ReportingService {
                              case ReportsDisabled => Full(nodeIds.map(id => (id, None)).toMap)
                              case _ => agentRunRepository.getNodesLastRun(nodeIds)
                            }
-      currentConfigs    <- confExpectedRepo.getCurrentNodeConfigurations(nodeIds)
-      nodeConfigIdInfos <- nodeConfigInfoRepo.getNodeConfigIdInfos(nodeIds)
+      currentConfigs    <- confExpectedRepo.getCurrentExpectedsReports(nodeIds)
+      nodeConfigIdInfos <- confExpectedRepo.getNodeConfigIdInfos(nodeIds)
     } yield {
       ExecutionBatch.computeNodesRunInfo(runs, currentConfigs, nodeConfigIdInfos)
     }
