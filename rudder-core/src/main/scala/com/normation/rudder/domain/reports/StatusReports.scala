@@ -85,18 +85,37 @@ object RuleStatusReport {
   }
 }
 
+/*
+ * meta information about a run compliance analysis -
+ * in particular abour policy mode errors (agent aborted,
+ * mixed mode in directives from the same techniques, etc)
+ */
+sealed trait RunComplianceInfo
+final object RunComplianceInfo {
+  sealed trait PolicyModeError
+  object PolicyModeError {
+    final case class TechniqueMixedMode(message: String) extends PolicyModeError
+    final case class AgentAbortMessage(cause: String, message: String) extends PolicyModeError
+  }
+
+  final object OK extends RunComplianceInfo
+  final case class PolicyModeInconsistency(problems: List[PolicyModeError]) extends RunComplianceInfo
+}
+
+
 final class NodeStatusReport private (
-    val forNode: NodeId
-  , val runInfo: RunAndConfigInfo
-  , val report : AggregatedStatusReport
+    val forNode   : NodeId
+  , val runInfo   : RunAndConfigInfo
+  , val statusInfo: RunComplianceInfo
+  , val report    : AggregatedStatusReport
 ) extends StatusReport {
   val compliance = report.compliance
   val byRules: Map[RuleId, AggregatedStatusReport] = report.reports.groupBy(_.ruleId).mapValues(AggregatedStatusReport(_))
 }
 
 object NodeStatusReport {
-  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, reports: Iterable[RuleNodeStatusReport]) = {
-    new NodeStatusReport(nodeId, runInfo, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
+  def apply(nodeId: NodeId, runInfo:  RunAndConfigInfo, statusInfo: RunComplianceInfo, reports: Iterable[RuleNodeStatusReport]) = {
+    new NodeStatusReport(nodeId, runInfo, statusInfo, AggregatedStatusReport(reports.toSet.filter( _.nodeId == nodeId)))
   }
 }
 
