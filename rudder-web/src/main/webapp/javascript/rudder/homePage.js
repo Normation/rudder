@@ -75,7 +75,7 @@ function homePage (
       colorStart: '#6FADCF',   // Colors
       colorStop: '#8FC0DA',    // just experiment with them
       strokeColor: '#E0E0E0',   // to see which ones work best for you
-      percentColors : [[0.0, "#d9534f" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#9bc832"]],
+      percentColors : [[0.0, "#c9302c" ], [0.30, "#f0ad4e"], [0.50, "#5bc0de"], [1.0, "#9bc832"]],
       generateGradient: true
     };
     var target = document.getElementById('complianceGauge'); // your canvas element
