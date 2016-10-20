@@ -107,7 +107,7 @@ case class OrangeChart (value : Int) extends ComplianceLevelPieChart{
 
 case class RedChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Poor (< 50%)"
-  val color = "#d9534f"
+  val color = "#c9302c"
 }
 
 case class PendingChart (value : Int) extends ComplianceLevelPieChart{
