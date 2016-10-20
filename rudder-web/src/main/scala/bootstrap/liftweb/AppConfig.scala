@@ -1492,7 +1492,6 @@ object RudderConfig extends Loggable {
           findExpectedRepo
         , reportsRepositoryImpl
         , roAgentRunsRepository
-        , findExpectedRepo
         , globalAgentRunService
         , nodeInfoServiceImpl
         , roDirectiveRepository
@@ -1502,11 +1501,7 @@ object RudderConfig extends Loggable {
     , nodeInfoServiceImpl
   )
 
-  private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(
-      updateExpectedRepo
-    , updateExpectedRepo
-    , doobie
-  )
+  private[this] lazy val updateExpectedReports = new ExpectedReportsUpdateImpl(updateExpectedRepo)
 
   private[this] lazy val pgIn = new PostgresqlInClause(70)
   private[this] lazy val findExpectedRepo = new FindExpectedReportsJdbcRepository(doobie, pgIn)
