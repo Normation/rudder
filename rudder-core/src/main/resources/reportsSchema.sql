@@ -128,6 +128,18 @@ CREATE INDEX reportsexecution_date_idx ON ReportsExecution (date);
 CREATE INDEX reportsexecution_insertionid_idx ON ReportsExecution (insertionId);
 CREATE INDEX reportsexecution_nodeid_nodeconfigid_idx ON ReportsExecution (nodeId, nodeConfigId);
 
+/*
+ * Store the archived agent execution times for each nodes.
+ */
+CREATE TABLE ArchivedReportsExecution (
+  nodeId       text NOT NULL
+, date         timestamp with time zone NOT NULL
+, complete     boolean NOT NULL
+, nodeConfigId text
+, insertionId  bigint
+, PRIMARY KEY(nodeId, date)
+);
+
 /* 
  *************************************************************************************
  * The following tables store what Rudder expects from agent. 
@@ -219,6 +231,18 @@ CREATE TABLE nodeConfigurations (
 
 CREATE INDEX nodeConfigurations_nodeId ON nodeConfigurations (nodeId);
 CREATE INDEX nodeConfigurations_nodeConfigId ON nodeConfigurations (nodeConfigId);
+
+
+-- Create the table for the archived node configurations
+CREATE TABLE archivedNodeConfigurations (
+  nodeId            text NOT NULL CHECK (nodeId <> '')  
+, nodeConfigId      text NOT NULL CHECK (nodeConfigId <> '')
+, beginDate         timestamp with time zone NOT NULL
+, endDate           timestamp with time zone
+, configuration     text NOT NULL CHECK (nodeId <> '' )
+, PRIMARY KEY (nodeId, nodeConfigId, beginDate)
+);
+
 
 /* 
  *************************************************************************************
