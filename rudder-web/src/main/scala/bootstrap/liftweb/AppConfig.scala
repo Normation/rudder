@@ -1346,7 +1346,7 @@ object RudderConfig extends Loggable {
   private[this] lazy val globalAgentRunService : AgentRunIntervalService =
     new AgentRunIntervalServiceImpl(
         nodeInfoServiceImpl
-      , () => Full(configService.agent_run_interval)
+      , configService.agent_run_interval
       , configService.agent_run_start_hour
       , configService.agent_run_start_minute
       , configService.agent_run_splaytime

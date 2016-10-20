@@ -102,9 +102,8 @@ trait ReadConfigService {
 
   /**
    * Agent execution interval and start run
-   * Note: Interval may NEVER fail, if the value is not in LDAP, then default value arise
    */
-  def agent_run_interval(): Int
+  def agent_run_interval(): Box[Int]
 
   def agent_run_splaytime(): Box[Int]
   def agent_run_start_hour(): Box[Int]
@@ -287,7 +286,6 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   /**
    * Create a cache for already values that should never fail
    */
-  var cacheExecutionInterval: Option[Int] = None
 
   val defaultConfig =
     s"""rudder.ui.changeMessage.enabled=true
@@ -407,27 +405,8 @@ class LDAPBasedConfigService(configFile: Config, repos: ConfigRepository, workfl
   def cfengine_server_skipidentify(): Box[Boolean] = get("cfengine_server_skipidentify")
   def set_cfengine_server_skipidentify(value: Boolean): Box[Unit] = save("cfengine_server_skipidentify", value)
 
-  def agent_run_interval(): Int = {
-    toInt(get("agent_run_interval")) match {
-      case Full(interval) =>
-        cacheExecutionInterval = Some(interval)
-        interval
-      case f: EmptyBox =>
-        val e = f ?~! "Failure when fetching the agent run interval "
-        logger.error(e.messageChain)
-        cacheExecutionInterval match {
-          case Some(interval) =>
-            interval
-          case None =>
-            val errorMsg = "Error while fetch the agent run interval; the value is unavailable in the LDAP and in cache."
-            logger.error(errorMsg)
-            throw new RuntimeException(errorMsg)
-        }
-    }
-
-  }
+  def agent_run_interval(): Box[Int] = get("agent_run_interval")
   def set_agent_run_interval(value: Int, actor: EventActor, reason: Option[String]): Box[Unit] = {
-    cacheExecutionInterval = Some(value)
     val info = ModifyGlobalPropertyInfo(ModifyAgentRunIntervalEventType,actor,reason)
     save("agent_run_interval", value, Some(info))
   }
