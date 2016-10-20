@@ -54,6 +54,7 @@ import com.normation.inventory.domain.InventoryConstants._
 import com.normation.inventory.services.provisioning._
 import org.joda.time.format.DateTimeFormatter
 import com.normation.utils.Control.sequence
+import com.normation.inventory.domain.NodeTimezone
 
 class FusionReportUnmarshaller(
     uuidGen:StringUuidGenerator,
@@ -671,8 +672,13 @@ class FusionReportUnmarshaller(
         case _  => UnknownOS(fullName, version, servicePack, kernelVersion)
       }
     }
+      //for timezone, if any is missing then None
+    val timezone = ( optText(xml \ "TIMEZONE" \ "NAME"), optText(xml \ "TIMEZONE" \ "OFFSET") ) match {
+      case ( Some(name), Some(offset) ) => Some(NodeTimezone(name, offset))
+      case _                            => None
+    }
 
-    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ) )
+    report.copy( node = report.node.copyWithMain(m => m.copy (osDetails = osDetail) ).copy(timezone = timezone) )
 
   }
 

@@ -50,6 +50,7 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 import InetAddressUtils._
 import com.normation.utils.Control.sequence
+import com.normation.inventory.domain.NodeTimezone
 
 
 class DateTimeSerializer extends Serializer[DateTime] {
@@ -728,6 +729,10 @@ class InventoryMapper(
     }.toSeq:_*)
     root +=! (A_ACCOUNT, server.accounts:_*)
     root +=! (A_SERVER_ROLE, server.serverRoles.toSeq.map(_.value):_*)
+    server.timezone.foreach { timezone =>
+      root +=! (A_TIMEZONE_NAME, timezone.name)
+      root +=! (A_TIMEZONE_OFFSET, timezone.offset)
+    }
 
     val tree = LDAPTree(root)
     //now, add machine elements as children
@@ -894,6 +899,10 @@ class InventoryMapper(
       accounts = entry.valuesFor(A_ACCOUNT).toSeq
       serverIps = entry.valuesFor(A_LIST_OF_IP).toSeq
       serverRoles = entry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet
+      timezone = (entry(A_TIMEZONE_NAME), entry(A_TIMEZONE_OFFSET)) match {
+                   case (Some(name), Some(offset)) => Some(NodeTimezone(name, offset))
+                   case _                          => None
+                 }
       main =
         NodeSummary (
             id
@@ -925,6 +934,7 @@ class InventoryMapper(
          , ev
          , process
          , serverRoles = serverRoles
+         , timezone = timezone
          )
     }
   }

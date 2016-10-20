@@ -122,6 +122,14 @@ class TestReportParsing extends Specification with Loggable {
     }
   }
 
+  "A node with a timezone" should {
+
+    val report = parser.parse("fusion-report/sles-10-64-sp3-2011-08-23-16-06-17.ocs")
+
+    "correctly parse the timezone" in {
+      report.node.timezone must beEqualTo(Some(NodeTimezone("CEST", "+0200")))
+    }
+  }
 
 
   "Agent in Inventory" should {

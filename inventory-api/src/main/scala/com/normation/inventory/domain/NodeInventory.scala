@@ -317,6 +317,11 @@ case object UndefinedKey extends KeyStatus {
   val value = "undefined"
 }
 
+final case class NodeTimezone(
+    name  : String
+  , offset: String
+)
+
 object KeyStatus {
   def apply(value : String) : Box[KeyStatus] = {
     value match {
@@ -364,6 +369,7 @@ case class NodeInventory(
      * So, let's start little until we know what we want exactly.
      */
   , serverRoles          : Set[ServerRole]          = Set()
+  , timezone             : Option[NodeTimezone]     = None
 ) extends HashcodeCaching {
 
   /**A copy of the node with the updated main.
