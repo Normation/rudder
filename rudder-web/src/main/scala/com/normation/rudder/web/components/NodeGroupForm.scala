@@ -168,7 +168,7 @@ class NodeGroupForm(
       "name" -> groupName.toForm_!,
       "rudderid" -> <div class="form-group row">
                       <label class="wbBaseFieldLabel">Rudder ID</label>
-                      <input disabled="" class="form-control" value={nodeGroup.id.value}/>
+                      <input readonly="" class="form-control" value={nodeGroup.id.value}/>
                     </div>,
       "cfeclasses" -> <div class="form-group row">
                         <a href="#" onclick={s"$$('#cfe-${nodeGroup.id.value}').toggle(300);$$(this).toggleClass('open');return false;"} class="toggle-caret">
@@ -233,8 +233,8 @@ class NodeGroupForm(
         if(nodeGroup.isDynamic) "dynamic" else "static",
         {
            //how to display label ? Capitalize, and with a tooltip
-          case "static" => <span class="tooltip" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
-          case "dynamic" => <span class="tooltip" title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
+          case "static" => <span class="" title="The list of member nodes is defined at creation and will not change automatically.">Static</span>
+          case "dynamic" => <span class="" title="Nodes will be automatically added and removed so that the list of members always matches this group's search criteria.">Dynamic</span>
           case _ => NodeSeq.Empty // guarding against NoMatchE
        }
     ) {
