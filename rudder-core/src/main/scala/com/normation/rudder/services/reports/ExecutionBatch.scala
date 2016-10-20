@@ -531,8 +531,6 @@ object ExecutionBatch extends Loggable {
     }.toMap
   }
 
-
-
   /**
    * This is the main entry point to get the detailed reporting
    * It returns a Sequence of NodeStatusReport which gives, for
@@ -549,7 +547,7 @@ object ExecutionBatch extends Loggable {
     , runInfo              : RunAndConfigInfo
       // reports we get on the last know run
     , agentExecutionReports: Seq[Reports]
-  ) : (NodeId, (RunAndConfigInfo, Set[RuleNodeStatusReport])) = {
+  ) : NodeStatusReport = {
 
     def buildUnexpectedVersion(runTime: DateTime, runVersion: Option[NodeConfigIdInfo], runExpiration: DateTime, expectedConfig: NodeExpectedReports, expectedExpiration: DateTime, nodeStatusReports: Seq[ResultReports]) = {
         //mark all report of run unexpected,
@@ -654,7 +652,27 @@ object ExecutionBatch extends Loggable {
 
     }
 
-    (nodeId, (runInfo, ruleNodeStatusReports))
+    /*
+     * We must adapt the node run compliance info if we have
+     * an abort message or at least one mixed mode result
+     */
+
+    val status = {
+      val abort = agentExecutionReports.collect {
+        case r: LogReports if(r.nodeId == nodeId && r.directiveId.value.toLowerCase == "common" && r.component.toLowerCase == "abort run") =>
+          RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
+      }.toSet
+      val mixed = ruleNodeStatusReports.collect { case r => r.directives.collect { case (_, d) if (d.compliance.badPolicyMode > 0) =>
+        RunComplianceInfo.PolicyModeError.TechniqueMixedMode(s"Error for node '${nodeId.value}' in directive '${d.directiveId.value}', other directives based on the same Technique have different Policy Mode")
+      }.toSet }.flatten
+
+      (abort ++ mixed).toList match {
+        case Nil  => RunComplianceInfo.OK
+        case list => RunComplianceInfo.PolicyModeInconsistency(list)
+      }
+    }
+
+    NodeStatusReport(nodeId, runInfo, status, ruleNodeStatusReports)
   }
 
 

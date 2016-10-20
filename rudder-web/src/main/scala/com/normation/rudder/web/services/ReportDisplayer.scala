@@ -66,6 +66,7 @@ import org.joda.time.format.DateTimeFormat
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.appconfig.ConfigRepository
 import com.normation.rudder.appconfig.ReadConfigService
+import com.normation.rudder.domain.policies.PolicyMode
 
 /**
  * Display the last reports of a server
@@ -246,7 +247,10 @@ class ReportDisplayer(
         if(report.compliance.total <= 0) { //should not happen
           ("bg-success text-success" , NodeSeq.Empty)
         } else {
-          val nbAttention = report.compliance.noAnswer + report.compliance.error + report.compliance.missing + report.compliance.unexpected
+          val nbAttention = (
+              report.compliance.noAnswer + report.compliance.missing + report.compliance.unexpected + report.compliance.badPolicyMode +
+              report.compliance.error + report.compliance.nonCompliant + report.compliance.auditError
+          )
           if(nbAttention > 0) {
             ( "bg-warning text-warning"
             , <p>{nbAttention} reports below (out of {report.compliance.total} total reports) are not in Success, and may require attention."</p>
@@ -262,9 +266,26 @@ class ReportDisplayer(
         }
     }
 
+    val specialPolicyModeError = report.statusInfo match {
+      case RunComplianceInfo.OK |
+           RunComplianceInfo.PolicyModeInconsistency(Nil)  => NodeSeq.Empty
+      case RunComplianceInfo.PolicyModeInconsistency(list) =>
+        <div>
+          <p>The node is reporting an error regarding the requested policy mode of the policies. This problem require special attention.</p>
+          <ul>{list.map(error => error match {
+            case RunComplianceInfo.PolicyModeError.TechniqueMixedMode(msg) => <li>{msg}</li>
+            case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) => cause.toLowerCase match {
+              case "unsupported_dryrun"     => <li>That node does not support the request {PolicyMode.Audit.name} policy mode. The run was aborted to avoid changes</li>
+              case "repaired_during_dryrun" => <li>We detected a change for a check that was requested in {PolicyMode.Audit.name} policy mode. The run was aborted to further changes</li>
+            }
+          } ) }</ul>
+        </div>
+    }
+
     <div class="tw-bs">
       <div id="node-compliance-intro" class={background}>
         <p>{explainCompliance(report.runInfo)}</p>{
+          specialPolicyModeError ++
           lookReportsMessage
       }</div>
     </div>
@@ -304,7 +325,7 @@ class ReportDisplayer(
              * In these case, filter out "unexpected" reports to only
              * keep missing ones, and do not show the "compliance" row.
              */
-            val filtered = NodeStatusReport(report.forNode, report.runInfo, report.report.reports.flatMap { x =>
+            val filtered = NodeStatusReport(report.forNode, report.runInfo, report.statusInfo, report.report.reports.flatMap { x =>
               x.withFilteredElements(
                   _ => true   //keep all (non empty) directives
                 , _ => true   //keep all (non empty) component values

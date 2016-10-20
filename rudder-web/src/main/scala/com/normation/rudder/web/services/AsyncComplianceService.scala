@@ -120,8 +120,8 @@ class AsyncComplianceService (
       for {
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
-        reports.map { case (nodeId, (run, reports)) =>
-          toCompliance(nodeId, reports)
+        reports.map { case (nodeId, status) =>
+          toCompliance(nodeId, status.report.reports)
         }
       }
     }
@@ -142,7 +142,7 @@ class AsyncComplianceService (
         reports <- reportingService.findRuleNodeStatusReports(nodeIds, ruleIds)
       } yield {
         //flatMap on a Set is OK, since reports are different for different nodeIds
-        reports.flatMap( _._2._2 ).groupBy( _.ruleId ).map { case (ruleId, reports) =>
+        reports.flatMap( _._2.report.reports ).groupBy( _.ruleId ).map { case (ruleId, reports) =>
           toCompliance(ruleId, reports)
         }
       }
