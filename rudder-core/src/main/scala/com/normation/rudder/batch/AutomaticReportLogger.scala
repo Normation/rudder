@@ -55,7 +55,6 @@ import net.liftweb.common._
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-
 /**
  * This object will be used as message for the non compliant reports logger
  */
@@ -93,7 +92,15 @@ class AutomaticReportLogger(
     /*
      * List of all reports kind processed by the logger
      */
-    private[this] val reportsKind = List(Reports.LOG_REPAIRED, Reports.RESULT_ERROR, Reports.RESULT_REPAIRED, Reports.LOG_WARN)
+    private[this] val reportsKind =
+      List(
+          Reports.LOG_REPAIRED
+        , Reports.LOG_WARN
+        , Reports.RESULT_ERROR
+        , Reports.RESULT_REPAIRED
+        , Reports.AUDIT_ERROR
+        , Reports.AUDIT_NONCOMPLIANT
+      )
 
     override protected def messageHandler = {
       case StartAutomaticReporting =>
@@ -126,7 +133,6 @@ class AutomaticReportLogger(
                 logger.error("report logger could not fetch latest 100 non compliant reports, retry on next run",eb)
               case Full(x) => //
             }
-
 
           case Full(lastId) =>
             logger.trace("***** get current highest report id")
