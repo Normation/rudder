@@ -110,6 +110,7 @@ object DisplayNode extends Loggable {
             "aaData":${gridDataId},
             "bJQueryUI": true,
             "bPaginate": true,
+            "bRetrieve": true,
             "bLengthChange": true,
             "sPaginationType": "full_numbers",
             "asStripeClasses": [ 'color1', 'color2' ] ,
