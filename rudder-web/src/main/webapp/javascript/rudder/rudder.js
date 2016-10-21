@@ -56,53 +56,33 @@ $.fn.bsTooltip = bootstrapTooltip;
  * tooltipid attribute, and display in the tooltip the content of the div with the id
  * tooltipid
  */
-
+$.widget("ui.tooltip", $.ui.tooltip, {
+  options: {
+    content: function () {return $(this).prop('title');},
+    show: { duration: 200, delay:0, effect: "none" },
+    hide: { duration: 200, delay:0, effect: "none" }
+  }
+});
 function createTooltip() {
-  $.widget("ui.tooltip", $.ui.tooltip, {
-    options: {
-      content: function () {
-        return $(this).prop('title');
-      }
-    }
-  });
+
   $(".tooltipable").tooltip({
-    show: {
-      effect: "none",
-            delay: 0,
-            duration: 300
-        },
-        hide: {
-      effect: "none",
-            delay: 0,
-            duration: 300
-        },
-      content: function() {
-          return $("#"+$(this).attr("tooltipid")).html();
-        },
-        position: {
-          my: "left top+15",
-          at: "right top",
-          collision: "flipfit"
-        }
+    content: function() {
+      return $("#"+$(this).attr("tooltipid")).html();
+    },
+    position: {
+      my: "left top+15",
+      at: "right top",
+      collision: "flipfit"
+    }
   });
   createTooltiptr();
 }
 function createTooltiptr() {
     $(".tooltipabletr").tooltip({
-        show: {
-          effect: "none",
-                  delay: 100,
-                  duration: 300
-              },
-              hide: {
-                    effect: "none",
-                  delay: 0,
-                  duration: 300
-              },
-        content: function() {
-            return $("#"+$(this).attr("tooltipid")).html();
-          },
-          track : true
+      content: function() {
+        return $("#"+$(this).attr("tooltipid")).html();
+      },
+      track : true
     });
   }
 
