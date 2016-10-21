@@ -436,9 +436,6 @@ fileManager.controller('FileManagerController', [
   $scope.isWindows = getQueryParam('server') === 'Windows';
   $scope.fileNavigator.refresh();
   
-  $('a.thumbnail').tooltip({
-    show: { duration: 300 },
-    hide: { duration: 300 }
-  });
+  $('a.thumbnail').tooltip();
   }]);
 
