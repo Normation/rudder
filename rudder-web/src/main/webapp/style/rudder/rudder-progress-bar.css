@@ -42,14 +42,8 @@
 .tw-bs .progress-bar-reportsdisabled {
   background-color: #b4b4b4;
 }
-.tw-bs .progress-bar-notapplicable {
-  background-color: #8dcd8d;
-}
 .tw-bs .progress-bar-success {
   background-color: #9bc832;
-}
-.tw-bs .progress-bar-repaired {
-  background-color: #FFFF66;
 }
 .tw-bs .progress-bar-error {
   background-color: #c9302c;
