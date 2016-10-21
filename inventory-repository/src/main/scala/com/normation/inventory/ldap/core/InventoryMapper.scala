@@ -858,28 +858,6 @@ class InventoryMapper(
   def nodeFromEntry(entry:LDAPEntry) : Box[NodeInventory] = {
     def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
 
-    // parsing agent must be done in two steps for compat with old versions:
-    // - try to parse in json: if ok, we have the new version
-    // - else, try to parse in old format, put None to version.
-    def parseAgentInfo(e: LDAPEntry): Box[Seq[AgentInfo]] = {
-      for {
-        infos <- sequence(entry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
-                   AgentInfoSerialisation.parseJson(x).or(
-                     for {
-                       tpe <- AgentType.fromValue(x) ?~! (
-                                s"Error when mapping '${x}' to an agent info. We are expecting either a json like "+
-                                s"{'agentType': type, 'version': opt_version}, or an agentType with allowed values in ${AgentType.allValues.mkString(", ")}"
-                              )
-                     } yield {
-                       AgentInfo(tpe, None)
-                     }
-                   )
-                }
-      } yield {
-        infos
-      }
-    }
-
     for {
       dit <- ditService.getDit(entry.dn)
       //server.main info: id, status, rootUser, hostname, osDetails: all mandatories
@@ -889,7 +867,9 @@ class InventoryMapper(
       hostname <- requiredAttr(A_HOSTNAME)
       rootUser <- requiredAttr(A_ROOT_USER)
       policyServerId <- requiredAttr(A_POLICY_SERVER_UUID)
-      agentNames <- parseAgentInfo(entry)
+      agentNames <- sequence(entry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
+                      AgentInfoSerialisation.parseCompatNonJson(x) //compat to be able to migrate easely from Rudder < 4.0
+                    }
       //now, look for the OS type
       osDetails <- mapOsDetailsFromEntry(entry)
       //now, optionnal things
