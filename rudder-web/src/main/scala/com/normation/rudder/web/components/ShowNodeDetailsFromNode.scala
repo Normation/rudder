@@ -221,9 +221,8 @@ class ShowNodeDetailsFromNode(
             configService.rudder_global_policy_mode() match {
               case Full(globalMode) =>
 
-                bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(OnLoad(
+                bindNode(node, sm, withinPopup,displayCompliance, globalMode) ++ Script(
                   DisplayNode.jsInit(node.id, sm.node.softwareIds, "") &
-                  OnLoad(buildJsTree(groupTreeId) &
                   JsRaw(s"""
                     $$( "#${detailsId}" ).tabs({ active : ${tab} } );
                     $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a').on('click',function(){
@@ -233,9 +232,10 @@ class ShowNodeDetailsFromNode(
                       $$('#nodeInventory > .sInventory > .sInventory').hide();
                       $$(tab).show();
                     });
-                    $$('#nodeInventory .ui-tabs-vertical .ui-tabs-nav li a')[0].click();
-                    """))
-                ))
+                    """)&
+                    buildJsTree(groupTreeId)
+
+                )
               case e:EmptyBox =>
                 val msg = e ?~! s"Could not get global policy mode when getting node '${node.id.value}' details"
                 logger.error(msg, e)
@@ -278,8 +278,6 @@ class ShowNodeDetailsFromNode(
    * Javascript to initialize a tree.
    * htmlId is the id of the div enclosing tree datas
    */
-  private def buildJsTree(htmlId:String) : JsExp = JsRaw(
-    """buildGroupTree('#%s', '%s', [], 'on', undefined, false)""".format(htmlId,S.contextPath)
-  )
+  private def buildJsTree(htmlId:String) : JsExp = JsRaw(s"""buildGroupTree('#${htmlId}', '${S.contextPath}', [], 'on', undefined, false)""")
 
 }
