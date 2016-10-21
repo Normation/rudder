@@ -112,18 +112,7 @@ groupManagement.directive('tooltip', function () {
   return {
       restrict:'A'
     , link: function(scope, element, attrs) {
-        var tooltipAttributes = {
-            placement: "right"
-          // We want no effects on popup
-          , show: {
-                effect: "none"
-              , delay: 0
-            }
-          ,hide: {
-                effect: "none"
-              , delay: 0
-            }
-        }
+        var tooltipAttributes = {placement: "right"}
         $(element).attr('title',scope.$eval(attrs.tooltip)).tooltip(tooltipAttributes);
       }
   }

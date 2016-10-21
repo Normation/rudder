@@ -406,6 +406,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
         , "sSearch": ""
       }
     , "fnDrawCallback": function( oSettings ) {
+      $('.rudder-label').bsTooltip();
       var rows = this._('tr', {"page":"current"});
        $.each(rows, function(index,row) {
          var id = "Changes-"+row.id;
@@ -435,7 +436,6 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
   if(isPopup){
     $('#'+gridId).addClass("table table-hover table-striped table-bordered");   
   }
-  createTooltip();$('.rudder-label').bsTooltip();
 
   // Add callback to checkbox column
   $("#checkAll").prop("checked", false);
@@ -1648,11 +1648,7 @@ function createTable(gridId,data,columns, customParams, contextPath, refresh, st
     $("#"+gridId+"_wrapper .dataTables_refresh").append(refreshButton);
   }
 
-  $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({
-      show: { effect: "none", delay: 0 }
-    , hide: { effect: "none",  delay: 0 }
-    , position: { my: "left+40 bottom-10", collision: "flipfit" }
-  } );
+  $("#"+gridId+"_wrapper .dataTables_refresh button").tooltip({position:{my:"left+40 bottom-10",collision: "flipfit"}});
 
   $('.dataTables_filter input').attr("placeholder", "Filter");
   $('.tw-bs .modal .dataTables_filter input').addClass("form-control"); 
