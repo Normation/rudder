@@ -2014,76 +2014,71 @@ td.nestedImg{
    border-right:1px dotted;
 }
 
-tr.Success {
-  background-color:#5cb85c;
+td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.EnforceRepaired,td.AuditCompliant{
+  background-color:#9bc832;
+  color: #fff;
 }
-tr.Applying {
-  background-color:#5bc0de;
+td.Unexpected,td.BadPolicyMode {
+  background-color: #c9302c;
+  color: #fff;
+  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  -webkit-background-size: 40px 40px;
+  background-size: 40px 40px;
+  -webkit-animation: progress-bar-stripes 2s linear infinite;
+  -o-animation: progress-bar-stripes 2s linear infinite;
+  animation: progress-bar-stripes 2s linear infinite;
 }
-tr.Repaired {
-  background-color:#FFFF66;
+td.AuditNonCompliant {
+  background-color:#ff7125;
+  color: #fff;
 }
-tr.Warn {
-  background-color:#FF9147;
-}
-tr.Unknown {
-    background-color: #FF6600;
-}
-tr.Error {
-  background-color:#d9534f;
-}
-tr.NoAnswer {
-  background-color:#b4b4b4;
-}
-tr.NotApplicable {
-  background-color:#8dcd8d;
-}
-
-td.Success {
-  background-color:#5cb85c;
-}
-td.Applying {
-  background-color:#5bc0de;
-}
-td.Repaired {
-  background-color:#FFFF66;
-}
-td.Warn {
-  background-color:#FF9147;
-}
-td.Unknown {
-    background-color: #ff6600;
-}
-td.Error {
-  background-color:#d9534f;
-}
-td.NoAnswer {
-  background-color:#b4b4b4;
-}
-td.NotApplicable {
-  background-color:#8dcd8d;
+td.Missing, td.EnforceError, td.AuditError{
+  background-color:#c9302c;
+  color: #fff;
 }
 td.Missing {
-  background-color:#FF9147;
+  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  -webkit-background-size: 40px 40px;
+  background-size: 40px 40px;
+  -webkit-animation: progress-bar-stripes 2s linear infinite;
+  -o-animation: progress-bar-stripes 2s linear infinite;
+  animation: progress-bar-stripes 2s linear infinite;
 }
+td.Pending{
+  background-color: #5bc0de;
+  color: #fff;
+  background-image: -webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: -o-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  background-image: linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+  -webkit-background-size: 40px 40px;
+  background-size: 40px 40px;
+  -webkit-animation: progress-bar-stripes 2s linear infinite;
+  -o-animation: progress-bar-stripes 2s linear infinite;
+  animation: progress-bar-stripes 2s linear infinite;
+}
+td.Disabled, td.NoAnswer {
+  background-color: #b4b4b4;
+  color: #fff;
+}
+
+
 
 td.details{
   border:none;
 }
-
 li.eventLogUpdatePolicy {
   list-style-position: inside;
   list-style-type: none;
 }
-
 table.eventLogUpdatePolicy {
   width: 50%;
   margin-top: 0px;
   margin-left: 0px;
 }
-
-
-
 table.detailedReport {
   margin : 0;
   padding: 0 0 0 100px;
