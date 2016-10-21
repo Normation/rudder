@@ -135,22 +135,22 @@ class TestReportParsing extends Specification with Loggable {
   "Agent in Inventory" should {
 
     "should be empty when there is no agent" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agentNames.toList
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-zero-agent.ocs").node.agents.map(_.name).toList
       agents must be empty
     }
 
     "should have one agent when using community" in {
-    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agentNames.toList
+    val agents = parser.parse("fusion-report/rudder-tag/minimal-one-agent.ocs").node.agents.map(_.name).toList
       agents == (COMMUNITY_AGENT :: Nil)
     }
 
     "should have two agent when using community and nova" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agentNames.toList
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents.ocs").node.agents.map(_.name).toList
       agents == (COMMUNITY_AGENT :: NOVA_AGENT :: Nil)
     }
 
     "should be empty when there is two agents, using two different policy servers" in {
-      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agentNames.toList
+      val agents = parser.parse("fusion-report/rudder-tag/minimal-two-agents-fails.ocs").node.agents.map(_.name).toList
       agents must be empty
     }
 

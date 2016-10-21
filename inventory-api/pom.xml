@@ -51,6 +51,13 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
       <artifactId>bcpkix-jdk15on</artifactId>
       <version>1.52</version>
     </dependency>
+   
+    <dependency>
+      <groupId>net.liftweb</groupId>
+      <artifactId>lift-json_${scala-binary-version}</artifactId>
+      <version>${lift-version}</version>
+    </dependency>
+    
   </dependencies>
 
 

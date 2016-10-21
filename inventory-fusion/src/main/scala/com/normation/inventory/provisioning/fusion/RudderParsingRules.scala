@@ -215,12 +215,12 @@ object RudderRootUserParsing extends FusionReportParsingExtension {
 object RudderAgentNameParsing extends FusionReportParsingExtension with Loggable {
   override def isDefinedAt(x:(Node,InventoryReport)) = { x._1.label == "AGENTSNAME" }
   override def apply(x:(Node,InventoryReport)) : InventoryReport = {
-    x._2.copy( node = x._2.node.copy( agentNames = x._2.node.agentNames ++ processAgentName(x._1) ) )
+    x._2.copy( node = x._2.node.copy( agents = x._2.node.agents ++ processAgentName(x._1) ) )
   }
-  def processAgentName(xml:NodeSeq) : Seq[AgentType] = {
+  def processAgentName(xml:NodeSeq) : Seq[AgentInfo] = {
     (xml \ "AGENTNAME").flatMap(e => optText(e).flatMap( a =>
       AgentType.fromValue(a) match {
-        case Full(x) => Full(x)
+        case Full(x) => Full(AgentInfo(x, None))
         case e:EmptyBox =>
           logger.error("Ignore agent type '%s': unknown value. Authorized values are %s".format(a, AgentType.allValues.mkString(", ")))
           Empty
