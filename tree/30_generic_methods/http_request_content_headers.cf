@@ -27,7 +27,7 @@
 # @parameter headers Headers to include in the HTTP request
 # @parameter_constraint headers "allow_empty_string" : true
 #
-# @class_prefix http_content_headers
+# @class_prefix http_request_content_headers
 # @class_parameter url
 
 bundle agent http_request_content_headers(method, url, content, headers)
