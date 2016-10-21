@@ -345,7 +345,7 @@ case class NodeInventory(
   , archDescription      : Option[String]     = None
   , lastLoggedUser       : Option[String]     = None
   , lastLoggedUserTime   : Option[DateTime]   = None
-  , agentNames           : Seq[AgentType] = Seq()
+  , agents               : Seq[AgentInfo] = Seq()
   , publicKeys           : Seq[PublicKey] = Seq()
   , serverIps            : Seq[String]    = Seq()
   , machineId            : Option[(MachineUuid,InventoryStatus)] = None //if we want several ids, we would have to ass an "alternate machine" field

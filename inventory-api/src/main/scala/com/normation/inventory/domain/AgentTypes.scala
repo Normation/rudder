@@ -78,3 +78,49 @@ object AgentType {
     }
   }
 }
+
+/*
+ * Version of the agent
+ */
+final case class AgentVersion(value: String)
+
+
+final case class AgentInfo(
+    name   : AgentType
+    //for now, the version must be an option, because we don't add it in the inventory
+    //and must try to find it from packages
+  , version: Option[AgentVersion]
+)
+
+
+object AgentInfoSerialisation {
+  import net.liftweb.json.JsonDSL._
+  import net.liftweb.json._
+
+  implicit class ToJson(agent: AgentInfo) {
+
+    def toJsonString = compactRender(
+        ("agentType" -> agent.name.toString())
+      ~ ("version"   -> agent.version.map( _.value ))
+    )
+  }
+
+  def parseJson(s: String): Box[AgentInfo] = {
+    for {
+      json <- try { Full(parse(s)) } catch { case ex: Exception => Failure(s"Can not parse agent info: ${ex.getMessage }", Full(ex), Empty) }
+      info <- (json \ "agentType") match {
+                case JString(tpe) => AgentType.fromValue(tpe).map { agentType =>
+                  (json \ "version") match {
+                    case JString(version) => AgentInfo(agentType, Some(AgentVersion(version)))
+                    case _                => AgentInfo(agentType, None)
+                  }
+                }
+                case _ => Failure(s"Error when trying to parse string as JSON Agent Info (missing required field 'agentType'): ${s}")
+              }
+    } yield {
+      info
+    }
+  }
+}
+
+

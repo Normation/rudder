@@ -643,6 +643,8 @@ class InventoryMapper(
   private[this] val userDefinedPropertyRegex = """\{([^\}]+)\}(.+)""".r
 
   def treeFromNode(server:NodeInventory) : LDAPTree = {
+    import com.normation.inventory.domain.AgentInfoSerialisation._
+
     val dit = ditService.getDit(server.main.status)
     //the root entry of the tree: the machine inventory
     val root = server.main.osDetails match {
@@ -717,7 +719,7 @@ class InventoryMapper(
     root.setOpt(server.lastLoggedUserTime, A_LAST_LOGGED_USER_TIME, { x: DateTime => GeneralizedTime(x).toString })
     root.setOpt(server.inventoryDate, A_INVENTORY_DATE, { x: DateTime => GeneralizedTime(x).toString })
     root.setOpt(server.receiveDate, A_RECEIVE_DATE, { x: DateTime => GeneralizedTime(x).toString })
-    root +=! (A_AGENTS_NAME, server.agentNames.map(x => x.toString):_*)
+    root +=! (A_AGENTS_NAME, server.agents.map(x => x.toJsonString):_*)
     root +=! (A_PKEYS, server.publicKeys.map(x => x.key):_*)
     root +=! (A_SOFTWARE_DN, server.softwareIds.map(x => dit.SOFTWARE.SOFT.dn(x).toString):_*)
     root +=! (A_EV, server.environmentVariables.map(x => Serialization.write(x)):_*)
@@ -855,6 +857,29 @@ class InventoryMapper(
 
   def nodeFromEntry(entry:LDAPEntry) : Box[NodeInventory] = {
     def requiredAttr(attr:String) = entry(attr) ?~! missingAttr(attr)
+
+    // parsing agent must be done in two steps for compat with old versions:
+    // - try to parse in json: if ok, we have the new version
+    // - else, try to parse in old format, put None to version.
+    def parseAgentInfo(e: LDAPEntry): Box[Seq[AgentInfo]] = {
+      for {
+        infos <- sequence(entry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
+                   AgentInfoSerialisation.parseJson(x).or(
+                     for {
+                       tpe <- AgentType.fromValue(x) ?~! (
+                                s"Error when mapping '${x}' to an agent info. We are expecting either a json like "+
+                                s"{'agentType': type, 'version': opt_version}, or an agentType with allowed values in ${AgentType.allValues.mkString(", ")}"
+                              )
+                     } yield {
+                       AgentInfo(tpe, None)
+                     }
+                   )
+                }
+      } yield {
+        infos
+      }
+    }
+
     for {
       dit <- ditService.getDit(entry.dn)
       //server.main info: id, status, rootUser, hostname, osDetails: all mandatories
@@ -864,10 +889,7 @@ class InventoryMapper(
       hostname <- requiredAttr(A_HOSTNAME)
       rootUser <- requiredAttr(A_ROOT_USER)
       policyServerId <- requiredAttr(A_POLICY_SERVER_UUID)
-      agentNames <- sequence(entry.valuesFor(A_AGENTS_NAME).toSeq){ x =>
-                      AgentType.fromValue(x) ?~! "Error when mapping value '%s' to an agent type. Allowed values are %s".
-                          format(x, AgentType.allValues.mkString(", "))
-                    }
+      agentNames <- parseAgentInfo(entry)
       //now, look for the OS type
       osDetails <- mapOsDetailsFromEntry(entry)
       //now, optionnal things

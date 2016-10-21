@@ -299,6 +299,16 @@ class FusionReportUnmarshaller(
       }
     }
 
+    // as a temporary solution, we are getting information from packages
+
+    val versions = Map[AgentType, Option[AgentVersion]](
+        // for nova, we get the cfengine version, which not exactly what we want, but still better than nothing
+        (NOVA_AGENT      , report.applications.find(p => p.name.getOrElse("").toLowerCase.contains("cfengine nova")).flatMap(s => s.version.map(v => AgentVersion("nova-" + v.value))))
+        // for community, we only want rudder-agent version
+      , (COMMUNITY_AGENT , report.applications.find(p => p.name.getOrElse("").toLowerCase.contains("rudder-agent")).flatMap(s => s.version.map(v => AgentVersion(v.value))))
+    )
+
+
     (xml \\ "RUDDER").headOption match {
       case Some(rudder) =>
         // Fetch all the agents configuration
@@ -344,7 +354,7 @@ class FusionReportUnmarshaller(
                     , policyServerId = NodeId(policyServerId)
                     , id = NodeId(uuid)
                   )
-                , agentNames = agents.map(_._1)
+                , agents = agents.map(t => AgentInfo(t._1, versions.get(t._1).flatten))
                 , publicKeys = keys
               )
             )
