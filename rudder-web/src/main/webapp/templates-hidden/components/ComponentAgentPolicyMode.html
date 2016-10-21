@@ -16,16 +16,16 @@
            <li><b>Audit</b>: the agent will examine configurations and report any differences, but will not make any changes</li>
            <li><b>Enforce</b>: the agent will make changes to fix any configurations that differ from your directives</li>
          </ol>
-         <p ng-if="isGlobalForm">
+         <p ng-if="isGlobalForm" ng-cloak>
            This setting is a global switch and will apply to all nodes and all directives as the default mode. You may also override this mode on a per-node and per-directive basis.
          </p>
-         <p ng-if="!isGlobalForm">
+         <p ng-if="!isGlobalForm" ng-cloak>
            By default all nodes and all directives operate in the global mode defined in <a href="/secure/administration/policyServerManagement#agentPolicyMode">Settings</a>
            , which is currently <b>{{globalConfiguration.policyMode}}</b>.
          </p>
        </div>
      </div>
-     <form class="rudder-form no-shadow col-lg-12" ng-if="isGlobalForm || (!isGlobalForm && globalConfiguration.overrideMode)">
+     <form class="rudder-form no-shadow col-lg-12" ng-if="isGlobalForm || (!isGlobalForm && globalConfiguration.overrideMode)" ng-cloak>
        <p ng-if="$parent.isGlobalForm" class="sublabel col-lg-12">Global policy mode</p>
        <p ng-if="!$parent.isGlobalForm" class="sublabel col-lg-12">Override policy mode for this node</p>
        <div class="col-xs-12 policymode-group" ng-class="{'node':!$parent.isGlobalForm}">
@@ -97,7 +97,7 @@
            </span>
          </div>
        </form>
-       <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-lg-12" role="alert">
+       <div ng-if="!isGlobalForm && !globalConfiguration.overrideMode" class="col-lg-12" role="alert" ng-cloak>
          <div class="alert alert-warning">
          Current global settings do not allow this mode to be overridden on a per-node basis. You may change this in <a href="/secure/administration/policyServerManagement#agentPolicyMode">Settings</a>
          , or contact your Rudder administrator about this.
