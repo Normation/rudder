@@ -1478,11 +1478,11 @@ function buildComplianceBar(compliance, minPxSize) {
       text.push("Not supported mixed mode on directive from same Technique: "+badPolicyMode+"% <br> ");
     }
     var value = compliancePercentValue(unexpected);
-    content.append('<div class="progress-bar progress-bar-unknown active progress-bar-striped" style="width:'+widthArr[3]+'" title="'+text.join("\n")+'">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-unknown progress-bar-striped" style="width:'+widthArr[3]+'" title="'+text.join("\n")+'">'+value+'%</div>');
   }
   if(pending != 0) {
     var value = compliancePercentValue(pending);
-    content.append('<div class="progress-bar progress-bar-pending active progress-bar-striped" style="width:'+widthArr[4]+'" title="Applying: '+pending+'%">'+value+'%</div>');
+    content.append('<div class="progress-bar progress-bar-pending progress-bar-striped" style="width:'+widthArr[4]+'" title="Applying: '+pending+'%">'+value+'%</div>');
   }
 
   if(reportsDisabled != 0) {
