@@ -246,10 +246,7 @@ class LDAPEntityMapper(
                           case x :: Nil => Full(x)
                           case _ => Failure(s"Too many policy servers for a Node '${node.id.value}'. Entry details: ${inventoryEntry}")
                         }
-      agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) { x =>
-                       AgentType.fromValue(x) ?~!
-                         "Unknow value for agent type: '%s'. Authorized values are: %s".format(x, AgentType.allValues.mkString(", "))
-                     }
+      agentsName  <- sequence(inventoryEntry.valuesFor(A_AGENTS_NAME).toSeq) {AgentInfoSerialisation.parseCompatNonJson}
       osDetails   <- inventoryMapper.mapOsDetailsFromEntry(inventoryEntry)
       keyStatus   <- inventoryEntry(A_KEY_STATUS).map(KeyStatus(_)).getOrElse(Full(UndefinedKey))
       serverRoles =  inventoryEntry.valuesFor(A_SERVER_ROLE).map(ServerRole(_)).toSet

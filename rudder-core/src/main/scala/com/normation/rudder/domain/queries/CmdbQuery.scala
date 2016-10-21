@@ -409,8 +409,8 @@ case object AgentComparator extends CriterionType {
   override def buildFilter(attributeName:String,comparator:CriterionComparator,value:String) : Filter = {
     comparator match {
       //for equals and not equals, check value for jocker
-      case Equals => EQ(A_AGENTS_NAME,value)
-      case _ => NOT(EQ(A_AGENTS_NAME,value))
+      case Equals => SUB(A_AGENTS_NAME, null, Array(value), null)
+      case _ => NOT(SUB(A_AGENTS_NAME, null, Array(value), null))
     }
   }
 

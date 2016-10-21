@@ -96,6 +96,8 @@ import com.normation.rudder.reports.AgentRunInterval
 import com.normation.rudder.reports.GlobalComplianceMode
 import com.normation.rudder.domain.policies.GlobalPolicyMode
 import com.normation.rudder.domain.policies.PolicyModeOverrides
+import com.normation.inventory.domain.AgentInfo
+import com.normation.inventory.domain.AgentVersion
 
 
 /*
@@ -135,7 +137,7 @@ object NodeConfigData {
     , List("127.0.0.1", "192.168.0.100")
     , DateTime.now
     , None, UndefinedKey
-    , Seq(COMMUNITY_AGENT)
+    , Seq(AgentInfo(COMMUNITY_AGENT, Some(AgentVersion("4.0.0"))))
     , rootId
     , rootAdmin
     , Set( //by default server roles for root
@@ -173,7 +175,7 @@ object NodeConfigData {
     , List("192.168.0.10")
     , DateTime.now
     , None, UndefinedKey
-    , Seq(COMMUNITY_AGENT)
+    , Seq(AgentInfo(COMMUNITY_AGENT, Some(AgentVersion("4.0.0"))))
     , rootId
     , admin1
     , Set()
@@ -200,7 +202,7 @@ object NodeConfigData {
     , archDescription      = None
     , lastLoggedUser       = None
     , lastLoggedUserTime   = None
-    , agentNames           = Seq()
+    , agents               = Seq()
     , publicKeys           = Seq()
     , serverIps            = Seq()
     , machineId            = None //if we want several ids, we would have to ass an "alternate machine" field

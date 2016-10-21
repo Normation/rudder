@@ -75,7 +75,7 @@ final case class NodeInfo(
   , inventoryDate  : DateTime
   , publicKey      : Option[PublicKey]
   , keyStatus      : KeyStatus
-  , agentsName     : Seq[AgentType]
+  , agentsName     : Seq[AgentInfo]
   , policyServerId : NodeId
   , localAdministratorAccountName: String
   //for now, isPolicyServer and server role ARE NOT

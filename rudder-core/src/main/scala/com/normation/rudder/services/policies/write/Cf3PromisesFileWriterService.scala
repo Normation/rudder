@@ -251,7 +251,8 @@ class Cf3PromisesFileWriterServiceImpl(
       config.nodeInfo.agentsName.map {agentType => (agentType, config) }
     }
 
-    sequence( agentConfig )  { case (agentType, config) =>
+    sequence( agentConfig )  { case (agentInfo, config) =>
+      val agentType = agentInfo.name
       for {
         paths <- if(rootNodeConfigId == config.nodeInfo.id) {
                     Full(NodePromisesPaths(
