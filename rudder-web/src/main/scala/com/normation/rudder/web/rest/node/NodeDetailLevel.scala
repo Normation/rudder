@@ -214,8 +214,8 @@ object NodeDetailLevel {
      ( inv : NodeInfo ) =>
        val agents : List[JValue] = inv.agentsName.map{
          agent =>
-           ( "name"    -> agent.fullname ) ~
-           ( "version" -> JNothing )
+           ( "name"    -> agent.name.fullname ) ~
+           ( "version" -> agent.version.map(_.value) )
        }.toList
        JArray(agents)
     }

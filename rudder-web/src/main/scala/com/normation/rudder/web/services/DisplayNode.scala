@@ -420,7 +420,9 @@ object DisplayNode extends Loggable {
           {creationDate.map { creation =>
             <xml:group><b>Date first accepted in Rudder:</b> {DateFormaterService.getFormatedDate(creation)}<br/></xml:group>
           }.getOrElse(NodeSeq.Empty) }
-          <b>Agent name:</b> {sm.node.agentNames.map(_.fullname()).mkString(";")}<br/>
+          <b>Rudder agent version:</b> {sm.node.agents.map(_.version.map(_.value)).headOption.flatten.getOrElse("Not found")
+          }<br/>
+          <b>Agent name:</b> {sm.node.agents.map(_.name.fullname).mkString(";")}<br/>
           <b>Rudder ID:</b> {sm.node.main.id.value}<br/>
           { displayPolicyServerInfos(sm) }<br/>
           {

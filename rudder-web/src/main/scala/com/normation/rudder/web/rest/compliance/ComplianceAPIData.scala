@@ -323,6 +323,7 @@ object JsonCompliance {
       case NoAnswer => "noReport"
       case Disabled => "reportsDisabled"
       case Pending => "applying"
+      case BadPolicyMode => "badPolicyMode"
     }
   }
 
