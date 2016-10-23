@@ -105,6 +105,11 @@ object AgentInfoSerialisation {
     )
   }
 
+  /*
+   * Retrieve the agent information from JSON. "agentType" is mandatory,
+   * but version isn't, and even if we don't parse it correctly, we
+   * successfully return an agent (without version).
+   */
   def parseJson(s: String): Box[AgentInfo] = {
     for {
       json <- try { Full(parse(s)) } catch { case ex: Exception => Failure(s"Can not parse agent info: ${ex.getMessage }", Full(ex), Empty) }
@@ -120,6 +125,24 @@ object AgentInfoSerialisation {
     } yield {
       info
     }
+  }
+
+  /*
+   * Parsing agent must be done in two steps for compat with old versions:
+   * - try to parse in json: if ok, we have the new version
+   * - else, try to parse in old format, put None to version.
+   */
+  def parseCompatNonJson(s: String): Box[AgentInfo] = {
+    parseJson(s).or(
+      for {
+        tpe <- AgentType.fromValue(s) ?~! (
+                 s"Error when mapping '${s}' to an agent info. We are expecting either a json like "+
+             s"{'agentType': type, 'version': opt_version}, or an agentType with allowed values in ${AgentType.allValues.mkString(", ")}"
+               )
+      } yield {
+        AgentInfo(tpe, None)
+      }
+    )
   }
 }
 
