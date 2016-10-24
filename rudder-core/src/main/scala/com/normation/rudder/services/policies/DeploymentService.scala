@@ -397,7 +397,8 @@ trait PromiseGenerationService extends Loggable {
 
   protected def computeNodeConfigIdFromCache(config: NodeConfigurationHash): NodeConfigId = {
     //make it looks like a string, not an int.
-    NodeConfigId(config.hashCode.toHexString)
+    // we are adding a salt to make it unique in case of config regenerated latter
+    NodeConfigId((System.currentTimeMillis + config.hashCode).toHexString)
   }
   def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
     configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationHash(x)))).toMap
