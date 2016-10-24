@@ -217,7 +217,7 @@ class ExpectedReportsUpdateImpl(confExpectedRepo: UpdateExpectedReportsRepositor
     // now, we just need to go node by node, and for each:
     val time_0 = System.currentTimeMillis
     val res = confExpectedRepo.saveNodeExpectedReports(nodeExpectedReports)
-    TimingDebugLogger.warn(s"updating expected node configuration in base took: ${System.currentTimeMillis-time_0}ms")
+    TimingDebugLogger.trace(s"updating expected node configuration in base took: ${System.currentTimeMillis-time_0}ms")
     res
   }
 }
