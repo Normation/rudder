@@ -215,7 +215,7 @@ class ReportDisplayer(
 
         case UnexpectedUnknowVersion(lastRunDateTime, lastRunConfigId, expectedConfig, expectedExpiration) =>
           (
-            <p>This node is sending reports from an unknown configuration policy (with configuration ID '${lastRunConfigId.value}'
+            <p>This node is sending reports from an unknown configuration policy (with configuration ID '{lastRunConfigId.value}'
                that is unknown to Rudder, run started at {lastRunDateTime.toString(dateFormat)}).
                Please run "rudder agent update -f" on the node to force a policy update.</p>
             <p>For information, expected node policies are displayed below.</p>

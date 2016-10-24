@@ -108,12 +108,7 @@ case class RoReportsExecutionRepositoryImpl (
                               and nodeid in (${nodes : nodes.type})
                            order by nodeid, insertionid desc
                          ) as r
-                         left outer join (
-                           select distinct on (nodeid)
-                             nodeid, nodeconfigid, begindate, enddate, configuration
-                             from nodeconfigurations
-                            order by nodeid, begindate desc
-                          ) as c
+                         left outer join nodeconfigurations as c
                           on r.nodeId = c.nodeid and r.nodeconfigid = c.nodeconfigid
                      """.query[
                           //
@@ -127,6 +122,7 @@ case class RoReportsExecutionRepositoryImpl (
                           case tuple@(r, t1, t2, t3, t4, t5) => (r, unserNodeConfig(t1, t2, t3, t4, t5))
                         }.vector
         } yield {
+
           val runsMap = (runs.map { case (r, optConfig) =>
             val run = r.toAgentRun
             val config = run.nodeConfigVersion.map(c => (c, optConfig))
