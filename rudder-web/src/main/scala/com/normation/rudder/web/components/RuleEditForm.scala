@@ -468,14 +468,18 @@ class RuleEditForm(
 
   private[this] val crName = new WBTextField("Name", rule.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
+    override def className = "form-control"
+    override def labelClassName = "col-xs-12"
+    override def subContainerClassName = "col-xs-12"
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
   private[this] val crShortDescription = {
     new WBTextField("Short description", rule.shortDescription) {
-      override def className = "twoCol"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
       override def setFilter = notNull _ :: trim _ :: Nil
       override val maxLen = 255
       override def validations =  Nil
@@ -485,7 +489,9 @@ class RuleEditForm(
   private[this] val crLongDescription = {
     new WBTextAreaField("Description", rule.longDescription.toString) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def className = "twoCol"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
     }
   }
 
@@ -496,7 +502,9 @@ class RuleEditForm(
     }.getOrElse(Nil)
 
     new WBSelectField("Rule category", values, rule.categoryId.value) {
-      override def className = "twoCol"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
     }
   }
 
