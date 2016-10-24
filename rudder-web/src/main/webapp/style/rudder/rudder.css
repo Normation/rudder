@@ -1859,10 +1859,6 @@ template, a Directive, etc)
     padding:10px;
 }
 
-.object-details > * {
-    margin:10px;
-}
-
 .object-details fieldset {
     padding-left: 2px;
     padding-right: 20px;
