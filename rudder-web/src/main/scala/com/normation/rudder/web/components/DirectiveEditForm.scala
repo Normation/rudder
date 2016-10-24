@@ -269,14 +269,14 @@ class DirectiveEditForm(
             {("type", "button")}
        ) &
        //form and form fields
-      "#techniqueName" #>
+      "#techniqueName *" #>
         <a href={ "/secure/administration/techniqueLibraryManagement/" +
           technique.id.name.value }>
           { technique.name } version {technique.id.version}
         </a> &
-      "#techniqueDescription" #> technique.description &
+      "#techniqueDescription *" #> technique.description &
       "#nameField" #> {piName.toForm_!} &
-      "#rudderID" #> {directive.id.value} &
+      "#rudderID *" #> {directive.id.value} &
       "#shortDescriptionField" #> piShortDescription.toForm_! &
       "#longDescriptionField" #> piLongDescription.toForm_! &
       "#priority" #> piPriority.toForm_! &
@@ -372,16 +372,18 @@ class DirectiveEditForm(
 
   private[this] val piName = new WBTextField("Name", directive.name) {
     override def setFilter = notNull _ :: trim _ :: Nil
-    override def className = "twoCol"
-    override def labelClassName = "threeCol directiveInfo"
+    override def className = "form-control"
+    override def labelClassName = "col-xs-12"
+    override def subContainerClassName = "col-xs-12"
     override def validations =
       valMinLen(3, "The name must have at least 3 characters") _ :: Nil
   }
 
   private[this] val piShortDescription = {
     new WBTextField("Short description", directive.shortDescription) {
-      override def className = "twoCol"
-    override def labelClassName = "threeCol directiveInfo"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
       override def setFilter = notNull _ :: trim _ :: Nil
       override val maxLen = 255
       override def validations = Nil
@@ -391,8 +393,9 @@ class DirectiveEditForm(
   private[this] val piLongDescription = {
     new WBTextAreaField("Description", directive.longDescription.toString) {
       override def setFilter = notNull _ :: trim _ :: Nil
-      override def labelClassName = "threeCol directiveInfo"
-      override def inputField = super.inputField % ("style" -> "height:2em; width:67%;")
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
     }
   }
 
@@ -415,8 +418,9 @@ class DirectiveEditForm(
             </div>
           </span>
         </div>
-      override def className = "twoCol"
-      override def labelClassName = "threeCol directiveInfo"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
     }
 
   def showDeprecatedVersion (version : TechniqueVersion) = {
@@ -471,8 +475,9 @@ class DirectiveEditForm(
             </div>
           </span>
         </div>
-      override def className = "twoCol"
-      override def labelClassName = "threeCol directiveInfo"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
     }
   }
 
@@ -486,8 +491,9 @@ class DirectiveEditForm(
       , Seq(("id" -> "selectVersion"))
     ) {
 
-      override def className = "twoCol"
-      override def labelClassName = "threeCol directiveInfo"
+      override def className = "form-control"
+      override def labelClassName = "col-xs-12"
+      override def subContainerClassName = "col-xs-12"
     }
 
   private[this] val formTracker = {
