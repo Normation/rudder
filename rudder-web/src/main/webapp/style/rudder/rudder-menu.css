@@ -1035,16 +1035,6 @@ a.sidebar-toggle{
 .display-none{
   display: none;
 }
-.callout-fade ol,.callout-fade ul{
-  margin-bottom: 10px;
-  margin-left: 50px;
-}
-.callout-fade ol,.callout-fade ol li{
-  list-style-type: decimal;
-}
-.callout-fade ul,.callout-fade ul li{
-  list-style-type: disc;
-}
 #version + hr + .tw-bs #migrationButton{
   margin-left: 10px;
 }
@@ -1220,8 +1210,9 @@ form .tooltip-content p {
 */
 /* --- GENERAL --- */
 .callout-fade{
+  min-height: 50px;
   position: relative;
-  padding-right: 30px !important;
+  padding-right: 40px !important;
   font-family: 'Source Sans Pro','Helvetica Neue',Helvetica,Arial,sans-serif;
   font-size:14px;
   background-color: #fff;
@@ -1296,6 +1287,14 @@ form .tooltip-content p {
 .callout-fade.callout-warning div.marker{
   background-color: #f08004;
 }
+.callout-fade.callout-warning .actions .btn-action{
+  color: #fff;
+  background-color: #f08004;
+  border-color: #ca6a00;
+}
+.callout-fade.callout-warning .actions .btn-action:hover{
+  background-color: #e27700;
+}
 /* --- DANGER --- */
 .callout-fade.callout-danger{
   border-left-color: #C50000;
@@ -1305,6 +1304,26 @@ form .tooltip-content p {
 }
 .callout-fade.callout-danger div.marker{
   background-color: #C50000;
+}
+.callout-fade ol,.callout-fade ul{
+  margin-bottom: 10px;
+  margin-left: 50px;
+}
+.callout-fade ol,.callout-fade ol li{
+  list-style-type: decimal;
+}
+.callout-fade ul,.callout-fade ul li{
+  list-style-type: disc;
+}
+.callout-fade .actions{
+  text-align: right;
+  margin-top: 10px;
+}
+.callout-fade .actions > button{
+  margin-left:8px;
+}
+.callout-fade .actions > button:first-child{
+  margin-left:0;
 }
 /*
 *-----------------------------------------
