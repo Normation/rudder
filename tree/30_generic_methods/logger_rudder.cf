@@ -34,6 +34,7 @@ bundle agent logger_rudder(message, old_class_prefix)
   methods:
       "legacy logger_rudder wrapper" usebundle => log_rudder("${message}", "${old_class_prefix}", "", @{empty_slist});
 
+
   reports:
     cfengine::
       "WARNING: DEPRECATED logger_rudder interface called. Please use log_rudder instead (${old_class_prefix}: ${message})";
