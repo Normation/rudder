@@ -4,16 +4,18 @@ var app = angular.module('auditmode', []);
 app.factory('configGlobalFactory', function ($http){
   //Case : global configuration
   this.policyMode = {
-    url      : contextPath+"/secure/api/latest/settings/global_policy_mode"
+    url      : contextPath+"/secure/api/latest/settings"
   , getValue : function(){
-                 return $http.get(this.url).then(function successCallback(response) {
+                 return $http.get(this.url+"/global_policy_mode").then(function successCallback(response) {
                    return response.data.data.settings.global_policy_mode;
                  }, function errorCallback(response) {
                    console.error('error - policy mode');
                  });
                }
  , save      : function(mode){
-	             var data = {'value' : mode};
+	             var data = { 'global_policy_mode' : mode.policyMode
+	                        , 'global_policy_mode_overridable' : mode.overrideMode
+	                        };
 	             return $http.post(this.url, data).then(function successCallback(response) {
 	               return response.status==200;
 	             }, function errorCallback(response) {
@@ -28,14 +30,6 @@ app.factory('configGlobalFactory', function ($http){
                    return response.data.data.settings.global_policy_mode_overridable;
                  }, function errorCallback(response) {
                    console.error('error - policy mode');
-                 });
-               }
-  , save     : function(mode){
-                 var data = {'value' : mode};
-                 return $http.post(this.url, data).then(function successCallback(response) {
-                   return response.status==200;
-                 }, function errorCallback(response) {
-                   return response.status==200;
                  });
                }
   };
@@ -55,7 +49,7 @@ app.factory('configNodeFactory', function ($http){
                    });
                  }
  ,   save      : function(mode){
-	               var data = {'policyMode' : mode};
+	               var data = {'policyMode' : mode.policyMode};
 	               return $http.post(this.url, data).then(function successCallback(response) {
 	                 return response.status==200;
 	               }, function errorCallback(response) {
@@ -79,10 +73,7 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
 
   var nodeId = getNodeId();
   // variable used for saving animations
-  $scope.saving = {
-    'policyMode'   : 0
-  , 'overrideMode' : 0
-  };
+  $scope.saving = 0;
   // global configuration
   $scope.isGlobalForm;
   $scope.globalConfiguration = {};
@@ -132,36 +123,19 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
   $scope.saveChanges = function($event) {
     if(!$scope.nochange){
       //Start loading animation
-      $scope.saving = {
-        'policyMode'   : 1
-      , 'overrideMode' : 1
-      };
-      $scope.factory.policyMode.save($scope.conf.policyMode).then(function(success){
+      $scope.saving = 1;
+      $scope.factory.policyMode.save($scope.conf).then(function(success){
         if(success){
           //Reinitialize scope
           $scope.errorFeedback = false;
           $scope.nochange = true;
           $scope.currentConf.policyMode = $scope.conf.policyMode;
-          $scope.saving.policyMode = 2;
+          $scope.currentConf.overrideMode = $scope.conf.overrideMode;
         }else{
           $scope.errorFeedback = true;
-          $scope.saving.policyMode = 2;
         }
+        $scope.saving = 2;
       });
-      if($scope.isGlobalForm){
-        $scope.factory.overrideMode.save($scope.conf.overrideMode).then(function(success){
-          if(success){
-            //Reinitialize scope
-            $scope.errorFeedback = false;
-            $scope.nochange = true;
-            $scope.currentConf.overrideMode = $scope.conf.overrideMode;
-            $scope.saving.overrideMode = 2;
-          }else{
-            $scope.errorFeedback = true;
-            $scope.saving.overrideMode = 2;
-          }
-        });
-      }
     }
   };
 });
