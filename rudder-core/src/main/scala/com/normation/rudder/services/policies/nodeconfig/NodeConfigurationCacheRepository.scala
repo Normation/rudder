@@ -76,17 +76,17 @@ case class PolicyHash(
  *
  */
 case class NodeConfigurationHash(
-    id: NodeId
-  , writtenDate: Option[DateTime]
-  , nodeInfoHash: Int
-  , parameterHash: Int
+    id             : NodeId
+  , writtenDate    : DateTime
+  , nodeInfoHash   : Int
+  , parameterHash  : Int
   , nodeContextHash: Int
-  , policyHash: Set[PolicyHash]
+  , policyHash     : Set[PolicyHash]
 ) {
   // We need a method to correctly compare a NodeConfigurationHash that was serialized
   // from a NodeConfigurationHash created from a NodeConfiguration (so without writtenDate)
   def equalWithoutWrittenDate(other: NodeConfigurationHash) : Boolean = {
-    id               == other.id &&
+    id              == other.id &&
     nodeInfoHash    == other.nodeInfoHash &&
     parameterHash   == other.parameterHash &&
     nodeContextHash == other.nodeContextHash &&
@@ -100,7 +100,7 @@ object NodeConfigurationHash {
    * Build the hash from a node configuration.
    *
    */
-  def apply(nodeConfig: NodeConfiguration): NodeConfigurationHash = {
+  def apply(nodeConfig: NodeConfiguration, writtenDate: DateTime): NodeConfigurationHash = {
 
 
     /*
@@ -205,7 +205,7 @@ object NodeConfigurationHash {
 
     new NodeConfigurationHash(
         id = nodeConfig.nodeInfo.id
-      , writtenDate = nodeConfig.writtenDate
+      , writtenDate = writtenDate
       , nodeInfoHash = nodeInfoHashValue
       , parameterHash = parameterHash
       , nodeContextHash = nodeContextHash

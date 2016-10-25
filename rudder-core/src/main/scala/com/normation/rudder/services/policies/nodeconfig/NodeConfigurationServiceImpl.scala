@@ -69,7 +69,7 @@ class NodeConfigurationServiceImpl(
   def deleteNodeConfigurations(nodeIds:Set[NodeId]) :  Box[Set[NodeId]] = repository.deleteNodeConfigurations(nodeIds)
   def deleteAllNodeConfigurations() : Box[Unit] = repository.deleteAllNodeConfigurations
   def onlyKeepNodeConfiguration(nodeIds:Set[NodeId]) : Box[Set[NodeId]] = repository.onlyKeepNodeConfiguration(nodeIds)
-  def cacheNodeConfiguration(nodeConfigurations: Set[NodeConfiguration]): Box[Set[NodeId]] = repository.save(nodeConfigurations.map(x => NodeConfigurationHash(x)))
+  def cacheNodeConfiguration(nodeConfigurations: Set[NodeConfiguration], writtenDate: DateTime): Box[Set[NodeId]] = repository.save(nodeConfigurations.map(x => NodeConfigurationHash(x, writtenDate)))
   def getNodeConfigurationHash(): Box[Map[NodeId, NodeConfigurationHash]] = repository.getAll
 
   def sanitize(targets : Seq[NodeConfiguration]) : Box[Map[NodeId, NodeConfiguration]] = {
@@ -170,7 +170,8 @@ class NodeConfigurationServiceImpl(
   }
 
   def selectUpdatedNodeConfiguration(nodeConfigurations: Map[NodeId, NodeConfiguration], cache: Map[NodeId, NodeConfigurationHash]): Set[NodeId] = {
-    val newConfigCache = nodeConfigurations.map{ case (_, conf) => NodeConfigurationHash(conf) }
+    val notUsedTime = new DateTime(0) //this seems to tell us the nodeConfigurationHash should be refactor to split time frome other properties
+    val newConfigCache = nodeConfigurations.map{ case (_, conf) => NodeConfigurationHash(conf, notUsedTime) }
 
     val (updatedConfig, notUpdatedConfig) = newConfigCache.toSeq.partition{ p =>
       cache.get(p.id) match {

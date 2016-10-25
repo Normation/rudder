@@ -43,6 +43,7 @@ import com.normation.inventory.domain.NodeId
 import com.normation.rudder.repository.FullActiveTechniqueCategory
 import com.normation.rudder.domain.policies.RuleId
 import com.normation.rudder.domain.reports.NodeConfigId
+import org.joda.time.DateTime
 
 trait NodeConfigurationService {
 
@@ -83,7 +84,7 @@ trait NodeConfigurationService {
   /**
    * Cache these node configurations.
    */
-  def cacheNodeConfiguration(nodeConfigurations: Set[NodeConfiguration]): Box[Set[NodeId]]
+  def cacheNodeConfiguration(nodeConfigurations: Set[NodeConfiguration], writtenDate: DateTime): Box[Set[NodeId]]
 
   /**
    * Look what are the node configuration updated compared to information in cache

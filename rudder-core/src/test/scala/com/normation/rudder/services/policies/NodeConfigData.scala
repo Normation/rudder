@@ -237,7 +237,6 @@ object NodeConfigData {
     , policyDrafts= Set[Cf3PolicyDraft]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
-    , writtenDate = None
     , isRootServer= true
   )
 
@@ -247,7 +246,6 @@ object NodeConfigData {
     , policyDrafts= Set[Cf3PolicyDraft]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
-    , writtenDate = None
     , isRootServer= false
   )
 
@@ -257,7 +255,6 @@ object NodeConfigData {
     , policyDrafts= Set[Cf3PolicyDraft]()
     , nodeContext = Map[String, Variable]()
     , parameters  = Set[ParameterForConfiguration]()
-    , writtenDate = None
     , isRootServer= false
   )
 
