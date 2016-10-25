@@ -70,7 +70,6 @@ case class NodeConfiguration(
     //environment variable for that server
   , nodeContext : Map[String, Variable]
   , parameters  : Set[ParameterForConfiguration]
-  , writtenDate : Option[DateTime] = None
   , isRootServer: Boolean = false
 ) extends HashcodeCaching with Loggable {
 
