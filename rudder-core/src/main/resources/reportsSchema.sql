@@ -147,56 +147,6 @@ CREATE TABLE ArchivedReportsExecution (
  *************************************************************************************
  */
 
--- Create the sequences
-CREATE SEQUENCE ruleSerialId START 1;
-
--- that sequence is used for nodeJoinKey value
-CREATE SEQUENCE ruleVersionId START 1;
-
--- Create the table for the reports information
-CREATE TABLE expectedReports (
-  pkId                       integer PRIMARY KEY DEFAULT nextval('ruleSerialId')
-, nodeJoinKey                integer NOT NULL
-, ruleId                     text NOT NULL CHECK (ruleId <> '')
-, serial                     integer NOT NULL
-, directiveId                text NOT NULL CHECK (directiveId <> '')
-, component                  text NOT NULL CHECK (component <> '')
-, cardinality                integer NOT NULL
-, componentsValues           text NOT NULL -- this is the serialisation of the expected values 
-, unexpandedComponentsValues text -- this is the serialisatin of the unexpanded expected values. It may be null for pre-2.6 entries
-, beginDate                  timestamp with time zone NOT NULL
-, endDate                    timestamp with time zone
-);
-
-CREATE INDEX expectedReports_versionId ON expectedReports (nodeJoinKey);
-CREATE INDEX expectedReports_serialId ON expectedReports (ruleId, serial);
-
-CREATE TABLE expectedReportsNodes (
-  nodeJoinKey   integer NOT NULL 
-, nodeId        text NOT NULL CHECK (nodeId <> '')
-  /*
-   * NodeConfigIds is an array of string  used for node 
-   * config version id. It can be null or empty to accomodate 
-   * pre-2.12 behaviour. 
-   * 
-   * The most recent version is put in first place of the
-   * array, so that in
-   * [v5, v4, v3, v2]
-   * v5 is the newest. Space will be trim in the id. 
-   * 
-   */
-, nodeConfigIds text[]
-  /*
-   * Denote that the expected report is actually not expected, 
-   * because the directive is derived from an Unique Technique
-   * and an other more priorised one was chosen. 
-   */
-, overriden text
-, PRIMARY KEY (nodeJoinKey, nodeId)
-);
-CREATE INDEX expectedReportsNodes_versionId ON expectedReportsNodes (nodeJoinKey);
-CREATE INDEX nodeconfigids_idx on expectedreportsnodes USING GIN (nodeconfigids);
-
 
 /*
  * We also have a table of the list of node with configId / generationDate
