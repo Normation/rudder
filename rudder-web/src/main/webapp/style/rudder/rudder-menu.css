@@ -158,7 +158,18 @@ header.main-header .logo-lg img{
   resize:vertical;
   min-height:6em;
 }
-
+/* ICON INFO */
+.glyphicon.info{
+  top: -2px;
+  margin-left: 10px;
+  font-size: 16px;
+  color: #999;
+  cursor: help;
+  transition-duration:.2s;
+}
+.glyphicon.info:hover{
+  color:#777;
+}
 /* ----- <QUICK SEARCH>  ----- */
 /* FIX CSS BUGS */
 .main-header>.navbar {

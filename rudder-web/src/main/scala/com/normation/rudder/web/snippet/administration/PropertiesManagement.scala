@@ -232,7 +232,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         initMandatory.map{ b:Boolean =>
           val tooltipid = Helpers.nextFuncName
           <span class="tooltipable" tooltipid={tooltipid} title="">
-            <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+            <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
           </span>
           <div class="tooltipContent" id={tooltipid}>
             If this option is enabled, users will be forced to enter a change audit log. Empty messages will not be accepted.
@@ -244,7 +244,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
         initExplanation.map{ s:String =>
           val tooltipid = Helpers.nextFuncName
           <span class="tooltipable" tooltipid={tooltipid} title="">
-            <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+            <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
           </span>
           <div class="tooltipContent" id={tooltipid}>
             Content of the text displayed to prompt the user to enter a change audit log.
@@ -350,7 +350,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               Allow users to validate Change Requests they created themselves? Validating is moving a Change Request to the "<b>Pending deployment</b>" status
@@ -364,7 +364,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               Allow users to deploy Change Requests they created themselves? Deploying is effectively applying a Change Request in the "<b>Pending deployment</b>" status.
@@ -434,7 +434,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
             val tooltipid = Helpers.nextFuncName
 
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
                By default, copying configuration policy to nodes requires system clocks to be synchronized
@@ -464,7 +464,7 @@ class PropertiesManagement extends DispatchSnippet with Loggable {
           case Full(_) =>
             val tooltipid = Helpers.nextFuncName
             <span class="tooltipable" tooltipid={tooltipid} title="">
-              <img   src="/images/icInfo.png" style="padding-left:15px; margin:0;"/>
+              <span class="tw-bs"><span class="glyphicon glyphicon-info-sign info"></span></span>
             </span>
             <div class="tooltipContent" id={tooltipid}>
               By default, copying configuration policy requires nodes to be able to
