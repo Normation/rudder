@@ -972,6 +972,12 @@ a.sidebar-toggle{
 	border:none;
 }
 /* --- DIRECTIVE PAGE --- */
+#technicalDetails{
+	padding:0 30px 12px 30px;
+}
+#technicalDetails > .directiveTechnicalInfo:first-child{
+	margin-top:0;
+}
 #directiveDetails{
   border-left: 15px solid #ECF0F5;
 }
