@@ -102,6 +102,9 @@ class ReportDisplayer(
     val id = JsNodeId(node.id)
     val callback =  SHtml.ajaxInvoke(() => SetHtml("reportsDetails",displayReports(node)) )
     Script(OnLoad(JsRaw(s"""
+      if($$("[aria-controls='node_reports']").hasClass('ui-tabs-active')){
+        ${callback.toJsCmd}
+      }
       $$("#details_${id}").on( "tabsactivate", function(event, ui) {
         if(ui.newPanel.attr('id')== 'node_reports') {
           ${callback.toJsCmd}
