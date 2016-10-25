@@ -107,9 +107,10 @@ html,body{
     box-shadow: none;
 }
 #login-page form .form-control{
-	font-size: 20px;
-	border-top-right-radius:5px;
-	border-bottom-right-radius:5px;  
+  font-size: 20px;
+  border-top-right-radius:5px;
+  border-bottom-right-radius:5px;
+  height: 36px;
 }
 #login-page form .form-control:focus{
 	color: #222D32;
