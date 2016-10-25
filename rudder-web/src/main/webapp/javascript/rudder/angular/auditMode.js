@@ -44,27 +44,39 @@ app.factory('configGlobalFactory', function ($http){
 
 app.factory('configNodeFactory', function ($http){
   //Case : node configuration
-  this.policyMode = {
-    url      : contextPath+"/secure/api/latest/nodes/" + getNodeId()
-  , getValue : function(){
-                 return $http.get(this.url).then(function successCallback(response) {
-                   return response.data.data.nodes[0].policyMode;
-                 }, function errorCallback(response) {
-                   console.error('error - policy mode');
-                 });
-               }
- , save      : function(mode){
-	             var data = {'policyMode' : mode};
-	             return $http.post(this.url, data).then(function successCallback(response) {
-	               return response.status==200;
-	             }, function errorCallback(response) {
-	               return response.status==200;
-	             });
-	           }
-  };
-  return this;
+  return function(nodeId) {
+    this.policyMode = {
+      url      : contextPath+"/secure/api/latest/nodes/" + nodeId
+    , getValue : function(){
+                   return $http.get(this.url).then(function successCallback(response) {
+                     return response.data.data.nodes[0].policyMode;
+                   }, function errorCallback(response) {
+                     console.error('error - policy mode');
+                   });
+                 }
+ ,   save      : function(mode){
+	               var data = {'policyMode' : mode};
+	               return $http.post(this.url, data).then(function successCallback(response) {
+	                 return response.status==200;
+	               }, function errorCallback(response) {
+	                 return response.status==200;
+	               });
+	             }
+    };
+    return this;
+    }
 });
 app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, configGlobalFactory, configNodeFactory) {
+
+  function getNodeId(){
+    var nodeId;
+    try {
+      var hash = JSON.parse($location.hash());
+      nodeId = hash.nodeId;
+    } catch(err){}
+    return nodeId;
+  }
+
   var nodeId = getNodeId();
   // variable used for saving animations
   $scope.saving = {
@@ -96,10 +108,10 @@ app.controller('auditmodeCtrl', function ($scope, $http, $location, $timeout, co
   });
 
   // -- Get appropriated factory and initialize scope
-  if(nodeId){
+  if(nodeId !== undefined){
     // case : node
     $scope.isGlobalForm = false;
-    $scope.factory = configNodeFactory;
+    $scope.factory = configNodeFactory(nodeId)
     $scope.factory.policyMode.getValue().then(function(currentPolicyMode){
       $scope.currentConf.policyMode = currentPolicyMode;
       $scope.conf.policyMode = currentPolicyMode;
@@ -160,13 +172,3 @@ app.config(function($locationProvider) {
     requireBase: false
   });
 })
-
-function getNodeId(){
-  var nodeId;
-  try {
-    var hash = JSON.parse(decodeURI(window.location.hash).slice(2));
-    nodeId = hash.nodeId;
-  } catch(err){}
-  return nodeId;
-}
-
