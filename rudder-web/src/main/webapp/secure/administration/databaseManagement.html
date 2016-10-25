@@ -170,18 +170,21 @@
                          </span>
                         </lift:authz>
                       </span>
-                        <span id="confirm"> </span>
+                      <span class="tw-bs">
+                        <span id="confirm"></span>
+                      </span>
                     </div>
                     <lift:Msgs>
                       <lift:error_msg class="error" ></lift:error_msg>
                     </lift:Msgs>
                   </form>
                   <br/>
-                <div id="cleanResult" style="display:none; float:left">
-                  <img src="/images/icValid.jpg" alt="Warning!" height="25" width="25" class="warnicon"
-                    style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
-                  <b id="cleanResultText"></b>
-                </div>
+                  <div class="tw-bs">
+                    <div id="cleanResult" style="display:none; float:left" class="callout-fade callout-success">
+                      <div class="marker"><span class="glyphicon glyphicon-ok"></span></div>
+                      <span id="cleanResultText"></span>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </table>

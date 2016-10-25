@@ -167,25 +167,27 @@ class DatabaseManagement extends DispatchSnippet with Loggable {
     }
 
     val dialog =
-    <span style="margin:5px;">
-          <img src="/images/icWarn.png" alt="Warning!" height="25" width="25" class="warnicon"
-            style="vertical-align: middle; padding: 0px 0px 2px 0px;"/>
-          <b>{"Are you sure you want to %s reports older than %s?".format(action.name,DateFormaterService.getFormatedDate(date))}</b>
-
-      <span style="margin-left:7px">
+      <div class="callout-fade callout-warning">
+        <div class="marker"><span class="glyphicon glyphicon-exclamation-sign"></span></div>
+        Are you sure you want to
+        <b>{action.name}</b>
+        reports older than
+        <span class="text-bold">
+        {DateFormaterService.getFormatedDate(date)}
+        </span>
+        ?
+        <div class="actions">
           {
-            SHtml.ajaxButton("Cancel", { () => { cancel & updateValue } })
+            SHtml.ajaxButton("Cancel", { () => { cancel & updateValue } }, ("class","btn btn-default"))
           }
-      <span style="margin-left:10px">
           {
             SHtml.ajaxButton("%s reports".format(action.name.capitalize), { () => val askResult = action.ask(date)
-             JsRaw("""$('#cleanResultText').text('%s, you can see more details in the webapp log file (/var/log/rudder/core/rudder-webapp.log)');
+             JsRaw("""$('#cleanResultText').html('%s, you can see more details in the webapp log file (<span class="text-bold">/var/log/rudder/core/rudder-webapp.log</span>)');
                  $('#cleanResult').show();""".format(askResult)) & cancel & updateValue
-            } )
+            }, ("class","btn btn-action") )
           }
-        </span>
-      </span>
-    </span>
+        </div>
+      </div>
 
     def showDialog : JsCmd = {
       SetHtml("confirm", dialog) &
