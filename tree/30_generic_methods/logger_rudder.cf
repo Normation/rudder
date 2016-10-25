@@ -52,13 +52,7 @@ bundle agent logger_rudder(message, class_prefix)
       "expected_reports_temp"   string => "${expected_reports_destination}.tmp";
       "expected_reports_file"   string => "${expected_reports_destination}.res";
 
-    pass1.logger_rudder_temp_resfile_repaired.!final_resfile_exists::
-      # 2/ If the temporary file has been created, and final resfile does not exist, read temp file to get all values in an array, and canonify the first entry
-      "dim" int => readstringarrayidx("reports", "${expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
-      "keys" slist => getindices("reports");
-
-      "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
-
+ 
     logger_rudder_final_resfile_repaired::
       "c_class_prefix" string => canonify("${class_prefix}");
 
@@ -71,48 +65,64 @@ bundle agent logger_rudder(message, class_prefix)
       "report_data_read" expression => isgreaterthan("${number_lines}","0");
 
     any::
-      "keys_defined"     expression => isvariable("keys");
-
-      "final_resfile_exists" expression => fileexists("${expected_reports_file}");
-
-    any::
       "pass3" expression => "pass2";
       "pass2" expression => "pass1";
       "pass1" expression => "any";
 
-  files:
-
-      # 1/ First, check if the temporary file needs to be updated (The Rudder
-      # provided expected reports file has changed). If so, expand the variables
-      # in it into a temporary file.
-    !logger_rudder_temp_resfile_repaired::
-      "${expected_reports_temp}"
-        create        => "true",
-        edit_defaults => no_backup,
-        edit_template => "${expected_reports_source}",
-        classes       => classes_generic("logger_rudder_temp_resfile");
-
-      # 3/ Write the final expected reports, expanded. First, empty it, then fill it
-      # (can't use edit_default empty, as we are iterating over a list)
-    !final_resfile_exists.logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
-     "${expected_reports_file}"
-        create        => "true",
-        edit_defaults => no_backup,
-        edit_line     => delete_lines_matching(".*");
-
-      "${expected_reports_file}"
-        create        => "true",
-        edit_defaults => no_backup,
-        edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
-        classes       => classes_generic("logger_rudder_final_resfile");
 
   methods:
+    !logger_rudder_final_resfile_repaired::
+      # If res file is not created, generate it
+      "any" usebundle => _create_current_expected_reports_file;
+
     # no need to avoid normal ordering since this class is set when report is ready
-    report_data_read.pass3::
+    report_data_read::
 
       # 4/ Array is ready, reporting time !!!
       "any" usebundle => _rudder_common_reports_generic("${report_data[1]}", "${c_class_prefix}", "${report_data[3]}", "${report_data[4]}", "${report_data[5]}", "${message}"),
         classes    => classes_generic("logger_rudder_${c_class_prefix}");
+
+}
+
+
+# This bundle will create the expected reports files (tmp and res)
+# it is supposed to be called once by logger_rudder, to generate the data
+bundle agent _create_current_expected_reports_file {
+  vars:
+
+    logger_rudder_temp_resfile_repaired::
+      # 2/ If the temporary file has been created, read temp file to get all values in an array, and canonify the first entry
+      "dim" int => readstringarrayidx("reports", "${logger_rudder.expected_reports_temp}", "\s*#[^\n]*", ";;", 9999, 999999);
+      "keys" slist => getindices("reports");
+
+      "reports[${keys}][canon]" string => canonify("${reports[${keys}][1]}");
+
+  classes:
+    logger_rudder_temp_resfile_repaired::
+      "keys_defined"     expression => isvariable("keys");
+
+  files:
+
+      # 1/ First, create the temporary file by expanding the variables
+      # in it into a temporary file.
+    !logger_rudder_temp_resfile_repaired::
+      "${logger_rudder.expected_reports_temp}"
+        create        => "true",
+        edit_defaults => no_backup,
+        edit_template => "${logger_rudder.expected_reports_source}",
+        classes       => classes_generic("logger_rudder_temp_resfile");
+
+      # 3/ Write the final expected reports, expanded. First, delete it, then fill it
+      # (can't use edit_default empty, as we are iterating over a list)
+    logger_rudder_temp_resfile_repaired.!logger_rudder_final_resfile_repaired.keys_defined::
+      "${logger_rudder.expected_reports_file}"
+        delete        => tidy;
+
+      "${logger_rudder.expected_reports_file}"
+        create        => "true",
+        edit_defaults => no_backup,
+        edit_line     => insert_lines("${reports[${keys}][0]};;${reports[${keys}][canon]};;${reports[${keys}][2]};;${reports[${keys}][3]};;${reports[${keys}][4]}"),
+        classes       => classes_generic("logger_rudder_final_resfile");
 
 }
 
