@@ -484,18 +484,27 @@ object ExecutionBatch extends Loggable {
               runConfig.endDate match {
 
                 case None =>
-                  //nominal (bis)! The node is answering to current config !
                   val expirationTime = t.plus(runValidityDuration(currentConfig.agentRun, currentConfig.complianceMode))
                   if(expirationTime.isBefore(now)) {
-                    runType(s"Last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} but a new one should have been sent before ${expirationTime}"
+                    //take care of the potential case where currentConfig != runConfig in the log messae
+                    runType(s"Last run at ${t} is for the configId ${runConfig.nodeConfigId.value} but a new one should have been sent for configIf ${currentConfig.nodeConfigId.value} before ${expirationTime}"
                     , NoReportInInterval(currentConfig)
                     )
                   } else { //nominal case
-                    runType(s"Last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} and not expired, compute compliance"
-                    , ComputeCompliance(t, currentConfig, expirationTime)
-                    )
+                    //here, we have to verify that the config id are different, because we can
+                    //be in the middle of a generation of have a badly closed node configuration on base
+                    if(runConfig.nodeConfigId != currentConfig.nodeConfigId) {
+                      //standard case: we changed version and are waiting for a run with the new one.
+                      runType(s"last run at ${t} was for previous configId ${runConfig.nodeConfigId.value} and no report received for current configId ${currentConfig.nodeConfigId.value}, but ${now} is before expiration time ${expirationTime}, Pending"
+                      , Pending(currentConfig, Some((t, runConfig)), expirationTime)
+                      )
+                    } else {
+                      // the node is answering current config, on time
+                      runType(s"Last run at ${t} is for the correct configId ${currentConfig.nodeConfigId.value} and not expired, compute compliance"
+                      , ComputeCompliance(t, currentConfig, expirationTime)
+                      )
+                    }
                   }
-
 
                 case Some(eol) =>
                   //check if the run is not too old for the version, i.e if endOflife + grace is before run
@@ -522,7 +531,6 @@ object ExecutionBatch extends Loggable {
                     }
                   }
               }
-
           }
       }
 
@@ -821,13 +829,24 @@ object ExecutionBatch extends Loggable {
 
     val nil = Seq[RuleNodeStatusReport]()
     val currentRunReports = buildRuleNodeStatusReport(mergeInfo, currentConfig, ReportType.Pending)
-    val (computed, newStatus) = ((nil, nil)/: currentRunReports) { case ( (c,n), ruleNodeStatusReports) =>
-      complianceForRun.get(SerialedRuleId(ruleNodeStatusReports.ruleId, ruleNodeStatusReports.serial)) match {
+    val (computed, newStatus) = ((nil, nil)/: currentRunReports) { case ( (c,n), currentStatusReports) =>
+      complianceForRun.get(SerialedRuleId(currentStatusReports.ruleId, currentStatusReports.serial)) match {
         case None => //the whole rule is new!
           //here, the reports are ACTUALLY pending, not missing.
-          (c, n++Set(ruleNodeStatusReports))
-        case Some(complianceReport) => //use the already computed compliance
-          (c:+complianceReport, n)
+          (c, n++Set(currentStatusReports))
+
+        case Some(runStatusReport) => //look for added / removed directive
+          val runDirectives = runStatusReport.directives
+          val currentDirectives = currentStatusReports.directives
+
+          //don't keep directive that were removed between the two configs
+          val toKeep = runDirectives.filterKeys(k => currentDirectives.keySet.contains(k))
+
+          //now override currentDirective with the one to keep in currentReport
+          val updatedDirectives = currentDirectives ++ toKeep
+          val newCompliance = runStatusReport.copy(directives = updatedDirectives)
+
+          (c:+newCompliance, n)
       }
     }
 

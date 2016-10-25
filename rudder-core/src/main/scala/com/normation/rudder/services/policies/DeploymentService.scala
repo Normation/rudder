@@ -88,6 +88,7 @@ import com.normation.rudder.domain.appconfig.FeatureSwitch
 import com.normation.inventory.domain.AixOS
 import com.normation.rudder.domain.reports.NodeModeConfig
 import com.normation.rudder.reports.HeartbeatConfiguration
+import org.joda.time.format.DateTimeFormatter
 
 /**
  * The main service which deploy modified rules and
@@ -107,6 +108,8 @@ trait PromiseGenerationService extends Loggable {
     logger.info("Start policy generation, checking updated rules")
 
     val initialTime = System.currentTimeMillis
+
+    val generationTime = new DateTime(initialTime)
     val rootNodeId = Constants.ROOT_POLICY_SERVER_ID
 
     val result = for {
@@ -181,27 +184,28 @@ trait PromiseGenerationService extends Loggable {
 
       beginTime                =  System.currentTimeMillis
       //that's the first time we actually output something : new serial for updated rules
-      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCaches, allRules.map(x => (x.id, x)).toMap)?~! "Cannot detect the updates in the NodeConfiguration"
+      (updatedCrs, deletedCrs) <- detectUpdatesAndIncrementRuleSerial(sanitizedNodeConfig.values.toSeq, nodeConfigCaches, allRules.map(x => (x.id, x)).toMap)?~!
+                                  "Cannot detect the updates in the NodeConfiguration"
       uptodateSerialNodeconfig =  updateSerialNumber(sanitizedNodeConfig, updatedCrs.toMap)
       // Update the serial of ruleVals when there were modifications on Rules values
       // replace variables with what is really applied
       timeIncrementRuleSerial  =  (System.currentTimeMillis - beginTime)
       _                        =  logger.debug(s"Checked node configuration updates leading to rules serial number updates and serial number updated in ${timeIncrementRuleSerial} ms")
 
-      writeTime           =  System.currentTimeMillis
-      nodeConfigVersions  =  calculateNodeConfigVersions(uptodateSerialNodeconfig.values.toSeq)
+      writeTime             =  System.currentTimeMillis
+      updatedNodeConfigs    =  getNodesConfigVersion(uptodateSerialNodeconfig, nodeConfigCaches, generationTime)
       //second time we write something in repos: updated node configuration
-      writtenNodeConfigs  <- writeNodeConfigurations(rootNodeId, uptodateSerialNodeconfig, nodeConfigVersions, nodeConfigCaches, allLicenses, globalPolicyMode) ?~! "Cannot write configuration node"
-      timeWriteNodeConfig =  (System.currentTimeMillis - writeTime)
-      _                   =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
+      writtenNodeConfigs    <- writeNodeConfigurations(rootNodeId, updatedNodeConfigs, uptodateSerialNodeconfig, allLicenses, globalPolicyMode, generationTime) ?~!
+                               "Cannot write configuration node"
+      timeWriteNodeConfig   =  (System.currentTimeMillis - writeTime)
+      _                     =  logger.debug(s"Node configuration written in ${timeWriteNodeConfig} ms, start to update expected reports.")
 
       reportTime            =  System.currentTimeMillis
       // need to update this part as well
-      updatedNodeConfig     =  writtenNodeConfigs.map( _.nodeInfo.id )
-      expectedReports       <- setExpectedReports(ruleVals, sanitizedNodeConfig.values.toSeq, nodeConfigVersions, updatedCrs.toMap, deletedCrs
-                                , updatedNodeConfig, new DateTime(), allNodeModes)  ?~! "Cannot build expected reports"
+      expectedReports       <- setExpectedReports(ruleVals, writtenNodeConfigs.toSeq, updatedNodeConfigs, updatedCrs.toMap, deletedCrs, generationTime, allNodeModes)  ?~!
+                               "Cannot build expected reports"
       // now, invalidate cache
-      _                     =  invalidateComplianceCache(updatedNodeConfig)
+      _                     =  invalidateComplianceCache(updatedNodeConfigs.keySet)
       timeSetExpectedReport =  (System.currentTimeMillis - reportTime)
       _                     =  logger.debug(s"Reports updated in ${timeSetExpectedReport} ms")
 
@@ -346,6 +350,13 @@ trait PromiseGenerationService extends Loggable {
    */
   def updateSerialNumber(nodes : Map[NodeId, NodeConfiguration], rules : Map[RuleId, Int]) :  Map[NodeId, NodeConfiguration]
 
+
+  /**
+   * For each nodeConfiguration, check if the config is updated.
+   * If so, update the return the new configId.
+   */
+  def getNodesConfigVersion(allNodeConfigs: Map[NodeId, NodeConfiguration], hashes: Map[NodeId, NodeConfigurationHash], generationTime: DateTime): Map[NodeId, NodeConfigId]
+
   /**
    * Actually  write the new configuration for the list of given node.
    * If the node target configuration is the same as the actual, nothing is done.
@@ -354,11 +365,11 @@ trait PromiseGenerationService extends Loggable {
    */
   def writeNodeConfigurations(
       rootNodeId      : NodeId
+    , updated         : Map[NodeId, NodeConfigId]
     , allNodeConfig   : Map[NodeId, NodeConfiguration]
-    , versions        : Map[NodeId, NodeConfigId]
-    , cache           : Map[NodeId, NodeConfigurationHash]
     , allLicenses     : Map[NodeId, NovaLicense]
     , globalPolicyMode: GlobalPolicyMode
+    , generationTime  : DateTime
   ) : Box[Set[NodeConfiguration]]
 
   /**
@@ -373,7 +384,6 @@ trait PromiseGenerationService extends Loggable {
     , versions         : Map[NodeId, NodeConfigId]
     , updateCrs        : Map[RuleId, Int]
     , deletedCrs       : Seq[RuleId]
-    , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
     , allNodeModes     : Map[NodeId, NodeModeConfig]
   ) : Box[Seq[NodeExpectedReports]]
@@ -395,14 +405,6 @@ trait PromiseGenerationService extends Loggable {
     , globalAgentRun   : AgentRunInterval
   ) : Box[Unit]
 
-  protected def computeNodeConfigIdFromCache(config: NodeConfigurationHash): NodeConfigId = {
-    //make it looks like a string, not an int.
-    // we are adding a salt to make it unique in case of config regenerated latter
-    NodeConfigId((System.currentTimeMillis + config.hashCode).toHexString)
-  }
-  def calculateNodeConfigVersions(configs: Seq[NodeConfiguration]): Map[NodeId, NodeConfigId] = {
-    configs.map(x => (x.nodeInfo.id, computeNodeConfigIdFromCache(NodeConfigurationHash(x)))).toMap
-  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -853,6 +855,55 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
   }
 
   /**
+   * For each nodeConfiguration, get the corresponding node config version.
+   * Either get it from cache or create a new one depending if the node configuration was updated
+   * or not.
+   */
+  def getNodesConfigVersion(allNodeConfigs: Map[NodeId, NodeConfiguration], hashes: Map[NodeId, NodeConfigurationHash], generationTime: DateTime): Map[NodeId, NodeConfigId] = {
+
+    /*
+     * Several steps heres:
+     * - look what node configuration are updated (based on their cache ?)
+     * - write these node configuration
+     * - update caches
+     */
+    val updatedNodes = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, hashes)
+
+    /*
+     * The hash is directly the NodeConfigHash.hashCode, because we want it to be
+     * unique to a given generation and the "writtenDate" is part of NodeConfigurationHash.
+     * IE, even if we have the same nodeConfig than a
+     * previous one, but the expected node config was closed, we want to get a new
+     * node config id.
+     */
+    def hash(h: NodeConfigurationHash): String = {
+      //we always set date = 0, so we have the possibility to see with
+      //our eyes (and perhaps some SQL) two identicals node config diverging
+      //only by the date of generation
+      h.writtenDate.toString("YYYYMMdd-HHmmss")+"-"+h.copy(writtenDate = new DateTime(0)).hashCode.toHexString
+    }
+
+    /*
+     * calcul new nodeConfigId for the updated configuration
+     * The filterKey in place of a updatedNode.map(id => allNodeConfigs.get(id)
+     * is to be sure to have the NodeConfiguration. There is 0 reason
+     * to not have it, but it simplifie case.
+     *
+     */
+    val nodeConfigIds = allNodeConfigs.filterKeys(updatedNodes.contains).values.map { nodeConfig =>
+      (nodeConfig.nodeInfo.id, NodeConfigId(hash(NodeConfigurationHash(nodeConfig, generationTime))))
+    }.toMap
+
+    ComplianceDebugLogger.debug(s"Updated node configuration ids: ${nodeConfigIds.map {case (id, nodeConfigId) =>
+      s"[${id.value}:${ hashes.get(id).fold("???")(x => hash(x)) }->${ nodeConfigId.value }]"
+    }.mkString("") }")
+
+    //return update nodeId with their config
+    nodeConfigIds
+  }
+
+
+  /**
    * Actually  write the new configuration for the list of given node.
    * If the node target configuration is the same as the actual, nothing is done.
    * Else, promises are generated;
@@ -860,35 +911,23 @@ trait PromiseGeneration_updateAndWriteRule extends PromiseGenerationService {
    */
   def writeNodeConfigurations(
       rootNodeId      : NodeId
+    , updated         : Map[NodeId, NodeConfigId]
     , allNodeConfigs  : Map[NodeId, NodeConfiguration]
-    , versions        : Map[NodeId, NodeConfigId]
-    , cache           : Map[NodeId, NodeConfigurationHash]
     , allLicenses     : Map[NodeId, NovaLicense]
     , globalPolicyMode: GlobalPolicyMode
+    , generationTime  : DateTime
   ) : Box[Set[NodeConfiguration]] = {
-    /*
-     * Several steps heres:
-     * - look what node configuration are updated (based on their cache ?)
-     * - write these node configuration
-     * - update caches
-     */
-    val updated = nodeConfigurationService.selectUpdatedNodeConfiguration(allNodeConfigs, cache)
 
-    ComplianceDebugLogger.debug(s"Updated node configuration ids: ${updated.map {id =>
-      s"[${id.value}:${cache.get(id).fold("???")(x => computeNodeConfigIdFromCache(x).value)}->${computeNodeConfigIdFromCache(NodeConfigurationHash(allNodeConfigs(id))).value}]"
-    }.mkString("") }")
-
-    val writtingTime = Some(DateTime.now)
-    val fsWrite0   =  writtingTime.get.getMillis
+    val fsWrite0   =  System.currentTimeMillis
 
     for {
-      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated, allNodeConfigs, versions, allLicenses, globalPolicyMode)
+      written    <- promisesFileWriterService.writeTemplate(rootNodeId, updated.keySet, allNodeConfigs, updated, allLicenses, globalPolicyMode)
       ldapWrite0 =  DateTime.now.getMillis
       fsWrite1   =  (ldapWrite0 - fsWrite0)
       _          =  logger.debug(s"Node configuration written on filesystem in ${fsWrite1} ms")
-      //before caching, update the timestamp for last written time
-      toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet.map( (x:NodeConfiguration) => x.copy(writtenDate = writtingTime))
-      cached     <- nodeConfigurationService.cacheNodeConfiguration(toCache)
+      //update the hash for the updated node configuration for that generation
+      toCache    =  allNodeConfigs.filterKeys(updated.contains(_)).values.toSet
+      cached     <- nodeConfigurationService.cacheNodeConfiguration(toCache, generationTime)
       ldapWrite1 =  (DateTime.now.getMillis - ldapWrite0)
       _          =  logger.debug(s"Node configuration cached in LDAP in ${ldapWrite1} ms")
     } yield {
@@ -962,24 +1001,15 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
   override def setExpectedReports(
       ruleVal          : Seq[RuleVal]
     , configs          : Seq[NodeConfiguration]
-    , versions         : Map[NodeId, NodeConfigId]
+    , updatedNodes     : Map[NodeId, NodeConfigId]
     , updatedCrs       : Map[RuleId, Int]
     , deletedCrs       : Seq[RuleId]
-    , updatedNodeConfig: Set[NodeId]
     , generationTime   : DateTime
     , allNodeModes     : Map[NodeId, NodeModeConfig]
   ) : Box[Seq[NodeExpectedReports]] = {
 
-    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, versions)
+    val expandedRuleVal = getExpandedRuleVal(ruleVal, configs, updatedNodes)
     val updatedRuleVal = updateRuleVal(expandedRuleVal, updatedCrs)
-    val updatedConfigIds = updatedNodeConfig.flatMap(id =>
-      //we should have all the nodeConfig for the nodeIds, but if it isn't
-      //the case, it seems safer to not try to save a new version of the nodeConfigId
-      //for that node and just ignore it.
-      configs.find( _.nodeInfo.id == id).map { x =>
-        (x.nodeInfo.id, versions(x.nodeInfo.id))
-      }
-    ).toMap
 
     //we also want to build the list of overriden directive based on unique techniques.
     val overriden = configs.flatMap { nodeConfig =>
@@ -988,7 +1018,7 @@ trait PromiseGeneration_setExpectedReports extends PromiseGenerationService {
       })
     }.toSet
 
-    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedConfigIds, generationTime, overriden, allNodeModes)
+    reportingService.updateExpectedReports(updatedRuleVal, deletedCrs, updatedNodes, generationTime, overriden, allNodeModes)
   }
 
   override def invalidateComplianceCache(nodeIds: Set[NodeId]): Unit = {
