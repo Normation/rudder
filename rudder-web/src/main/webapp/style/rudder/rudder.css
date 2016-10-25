@@ -2009,7 +2009,7 @@ td.nestedImg{
    border-right:1px dotted;
 }
 
-td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.EnforceRepaired,td.AuditCompliant{
+td.EnforceSuccess,td.AuditNotApplicable,td.EnforceNotApplicable,td.EnforceRepaired,td.AuditCompliant,td.Compliant,td.NotApplicable,td.Success{
   background-color:#9bc832;
   color: #fff;
 }
@@ -2017,15 +2017,14 @@ td.Unexpected,td.BadPolicyMode {
   background-color: #c9302c;
   color: #fff;
 }
-td.AuditNonCompliant {
+td.AuditNonCompliant,td.NonCompliant {
   background-color:#ff7125;
   color: #fff;
 }
-td.Missing, td.EnforceError, td.AuditError{
+td.Missing,td.EnforceError,td.AuditError,td.Error{
   background-color:#c9302c;
   color: #fff;
 }
-
 td.Pending{
   background-color: #5bc0de;
   color: #fff;
