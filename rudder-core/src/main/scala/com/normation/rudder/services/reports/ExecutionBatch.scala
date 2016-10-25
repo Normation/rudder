@@ -667,7 +667,7 @@ object ExecutionBatch extends Loggable {
 
     val status = {
       val abort = agentExecutionReports.collect {
-        case r: LogReports if(r.nodeId == nodeId && r.directiveId.value.toLowerCase == "common" && r.component.toLowerCase == "abort run") =>
+        case r: LogReports if(r.nodeId == nodeId && r.component.toLowerCase == "abort run") =>
           RunComplianceInfo.PolicyModeError.AgentAbortMessage(r.keyValue, r.message)
       }.toSet
       val mixed = ruleNodeStatusReports.collect { case r => r.directives.collect { case (_, d) if (d.compliance.badPolicyMode > 0) =>

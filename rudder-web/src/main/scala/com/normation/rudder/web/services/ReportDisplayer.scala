@@ -269,24 +269,26 @@ class ReportDisplayer(
         }
     }
 
-    val specialPolicyModeError = report.statusInfo match {
+    val (updatedBackground, specialPolicyModeError) = report.statusInfo match {
       case RunComplianceInfo.OK |
-           RunComplianceInfo.PolicyModeInconsistency(Nil)  => NodeSeq.Empty
+           RunComplianceInfo.PolicyModeInconsistency(Nil)  => (background, NodeSeq.Empty)
       case RunComplianceInfo.PolicyModeInconsistency(list) =>
+        ("bg-danger text-danger",
         <div>
           <p>The node is reporting an error regarding the requested policy mode of the policies. This problem require special attention.</p>
           <ul>{list.map(error => error match {
             case RunComplianceInfo.PolicyModeError.TechniqueMixedMode(msg) => <li>{msg}</li>
             case RunComplianceInfo.PolicyModeError.AgentAbortMessage(cause, msg) => cause.toLowerCase match {
-              case "unsupported_dryrun"     => <li>That node does not support the request {PolicyMode.Audit.name} policy mode. The run was aborted to avoid changes</li>
-              case "repaired_during_dryrun" => <li>We detected a change for a check that was requested in {PolicyMode.Audit.name} policy mode. The run was aborted to further changes</li>
+              case "unsupported_dryrun"     => <li><b>That node does not support the request {PolicyMode.Audit.name} policy mode. The run was aborted to avoid changes</b></li>
+              case "repaired_during_dryrun" => <li><b>We detected a change for a check that was requested in {PolicyMode.Audit.name} policy mode. The run was aborted to further changes</b></li>
             }
           } ) }</ul>
         </div>
+        )
     }
 
     <div class="tw-bs">
-      <div id="node-compliance-intro" class={background}>
+      <div id="node-compliance-intro" class={updatedBackground}>
         <p>{explainCompliance(report.runInfo)}</p>{
           specialPolicyModeError ++
           lookReportsMessage
