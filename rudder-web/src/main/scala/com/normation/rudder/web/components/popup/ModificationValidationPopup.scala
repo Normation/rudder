@@ -141,7 +141,7 @@ final case object CreateAndModRules extends Action { val displayName: String = "
     case CreateAndModRules => s"Create a ${item}"
   }
 
-  private def explanationMessages(item:String, action: Action) = action match {
+  private def explanationMessages(item:String, action: Action, disabled: Boolean) = action match {
     case Enable =>
     <div class="row">
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
@@ -174,14 +174,16 @@ final case object CreateAndModRules extends Action { val displayName: String = "
             <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
                 Are you sure that you want to update this {item}?
             </h4>
-            <div id="directiveDisabled" class="nodisplay col-lg-12 col-sm-12 col-xs-12 alert alert-warning text-center" role="alert" >
-                <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
-                    <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
+        </div>++
+            { if (disabled)
+                <div class="col-lg-12 col-sm-12 col-xs-12 alert alert-warning text-center" role="alert" >
+                  <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
+                  <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
+                  </div>
                 </div>
-
-            </div>
-        </div>
-        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center space-top">
+            else NodeSeq.Empty
+             } ++
+        <div id="dialogDisableWarning" class="col-lg-12 col-sm-12 col-xs-12 alert alert-info text-center">
             Updating this {item} will have an impact on the following Rules which apply it.
         </div>
     case CreateSolo =>
@@ -195,13 +197,15 @@ final case object CreateAndModRules extends Action { val displayName: String = "
         <h4 class="col-lg-12 col-sm-12 col-xs-12 text-center">
             Are you sure that you want to create this {item}?
         </h4>
-    </div>
-    <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center">
-        <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
-            <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
-        </div>
-    </div>
-   <div class="alert alert-info col-lg-12 col-sm-12 col-xs-12 text-center space-bottom">
+    </div> ++
+        { if (disabled)
+          <div class="alert alert-warning col-lg-12 col-sm-12 col-xs-12 text-center">
+            <div class="col-lg-12 col-sm-12 col-xs-12 text-center">
+              <b>Warning:</b> This {item} is currently disabled. Your changes will not take effect until it is enabled.
+            </div>
+          </div> else NodeSeq.Empty
+        } ++
+   <div id="dialogDisableWarning" class="alert alert-info col-lg-12 col-sm-12 col-xs-12 text-center space-bottom">
       <b>Info:</b> Updating this {item} will have an impact on the following Rules which apply it.
     </div>
   }
@@ -244,7 +248,7 @@ class ModificationValidationPopup(
   private[this] val woDirectiveRepository    = RudderConfig.woDirectiveRepository
   private[this] val woRuleRepository         = RudderConfig.woRuleRepository
   private[this] val woChangeRequestRepo      = RudderConfig.woChangeRequestRepository
-  private[this] val recentChangesService    = RudderConfig.recentChangesService
+  private[this] val recentChangesService     = RudderConfig.recentChangesService
 
   //fonction to read state of things
   private[this] val getGroupLib              = RudderConfig.roNodeGroupRepository.getFullGroupLibrary _
@@ -257,9 +261,14 @@ class ModificationValidationPopup(
   }
 
   private[this] val name = if(item.isLeft) "Directive" else "Group"
-  private[this] val explanation = explanationMessages(name, action)
+
+  private[this] val disabled = item match {
+    case Left(item) => ! item._4.isEnabled
+    case Right(item) => ! item._1.isEnabled
+  }
+  private[this] val explanation : NodeSeq = explanationMessages(name, action, disabled)
   // When there is no rules, we need to remove the warning message
-  private[this] val explanationNoWarning = ("#dialogDisableWarning *" #> NodeSeq.Empty).apply(explanation)
+  private[this] val explanationNoWarning = ("#dialogDisableWarning" #> NodeSeq.Empty).apply(explanation)
   private[this] val groupLib = getGroupLib()
 
   private[this] val rules = {
@@ -309,7 +318,7 @@ class ModificationValidationPopup(
             }
           case _ => //item update
             if(crReasons.isDefined || workflowEnabled) {
-              Some((NodeSeq.Empty,NodeSeq.Empty))
+              Some((explanationNoWarning,NodeSeq.Empty))
             } else { //no wf, no message => the user can't do anything
               None
             }
