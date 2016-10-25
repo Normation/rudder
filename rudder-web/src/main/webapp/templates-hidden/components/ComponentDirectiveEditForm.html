@@ -52,95 +52,77 @@
         </div>
       </div>
       <hr class="spacer"/>
-  </lift:authz>
-
+    </lift:authz>
 
 		<div id="directiveInfoTab" class="unfoldedSection" onclick="$('#directiveInfo').toggle(400); $('#directiveInfoTab').toggleClass('foldedSection');$('#directiveInfoTab').toggleClass('unfoldedSection');">
 		  <div class="section-title">Directive information</div>
 		</div>
-		<div id="directiveInfo"  >
-		   <hr class="spacer" />
-      	   <div id="nameField">
-             Here comes the name field
-           </div>
-           <hr class="spacer" />
-           <div id="shortDescriptionField">
-             Here comes the shortDescription field
-           </div>
-           <hr class="spacer" />
-           <div id="longDescriptionField">
-             Here comes the longDescription field
-           </div>
-           <hr class="spacer" />
-           <div id="priority">
-             Here come the priority field
-           </div>
-           <hr class="spacer" />
-           <div id="policyModes">
-             Here come the policy mode field
-           </div>
-           <hr class="spacer" />
-           <div id="version">
-             Here come the version field
-           </div>
-           <hr class="spacer" />
-           <span class="tw-bs">
-             <div id="migrate">
-               Here come the migrate field
-             </div>
-           </span>
-           <hr class="spacer" />
-      	   <div class="directiveTechnicalInfo" id="showTechnical"></div>
-           <div id="technicalDetails" style="display:none">
-             <div class="directiveTechnicalInfo">
-               <b class="threeCol">Technique name: </b>
-               <span id="techniqueName">
-                 Technique name
-               </span>
-             </div>
-             <hr class="spacer"/>
-             <div class="directiveTechnicalInfo">
-               <b class="threeCol">Technique description: </b>
-               <span id="techniqueDescription">
-                 Technique description
-               </span>
-             </div>
-             <hr class="spacer"/>
-             <div class="directiveTechnicalInfo">
-               <b class="threeCol">Technique unicity: </b>
-               <span id="isSingle">
-                 isSingle
-               </span>
-             </div>
-             <hr class="spacer"/>
-             <div class="directiveTechnicalInfo">
-               <b class="threeCol">Supported operating systems: </b>
-               <div id="compatibilityOs">
-                 System Compatibility
-               </div>
-             </div>
-             <hr class="spacer"/>
-             <div class="directiveTechnicalInfo">
-               <b class="threeCol">Supported agents: </b>
-               <div id="compatibilityAgent">
-                 System Compatibility
-               </div>
-             </div>
-             <hr class="spacer"/>
-             <div class="directiveTechnicalInfo">
-               <b class="threeCol">Directive Rudder ID: </b>
-               <span id="rudderID">
-                 Here comes the rudder ID
-               </span>
-             </div>
-             <hr class="spacer"/>
-           </div>
-         <br/>
-         </div>
-        <div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
-          <div class="section-title">Parameters</div>
-          <div id="notifications"></div>
+		<div id="directiveInfo" class="tw-bs">
+      <div id="nameField">
+        Here comes the name field
+      </div>
+      <div id="shortDescriptionField">
+        Here comes the shortDescription field
+      </div>
+      <div id="longDescriptionField">
+        Here comes the longDescription field
+      </div>
+      <div id="priority">
+        Here come the priority field
+      </div>
+      <div id="policyModes">
+        Here come the policy mode field
+      </div>
+      <div id="version">
+        Here come the version field
+      </div>
+      <div id="migrate">
+        Here come the migrate field
+      </div>
+      <div class="directiveTechnicalInfo" id="showTechnical"></div>
+      <div id="technicalDetails" style="display:none" class="well">
+        <div class="directiveTechnicalInfo row wbBaseField form-group">
+          <label>Technique name</label>
+            <div id="techniqueName">
+              Technique name
+            </div>
         </div>
+        <div class="directiveTechnicalInfo row wbBaseField form-group">
+          <label>Technique description</label>
+          <div id="techniqueDescription" class="fake-form-control textarea readonly">
+            Technique description
+          </div>
+        </div>
+        <div class="directiveTechnicalInfo row wbBaseField form-group">
+          <label>Technique unicity</label>
+          <div id="isSingle" class="fake-form-control readonly">
+            isSingle
+          </div>
+        </div>
+        <div class="directiveTechnicalInfo row wbBaseField form-group">
+          <label>Supported operating systems</label>
+          <div id="compatibilityOs" class="fake-form-control readonly">
+            System Compatibility
+          </div>
+        </div>
+        <div class="directiveTechnicalInfo row wbBaseField form-group">
+          <label>Supported agents</label>
+          <div id="compatibilityAgent" class="fake-form-control readonly">
+            System Compatibility
+          </div>
+        </div>
+        <div class="directiveTechnicalInfo row wbBaseField form-group">
+          <label>Directive Rudder ID</label>
+          <div id="rudderID" class="fake-form-control readonly">
+            Here comes the rudder ID
+          </div>
+        </div>
+      </div>
+    </div>
+    <div  id="directiveParametersTab" class="unfoldedSection" onclick="$('#parameters').toggle(400); $('#directiveParametersTab').toggleClass('foldedSection');$('#directiveParametersTab').toggleClass('unfoldedSection');">
+      <div class="section-title">Parameters</div>
+      <div id="notifications"></div>
+    </div>
     <div id="parameters">Here goes the list of parameters</div>
 
     <div  id="ruleTargetSection" class="unfoldedSection" onclick="$('#directiveRulesTab').toggle(400); $('#ruleTargetSection').toggleClass('foldedSection');$('#ruleTargetSection').toggleClass('unfoldedSection');">
@@ -148,7 +130,6 @@
       </div>
 		<div id="directiveRulesTab">
 		 </div>
-    <hr class="spacer"/>
 
 	<lift:authz role="directive_edit">
 	<div class="fixed-footer directive-footer tw-bs">
