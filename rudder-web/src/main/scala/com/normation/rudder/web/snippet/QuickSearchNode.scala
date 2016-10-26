@@ -70,7 +70,7 @@ class QuickSearchNode extends DispatchSnippet with Loggable {
     val bind = (
       "#angucomplete-ie8-quicksearch  [remote-url]" #> s"${S.contextPath}/secure/api/quicksearch/"
     )
-    (bind(html) ++ Script(OnLoad(JsRaw(s"initQuicksearchDocinfo(${jsonDocinfo})"))))
+    (bind(html))
   }
 
   //json view of the aliases
