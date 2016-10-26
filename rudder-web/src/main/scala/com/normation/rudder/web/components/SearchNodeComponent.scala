@@ -322,8 +322,13 @@ class SearchNodeComponent(
    * @return
    */
   def activateButtonOnChange() : JsCmd = {
-    onSearchCallback(searchFormHasError, query) &
-    JE.JsRaw("""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "%s");  """.format(saveButtonId))
+    // If saved button id is not defined do not disable save button
+    val disableGridOnChange : JsCmd = if (saveButtonId != "") {
+      JE.JsRaw(s"""activateButtonDeactivateGridOnFormChange("queryParameters", "SubmitSearch",  "serverGrid", "${saveButtonId}");""")
+    } else {
+      Noop
+    }
+    onSearchCallback(searchFormHasError, query) & disableGridOnChange
   }
 
   /**
