@@ -74,11 +74,14 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   private[this] val reportsExecutionTable = "reportsexecution"
   private[this] val common_reports_column = "executiondate, ruleid, directiveid, nodeid, serial, component, keyvalue, executiontimestamp, eventtype, msg"
+  // When we want reports we already know the type (request with where clause on eventtype) we do not want eventtype in request because it will be used as value for message in corresponding case class
+  private[this] val typed_reports_column = "executiondate, ruleid, directiveid, nodeid, serial, component, keyvalue, executiontimestamp, msg"
 
   //just an utility to remove multiple spaces in query so that we can vertically align them an see what part are changing - the use
   //of greek p is to discurage use elsewhere
   private[this] def þ(s: String) = s.replaceAll("""\s+""", " ")
   private[this] val baseQuery         = þ(s"select     ${common_reports_column} from RudderSysEvents         where 1=1 ")
+  private[this] val typedQuery        = þ(s"select     ${typed_reports_column}  from RudderSysEvents         where 1=1 ")
   private[this] val idQuery           = þ(s"select id, ${common_reports_column} from ruddersysevents         where 1=1 ")
   private[this] val baseArchivedQuery = þ(s"select     ${common_reports_column} from archivedruddersysevents where 1=1 ")
 
@@ -400,7 +403,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
 
   override def getChangeReportsOnInterval(lowestId: Long, highestId: Long): Box[Seq[ResultRepairedReport]] = {
     query[ResultRepairedReport](s"""
-      ${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
+      ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and id >= ${lowestId} and id <= ${highestId}
       order by executionTimeStamp asc
     """).vector.attempt.transact(xa).run
   }
@@ -411,7 +414,7 @@ class ReportsJdbcRepository(doobie: Doobie) extends ReportsRepository with Logga
       case _                 => ""
     }
     query[ResultRepairedReport](s"""
-      ${baseQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}'
+      ${typedQuery} and eventtype='${Reports.RESULT_REPAIRED}' and ruleid='${ruleId.value}'
       and executionTimeStamp >  '${new Timestamp(interval.getStartMillis)}'::timestamp
       and executionTimeStamp <= '${new Timestamp(interval.getEndMillis)  }'::timestamp order by executionTimeStamp asc ${l}
     """).vector.attempt.transact(xa).run
