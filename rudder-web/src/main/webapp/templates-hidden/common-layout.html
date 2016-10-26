@@ -133,9 +133,13 @@
                     autocomplete="off"
                     ng-change="inputChangeHandler(searchStr);$parent.refreshFilterSearch(searchStr)"/>
 
-                  <label ng-class="{noRemove:!searchStr}" class="input-group-addon" id="help-search" for="searchInput">
+                  <label ng-class="{noRemove:!searchStr}" class="input-group-addon" id="clear-search" for="searchInput">
                     <span ng-click="$parent.setValueSearchInput('');$parent.refreshFilterSearch(searchStr);" class="glyphicon glyphicon-remove"></span>
                   </label>
+
+                  <a class="input-group-addon" id="help-search" href="/rudder-doc/search-nodes.html" target="_blank">
+                    <span class="glyphicon glyphicon-question-sign"></span>
+                  </a>
                 <div id="background-fade-quicksearch"></div>
                 <ul class="dropdown-menu dropdown-search dropdown-menu-right">
                   <li class="dropdown-header">
