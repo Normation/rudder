@@ -63,9 +63,14 @@ trait UpdateExpectedReportsRepository {
   def deleteNodeConfigIdInfo(date:DateTime) : Box[Int]
 
   /**
-   * Delete all expected reports closed before a date
+   * Archive all NodeConfigurations closed before a date
    */
-  def deleteExpectedReports(date: DateTime) : Box[Int]
+  def archiveNodeConfigurations(date: DateTime) : Box[Int]
+
+  /**
+   * Delete all NodeNonfigurations closed before a date
+   */
+  def deleteNodeConfigurations(date: DateTime) : Box[Int]
 
 }
 
