@@ -34,7 +34,7 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
   $scope.setFocus = function(selector){
     $(selector).focus();
   };
-  $scope.docinfo = [];
+
   $scope.selectedObject = function(selected) {
     if(selected && selected.url) {
       var previousPath = window.location.pathname;
@@ -164,14 +164,6 @@ quicksearch.controller('QuicksearchCtrl', function QuicksearchCtrl($scope, $root
     return $scope.filter.all.activated || (!$scope.filter.directive.activated && !$scope.filter.group.activated && !$scope.filter.node.activated && !$scope.filter.parameter.activated && !$scope.filter.rule.activated)
   }
 });
-
-// Helper function to access from outside angular scope
-function initQuicksearchDocinfo(json) {
-  var scope = angular.element($("#quicksearch")).scope();
-  scope.$apply(function() {
-    scope.docinfo = JSON.parse(json);
-  });
-};
 
 $(document).ready(function(){
   $('.nav.navbar-nav > li.dropdown').on('show.bs.dropdown', function () {
