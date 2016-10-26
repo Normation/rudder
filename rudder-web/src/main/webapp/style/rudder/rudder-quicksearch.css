@@ -29,30 +29,33 @@
 .tw-bs .navbar-form input.form-control{
   border-right-color: #e9e9e9;
 }
-.tw-bs #help-search {
+.tw-bs #clear-search {
   cursor:text;
   -webkit-transition: all .3s ease-in-out;
   -o-transition: all .3s ease-in-out;
   transition: all .3s ease-in-out;
   color:#888;
 }
-.tw-bs input:focus + #help-search {
+.tw-bs input:focus + #clear-search {
   opacity:1;
   color:#BBB;
 }
-.tw-bs #help-search .glyphicon {
+.tw-bs #clear-search .glyphicon {
   -webkit-transition-duration: .2s;
   -o-transition-duration: .2s;
   transition-duration: .2s;
 }
-.tw-bs input:focus + #help-search .glyphicon:hover {
+.tw-bs input:focus + #clear-search .glyphicon:hover {
   color:#888;
 }
-.tw-bs #help-search>span {
+.tw-bs #clear-search>span {
   cursor:pointer;
 }
-.tw-bs #help-search.noRemove>span{
+.tw-bs #clear-search.noRemove>span{
   visibility:hidden;
+}
+.tw-bs #help-search{
+  border-left:1px solid #ccc;
 }
 .doc .btn{
   color: #555;
@@ -378,6 +381,7 @@
 }
 .tw-bs .angucomplete-dropdown .angucomplete-description {
   color: #828282;
+  font-size: 14px;
 }
 .tw-bs .dropdown-search .list-group-item .panel-heading {
   margin: -10px;
