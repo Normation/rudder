@@ -330,25 +330,65 @@ class UpdateExpectedReportsJdbcRepository(
   }
 
 
-  /**
-   * Delete all expected reports closed before a date
-   */
-  override def deleteExpectedReports(date: DateTime) : Box[Int] = {
-    // Find all nodejoinkey that have expected reports closed more before date
+  override def archiveNodeConfigurations(date:DateTime) : Box[Int] = {
+    val dateAt_0000 = date.toString("yyyy-MM-dd")
+    val copy = s"""
+      insert into archivednodeconfigurations
+        (nodeid, nodeconfigid, begindate, enddate, configuration)
+        (select nodeid, nodeconfigid, begindate, enddate, configuration
+           from nodeconfigurations
+           where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'
+        )
+        """
+    val delete = s"""
+      delete from nodeconfigurations where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'
+    """
+
+    logger.debug(s"""Archiving NodeConfigurations with SQL query: [[
+                 | ${copy}
+                 |]] and: [[
+                 | ${delete}
+                 |]]""".stripMargin)
+
     (for {
-      d1 <- sql"delete from expectedreports where coalesce(endDate, ${date}) < ${date}".update.run
-      d2 <- if(d1 == 0) {
-              0.point[ConnectionIO]
-            } else {
-              logger.debug(s"Deleted ${d1} expected reports closed before ${date}")
-              sql"""
-                delete from expectedreportsnodes where nodejoinkey not in (select nodejoinkey from expectedreports)
-              """.update.run
-            }
+       i <- (copy :: delete :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
     } yield {
-      logger.debug(s"Deleted ${d2} expected reports node")
-      d1
-    }).attempt.transact(xa).run
+       i
+    }) match {
+      case -\/(ex) =>
+        val msg ="Could not archive NodeConfigurations in the database, cause is " + ex.getMessage()
+        logger.error(msg)
+        Failure(msg, Full(ex), Empty)
+      case \/-(i)  => Full(i.sum)
+     }
+  }
+
+  /**
+   * Delete all NodeConfigurations closed before a date
+   */
+  override def deleteNodeConfigurations(date: DateTime) : Box[Int] = {
+
+    val dateAt_0000 = date.toString("yyyy-MM-dd")
+    val d1 = s"delete from archivednodeconfigurations where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'"
+    val d2 = s"delete from nodeconfigurations where coalesce(endDate, '${dateAt_0000}') < '${dateAt_0000}'"
+
+    logger.debug(s"""Deleting NodeConfigurations with SQL query: [[
+                   | ${d1}
+                   |]] and: [[
+                   | ${d2}
+                   |]]""".stripMargin)
+
+    (for {
+      i <- (d1 :: d2 :: Nil).traverse(q => Update0(q, None).run).attempt.transact(xa).run
+    } yield {
+      i
+    }) match  {
+      case -\/(ex) =>
+        val msg ="Could not delete NodeConfigurations in the database, cause is " + ex.getMessage()
+        logger.error(msg)
+        Failure(msg, Full(ex), Empty)
+      case \/-(i)  => Full(i.sum)
+    }
   }
 
 
@@ -367,7 +407,6 @@ class UpdateExpectedReportsJdbcRepository(
                                 )
                                }.toMap
       update                <- updateNodeConfigIdInfo(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, current)})
-      purgedExpectedReports <- purgeNodeConfigId(mapOfBeforeAfter.map{ case (nodeId, (old, current)) => (nodeId, old.map(x => x.configId))})
     } yield {
       update.size
     }).attempt.transact(xa).run
@@ -385,56 +424,6 @@ class UpdateExpectedReportsJdbcRepository(
       Update[(String, String)]("""
         update nodes_info set config_ids = ? where node_id = ?
       """).updateMany(params).map(_ => configInfos.keySet)
-    }
-  }
-
-  private[this] def updateNodeConfigVersionIO(toUpdate: Seq[(Int, NodeConfigVersions)]): ConnectionIO[Seq[(Int,NodeConfigVersions)]] = {
-      val params = toUpdate.map { case (nodeJoinKey, config) =>
-        (config.versions.map(_.value), nodeJoinKey, config.nodeId.value)
-      }.toList
-
-      Update[(List[String], Int, String)]("""
-        update expectedreportsnodes set nodeconfigids = ? where nodejoinkey = ? and nodeid = ?
-      """).updateMany(params).map( _ => toUpdate)
-  }
-
-  /**
-   * From a map of Node -> RemovedNodeConfigId, remove all those config id from the expected reports
-   */
-  private[jdbc] def purgeNodeConfigId(nodeConfigIdToRemove : Map[NodeId, Seq[NodeConfigId]]) = {
-
-
-    // extract all the config to remove
-    val nodeConfigIdToRemoveList = nodeConfigIdToRemove.values.flatten.toList
-
-    nodeConfigIdToRemoveList.toNel match {
-      case None => //abort
-        Map.empty[NodeId, Seq[NodeConfigId]].point[ConnectionIO]
-
-      case Some(allConfigToRemove) =>
-        implicit val nodesParam = Param.many(allConfigToRemove)
-
-        for {
-          // fetch all the nodejoinkey -> configIdversion in the expected reports table
-          currentNodeConfigId    <- sql"""
-                                      select nodejoinkey, nodeid, nodeconfigids
-                                      from expectedreportsnodes where nodeid in (${allConfigToRemove: allConfigToRemove.type})
-                                    """.query[(Int, NodeConfigVersions)].vector
-
-          // list all those that contains version that must be removed
-          nodesToClean           =  currentNodeConfigId.filter{ case (nodeJoinKey, nodeConfigVersion) =>
-                                      nodeConfigVersion.versions.exists(x => nodeConfigIdToRemoveList.contains(x))
-                                    }
-          // filter out all the version to remove
-          cleanedReports         =  nodesToClean.map { case (nodeJoinKey, nodeConfigVersion) =>
-                                      (nodeJoinKey, nodeConfigVersion.copy(versions = nodeConfigVersion.versions.filterNot(x =>  nodeConfigIdToRemoveList.contains(x))) )
-                                    }
-
-          // we update these config
-          cleanedExpectedReports <- updateNodeConfigVersionIO(cleanedReports)
-        } yield {
-          cleanedExpectedReports
-        }
     }
   }
 

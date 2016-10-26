@@ -103,17 +103,21 @@ class DatabaseManagerImpl(
    }
 
    def archiveEntries(date : DateTime) =  {
-     reportsRepository.archiveEntries(date)
+     val archiveReports = reportsRepository.archiveEntries(date)?~! "An error occured while archiving reports"
+     val archiveNodeConfigs = expectedReportsRepo.archiveNodeConfigurations(date) ?~! "An error occured while archiving Node Configurations"
+
+      // Accumulate errors, them sum values
+     (Control.bestEffort(Seq(archiveReports, archiveNodeConfigs)) (identity)).map(_.sum)
    }
 
 
    def deleteEntries(date : DateTime) : Box[Int] = {
      val reports = reportsRepository.deleteEntries(date) ?~! "An error occured while deleting reports"
      val nodeConfigs = expectedReportsRepo.deleteNodeConfigIdInfo(date) ?~! "An error occured while deleting reports"
-     val expectedReports = expectedReportsRepo.deleteExpectedReports(date) ?~! "An error occured while old expected reports"
+     val deleteNodeConfigs = expectedReportsRepo.deleteNodeConfigurations(date) ?~! "An error occured while deleting Node Configurations"
 
      // Accumulate errors, them sum values
-     (Control.bestEffort(Seq(reports, nodeConfigs, expectedReports)) (identity)).map(_.sum)
+     (Control.bestEffort(Seq(reports, nodeConfigs, deleteNodeConfigs)) (identity)).map(_.sum)
 
    }
 }
