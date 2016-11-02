@@ -18,6 +18,82 @@
 
 # @name File from template with type
 # @description This is a bundle to build a file from a template
+# @documentation These methods write a file based on a provided template and the
+# data available to the agent.
+# 
+# #### Usage
+#
+# To use these methods (`file_from_template_*`), you need to have:
+#
+# * a template file
+# * data to fill this template
+#
+# The template file should be somewhere on the local file system, so
+# if you want to use a file shared from the policy server, you need to copy 
+# it first (using [file_copy_from_remote_source](#file_copy_from_remote_source)).
+#
+# It is common to use a specific folder to store those templates after copy,
+# for example in `${sys.workdir}/templates/`.
+#
+# The data that will be used while expanding the template is the data available in
+# the agent at the time of expansion. That means:
+#
+# * CFEngine's sytem variables (`${sys.*}`, ...) and classes (`linux`, ``)
+# * data defined during execution (outcome classes of generic methods, ...)
+# * classes based on `condition_` generic methods
+# * data defined in ncf using `variable_*` generic methods, which allow for example
+#   to load data from local json or yaml files.
+#
+# #### Template types
+#
+# ncf currently supports two templating languages:
+#
+# * mustache templates, which are documented in [file_from_template_mustache](#file_from_template_mustache)
+# * CFEngine templates, which are a legacy implementation that is here for compatibility,
+# and should not be used for new templates.
+#
+# #### Example
+#
+# Here is a complete example of templating usage:
+#
+# The (basic) template file, present on the server in `/PATH_TO_MY_FILE/ntp.conf.mustache`
+# (for syntax reference, see [file_from_template_mustache](#file_from_template_mustache)):
+#
+# ```mustache
+# {{#classes.linux}}
+# server {{{vars.configuration.ntp.hostname}}}
+# {{/classes.linux}}
+# {{^classes.linux}}
+# server hardcoded.server.example
+# {{/classes.linux}}
+#
+# ```
+#
+# And on your local node in `/tmp/ntp.json`, the following json file:
+#
+# ```json
+# { "hostname": "my.hostname.example" }
+# ```
+#
+# And the following policy:
+#
+# ```
+# # Copy the file from the policy server
+# file_copy_from_remote_source("/PATH_TO_MY_FILE/ntp.conf.mustache", "${sys.workdir}/templates/ntp.conf.mustache")
+# # Define the `ntp` varibale in the `configuration` prefix from the json file
+# variable_dict_from_file("configuration", "ntp", "/tmp/ntp.json")
+# # Expand yout template
+# file_from_template_type("${sys.workdir}/templates/ntp.conf.mustache", "/etc/ntp.conf", "mustache")
+# # or
+# # file_from_template_mustache("${sys.workdir}/templates/ntp.conf.mustache", "/etc/ntp.conf")
+# ```
+#
+# The destination file will contain the expanded content, for example on a Linux node:
+#
+# ```
+# server my.hostname.example
+# ```
+#
 # @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded

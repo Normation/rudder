@@ -18,6 +18,149 @@
 
 # @name File from a mustache template
 # @description This is a bundle to build a file from a mustache template
+# @documentation See [file_from_template_type](#file_from_template_type) for general documentation about
+# templates usage.
+#
+# #### Syntax
+#
+# Mustache is a logic-less templating language, available in a lot of languages, and
+# used for file templating in CFEngine.
+# The mustache syntax reference is [https://mustache.github.io/mustache.5.html](https://mustache.github.io/mustache.5.html).
+#
+# We will here describe the way to get agent data into a template. Ass explained in the general templating
+# documentation, we can access various data in a mustache template.
+#
+# The main specificity compared to standard mustache syntax of prefixes in all expanded values:
+#
+# * `classes` to access classes
+# * `vars` to access all variables
+#
+# ##### Classes
+#
+# Here is how to display content depending on classes definition:
+#
+# ```mustache
+# {{#classes.my_class}}
+#    content when my_class is defined
+# {{/classes.my_class}}
+#
+# {{^classes.my_class}}
+#    content when my_class is *not* defined
+# {{/classes.my_class}}
+# ```
+#
+# Note: You cannot use class expressions here.
+#
+# ##### Scalar variable
+#
+# Here is how to display a scalar variable value (integer, string, ...),
+# if you have defined `variable_string("variable_prefix", "my_variable", "my_value")`:
+#
+# ```
+# {{{vars.variable_prefix.my_variable}}}
+# ```
+#
+# We use the triple `{{{ }}}` to avoid escaping html entities.
+#
+# ##### Iteration
+#
+# Iteration is done using a syntax similar to scalar variables, but applied
+# on container variables.
+#
+# * Use `{{#vars.container}} content {{/vars.container}}` to iterate
+# * Use `{{{.}}}` for the current element value in iteration
+# * Use `{{{.key}}}` for the `key` value in current element
+# * Use `{{{@}}}` for the current element key in iteration
+#
+# To iterate over a list, for example defined with:
+#
+# ```
+# variable_iterator("variable_prefix", "iterator_name", "a,b,c", ",")
+# ```
+#
+# Use the following file:
+#
+# ```mustache
+# {{#vars.variable_prefix.iterator_name}}
+# {{{.}}} is the current iterator_name value
+# {{/vars.variable_prefix.iterator_name}}
+# ```
+#
+# Which will be expanded as:
+#
+# ```
+# a is the current iterator_name value
+# b is the current iterator_name value
+# c is the current iterator_name value
+# ```
+#
+# To iterate over a container defined by the following json file, loaded with 
+# `variable_dict_from_file("variable_prefix", "dict_name", "path")`:
+#
+# ```json
+# {
+#    "hosts": [
+#        "host1",
+#        "host2"
+#    ],
+#    "files": [
+#        {"name": "file1", "path": "/path1", "users": [ "user1", "user11" ] },
+#        {"name": "file2", "path": "/path2", "users": [ "user2" ] }
+#    ],
+#    "properties": {
+#        "prop1": "value1",
+#        "prop2": "value2"
+#    }
+# }
+# ```
+#
+# Use the following template:
+#
+# ```mustache
+# {{#vars.variable_prefix.dict_name.hosts}}
+# {{{.}}} is the current hosts value
+# {{/vars.variable_prefix.dict_name.hosts}}
+#
+# # will display the name and path of the current file
+# {{#vars.variable_prefix.dict_name.files}}
+# {{{.name}}}: {{{.path}}}
+# {{/vars.variable_prefix.dict_name.files}}
+#
+# # will display the users list of each file
+# {{#vars.variable_prefix.dict_name.files}}
+# {{{.name}}}:{{#users}} {{{.}}}{{/users}}
+# {{/vars.variable_prefix.dict_name.files}}
+#
+#
+# # will display the current properties key/value pair
+# {{#vars.variable_prefix.dict_name.properties}}
+# {{{@}}} -> {{{.}}}
+# {{/vars.variable_prefix.dict_name.properties}}
+#
+# ```
+#
+# Which will be expanded as:
+#
+# ```
+# host1 is the current hosts value
+# host2 is the current hosts value
+#
+# # will display the name and path of the current file
+# file1: /path1
+# file2: /path2
+#
+# # will display the users list of each file
+# file1: user1 user11
+# file2: user2
+#
+# # will display the current properties key/value pair
+# prop1 -> value1
+# prop2 -> value2
+# ```
+#
+# Note: Starting from CFEngine 3.7, you can use `{{#-top-}} ... {{/-top-}}`
+# to iterate over the top level container.
+#
 # @agent_version >=3.6
 #
 # @parameter source_template Source file containing a template to be expanded
