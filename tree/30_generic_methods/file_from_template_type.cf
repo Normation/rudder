@@ -46,9 +46,10 @@
 #
 # #### Template types
 #
-# ncf currently supports two templating languages:
+# ncf currently supports three templating languages:
 #
-# * mustache templates, which are documented in [file_from_template_mustache](#file_from_template_mustache)
+# * *mustache* templates, which are documented in [file_from_template_mustache](#file_from_template_mustache)
+# * *jinja2* templates, which are documented in [file_from_template_jinja2](#file_from_template_jinja2)
 # * CFEngine templates, which are a legacy implementation that is here for compatibility,
 # and should not be used for new templates.
 #
