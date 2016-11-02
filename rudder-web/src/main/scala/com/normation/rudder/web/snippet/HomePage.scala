@@ -112,7 +112,7 @@ case class RedChart (value : Int) extends ComplianceLevelPieChart{
 
 case class PendingChart (value : Int) extends ComplianceLevelPieChart{
   val label = "Applying"
-  val color = "#b4b4b4"
+  val color = "#5bc0de"
 }
 
 object HomePage {
