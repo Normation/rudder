@@ -452,12 +452,12 @@ class RuleEditForm(
 
   private[this] def includeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
     val target = targetInfo.target.target.target
-    JsRaw(s"""includeTarget("${target}");""")
+    JsRaw(s"""includeTarget(event, "${target}");""")
   }
 
   private[this] def excludeRuleTarget(targetInfo: FullRuleTargetInfo) : JsCmd = {
     val target = targetInfo.target.target.target
-    JsRaw(s"""excludeTarget("${target}");""")
+    JsRaw(s"""excludeTarget(event, "${target}");""")
   }
 
   /////////////////////////////////////////////////////////////////////////
