@@ -991,9 +991,9 @@ a.sidebar-toggle{
 }
 #directiveDetails{
   border-left: 15px solid #ECF0F5;
+  max-height:88vh;
 }
 #directiveDetails,.directiveTree{
-  max-height:88vh;
   overflow-y:auto;
   overflow-x:hidden;
   padding-bottom: 20px;
@@ -1001,6 +1001,7 @@ a.sidebar-toggle{
 .directiveTree {
   padding-left: 10px;
   padding-right: 10px;
+  max-height: calc(100vh - 70px);
 }
 .ui-widget.ui-tooltip h4{
   margin-bottom: 10px;
