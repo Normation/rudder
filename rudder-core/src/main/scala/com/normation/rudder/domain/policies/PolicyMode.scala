@@ -56,11 +56,11 @@ final object PolicyMode {
     }
   }
 
-  //get from string, 'default' will result in a None
+  //get from string, with null, '' and 'default' will result in a None
   def parseDefault (value : String) : Box[Option[PolicyMode]] = {
     value match {
-      case "default" => Full(None)
-      case _ => parse(value).map(Some(_))
+      case null | "" | "default" => Full(None)
+      case _                     => parse(value).map(Some(_))
     }
   }
 
