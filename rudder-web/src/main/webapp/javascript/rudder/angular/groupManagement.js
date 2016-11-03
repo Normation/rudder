@@ -121,14 +121,16 @@ groupManagement.directive('tooltip', function () {
 
 // Helper function to access from outside angular scope
 
-function excludeTarget(target) {
+function excludeTarget(event, target) {
+  event.stopPropagation();
   var scope = angular.element($("#GroupCtrl")).scope();
   scope.$apply(function() {
     scope.addExclude(target);
   });
 };
 
-function includeTarget(target) {
+function includeTarget(event, target) {
+  event.stopPropagation();
   var scope = angular.element($("#GroupCtrl")).scope();
   scope.$apply(function(){
     scope.addInclude(target);
