@@ -246,7 +246,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
   // First mandatory row, so do general thing on the row ( line css, description tooltip ...)
   var name = {
       "mDataProp": "name"
-    , "sWidth": "20%"
+    , "sWidth": "28%"
     , "sTitle": "Name"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
@@ -293,7 +293,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
   // Rule Category
   var category =
     { "mDataProp": "category"
-    , "sWidth": "20%"
+    , "sWidth": "12%"
     , "sTitle": "Category"
     };
 
