@@ -271,15 +271,17 @@ class AcceptNode extends Loggable {
           $('#pendingNodeConfirm').dataTable({
             "asStripeClasses": [ 'color1', 'color2' ],
             "bAutoWidth": false,
-            "bFilter" :false,
-            "bLengthChange": false,
+            "bFilter" :true,
+            "bLengthChange": true,
             "bPaginate": false,
-            "bJQueryUI": false,
+            "bJQueryUI": true,
             "aaSorting": [[ 0, "asc" ]],
             "aoColumns": [
               { "sWidth": "180px" },
               { "sWidth": "300px" }
-            ]
+            ],
+            "lengthMenu": [ [10, 25, 50, 100, 500, 1000, -1], [10, 25, 50, 100, 500, 1000, "All"] ],
+            "pageLength": 25
           });"""
         ) & JsRaw(s"""
               createPopup("${popupId}");
