@@ -1043,6 +1043,9 @@ a.sidebar-toggle{
 .fixed-footer.directive-footer .btn,.fixed-footer.rule-footer .btn{
 	min-width:80px;
 }
+#priority select.form-control,#version select.form-control{
+  width: 70px;
+}
 /* --- LABEL --- */
 #badge-apm{
   margin-left: 5px;
