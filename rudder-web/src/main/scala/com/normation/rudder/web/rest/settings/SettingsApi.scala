@@ -492,7 +492,6 @@ class SettingsAPI8(
         setting <- RestSetting.allSettings
         value   <- setting.setFromRequestOpt(req)
       } yield {
-        logger.info(value)
         if (value.isDefined) generate = generate || setting.startPolicyGeneration
         JField(setting.key , value)
       }
