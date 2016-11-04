@@ -358,9 +358,14 @@ along with Rudder.  If not, see <http://www.gnu.org/licenses/>.
     <appender-ref ref="REPORTLOG" />
   </logger>
 
+  <!--
+   Quicksearch
+   ===========
 
-
-
+    Uncomment and set to "debug" or "trace" to get debugging information about the
+    quicksearch: what is the parsed query, how many results come from each backend, etc.
+   -->
+  <logger name="com.normation.rudder.services.quicksearch" level="info" />
 
 
   <!-- ==================================================== -->
