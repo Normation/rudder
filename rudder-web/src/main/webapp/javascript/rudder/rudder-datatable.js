@@ -36,13 +36,18 @@
 */
 
 var anOpen = [];
-
 var ruleCompliances = {};
 var recentChanges = {};
 var recentChangesCount = {};
 var recentGraphs = {};
-
 var nodeCompliances = {};
+/* Create an array with the values of all the checkboxes in a column */
+$.fn.dataTable.ext.order['dom-checkbox'] = function  ( settings, col )
+{
+    return this.api().column( col, {order:'index'} ).nodes().map( function ( td, i ) {
+        return $('input', td).prop('checked') ? '0' : '1';
+    } );
+}
 
 /*
  * This function is used to resort a table after its sorting datas were changed ( like sorting function below)
@@ -212,15 +217,12 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
     }
     return elem;
   }
-
-  // Define which columns should be sorted by default
   var sortingDefault;
   if (needCheckbox) {
     sortingDefault = 1;
   } else {
     sortingDefault = 0;
   }
-
   // Define all columns of the table
 
   // Checkbox used in check if a Directive is applied by the Rule
@@ -228,7 +230,8 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
       "mDataProp": "applying"
     , "sTitle" : "<input id='checkAll' type='checkbox'></input>"
     , "sWidth": "30px"
-    , "bSortable": false
+    , "bSortable": true
+    , "orderDataType": "dom-checkbox"
     , "fnCreatedCell" : function (nTd, sData, oData, iRow, iCol) {
         var data = oData;
         var elem = $("<input type='checkbox'></input>");
@@ -427,7 +430,7 @@ function createRuleTable(gridId, data, needCheckbox, needActions, needCompliance
          }
        })
       }
-    , "aaSorting": [[ sortingDefault, "asc" ]]
+    , "aaSorting": [[ 0, "asc" ] , [ sortingDefault, "asc" ]]
     , "sDom": '<"dataTables_wrapper_top newFilter"f<"dataTables_refresh">>rt<"dataTables_wrapper_bottom"lip>'
   }
 
